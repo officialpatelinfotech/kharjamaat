@@ -86,7 +86,7 @@
                   <td class="text-success"><?php echo number_format($pay['amount'], 2) ?></td>
                   <td><?php echo $pay['payment_method'] ?></td>
                   <td><?php echo $pay['remarks'] ?></td>
-                  <td><button class="view-invoice btn btn-sm btn-primary" data-payment-id="<?php echo $pay["id"]; ?>">Payment History</button></td>
+                  <td><button class="view-invoice btn btn-sm btn-primary" data-payment-id="<?php echo $pay["id"]; ?>">Payment Receipt</button></td>
                 </tr>
               <?php endforeach; ?>
             <?php else: ?>
