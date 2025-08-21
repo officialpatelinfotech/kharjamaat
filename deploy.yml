@@ -1,0 +1,26 @@
+name: 🚀 Deploy to cPanel
+
+on:
+  push:
+    branches: [ "main" ]   # change branch if needed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USER }}
+          key: ${{ secrets.CPANEL_KEY }}
+          script: |
+            cd ~/public_html/kharjamaat.patelinfotech.online
+            git pull origin main
+            composer install --no-dev --optimize-autoloader
+            php artisan migrate --force || true
+
