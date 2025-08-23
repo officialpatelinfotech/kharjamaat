@@ -34,7 +34,7 @@
 
     .rtl {
       direction: rtl;
-      font-family: "Noto Naskh Arabic", DejaVu Sans;
+      font-family: "Noto Naskh Arabic", "DejaVu Sans";
     }
 
     .text-center {
