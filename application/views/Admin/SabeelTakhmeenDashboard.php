@@ -4,7 +4,7 @@
   }
 </style>
 <div class="margintopcontainer mx-5">
-  <h2 class="heading text-center pt-5 mb-4">Sabeel Takhmeen</h2>
+  <h2 class="heading text-center pt-5 mb-4">Sabeel Module</h2>
   <div class="mb-4 p-0">
     <a href="<?php echo base_url("admin"); ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
   </div>

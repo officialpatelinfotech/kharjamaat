@@ -232,6 +232,43 @@ class AdminM extends CI_Model
     return $this->db->get()->result_array();
   }
 
+  // FMB General Contribution
+  public function getallfmbgc($filter_status = NULL)
+  {
+    $this->db->from("fmb_general_contribution_master");
+    if (isset($filter_status) && $filter_status == 0) {
+      $this->db->where("status", $filter_status);
+    } else {
+      $this->db->where("status", 1);
+    }
+    return $this->db->get()->result_array();
+  }
+  public function addfmbcontritype($fmb_type, $contri_for)
+  {
+    $result = $this->db->insert("fmb_general_contribution_master", ["name" => $contri_for, "fmb_type" => $fmb_type]);
+    if ($result) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  public function updatefmbgc(
+    $id,
+    $name,
+    $fmb_type,
+    $status
+  ) {
+    $this->db->where("id", $id);
+    $result = $this->db->update("fmb_general_contribution_master", ["name" => $name, "fmb_type" => $fmb_type, "status" => $status]);
+    if ($result) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  // FMB General Contribution
+
   public function get_user_fmb_takhmeen_details($filter_data = null)
   {
     $this->db->select("

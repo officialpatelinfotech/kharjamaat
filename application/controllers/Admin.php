@@ -340,6 +340,75 @@ class Admin extends CI_Controller
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/FMBTakhmeen', $data);
   }
+  // FMB General Contribution
+  public function fmbgeneralcontributionmaster()
+  {
+    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    $get_all_fmbgc = [];
+    $filter_status = $this->input->post("filter_status");
+
+    if (isset($filter_status)) {
+      $get_all_fmbgc = $this->AdminM->getallfmbgc($filter_status);
+    } else {
+      $get_all_fmbgc = $this->AdminM->getallfmbgc();
+    }
+
+    if ($get_all_fmbgc) {
+      $data['all_fmbgc'] = $get_all_fmbgc;
+    }
+
+    $data['filter_status'] = $filter_status;
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/FMBGeneralContributionMaster', $data);
+  }
+
+  public function addfmbcontritype()
+  {
+    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    $fmb_type = $this->input->post("fmb_type");
+    $contri_for = $this->input->post("contri_for");
+
+    $result = $this->AdminM->addfmbcontritype($fmb_type, $contri_for);
+
+    if ($result) {
+      redirect("admin/success/fmbgeneralcontributionmaster");
+    } else {
+      redirect("admin/error/fmbgeneralcontributionmaster");
+    }
+  }
+
+  public function updatefmbgc()
+  {
+    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    $id = $this->input->post("id");
+    $name = $this->input->post("name");
+    $fmb_type = $this->input->post("fmb_type");
+    $status = $this->input->post("status");
+
+    $result = $this->AdminM->updatefmbgc(
+      $id,
+      $name,
+      $fmb_type,
+      $status
+    );
+
+    if ($result) {
+      echo json_encode(["success" => true]);
+    } else {
+      echo json_encode(["success" => false]);
+    }
+  }
+  // FMB General Contribution
   public function filteruserinfmbtakhmeen()
   {
     if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {

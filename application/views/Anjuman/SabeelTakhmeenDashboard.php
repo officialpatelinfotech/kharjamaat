@@ -204,6 +204,11 @@
     $("#sabeel-type").data("e-due", establishment_due);
     $("#sabeel-type").data("r-due", residential_due);
 
+    $("#payment-method").val("");
+    $("#sabeel-type").val("");
+    $("#payment-amount").val("");
+    $("#payment-remarks").val("");
+
     $('#update-payment-container').modal('show');
   }
 
@@ -242,7 +247,7 @@
               <td>&#8377;${new Intl.NumberFormat("en-IN").format(payment.amount)}</td>
               <td>${payment.remarks ?? ''}</td>
               <td>
-                <button class="view-invoice btn btn-sm btn-primary" data-payment-id="${payment.id}">View Invoice</button>
+                <button class="view-invoice btn btn-sm btn-primary" data-payment-id="${payment.id}">Payment Receipt</button>
               </td>
             </tr>
           `;

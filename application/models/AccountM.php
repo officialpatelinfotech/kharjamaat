@@ -101,12 +101,20 @@ class AccountM extends CI_Model
     $this->db->order_by("payment_date", "DESC");
     $payments = $this->db->get()->result_array();
 
+
+    $this->db->select("fmb_general_contribution.*, user.ITS_ID, user.First_Name, user.Surname");
+    $this->db->from("fmb_general_contribution");
+    $this->db->join("user", "user.ITS_ID = fmb_general_contribution.user_id", "left");
+    $this->db->where("user.ITS_ID", $user_id);
+    $general_contributions = $this->db->get()->result_array();
+
     // 4️⃣ Return everything together
     return [
       "all_takhmeen"   => $takhmeen_list,
       "all_payments"   => $payments,
       "latest" => $latest,
-      "overall" => $overall
+      "overall" => $overall,
+      "general_contributions" => $general_contributions
     ];
   }
 
@@ -422,9 +430,6 @@ class AccountM extends CI_Model
 
     $startOfMonth = date('Y-m-d', strtotime($first_hijri_day));
     $endOfMonth = date('Y-m-d', strtotime($last_hijri_day));
-    // echo "<pre>";
-    // print_r();
-    // die();
 
     $sql = "SELECT 
                 m.*, 
@@ -438,6 +443,7 @@ class AccountM extends CI_Model
 
     $query = $this->db->query($sql, array($startOfMonth, $endOfMonth));
     $results = $query->result_array();
+    // echo "<pre>"; print_r($results); die();
 
     $grouped = [];
 
@@ -457,7 +463,6 @@ class AccountM extends CI_Model
       }
     }
 
-    // Convert associative to indexed array
     return array_values($grouped);
   }
 

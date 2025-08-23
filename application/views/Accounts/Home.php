@@ -127,6 +127,12 @@
       </a>
     </div>
     <div class="col-6 mt-3 col-md-3 col-xl-2">
+      <a href="<?php echo base_url('accounts/ViewFMBTakhmeen') ?>" class="action-btn d-flex justify-content-center align-items-center text-center py-3 text-decoration-none">
+        <i class="abi fa-solid fa-plate-wheat fa-2x mr-2"></i>
+        <span class="action-btn-title">FMB Dashboad</span>
+      </a>
+    </div>
+    <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/FMBWeeklySignUp') ?>" class="action-btn d-flex justify-content-center align-items-center text-center py-3 text-decoration-none">
         <i class="abi fa-solid fa-plate-wheat fa-2x mr-2"></i>
         <span class="action-btn-title">FMB Weekly Signup</span>

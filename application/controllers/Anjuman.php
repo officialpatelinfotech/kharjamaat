@@ -607,6 +607,7 @@ class Anjuman extends CI_Controller
     $this->load->view('MasoolMusaid/AsharaAttendance', $data);
   }
 
+  // Updated by Patel Infotech Services
   public function generate_pdf()
   {
     $this->load->library('dompdf_lib');
@@ -616,13 +617,13 @@ class Anjuman extends CI_Controller
     $for = $this->input->post("for");
 
     $result = $this->AnjumanM->get_payment_details($payment_id, $for);
-    
+
     $data = [];
-    
+
     if ($result) {
       $f = new NumberFormatter("en", NumberFormatter::SPELLOUT);
       $amount_words = $f->format($result["amount"]);
-      
+
       $data = array(
         "date" => $result["payment_date"],
         "name" => $result["First_Name"] . " " . $result["Surname"],
@@ -644,7 +645,30 @@ class Anjuman extends CI_Controller
     // Or show in browser
     $dompdf->stream("myfile.pdf", array("Attachment" => 0));
   }
-  public function fmbtakhmeendashboard()
+
+  public function getmemberdetails()
+  {
+    $user_id = $this->input->post("user_id");
+    if ($user_id) {
+      $member_detials = $this->AnjumanM->getmemberdetails($user_id);
+      if ($member_detials) {
+        echo json_encode(["success" => true, "member_details" => $member_detials[0]]);
+      }
+    }
+  }
+
+  public function fmbmodule()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+
+    $username = $_SESSION['user']['username'];
+    $data["user_name"] = $username;
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/FMBModule', $data);
+  }
+  public function fmbthaali()
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
@@ -654,8 +678,100 @@ class Anjuman extends CI_Controller
     $data["all_user_fmb_takhmeen"] = $this->AnjumanM->get_user_takhmeen_details();
     $data["user_name"] = $username;
     $this->load->view('Anjuman/Header', $data);
-    $this->load->view('Anjuman/FMBTakhmeenDashboard', $data);
+    $this->load->view('Anjuman/FMBThaali', $data);
   }
+
+  // FMB General Contribution section
+  public function fmbgeneralcontribution($type)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $username = $_SESSION['user']['username'];
+
+    $data["contri_type_gc"] = $this->AnjumanM->get_fmbgc_by_type($type);
+
+    $data["all_user_fmbgc"] = $this->AnjumanM->get_user_fmbgc($type);
+
+    $data["user_name"] = $username;
+    $data["type"] = $type;
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/FMBGeneralContribution', $data);
+  }
+
+  public function validatefmbgc()
+  {
+    $contri_year = $this->input->post("contri_year");
+    $user_id = $this->input->post("user_id");
+    $contri_type = $this->input->post("contri_type");
+
+    if (
+      $contri_year &&
+      $user_id &&
+      $contri_type
+    ) {
+      $result = $this->AnjumanM->validatefmbgc(
+        $contri_year,
+        $user_id,
+        $contri_type
+      );
+    }
+
+    if ($result) {
+      echo json_encode(["success" => true]);
+    } else {
+      echo json_encode(["success" => false]);
+    }
+  }
+
+  public function addfmbgc()
+  {
+    $contri_year = $this->input->post("contri_year");
+    $user_id = $this->input->post("user_id");
+    $fmb_type = $this->input->post("fmb_type");
+    $contri_type = $this->input->post("contri_type");
+    $amount = $this->input->post("amount");
+    $description = $this->input->post("description");
+
+    $data = array(
+      "contri_year" => $contri_year,
+      "user_id" => $user_id,
+      "fmb_type" => $fmb_type,
+      "contri_type" => $contri_type,
+      "amount" => $amount,
+      "description" => $description,
+    );
+
+    $result = $this->AnjumanM->addfmbgc($data);
+
+
+    if ($fmb_type == "Thaali") {
+      redirect("anjuman/fmbgeneralcontribution/" . "1");
+    } else {
+      redirect("anjuman/fmbgeneralcontribution/" . "2");
+    }
+  }
+
+  public function updatefmbgcpayment1($id = NULL, $type = NULL)
+  {
+    $result = $this->AnjumanM->updatefmbgcpayment($id, 1);
+    if ($type == 1) {
+      redirect("anjuman/fmbgeneralcontribution/" . "1");
+    } else {
+      redirect("anjuman/fmbgeneralcontribution/" . "2");
+    }
+  }
+  public function updatefmbgcpayment0($id = NULL, $type = NULL)
+  {
+    $result = $this->AnjumanM->updatefmbgcpayment($id, 0);
+    if ($type == 1) {
+      redirect("anjuman/fmbgeneralcontribution/" . "1");
+    } else {
+      redirect("anjuman/fmbgeneralcontribution/" . "2");
+    }
+  }
+  // FMB General Contribution section
+
   public function update_fmb_payment()
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
@@ -679,7 +795,11 @@ class Anjuman extends CI_Controller
 
     $result = $this->AnjumanM->update_fmb_payment($formData);
 
-    redirect('Anjuman/FMBTakhmeenDashboard');
+    if ($result) {
+      redirect('Anjuman/success/FMBThaali');
+    } else {
+      redirect('Anjuman/error/FMBThaali');
+    }
   }
   public function sabeeltakhmeendashboard()
   {
@@ -742,7 +862,8 @@ class Anjuman extends CI_Controller
     }
   }
 
-  public function getPaymentHistory($for) {
+  public function getPaymentHistory($for)
+  {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }

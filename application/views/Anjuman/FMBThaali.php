@@ -6,66 +6,76 @@
   }
 </style>
 <div class="container margintopcontainer">
-  <h2 class="heading text-center pt-5 mb-4">FMB Takhmeen</h2>
-  <div class="mb-4 p-0">
-    <a href="<?php echo base_url("anjuman") ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
+  <h2 class="heading text-center pt-5 mb-4">FMB Thaali</h2>
+  <div class="row mb-4 p-0">
+    <div class="col-12 col-md-6">
+      <a href="<?php echo base_url("anjuman/fmbmodule") ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+    <div class="text-right col-12 col-md-6">
+      <a href="<?php echo base_url("anjuman/fmbgeneralcontribution/1"); ?>" class="btn btn-primary mt-2 mt-md-0">General Contribution</a>
+    </div>
   </div>
-  <div>
-    <table class="table table-bordered table-striped">
-      <thead>
-        <tr>
-          <th>Sr. No.</th>
-          <th>Name</th>
-          <th>Sector</th>
-          <th>Sub-Sector</th>
-          <th>Takhmeen</th>
-          <th>Total Paid</th>
-          <th>Total Due</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php
-        if (isset($all_user_fmb_takhmeen)) {
-          foreach ($all_user_fmb_takhmeen as $key => $user) {
-        ?>
-            <tr>
-              <td><?php echo $key + 1; ?></td>
-              <td><?php echo $user["First_Name"] . " " . $user["Surname"]; ?></td>
-              <td><?php echo $user["Sector"]; ?></td>
-              <td><?php echo $user["Sub_Sector"]; ?></td>
-              <td>
-                <?php if ($user["latest_total_takhmeen"] != 0):
-                  $fy_start = explode("|", $user["latest_takhmeen_year"])[0];
-                  $fy_end = explode("|", $user["latest_takhmeen_year"])[1];
-                ?>
-                  <p class="takhmeen-amount m-0 p-0"><?php echo $user["latest_total_takhmeen"]; ?></p>
-                  <p class="financial-year pt-2 m-0">
-                    <small class="text-secondary">(FY - <?php echo $fy_start . " / " . $fy_end; ?>)</small>
-                  </p>
-                <?php
-                else: ?>
-                  Takhmeen Not Found
-                <?php
-                endif; ?>
-              </td>
-              <td class="takhmeen-amount"><?php echo $user["overall_total_paid"]; ?></td>
-              <td class="view-due takhmeen-amount" data-toggle="modal" data-target="#due-overview-modal" data-user-name="<?php echo $user["First_Name"] . " " . $user["Surname"]; ?>" data-all-takhmeen='<?php echo json_encode($user["all_takhmeen"]); ?>'><?php echo $user["overall_due"]; ?></td>
-              <td>
-                <?php if ($user["overall_due"] > 0): ?>
-                  <button id="pay-takhmeen-btn" class="pay-takhmeen-btn btn btn-sm btn-success" data-toggle="modal" data-target="#pay-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo $user["First_Name"] . " " . $user["Surname"]; ?>" data-overall-due="<?php echo $user["overall_due"]; ?>">Update Payment</button>
-                <?php endif; ?>
-                <?php if (count($user["all_takhmeen"])): ?>
-                  <button id="payment-history" class="payment-history mt-2 btn btn-sm btn-primary" onclick="openPaymentHistoryModal('<?php echo $user['ITS_ID']; ?>', '<?php echo $user['First_Name'] . ' ' . $user['Surname']; ?>')">Payment History</button>
-                <?php endif; ?>
-              </td>
-            </tr>
-        <?php
+  <div class="card shadow-sm rounded-3 mt-4">
+    <div class="card-header bg-light">
+      <h5 class="mb-0 text-center">FMB Takhmeen</h5>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-bordered table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th>Sr. No.</th>
+            <th>Name</th>
+            <th>Sector</th>
+            <th>Sub-Sector</th>
+            <th>Takhmeen</th>
+            <th>Total Paid</th>
+            <th>Total Due</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php
+          if (isset($all_user_fmb_takhmeen)) {
+            foreach ($all_user_fmb_takhmeen as $key => $user) {
+          ?>
+              <tr>
+                <td><?php echo $key + 1; ?></td>
+                <td><?php echo $user["First_Name"] . " " . $user["Surname"]; ?></td>
+                <td><?php echo $user["Sector"]; ?></td>
+                <td><?php echo $user["Sub_Sector"]; ?></td>
+                <td>
+                  <?php if ($user["latest_total_takhmeen"] != 0):
+                    $fy_start = explode("|", $user["latest_takhmeen_year"])[0];
+                    $fy_end = explode("|", $user["latest_takhmeen_year"])[1];
+                  ?>
+                    <p class="takhmeen-amount m-0 p-0"><?php echo $user["latest_total_takhmeen"]; ?></p>
+                    <p class="financial-year pt-2 m-0">
+                      <small class="text-secondary">(FY - <?php echo $fy_start . " / " . $fy_end; ?>)</small>
+                    </p>
+                  <?php
+                  else: ?>
+                    Takhmeen Not Found
+                  <?php
+                  endif; ?>
+                </td>
+                <td class="takhmeen-amount"><?php echo $user["overall_total_paid"]; ?></td>
+                <td class="view-due takhmeen-amount" data-toggle="modal" data-target="#due-overview-modal" data-user-name="<?php echo $user["First_Name"] . " " . $user["Surname"]; ?>" data-all-takhmeen='<?php echo json_encode($user["all_takhmeen"]); ?>'><?php echo $user["overall_due"]; ?></td>
+                <td>
+                  <?php if ($user["overall_due"] > 0): ?>
+                    <button id="pay-takhmeen-btn" class="pay-takhmeen-btn btn btn-sm btn-success" data-toggle="modal" data-target="#pay-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo $user["First_Name"] . " " . $user["Surname"]; ?>" data-overall-due="<?php echo $user["overall_due"]; ?>">Update Payment</button>
+                  <?php endif; ?>
+                  <?php if (count($user["all_takhmeen"])): ?>
+                    <button id="payment-history" class="payment-history mt-2 btn btn-sm btn-outline-primary" onclick="openPaymentHistoryModal('<?php echo $user['ITS_ID']; ?>', '<?php echo $user['First_Name'] . ' ' . $user['Surname']; ?>')">Payment History</button>
+                  <?php endif; ?>
+                </td>
+              </tr>
+          <?php
+            }
           }
-        }
-        ?>
-      </tbody>
-    </table>
+          ?>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 <!-- Modal -->
@@ -114,7 +124,7 @@
             <label><strong>Mumineen Name:</strong> <span id="modal_user_name" class="mb-1"></span></label>
           </div>
           <div class="form-group">
-            <label for="payment-method">Payment Method</label>
+            <label for="payment-method">Payment Method:</label>
             <select name="payment_method" id="payment-method" class="form-control" required>
               <option value="">-----</option>
               <option value="Cash">Cash</option>
@@ -122,16 +132,16 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="modal_amount">Payment Amount</label>
-            <input type="number" class="form-control" name="amount" id="modal_amount" placeholder="Enter payment amount" required min="1">
+            <label for="modal-amount">Payment Amount:</label>
+            <input type="number" class="form-control" name="amount" id="modal-amount" placeholder="Enter payment amount" required min="1">
           </div>
           <div class="form-group">
-            <label for="modal-payment-date">Payment Date</label>
+            <label for="modal-payment-date">Payment Date:</label>
             <input type="date" class="form-control" name="payment_date" id="modal-payment-date" required>
           </div>
           <div class="form-group">
-            <label for="modal_payment_remark">Payment Remark</label>
-            <input type="text" class="form-control" name="remarks" id="modal_payment_remark">
+            <label for="modal_payment_remark">Payment Remark:</label>
+            <input type="text" class="form-control" name="remarks" id="modal_payment_remark" placeholder="Enter remarks">
           </div>
           <button type="submit" class="btn btn-primary">Save changes</button>
         </form>
@@ -221,7 +231,11 @@
     $("#modal_user_id").val(userId);
     $("#modal_user_name").text(userName);
     $("#modal-payment-date").val(today);
-    $("#modal_amount").attr("max", $(this).data("overall-due"));
+    $("#modal-amount").attr("max", $(this).data("overall-due"));
+
+    $("#payment-method").val("");
+    $("#modal-amount").val("");
+    $("#remarks").val("");
 
     $("#pay-takhmeen-container").modal("show");
   });
@@ -249,7 +263,7 @@
               <td>&#8377;${new Intl.NumberFormat("en-IN").format(payment.amount)}</td>
               <td>${payment.remarks ?? ''}</td>
               <td>
-                <button class="view-invoice btn btn-sm btn-primary" data-payment-id="${payment.id}">View Invoice</button>
+                <button class="view-invoice btn btn-sm btn-primary" data-payment-id="${payment.id}">View Receipt</button>
               </td>
             </tr>
           `;
@@ -289,7 +303,7 @@
         window.open(url, "_blank");
       },
       error: function() {
-        alert("Failed to generate invoice PDF");
+        alert("Failed to generate receipt PDF");
       }
     });
   });

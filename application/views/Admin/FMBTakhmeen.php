@@ -1,10 +1,16 @@
 <style></style>
 <div class="container margintopcontainer">
-  <h2 class="heading text-center pt-5 mb-4">FMB Takhmeen</h2>
+  <h2 class="heading text-center pt-5 mb-4">FMB Module</h2>
   <div class="row mb-4 p-0">
     <div class="col-12 col-md-6">
-      <a href="<?php echo base_url("admin") ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
+      <a href="<?php echo base_url("admin"); ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
     </div>
+    <div class="col-12 col-md-6 text-right">
+      <a href="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" class="btn btn-primary">FMB General Contribution Master</a>
+    </div>
+  </div>
+  <div class="row mb-4 p-0">
+
     <div class="col-12 col-md-6">
       <form method="POST" action="<?php echo base_url("admin/filteruserinfmbtakhmeen"); ?>" class="d-flex m-0">
         <input type="text" name="member_name" id="member-name" class="form-control" placeholder="Member name" value="<?php echo isset($member_name) ? $member_name : ""; ?>">

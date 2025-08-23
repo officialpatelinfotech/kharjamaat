@@ -90,7 +90,7 @@
           </div>
         </div>
       </a>
-      <a href="<?php echo base_url('anjuman/fmbtakhmeendashboard') ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+      <a href="<?php echo base_url('anjuman/fmbmodule') ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
           <div class="card-body">
             <div class="title">FMB Module</div>
