@@ -108,6 +108,7 @@
     </div>
   </div>
 </div>
+
 <div class="modal fade" id="pay-takhmeen-container" tabindex="-1" aria-labelledby="pay-takhmeen-container-label" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
