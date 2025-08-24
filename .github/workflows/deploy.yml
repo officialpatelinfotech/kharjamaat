@@ -21,5 +21,12 @@ jobs:
           key: ${{ secrets.CPANEL_KEY }}
           passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
           script: |
-            cd public_html/kharjamaat.patelinfotech.online
-            git pull origin main
+            cd ~/public_html
+            if [ ! -d "kharjamaat.patelinfotech.online/.git" ]; then
+              git clone git@github.com:officialpatelinfotech/kharjamaat.git kharjamaat.patelinfotech.online
+            else
+              cd kharjamaat.patelinfotech.online
+              git fetch --all
+              git reset --hard origin/main
+            fi
+            composer install --no-dev --optimize-autoloader
