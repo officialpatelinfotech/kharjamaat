@@ -54,11 +54,10 @@ class Anjuman extends CI_Controller
     $data['raza'] = $this->AmilsahebM->get_raza_event();
     $data['razatype'] = $this->AdminM->get_eventrazatype();
 
-
-
     // Fetch total chat count for each raza_id
     foreach ($data['raza'] as $key => $value) {
       $chatCount = $this->AccountM->get_chat_count($value['id']); // Assuming id is the raza_id
+      // echo json_encode($data['raza'][$key]['miqaat_details']); exit;
       $data['raza'][$key]['chat_count'] = $chatCount;
     }
 
@@ -67,11 +66,18 @@ class Anjuman extends CI_Controller
       $username = $this->AccountM->get_user($value['user_id']);
       $razatype = $this->AdminM->get_razatype_byid($value['razaType'])[0];
       $data['raza'][$key]['razaType'] = $razatype['name'];
+      $data['raza'][$key]['razaType_id'] = $razatype['id'];
       $data['raza'][$key]['razafields'] = $razatype['fields'];
       $data['raza'][$key]['umoor'] = $razatype['umoor'];
-
       $data['raza'][$key]['user_name'] = $username[0]['Full_Name'];
+      $data['raza'][$key]['miqaat_id'] = $value['miqaat_id'];
+      if (!empty($value['miqaat_id'])) {
+        $data['raza'][$key]['miqaat_details'] = json_encode($this->AnjumanM->get_miqaat_by_id($value['miqaat_id']));
+      } else {
+        $data['raza'][$key]['miqaat_details'] = "";
+      }
     }
+    // exit;
 
     // Set user name
     $data['user_name'] = $_SESSION['user']['username'];

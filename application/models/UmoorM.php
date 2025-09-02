@@ -212,9 +212,6 @@ class UmoorM extends CI_Model
 
     $startOfMonth = date('Y-m-d', strtotime($first_hijri_day));
     $endOfMonth = date('Y-m-d', strtotime($last_hijri_day));
-    // echo "<pre>";
-    // print_r();
-    // die();
 
     $sql = "SELECT 
                 m.*, 

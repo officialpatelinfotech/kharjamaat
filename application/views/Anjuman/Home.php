@@ -58,6 +58,14 @@
           </div>
         </div>
       </a>
+      <a href="<?php echo base_url('common/fmbcalendar?from=anjuman'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body">
+            <div class="title">Manage FMB Calendar</div>
+            <i class="icon fa-solid fa-calendar-days"></i>
+          </div>
+        </div>
+      </a>
       <a href="<?php echo base_url('anjuman/miqaat') ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
           <div class="card-body">

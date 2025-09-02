@@ -329,7 +329,18 @@ class Admin extends CI_Controller
   }
 
   // Updated by Patel Infotech Services
-  public function fmbtakhmeendashboard()
+  public function managefmbsettings()
+  {
+    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/ManageFMBSettings', $data);
+  }
+
+  public function managefmbtakhmeen()
   {
     if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
@@ -338,7 +349,7 @@ class Admin extends CI_Controller
     $data["all_user_fmb_takhmeen"] = $this->AdminM->get_user_fmb_takhmeen_details();
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/FMBTakhmeen', $data);
+    $this->load->view('Admin/ManageFMBTakhmeen', $data);
   }
   // FMB General Contribution
   public function fmbgeneralcontributionmaster()
@@ -422,7 +433,7 @@ class Admin extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $member_name;
     $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/FMBTakhmeen', $data);
+    $this->load->view('Admin/ManageFMBTakhmeen', $data);
   }
   public function addfmbtakhmeenamount()
   {
@@ -441,7 +452,7 @@ class Admin extends CI_Controller
 
     $result = $this->AdminM->addfmbtakhmeenamount($data);
 
-    redirect("admin/success/fmbtakhmeendashboard");
+    redirect("admin/success/managefmbtakhmeen");
   }
   public function validatefmbtakhmeen()
   {
@@ -481,7 +492,7 @@ class Admin extends CI_Controller
 
     if ($result) {
       if ($redirect) {
-        redirect("admin/fmbtakhmeendashboard");
+        redirect("admin/managefmbtakhmeen");
       } else {
         echo json_encode(["success" => true]);
       }

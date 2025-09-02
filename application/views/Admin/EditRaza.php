@@ -16,11 +16,8 @@
         overflow-y:auto;
 
         @media screen and (max-width:500px) {
-
             max-width: 350px;
-
             @media screen and (max-width: 374px) {
-
                 max-width: 250px;
             }
         }

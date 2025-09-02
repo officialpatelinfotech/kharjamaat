@@ -2,14 +2,68 @@
   .hidden {
     display: none;
   }
+  body {
+    background: #fff;
+  }
+  .theme-green {
+    background: rgb(0, 106, 63) !important;
+    color: #fff !important;
+    border-color: rgb(0, 106, 63) !important;
+  }
+  .theme-green-outline {
+    background: #fff !important;
+    color: rgb(0, 106, 63) !important;
+    border: 2px solid rgb(0, 106, 63) !important;
+  }
+  .theme-green-outline:hover, .theme-green:hover {
+    background: rgb(0, 106, 63) !important;
+    color: #fff !important;
+    border-color: rgb(0, 106, 63) !important;
+  }
+  .table thead.thead-dark th {
+    background: rgb(0, 106, 63);
+    color: #fff;
+    border-color: rgb(0, 106, 63);
+  }
+  .btn-info {
+    background: rgb(0, 106, 63) !important;
+    border-color: rgb(0, 106, 63) !important;
+    color: #fff !important;
+  }
+  .btn-success {
+    background: rgb(0, 106, 63) !important;
+    border-color: rgb(0, 106, 63) !important;
+    color: #fff !important;
+  }
+  .btn-primary {
+    background: rgb(0, 106, 63) !important;
+    border-color: rgb(0, 106, 63) !important;
+    color: #fff !important;
+  }
+  .btn-secondary {
+    background: #fff !important;
+    color: rgb(0, 106, 63) !important;
+    border: 2px solid rgb(0, 106, 63) !important;
+  }
+  .btn-secondary:hover {
+    background: rgb(0, 106, 63) !important;
+    color: #fff !important;
+    border-color: rgb(0, 106, 63) !important;
+  }
+  .border {
+    border-color: rgb(0, 106, 63) !important;
+  }
+  .rounded {
+    border-radius: 10px !important;
+  }
 </style>
-<div class="container margintopcontainer">
-  <h2 class="heading text-center pt-5 mb-4">FMB General Contribution Master</h2>
+<div class="container margintopcontainer pt-5">
   <div class="row mb-4 p-0">
     <div class="col-12 p-0">
-      <a href="<?php echo base_url("admin/FMBTakhmeenDashboard"); ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
+      <a href="<?php echo base_url("admin/managefmbsettings"); ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     </div>
   </div>
+  <h2 class="heading text-center pb-4 mb-4">FMB General Contribution Settings</h2>
   <div class="row mb-4">
     <div class="col-12 col-md-6">
       <form method="POST" action="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" class="row">

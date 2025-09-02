@@ -127,7 +127,7 @@
 </div>
 <div class="margintopcontainer">
 	<div class="container pt-5">
-		<p class="h4 text-center mt-5">Raza Type</p>
+		<p class="h4 text-center mt-5">All Raza Form</p>
 		<div class="container">
 			<div class="row mt-5">
 				<form class="form-inline my-2 my-lg-0 w-100">

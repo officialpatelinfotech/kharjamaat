@@ -43,6 +43,8 @@ class Accounts extends CI_Controller
       $_SESSION['user'] = $check[0];
       if (!empty($user)) {
         $_SESSION['user_data'] = $user[0];
+      } else {
+        $_SESSION['user_data'] = "";
       }
       // echo print_r($check);
       // die();
@@ -110,6 +112,7 @@ class Accounts extends CI_Controller
       $member_name = $this->AccountM->get_user($value['user_id']);
       $razatype = $this->AccountM->get_razatype_byid($value['razaType'])[0];
       $raza[$key]['razaType'] = $razatype['name'];
+      $raza[$key]['razaType_id'] = $razatype['id'];
       $raza[$key]['user_name'] = $member_name[0]['Full_Name'];
 
       // Fetch chat count
@@ -329,9 +332,9 @@ class Accounts extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
     $data['sector'] = $_SESSION['user_data']['Sector'];
-    $user_id = $_SESSION['user_data']['ITS_ID']; 
+    $user_id = $_SESSION['user_data']['ITS_ID'];
     $data["fmb_takhmeen_details"] = $this->AccountM->viewfmbtakhmeen($user_id);
-    
+
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/FMB/ViewTakhmeen', $data);
   }
@@ -344,9 +347,9 @@ class Accounts extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
     $data['sector'] = $_SESSION['user_data']['Sector'];
-    $user_id = $_SESSION['user_data']['ITS_ID']; 
+    $user_id = $_SESSION['user_data']['ITS_ID'];
     $data["sabeel_takhmeen_details"] = $this->AccountM->viewSabeelTakhmeen($user_id);
-    
+
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Sabeel/ViewTakhmeen', $data);
   }
@@ -672,13 +675,10 @@ class Accounts extends CI_Controller
     $sabil = isset($_POST['sabil']) ? $_POST['sabil'] : null;
     $fmb = isset($_POST['fmb']) ? $_POST['fmb'] : null;
 
-
     unset($_POST['sabil']);
     unset($_POST['fmb']);
     $razatype = $this->AccountM->get_razatype_byid($razatypeid)[0];
     $razafields = json_decode($razatype['fields'], true);
-
-
 
     $table = '';
     foreach ($razafields['fields'] as $value) {
@@ -756,7 +756,12 @@ class Accounts extends CI_Controller
     $userId = $_SESSION['user_data']['ITS_ID'];
     unset($_POST['raza-type']);
     $data = json_encode($_POST);
-    $check = $this->AccountM->insert_raza($userId, $razatypeid, $data, $sabil, $fmb);
+    if (isset($_POST["miqaat_id"])) {
+      $miqaat_id = $_POST["miqaat_id"];
+    } else {
+      $miqaat_id = null;
+    }
+    $check = $this->AccountM->insert_raza($userId, $razatypeid, $data, $miqaat_id, $sabil, $fmb);
     if ($check) {
       redirect('/accounts/success/myrazarequest');
     } else {
@@ -770,6 +775,12 @@ class Accounts extends CI_Controller
     }
     $data['razatype'] = $this->AccountM->get_razatype();
     $data['raza'] = $this->AccountM->get_raza_byid($id)[0];
+
+    // Join miqaat table if miqaat_id is present
+    $data['raza_miqaat'] = null;
+    if (!empty($data['raza']['miqaat_id'])) {
+      $data['raza_miqaat'] = $this->AccountM->get_raza_miqaat_details($data['raza']['miqaat_id'], $id);
+    }
 
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
@@ -938,9 +949,12 @@ class Accounts extends CI_Controller
 
   public function chat($id)
   {
-    $data['user_name'] = $_SESSION['user']['username'];
-    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
-    $data['sector'] = $_SESSION['user_data']['Sector'];
+    $data['user_name'] = $_SESSION['user']['username'] ?? "";
+    if ($_SESSION['user_data'] != "") {
+      $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+      $data['sector'] = $_SESSION['user_data']['Sector'];
+    }
+
     $data['id'] = $id;
 
     // Fetch chat data from the model

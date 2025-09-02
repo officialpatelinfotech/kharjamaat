@@ -675,12 +675,13 @@ class AccountM extends CI_Model
     }
   }
 
-  public function insert_raza($userId, $razaType, $data, $sabil, $fmb)
+  public function insert_raza($userId, $razaType, $data, $miqaat_id, $sabil, $fmb)
   {
     $data = array(
       'user_id' => $userId,
       'razaType' => $razaType,
       'razadata' => $data,
+      'miqaat_id' => $miqaat_id,
       'sabil' => $sabil,
       'fmb' => $fmb,
     );
@@ -760,6 +761,12 @@ class AccountM extends CI_Model
     $sql = 'SELECT * from `raza` where  id = ?';
     $query = $this->db->query($sql, array($id));
     return $query->result_array();
+  }
+  public function get_raza_miqaat_details($miqaat_id, $raza_id)
+  {
+    $sql = "SELECT m.*, r.razadata FROM miqaat m INNER JOIN raza r ON m.id = r.miqaat_id WHERE m.id = ? AND r.id = ?";
+    $query = $this->db->query($sql, array($miqaat_id, $raza_id));
+    return $query->row_array();
   }
   public function get_vasantype()
   {

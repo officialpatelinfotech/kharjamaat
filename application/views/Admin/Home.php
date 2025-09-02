@@ -41,10 +41,18 @@
       <!--        </div>-->
       <!--    </div>-->
       <!--</a> -->
-      <a href="<?php echo base_url('admin/managemiqaat'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+      <!-- <a href="<?php echo base_url('admin/managemiqaat'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
           <div class="card-body">
             <div class="title">Manage Miqaat</div>
+            <i class="icon fa-solid fa-calendar-days"></i>
+          </div>
+        </div>
+      </a> -->
+      <a href="<?php echo base_url('common/fmbcalendar?from=admin'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body">
+            <div class="title">FMB Calendar</div>
             <i class="icon fa-solid fa-calendar-days"></i>
           </div>
         </div>
@@ -57,10 +65,10 @@
           </div>
         </div>
       </a>
-      <a href="<?php echo base_url('admin/fmbtakhmeendashboard'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+      <a href="<?php echo base_url('admin/managefmbsettings'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
           <div class="card-body">
-            <div class="title">FMB Module</div>
+            <div class="title">Manage FMB Settings</div>
             <i class="icon fa-solid fa-plate-wheat"></i>
           </div>
         </div>
@@ -68,7 +76,7 @@
       <a href="<?php echo base_url('admin/sabeeltakhmeendashboard'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
           <div class="card-body">
-            <div class="title">Sabeel Module</div>
+            <div class="title">Manage Sabeel Settings</div>
             <i class="icon fa-solid fa-hand-holding-heart"></i>
           </div>
         </div>

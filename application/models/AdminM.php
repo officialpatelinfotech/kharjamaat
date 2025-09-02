@@ -192,7 +192,7 @@ class AdminM extends CI_Model
     $last_date = $this->db->query($get_last_date)->result_array();
     $last_greg_date = $last_date[0]["greg_date"];
 
-    $last_hijri_date = (int)substr($last_date[0]["hijri_date"], 0, 4) + 1;
+    $last_hijri_date = (int)explode("-", $last_date[0]["hijri_date"])[2] + 1;
 
     $position_in_cycle = $last_hijri_date % 30;
     $leap_years = [2, 5, 8, 10, 13, 16, 19, 21, 24, 27, 29];

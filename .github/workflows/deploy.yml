@@ -29,4 +29,4 @@ jobs:
               git fetch --all
               git reset --hard origin/main
             fi
-            composer install --no-dev --optimize-autoloader
+            composer install --no-dev --no-scripts --optimize-autoloader

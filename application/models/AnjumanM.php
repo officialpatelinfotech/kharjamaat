@@ -18,6 +18,42 @@ class AnjumanM extends CI_Model
     }
   }
 
+  public function get_miqaat_by_id($miqaat_id)
+  {
+    if ($miqaat_id) {
+  $this->db->select('m.*, ma.*, u.First_Name as member_first_name, u.Surname as member_surname, leader.First_Name as group_leader_name, leader.Surname as group_leader_surname');
+  $this->db->from('miqaat m');
+  $this->db->join('miqaat_assignments ma', 'ma.miqaat_id = m.id', 'left');
+  $this->db->join('user u', 'u.ITS_ID = ma.member_id', 'left');
+  $this->db->join('user leader', 'leader.ITS_ID = ma.group_leader_id', 'left');
+  $this->db->where('m.id', $miqaat_id);
+  $query = $this->db->get();
+
+      if ($query->num_rows() > 0) {
+        $rows = $query->result_array();
+        $grouped = [];
+        foreach ($rows as $row) {
+          $group_name = isset($row['group_name']) ? $row['group_name'] : null;
+          if ($group_name && $group_name !== '') {
+            if (!isset($grouped[$group_name])) {
+              // Copy miqaat fields and initialize assignments array
+              $grouped[$group_name] = $row;
+              $grouped[$group_name]['assignments'] = [];
+            }
+            $grouped[$group_name]['assignments'][] = $row;
+          } else {
+            // Not a group, add as individual
+            $grouped[] = $row;
+          }
+        }
+        // Return a single object: first group or first assignment
+        $values = array_values($grouped);
+        return count($values) > 0 ? $values[0] : null;
+      }
+      return null;
+    }
+  }
+
   public function get_user_takhmeen_details()
   {
     $this->db->select("
