@@ -51,7 +51,7 @@ class Umoor12M extends CI_Model
         ON r.miqaat_id = m.id AND r.user_id = u.ITS_ID
       WHERE r.miqaat_id IS NULL
         AND (
-          (ma.assign_type = 'group' AND ma.group_leader_id = ?)
+          (ma.assign_type = 'group' AND (ma.group_leader_id = ? OR ma.member_id = ?))
           OR
           (ma.assign_type = 'individual' AND ma.member_id = ?)
         )
@@ -59,7 +59,7 @@ class Umoor12M extends CI_Model
       ORDER BY m.date DESC
     ";
 
-    $query = $this->db->query($sql, [$user_id, $user_id]);
+    $query = $this->db->query($sql, [$user_id, $user_id, $user_id]);
     return $query->result_array();
   }
 

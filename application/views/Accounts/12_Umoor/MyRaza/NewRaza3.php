@@ -189,6 +189,8 @@
         url: "<?php echo base_url("umoor12/get_miqaat_by_its_id"); ?>",
         dataType: 'json',
         success: function(res) {
+          console.log(res);
+
           let container = document.getElementById('dynamic-fields-container');
           if (Array.isArray(res) && res.length > 0) {
             let selectHtml = '<div class="form-group">';

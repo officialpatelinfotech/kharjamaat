@@ -68,7 +68,11 @@ class Umoor12 extends CI_Controller
     $this->load->model('Umoor12M');
     $user_id = $_SESSION['user']['username'];
     $result = $this->Umoor12M->get_miqaat_by_its_id($user_id);
-    echo json_encode($result);
+    if ($result) {
+      echo json_encode($result);
+    } else {
+      echo "There was an error fetching miqaat data.";
+    }
   }
 
   public function NewRazaBySearch()
