@@ -14,37 +14,32 @@
   /* Make all table columns the same width */
   .table th,
   .table td {
-    width: 11.11%;
+    /* width: 11.11%; */
     text-align: center;
     vertical-align: middle;
-    min-width: 120px;
-    max-width: 120px;
+    /* min-width: 120px;
+    max-width: 120px; */
     word-break: break-word;
   }
 
   .table th.sno,
   .table td.sno {
-    width: 50px;
+    width: 5%;
     min-width: 50px;
     max-width: 50px;
   }
 </style>
 <div class="m-5">
   <div class="row pt-5 mb-4">
-    <div class="col-12 mb-3 mb-md-0">
+    <div class="col-6">
       <a href="<?php echo $active_controller; ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     </div>
-    <div class="col-12">
-      <h3 class="heading text-center">FMB Calendar</h3>
-    </div>
-  </div>
-  <div class="container mb-3 p-0">
-    <form method="post" action="<?php echo base_url('common/fmbcalendar?from=' . $from); ?>" class="d-flex mb-3">
+    <form method="post" action="<?php echo base_url('common/fmbcalendar?from=' . $from); ?>" id="filter-form" class="col-6 d-flex m-0 justify-content-center">
       <div class="form-group mr-3">
         <select name="hijri_month" id="hijri-month" class="form-control">
           <option value="">Select Month / Year</option>
           <option value="-3" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -3 ? "selected" : ""; ?>>Last Year</option>
-          <option value="-1" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -1 ? "selected" : ""; ?>>This Year</option>
+          <option value="-1" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -1 ? "selected" : ""; ?>>Current Year</option>
           <?php
           if (isset($hijri_months)) {
             foreach ($hijri_months as $key => $value) {
@@ -54,22 +49,24 @@
             }
           }
           ?>
-          <option value="-2" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -2 ? "selected" : ""; ?>>Next Year</option>
         </select>
       </div>
-      <div class="sort-options mr-3">
+      <div class="sort-options">
         <select id="sort-type" name="sort_type" class="form-control">
           <option value="asc" <?php echo isset($sort_type) ? ($sort_type == 'asc' ? 'selected' : '') : "" ?>>Sort by Date &darr;</option>
           <option value="desc" <?php echo isset($sort_type) ? ($sort_type == 'desc' ? 'selected' : '') : "" ?>>Sort by Date &uarr;</option>
         </select>
       </div>
-      <div class="search-btn">
-        <button id="search-btn" class="btn btn-primary" type="submit">Search</button>
-      </div>
+      <!-- <div class="search-btn">
+        <button id="search-btn" class="btn btn-primary" type="submit">Filter</button>
+      </div> -->
       <div class="clear-filter-btn">
         <a href="<?php echo base_url("common/fmbcalendar?from=$from"); ?>" id="clear-filter" class="btn btn-secondary mx-3">Clear Filter</a>
       </div>
     </form>
+  </div>
+  <div class="m-0 mb-3">
+    <h3 class="text-center">FMB Calendar For Year - <?php echo $hijri_year; ?></h3>
   </div>
   <div class="row">
     <!-- <div class="filter-container col-12 col-md-3 bg-light">
@@ -82,10 +79,10 @@
         <table class="table table-striped table-bordered">
           <thead class="thead-dark">
             <tr>
-              <th class="sno">Sno</th>
+              <th class="sno">#</th>
               <th>Day</th>
               <th>Eng Date</th>
-              <th>Hijri</th>
+              <th>Hijri Date</th>
               <th>Type</th>
               <th>Miqaat Name</th>
               <th>Assigned to</th>
@@ -126,7 +123,7 @@
                   <td class="sno"><?php echo $sno++; ?></td>
                   <td><?php echo $day; ?></td>
                   <td><?php echo $eng_date; ?></td>
-                  <td><?php echo $hijri_date; ?></td>
+                  <td><?php echo isset($row['hijri_date_with_month']) ? $row['hijri_date_with_month'] : $hijri_date; ?></td>
                   <?php if ($isHoliday): ?>
                     <td colspan="4">Holiday</td>
                   <?php else: ?>
@@ -149,9 +146,9 @@
                     <?php if ($isHoliday): ?>
                       <span class="badge badge-success">Holiday</span>
                     <?php elseif ($type == 'Thaali'): ?>
-                      <a href="<?php echo base_url('common/edit_menu?id=' . $menu_id . "&from=common/fmbcalendar"); ?>" class="btn btn-sm btn-primary">Edit</a>
+                      <a href="<?php echo base_url('common/edit_menu?id=' . $menu_id . "&from=common/fmbcalendar"); ?>" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
                     <?php elseif (!empty($miqaat_name)): ?>
-                      <a href="<?php echo base_url('common/edit_miqaat?id=' . $row['miqaat_id'] . "&from=common/fmbcalendar"); ?>" class="btn btn-sm btn-primary">Edit</a>
+                      <a href="<?php echo base_url('common/edit_miqaat?id=' . $row['miqaat_id'] . "&from=common/fmbcalendar"); ?>" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
                     <?php endif; ?>
                   </td>
                 </tr>
@@ -165,7 +162,7 @@
     </div>
   </div>
   <div class="modal fade" id="manageDayModal" tabindex="-1" role="dialog" aria-labelledby="manageDayModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
       <div class="modal-content">
         <form id="manageDayForm" method="post" action="<?php echo base_url('common/update_day'); ?>">
           <div class="modal-header">
@@ -198,11 +195,10 @@
       </div>
     </div>
   </div>
-
 </div>
 <!-- Assignment Details Modal -->
 <div class="modal fade" id="assignmentDetailsModal" tabindex="-1" role="dialog" aria-labelledby="assignmentDetailsModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
+  <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="assignmentDetailsModalLabel">Assignment Details</h5>
@@ -224,14 +220,12 @@
     if (assignments && assignments.length > 0) {
       assignments.forEach(function(assignment) {
         if (assignment.assign_type === "Individual") {
-          html += "<div><strong>Individual:</strong> " + assignment.member_name + "<br><span class='text-muted'>Mobile: " + (assignment.member_mobile || "N/A") + "</span></div>";
+          html += "<div><strong>Individual:</strong> " + assignment.member_name + "<span class='text-muted'> (Mobile: " + (assignment.member_mobile || "N/A") + ")</span></div>";
         } else if (assignment.assign_type === "Group") {
-          html += "<div><strong>Group:</strong> " + assignment.group_name + " (Leader: " + assignment.group_leader_name + ")<br><span class='text-muted'>Leader Mobile: " + (assignment.group_leader_mobile || "N/A") + "</span></div>";
-          html += "<div>Members:<ul>";
-          assignment.members.forEach(function(member) {
-            html += "<li>" + member.name + " <span class='text-muted'>(Mobile: " + (member.mobile || "N/A") + ")</span></li>";
-          });
-          html += "</ul></div>";
+          html += "<div><strong>Sanstha / Group:</strong> " + assignment.group_name + " <br><br><strong>Leader:</strong> " + assignment.group_leader_name + "<span class='text-muted'> (Mobile: " + (assignment.group_leader_mobile || "N/A") + ")</span></div><br>";
+          if (assignment.members && assignment.members.length > 0) {
+            html += "<div><strong>Co-leader:</strong> " + assignment.members[0].name + " <span class='text-muted'>(Mobile: " + (assignment.members[0].mobile || "N/A") + ")</span></div>";
+          }
         }
       });
     } else {
@@ -252,5 +246,9 @@
   $('#manageDayModal').on('hidden.bs.modal', function() {
     $('#greg_date').val('');
     $('#day_type').val('');
+  });
+
+  $("#hijri-month, #sort-type").on("change", function() {
+    $("#filter-form").submit();
   });
 </script>

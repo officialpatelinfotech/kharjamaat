@@ -991,8 +991,7 @@ class Accounts extends CI_Controller
     // Check if the insertion was successful
     if ($insert_id) {
       // If successful, redirect back to the chat page
-      echo '<script>window.history.go(-1);</script>';
-
+      redirect("accounts/chat/$raza_id");
       exit();
     } else {
       // If unsuccessful, return an error response

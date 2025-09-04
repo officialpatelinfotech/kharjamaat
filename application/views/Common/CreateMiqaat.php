@@ -72,7 +72,7 @@
                         <?php if (!empty($assignment['group_leader_name'])): ?>
                           <br><strong>Leader:</strong> <?php echo htmlspecialchars($assignment['group_leader_name'], ENT_QUOTES); ?>
                         <?php endif; ?>
-                        <br><strong>Members:</strong>
+                        <br><strong>Co-leader:</strong>
                         <?php if (!empty($assignment['members'])): ?>
                           <ul>
                             <?php foreach ($assignment['members'] as $member): ?>
@@ -80,7 +80,7 @@
                             <?php endforeach; ?>
                           </ul>
                         <?php else: ?>
-                          <em>No members assigned</em>
+                          <em>No co-leader assigned</em>
                         <?php endif; ?>
                       </li>
                     <?php endif; ?>
@@ -102,7 +102,7 @@
               <?php echo isset($edit_mode) && $edit_mode ? '' : 'required'; ?>>
               <option value="">-- Select Assign To --</option>
               <option value="Individual">Individual</option>
-              <option value="Group">Group</option>
+              <option value="Group">Sanstha / Group</option>
               <option value="Fala ni Niyaz">Fala ni Niyaz</option>
             </select>
           </div>
@@ -142,21 +142,17 @@
 
           <div id="group-container" class="d-none">
             <div class="form-group mb-3">
-              <label for="group-name">Group Name:</label>
-              <input type="text" name="group_name" id="group-name" class="form-control" placeholder="Enter Group Name" value="<?php if (isset($edit_mode) && $edit_mode && isset($miqaat['assignments'])) {
-                                                                                                                                foreach ($miqaat['assignments'] as $assignment) {
-                                                                                                                                  if ($assignment['assign_type'] === 'Group') echo htmlspecialchars($assignment['group_name'], ENT_QUOTES);
-                                                                                                                                }
-                                                                                                                              } ?>">
+              <label for="group-name">Sanstha / Group Name:</label>
+              <input type="text" name="group_name" id="group-name" class="form-control" placeholder="Enter Sanstha / Group Name" value="<?php if (isset($edit_mode) && $edit_mode && isset($miqaat['assignments'])) {
+                                                                                                                                          foreach ($miqaat['assignments'] as $assignment) {
+                                                                                                                                            if ($assignment['assign_type'] === 'Group') echo htmlspecialchars($assignment['group_name'], ENT_QUOTES);
+                                                                                                                                          }
+                                                                                                                                        } ?>">
             </div>
 
             <div class="form-group mb-3">
-              <label for="group-leader">Select Group Leader:</label>
-              <input type="text" id="group-leader" class="form-control" placeholder="Search & select leader" value="<?php if (isset($edit_mode) && $edit_mode && isset($miqaat['assignments'])) {
-                                                                                                                      foreach ($miqaat['assignments'] as $assignment) {
-                                                                                                                        if ($assignment['assign_type'] === 'Group') echo htmlspecialchars($assignment['group_leader_name'], ENT_QUOTES);
-                                                                                                                      }
-                                                                                                                    } ?>">
+              <label for="group-leader">Select Sanstha / Group Leader:</label>
+              <input type="text" id="group-leader" class="form-control" placeholder="Search & select leader">
               <div class="autocomplete-display acod-2"></div>
               <input type="hidden" name="group_leader_id" id="group-leader-id" value="<?php if (isset($edit_mode) && $edit_mode && isset($miqaat['assignments'])) {
                                                                                         foreach ($miqaat['assignments'] as $assignment) {
@@ -178,8 +174,8 @@
             </div>
 
             <div class="form-group mb-3">
-              <label for="group-members">Assign Members:</label>
-              <input type="text" id="group-members" class="form-control" placeholder="Search & add members">
+              <label for="group-members">Select Sanstha / Group Co-leader:</label>
+              <input type="text" id="group-members" class="form-control" placeholder="Search & add co-leader">
               <div class="autocomplete-display acod-3"></div>
               <input type="hidden" name="group_member_ids" id="group-member-ids" value="<?php if (isset($edit_mode) && $edit_mode && isset($miqaat['assignments'])) {
                                                                                           foreach ($miqaat['assignments'] as $assignment) {
@@ -191,15 +187,15 @@
                                                                                             }
                                                                                           }
                                                                                         } ?>">
-              <small class="text-muted">Multiple members can be assigned</small>
+              <small class="text-muted">Co-leader can be assigned</small>
               <div id="selected-group-members" class="mt-2">
                 <?php if (isset($edit_mode) && $edit_mode && isset($miqaat['assignments'])): ?>
                   <?php foreach ($miqaat['assignments'] as $assignment): ?>
                     <?php if ($assignment['assign_type'] === 'Group' && !empty($assignment['members'])): ?>
                       <?php foreach ($assignment['members'] as $member): ?>
-                        <span class="badge bg-info text-dark me-2 mr-2">
+                        <span class="badge bg-info text-white me-2 mr-2">
                           <?php echo htmlspecialchars($member['name'], ENT_QUOTES); ?>
-                          <a href="#" class="text-dark ms-1 remove-group-member" data-id="<?php echo $member['id']; ?>">×</a>
+                          <a href="#" class="text-white ms-1 remove-group-member" data-id="<?php echo $member['id']; ?>">×</a>
                         </span>
                       <?php endforeach; ?>
                     <?php endif; ?>
@@ -215,7 +211,7 @@
 
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-success"><?php echo isset($edit_mode) && $edit_mode ? 'Update Miqaat' : 'Save Miqaat'; ?></button>
+          <button type="submit" id="save-miqaat-btn" class="btn btn-success"><?php echo isset($edit_mode) && $edit_mode ? 'Update Miqaat' : 'Save Miqaat'; ?></button>
         </div>
         <?php if (isset($edit_mode) && $edit_mode): ?>
           <input type="hidden" name="miqaat_id" value="<?php echo isset($miqaat_id) ? $miqaat_id : (isset($miqaat['id']) ? $miqaat['id'] : ''); ?>">
@@ -236,6 +232,11 @@
       });
     }
 
+    // Make group leader required if Group is selected
+    // var assignToSelect = document.getElementById('assign-to');
+    // var groupLeaderInput = document.getElementById('group-leader');
+    // var groupContainer = document.getElementById('group-container');
+
     // --- Date picker and hijri logic from CreateMenu.php ---
     let miqaatDates = [];
     // If you have a PHP array of miqaat dates, convert to JS array here
@@ -253,25 +254,6 @@
       disable: miqaatDates,
     });
 
-    $("#date").on('change', function(e) {
-      $.ajax({
-        url: '<?php echo base_url("Common/verify_miqaat_date") ?>',
-        method: 'POST',
-        data: {
-          miqaat_date: $(this).val()
-        },
-        success: function(response) {
-          const data = JSON.parse(response);
-          if (data.status === 'exists') {
-            alert(`Miqaat already exists for ${$("#miqaat_date").val()}. Please choose a different date.`);
-            $("#miqaat_date").val('');
-          } else {
-            const hijriDate = data.hijri_date;
-            $('#hijri-date-display').html(`Hijri Date: ${hijriDate}`);
-          }
-        }
-      });
-    });
     const assignSelect = document.getElementById("assign-to");
     const individualContainer = document.getElementById("individual-container");
     const groupContainer = document.getElementById("group-container");
@@ -282,16 +264,41 @@
       groupContainer.classList.add("d-none");
       falaContainer.classList.add("d-none");
 
+      var groupLeaderInput = document.getElementById('group-leader');
+      var individualInput = document.getElementById('individuals');
+      var individualIdsInput = document.getElementById('individual-ids');
+
       if (this.value === "Individual") {
         individualContainer.classList.remove("d-none");
+        if (groupLeaderInput) groupLeaderInput.removeAttribute('required');
       } else if (this.value === "Group") {
         groupContainer.classList.remove("d-none");
-      } else if (this.value === "Fala_ni_Niyaz") {
+        if (individualInput) individualInput.removeAttribute('required');
+      } else if (this.value === "Fala ni Niyaz" || this.value === "Fala_ni_Niyaz") {
         falaContainer.classList.remove("d-none");
+        if (groupLeaderInput) groupLeaderInput.removeAttribute('required');
+        if (individualInput) individualInput.removeAttribute('required');
+      } else {
+        if (groupLeaderInput) groupLeaderInput.removeAttribute('required');
+        if (individualInput) individualInput.removeAttribute('required');
       }
     });
 
+    // Also update required attribute when individuals are selected/deselected
+    if (document.getElementById('individual-ids')) {
+      document.getElementById('individual-ids').addEventListener('change', function() {
+        var individualInput = document.getElementById('individuals');
+        var idsArr = this.value ? this.value.split(',').filter(Boolean) : [];
+        if (idsArr.length > 0) {
+          if (individualInput) individualInput.removeAttribute('required');
+        } else {
+          if (individualInput && assignSelect.value === "Individual") individualInput.setAttribute('required', 'required');
+        }
+      });
+    }
+
     function setupAutocomplete(inputId, appendContainer, selectedContainer, hiddenInputId, multiple = false) {
+
       const input = document.getElementById(inputId);
       const hiddenInput = document.getElementById(hiddenInputId);
 
@@ -318,6 +325,11 @@
         select: function(event, ui) {
           let ids = hiddenInput.value ? hiddenInput.value.split(",") : [];
 
+          if (ids.length > 0 && !multiple) {
+            alert("Only one selection is allowed! To replace, unselect the current one.");
+            input.value = "";
+            return false;
+          }
           if (!ids.includes(ui.item.id.toString())) {
             ids.push(ui.item.id);
             hiddenInput.value = ids.join(",");
@@ -367,7 +379,7 @@
 
     setupAutocomplete("individuals", ".acod-1", "selected-individuals", "individual-ids", true);
     setupAutocomplete("group-leader", ".acod-2", "selected-group-leader", "group-leader-id", false);
-    setupAutocomplete("group-members", ".acod-3", "selected-group-members", "group-member-ids", true);
+    setupAutocomplete("group-members", ".acod-3", "selected-group-members", "group-member-ids", false);
 
     // Edit modal logic
     const editAssignSelect = document.getElementById("edit-assign-to");
@@ -485,6 +497,51 @@
 
       // Show modal
       $("#editMiqaatModal").modal("show");
+    });
+  });
+
+  $(document).ready(function() {
+    $('#date').on('change', function() {
+      var gregDate = $(this).val();
+      // Convert to Y-m-d format if needed
+      var parts = gregDate.split('-');
+      if (parts.length === 3) {
+        // If input is d-m-Y, convert to Y-m-d
+        gregDate = parts[2] + '-' + parts[1] + '-' + parts[0];
+      }
+      $.ajax({
+        url: '<?php echo base_url("common/get_hijri_date_ajax"); ?>',
+        method: 'POST',
+        data: {
+          greg_date: gregDate
+        },
+        success: function(response) {
+          const data = JSON.parse(response);
+          if (data.status === 'success') {
+            const hijriDate = data.hijri_date;
+            $('#hijri-date-display').html(`Hijri Date: ${hijriDate}`);
+          } else {
+            $('#hijri-date-display').html(''); // Clear if error
+          }
+        }
+      });
+    });
+  });
+
+  $(document).ready(function() {
+    $("#save-miqaat-btn").on("click", function() {
+      if ($("#assign-to").val() === "Individual") {
+        if ($("#individual-ids").val().trim() === "") {
+          alert("Please select at least one individual.");
+          return false;
+        }
+      }
+      if ($("#assign-to").val() === "Group") {
+        if ($("#group-leader-id").val().trim() === "") {
+          alert("Please select a group leader.");
+          return false;
+        }
+      }
     });
   });
 </script>

@@ -14,7 +14,7 @@ class Common extends CI_Controller
 
   private function validateUser($user)
   {
-    if (empty($user) || ($user['role'] != 1 && $user['role'] != 3)) {
+    if (empty($user) || ($user['role'] != 1 && $user['role'] != 3 && $user['role'] != 2)) {
       redirect('/accounts');
     }
   }
@@ -40,20 +40,33 @@ class Common extends CI_Controller
     $sort_type = $this->input->post('sort_type');
     $data['hijri_months'] = $this->HijriCalendar->get_hijri_month();
     if (empty($hijri_month_id)) {
-      // Default to current hijri month
-      $today = date('Y-m-d');
-      $hijri_today = $this->HijriCalendar->get_hijri_date($today);
-      if (!empty($hijri_today['hijri_month_id'])) {
-        $hijri_month_id = $hijri_today['hijri_month_id'];
-      } elseif (!empty($data['hijri_months'])) {
-        $hijri_month_id = $data['hijri_months'][0]['id'];
-      }
+      $hijri_month_id = -1;
     }
+
     $data['hijri_month_id'] = $hijri_month_id;
     $data['sort_type'] = $sort_type;
     // Fetch calendar data for table (assignments now included in model)
     $calendar = $this->CommonM->get_full_calendar($hijri_month_id, $sort_type);
+    // After fetching $calendar, update each entry to add hijri month name to the date
+    foreach ($calendar as &$entry) {
+      if (!empty($entry['hijri_date'])) {
+        $hijri_parts = explode('-', $entry['hijri_date']);
+        $hijri_month_id = isset($hijri_parts[1]) ? $hijri_parts[1] : '';
+        $hijri_month_name = '';
+        if ($hijri_month_id) {
+          $month_info = $this->HijriCalendar->hijri_month_name($hijri_month_id);
+          $hijri_month_name = isset($month_info['hijri_month']) ? $month_info['hijri_month'] : '';
+        }
+        $entry['hijri_date_with_month'] = explode('-', $entry['hijri_date'])[0] . ' ' . $hijri_month_name . ' ' . explode('-', $entry['hijri_date'])[2];
+      } else {
+        $entry['hijri_date_with_month'] = '';
+      }
+    }
     $data['calendar'] = $calendar;
+
+    $first_day_of_calendar = $calendar[0]["greg_date"];
+    $hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($first_day_of_calendar)));
+    $data['hijri_year'] = explode('-', $hijri_date['hijri_date'])[2];
 
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/FMBCalendar', $data);
@@ -267,14 +280,15 @@ class Common extends CI_Controller
     $this->validateUser($_SESSION['user']);
     $hijri_month_id = $this->input->post('hijri_month');
     $today_hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"];
+    $today_hijri_year = explode("-", $today_hijri_date)[2];
     if ($hijri_month_id == -1) {
-      $this_hijri_year = substr($today_hijri_date, 4);
+      $this_hijri_year = $today_hijri_year;
     } else if ($hijri_month_id == -2) {
-      $this_hijri_year = substr($today_hijri_date, 4) + 1;
+      $this_hijri_year = $today_hijri_year + 1;
     } else if ($hijri_month_id == -3) {
-      $this_hijri_year = substr($today_hijri_date, 4) - 1;
+      $this_hijri_year = $today_hijri_year - 1;
     } else {
-      $this_hijri_year = substr($today_hijri_date, 4);
+      $this_hijri_year = $today_hijri_year;
     }
 
     $fitler_data = [
@@ -447,6 +461,9 @@ class Common extends CI_Controller
     $sort_type = $this->input->post('sort_type');
     $today_hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"];
     $today_hijri_year = explode("-", $today_hijri_date)[2];
+    if (empty($hijri_month_id) || $hijri_month_id == '') {
+      $hijri_month_id = -1;
+    }
     if ($hijri_month_id == -1) {
       $this_hijri_year = $today_hijri_year;
     } else if ($hijri_month_id == -2) {
@@ -467,6 +484,27 @@ class Common extends CI_Controller
     $data["hijri_months"] = $this->HijriCalendar->get_hijri_month();
     $data['hijri_month_id'] = $hijri_month_id;
     $data['sort_type'] = $sort_type;
+
+
+    foreach ($data["miqaats"] as &$entry) {
+      if (!empty($entry['hijri_date'])) {
+        $hijri_parts = explode('-', $entry['hijri_date']);
+        $hijri_month_id = isset($hijri_parts[1]) ? $hijri_parts[1] : '';
+        $hijri_month_name = '';
+        if ($hijri_month_id) {
+          $month_info = $this->HijriCalendar->hijri_month_name($hijri_month_id);
+          $hijri_month_name = isset($month_info['hijri_month']) ? $month_info['hijri_month'] : '';
+        }
+        $entry['hijri_date_with_month'] = explode('-', $entry['hijri_date'])[0] . ' ' . $hijri_month_name . ' ' . explode('-', $entry['hijri_date'])[2];
+      } else {
+        $entry['hijri_date_with_month'] = '';
+      }
+    }
+
+    $first_day_of_calendar = $data["miqaats"][0]["date"];
+    $hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($first_day_of_calendar)));
+    $data['hijri_year'] = explode('-', $hijri_date['hijri_date'])[2];
+
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/ManageMiqaat', $data);
   }
@@ -486,6 +524,22 @@ class Common extends CI_Controller
 
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/CreateMiqaat', $data);
+  }
+
+  // AJAX endpoint to fetch hijri date for a given gregorian date
+  public function get_hijri_date_ajax()
+  {
+    $greg_date = $this->input->post('greg_date');
+    $hijri_date = '';
+    if (!empty($greg_date)) {
+      $result = $this->CommonM->get_hijri_date_by_greg_date($greg_date);
+      if ($result && isset($result['hijri_date'])) {
+        $hijri_date_with_month_name = explode("-", $result['hijri_date']);
+        $hijri_date = $hijri_date_with_month_name[0] . " " . $result["hijri_month_name"] . " " . $hijri_date_with_month_name[2];
+      }
+    }
+    echo json_encode(['status' => "success", 'hijri_date' => $hijri_date]);
+    exit;
   }
 
   public function edit_miqaat()

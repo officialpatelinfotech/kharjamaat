@@ -9,6 +9,27 @@ class CommonM extends CI_Model
     parent::__construct();
   }
 
+  // Get hijri date for a given gregorian date
+  public function get_hijri_date_by_greg_date($greg_date)
+  {
+    $this->db->select('hijri_date, hijri_month_id');
+    $this->db->from('hijri_calendar');
+    $this->db->where('greg_date', $greg_date);
+    $query = $this->db->get();
+    $row = $query->row_array();
+    if ($row && isset($row['hijri_month_id'])) {
+      $this->db->select('hijri_month');
+      $this->db->from('hijri_month');
+      $this->db->where('id', $row['hijri_month_id']);
+      $month_query = $this->db->get();
+      $month_row = $month_query->row_array();
+      $row['hijri_month_name'] = isset($month_row['hijri_month']) ? $month_row['hijri_month'] : '';
+    } else {
+      $row['hijri_month_name'] = '';
+    }
+    return $row;
+  }
+
   public function get_miqaat_by_id_and_date($id, $date)
   {
     $this->db->select('*');
@@ -605,18 +626,18 @@ class CommonM extends CI_Model
     $hijri_year = isset($filter_data['hijri_year']) ? $filter_data['hijri_year'] : null;
     $sort_type = isset($filter_data['sort_type']) ? $filter_data['sort_type'] : 'asc';
 
-    if (!$hijri_month_id || !$hijri_year) {
+    if (!$hijri_month_id || $hijri_month_id == -1) {
       $today = date('Y-m-d');
       $this->db->select('hijri_month_id, hijri_date');
       $this->db->from('hijri_calendar');
       $this->db->where('greg_date', $today);
       $row = $this->db->get()->row();
       if (!$row) return [];
-      $hijri_month_id = $row->hijri_month_id;
-      $hijri_year = explode('-', $row->hijri_date)[2];
+      $hijri_year = explode("-", $row->hijri_date)[2];
+      $hijri_month_id = -1;
     }
 
-    // Step 2: Get all hijri dates for this month
+    // Step 2: Get all hijri dates for this month or year
     $this->db->select('greg_date, hijri_date');
     $this->db->from('hijri_calendar');
     if ($hijri_month_id > 0) {
@@ -731,10 +752,10 @@ class CommonM extends CI_Model
     $miqaat = $query->row_array();
 
     if ($miqaat) {
-  $this->db->select('a.*, u.full_name as member_name, u.mobile as member_mobile, gl.full_name as group_leader_name, gl.mobile as group_leader_mobile');
-  $this->db->from('miqaat_assignments a');
-  $this->db->join('user u', 'a.member_id = u.ITS_ID', 'left');
-  $this->db->join('user gl', 'a.group_leader_id = gl.ITS_ID', 'left');
+      $this->db->select('a.*, u.full_name as member_name, u.mobile as member_mobile, gl.full_name as group_leader_name, gl.mobile as group_leader_mobile');
+      $this->db->from('miqaat_assignments a');
+      $this->db->join('user u', 'a.member_id = u.ITS_ID', 'left');
+      $this->db->join('user gl', 'a.group_leader_id = gl.ITS_ID', 'left');
       $this->db->where('a.miqaat_id', $miqaat_id);
       $assignments_raw = $this->db->get()->result_array();
 

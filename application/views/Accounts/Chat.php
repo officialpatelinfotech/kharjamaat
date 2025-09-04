@@ -56,17 +56,17 @@
   }
 
   .chat-input textarea {
-    flex: 1 ;
-    padding: 8px ;
-    border: 1px solid #ccc ;
-    border-radius: 5px ;
-    resize: vertical ;
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    resize: vertical;
     /* Allow vertical resizing */
-    min-height: 50px ;
+    min-height: 50px;
     /* Set minimum height */
-    max-height: 200px ;
+    max-height: 200px;
     /* Set maximum height */
-    overflow-y: auto  ;
+    overflow-y: auto;
     /* Add vertical scrollbar when content exceeds max height */
   }
 
@@ -158,8 +158,6 @@
     background: #000;
     /* Color of the scrollbar handle when scrolling */
   }
- 
-
 </style>
 <div class="chat-container">
 
@@ -193,10 +191,10 @@
       <!-- Hidden input fields for raza_id and user -->
       <input type="hidden" name="raza_id" value="<?php echo $id; ?>">
       <input type="hidden" name="user" value="<?php echo $_SESSION['user']['username']; ?>">
-      
+
       <!-- Textarea for the message content -->
       <textarea name="message" placeholder="Type your message..." rows="1"></textarea>
-      
+
       <!-- Submit button to send the message -->
       <button type="button" onclick="sendMessage()">Send</button>
     </form>
@@ -210,12 +208,13 @@
 
   // Call scrollToBottom function after loading messages
   scrollToBottom();
-  function sendMessage() {
-  // Get the form element
-  var form = document.getElementById('messageForm');
 
-  // Submit the form
-  form.submit();
-  scrollToBottom();
-}
+  function sendMessage() {
+    // Get the form element
+    var form = document.getElementById('messageForm');
+
+    // Submit the form
+    form.submit();
+    scrollToBottom();
+  }
 </script>

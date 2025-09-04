@@ -323,6 +323,7 @@
   Successfull
 </div>
 <div class="margintopcontainer">
+  <!-- <?php echo "<pre>" . print_r($raza, true) . "</pre>"; ?> -->
   <div class="ml-1 mr-1 pt-5">
     <p class="h4 text-center mt-5" style="color:goldenrod; text-transform: uppercase;"><?php echo $umoor ?></p>
     <div class="container">
@@ -654,8 +655,6 @@
     let razafields = JSON.parse(raza.razafields)
     let raza_type_id = parseInt(raza.razaType_id || raza.raza_type_id);
 
-    console.log(raza_type_id);
-
     if (raza_type_id === 2 && raza.miqaat_details) {
       let miqaat_info = JSON.parse(raza.miqaat_details);
       tbodydata += `<tr><th scope=\"row\">Miqaat Name</th><td>${miqaat_info.name}</td></tr>`;
@@ -873,10 +872,16 @@
             return new Date(a['time-stamp']) - new Date(b['time-stamp']);
           case 2:
             // Implement sorting by event date (New > Old)
-            return new Date(getEventDate(b.razadata)) - new Date(getEventDate(a.razadata));
+            return new Date(getEventDate(b.razadata, b.miqaat_details)) - new Date(getEventDate(a.razadata, a.miqaat_details));
           case 3:
             // Implement sorting by event date (Old > New)
-            return new Date(getEventDate(a.razadata)) - new Date(getEventDate(b.razadata));
+            return new Date(getEventDate(a.razadata, a.miqaat_details)) - new Date(getEventDate(b.razadata, b.miqaat_details));
+          case 7:
+            // Sort by miqaat date (New > Old)
+            return new Date(getMiqaatDate(b)) - new Date(getMiqaatDate(a));
+          case 8:
+            // Sort by miqaat date (Old > New)
+            return new Date(getMiqaatDate(a)) - new Date(getMiqaatDate(b));
           case 6:
             refresh();
           default:
@@ -1101,10 +1106,17 @@
     return actionHTML;
   }
 
-  function getEventDate(razadata) {
+  function getEventDate(razadata, miqaat_details = {}) {
     // Implement logic to extract event date from razadata
     let data = JSON.parse(razadata);
-    return data.date ? new Date(data.date) : null;
+    if (data.date) {
+      return new Date(data.date);
+    } else if (miqaat_details) {
+      let miqaat_info = JSON.parse(miqaat_details);
+      return new Date(miqaat_info.date);
+    } else {
+      return null;
+    }
   }
 </script>
 <script>
