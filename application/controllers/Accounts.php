@@ -163,26 +163,17 @@ class Accounts extends CI_Controller
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
     $data['sector'] = $_SESSION['user_data']['Sector'];
     $user_id = $_SESSION['user']['username'];
+
     $data['user_data'] = $this->AccountM->getUserData($user_id);
+    $hof_id = $data['user_data']['HOF_ID'];
     $data['hof_data'] = $data['user_data']['HOF_ID'];
+
+    $miqaats = $this->AccountM->get_all_upcoming_miqaat();
+    $data["miqaats"] = $miqaats;
 
     $data['raza'] = $this->get_pending_raza_requests($user_id);
 
-    $data['rsvp_list'] = $this->AccountM->get_rsvp();
-    $data['vasanreq_list'] = $this->AccountM->get_vasan_request($user_id);
-    $userHof = $_SESSION['user_data']['HOF_ID'];
-    foreach ($data['rsvp_list'] as $key => $r) {
-      $family = $this->AccountM->get_all_family_member($userHof);
-      $attend = true;
-      foreach ($family as $f) {
-        $isattended = $this->AccountM->get_rsvp_attendance($r['id'], $f['id']);
-        if (!$isattended) {
-          $attend = false;
-          break;
-        }
-      }
-      $data['rsvp_list'][$key]['attend'] = $attend;
-    }
+    $data["rsvp_overview"] = $this->AccountM->get_rsvp_overview($hof_id, $miqaats)[$hof_id];
 
     $data["fmb_takhmeen_details"] = $this->AccountM->get_member_total_fmb_due($user_id);
     $data["sabeel_takhmeen_details"] = $this->AccountM->get_member_total_sabeel_due($user_id);
@@ -191,6 +182,160 @@ class Accounts extends CI_Controller
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Home');
+  }
+
+  public function assigned_miqaats()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+    $user_id = $_SESSION['user_data']['ITS_ID'];
+
+    $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
+    $data['hof_data'] = $data['user_data']['HOF_ID'];
+    $data['member_name'] = $data['user_data']['Full_Name'];
+
+    $data["miqaats"] = $this->AccountM->get_assigned_miqaats($user_id);
+    // Add hijri_date to each miqaat
+    foreach ($data["miqaats"] as $key => $miqaat) {
+      $hijri_date = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])))["hijri_date"]);
+      $hijri_month = $this->HijriCalendar->hijri_month_name($this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])))["hijri_month_id"])["hijri_month"];
+      $data["miqaats"][$key]["hijri_date"] = $hijri_date[0] . " " . $hijri_month . " " . $hijri_date[2];
+
+      // Raza for Miqaat
+      $data["miqaats"][$key]["raza"] = $this->AccountM->get_raza_by_miqaat($miqaat["id"], $user_id);
+      $data["miqaats"][$key]["invoice_status"] = $this->AccountM->get_miqaat_invoice_status($miqaat["id"]);
+    }
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/AssignedMiqaats', $data);
+  }
+
+  public function submit_miqaat_raza($miqaat_id)
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+
+    $user_id = $_SESSION['user_data']['ITS_ID'];
+
+    $raza_data = '{"miqaat_id":"' . $miqaat_id . '"}';
+
+    $data = array(
+      'user_id' => $user_id,
+      'razaType' => 2,
+      'razadata' => $raza_data,
+      'miqaat_id' => $miqaat_id,
+      'sabil' => 0,
+      'fmb' => 0,
+    );
+
+    $result = $this->AccountM->submit_miqaat_raza($data);
+
+    if ($result > 0) {
+      $this->session->set_flashdata('success', "Miqaat Raza submitted successfully.");
+    } else if ($result < 0) {
+      $this->session->set_flashdata('warning', "Miqaat Raza already submitted.");
+    } else {
+      $this->session->set_flashdata('error', "Failed to submit Miqaat Raza. Please try again.");
+    }
+    redirect('/accounts/assigned_miqaats');
+  }
+
+  public function rsvp_list()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+    $user_id = $_SESSION['user_data']['ITS_ID'];
+
+    $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
+    $hof_id = $data['user_data']['HOF_ID'];
+    $data['hof_data'] = $hof_id;
+    $data['member_name'] = $data['user_data']['Full_Name'];
+
+    $miqaats = $this->AccountM->get_all_upcoming_miqaat();
+    $data["miqaats"] = $miqaats;
+
+    foreach ($miqaats as $key => $miqaat) {
+      $hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])));
+      $hijri_month = $this->HijriCalendar->hijri_month_name($hijri_date["hijri_month_id"])["hijri_month"];
+      $data["miqaats"][$key]["hijri_date"] = explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month . " " . explode("-", $hijri_date["hijri_date"])[2];
+    }
+
+    $data["rsvp_overview"] = $this->AccountM->get_rsvp_overview($hof_id, $miqaats)[$hof_id];
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/RSVP/Home', $data);
+  }
+
+  public function general_rsvp($miqaat_id)
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+    $user_id = $_SESSION['user_data']['ITS_ID'];
+
+    $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
+    $hof_id = $data['user_data']['HOF_ID'];
+    $data['hof_data'] = $data['user_data']['HOF_ID'];
+    $data['member_name'] = $data['user_data']['Full_Name'];
+
+    $family = $this->AccountM->get_all_family_member($data['hof_data']);
+    $data['family'] = $family;
+
+    $data['miqaat'] = $this->AccountM->get_miqaat_by_id($miqaat_id);
+
+    $data["rsvp_by_miqaat_id"] = $this->AccountM->get_rsvp_by_miqaat_id($hof_id, $miqaat_id);
+    $data["rsvp_miqaat_ids"] = array_column($data["rsvp_by_miqaat_id"], 'user_id');
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/RSVP/GeneralRSVP', $data);
+  }
+
+  public function submit_general_rsvp()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+
+    $user_id = $_SESSION['user_data']['ITS_ID'];
+    $hof_id = $_SESSION['user_data']['HOF_ID'];
+    $miqaat_id = $this->input->post('miqaat_id');
+    $rsvp_members = $this->input->post('rsvp_members');
+
+    if (empty($rsvp_members)) {
+      $this->session->set_flashdata('error', "Please select at least one family member to RSVP.");
+      redirect('/accounts/general_rsvp/' . $miqaat_id);
+    }
+
+    // Clear existing RSVPs for the selected miqaat and hof_id
+    $this->AccountM->clear_existing_rsvps($hof_id, $miqaat_id);
+
+    // Insert new RSVPs
+    foreach ($rsvp_members as $member_id) {
+      $data = array(
+        'hof_id' => $hof_id,
+        'miqaat_id' => $miqaat_id,
+        'user_id' => $member_id
+      );
+      $this->AccountM->insert_rsvp($data);
+    }
+
+    $this->session->set_flashdata('success', "RSVP submitted successfully.");
+    redirect('/accounts/rsvp_list');
   }
 
   public function FMBWeeklySignUp()
@@ -536,6 +681,7 @@ class Accounts extends CI_Controller
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Miqaat/Rsvp', $data);
   }
+
   public function submit_rsvp($id)
   {
     try {
@@ -570,6 +716,7 @@ class Accounts extends CI_Controller
       redirect('/accounts/error/miqaat');
     }
   }
+
   public function newVasanReq()
   {
     if (empty($_SESSION['user'])) {
@@ -694,13 +841,13 @@ class Accounts extends CI_Controller
         $v = isset($_POST[$result]) ? htmlspecialchars($_POST[$result]) : '';
       }
       $table .= '<tr>
-            <td align="center" style="border: 1px solid black;width: 50%;">
-              <p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: bold; font-family: Roboto, arial, sans-serif;">' . htmlspecialchars($value['name']) . '</p>
-            </td>
-            <td align="center" style="border: 1px solid black;width: 50%;">
-              <p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: normal; font-family: Roboto, arial, sans-serif;">' . $v . '</p>
-            </td>
-          </tr>';
+                  <td align="center" style="border: 1px solid black;width: 50%;">
+                    <p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: bold; font-family: Roboto, arial, sans-serif;">' . htmlspecialchars($value['name']) . '</p>
+                  </td>
+                  <td align="center" style="border: 1px solid black;width: 50%;">
+                    <p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: normal; font-family: Roboto, arial, sans-serif;">' . $v . '</p>
+                  </td>
+                </tr>';
     }
 
     $user_data = $_SESSION['user_data'];
@@ -768,6 +915,7 @@ class Accounts extends CI_Controller
       redirect('/accounts/error/myrazarequest');
     }
   }
+
   public function edit_raza($id)
   {
     if (empty($_SESSION['user'])) {

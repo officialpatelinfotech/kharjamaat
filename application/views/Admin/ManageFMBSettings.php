@@ -108,7 +108,9 @@
 <div class="container margintopcontainer pt-5">
   <div class="row mb-4 p-0">
     <div class="col-12 col-md-6">
-      <a href="<?php echo base_url('admin'); ?>" class="back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+      <a href="<?php echo base_url('admin'); ?>" class="btn btn-outline-secondary">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
     </div>
   </div>
   <h4 class="heading text-center mb-4">FMB Settings</h4>

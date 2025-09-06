@@ -292,6 +292,7 @@ class CommonM extends CI_Model
       return false;
     }
 
+    // For full year, use first and last day of year
     $first_hijri_day = $month_data[0]["greg_date"];
     $last_hijri_day = $month_data[count($month_data) - 1]["greg_date"];
 
@@ -658,6 +659,7 @@ class CommonM extends CI_Model
         m.type,
         m.date,
         m.assigned_to as assigned_to,
+        m.status as status,
         a.assign_type,
         a.group_name,
         a.group_leader_id,
@@ -693,6 +695,7 @@ class CommonM extends CI_Model
           'name' => $row['name'],
           'type' => $row['type'],
           'date' => $row['date'],
+          'status' => $row['status'],
           'assigned_to' => $row['assigned_to'],
           'assignments' => []
         ];
@@ -736,6 +739,18 @@ class CommonM extends CI_Model
   public function insert_assignment($data)
   {
     return $this->db->insert('miqaat_assignments', $data);
+  }
+
+  public function insert_raza($data)
+  {
+    return $this->db->insert('raza', $data);
+  }
+
+  public function delete_raza_by_miqaat_and_user($miqaat_id)
+  {
+    $this->db->where('miqaat_id', $miqaat_id);
+    $this->db->delete('raza');
+    return $this->db->affected_rows() > 0;
   }
 
   public function get_umoor_fmb_users()
@@ -826,6 +841,16 @@ class CommonM extends CI_Model
     return $this->db->update('miqaat', $data);
   }
 
+  public function delete_raza_by_miqaat_id($miqaat_id, $user_ids)
+  {
+    if (!empty($user_ids)) {
+      $this->db->where('miqaat_id', $miqaat_id);
+      $this->db->where_not_in('user_id', $user_ids);
+      $this->db->delete('raza');
+      return $this->db->affected_rows();
+    }
+  }
+
   /**
    * Remove all assignments for a miqaat
    */
@@ -841,12 +866,50 @@ class CommonM extends CI_Model
    */
   public function delete_miqaat($miqaat_id)
   {
+
+    $this->db->where("miqaat_id", $miqaat_id);
+    $this->db->from("raza");
+    $result = $this->db->get()->result_array();
+
+    if ($result) {
+      if ($result[0]['Janab-status'] == 1) {
+        return false;
+      } else {
+        $this->db->where("miqaat_id", $miqaat_id);
+        $this->db->delete("raza");
+      }
+    }
+
     // Delete assignments first
     $this->db->where('miqaat_id', $miqaat_id);
     $this->db->delete('miqaat_assignments');
     // Delete miqaat
     $this->db->where('id', $miqaat_id);
     $this->db->delete('miqaat');
+
     return $this->db->affected_rows();
+  }
+
+  public function set_miqaat_status($miqaat_id, $status)
+  {
+    $this->db->where('id', $miqaat_id);
+    return $this->db->update('miqaat', ['status' => $status]);
+  }
+
+  public function set_raza_status_by_miqaat($miqaat_id, $status)
+  {
+    $this->db->where('miqaat_id', $miqaat_id);
+    return $this->db->update('raza', ['status' => $status]);
+  }
+
+  public function get_miqaat_invoice_status($miqaat_id)
+  {
+    $this->db->from('miqaat_invoice');
+    $this->db->where('miqaat_id', $miqaat_id);
+    $query = $this->db->get()->result_array();
+    if (!empty($query)) {
+      return count($query);
+    }
+    return null;
   }
 }

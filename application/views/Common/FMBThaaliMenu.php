@@ -14,63 +14,61 @@
   <div class="container mb-3 p-0">
     <a href="<?php echo base_url("admin/managefmbsettings"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
-  <h3 class="text-center mb-5">FMB Thaali Menu</h3>
-  <div class="menu-list-container">
-    <div class="create-menu-btn d-flex">
-      <form method="post" action="<?php echo base_url("common/filter_menu"); ?>" class="d-flex">
-        <!-- <div class="form-group mr-3">
+  <div class="create-menu-btn d-flex">
+    <form method="post" action="<?php echo base_url("common/filter_menu"); ?>" id="filter-form" class="d-flex m-0">
+      <!-- <div class="form-group mr-3">
           <input type="text" id="daterange" name="daterange" class="form-control" />
           <input type="hidden" id="start_date" name="start_date" value="<?php echo isset($start_date) ? $start_date : ''; ?>">
           <input type="hidden" id="end_date" name="end_date" value="<?php echo isset($end_date) ? $end_date : ''; ?>">
         </div> -->
 
-        <div class="form-group mr-3">
-          <select name="hijri_month" id="hijri-month" class="form-control">
-            <option value="">Select Month / Year</option>
-            <option value="-3" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -3 ? "selected" : ""; ?>>Last Year</option>
-            <option value="-1" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -1 ? "selected" : ""; ?>>This Year</option>
-            <?php
-            if (isset($hijri_months)) {
-              foreach ($hijri_months as $key => $value) {
-            ?>
-                <option value="<?php echo $value["id"]; ?>" <?php echo isset($value["id"]) ? ($value["id"] == (isset($hijri_month_id) ? $hijri_month_id : 0) ? "selected" : "") : ""; ?>><?php echo $value["hijri_month"]; ?></option>
-            <?php
-              }
+      <div class="form-group">
+        <select name="hijri_month" id="hijri-month" class="form-control">
+          <option value="">Select Month / Year</option>
+          <option value="-3" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -3 ? "selected" : ""; ?>>Last Year</option>
+          <option value="-1" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -1 ? "selected" : ""; ?>>Current Year</option>
+          <?php
+          if (isset($hijri_months)) {
+            foreach ($hijri_months as $key => $value) {
+          ?>
+              <option value="<?php echo $value["id"]; ?>" <?php echo isset($value["id"]) ? ($value["id"] == (isset($hijri_month_id) ? $hijri_month_id : 0) ? "selected" : "") : ""; ?>><?php echo $value["hijri_month"]; ?></option>
+          <?php
             }
-            ?>
-            <option value="-2" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -2 ? "selected" : ""; ?>>Next Year</option>
-          </select>
-        </div>
+          }
+          ?>
+        </select>
+      </div>
 
-        <!-- <div class="sort-options mr-3">
+      <!-- <div class="sort-options mr-3">
           <select id="sort-type" name="sort_type" class="form-control">
             <option value="asc" <?php echo isset($sort_type) ? ($sort_type == 'asc' ? 'selected' : '') : "" ?>>Sort by Date &darr;</i></option>
             <option value="desc" <?php echo isset($sort_type) ? ($sort_type == 'desc' ? 'selected' : '') : "" ?>>Sort by Date &uarr;</option>
           </select>
         </div> -->
-        <div class="search-btn">
-          <button href="javascript:void(0)" id="search-btn" class="btn btn-primary" type="submit">Search</button>
-        </div>
-        <div class="clear-filter-btn">
-          <a href="<?php echo base_url("common/fmbthaalimenu"); ?>" id="clear-filter" class="btn btn-secondary mx-3">Clear Filter</a>
-        </div>
-      </form>
+      <div class="clear-filter-btn">
+        <a href="<?php echo base_url("common/fmbthaalimenu"); ?>" id="clear-filter" class="btn btn-secondary mx-3">Clear Filter</a>
+      </div>
+    </form>
 
-      <div class="ml-auto">
-        <!-- <a href="<?= base_url('admin/duplicate_last_month_menu'); ?>" class="btn btn-outline-primary" id="duplicate-menu-btn">
+    <div class="ml-auto">
+      <!-- <a href="<?= base_url('admin/duplicate_last_month_menu'); ?>" class="btn btn-outline-primary" id="duplicate-menu-btn">
           <i class="fa fa-copy"></i> Duplicate Last Month's Menu
         </a> -->
 
-        <a href="<?php echo base_url("common/add_menu_item?from=fmbthaalimenu"); ?>" class="btn btn-secondary">Edit Items</a>
-        <a href="<?php echo base_url("common/createmenu"); ?>" class="btn btn-primary">Add Menu</a>
-      </div>
+      <a href="<?php echo base_url("common/add_menu_item?from=fmbthaalimenu"); ?>" class="btn btn-outline-secondary">Edit Items</a>
+      <a href="<?php echo base_url("common/createmenu"); ?>" class="btn btn-primary">Add Menu</a>
     </div>
+  </div>
+
+  <h3 class="text-center mb-3">FMB Thaali Menu</h3>
+
+  <div class="menu-list-container">
     <table class="table table-bordered mt-2">
       <thead>
         <tr>
           <th>#</th>
+          <th>Eng Date</th>
           <th>Hijri Date</th>
-          <th>Menu Date</th>
           <th>Day</th>
           <th>Menu</th>
           <th>Actions</th>
@@ -79,14 +77,12 @@
       <tbody>
         <?php if (!empty($menu)) : ?>
           <?php foreach ($menu as $key => $item) :
-            if (isset($menu[$key - 1])) {
-              if (explode(" ", $menu[$key - 1]["hijri_date"], 2)[1] != explode(" ", $menu[$key]["hijri_date"], 2)[1]):
+            if ($key === 0 || (isset($menu[$key - 1]) && explode(" ", $menu[$key - 1]["hijri_date"], 2)[1] != explode(" ", $menu[$key]["hijri_date"], 2)[1])):
           ?>
-                <tr>
-                  <td colspan="6" class="bg-dark text-white text-center"><?php echo explode(" ", $menu[$key]["hijri_date"], 2)[1]; ?></td>
-                </tr>
+              <tr>
+                <td colspan="6" class="bg-dark text-white text-center">Hijri Month: <?php echo explode(" ", $menu[$key]["hijri_date"], 2)[1]; ?></td>
+              </tr>
             <?php endif;
-            }
             $dayName = isset($item['date']) ? date("l", strtotime($item['date'])) : "";
             $rowClass = '';
             if ($dayName === 'Sunday') {
@@ -98,10 +94,10 @@
             <tr <?php echo $rowClass; ?>>
               <td><?php echo $key + 1; ?></td>
               <td>
-                <?php echo isset($item['hijri_date']) ? $item['hijri_date'] : ""; ?>
+                <?php echo isset($item['date']) ? date("d M Y", strtotime($item['date'])) : ""; ?>
               </td>
               <td>
-                <?php echo isset($item['date']) ? date("d/m/Y", strtotime($item['date'])) : ""; ?>
+                <?php echo isset($item['hijri_date']) ? $item['hijri_date'] : ""; ?>
               </td>
               <td>
                 <?php echo $dayName; ?>
@@ -113,7 +109,7 @@
               if (count($item["items"]) > 0) :
               ?>
                 <td>
-                  <a href="<?php echo base_url("common/edit_menu/" . $item['id']); ?>" class="btn btn-sm btn-primary"><i class="fa fa-edit"></i></a>
+                  <a href="<?php echo base_url("common/edit_menu/" . $item['id']); ?>" class="btn btn-sm btn-primary mb-2 mb-md-0"><i class="fa fa-edit"></i></a>
                   <form method="POST" action="<?php echo base_url('common/delete_menu'); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this menu?');">
                     <input type="hidden" name="menu_id" value="<?php echo $item['id']; ?>">
                     <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
@@ -174,5 +170,9 @@
       e.preventDefault();
       alert("Select a Month / Year to filter");
     }
+  });
+
+  $('#hijri-month, #sort-type').on('change', function() {
+    $('#filter-form').submit();
   });
 </script>

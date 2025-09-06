@@ -43,6 +43,80 @@ class AccountM extends CI_Model
   }
 
   // Updated by Patel Infotech Services
+  public function get_assigned_miqaats($user_id)
+  {
+    // Get miqaat IDs where user is assigned as individual or group leader
+    $this->db->select('miqaat_id');
+    $this->db->from('miqaat_assignments');
+    $this->db->where('(assign_type = "Individual" AND member_id = ' . $this->db->escape($user_id) . ')', NULL, FALSE);
+    $this->db->or_where('(assign_type = "Group" AND group_leader_id = ' . $this->db->escape($user_id) . ')', NULL, FALSE);
+    $query = $this->db->get();
+    $miqaat_ids = array_unique(array_column($query->result_array(), 'miqaat_id'));
+    if (empty($miqaat_ids)) return [];
+    // Fetch all miqaats with those IDs
+    $this->db->select('*');
+    $this->db->from('miqaat');
+    $this->db->where_in('id', $miqaat_ids);
+    $this->db->order_by('date', 'ASC');
+    $miqaats = $this->db->get()->result_array();
+
+    // Fetch assignments for these miqaats, joining user table for member, group leader, and co-leader names
+    $assignments = [];
+    if (!empty($miqaat_ids)) {
+      $this->db->select('ma.*, 
+        u1.Full_Name as member_name, 
+        u2.Full_Name as group_leader_name, 
+        u3.Full_Name as co_leader_name,
+        u1.ITS_ID as member_id, u2.ITS_ID as group_leader_id, u3.ITS_ID as co_leader_id');
+      $this->db->from('miqaat_assignments ma');
+      $this->db->join('user u1', 'u1.ITS_ID = ma.member_id', 'left');
+      $this->db->join('user u2', 'u2.ITS_ID = ma.group_leader_id', 'left');
+      $this->db->join('user u3', 'u3.ITS_ID = ma.member_id', 'left');
+      $this->db->where_in('ma.miqaat_id', $miqaat_ids);
+      $assignments_result = $this->db->get()->result_array();
+      // Group assignments by miqaat_id
+      foreach ($assignments_result as $row) {
+        $assignments[$row['miqaat_id']][] = $row;
+      }
+    }
+
+    // Attach assignments to each miqaat
+    foreach ($miqaats as &$miqaat) {
+      $miqaat['assignments'] = isset($assignments[$miqaat['id']]) ? $assignments[$miqaat['id']] : [];
+    }
+    unset($miqaat);
+    return $miqaats;
+  }
+
+  public function get_raza_by_miqaat($miqaat_id, $user_id)
+  {
+    $this->db->from("raza");
+    $this->db->where('miqaat_id', $miqaat_id);
+    $this->db->where('user_id', $user_id);
+    $result = $this->db->get();
+    if ($result->num_rows() > 0) {
+      return $result->row_array();
+    }
+    return null;
+  }
+
+  public function submit_miqaat_raza($data)
+  {
+    $user_id = $data['user_id'];
+    $miqaat_id = $data['miqaat_id'];
+
+    $this->db->where('user_id', $user_id);
+    $this->db->where('miqaat_id', $miqaat_id);
+    $this->db->from("raza");
+    $existing = $this->db->get()->result_array();
+    if ($existing) {
+      return -1;
+    }
+
+    $this->db->insert('raza', $data);
+    return $this->db->insert_id();
+  }
+
   public function get_member_total_fmb_due($user_id)
   {
     $this->db->select("
@@ -649,6 +723,71 @@ class AccountM extends CI_Model
     $endOfWeek = date('Y-m-d', strtotime('saturday this week', strtotime($today)));
     $sql = "SELECT * FROM fmb_weekly_signup WHERE user_id = ? AND signup_date BETWEEN ? AND ? ORDER BY signup_date ASC";
     $query = $this->db->query($sql, array($userId, $startOfWeek, $endOfWeek));
+    return $query->result_array();
+  }
+
+  public function get_miqaat_invoice_status($miqaat_id)
+  {
+    $sql = "SELECT * FROM miqaat_invoice WHERE miqaat_id = ?";
+    $query = $this->db->query($sql, array($miqaat_id));
+    return count($query->result_array()) > 0;
+  }
+
+  public function get_all_upcoming_miqaat()
+  {
+    $sql = "SELECT * FROM miqaat WHERE date > NOW() ORDER BY date ASC";
+    $query = $this->db->query($sql);
+    return $query->result_array();
+  }
+
+  public function get_rsvp_overview($hof_id, $miqaats)
+  {
+    if (empty($miqaats)) {
+      return [];
+    }
+      $miqaat_ids = array_column($miqaats, 'id');
+      $this->db->where("hof_id", $hof_id);
+      $this->db->where_in("miqaat_id", $miqaat_ids);
+      $query = $this->db->get("general_rsvp");
+      $results = $query->result_array();
+      // Group by hof_id
+      $grouped = [];
+      foreach ($results as $row) {
+        $grouped[$row['hof_id']][$row['miqaat_id']][] = $row;
+      }
+      return $grouped;
+  }
+
+
+  public function get_miqaat_by_id($miqaat_id)
+  {
+    $this->db->where("id", $miqaat_id);
+    $query = $this->db->get("miqaat");
+    return $query->row_array();
+  }
+
+  public function clear_existing_rsvps($hof_id, $miqaat_id)
+  {
+    $this->db->where("hof_id", $hof_id);
+    $this->db->where("miqaat_id", $miqaat_id);
+    $this->db->delete("general_rsvp");
+    return $this->db->affected_rows() > 0;
+  }
+
+  public function insert_rsvp($data)
+  {
+    if (empty($data)) {
+      return false;
+    }
+    $this->db->insert('general_rsvp', $data);
+    return $this->db->affected_rows() > 0;
+  }
+
+  public function get_rsvp_by_miqaat_id($hof_id, $miqaat_id)
+  {
+    $this->db->where("hof_id", $hof_id);
+    $this->db->where("miqaat_id", $miqaat_id);
+    $query = $this->db->get("general_rsvp");
     return $query->result_array();
   }
 

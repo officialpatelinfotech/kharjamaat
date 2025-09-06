@@ -57,6 +57,14 @@
                     </div>
                 </div>
             </a>
+            <a href="<?php echo base_url('MasoolMusaid/rsvp_list') ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="title">Miqaat RSVP</div>
+                        <i class="fa-solid icon fa-users"></i>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 </div>

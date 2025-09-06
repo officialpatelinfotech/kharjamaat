@@ -80,9 +80,9 @@
           <thead class="thead-dark">
             <tr>
               <th class="sno">#</th>
-              <th>Day</th>
               <th>Eng Date</th>
               <th>Hijri Date</th>
+              <th>Day</th>
               <th>Type</th>
               <th>Miqaat Name</th>
               <th>Assigned to</th>
@@ -121,9 +121,9 @@
             ?>
                 <tr <?php echo $rowClass; ?>>
                   <td class="sno"><?php echo $sno++; ?></td>
-                  <td><?php echo $day; ?></td>
-                  <td><?php echo $eng_date; ?></td>
+                  <td><?php echo date("d M Y", strtotime($eng_date)); ?></td>
                   <td><?php echo isset($row['hijri_date_with_month']) ? $row['hijri_date_with_month'] : $hijri_date; ?></td>
+                  <td><?php echo $day; ?></td>
                   <?php if ($isHoliday): ?>
                     <td colspan="4">Holiday</td>
                   <?php else: ?>

@@ -105,7 +105,7 @@ class Common extends CI_Controller
   {
     $hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($greg_date)));
     $hijri_month_name = $this->HijriCalendar->hijri_month_name($hijri_date["hijri_month_id"]);
-    return explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month_name["hijri_month"];
+    return explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month_name["hijri_month"] . " " . explode("-", $hijri_date["hijri_date"])[2];
   }
 
   public function fmbthaalimenu()
@@ -113,7 +113,15 @@ class Common extends CI_Controller
     $this->validateUser($_SESSION['user']);
     $data['user_name'] = $_SESSION['user']['username'];
 
-    $data['menu'] = $this->CommonM->get_month_wise_menu();
+    // Get current hijri year
+    $today = date('Y-m-d');
+    $hijri_today = $this->HijriCalendar->get_hijri_date($today);
+    $hijri_year = explode('-', $hijri_today['hijri_date'])[2];
+    $filter_data = [
+      'hijri_month_id' => -1, // -1 means full year
+      'hijri_year' => $hijri_year
+    ];
+    $data['menu'] = $this->CommonM->get_month_wise_menu($filter_data);
     foreach ($data["menu"] as $key => $value) {
       $data['menu'][$key]['hijri_date'] = $this->get_hijri_day_month($value["date"], $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"]);
     }
@@ -123,6 +131,7 @@ class Common extends CI_Controller
     $data['active_controller'] = $from ? base_url($from) : base_url();
 
     $data["hijri_months"] = $this->HijriCalendar->get_hijri_month();
+    $data["hijri_year"] = explode(" ", $data['menu'][0]['hijri_date'])[3];
 
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/FMBThaaliMenu.php', $data);
@@ -307,6 +316,7 @@ class Common extends CI_Controller
         $data['menu'][$key]['hijri_date'] = $this->get_hijri_day_month($value["date"]);
       }
     }
+
     $data["hijri_months"] = $this->HijriCalendar->get_hijri_month();
 
     $data['user_name'] = $_SESSION['user']['username'];
@@ -315,6 +325,7 @@ class Common extends CI_Controller
     // $data['end_date'] = $this->input->post('end_date');
     // $data['sort_type'] = $this->input->post('sort_type');
     $data['active_controller'] = $_SESSION["from"] ? base_url($_SESSION["from"]) : base_url();
+    $data["hijri_year"] = explode(" ", $data['menu'][0]['hijri_date'])[3];
 
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/FMBThaaliMenu', $data);
@@ -499,6 +510,16 @@ class Common extends CI_Controller
       } else {
         $entry['hijri_date_with_month'] = '';
       }
+
+      foreach ($entry["miqaats"] as $key => $value) {
+        $assignment_count = count($value["assignments"]);
+        $miqaat_invoice_status = $this->CommonM->get_miqaat_invoice_status($value["id"]);
+        if ($miqaat_invoice_status) {
+          $entry["miqaats"][$key]["invoice_status"] = $miqaat_invoice_status >= $assignment_count ? "Generated" : "Partially Generated";
+        } else {
+          $entry["miqaats"][$key]["invoice_status"] = "Not Generated";
+        }
+      }
     }
 
     $first_day_of_calendar = $data["miqaats"][0]["date"];
@@ -634,6 +655,7 @@ class Common extends CI_Controller
         "type" => $miqaat_type,
         "assigned_to" => $assign_type,
         'date' => date("Y-m-d", strtotime($date)),
+        'status' => $assign_type == "Fala ni Niyaz" ? 1 : 0,
       ]);
 
       if ($assign_type == 'Individual') {
@@ -662,11 +684,25 @@ class Common extends CI_Controller
       } elseif ($assign_type == 'Fala ni Niyaz') {
         $fmb_users = $this->CommonM->get_umoor_fmb_users();
         foreach ($fmb_users as $user) {
-          $this->CommonM->insert_assignment([
+          $assignment_status = $this->CommonM->insert_assignment([
             'miqaat_id' => $miqaat_id,
             'assign_type' => 'Fala ni Niyaz',
             'member_id' => $user->user_id
           ]);
+
+          if ($assignment_status) {
+            $this->CommonM->insert_raza([
+              'user_id' => $user->user_id,
+              'razaType' => 2,
+              'razaData' => '{"miqaat_id": "' . $miqaat_id . '"}',
+              'miqaat_id' => $miqaat_id,
+              'status' => 0,
+              'Janab-status' => 0,
+              'coordinator-status' => 0,
+              'active' => 1,
+            ]);
+          }
+          break;
         }
       }
 
@@ -690,16 +726,20 @@ class Common extends CI_Controller
         'name' => $name,
         'type' => $miqaat_type,
         'date' => date("Y-m-d", strtotime($date)),
-        'status' => isset($status) ? (int)$status : 1
       ];
       // Only update assignments if assignment fields are present and enabled
       if ($this->input->post('assign_to')) {
         $assign_type = $this->input->post('assign_to');
         $miqaat_data['assigned_to'] = $assign_type;
+
         $this->CommonM->update_miqaat_by_id($miqaat_id, $miqaat_data);
         $this->CommonM->remove_assignments_from_miqaat($miqaat_id);
         if ($assign_type == 'Individual') {
+          $miqaat_data['status'] = 0;
           $ids = explode(",", $this->input->post('individual_ids'));
+
+          $this->CommonM->delete_raza_by_miqaat_id($miqaat_id, $ids);
+
           foreach ($ids as $id) {
             $this->CommonM->insert_assignment([
               'miqaat_id' => $miqaat_id,
@@ -708,9 +748,13 @@ class Common extends CI_Controller
             ]);
           }
         } elseif ($assign_type == 'Group') {
+          $miqaat_data['status'] = 0;
           $group_name = $this->input->post('group_name');
           $leader_id = $this->input->post('group_leader_id');
           $members = explode(",", $this->input->post('group_member_ids'));
+
+          $this->CommonM->delete_raza_by_miqaat_id($miqaat_id, [$leader_id]);
+
           foreach ($members as $member_id) {
             $this->CommonM->insert_assignment([
               'miqaat_id' => $miqaat_id,
@@ -721,13 +765,31 @@ class Common extends CI_Controller
             ]);
           }
         } elseif ($assign_type == 'Fala ni Niyaz') {
+          $miqaat_data['status'] = 1;
           $fmb_users = $this->CommonM->get_umoor_fmb_users();
           foreach ($fmb_users as $user) {
-            $this->CommonM->insert_assignment([
+            $assignment_status = $this->CommonM->insert_assignment([
               'miqaat_id' => $miqaat_id,
               'assign_type' => 'Fala ni Niyaz',
               'member_id' => $user->user_id
             ]);
+
+            if ($assignment_status) {
+              $result = $this->CommonM->delete_raza_by_miqaat_and_user($miqaat_id);
+              if ($result) {
+                $this->CommonM->insert_raza([
+                  'user_id' => $user->user_id,
+                  'razaType' => 2,
+                  'razaData' => '{"miqaat_id": "' . $miqaat_id . '"}',
+                  'miqaat_id' => $miqaat_id,
+                  'status' => 0,
+                  'Janab-status' => 0,
+                  'coordinator-status' => 0,
+                  'active' => 1,
+                ]);
+              }
+            }
+            break;
           }
         }
       } else {
@@ -747,12 +809,43 @@ class Common extends CI_Controller
     $this->validateUser($_SESSION["user"]);
     if ($this->input->post('miqaat_id')) {
       $miqaat_id = $this->input->post('miqaat_id');
-      $this->CommonM->delete_miqaat($miqaat_id);
-      $this->session->set_flashdata('success', 'Miqaat deleted successfully!');
+      $result = $this->CommonM->delete_miqaat($miqaat_id);
+      if ($result) {
+        $this->session->set_flashdata('success', 'Miqaat deleted successfully!');
+      } else {
+        $this->session->set_flashdata('error', 'Cannot delete Miqaat with approved Raza. It can only be cancelled.');
+      }
     } else {
       $this->session->set_flashdata('error', 'No Miqaat ID provided.');
     }
     redirect('common/managemiqaat');
   }
   // Create Miqaat
+
+  public function cancel_miqaat()
+  {
+    $miqaat_id = $this->input->post('miqaat_id');
+    if ($miqaat_id) {
+      $this->load->model('CommonM');
+      $this->CommonM->set_miqaat_status($miqaat_id, 2); // Set miqaat inactive
+      $this->CommonM->set_raza_status_by_miqaat($miqaat_id, 0); // Set all related razas inactive
+      $this->session->set_flashdata('success', 'Miqaat and related razas cancelled.');
+    } else {
+      $this->session->set_flashdata('error', 'Invalid Miqaat.');
+    }
+    redirect('common/managemiqaat');
+  }
+
+  public function activate_miqaat()
+  {
+    $miqaat_id = $this->input->post('miqaat_id');
+    if ($miqaat_id) {
+      $this->load->model('CommonM');
+      $this->CommonM->set_miqaat_status($miqaat_id, 1); // Set miqaat active
+      $this->session->set_flashdata('success', 'Miqaat activated.');
+    } else {
+      $this->session->set_flashdata('error', 'Invalid Miqaat.');
+    }
+    redirect('common/managemiqaat');
+  }
 }

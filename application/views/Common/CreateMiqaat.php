@@ -10,6 +10,18 @@
   .autocomplete-display {
     position: relative;
   }
+
+  #miqaat-form-container {
+    width: 50%;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 768px) {
+    #miqaat-form-container {
+      width: 100%;
+      padding: 0 1rem;
+    }
+  }
 </style>
 <div class="container margintopcontainer pt-5">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -20,21 +32,9 @@
 
   <div class="mb-4">
     <h3 class="heading text-center mb-4"><?php echo isset($edit_mode) && $edit_mode ? 'Edit Miqaat' : 'Create Miqaat'; ?></h3>
-    <div class="col-12 border rounded">
+    <div id="miqaat-form-container" class="col-12 border rounded">
       <form method="POST" action="<?php echo base_url(isset($edit_mode) && $edit_mode ? 'common/update_miqaat' : 'common/add_miqaat'); ?>">
-        <div class="modal-header">
-          <h5 class="modal-title"><?php echo isset($edit_mode) && $edit_mode ? 'Edit Miqaat' : 'Add New Miqaat'; ?></h5>
-        </div>
         <div class="modal-body">
-          <?php if (isset($edit_mode) && $edit_mode): ?>
-            <div class="form-group mb-3">
-              <label for="miqaat-status">Status:</label>
-              <select name="status" id="miqaat-status" class="form-control" required>
-                <option value="0" <?php echo (isset($edit_mode) && $edit_mode && isset($miqaat['status']) && $miqaat['status'] == 0) ? 'selected' : ''; ?>>Inactive</option>
-                <option value="1" <?php echo (isset($edit_mode) && $edit_mode && isset($miqaat['status']) && $miqaat['status'] == 1) ? 'selected' : ''; ?>>Active</option>
-              </select>
-            </div>
-          <?php endif; ?>
           <div class="form-group mb-3">
             <label for="date">Date:</label>
             <input type="text" id="date" name="date" class="form-control mb-3" required value="<?php echo isset($edit_mode) && $edit_mode && isset($miqaat['date']) ? date('d-m-Y', strtotime($miqaat['date'])) : (isset($date) ? date('d-m-Y', strtotime($date)) : ''); ?>" placeholder="Please select a date">
@@ -70,15 +70,13 @@
                       <li class="list-group-item">
                         <strong>Group:</strong> <?php echo htmlspecialchars($assignment['group_name'] ?? '', ENT_QUOTES); ?>
                         <?php if (!empty($assignment['group_leader_name'])): ?>
-                          <br><strong>Leader:</strong> <?php echo htmlspecialchars($assignment['group_leader_name'], ENT_QUOTES); ?>
+                          <br><strong>Leader:</strong> <?php echo htmlspecialchars($assignment['group_leader_name'], ENT_QUOTES); ?> (ID: <?php echo htmlspecialchars($assignment['group_leader_id'], ENT_QUOTES); ?>)
                         <?php endif; ?>
                         <br><strong>Co-leader:</strong>
-                        <?php if (!empty($assignment['members'])): ?>
-                          <ul>
-                            <?php foreach ($assignment['members'] as $member): ?>
-                              <li><?php echo htmlspecialchars($member['name'] ?? $member['first_name'], ENT_QUOTES); ?> (ID: <?php echo $member['id']; ?>)</li>
-                            <?php endforeach; ?>
-                          </ul>
+                        <?php if (!empty($assignment['members'])):
+                          $group_co_leader = $assignment['members'][0];
+                        ?>
+                          <?php echo htmlspecialchars($group_co_leader['name'] ?? $group_co_leader['first_name'], ENT_QUOTES); ?> (ID: <?php echo $group_co_leader['id']; ?>)
                         <?php else: ?>
                           <em>No co-leader assigned</em>
                         <?php endif; ?>
@@ -229,6 +227,14 @@
     if (editBtn && assignToContainer) {
       editBtn.addEventListener('click', function() {
         assignToContainer.style.display = 'block';
+
+        const assignToSelect = document.getElementById("assign-to");
+        assignToSelect.value = "<?php echo isset($miqaat['assignments'][0]['assign_type']) ? $miqaat['assignments'][0]['assign_type'] : ''; ?>";
+
+        const event = new Event('change', {
+          bubbles: true
+        });
+        assignToSelect.dispatchEvent(event);
       });
     }
 
@@ -335,7 +341,7 @@
             hiddenInput.value = ids.join(",");
 
             let chip = document.createElement("span");
-            chip.className = "badge bg-primary text-white me-2 mr-2";
+            chip.className = "badge bg-primary text-white me-2 mr-2 mb-2";
             chip.innerHTML = ui.item.label +
               ' <a href="#" class="text-white ms-1 remove-individual" data-id="' + ui.item.id + '">×</a>';
             document.getElementById(selectedContainer).appendChild(chip);

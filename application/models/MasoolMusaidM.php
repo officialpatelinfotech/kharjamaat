@@ -349,4 +349,42 @@ class MasoolMusaidM extends CI_Model
 
     return $stats;
   }
+
+  public function get_upcoming_miqaats()
+  {
+    $today = date('Y-m-d');
+    $this->db->where('date >=', $today);
+    $this->db->order_by('date', 'ASC');
+    $query = $this->db->get('miqaat');
+    return $query->result_array();
+  }
+
+  public function get_rsvp_counts_by_miqaat($sector = '', $sub_sector = '')
+  {
+    $this->db->select('
+        m.id as miqaat_id, 
+        m.name as miqaat_name, 
+        m.date as miqaat_date,
+        COUNT(DISTINCT r.user_id) as rsvp_count,
+        (SELECT COUNT(*) 
+          FROM user u2 
+          WHERE 1=1
+          ' . (!empty($sector) ? ' AND u2.Sector = ' . $this->db->escape($sector) : '') . '
+          ' . (!empty($sub_sector) ? ' AND u2.Sub_Sector = ' . $this->db->escape($sub_sector) : '') . '
+          ) as member_count
+    ');
+    $this->db->from('miqaat m');
+
+    // Keep LEFT JOIN so even if no RSVP, miqaat still shows
+    $this->db->join('general_rsvp r', 'm.id = r.miqaat_id', 'left');
+
+    // Show only future miqaāts (including those without RSVP)
+    $this->db->where('m.date >=', date('Y-m-d'));
+
+    // One row per miqaat
+    $this->db->group_by('m.id');
+    $this->db->order_by('m.date', 'DESC');
+
+    return $this->db->get()->result_array();
+  }
 }
