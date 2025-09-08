@@ -269,9 +269,15 @@ class Accounts extends CI_Controller
       $hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])));
       $hijri_month = $this->HijriCalendar->hijri_month_name($hijri_date["hijri_month_id"])["hijri_month"];
       $data["miqaats"][$key]["hijri_date"] = explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month . " " . explode("-", $hijri_date["hijri_date"])[2];
+      $data["miqaats"][$key]["raza_status"] = $this->AccountM->get_miqaat_raza_status($miqaat["id"]);
     }
 
-    $data["rsvp_overview"] = $this->AccountM->get_rsvp_overview($hof_id, $miqaats)[$hof_id];
+    $rsvp_overview = $this->AccountM->get_rsvp_overview($hof_id, $miqaats);
+    if (!empty($rsvp_overview) && isset($rsvp_overview[$hof_id])) {
+      $data["rsvp_overview"] = $rsvp_overview[$hof_id];
+    } else {
+      $data["rsvp_overview"] = [];
+    }
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/RSVP/Home', $data);

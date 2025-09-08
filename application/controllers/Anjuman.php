@@ -674,6 +674,7 @@ class Anjuman extends CI_Controller
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/FMBModule', $data);
   }
+
   public function fmbthaali()
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
@@ -876,6 +877,413 @@ class Anjuman extends CI_Controller
     $user_id = $this->input->post('user_id');
     $result = $this->AnjumanM->getPaymentHistory($user_id, $for);
     echo json_encode($result);
+  }
+
+  public function miqaatinvoicepayment()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $username = $_SESSION['user']['username'];
+    $data["user_name"] = $username;
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/MiqaatInvoicePayment', $data);
+  }
+
+  public function miqaatinvoice()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $username = $_SESSION['user']['username'];
+    $data["user_name"] = $username;
+
+    // Pagination setup
+    $limit = 10;
+    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    $offset = ($page - 1) * $limit;
+
+    $data['miqaat_invoices'] = $this->AnjumanM->get_miqaat_invoices_paginated($limit, $offset);
+    $total = $this->AnjumanM->get_miqaat_invoices_count();
+    $data['pagination'] = [
+      'total' => $total,
+      'limit' => $limit,
+      'page' => $page,
+      'pages' => ceil($total / $limit),
+    ];
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/MiqaatInvoice', $data);
+  }
+
+  public function newmiqaatinvoice()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $username = $_SESSION['user']['username'];
+    $data["user_name"] = $username;
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/NewMiqaatInvoice', $data);
+  }
+
+  public function get_miqaats_by_type()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $type = $this->input->post('type');
+    $year = $this->input->post('year');
+    $result = $this->AnjumanM->get_miqaats_by_type($type, $year);
+    echo json_encode($result);
+  }
+
+  public function get_miqaat_assigned_to()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $miqaat_id = $this->input->post('miqaat_id');
+    $assigned_to = $this->AnjumanM->get_miqaat_assigned_to($miqaat_id);
+    echo json_encode($assigned_to);
+  }
+
+  public function get_miqaat_members()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $miqaat_id = $this->input->post('miqaat_id');
+    $assigned_to = $this->input->post('assigned_to');
+    $members = [];
+    if ($miqaat_id && $assigned_to) {
+      $members = $this->AnjumanM->get_miqaat_members($miqaat_id, $assigned_to);
+    }
+    echo json_encode($members);
+  }
+
+  public function create_miqaat_invoice()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+
+    $year        = $this->input->post('year'); // hijri year
+    $miqaat_type = $this->input->post('miqaat_type');
+    $miqaat_id   = $this->input->post('miqaat_id');
+    $assigned_to = $this->input->post('assigned_to');
+    $member_id   = $this->input->post('member_id'); // array of member IDs
+    $amount      = $this->input->post('amount');
+    $description = $this->input->post('description');
+    $date        = $this->input->post('date');
+
+    // ✅ Case 1: Shehrullah + Fala ni Niyaz + Hijri year logic (per family)
+    if ($miqaat_type == 'Shehrullah' && strtolower($assigned_to) == 'fala ni niyaz' && $year) {
+      // Step 1: Get gregorian dates for hijri year
+      $dates = $this->db->select('greg_date')
+        ->from('hijri_calendar')
+        ->like('hijri_date', $year)
+        ->get()
+        ->result_array();
+
+      $greg_dates = array_column($dates, 'greg_date');
+
+      if (!empty($greg_dates)) {
+        // Step 2: Fetch Shehrullah miqaāts in that Hijri year
+        $miqaats = $this->db->select('id')
+          ->from('miqaat')
+          ->where_in('date', $greg_dates)
+          ->where('type', 'Shehrullah')
+          ->get()
+          ->result_array();
+
+        $miqaat_ids = array_column($miqaats, 'id');
+
+        if (!empty($miqaat_ids)) {
+          // Step 3: Get all families (HOF IDs)
+          $all_hofs = $this->db
+            ->distinct()
+            ->select('HOF_ID')
+            ->from('user')
+            ->where('Inactive_Status IS NULL')
+            ->get()
+            ->result_array();
+          $all_hof_ids = array_column($all_hofs, 'HOF_ID');
+
+          // Step 4: Get participated members
+          // Step 4: Get participated members & group leaders
+          $sql = "SELECT DISTINCT member_id AS participant_id
+                  FROM miqaat_assignments
+                  WHERE miqaat_id IN (" . implode(',', $miqaat_ids) . ")
+                    AND member_id IS NOT NULL
+
+                  UNION
+
+                  SELECT DISTINCT group_leader_id AS participant_id
+                  FROM miqaat_assignments
+                  WHERE miqaat_id IN (" . implode(',', $miqaat_ids) . ")
+                    AND group_leader_id IS NOT NULL";
+
+          $participated = $this->db->query($sql)->result_array();
+
+          $participated_ids = array_column($participated, 'participant_id');
+
+          // Step 5: Map those members to their Hof_id
+          $participated_hof_ids = [];
+          if (!empty($participated_ids)) {
+            $participated_hofs = $this->db
+              ->distinct()
+              ->select('HOF_ID')
+              ->from('user')
+              ->where_in('ITS_ID', $participated_ids)
+              ->get()
+              ->result_array();
+            $participated_hof_ids = array_column($participated_hofs, 'HOF_ID');
+          }
+
+          // Step 6: Families that did not participate
+          $not_participated_hofs = array_diff($all_hof_ids, $participated_hof_ids);
+
+          // Step 7: Raise invoices once per HOF
+          foreach ($not_participated_hofs as $hof_id) {
+            if (!$hof_id) continue; // skip null/empty
+            $data = [
+              'date'        => $date,
+              'miqaat_id'   => $miqaat_id,
+              'user_id'   => $hof_id, // store Hof_id as invoice owner
+              'amount'      => $amount,
+              'description' => $description
+            ];
+            $this->AnjumanM->create_miqaat_invoice($data);
+          }
+        }
+      }
+
+      redirect('Anjuman/miqaatinvoice');
+      return;
+    }
+
+    // ✅ Case 2: Any other miqaat type → invoice for ALL families
+    if (!empty($miqaat_type) && strtolower($miqaat_type) !== 'shehrullah' && strtolower($assigned_to) == 'fala ni niyaz') {
+      $all_hofs = $this->db
+        ->distinct()
+        ->select('HOF_ID')
+        ->from('user')
+        ->where('Inactive_Status IS NULL')
+        ->get()
+        ->result_array();
+
+      foreach ($all_hofs as $hof) {
+        if (!$hof['HOF_ID']) continue; // skip null/empty
+        $data = [
+          'date'        => $date,
+          'miqaat_id'   => $miqaat_id,
+          'user_id'   => $hof['HOF_ID'], // per family invoice
+          'amount'      => $amount,
+          'description' => $description
+        ];
+        $this->AnjumanM->create_miqaat_invoice($data);
+      }
+
+      redirect('Anjuman/miqaatinvoice');
+      return;
+    }
+
+    // ✅ Case 3: Normal manual invoice (form-selected members → families)
+    if ($miqaat_id && $assigned_to && !empty($member_id) && $amount && $date) {
+      // Convert selected members → Hof_ids
+      $hofs = $this->db
+        ->distinct()
+        ->select('HOF_ID')
+        ->from('user')
+        ->where_in('ITS_ID', $member_id)
+        ->get()
+        ->result_array();
+
+      foreach ($hofs as $hof) {
+        $data = [
+          'date'        => $date,
+          'miqaat_id'   => $miqaat_id,
+          'user_id'   => $hof['HOF_ID'], // store Hof_id instead of ITS_ID
+          'amount'      => $amount,
+          'description' => $description
+        ];
+        $this->AnjumanM->create_miqaat_invoice($data);
+      }
+
+      $this->session->set_flashdata('success', 'Invoice(s) created successfully.');
+      redirect('Anjuman/miqaatinvoice');
+    } else {
+      $this->session->set_flashdata('error', 'Failed to create invoice.');
+      redirect('Anjuman/miqaatinvoice');
+    }
+  }
+
+  // AJAX: Update miqaat invoice amount
+  public function update_miqaat_invoice_amount()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+    $invoice_id = $this->input->post('invoice_id');
+    $amount = $this->input->post('amount');
+    if (!$invoice_id || $amount === null) {
+      echo json_encode(['success' => false, 'error' => 'Missing data']);
+      return;
+    }
+    $result = $this->AnjumanM->update_miqaat_invoice_amount($invoice_id, $amount);
+    if ($result) {
+      echo json_encode(['success' => true]);
+    } else {
+      echo json_encode(['success' => false, 'error' => 'Update failed']);
+    }
+  }
+
+  // AJAX: Delete miqaat invoice
+  public function delete_miqaat_invoice()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+    $invoice_id = $this->input->post('invoice_id');
+    if (!$invoice_id) {
+      echo json_encode(['success' => false, 'error' => 'Missing invoice_id']);
+      return;
+    }
+    $result = $this->AnjumanM->delete_miqaat_invoice($invoice_id);
+    if ($result) {
+      echo json_encode(['success' => true]);
+    } else {
+      echo json_encode(['success' => false, 'error' => 'Delete failed']);
+    }
+  }
+
+  public function miqaatpayment()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $username = $_SESSION['user']['username'];
+    $data["user_name"] = $username;
+
+    // Pagination setup
+    $limit = 10;
+    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    $offset = ($page - 1) * $limit;
+
+    $data['miqaat_payments'] = $this->AnjumanM->get_miqaat_payments_paginated($limit, $offset);
+    $total = $this->AnjumanM->get_miqaat_payments_count();
+    $data['pagination'] = [
+      'total' => $total,
+      'limit' => $limit,
+      'page' => $page,
+      'pages' => ceil($total / $limit),
+    ];
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/MiqaatPayment', $data);
+  }
+
+  public function newmiqaatpayment()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $username = $_SESSION['user']['username'];
+    $data["user_name"] = $username;
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/NewMiqaatPayment', $data);
+  }
+
+  public function search_members()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $query = $this->input->post("query");
+
+    $all_members = $this->AnjumanM->get_all_members($query);
+    echo json_encode($all_members);
+  }
+
+  public function addmiqaatpayment()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+
+    $payment_date = $this->input->post('payment_date');
+    $payment_method = $this->input->post('payment_method');
+    $member_id = $this->input->post('user_id');
+    $amount = $this->input->post('amount');
+    $remarks = $this->input->post('remark');
+
+    if (!$member_id || !$amount || !$payment_date) {
+      $this->session->set_flashdata('error', 'Missing required fields.');
+      redirect('Anjuman/newmiqaatpayment');
+      return;
+    }
+
+    $data = [
+      'payment_date' => $payment_date,
+      'payment_method' => $payment_method,
+      'user_id' => $member_id,
+      'amount' => $amount,
+      'remarks' => $remarks
+    ];
+
+    $result = $this->AnjumanM->addmiqaatpayment($data);
+
+    if ($result) {
+      $this->session->set_flashdata('success', 'Payment recorded successfully.');
+      redirect('Anjuman/miqaatpayment');
+    } else {
+      $this->session->set_flashdata('error', 'Failed to record payment.');
+      redirect('Anjuman/newmiqaatpayment');
+    }
+  }
+
+  public function update_miqaat_payment_amount()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+    $payment_id = $this->input->post('payment_id');
+    $amount = $this->input->post('amount');
+    if (isset($payment_id) === null || $amount === null) {
+      echo json_encode(['success' => false, 'error' => 'Missing data']);
+      return;
+    }
+    $result = $this->AnjumanM->update_miqaat_payment_amount($payment_id, $amount);
+    if ($result) {
+      echo json_encode(['success' => true]);
+    } else {
+      echo json_encode(['success' => false, 'error' => 'Update failed']);
+    }
+  }
+
+  public function delete_miqaat_payment()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+    $payment_id = $this->input->post('payment_id');
+    if (isset($payment_id) === null) {
+      echo json_encode(['success' => false, 'error' => 'Missing payment_id']);
+      return;
+    }
+    $result = $this->AnjumanM->delete_miqaat_payment($payment_id);
+    if ($result) {
+      echo json_encode(['success' => true]);
+    } else {
+      echo json_encode(['success' => false, 'error' => 'Delete failed']);
+    }
   }
   // Updated by Patel Infotech Services
 }

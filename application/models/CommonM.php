@@ -912,4 +912,55 @@ class CommonM extends CI_Model
     }
     return null;
   }
+
+  public function get_miqaats()
+  {
+    $this->db->select('m.id as miqaat_id, m.name as miqaat_name, m.date as miqaat_date');
+    $this->db->from('miqaat m');
+    $this->db->order_by('m.date', 'ASC');
+    $miqaats = $this->db->get()->result_array();
+    // Add hijri_date for each miqaat
+    foreach ($miqaats as &$miqaat) {
+      $hijri = $this->get_hijri_date_by_greg_date($miqaat['miqaat_date']);
+      $miqaat['hijri_date'] = isset($hijri['hijri_date']) ? $hijri['hijri_date'] : '';
+      $miqaat['hijri_month_name'] = isset($hijri['hijri_month_name']) ? $hijri['hijri_month_name'] : '';
+    }
+    unset($miqaat);
+    return $miqaats;
+  }
+
+  public function get_attendance_by_miqaat($miqaat_id)
+  {
+    $this->db->from('miqaat_attendance');
+    $this->db->where('miqaat_id', $miqaat_id);
+    return $this->db->count_all_results();
+  }
+
+  /**
+   * Get all members and join their attendance for a given miqaat
+   */
+  public function get_members_with_attendance($miqaat_id)
+  {
+    $this->db->select('u.ITS_ID, u.full_name, u.mobile, u.sector, u.sub_sector, a.comment');
+    $this->db->from('user u');
+    $this->db->join('miqaat_attendance a', 'u.ITS_ID = a.user_id AND a.miqaat_id = ' . (int)$miqaat_id, 'left');
+    $this->db->order_by('u.sector, u.Sub_Sector, u.full_name', 'ASC');
+    return $this->db->get()->result_array();
+  }
+
+  public function get_rsvp_by_miqaat($miqaat_id)
+  {
+    $this->db->from('general_rsvp');
+    $this->db->where('miqaat_id', $miqaat_id);
+    return $this->db->count_all_results();
+  }
+
+  public function get_members_with_rsvp($miqaat_id)
+  {
+    $this->db->select('u.ITS_ID, u.full_name, u.mobile, u.sector, u.sub_sector, IF(rsvp.id IS NOT NULL, 1, 0) as rsvp_status');
+    $this->db->from('user u');
+    $this->db->join('general_rsvp rsvp', 'u.ITS_ID = rsvp.user_id AND rsvp.miqaat_id = ' . (int)$miqaat_id, 'left');
+    $this->db->order_by('u.sector, u.Sub_Sector, u.full_name', 'ASC');
+    return $this->db->get()->result_array();
+  }
 }

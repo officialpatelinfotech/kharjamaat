@@ -59,10 +59,18 @@
           </div>
         </div>
       </a>
-      <a href="<?php echo base_url('amilsaheb/miqaatattendance'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+      <a href="<?php echo base_url('common/miqaatattendance?from=amilsaheb'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
           <div class="card-body">
-            <div class="title">Miqaat Attendance</div>
+            <div class="title">Miqaat Attendance Report</div>
+            <i class="fa-solid icon fa-calendar-days"></i>
+          </div>
+        </div>
+      </a>
+      <a href="<?php echo base_url('common/rsvp_list?from=amilsaheb'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body">
+            <div class="title">RSVP Report</div>
             <i class="fa-solid icon fa-calendar-days"></i>
           </div>
         </div>

@@ -33,13 +33,12 @@
 </style>
 
 <div class="container margintopcontainer pt-5 pb-4 position-relative">
-
-  <h2 class="mb-4 text-center">FMB Module</h2>
-  <div class="row mb-4 p-0">
+  <div class="p-0">
     <div class="col-12 col-md-6">
-      <a href="<?php echo base_url("anjuman") ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
+      <a href="<?php echo base_url("anjuman") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     </div>
   </div>
+  <h2 class="mb-5 text-center">FMB Settings</h2>
   <div class="container mt-4 m-0">
     <div class="row">
       <div class="col-md-6 mb-4">
@@ -74,6 +73,23 @@
             <div class="d-flex justify-content-center gap-2 flex-wrap">
               <a href="<?php echo base_url("anjuman/fmbgeneralcontribution/2"); ?>" class="btn btn-success mt-2 mt-md-0 ml-md-2">
                 <i class="fa-solid fa-file-invoice-dollar me-2"></i> Generate Invoice
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 mb-4">
+        <div class="card custom-card shadow-sm h-100">
+          <div class="card-body text-center">
+            <div class="icon-box mb-3">
+              <i class="fa-solid fa-money-bill-wheat fa-2x text-success"></i>
+            </div>
+            <h4 class="card-title">Miqaat Invoice and Payment</h4>
+            <p class="card-text">Generate Miqaat invoices and manage payments.</p>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+              <a href="<?php echo base_url("anjuman/miqaatinvoicepayment"); ?>" class="btn btn-success mt-2 mt-md-0 ml-md-2">
+                <i class="fa-solid fa-file-invoice-dollar me-2"></i> Miqaat Management
               </a>
             </div>
           </div>

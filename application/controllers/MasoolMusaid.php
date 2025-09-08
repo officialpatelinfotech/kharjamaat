@@ -364,6 +364,13 @@ class MasoolMusaid extends CI_Controller
         $hijri_date = $this->HijriCalendar->get_hijri_date($miqaat['miqaat_date']);
         $hijri_month = $this->HijriCalendar->hijri_month_name(explode("-", $hijri_date["hijri_date"])[1])["hijri_month"];
         $data["miqaat_rsvp_counts"][$key]["hijri_date"] = explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month . " " . explode("-", $hijri_date["hijri_date"])[2];
+
+        $miqaat_raza_status = $this->AccountM->get_miqaat_raza_status($miqaat["miqaat_id"]);
+        if ($miqaat_raza_status) {
+          $data["miqaat_rsvp_counts"][$key]["raza_status"] = $miqaat_raza_status ?? 'Unknown';
+        } else {
+          $data["miqaat_rsvp_counts"][$key]["raza_status"] = 'Unknown';
+        }
       }
     } else {
       $data["miqaat_rsvp_counts"] = [];
@@ -373,5 +380,277 @@ class MasoolMusaid extends CI_Controller
     $this->load->view('MasoolMusaid/RSVP/Home');
   }
 
-  // Updated by Patel Infotech Services
+  public function general_rsvp($miqaat_id)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      redirect('/accounts');
+    }
+
+    $username = $_SESSION['user']['username'];
+    $sector = '';
+    $subsector = '';
+
+    // Extract sector and sub-sector from username
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+      $sector = $matches[1]; // Burhani, Mohammedi, etc.
+      $subsector = $matches[2]; // A, B, C or empty
+    }
+
+    $data['user_name'] = $username;
+
+    // Fetch miqaat details
+    $miqaat = $this->MasoolMusaidM->get_miqaat_by_id($miqaat_id);
+    if (!$miqaat) {
+      show_404();
+    }
+    $data['miqaat'] = $miqaat;
+
+    $members = $this->MasoolMusaidM->get_members_by_sector_sub_sector($sector, $subsector);
+    $data['members'] = $members;
+
+    $existing_rsvps = $this->MasoolMusaidM->get_rsvps_by_miqaat($miqaat_id);
+    $data['existing_rsvps'] = [];
+    foreach ($existing_rsvps as $rsvp) {
+      $data['existing_rsvps'][$rsvp['user_id']] = $rsvp;
+    }
+
+    $data['miqaat_id'] = $miqaat_id;
+
+    $this->load->view('MasoolMusaid/Header', $data);
+    $this->load->view('MasoolMusaid/RSVP/GeneralRSVP', $data);
+  }
+
+  public function submit_general_rsvp()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      redirect('/accounts');
+    }
+
+    $miqaat_id = $this->input->post('miqaat_id');
+    $rsvp_members = $this->input->post('rsvp_members') ?? [];
+
+    if (!$miqaat_id) {
+      show_error('Miqaat ID is required', 400);
+    }
+
+    $username = $_SESSION['user']['username'];
+    $sector = '';
+    $subsector = '';
+
+    // Extract sector and sub-sector from username
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+      $sector = $matches[1]; // Burhani, Mohammedi, etc.
+      $subsector = $matches[2]; // A, B, C or empty
+    }
+
+    // Fetch members for the sector/sub-sector
+    $members = $this->MasoolMusaidM->get_members_by_sector_sub_sector($sector, $subsector);
+    $valid_member_ids = array_column($members, 'ITS_ID');
+
+    // Filter submitted member IDs to only include valid ones
+    $valid_rsvp_ids = array_intersect($rsvp_members, $valid_member_ids);
+
+    // Fetch existing RSVPs for the miqaat
+    $existing_rsvps = $this->MasoolMusaidM->get_rsvps_by_miqaat($miqaat_id);
+    $existing_rsvp_ids = array_column($existing_rsvps, 'user_id');
+
+    // Determine which RSVPs to add and which to remove
+    $to_add = array_diff($valid_rsvp_ids, $existing_rsvp_ids);
+
+    $to_remove = array_diff($existing_rsvp_ids, $valid_rsvp_ids);
+
+
+    // Add new RSVPs (send hof_id as well)
+    foreach ($to_add as $user_id) {
+      // Find hof_id for this user_id from $members
+      $hof_id = null;
+      foreach ($members as $m) {
+        if ($m['ITS_ID'] == $user_id) {
+          $hof_id = $m['HOF_ID'] ?? null;
+          break;
+        }
+      }
+      $this->MasoolMusaidM->add_general_rsvp($miqaat_id, $user_id, $hof_id);
+    }
+
+    foreach ($to_remove as $user_id) {
+      $this->MasoolMusaidM->remove_general_rsvp($miqaat_id, $user_id);
+    }
+
+    if (!empty($to_add)) {
+      $this->session->set_flashdata('success', 'RSVPs updated successfully.');
+    } else {
+      $this->session->set_flashdata('info', 'No changes made to RSVPs.');
+    }
+    // Redirect
+    redirect('/MasoolMusaid/general_rsvp/' . $miqaat_id);
+  }
+
+  public function miqaat_attendance()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      redirect('/accounts');
+    }
+
+    $username = $_SESSION['user']['username'];
+    $sector = '';
+    $subsector = '';
+
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+      $sector = $matches[1];
+      $subsector = $matches[2];
+    }
+
+    $data['user_name'] = $username;
+
+    $miqaats = $this->MasoolMusaidM->get_upcoming_miqaats();
+    if (!$miqaats) {
+      $data['miqaats'] = [];
+    } else {
+      foreach ($miqaats as $key => $miqaat) {
+        if (isset($miqaat['date'])) {
+          $hijri_date = $this->HijriCalendar->get_hijri_date($miqaat['date']);
+          $hijri_month = $this->HijriCalendar->hijri_month_name(explode("-", $hijri_date["hijri_date"])[1])["hijri_month"];
+          $miqaats[$key]["hijri_date"] = explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month . " " . explode("-", $hijri_date["hijri_date"])[2];
+        }
+
+        if (isset($miqaat['id'])) {
+          $miqaats[$key]['member_count'] = count($this->MasoolMusaidM->get_members_by_sector_sub_sector($sector, $subsector));
+          // Get attendee count for this miqaat
+          $miqaats[$key]['attendee_count'] = $this->MasoolMusaidM->get_miqaat_attendee_count($miqaat['id'], $sector, $subsector);
+
+          $miqaat_raza_status = $this->AccountM->get_miqaat_raza_status($miqaat["id"]);
+          if ($miqaat_raza_status) {
+            $miqaats[$key]["raza_status"] = $miqaat_raza_status ?? 'Unknown';
+          } else {
+            $miqaats[$key]["raza_status"] = 'Unknown';
+          }
+        }
+
+        unset($miqaats[$key]['sector']);
+        unset($miqaats[$key]['subsector']);
+      }
+      $data['miqaats'] = $miqaats;
+    }
+
+    $this->load->view('MasoolMusaid/Header', $data);
+    $this->load->view('MasoolMusaid/Miqaat/Home', $data);
+  }
+
+  public function miqaat_attendance_details($miqaat_id)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      redirect('/accounts');
+    }
+
+    $username = $_SESSION['user']['username'];
+    $sector = '';
+    $subsector = '';
+
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+      $sector = $matches[1];
+      $subsector = $matches[2];
+    }
+
+    $data['user_name'] = $username;
+
+    // Fetch miqaat details
+    $miqaat = $this->MasoolMusaidM->get_miqaat_by_id($miqaat_id);
+    if (!$miqaat) {
+      show_404();
+    }
+    $data['miqaat'] = $miqaat;
+
+    // Fetch members for the sector/sub-sector
+    $members = $this->MasoolMusaidM->get_members_by_sector_sub_sector($sector, $subsector);
+
+    // Fetch existing attendance records for the miqaat
+    $existing_attendance = $this->MasoolMusaidM->get_miqaat_attendance_by_miqaat($miqaat_id);
+    $attendance_map = [];
+    foreach ($existing_attendance as $attendance) {
+      $attendance_map[$attendance['user_id']] = $attendance;
+    }
+    $data["existing_attendance"] = $existing_attendance;
+
+    // Merge attendance info into members array
+    foreach ($members as &$member) {
+      $its = $member['ITS_ID'];
+      if (isset($attendance_map[$its])) {
+        foreach ($attendance_map[$its] as $k => $v) {
+          if ($k !== 'user_id') {
+            $member[$k] = $v;
+          }
+        }
+      }
+    }
+    unset($member);
+
+    $data['members'] = $members;
+    $data['miqaat_id'] = $miqaat_id;
+
+    $this->load->view('MasoolMusaid/Header', $data);
+    $this->load->view('MasoolMusaid/Miqaat/AttendanceDetails', $data);
+  }
+
+  public function submit_miqaat_attendance()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      redirect('/accounts');
+    }
+
+    $miqaat_id = $this->input->post('miqaat_id');
+    $attendance_members = $this->input->post('attendance_members') ?? [];
+    $attendance_comments = $this->input->post('attendance_comments') ?? [];
+
+    if (!$miqaat_id) {
+      show_error('Miqaat ID is required', 400);
+    }
+
+    $username = $_SESSION['user']['username'];
+    $sector = '';
+    $subsector = '';
+
+    // Extract sector and sub-sector from username
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+      $sector = $matches[1]; // Burhani, Mohammedi, etc.
+      $subsector = $matches[2]; // A, B, C or empty
+    }
+
+    // Fetch members for the sector/sub-sector
+    $members = $this->MasoolMusaidM->get_members_by_sector_sub_sector($sector, $subsector);
+    $valid_member_ids = array_column($members, 'ITS_ID');
+
+    // Only allow valid member IDs
+    $valid_attendance_ids = array_intersect($attendance_members, $valid_member_ids);
+
+    // Fetch existing attendance records for the miqaat
+    $existing_attendance = $this->MasoolMusaidM->get_miqaat_attendance_by_miqaat($miqaat_id);
+    $existing_attendance_ids = array_column($existing_attendance, 'user_id');
+
+    // Determine which attendance records to add and which to remove
+    $to_add = array_diff($valid_attendance_ids, $existing_attendance_ids);
+    $to_remove = array_diff($existing_attendance_ids, $valid_attendance_ids);
+
+    // Add new attendance records (send comment, not status)
+    foreach ($to_add as $user_id) {
+      $comment = isset($attendance_comments[$user_id]) ? $attendance_comments[$user_id] : '';
+      // Find hof_id for this user_id from $members
+      $hof_id = null;
+      foreach ($members as $m) {
+        if ($m['ITS_ID'] == $user_id) {
+          $hof_id = $m['HOF_ID'] ?? null;
+          break;
+        }
+      }
+      $this->MasoolMusaidM->add_miqaat_attendance($miqaat_id, $user_id, $hof_id, $comment);
+    }
+
+    // Remove attendance records
+    foreach ($to_remove as $user_id) {
+      $this->MasoolMusaidM->remove_miqaat_attendance($miqaat_id, $user_id);
+    }
+
+    $this->session->set_flashdata('success', 'Attendance updated successfully.');
+    redirect('/MasoolMusaid/miqaat_attendance_details/' . $miqaat_id);
+  }
 }

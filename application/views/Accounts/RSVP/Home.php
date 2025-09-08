@@ -37,9 +37,17 @@
               <div class="mb-5">
                 <span class="fw-bold">RSVP Status:</span> <?php echo in_array($miqaat["id"], (isset($rsvp_overview[$miqaat["id"]]) && $rsvp_overview[$miqaat["id"]]) ? array_column($rsvp_overview[$miqaat["id"]], 'miqaat_id') : []) ? '<span class="badge badge-success">Confirmed</span>' : '<span class="badge badge-danger">Pending</span>'; ?>
               </div>
-              <div class="d-flex justify-content-end align-items-end flex-grow-1" style="position:absolute; bottom:16px; right:16px; left:16px;">
-                <a href="<?php echo base_url('accounts/general_rsvp/' . $miqaat['id']); ?>" class="btn btn-sm btn-primary ms-auto"><?php echo (in_array($miqaat["id"], ((isset($rsvp_overview[$miqaat["id"]]) && $rsvp_overview[$miqaat["id"]]) ? array_column($rsvp_overview[$miqaat["id"]], 'miqaat_id') : [])) ? 'Update RSVP' : 'RSVP'); ?></a>
-              </div>
+              <?php if (isset($miqaat["raza_status"])): ?>
+                <?php if ($miqaat["raza_status"] == 1): ?>
+                  <div class="d-flex justify-content-end align-items-end flex-grow-1" style="position:absolute; bottom:16px; right:16px; left:16px;">
+                    <a href="<?php echo base_url('accounts/general_rsvp/' . $miqaat['id']); ?>" class="btn btn-sm btn-primary ms-auto"><?php echo (in_array($miqaat["id"], ((isset($rsvp_overview[$miqaat["id"]]) && $rsvp_overview[$miqaat["id"]]) ? array_column($rsvp_overview[$miqaat["id"]], 'miqaat_id') : [])) ? 'Update RSVP' : 'RSVP'); ?></a>
+                  </div>
+                <?php else: ?>
+                  <div class="d-flex justify-content-end align-items-end flex-grow-1" style="position:absolute; bottom:16px; right:16px; left:16px;">
+                    <button class="btn btn-sm btn-secondary ms-auto" disabled>RSVP</button>
+                  </div>
+                <?php endif; ?>
+              <?php endif; ?>
             </div>
           </div>
         </div>

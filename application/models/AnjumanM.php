@@ -21,13 +21,13 @@ class AnjumanM extends CI_Model
   public function get_miqaat_by_id($miqaat_id)
   {
     if ($miqaat_id) {
-  $this->db->select('m.*, ma.*, u.First_Name as member_first_name, u.Surname as member_surname, leader.First_Name as group_leader_name, leader.Surname as group_leader_surname');
-  $this->db->from('miqaat m');
-  $this->db->join('miqaat_assignments ma', 'ma.miqaat_id = m.id', 'left');
-  $this->db->join('user u', 'u.ITS_ID = ma.member_id', 'left');
-  $this->db->join('user leader', 'leader.ITS_ID = ma.group_leader_id', 'left');
-  $this->db->where('m.id', $miqaat_id);
-  $query = $this->db->get();
+      $this->db->select('m.*, ma.*, u.First_Name as member_first_name, u.Surname as member_surname, leader.First_Name as group_leader_name, leader.Surname as group_leader_surname');
+      $this->db->from('miqaat m');
+      $this->db->join('miqaat_assignments ma', 'ma.miqaat_id = m.id', 'left');
+      $this->db->join('user u', 'u.ITS_ID = ma.member_id', 'left');
+      $this->db->join('user leader', 'leader.ITS_ID = ma.group_leader_id', 'left');
+      $this->db->where('m.id', $miqaat_id);
+      $query = $this->db->get();
 
       if ($query->num_rows() > 0) {
         $rows = $query->result_array();
@@ -376,5 +376,288 @@ class AnjumanM extends CI_Model
     $query = $this->db->get();
 
     return $query->row_array();
+  }
+
+  public function get_miqaats_by_type($type, $year)
+  {
+    // Get all gregorian dates for the hijri year
+    $this->db->select('greg_date');
+    $this->db->from('hijri_calendar');
+    $this->db->like('hijri_date', '-' . $year);
+    $greg_dates = $this->db->get()->result_array();
+    $greg_date_list = array_column($greg_dates, 'greg_date');
+    if (empty($greg_date_list)) return [];
+    $this->db->select('id, name, date');
+    $this->db->from('miqaat');
+    $this->db->where('type', $type);
+    $this->db->where_in('date', $greg_date_list);
+    $query = $this->db->get();
+    return $query->result_array();
+  }
+
+  // public function get_miqaat_members($miqaat_id, $assigned_to)
+  // {
+  //   $results = [];
+
+  //   if (strtolower($assigned_to) === 'group') {
+  //     // First, fetch the group leader ID
+  //     $leader_row = $this->db
+  //       ->select('group_leader_id')
+  //       ->from('miqaat_assignments')
+  //       ->where('miqaat_id', $miqaat_id)
+  //       ->where('assign_type', 'Group')
+  //       ->get()
+  //       ->row_array();
+
+  //     if (!$leader_row || empty($leader_row['group_leader_id'])) {
+  //       return []; // no group leader → no members
+  //     }
+
+  //     $group_leader_id = $leader_row['group_leader_id'];
+
+  //     // Fetch group leader details
+  //     $leader = $this->db
+  //       ->select('u.ITS_ID, u.Full_Name')
+  //       ->from('user u')
+  //       ->where('u.ITS_ID', $group_leader_id)
+  //       ->get()
+  //       ->row_array();
+
+  //     if ($leader) {
+  //       $leader['is_leader'] = 1;
+  //       $results[] = $leader;
+  //     }
+
+  //     // Fetch group members (exclude nulls)
+  //     $members = $this->db
+  //       ->select('u.ITS_ID, u.Full_Name')
+  //       ->from('miqaat_assignments ma')
+  //       ->join('user u', 'u.ITS_ID = ma.member_id', 'inner')
+  //       ->where('ma.miqaat_id', $miqaat_id)
+  //       ->where('ma.group_leader_id', $group_leader_id)
+  //       ->where('ma.assign_type', 'Group')
+  //       ->where('ma.member_id IS NOT NULL')
+  //       ->where('ma.member_id !=', $group_leader_id)
+  //       ->order_by('u.Full_Name', 'ASC')
+  //       ->get()
+  //       ->result_array();
+
+  //     // If members exist, merge them, else keep only leader
+  //     if (!empty($members)) {
+  //       foreach ($members as &$m) {
+  //         $m['is_leader'] = 0;
+  //       }
+  //       $results = array_merge($results, $members);
+  //     }
+  //   } else {
+  //     // For Individual / Fala ni Niyaz
+  //     $results = $this->db
+  //       ->select('u.ITS_ID, u.Full_Name')
+  //       ->from('miqaat_assignments ma')
+  //       ->join('user u', 'u.ITS_ID = ma.member_id', 'inner')
+  //       ->where('ma.miqaat_id', $miqaat_id)
+  //       ->where('ma.assign_type', $assigned_to)
+  //       ->where('ma.member_id IS NOT NULL')
+  //       ->order_by('u.Full_Name', 'ASC')
+  //       ->get()
+  //       ->result_array();
+  //   }
+  //   return $results;
+  // }
+
+  public function get_miqaat_members($miqaat_id, $assigned_to)
+  {
+    $results = [];
+
+    if (strtolower($assigned_to) === 'group') {
+      // First, fetch the group leader ID + group name
+      $leader_row = $this->db
+        ->select('group_leader_id, group_name')
+        ->from('miqaat_assignments')
+        ->where('miqaat_id', $miqaat_id)
+        ->where('assign_type', 'Group')
+        ->get()
+        ->row_array();
+
+      if (!$leader_row || empty($leader_row['group_leader_id'])) {
+        return []; // no group leader → no members
+      }
+
+      $group_leader_id = $leader_row['group_leader_id'];
+      $group_name = $leader_row['group_name'];
+
+      // Fetch group leader details
+      $leader = $this->db
+        ->select('u.ITS_ID, u.Full_Name')
+        ->from('user u')
+        ->where('u.ITS_ID', $group_leader_id)
+        ->get()
+        ->row_array();
+
+      if ($leader) {
+        $leader['is_leader'] = 1;
+        $leader['group_name'] = $group_name;
+        $results[] = $leader;
+      }
+
+      // Fetch group members (exclude nulls and leader itself)
+      $members = $this->db
+        ->select('u.ITS_ID, u.Full_Name')
+        ->from('miqaat_assignments ma')
+        ->join('user u', 'u.ITS_ID = ma.member_id', 'inner')
+        ->where('ma.miqaat_id', $miqaat_id)
+        ->where('ma.group_leader_id', $group_leader_id)
+        ->where('ma.assign_type', 'Group')
+        ->where('ma.member_id IS NOT NULL')
+        ->where('ma.member_id !=', $group_leader_id)
+        ->order_by('u.Full_Name', 'ASC')
+        ->get()
+        ->result_array();
+
+      // Attach group name + leader flag
+      foreach ($members as &$m) {
+        $m['is_leader'] = 0;
+        $m['group_name'] = $group_name;
+      }
+
+      // Merge into results
+      if (!empty($members)) {
+        $results = array_merge($results, $members);
+      }
+    } else {
+      // For Individual / Fala ni Niyaz assignments
+      $results = $this->db
+        ->select('u.ITS_ID, u.Full_Name')
+        ->from('miqaat_assignments ma')
+        ->join('user u', 'u.ITS_ID = ma.member_id', 'inner')
+        ->where('ma.miqaat_id', $miqaat_id)
+        ->where('ma.assign_type', $assigned_to)
+        ->where('ma.member_id IS NOT NULL')
+        ->order_by('u.Full_Name', 'ASC')
+        ->get()
+        ->result_array();
+    }
+
+    return $results;
+  }
+
+  public function get_miqaat_invoices()
+  {
+    return $this->db
+      ->select('i.id as invoice_id, i.date, i.amount, i.description, i.miqaat_id, 
+              m.name as miqaat_name, m.type as miqaat_type, m.date as miqaat_date,
+                  u.ITS_ID, u.Full_Name, u.HOF_ID')
+      ->from('miqaat_invoice i')
+      ->join('miqaat m', 'm.id = i.miqaat_id', 'left')
+      ->join('user u', 'u.ITS_ID = i.member_id', 'left')
+      ->order_by('i.date', 'DESC')
+      ->get()
+      ->result_array();
+  }
+
+  // Pagination: get paginated invoices
+  public function get_miqaat_invoices_paginated($limit, $offset)
+  {
+    return $this->db
+      ->select('i.id as invoice_id, i.date, i.amount, i.description, i.miqaat_id, 
+              m.name as miqaat_name, m.type as miqaat_type, m.date as miqaat_date,
+                  u.ITS_ID, u.Full_Name, u.HOF_ID')
+      ->from('miqaat_invoice i')
+      ->join('miqaat m', 'm.id = i.miqaat_id', 'left')
+      ->join('user u', 'u.ITS_ID = i.user_id', 'left')
+      ->order_by('i.date', 'DESC')
+      ->limit($limit, $offset)
+      ->get()
+      ->result_array();
+  }
+
+  // Pagination: get total invoice count
+  public function get_miqaat_invoices_count()
+  {
+    return $this->db->count_all('miqaat_invoice');
+  }
+
+
+  public function get_miqaat_assigned_to($miqaat_id)
+  {
+    $this->db->distinct();
+    $this->db->select('assigned_to');
+    $this->db->from('miqaat');
+    $this->db->where('id', $miqaat_id);
+    $query = $this->db->get();
+    $results = array_map(function ($row) {
+      return $row['assigned_to'];
+    }, $query->result_array());
+    return $results;
+  }
+
+  public function create_miqaat_invoice($data)
+  {
+    $result = $this->db->insert("miqaat_invoice", $data);
+    if ($result) {
+      return $this->db->insert_id();
+    } else {
+      return false;
+    }
+  }
+
+  // Update invoice amount by invoice_id
+  public function update_miqaat_invoice_amount($invoice_id, $amount)
+  {
+    $this->db->where('id', $invoice_id);
+    return $this->db->update('miqaat_invoice', ['amount' => $amount]);
+  }
+
+  // Delete invoice by invoice_id
+  public function delete_miqaat_invoice($invoice_id)
+  {
+    $this->db->where('id', $invoice_id);
+    return $this->db->delete('miqaat_invoice');
+  }
+
+  public function get_miqaat_payments_paginated()
+  {
+    return $this->db
+      ->select('p.id as payment_id, p.payment_date, p.amount, p.payment_method, p.remarks, u.ITS_ID, u.Full_Name, u.HOF_ID')
+      ->from('miqaat_payment p')
+      ->join('user u', 'u.ITS_ID = p.user_id', 'left')
+      ->order_by('p.payment_date', 'DESC')
+      ->get()
+      ->result_array();
+  }
+
+  public function get_miqaat_payments_count()
+  {
+    return $this->db->count_all('miqaat_payment');
+  }
+
+  public function get_all_members($query)
+  {
+    $this->db->select('ITS_ID, Full_Name');
+    $this->db->from('user');
+    if (!empty($query)) {
+      $this->db->like('Full_Name', $query);
+    }
+    return $this->db->get()->result_array();
+  }
+
+  public function addmiqaatpayment($data)
+  {
+    $result = $this->db->insert("miqaat_payment", $data);
+    if ($result) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public function update_miqaat_payment_amount($payment_id, $amount) {
+    $this->db->where('id', $payment_id);
+    return $this->db->update('miqaat_payment', ['amount' => $amount]);
+  }
+
+  public function delete_miqaat_payment($payment_id) {
+    $this->db->where('id', $payment_id);
+    return $this->db->delete('miqaat_payment');
   }
 }

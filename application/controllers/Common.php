@@ -848,4 +848,124 @@ class Common extends CI_Controller
     }
     redirect('common/managemiqaat');
   }
+
+  public function miqaatattendance()
+  {
+    $this->validateUser($_SESSION["user"]);
+    $from = $this->input->get('from');
+    $_SESSION["from"] = $from;
+    $data["active_controller"] = $from ? base_url($from) : base_url();
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    // Fetch all miqaat dates and their attendance
+    $miqaats = $this->CommonM->get_miqaats();
+
+    // For each miqaat, fetch attendance records
+    $attendance_by_miqaat = [];
+    foreach ($miqaats as $miqaat) {
+      $attendance = $this->CommonM->get_attendance_by_miqaat($miqaat['miqaat_id']);
+      $attendance_by_miqaat[$miqaat['miqaat_id']] = $attendance;
+    }
+
+    $data['miqaats'] = $miqaats;
+    $data['attendance_by_miqaat'] = $attendance_by_miqaat;
+
+    $this->load->view('Common/Header', $data);
+    $this->load->view('Common/MiqaatAttendance', $data);
+  }
+
+  public function miqaat_attendance_details($miqaat_id = null)
+  {
+    $this->validateUser($_SESSION["user"]);
+    if (!$miqaat_id) {
+      $this->session->set_flashdata('error', 'Invalid Miqaat.');
+      redirect('common/miqaatattendance');
+    }
+
+    $data["active_controller"] = $_SESSION["from"];
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    // Fetch miqaat details
+    $miqaat = $this->CommonM->get_miqaat_by_id($miqaat_id);
+    if (!$miqaat) {
+      $this->session->set_flashdata('error', 'Miqaat not found.');
+      redirect('common/miqaatattendance');
+    }
+    $data['miqaat'] = $miqaat;
+
+    // Fetch hijri date and month name for this miqaat
+    $hijri = null;
+    if (!empty($miqaat['date'])) {
+      $hijri = $this->CommonM->get_hijri_date_by_greg_date($miqaat['date']);
+    } elseif (!empty($miqaat['miqaat_date'])) {
+      $hijri = $this->CommonM->get_hijri_date_by_greg_date($miqaat['miqaat_date']);
+    }
+    $data['hijri_date'] = $hijri;
+    // Fetch attendance records for this miqaat
+    $attendance = $this->CommonM->get_members_with_attendance($miqaat_id);
+    $data['attendance'] = $attendance;
+
+    $this->load->view('Common/Header', $data);
+    $this->load->view('Common/MiqaatAttendanceDetails', $data);
+  }
+
+  public function rsvp_list()
+  {
+    $this->validateUser($_SESSION["user"]);
+    $from = $this->input->get('from');
+    $_SESSION["from"] = $from;
+    $data["active_controller"] = $from ? base_url($from) : base_url();
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    // Fetch all miqaat dates and their RSVP lists
+    $miqaats = $this->CommonM->get_miqaats();
+
+    // For each miqaat, fetch RSVP records
+    $rsvp_by_miqaat = [];
+    foreach ($miqaats as $miqaat) {
+      $rsvp = $this->CommonM->get_rsvp_by_miqaat($miqaat['miqaat_id']);
+      $rsvp_by_miqaat[$miqaat['miqaat_id']] = $rsvp;
+    }
+
+    $data['miqaats'] = $miqaats;
+    $data['rsvp_by_miqaat'] = $rsvp_by_miqaat;
+
+    $this->load->view('Common/Header', $data);
+    $this->load->view('Common/RSVPList', $data);
+  }
+
+  public function rsvp_details($miqaat_id = null)
+  {
+    $this->validateUser($_SESSION["user"]);
+    if (!$miqaat_id) {
+      $this->session->set_flashdata('error', 'Invalid Miqaat.');
+      redirect('common/rsvp_list');
+    }
+
+    $data["active_controller"] = $_SESSION["from"];
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    // Fetch miqaat details
+    $miqaat = $this->CommonM->get_miqaat_by_id($miqaat_id);
+    if (!$miqaat) {
+      $this->session->set_flashdata('error', 'Miqaat not found.');
+      redirect('common/rsvp_list');
+    }
+    $data['miqaat'] = $miqaat;
+
+    // Fetch hijri date and month name for this miqaat
+    $hijri = null;
+    if (!empty($miqaat['date'])) {
+      $hijri = $this->CommonM->get_hijri_date_by_greg_date($miqaat['date']);
+    } elseif (!empty($miqaat['miqaat_date'])) {
+      $hijri = $this->CommonM->get_hijri_date_by_greg_date($miqaat['miqaat_date']);
+    }
+    $data['hijri_date'] = $hijri;
+    // Fetch RSVP records for this miqaat
+    $rsvp = $this->CommonM->get_members_with_rsvp($miqaat_id);
+    $data['rsvp'] = $rsvp;
+
+    $this->load->view('Common/Header', $data);
+    $this->load->view('Common/RSVPDetails', $data);
+  }
 }

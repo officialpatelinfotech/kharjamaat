@@ -64,7 +64,11 @@ $colorIndex = 0;
               <div class="mb-1"><span class="fw-bold">Total Members:</span> <span class="badge badge-secondary"><?php echo $miqaat['member_count']; ?></span></div>
               <div class="mb-1"><span class="fw-bold">RSVPs Confirmed:</span> <span class="badge badge-success"><?php echo $miqaat['rsvp_count']; ?></span></div>
               <div class="d-flex justify-content-end align-items-end flex-grow-1 mt-2">
-                <a href="<?php echo site_url('accounts/general_rsvp/' . $miqaat['miqaat_id']); ?>" class="btn btn-sm btn-primary ms-auto">RSVP</a>
+                <?php if (isset($miqaat["raza_status"]) && $miqaat["raza_status"] == 1): ?>
+                  <a href="<?php echo site_url('MasoolMusaid/general_rsvp/' . $miqaat['miqaat_id']); ?>" class="btn btn-sm btn-primary ms-auto">RSVP</a>
+                <?php else: ?>
+                  <button class="btn btn-sm btn-secondary ms-auto" disabled>RSVP</button>
+                <?php endif; ?>
               </div>
             </div>
           </div>

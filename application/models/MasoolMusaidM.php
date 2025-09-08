@@ -359,32 +359,154 @@ class MasoolMusaidM extends CI_Model
     return $query->result_array();
   }
 
+  public function get_miqaat_by_id($miqaat_id)
+  {
+    $this->db->where('id', $miqaat_id);
+    return $this->db->get('miqaat')->row_array();
+  }
+
+  public function get_members_by_sector_sub_sector($sector = '', $sub_sector = '')
+  {
+    $this->db->select('ITS_ID, HOF_ID, Full_Name, Mobile, Sector, Sub_Sector');
+    $this->db->from('user');
+
+    if (!empty($sector)) {
+      $this->db->where('Sector', $sector);
+    }
+    if (!empty($sub_sector)) {
+      $this->db->where('Sub_Sector', $sub_sector);
+    }
+
+    $this->db->order_by('Full_Name', 'ASC');
+    return $this->db->get()->result_array();
+  }
+
+  public function get_miqaat_attendee_count($miqaat_id, $sector = '', $sub_sector = '')
+  {
+    $this->db->from('miqaat_attendance a');
+    $this->db->join('user u', 'a.user_id = u.ITS_ID', 'left');
+    $this->db->where('a.miqaat_id', $miqaat_id);
+    if (!empty($sector)) {
+      $this->db->where('u.Sector', $sector);
+    }
+    if (!empty($sub_sector)) {
+      $this->db->where('u.Sub_Sector', $sub_sector);
+    }
+    return $this->db->count_all_results();
+  }
+
+  public function get_rsvps_by_miqaat($miqaat_id)
+  {
+    $this->db->select('r.user_id, u.Full_Name, u.Mobile');
+    $this->db->from('general_rsvp r');
+    $this->db->join('user u', 'r.user_id = u.ITS_ID', 'left');
+    $this->db->where('r.miqaat_id', $miqaat_id);
+    $this->db->order_by('u.Sub_Sector, u.Full_Name', 'ASC');
+    return $this->db->get()->result_array();
+  }
+
   public function get_rsvp_counts_by_miqaat($sector = '', $sub_sector = '')
   {
     $this->db->select('
         m.id as miqaat_id, 
         m.name as miqaat_name, 
         m.date as miqaat_date,
-        COUNT(DISTINCT r.user_id) as rsvp_count,
-        (SELECT COUNT(*) 
-          FROM user u2 
-          WHERE 1=1
-          ' . (!empty($sector) ? ' AND u2.Sector = ' . $this->db->escape($sector) : '') . '
-          ' . (!empty($sub_sector) ? ' AND u2.Sub_Sector = ' . $this->db->escape($sub_sector) : '') . '
-          ) as member_count
+        COUNT(DISTINCT CASE WHEN u.ITS_ID IS NOT NULL THEN r.user_id END) as rsvp_count,
+        COUNT(DISTINCT u2.ITS_ID) as member_count
     ');
     $this->db->from('miqaat m');
 
-    // Keep LEFT JOIN so even if no RSVP, miqaat still shows
+    // Join RSVP + User (to apply sector filters on RSVP side)
     $this->db->join('general_rsvp r', 'm.id = r.miqaat_id', 'left');
+    $this->db->join('user u', 'u.ITS_ID = r.user_id', 'left');
 
-    // Show only future miqaāts (including those without RSVP)
+    // Count all members in this sector/subsector (separate alias)
+    $this->db->join('user u2', '1=1', 'left');
+
+    // Filters
+    if (!empty($sector)) {
+      $this->db->where('u2.Sector', $sector);
+      $this->db->where('(u.Sector IS NULL OR u.Sector = ' . $this->db->escape($sector) . ')');
+    }
+    if (!empty($sub_sector)) {
+      $this->db->where('u2.Sub_Sector', $sub_sector);
+      $this->db->where('(u.Sub_Sector IS NULL OR u.Sub_Sector = ' . $this->db->escape($sub_sector) . ')');
+    }
+
+    // Future miqaāts
     $this->db->where('m.date >=', date('Y-m-d'));
 
     // One row per miqaat
     $this->db->group_by('m.id');
-    $this->db->order_by('m.date', 'DESC');
+    $this->db->order_by('m.date', 'ASC');
 
     return $this->db->get()->result_array();
+  }
+
+
+  public function get_miqaat_raza_status($miqaat_id)
+  {
+    $this->db->where('miqaat_id', $miqaat_id);
+    $this->db->from('raza');
+    return $this->db->get()->result_array();
+  }
+
+  public function add_general_rsvp($miqaat_id, $user_id, $hof_id)
+  {
+    if (empty($user_id)) {
+      return false;
+    }
+    $data = [
+      'miqaat_id' => $miqaat_id,
+      'user_id' => $user_id,
+      'hof_id' => $hof_id,
+    ];
+    return $this->db->insert('general_rsvp', $data);
+  }
+
+  public function remove_general_rsvp($miqaat_id, $user_ids)
+  {
+    if (empty($user_ids)) {
+      return false;
+    }
+
+    $this->db->where('miqaat_id', $miqaat_id);
+    $this->db->where_in('user_id', $user_ids);
+    return $this->db->delete('general_rsvp');
+  }
+
+  public function get_miqaat_attendance_by_miqaat($miqaat_id)
+  {
+    $this->db->select('a.user_id, u.Full_Name, u.Mobile, a.comment');
+    $this->db->from('miqaat_attendance a');
+    $this->db->join('user u', 'a.user_id = u.ITS_ID', 'left');
+    $this->db->where('a.miqaat_id', $miqaat_id);
+    $this->db->order_by('u.Sub_Sector, u.Full_Name', 'ASC');
+    return $this->db->get()->result_array();
+  }
+
+  public function add_miqaat_attendance($miqaat_id, $user_id, $hof_id, $comment = '')
+  {
+    if (empty($user_id)) {
+      return false;
+    }
+    $data = [
+      'miqaat_id' => $miqaat_id,
+      'user_id' => $user_id,
+      'hof_id' => $hof_id,
+      'comment' => $comment,
+    ];
+    return $this->db->insert('miqaat_attendance', $data);
+  }
+
+  public function remove_miqaat_attendance($miqaat_id, $user_ids)
+  {
+    if (empty($user_ids)) {
+      return false;
+    }
+
+    $this->db->where('miqaat_id', $miqaat_id);
+    $this->db->where_in('user_id', $user_ids);
+    return $this->db->delete('miqaat_attendance');
   }
 }

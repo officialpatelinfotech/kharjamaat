@@ -344,6 +344,7 @@ class Amilsaheb extends CI_Controller
       redirect('/amilsaheb/error/managemiqaat');
     }
   }
+
   public function miqaatattendance()
   {
     if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
@@ -366,6 +367,7 @@ class Amilsaheb extends CI_Controller
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Miqaat/MiqaatAttendance', $data);
   }
+
   public function mumineendirectory()
   {
     if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {

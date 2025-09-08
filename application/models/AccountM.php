@@ -740,22 +740,33 @@ class AccountM extends CI_Model
     return $query->result_array();
   }
 
+  public function get_miqaat_raza_status($miqaat_id)
+  {
+    $this->db->from("raza");
+    $this->db->where('miqaat_id', $miqaat_id);
+    $result = $this->db->get()->result_array();
+    if (!empty($result)) {
+      return $result[0]["Janab-status"];
+    }
+    return false;
+  }
+
   public function get_rsvp_overview($hof_id, $miqaats)
   {
     if (empty($miqaats)) {
       return [];
     }
-      $miqaat_ids = array_column($miqaats, 'id');
-      $this->db->where("hof_id", $hof_id);
-      $this->db->where_in("miqaat_id", $miqaat_ids);
-      $query = $this->db->get("general_rsvp");
-      $results = $query->result_array();
-      // Group by hof_id
-      $grouped = [];
-      foreach ($results as $row) {
-        $grouped[$row['hof_id']][$row['miqaat_id']][] = $row;
-      }
-      return $grouped;
+    $miqaat_ids = array_column($miqaats, 'id');
+    $this->db->where("hof_id", $hof_id);
+    $this->db->where_in("miqaat_id", $miqaat_ids);
+    $query = $this->db->get("general_rsvp");
+    $results = $query->result_array();
+    // Group by hof_id
+    $grouped = [];
+    foreach ($results as $row) {
+      $grouped[$row['hof_id']][$row['miqaat_id']][] = $row;
+    }
+    return $grouped;
   }
 
 

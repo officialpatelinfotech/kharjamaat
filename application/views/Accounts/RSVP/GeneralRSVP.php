@@ -35,7 +35,7 @@
   </div>
 
 	<h3 class="heading text-center">RSVP for <span class="text-primary"><?php echo htmlspecialchars($miqaat['name']); ?></span></h3>
-	<h6 class="text-center text-muted mb-5">Date: <?php echo date("d F Y", strtotime($miqaat['date'])); ?></h6>
+	<h6 class="text-center text-muted mb-5">Miqaat Date: <?php echo date("d F Y", strtotime($miqaat['date'])); ?></h6>
 	<div id="rsvp-container">
 		<h5 class="text-xl font-semibold mb-4">Select Family Members for RSVP</h5>
 		<form method="post" action="<?php echo base_url('accounts/submit_general_rsvp'); ?>">

@@ -65,6 +65,14 @@
                     </div>
                 </div>
             </a>
+            <a href="<?php echo base_url('MasoolMusaid/miqaat_attendance') ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="title">Miqaat Attendance</div>
+                        <i class="fa-solid icon fa-calendar-check"></i>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 </div>
