@@ -362,7 +362,7 @@
     $('#gcph-invoice-id').text(invoiceId);
     // Fire AJAX
     $.ajax({
-      url: '<?php echo base_url('anjuman/fmbgc_payment_history'); ?>',
+      url: '<?php echo base_url('accounts/gc_payment_history'); ?>',
       type: 'POST',
       dataType: 'json',
       data: { fmbgc_id: invoiceId },
