@@ -172,6 +172,7 @@
                 <th class="text-end">Due (₹)</th>
                 <th>Status</th>
                 <th>Description</th>
+                <th>Payments</th>
               </tr>
             </thead>
             <tbody>
@@ -182,10 +183,10 @@
                     $paid        = isset($gc['amount_paid']) ? (float)$gc['amount_paid'] : 0.0;
                     $due         = isset($gc['total_due']) ? (float)$gc['total_due'] : max($amount - $paid, 0);
                     $statusFlag  = (int)$gc['payment_status'];
-                    $badgeClass  = 'bg-danger';
+                    $badgeClass  = 'bg-danger text-white';
                     $badgeText   = 'Unpaid';
                     if ($paid > 0 && $due > 0) { $badgeClass = 'bg-warning text-dark'; $badgeText = 'Partial'; }
-                    if ($statusFlag === 1 || $due <= 0.00001) { $badgeClass = 'bg-success'; $badgeText = 'Paid'; $due = 0; }
+                    if ($statusFlag === 1 || $due <= 0.00001) { $badgeClass = 'bg-success text-white'; $badgeText = 'Paid'; $due = 0; }
                   ?>
                   <tr>
                     <td><?php echo $idx + 1; ?></td>
@@ -198,8 +199,13 @@
                     <td class="text-end text-danger">&#8377;<?php echo number_format($due, 2); ?></td>
                     <td><span class="badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span></td>
                     <td>
-                      <button class="view-description btn btn-sm btn-outline-primary" data-description="<?php echo htmlspecialchars($gc['description']); ?>" data-toggle="modal" data-target="#description-modal">
+                      <button class="view-description btn btn-sm btn-outline-primary" data-description="<?php echo htmlspecialchars($gc['description']); ?>" data-toggle="modal" data-target="#description-modal" title="View Description">
                         <i class="fa-solid fa-eye"></i>
+                      </button>
+                    </td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-secondary view-gc-payments" data-fmbgc-id="<?php echo (int)$gc['id']; ?>" data-amount="<?php echo number_format($amount,2,'.',''); ?>" data-paid="<?php echo number_format($paid,2,'.',''); ?>" data-due="<?php echo number_format($due,2,'.',''); ?>" title="View Payments">
+                        <i class="fa-regular fa-money-bill-1"></i>
                       </button>
                     </td>
                   </tr>
@@ -266,6 +272,48 @@
       </div>
     </div>
   </div>
+  <!-- General Contribution Payments History Modal -->
+  <div class="modal fade" id="gc-payments-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="fa-solid fa-receipt me-2"></i> General Contribution Payments</h5>
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body p-0">
+          <div class="p-3 border-bottom small bg-light">
+            <div class="d-flex flex-wrap gap-3">
+              <div><strong>Invoice ID:</strong> <span id="gcph-invoice-id">-</span></div>
+              <div><strong>Contri Year:</strong> <span id="gcph-year">-</span></div>
+              <div><strong>Type:</strong> <span id="gcph-type">-</span></div>
+              <div><strong>Amount:</strong> ₹<span id="gcph-amount">0.00</span></div>
+              <div><strong>Received:</strong> ₹<span id="gcph-received" class="text-success">0.00</span></div>
+              <div><strong>Balance:</strong> ₹<span id="gcph-balance" class="text-danger">0.00</span></div>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0" id="gc-payments-table">
+              <thead class="thead-dark">
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th class="text-end">Amount (₹)</th>
+                  <th>Method</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="5" class="text-center text-muted">Select a contribution to view payments.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 <script>
   $(document).on("click", ".view-invoice", function(e) {
@@ -302,5 +350,56 @@
     } else {
       $("#modal-view-description").text("No description found!");
     }
+  });
+
+  // Load General Contribution payment history
+  $(document).on('click', '.view-gc-payments', function(e){
+    e.preventDefault();
+    const invoiceId = $(this).data('fmbgc-id');
+    if(!invoiceId){ return; }
+    // Reset
+    $('#gc-payments-table tbody').html('<tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>');
+    $('#gcph-invoice-id').text(invoiceId);
+    // Fire AJAX
+    $.ajax({
+      url: '<?php echo base_url('anjuman/fmbgc_payment_history'); ?>',
+      type: 'POST',
+      dataType: 'json',
+      data: { fmbgc_id: invoiceId },
+      success: function(res){
+        if(!res || !res.success){
+          $('#gc-payments-table tbody').html('<tr><td colspan="5" class="text-center text-danger">'+(res && res.message ? res.message : 'Failed to load payments')+'</td></tr>');
+          $('#gc-payments-modal').modal('show');
+          return;
+        }
+        const inv = res.invoice || {};
+        $('#gcph-year').text(inv.contri_year || '-');
+        $('#gcph-type').text(inv.contri_type || '-');
+        $('#gcph-amount').text(parseFloat(inv.amount || 0).toFixed(2));
+        $('#gcph-received').text(parseFloat(res.total_received || 0).toFixed(2));
+        $('#gcph-balance').text(parseFloat(res.balance_due || 0).toFixed(2));
+        const pays = res.payments || [];
+        if(pays.length === 0){
+          $('#gc-payments-table tbody').html('<tr><td colspan="5" class="text-center text-muted">No payments recorded.</td></tr>');
+        } else {
+          let rows = '';
+            pays.forEach(function(p,i){
+              rows += '<tr>'+
+                '<td>'+(i+1)+'</td>'+
+                '<td>'+( (p.payment_date) ? moment(p.payment_date).format('DD-MMM-YYYY') : '-' )+'</td>'+
+                '<td class="text-end text-success">'+parseFloat(p.amount||0).toFixed(2)+'</td>'+
+                '<td>'+(p.payment_method || '-')+'</td>'+
+                '<td>'+(p.remarks ? $('<div/>').text(p.remarks).html() : '-')+'</td>'+
+              '</tr>';
+            });
+          $('#gc-payments-table tbody').html(rows);
+        }
+        $('#gc-payments-modal').modal('show');
+      },
+      error: function(){
+        $('#gc-payments-table tbody').html('<tr><td colspan="5" class="text-center text-danger">Error loading data.</td></tr>');
+        $('#gc-payments-modal').modal('show');
+      }
+    });
   });
 </script>
