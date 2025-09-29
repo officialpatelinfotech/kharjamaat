@@ -383,10 +383,28 @@
           $('#gc-payments-table tbody').html('<tr><td colspan="5" class="text-center text-muted">No payments recorded.</td></tr>');
         } else {
           let rows = '';
+            // Helper: format date (YYYY-MM-DD or ISO) -> DD-MMM-YYYY without moment.js
+            function fmtDate(d){
+              if(!d) return '-';
+              // Normalize to Date object
+              var dt = new Date(d);
+              if(isNaN(dt.getTime())){ // try if string like '2025-09-29 13:45:00'
+                var parts = (d+'').replace('T',' ').split(/[ :\-]/);
+                if(parts.length >= 3){
+                  dt = new Date(parts[0], parseInt(parts[1],10)-1, parts[2]);
+                }
+              }
+              if(isNaN(dt.getTime())) return '-';
+              var day = ('0'+dt.getDate()).slice(-2);
+              var mths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+              var mon = mths[dt.getMonth()];
+              var yr = dt.getFullYear();
+              return day+'-'+mon+'-'+yr;
+            }
             pays.forEach(function(p,i){
               rows += '<tr>'+
                 '<td>'+(i+1)+'</td>'+
-                '<td>'+( (p.payment_date) ? moment(p.payment_date).format('DD-MMM-YYYY') : '-' )+'</td>'+
+                '<td>'+ fmtDate(p.payment_date) +'</td>'+
                 '<td class="text-end text-success">'+parseFloat(p.amount||0).toFixed(2)+'</td>'+
                 '<td>'+(p.payment_method || '-')+'</td>'+
                 '<td>'+(p.remarks ? $('<div/>').text(p.remarks).html() : '-')+'</td>'+
