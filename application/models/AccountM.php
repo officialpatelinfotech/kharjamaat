@@ -43,6 +43,18 @@ class AccountM extends CI_Model
   }
 
   // Updated by Patel Infotech Services
+  public function get_assigned_miqaats_count($user_id)
+  {
+    $escaped_user = $this->db->escape($user_id);
+    $this->db->select('COUNT(DISTINCT ma.miqaat_id) as pending_cnt', FALSE);
+    $this->db->from('miqaat_assignments ma');
+    $this->db->join('raza r', 'r.miqaat_id = ma.miqaat_id AND r.user_id = ' . $escaped_user, 'left');
+    $this->db->where('( (ma.assign_type = "Individual" AND ma.member_id = ' . $escaped_user . ') OR (ma.assign_type = "Group" AND ma.group_leader_id = ' . $escaped_user . ') )', NULL, FALSE);
+    $this->db->where('r.id IS NULL', NULL, FALSE);
+    $row = $this->db->get()->row();
+    return $row ? (int)$row->pending_cnt : 0;
+  }
+
   public function get_assigned_miqaats($user_id)
   {
     // Get miqaat IDs where user is assigned as individual or group leader
@@ -117,80 +129,228 @@ class AccountM extends CI_Model
     return $this->db->insert_id();
   }
 
+  public function generate_raza_id($year)
+  {
+
+    $this->db->select('raza_id');
+    $this->db->like('raza_id', $year . '-', 'after');
+    $this->db->order_by('id', 'DESC');
+    $this->db->limit(1);
+    $query = $this->db->get('raza');
+
+    if ($query->num_rows() > 0) {
+      $last_raza = $query->row()->raza_id;
+      $parts = explode('-', $last_raza);
+      $next_number = intval($parts[1]) + 1;
+    } else {
+      $next_number = 1;
+    }
+
+    return $year . '-' . $next_number;
+  }
+
+  public function update_raza_by_id($raza_id, $data)
+  {
+    $this->db->where('id', $raza_id);
+    $this->db->update('raza', $data);
+    return $this->db->affected_rows() > 0;
+  }
+
   public function get_member_total_fmb_due($user_id)
   {
-    $this->db->select("
-        latest.year,
-        latest.total_amount,
-        overall.total_paid,
-        (overall.total_amount - overall.total_paid) AS total_due
-    ");
-    $this->db->from("(SELECT user_id, year, total_amount, amount_paid 
-                      FROM fmb_takhmeen 
-                      WHERE user_id = {$this->db->escape_str($user_id)} 
-                      ORDER BY year DESC
-                      LIMIT 1) latest");
+    $user_id = (int) $user_id;
 
-    $this->db->join(
-      "(SELECT user_id, 
-          COALESCE(SUM(total_amount),0) AS total_amount, 
-          COALESCE(SUM(amount_paid),0) AS total_paid
-          FROM fmb_takhmeen 
-          WHERE user_id = {$this->db->escape_str($user_id)}
-          GROUP BY user_id) overall",
-      "overall.user_id = latest.user_id",
-      "left"
-    );
+    // ✅ Get the latest takhmeen row for this user
+    $latest = $this->db->select('ft.year, ft.total_amount')
+      ->from('fmb_takhmeen ft')
+      ->where('ft.user_id', $user_id)
+      ->order_by('ft.year', 'DESC')
+      ->limit(1)
+      ->get()
+      ->row_array();
 
-    $result = $this->db->get()->row_array();
-    return $result ?: null;
+    if (!$latest) return null;
+
+    // ✅ Get overall takhmeen total (avoid duplication by NOT joining payments here)
+    $takhmeen = $this->db->select("COALESCE(SUM(total_amount),0) as total_amount")
+      ->from('fmb_takhmeen')
+      ->where('user_id', $user_id)
+      ->get()
+      ->row_array();
+
+    // ✅ Get total payments separately
+    $payments = $this->db->select("COALESCE(SUM(amount),0) as total_paid")
+      ->from('fmb_takhmeen_payments')
+      ->where('user_id', $user_id)
+      ->get()
+      ->row_array();
+
+    $total_amount = (float)($takhmeen['total_amount'] ?? 0);
+    $total_paid_raw = (float)($payments['total_paid'] ?? 0);
+    $excess = 0.0;
+    if ($total_paid_raw > $total_amount) {
+      $excess = $total_paid_raw - $total_amount;
+    }
+    $total_paid = min($total_paid_raw, $total_amount);
+
+    $result = [
+      'year'         => $latest['year'],
+      'total_amount' => $total_amount,
+      'total_paid'   => $total_paid,
+      'total_due'    => $total_amount - $total_paid,
+    ];
+    if ($excess > 0) {
+      $result['excess_paid'] = $excess;
+    }
+    return $result;
   }
 
   public function viewfmbtakhmeen($user_id)
   {
-    // 1️⃣ Get all takhmeen entries (year-wise, descending)
-    $this->db->select("id, year, total_amount, amount_paid");
-    $this->db->from("fmb_takhmeen");
-    $this->db->where("user_id", $user_id);
-    $this->db->order_by("year", "DESC");
-    $takhmeen_list = $this->db->get()->result_array();
+    $user_id = (int)$user_id;
 
-    // 2️⃣ Get overall totals (due = sum of total_amount - sum of amount_paid)
-    $this->db->select("
-        COALESCE(SUM(total_amount), 0) AS total_amount,
-        COALESCE(SUM(amount_paid), 0) AS total_paid,
-        COALESCE(SUM(total_amount), 0) - COALESCE(SUM(amount_paid), 0) AS total_due
-    ", false);
-    $this->db->from("fmb_takhmeen");
-    $this->db->where("user_id", $user_id);
-    $overall = $this->db->get()->row_array();
+    // 🔹 Fetch all takhmeen records
+    $takhmeen_list = $this->db->select("id, year, total_amount")
+      ->from("fmb_takhmeen")
+      ->where("user_id", $user_id)
+      ->order_by("year", "DESC")
+      ->get()
+      ->result_array();
 
-    // 3️⃣ Find the latest takhmeen entry (first in sorted list)
     $latest = !empty($takhmeen_list) ? $takhmeen_list[0] : null;
+    $latest_year = $latest ? $latest['year'] : null;
 
-    // 4. Payment history
-    $this->db->select("id, amount, payment_method, payment_date, remarks");
-    $this->db->from("fmb_takhmeen_payments");
-    $this->db->where("user_id", $user_id);
-    $this->db->order_by("payment_date", "DESC");
-    $payments = $this->db->get()->result_array();
+    // 🔹 Calculate overall takhmeen total
+    $takhmeen = $this->db->select("COALESCE(SUM(total_amount),0) as total_amount")
+      ->from("fmb_takhmeen")
+      ->where("user_id", $user_id)
+      ->get()
+      ->row_array();
 
+    // 🔹 Calculate overall payments
+    $payments_summary = $this->db->select("COALESCE(SUM(amount),0) as total_paid")
+      ->from("fmb_takhmeen_payments")
+      ->where("user_id", $user_id)
+      ->get()
+      ->row_array();
 
-    $this->db->select("fmb_general_contribution.*, user.ITS_ID, user.First_Name, user.Surname");
-    $this->db->from("fmb_general_contribution");
-    $this->db->join("user", "user.ITS_ID = fmb_general_contribution.user_id", "left");
-    $this->db->where("user.ITS_ID", $user_id);
-    $general_contributions = $this->db->get()->result_array();
+    // 🔹 Overall summary
+    $overall_total_amount = (float)($takhmeen['total_amount'] ?? 0);
+    $overall_total_paid_raw = (float)($payments_summary['total_paid'] ?? 0);
+    $overall_excess = 0.0;
+    if ($overall_total_paid_raw > $overall_total_amount) {
+      $overall_excess = $overall_total_paid_raw - $overall_total_amount;
+    }
+    $overall_total_paid = min($overall_total_paid_raw, $overall_total_amount);
+    $overall = [
+      "total_amount" => $overall_total_amount,
+      "total_paid"   => $overall_total_paid,
+      "total_due"    => $overall_total_amount - $overall_total_paid,
+    ];
+    if ($overall_excess > 0) {
+      $overall['excess_paid'] = $overall_excess;
+    }
 
-    // 4️⃣ Return everything together
+    // 🔹 Fetch current year summary
+    $current_year_takhmeen = null;
+    $current_hijri_date = $this->db->select("hijri_date")
+      ->from("hijri_calendar")
+      ->where("greg_date =", date("Y-m-d"))
+      ->get()
+      ->row_array();
+
+    if ($current_hijri_date) {
+      $current_hijri_date = $current_hijri_date["hijri_date"];
+      $current_hijri_month = explode("-", $current_hijri_date)[1];
+      $current_hijri_year = explode("-", $current_hijri_date)[2];
+    } else {
+      $current_hijri_date = null;
+    }
+
+    if ($current_hijri_month >= "01" && $current_hijri_month <= "08") {
+      $current_year = $current_hijri_year - 1;
+    } else {
+      $current_year = $current_hijri_year;
+    }
+
+    if ($current_year) {
+      // Fetch takhmeen for derived current year (Hijri-year mapped logic)
+      $takhmeen_year = $this->db->select("COALESCE(SUM(total_amount),0) as total_amount")
+        ->from("fmb_takhmeen")
+        ->where("user_id", $user_id)
+        ->where("year", $current_year)
+        ->get()
+        ->row_array();
+
+      // Hijri-aware payments: join hijri_calendar to map each payment_date to its Hijri month/year
+      // Business rule: Hijri months 01-08 belong to previous takhmeen cycle (year -1)
+      $payments_sql = "SELECT COALESCE(SUM(p.amount),0) AS total_paid
+        FROM fmb_takhmeen_payments p
+        JOIN hijri_calendar hc ON hc.greg_date = p.payment_date
+        WHERE p.user_id = ? AND (
+          (
+            CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+            AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12
+          )
+          OR (
+            CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = (? + 1)
+            AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 8
+          )
+        )";
+
+      // Explanation: For takhmeen year Y: include Hijri months 09-12 of Hijri year Y AND months 01-08 of Hijri year Y+1.
+      $payments_year = $this->db->query($payments_sql, [$user_id, $current_year, $current_year])->row_array();
+
+      $cy_total_amount = (float)($takhmeen_year['total_amount'] ?? 0);
+      $cy_total_paid_raw = (float)($payments_year['total_paid'] ?? 0);
+      $cy_excess = 0.0;
+      if ($cy_total_paid_raw > $cy_total_amount) {
+        $cy_excess = $cy_total_paid_raw - $cy_total_amount;
+      }
+      $cy_total_paid = min($cy_total_paid_raw, $cy_total_amount);
+      $current_year_takhmeen = [
+        "year"               => $current_year,
+        "derived_hijri_year" => isset($current_hijri_year) ? (int)$current_hijri_year : null,
+        "total_amount"       => $cy_total_amount,
+        "total_paid"         => $cy_total_paid,
+        "total_due"          => $cy_total_amount - $cy_total_paid,
+      ];
+      if ($cy_excess > 0) {
+        $current_year_takhmeen['excess_paid'] = $cy_excess;
+      }
+    }
+
+    // 🔹 Fetch all payment history
+    $payments = $this->db->select("id, amount, payment_method, payment_date, remarks")
+      ->from("fmb_takhmeen_payments")
+      ->where("user_id", $user_id)
+      ->order_by("payment_date", "DESC")
+      ->get()
+      ->result_array();
+
+    // 🔹 Fetch general contributions with payment aggregation (amount_paid, total_due)
+    // Using subquery aggregation to stay compatible with ONLY_FULL_GROUP_BY
+    $general_contributions = $this->db->select("gc.*, u.ITS_ID, u.First_Name, u.Surname, IFNULL(paid.total_received,0) AS amount_paid, (gc.amount - IFNULL(paid.total_received,0)) AS total_due", false)
+      ->from("fmb_general_contribution gc")
+      ->join("user u", "u.ITS_ID = gc.user_id", "left")
+      ->join("(SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) paid", "paid.fmbgc_id = gc.id", "left")
+      ->where("u.ITS_ID", $user_id)
+      ->order_by('gc.created_at','DESC')
+      ->get()
+      ->result_array();
+
     return [
-      "all_takhmeen"   => $takhmeen_list,
-      "all_payments"   => $payments,
-      "latest" => $latest,
-      "overall" => $overall,
+      "all_takhmeen"          => $takhmeen_list,
+      "all_payments"          => $payments,
+      "latest"                => $latest,
+      "overall"               => $overall,
+      "current_year"          => $current_year_takhmeen,
+      "current_hijri_year"    => isset($current_hijri_year) ? (int)$current_hijri_year : null,
       "general_contributions" => $general_contributions
     ];
   }
+
+
 
   public function get_member_total_sabeel_due($user_id)
   {
@@ -229,29 +389,21 @@ class AccountM extends CI_Model
                       ORDER BY st.year DESC
                       LIMIT 1
                     ) latest");
-
     $this->db->join(
-      "
-        (
+      "(
         SELECT 
           st.user_id,
           COALESCE(SUM(eg.amount),0) AS establishment_total,
-          p.establishment_paid,
+          COALESCE(SUM(CASE WHEN p.type = 'establishment' THEN p.amount ELSE 0 END),0) AS establishment_paid,
           COALESCE(SUM(rg.yearly_amount),0) AS residential_total,
-          p.residential_paid
+          COALESCE(SUM(CASE WHEN p.type = 'residential' THEN p.amount ELSE 0 END),0) AS residential_paid
         FROM sabeel_takhmeen st
         LEFT JOIN sabeel_takhmeen_grade eg 
           ON eg.id = st.establishment_grade AND eg.type = 'establishment'
         LEFT JOIN sabeel_takhmeen_grade rg 
           ON rg.id = st.residential_grade AND rg.type = 'residential'
-        LEFT JOIN (
-          SELECT 
-            user_id,
-            COALESCE(SUM(CASE WHEN type = 'establishment' THEN amount ELSE 0 END),0) AS establishment_paid,
-            COALESCE(SUM(CASE WHEN type = 'residential' THEN amount ELSE 0 END),0) AS residential_paid
-          FROM sabeel_takhmeen_payments
-          GROUP BY user_id
-        ) p ON p.user_id = st.user_id
+        LEFT JOIN sabeel_takhmeen_payments p 
+          ON p.user_id = st.user_id AND p.type IN ('establishment','residential')
         WHERE st.user_id = {$this->db->escape_str($user_id)}
         GROUP BY st.user_id
       ) overall",
@@ -301,8 +453,6 @@ class AccountM extends CI_Model
 
     $takhmeen_list = $this->db->get()->result_array();
 
-    // Establishment takhmeen
-    // 1. Fetch establishment takhmeen list
     $this->db->select("
     st.id,
     st.year,
@@ -477,67 +627,114 @@ class AccountM extends CI_Model
 
   public function get_month_wise_menu()
   {
-    $startOfMonth = "";
-    $endOfMonth = "";
-
     $today = date('Y-m-d');
 
-    $this->db->select('hijri_month_id');
-    $this->db->from('hijri_calendar');
-    $this->db->where('greg_date', $today);
-    $query = $this->db->get();
-    $row = $query->row();
+    // Get today's Hijri month/year
+    $row = $this->db->select('hijri_month_id, hijri_date')
+      ->from('hijri_calendar')
+      ->where('greg_date', $today)
+      ->get()
+      ->row();
 
-    if (!$row) {
-      return [];
-    }
+    if (!$row) return [];
 
-    $hijri_month_id = $row->hijri_month_id;
+    $hijri_month_id = (int)$row->hijri_month_id;
+    $hijri_date = $row->hijri_date;
+    $hijri_month = explode('-', $hijri_date)[1];
+    $hijri_year  = explode('-', $hijri_date)[2];
+    $hijri_month_year = $hijri_month . '-' . $hijri_year;
 
-    $this->db->from('hijri_calendar');
-    $this->db->where('hijri_month_id', $hijri_month_id);
-    $this->db->order_by('greg_date', 'ASC');
-    $month_data = $this->db->get()->result_array();
+    // All Hijri month days
+    $month_days = $this->db->select('greg_date, hijri_date, hijri_month_id')
+      ->from('hijri_calendar')
+      ->where('hijri_month_id', $hijri_month_id)
+      ->like('hijri_date', $hijri_month_year)
+      ->order_by('greg_date', 'ASC')
+      ->get()
+      ->result_array();
 
-    $first_hijri_day = $month_data[0]["greg_date"];
-    $last_hijri_day = $month_data[count($month_data) - 1]["greg_date"];
+    if (empty($month_days)) return [];
 
-    $startOfMonth = date('Y-m-d', strtotime($first_hijri_day));
-    $endOfMonth = date('Y-m-d', strtotime($last_hijri_day));
+    $startOfMonth = $month_days[0]['greg_date'];
+    $endOfMonth   = $month_days[count($month_days) - 1]['greg_date'];
 
+    // Fetch menus
     $sql = "SELECT 
-                m.*, 
-                mim.item_id, 
-                mi.name AS item_name
-            FROM menu m 
-            LEFT JOIN menu_items_map mim ON mim.menu_id = m.id 
-            LEFT JOIN menu_item mi ON mi.id = mim.item_id 
-            WHERE m.date BETWEEN ? AND ? 
-            ORDER BY m.date ASC";
+              m.id, m.date,
+              mim.item_id,
+              mi.name AS item_name
+            FROM menu m
+            LEFT JOIN menu_items_map mim ON mim.menu_id = m.id
+            LEFT JOIN menu_item mi ON mi.id = mim.item_id
+            WHERE m.date BETWEEN ? AND ?
+            ORDER BY m.date ASC, m.id ASC";
 
-    $query = $this->db->query($sql, array($startOfMonth, $endOfMonth));
-    $results = $query->result_array();
-    // echo "<pre>"; print_r($results); die();
+    $menu_results = $this->db->query($sql, [$startOfMonth, $endOfMonth])->result_array();
 
-    $grouped = [];
-
-    foreach ($results as $row) {
-      $menuId = $row['id'];
-
-      if (!isset($grouped[$menuId])) {
-        $grouped[$menuId] = [
-          'id' => $row['id'],
-          'date' => $row['date'],
-          'items' => [],
+    // Map menus by date
+    $menu_map = [];
+    foreach ($menu_results as $r) {
+      if (!isset($menu_map[$r['date']])) {
+        $menu_map[$r['date']] = [
+          'id' => $r['id'],
+          'items' => []
         ];
       }
-
-      if (!empty($row['item_id'])) {
-        $grouped[$menuId]['items'][] = $row['item_name'];
+      if (!empty($r['item_id']) && !empty($r['item_name'])) {
+        $menu_map[$r['date']]['items'][] = $r['item_name'];
       }
     }
 
-    return array_values($grouped);
+    // Fetch miqaats
+    $miqaat_results = $this->db->select('id, name, date')
+      ->from('miqaat')
+      ->where('date >=', $startOfMonth)
+      ->where('date <=', $endOfMonth)
+      ->get()
+      ->result_array();
+
+    // Map miqaats by date (multiple allowed)
+    $miqaat_map = [];
+    foreach ($miqaat_results as $m) {
+      $miqaat_map[$m['date']][] = [
+        'id'   => $m['id'],
+        'name' => $m['name']
+      ];
+    }
+
+    // Final build: all days
+    $grouped = [];
+    foreach ($month_days as $d) {
+      $greg_date = $d['greg_date'];
+      $parts = explode('-', $d['hijri_date']);
+      $hijri_day = $parts[0];
+
+      $entry = [
+        'date' => $greg_date,
+        'hijri_day' => $hijri_day,
+        'hijri_month_id' => $hijri_month_id,
+        'menu' => [],
+        'miqaats' => [],
+        'is_holiday' => true
+      ];
+
+      if (isset($menu_map[$greg_date])) {
+        $entry['menu'] = [
+          'menu_id' => $menu_map[$greg_date]['id'],
+          'items'   => $menu_map[$greg_date]['items']
+        ];
+        $entry['is_holiday'] = false;
+      }
+
+      if (isset($miqaat_map[$greg_date])) {
+        $entry['miqaats'] = $miqaat_map[$greg_date];
+        $entry['is_holiday'] = false;
+      }
+
+      $grouped[] = $entry;
+    }
+
+    return $grouped;
   }
 
   public function get_next_week_menu()
@@ -607,6 +804,15 @@ class AccountM extends CI_Model
     }
 
     return $result ? true : false;
+  }
+
+  public function get_fmb_signup_days() {
+    $today = date('Y-m-d');
+    $startOfWeek = date('Y-m-d', strtotime('monday next week', strtotime($today)));
+    $endOfWeek = date('Y-m-d', strtotime('saturday next week', strtotime($today)));
+    $sql = "SELECT * FROM menu WHERE date BETWEEN ? AND ? ORDER BY date ASC";
+    $query = $this->db->query($sql, array($startOfWeek, $endOfWeek));
+    return $query->result_array();
   }
 
   public function get_fmb_signup_data($userId)
