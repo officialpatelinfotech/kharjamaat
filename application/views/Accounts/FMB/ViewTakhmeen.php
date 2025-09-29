@@ -1,155 +1,253 @@
-<div class="container margintopcontainer">
-  <h2 class="text-center pt-5">FMB Details</h2>
+<div class="container margintopcontainer pt-5">
   <div class="mb-4 p-0">
-    <a href="<?php echo base_url("accounts") ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    <a href="<?php echo base_url("accounts") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
+  <h4 class="heading text-center">FMB Details</h4>
+  <?php // Debug dump (commented out after verification)
+  // echo "<pre>"; print_r($fmb_takhmeen_details); echo "</pre>"; 
+  ?>
+  <div class="row mb-4">
+    <div class="container pt-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h6 class="mb-1 text-muted">Total FMB Due</h6>
+          <h4 class="text-danger"><?php echo "&#8377;" . number_format($fmb_takhmeen_details['overall']['total_due'], 2); ?></h4>
+        </div>
+        <div>
+          <h6 class="mb-1 text-muted">Total Paid</h6>
+          <h4 class="text-success mb-0"><?php echo "&#8377;" . number_format($fmb_takhmeen_details['overall']['total_paid'], 2); ?></h4>
+          <?php if(isset($fmb_takhmeen_details['overall']['excess_paid']) && $fmb_takhmeen_details['overall']['excess_paid'] > 0): ?>
+            <small class="text-warning d-block">Excess: &#8377;<?php echo number_format($fmb_takhmeen_details['overall']['excess_paid'],2); ?></small>
+          <?php endif; ?>
+        </div>
+        <div>
+          <h6 class="mb-1 text-muted">Total Amount</h6>
+          <h4 class="text-primary"><?php echo "&#8377;" . number_format($fmb_takhmeen_details['overall']['total_amount'], 2); ?></h4>
+        </div>
+      </div>
 
-  <div class="container pt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
-        <h6 class="mb-1 text-muted">Total FMB Due</h6>
-        <h4 class="text-danger"><?php echo "&#8377;" . number_format($fmb_takhmeen_details['overall']['total_due'], 2); ?></h4>
-      </div>
-      <div>
-        <h6 class="mb-1 text-muted">Total Paid</h6>
-        <h4 class="text-success"><?php echo "&#8377;" . number_format($fmb_takhmeen_details['overall']['total_paid'], 2); ?></h4>
-      </div>
-      <div>
-        <h6 class="mb-1 text-muted">Total Amount</h6>
-        <h4 class="text-primary"><?php echo "&#8377;" . number_format($fmb_takhmeen_details['overall']['total_amount'], 2); ?></h4>
-      </div>
-    </div>
+      <div class="alert alert-info shadow-sm">
+        <?php
+        // Prefer current_year data block provided by controller/model if available
+        $currentYearBlock = $fmb_takhmeen_details['current_year'] ?? null;
+        // Fallback to latest if current_year not present
+        if (!$currentYearBlock && !empty($fmb_takhmeen_details['latest'])) {
+          $currentYearBlock = [
+            'year' => $fmb_takhmeen_details['latest']['year'] ?? 'N/A',
+            'total_amount' => $fmb_takhmeen_details['latest']['total_amount'] ?? 0,
+            'total_paid' => 0,
+            'total_due' => $fmb_takhmeen_details['latest']['total_amount'] ?? 0
+          ];
+        }
 
-    <div class="alert alert-info shadow-sm">
-      <h6 class="mb-1">Latest Takhmeen (<?php echo isset($fmb_takhmeen_details['latest']['year']) ? $fmb_takhmeen_details['latest']['year'] : "Not Found"; ?>)</h6>
-      <p class="mb-0">
-        <b>Total:</b> <?php echo "&#8377;" . number_format(isset($fmb_takhmeen_details['latest']['total_amount']) ? $fmb_takhmeen_details['latest']['total_amount'] : 0, 2); ?> |
-        <b>Paid:</b> <?php echo "&#8377;" . number_format(isset($fmb_takhmeen_details['latest']['amount_paid']) ? $fmb_takhmeen_details['latest']['amount_paid'] : 0, 2); ?> |
-        <b>Due:</b> <?php echo "&#8377;" . number_format(((isset($fmb_takhmeen_details['latest']['total_amount']) ? $fmb_takhmeen_details['latest']['total_amount'] : 0) - (isset($fmb_takhmeen_details['latest']['amount_paid']) ? $fmb_takhmeen_details['latest']['amount_paid'] : 0)), 2); ?>
-      </p>
-    </div>
-
-    <div class="card shadow-sm rounded-3 mb-4">
-      <div class="card-header bg-light">
-        <h5 class="mb-0">FMB Takhmeen List</h5>
+        // If current_year doesn't already carry total_paid/total_due, derive via allocation
+        $allocatedPaidMap = [];
+        $highlightId = null;
+        if (!empty($fmb_takhmeen_details['all_takhmeen'])) {
+          $allYearsAlloc = $fmb_takhmeen_details['all_takhmeen'];
+          // Determine oldest-first ordering for allocation (assuming array is newest-first)
+          if (count($allYearsAlloc) > 1) {
+            // Heuristic: if index 0 equals the latest id (provided), reverse for FIFO oldest-first
+            if (isset($fmb_takhmeen_details['latest']['id']) && $allYearsAlloc[0]['id'] == $fmb_takhmeen_details['latest']['id']) {
+              $allYearsAlloc = array_reverse($allYearsAlloc);
+            }
+          }
+          $remainingAlloc = isset($fmb_takhmeen_details['overall']['total_paid']) ? (float)$fmb_takhmeen_details['overall']['total_paid'] : 0;
+          foreach ($allYearsAlloc as $yr) {
+            $cap = (float)$yr['total_amount'];
+            $alloc = min($cap, $remainingAlloc);
+            $allocatedPaidMap[$yr['id']] = $alloc;
+            $remainingAlloc -= $alloc;
+            if ($remainingAlloc <= 0) { $remainingAlloc = 0; }
+          }
+          // Try to find a takhmeen row whose year string starts with current_year['year'] (if numeric segmentation differs)
+          if ($currentYearBlock) {
+            foreach ($fmb_takhmeen_details['all_takhmeen'] as $rowCY) {
+              if (strpos($rowCY['year'], (string)$currentYearBlock['year']) !== false) {
+                $highlightId = $rowCY['id'];
+                // If current_year block missing paid/due, derive
+                if (!isset($currentYearBlock['total_paid'])) {
+                  $paidVal = $allocatedPaidMap[$rowCY['id']] ?? 0;
+                  $currentYearBlock['total_paid'] = $paidVal;
+                  $currentYearBlock['total_due'] = ((float)$rowCY['total_amount']) - $paidVal;
+                }
+                break;
+              }
+            }
+          }
+        }
+        ?>
+        <h6 class="mb-1">Current Year Takhmeen (<?php echo htmlspecialchars($currentYearBlock['year'] ?? 'Not Found'); ?><?php 
+          if(isset($currentYearBlock['derived_hijri_year']) && $currentYearBlock['derived_hijri_year']){
+            echo ' / Hijri '.htmlspecialchars($currentYearBlock['derived_hijri_year']);
+          } elseif(isset($fmb_takhmeen_details['current_hijri_year']) && $fmb_takhmeen_details['current_hijri_year']) {
+            echo ' / Hijri '.htmlspecialchars($fmb_takhmeen_details['current_hijri_year']);
+          }
+        ?>)</h6>
+        <p class="mb-0">
+          <b>Total:</b> &#8377;<?php echo number_format($currentYearBlock['total_amount'] ?? 0, 2); ?> |
+          <b>Paid<?php echo isset($currentYearBlock['allocated']) ? ' (allocated)' : ''; ?>:</b> &#8377;<?php echo number_format($currentYearBlock['total_paid'] ?? 0, 2); ?> |
+          <b>Due:</b> &#8377;<?php echo number_format($currentYearBlock['total_due'] ?? (($currentYearBlock['total_amount'] ?? 0) - ($currentYearBlock['total_paid'] ?? 0)), 2); ?>
+          <?php if(isset($currentYearBlock['excess_paid']) && $currentYearBlock['excess_paid'] > 0): ?>
+            <br><small class="text-warning">Excess Paid (will carry forward): &#8377;<?php echo number_format($currentYearBlock['excess_paid'],2); ?></small>
+          <?php endif; ?>
+        </p>
       </div>
-      <div class="card-body p-0">
-        <table class="table table-striped table-hover mb-0">
-          <thead class="thead-dark">
-            <tr>
-              <th>Year</th>
-              <th>Total Amount</th>
-              <th>Paid</th>
-              <th>Due</th>
-              <!-- <th>Invoice</th> -->
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (isset($fmb_takhmeen_details['all_takhmeen']) && count($fmb_takhmeen_details['all_takhmeen']) > 0): ?>
-              <?php foreach ($fmb_takhmeen_details['all_takhmeen'] as $row): ?>
-                <tr <?php echo ($row['id'] == $fmb_takhmeen_details['latest']['id']) ? 'class="table-warning fw-bold"' : '' ?>>
-                  <td><?php echo $row['year'] ?></td>
-                  <td><?php echo "&#8377;" . number_format($row['total_amount'], 2) ?></td>
-                  <td class="text-success"><?php echo "&#8377;" . number_format($row['amount_paid'], 2) ?></td>
-                  <td class="text-danger"><?php echo "&#8377;" . number_format($row['total_amount'] - $row['amount_paid'], 2) ?></td>
-                  <!-- <td>
-                  <a href="<?php echo base_url('invoice/' . $row['id']) ?>" class="btn btn-sm btn-outline-primary">
-                    View Invoice
-                  </a>
-                </td> -->
-                </tr>
-              <?php endforeach; ?>
-            <?php else: ?>
+
+      <div class="card shadow-sm rounded-3 mb-4">
+        <div class="card-header text-center bg-light">
+          <h5 class="mb-0">FMB Takhmeen List</h5>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-striped table-hover mb-0">
+            <thead class="thead-dark">
               <tr>
-                <td colspan="4">Takhmeen Not Found</td>
+                <th>Year</th>
+                <th>Total Amount</th>
+                <th>Paid (Allocated)</th>
+                <th>Due</th>
+                <!-- <th>Invoice</th> -->
               </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card shadow-sm">
-      <div class="card-header bg-primary text-white">
-        <i class="fa-solid fa-list-ul me-2"></i> General Contributions
-      </div>
-      <div class="card-body p-0 table-responsive">
-        <table class="table table-striped align-middle">
-          <thead class="thead-dark">
-            <tr>
-              <th>#</th>
-              <th>Date</th>
-              <th>Contribution Type</th>
-              <th>Amount (₹)</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (isset($fmb_takhmeen_details["general_contributions"])): ?>
-              <?php foreach ($fmb_takhmeen_details["general_contributions"] as $key => $row): ?>
-                <tr>
-                  <td><?php echo $key + 1; ?></td>
-                  <td><?php echo date("d-m-Y", strtotime($row["created_at"])); ?></td>
-                  <td><?php echo $row["contri_type"]; ?></td>
-                  <td><?php echo $row["amount"]; ?></td>
-                  <?php
-                  if ($row["payment_status"] == 1) {
-                  ?>
-                    <td><span class="badge bg-success text-white">Paid</span></td>
-                  <?php
-                  } else {
-                  ?>
-                    <td><span class="badge bg-danger text-white">Pending</span></td>
-                  <?php
+            </thead>
+            <tbody>
+              <?php if (!empty($fmb_takhmeen_details['all_takhmeen'])): ?>
+                <?php
+                // Allocate payments FIFO across all years for table rows
+                $allYears = $fmb_takhmeen_details['all_takhmeen'];
+                $latestId = $fmb_takhmeen_details['latest']['id'] ?? null;
+                if (count($allYears) > 1 && $latestId && $allYears[0]['id'] == $latestId) {
+                  $allYears = array_reverse($allYears); // oldest first for allocation
+                }
+                $remainingPaid = isset($fmb_takhmeen_details['overall']['total_paid']) ? (float)$fmb_takhmeen_details['overall']['total_paid'] : 0;
+                $allocMap = [];
+                foreach ($allYears as $yr) {
+                  $cap = (float)$yr['total_amount'];
+                  $alloc = min($cap, $remainingPaid);
+                  $allocMap[$yr['id']] = $alloc;
+                  $remainingPaid -= $alloc;
+                  if ($remainingPaid <= 0) { $remainingPaid = 0; }
+                }
+                // Display in original order (newest first) for UI familiarity
+                $currentYearYear = $currentYearBlock['year'] ?? null;
+                foreach ($fmb_takhmeen_details['all_takhmeen'] as $row):
+                  $paidVal = $allocMap[$row['id']] ?? 0;
+                  $dueVal = (float)$row['total_amount'] - $paidVal;
+                  $rowHighlight = '';
+                  if ($currentYearYear && strpos($row['year'], (string)$currentYearYear) !== false) {
+                    $rowHighlight = 'class="table-warning fw-bold"';
                   }
-                  ?>
-                  <td>
-                    <button class="view-description btn btn-sm btn-outline-primary" data-description="<?php echo $row["description"]; ?>" data-toggle="modal" data-target="#description-modal">
-                      <i class="fa-solid fa-eye"></i> View Description
-                    </button>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card shadow-sm rounded-3 mt-4">
-      <div class="card-header bg-light">
-        <h5 class="mb-0">Payment History</h5>
-      </div>
-      <div class="card-body p-0">
-        <table class="table table-striped table-hover mb-0">
-          <thead class="thead-dark">
-            <tr>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Method</th>
-              <th>Remarks</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (!empty($fmb_takhmeen_details['all_payments'])): ?>
-              <?php foreach ($fmb_takhmeen_details['all_payments'] as $pay): ?>
+                ?>
+                  <tr <?php echo $rowHighlight; ?>>
+                    <td><?php echo $row['year']; ?></td>
+                    <td><?php echo "&#8377;" . number_format($row['total_amount'], 2); ?></td>
+                    <td class="text-success">&#8377;<?php echo number_format($paidVal, 2); ?></td>
+                    <td class="text-danger">&#8377;<?php echo number_format($dueVal, 2); ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php else: ?>
                 <tr>
-                  <td><?php echo date('d-M-Y', strtotime($pay['payment_date'])) ?></td>
-                  <td class="text-success"><?php echo number_format($pay['amount'], 2) ?></td>
-                  <td><?php echo $pay['payment_method'] ?></td>
-                  <td><?php echo $pay['remarks'] ?></td>
-                  <td><button class="view-invoice btn btn-sm btn-primary" data-payment-id="<?php echo $pay["id"]; ?>">Payment Receipt</button></td>
+                  <td colspan="4">Takhmeen Not Found</td>
                 </tr>
-              <?php endforeach; ?>
-            <?php else: ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header text-center">
+          <h5 class="mb-0">General Contributions</h5>
+        </div>
+        <div class="card-body p-0 table-responsive">
+          <table class="table table-striped align-middle mb-0">
+            <thead class="thead-dark">
               <tr>
-                <td colspan="5" class="text-center text-muted">No payments found</td>
+                <th>#</th>
+                <th>Date</th>
+                <th>Year</th>
+                <th>FMB Type</th>
+                <th>Contribution Type</th>
+                <th class="text-end">Amount (₹)</th>
+                <th class="text-end">Paid (₹)</th>
+                <th class="text-end">Due (₹)</th>
+                <th>Status</th>
+                <th>Description</th>
               </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <?php if (!empty($fmb_takhmeen_details['general_contributions'])): ?>
+                <?php foreach ($fmb_takhmeen_details['general_contributions'] as $idx => $gc): ?>
+                  <?php
+                    $amount      = (float)$gc['amount'];
+                    $paid        = isset($gc['amount_paid']) ? (float)$gc['amount_paid'] : 0.0;
+                    $due         = isset($gc['total_due']) ? (float)$gc['total_due'] : max($amount - $paid, 0);
+                    $statusFlag  = (int)$gc['payment_status'];
+                    $badgeClass  = 'bg-danger';
+                    $badgeText   = 'Unpaid';
+                    if ($paid > 0 && $due > 0) { $badgeClass = 'bg-warning text-dark'; $badgeText = 'Partial'; }
+                    if ($statusFlag === 1 || $due <= 0.00001) { $badgeClass = 'bg-success'; $badgeText = 'Paid'; $due = 0; }
+                  ?>
+                  <tr>
+                    <td><?php echo $idx + 1; ?></td>
+                    <td><?php echo $gc['created_at'] ? date('d-m-Y', strtotime($gc['created_at'])) : '-'; ?></td>
+                    <td><?php echo htmlspecialchars($gc['contri_year']); ?></td>
+                    <td><?php echo htmlspecialchars($gc['fmb_type']); ?></td>
+                    <td><?php echo htmlspecialchars($gc['contri_type']); ?></td>
+                    <td class="text-end">&#8377;<?php echo number_format($amount, 2); ?></td>
+                    <td class="text-end text-success">&#8377;<?php echo number_format($paid, 2); ?></td>
+                    <td class="text-end text-danger">&#8377;<?php echo number_format($due, 2); ?></td>
+                    <td><span class="badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span></td>
+                    <td>
+                      <button class="view-description btn btn-sm btn-outline-primary" data-description="<?php echo htmlspecialchars($gc['description']); ?>" data-toggle="modal" data-target="#description-modal">
+                        <i class="fa-solid fa-eye"></i>
+                      </button>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <tr>
+                  <td colspan="10" class="text-center text-muted">No general contributions found.</td>
+                </tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card shadow-sm rounded-3 mt-4">
+        <div class="card-header bg-light text-center">
+          <h5 class="mb-0">Payment History</h5>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-striped table-hover mb-0">
+            <thead class="thead-dark">
+              <tr>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Remarks</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (!empty($fmb_takhmeen_details['all_payments'])): ?>
+                <?php foreach ($fmb_takhmeen_details['all_payments'] as $pay): ?>
+                  <tr>
+                    <td><?php echo date('d-M-Y', strtotime($pay['payment_date'])) ?></td>
+                    <td class="text-success"><?php echo number_format($pay['amount'], 2) ?></td>
+                    <td><?php echo $pay['payment_method'] ?></td>
+                    <td><?php echo $pay['remarks'] ?></td>
+                    <td><button class="view-invoice btn btn-sm btn-primary" data-payment-id="<?php echo $pay["id"]; ?>">Payment Receipt</button></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <tr>
+                  <td colspan="5" class="text-center text-muted">No payments found</td>
+                </tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -196,7 +294,7 @@
       }
     });
   });
-  
+
   $(".view-description").on("click", function(e) {
     e.preventDefault();
     if ($(this).data("description")) {
