@@ -300,10 +300,11 @@
                   <th class="text-end">Amount (₹)</th>
                   <th>Method</th>
                   <th>Remarks</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="5" class="text-center text-muted">Select a contribution to view payments.</td></tr>
+                <tr><td colspan="6" class="text-center text-muted">Select a contribution to view payments.</td></tr>
               </tbody>
             </table>
           </div>
@@ -368,7 +369,7 @@
       data: { fmbgc_id: invoiceId },
       success: function(res){
         if(!res || !res.success){
-          $('#gc-payments-table tbody').html('<tr><td colspan="5" class="text-center text-danger">'+(res && res.message ? res.message : 'Failed to load payments')+'</td></tr>');
+          $('#gc-payments-table tbody').html('<tr><td colspan="6" class="text-center text-danger>'+(res && res.message ? res.message : 'Failed to load payments')+'</td></tr>');
           $('#gc-payments-modal').modal('show');
           return;
         }
@@ -380,7 +381,7 @@
         $('#gcph-balance').text(parseFloat(res.balance_due || 0).toFixed(2));
         const pays = res.payments || [];
         if(pays.length === 0){
-          $('#gc-payments-table tbody').html('<tr><td colspan="5" class="text-center text-muted">No payments recorded.</td></tr>');
+          $('#gc-payments-table tbody').html('<tr><td colspan="6" class="text-center text-muted">No payments recorded.</td></tr>');
         } else {
           let rows = '';
             // Helper: format date (YYYY-MM-DD or ISO) -> DD-MMM-YYYY without moment.js
@@ -402,12 +403,14 @@
               return day+'-'+mon+'-'+yr;
             }
             pays.forEach(function(p,i){
+              var pid = p.id || p.payment_id || '';
               rows += '<tr>'+
                 '<td>'+(i+1)+'</td>'+
                 '<td>'+ fmtDate(p.payment_date) +'</td>'+
                 '<td class="text-end text-success">'+parseFloat(p.amount||0).toFixed(2)+'</td>'+
                 '<td>'+(p.payment_method || '-')+'</td>'+
                 '<td>'+(p.remarks ? $('<div/>').text(p.remarks).html() : '-')+'</td>'+
+                '<td><button class="btn btn-sm btn-outline-primary gc-view-receipt" data-payment-id="'+ pid +'" title="View Receipt"><i class="fa-solid fa-file-pdf"></i></button></td>'+
               '</tr>';
             });
           $('#gc-payments-table tbody').html(rows);
@@ -417,6 +420,28 @@
       error: function(){
         $('#gc-payments-table tbody').html('<tr><td colspan="5" class="text-center text-danger">Error loading data.</td></tr>');
         $('#gc-payments-modal').modal('show');
+      }
+    });
+  });
+
+  // View receipt for a specific GC payment (PDF in new tab)
+  $(document).on('click', '.gc-view-receipt', function(e){
+    e.preventDefault();
+    const pid = $(this).data('payment-id');
+    if(!pid){ return; }
+    // Re-use existing admin PDF generator (parameter 'for' = 1 as in other receipt calls)
+    $.ajax({
+      url: '<?php echo base_url('anjuman/generate_pdf'); ?>',
+      type: 'POST',
+      data: { id: pid, for: 1 },
+      xhrFields: { responseType: 'blob' },
+      success: function(blob){
+        var pdfBlob = new Blob([blob], { type: 'application/pdf' });
+        var pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, '_blank');
+      },
+      error: function(){
+        alert('Failed to load receipt PDF');
       }
     });
   });
