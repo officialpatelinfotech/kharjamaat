@@ -142,11 +142,73 @@ class Accounts extends CI_Controller
 
   // Updated by Patel Infotech Services
 
+  public function generate_pdf()
+  {
+    $this->load->library('dompdf_lib');
+    $dompdf = $this->dompdf_lib->load();
+
+    $payment_id = $this->input->post("id");
+    $for = $this->input->post("for");
+
+    $table = null;
+    switch ($for) {
+      case 1:
+        $table = "fmb_takhmeen_payments";
+        break;
+      case 2:
+        $table = "miqaat_payment";
+        break;
+      case 3:
+        $table = "fmb_general_contribution_payments";
+        break;
+      case 4:
+        $table = "sabeel_takhmeen_payments";
+        break;
+      default:
+        // Handle invalid 'for' value
+        echo "Invalid request.";
+        return;
+    }
+
+    $result = $this->AccountM->get_payment_details($payment_id, $table);
+
+    $data = [];
+
+    if ($result) {
+      $f = new NumberFormatter("en", NumberFormatter::SPELLOUT);
+      $raw_words = trim($f->format($result["amount"]));
+      // Convert to Title Case, including parts after hyphens (e.g., "thirty-five" -> "Thirty-Five")
+      $amount_words = implode(' ', array_map(function($token){
+        return implode('-', array_map(function($part){ return ucfirst($part); }, explode('-', $token)));
+      }, preg_split('/\s+/', $raw_words)));
+
+      $data = array(
+        "date" => $result["payment_date"],
+        "name" => $result["Full_Name"],
+        "address" => $result["Address"],
+        "amount" => $result["amount"],
+        "amount_words" => $amount_words,
+      );
+    }
+
+    $html = $this->load->view('pdf_template', $data, true);
+
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('A4', 'landscape');
+    $dompdf->render();
+
+    // Download as file
+    // $dompdf->stream("myfile.pdf", array("Attachment" => 1));
+
+    // Or show in browser
+    $dompdf->stream("myfile.pdf", array("Attachment" => 0));
+  }
+
   public function get_hijri_day_month($greg_date)
   {
     $hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($greg_date)));
     $hijri_month_name = $this->HijriCalendar->hijri_month_name($hijri_date["hijri_month_id"]);
-    return substr($hijri_date["hijri_date"], 8, 2) . " " . explode(" ", $hijri_month_name["hijri_month"])[0];
+    return explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month_name["hijri_month"];
   }
 
   public function home()
@@ -168,15 +230,24 @@ class Accounts extends CI_Controller
     $hof_id = $data['user_data']['HOF_ID'];
     $data['hof_data'] = $data['user_data']['HOF_ID'];
 
+    $assigned_miqaats_count = $this->AccountM->get_assigned_miqaats_count($user_id);
+    $data['assigned_miqaats_count'] = $assigned_miqaats_count;
+
     $miqaats = $this->AccountM->get_all_upcoming_miqaat();
     $data["miqaats"] = $miqaats;
 
     $data['raza'] = $this->get_pending_raza_requests($user_id);
 
-    $data["rsvp_overview"] = $this->AccountM->get_rsvp_overview($hof_id, $miqaats)[$hof_id];
+    $rsvp_overview = $this->AccountM->get_rsvp_overview($hof_id, $miqaats);
+    if ($rsvp_overview) {
+      $data["rsvp_overview"] = $this->AccountM->get_rsvp_overview($hof_id, $miqaats)[$hof_id];
+    } else {
+      $data["rsvp_overview"] = [];
+    }
 
     $data["fmb_takhmeen_details"] = $this->AccountM->get_member_total_fmb_due($user_id);
     $data["sabeel_takhmeen_details"] = $this->AccountM->get_member_total_sabeel_due($user_id);
+    $data["signup_days"] = $this->AccountM->get_fmb_signup_days($user_id);
     $data["signup_data"] = $this->AccountM->get_fmb_signup_data($user_id);
     $data["feedback_data"] = $this->AccountM->get_fmb_feedback_data($user_id);
 
@@ -200,13 +271,12 @@ class Accounts extends CI_Controller
     $data['member_name'] = $data['user_data']['Full_Name'];
 
     $data["miqaats"] = $this->AccountM->get_assigned_miqaats($user_id);
-    // Add hijri_date to each miqaat
+
     foreach ($data["miqaats"] as $key => $miqaat) {
       $hijri_date = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])))["hijri_date"]);
       $hijri_month = $this->HijriCalendar->hijri_month_name($this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])))["hijri_month_id"])["hijri_month"];
       $data["miqaats"][$key]["hijri_date"] = $hijri_date[0] . " " . $hijri_month . " " . $hijri_date[2];
 
-      // Raza for Miqaat
       $data["miqaats"][$key]["raza"] = $this->AccountM->get_raza_by_miqaat($miqaat["id"], $user_id);
       $data["miqaats"][$key]["invoice_status"] = $this->AccountM->get_miqaat_invoice_status($miqaat["id"]);
     }
@@ -235,6 +305,11 @@ class Accounts extends CI_Controller
     );
 
     $result = $this->AccountM->submit_miqaat_raza($data);
+
+    $hijri_year = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"])[2];
+
+    $raza_id = $this->AccountM->generate_raza_id($hijri_year);
+    $this->AccountM->update_raza_by_id($result, array("raza_id" => $raza_id));
 
     if ($result > 0) {
       $this->session->set_flashdata('success', "Miqaat Raza submitted successfully.");
@@ -344,7 +419,7 @@ class Accounts extends CI_Controller
     redirect('/accounts/rsvp_list');
   }
 
-  public function FMBWeeklySignUp()
+  public function fmbweeklysignup()
   {
     if (empty($_SESSION['user'])) {
       redirect('/accounts');
@@ -360,6 +435,7 @@ class Accounts extends CI_Controller
     $data['member_name'] = $data['user_data']['Full_Name'];
 
     $data["menu"] = $this->AccountM->get_next_week_menu();
+    $data["signup_days"] = $this->AccountM->get_fmb_signup_days($user_id);
     $data["signup_data"] = $this->AccountM->get_fmb_signup_data($user_id);
 
     foreach ($data["menu"] as $key => $value) {
@@ -370,7 +446,7 @@ class Accounts extends CI_Controller
     $this->load->view('Accounts/FMB/WeeklySignup', $data);
   }
 
-  public function SaveFMBSignUp()
+  public function savefmbsignup()
   {
     if (empty($_SESSION['user'])) {
       redirect('/accounts');
@@ -391,7 +467,7 @@ class Accounts extends CI_Controller
       $this->AccountM->save_fmb_signup($data);
     }
 
-    redirect('/accounts/success/FMBWeeklySignUp?message=Thaali Sign Up saved successfully');
+    redirect('/accounts/success/fmbweeklysignup?message=Thaali Sign Up saved successfully');
   }
 
   public function FMBFeedback()
@@ -456,7 +532,7 @@ class Accounts extends CI_Controller
     echo $result;
   }
 
-  public function ViewMenu()
+  public function viewmenu()
   {
     if (empty($_SESSION['user'])) {
       redirect('/accounts');
@@ -475,7 +551,7 @@ class Accounts extends CI_Controller
     $this->load->view('Accounts/FMB/ViewMenu', $data);
   }
 
-  public function ViewFMBTakhmeen()
+  public function viewfmbtakhmeen()
   {
     if (empty($_SESSION['user'])) {
       redirect('/accounts');
@@ -488,6 +564,27 @@ class Accounts extends CI_Controller
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/FMB/ViewTakhmeen', $data);
+  }
+
+  /**
+   * AJAX: Return payment history for a General Contribution invoice belonging to logged-in user.
+   * POST: fmbgc_id
+   * Response: JSON { success, invoice, payments, total_received, balance_due, message? }
+   */
+  public function gc_payment_history()
+  {
+    if (empty($_SESSION['user'])) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Unauthorized']));
+      return;
+    }
+    $fmbgc_id = (int)$this->input->post('fmbgc_id');
+    if (!$fmbgc_id) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Missing invoice id']));
+      return;
+    }
+    $user_id = $_SESSION['user_data']['ITS_ID'];
+    $res = $this->AccountM->get_user_gc_payment_history($user_id, $fmbgc_id);
+    $this->output->set_content_type('application/json')->set_output(json_encode($res));
   }
 
   public function ViewSabeelTakhmeen()
@@ -876,11 +973,11 @@ class Accounts extends CI_Controller
       $email_template = str_replace($placeholder, $value, $email_template);
     }
 
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to($_SESSION['user_data']['Email']);
-    $this->email->subject('New Raza');
-    $this->email->message($email_template);
-    $this->email->send();
+    // $this->email->from('admin@kharjamaat.in', 'New Raza');
+    // $this->email->to($_SESSION['user_data']['Email']);
+    // $this->email->subject('New Raza');
+    // $this->email->message($email_template);
+    // $this->email->send();
 
     // $this->email->from('admin@kharjamaat.in', 'New Raza');
     // $this->email->to('anjuman@kharjamaat.in');
