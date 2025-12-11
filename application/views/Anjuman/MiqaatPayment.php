@@ -18,7 +18,7 @@
   <?php endif; ?>
   <div class="p-0">
     <div class="col-12 col-md-6">
-      <a href="<?php echo base_url("anjuman/miqaatinvoicepayment") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+      <a href="<?php echo base_url("anjuman/fmbmodule") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     </div>
   </div>
   <h2 class="text-center">Miqaat <span class="text-primary">Payment</span></h2>

@@ -6,7 +6,7 @@
 
 <div class="container margintopcontainer pt-5">
   <div class="mb-3 mb-md-0">
-    <a href="<?php echo base_url("common/$from"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+    <a href="<?php echo base_url("common/fmbthaalimenu?from=" . $from); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
   <div class="mb-4">
     <h3 class="heading text-center">Menu Item List</h3>

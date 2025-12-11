@@ -322,10 +322,14 @@
 <div id="toast-message" class="toast-message">
   Successfull
 </div>
-<div class="margintopcontainer">
-  <!-- <?php echo "<pre>" . print_r($raza, true) . "</pre>"; ?> -->
-  <div class="ml-1 mr-1 pt-5">
-    <p class="h4 text-center mt-5" style="color:goldenrod; text-transform: uppercase;"><?php echo $umoor ?></p>
+<div class="margintopcontainer pt-4 mx-3 pb-4">
+  <div class="row mb-4 p-0">
+    <div class="col-12 col-md-6">
+      <a href="<?php echo base_url("amilsaheb"); ?>" class="btn btn-outline-secondary bg-dark"><i class="fa-solid fa-arrow-left"></i></a>
+    </div>
+  </div>
+  <div class="ml-1 mr-1">
+    <p class="h4 text-center mt-5" style="color: goldenrod; text-transform: uppercase;"><?php echo $umoor ?></p>
     <div class="container">
       <div class="dashboard-container">
         <div class="dashboard-card" style="background-color: #ffe066;">
@@ -430,6 +434,9 @@
     </div>
     <div class="table-responsive mt-5 mb-5">
       <div class="table-container">
+        <!-- <?php echo "<pre>";
+              print_r($raza);
+              echo "</pre>"; ?> -->
         <table class="table table-bordered text-center">
           <thead>
             <tr>
@@ -438,52 +445,33 @@
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
-              <th class="sno">Sabil
+              <th class="name">Name
                 <span class="sort-icons" onclick="sortTable(1)">
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
-              <th class="sno">FMB Thaali
+              <th class="raza">Raza For
                 <span class="sort-icons" onclick="sortTable(2)">
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
-              <!--<th class="sno">FMB Kitchen-->
-              <!--    <span class="sort-icons" onclick="sortTable(3)">-->
-              <!--        <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>-->
-              <!--    </span>-->
-              <!--</th>-->
-              <th class="created">Created
-                <span class="sort-icons" onclick="sortTable(4)">
+              <th class="eventdate">Event Date
+                <span class="sort-icons" onclick="sortTable(3)">
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
-              <th class="raza">Raza For
+              <th class="chat">Chat</th>
+              <th class="approval_status">Status
                 <span class="sort-icons" onclick="sortTable(5)">
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
-              <th class="eventdate">Event Date
-                <span class="sort-icons" onclick="sortTable(6)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="name">Name
-                <span class="sort-icons" onclick="sortTable(7)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="remark">Remark
+              <th class="action">Action</th>
+              <th class="created">Created
                 <span class="sort-icons" onclick="sortTable(8)">
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
-              <th class="approval_status">Status
-                <span class="sort-icons" onclick="sortTable(9)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="action">Action</th>
             </tr>
           </thead>
           <tbody id="datatable">
@@ -494,7 +482,7 @@
                   <?php echo $key + 1 ?>
                 </td>
                 <td>
-                  <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
+                  <?php echo $r['user_name'] ?>
                 </td>
                 <td>
                   <?php echo $r['razaType'] ?>
@@ -506,10 +494,10 @@
                   } ?>
                 </td>
                 <td>
-                  <?php echo $r['user_name'] ?>
-                </td>
-                <td>
-                  <?php echo $r['remark'] ?>
+                  <?php $chat_count = !empty($r['chat_count']) ? $r['chat_count'] : ''; ?>
+                  <a href="<?php echo base_url('Accounts/chat/') . $r['id'] . '/amilsaheb'; ?>" class="chat-button">
+                    Chat<?php echo $chat_count ? '<div class="chat-count">' . $chat_count . '</div>' : ''; ?>
+                  </a>
                 </td>
                 <td class="status">
                   <div class="text-left">
@@ -551,6 +539,9 @@
                   <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(<?php echo $r['id'] ?>);"><i class="fa fa-circle-check"></i></button>
                   <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(<?php echo $r['id'] ?>);"><i class="fa fa-circle-xmark"></i></button>
                   <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="redirectto(<?php echo 'amilsaheb/DeleteRaza/' . $r['id'] ?>);"><i class="fa fa-circle-xmark"></i></button>
+                </td>
+                <td>
+                  <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
                 </td>
               </tr>
             <?php } ?>
@@ -597,14 +588,8 @@
   </form>
 </div>
 <script>
-  let razas = [];
-  <?php foreach ($raza as $r) { ?>
-    var data = {};
-    <?php foreach ($r as $key => $ele) { ?>
-      data['<?php echo $key ?>'] = '<?php echo $ele ?>';
-    <?php } ?>
-    razas.push(data);
-  <?php } ?>
+  // Build razas as a proper JSON array to prevent parsing issues
+  let razas = <?php echo json_encode($raza, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
   function show_raza(id) {
     document.getElementById("show-form").style.display = "block";
@@ -651,12 +636,21 @@
     table.appendChild(tablehead)
     var tablebody = document.createElement('tbody');
     let tbodydata = "";
-    let razadata = JSON.parse(raza.razadata)
-    let razafields = JSON.parse(raza.razafields)
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
+    let razadata = parseMaybe(raza.razadata);
+    let razafields = parseMaybe(raza.razafields);
     let raza_type_id = parseInt(raza.razaType_id || raza.raza_type_id);
 
     if (raza_type_id === 2 && raza.miqaat_details) {
-      let miqaat_info = JSON.parse(raza.miqaat_details);
+      let miqaat_info = parseMaybe(raza.miqaat_details) || {};
       tbodydata += `<tr><th scope=\"row\">Miqaat Name</th><td>${miqaat_info.name}</td></tr>`;
       tbodydata += `<tr><th scope=\"row\">Miqaat Type</th><td>${miqaat_info.type}</td></tr>`;
       tbodydata += `<tr><th scope=\"row\">Miqaat Date</th><td>${miqaat_info.date}</td></tr>`;
@@ -673,13 +667,14 @@
       }
     } else {
       let k = 0;
-      for (let key in razadata) {
-        if (razafields.fields[k].type == 'select') {
+      for (let key in (razadata || {})) {
+        if (razafields && razafields.fields && razafields.fields[k] && razafields.fields[k].type == 'select') {
           let options = razafields.fields[k].options
           let value = options[razadata[key]]
           tbodydata += `<tr><th scope="row">${razafields.fields[k].name}</th><td>${value.name}</td></tr>`
         } else {
-          tbodydata += `<tr><th scope="row">${razafields.fields[k].name}</th><td>${razadata[key]}</td></tr>`
+          const fname = (razafields && razafields.fields && razafields.fields[k]) ? razafields.fields[k].name : key;
+          tbodydata += `<tr><th scope="row">${fname}</th><td>${razadata ? razadata[key] : ''}</td></tr>`
         }
         k++;
       }
@@ -758,6 +753,8 @@
   }
 </script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script>
   function refresh() {
     window.location.reload()
@@ -891,87 +888,64 @@
     }
 
     // Populate the table with the filtered and sorted data
-    for (var i = 0; i < filteredAndSortedRazas.length; i++) {
-      var raza = filteredAndSortedRazas[i];
-      var chatCount = raza.chat_count && raza.chat_count > 0 ? raza.chat_count : '';
-      var chatCountHTML = chatCount ? `<div class="chat-count">${chatCount}</div>` : '';
-      var chatURL = `<?= base_url('Accounts/chat/') ?>${raza.id}`;
-      var row = document.createElement("tr");
+        for (var i = 0; i < filteredAndSortedRazas.length; i++) {
+        var raza = filteredAndSortedRazas[i];
+        var chatCount = raza.chat_count && raza.chat_count > 0 ? raza.chat_count : '';
+        var chatCountHTML = chatCount ? `<div class="chat-count">${chatCount}</div>` : '';
+        var chatURL = `<?php echo base_url('Accounts/chat/') ?>${raza.id}<?php echo "/amilsaheb"; ?>`;
+        var row = document.createElement("tr");
       row.innerHTML = `
                 <td>${i + 1}</td>
-                <td>${formatSabil(raza)}</td>
-                <td>${formatFmb(raza)}</td>
-                <td>${formatDate(raza['time-stamp'])}</td>
+                <td>${raza['user_name']}</td>
                 <td>${formateRazaType(raza)}</td>
                 <td>${formatEventDate(raza)}</td>
-                <td>${raza['user_name']}</td>
-                <td>
-                    <a href="${chatURL}" class="chat-button">
-                        Chat${chatCountHTML}
-                    </a>
-                </td>
+                <td><a href="${chatURL}" class="chat-button">Chat${chatCountHTML}</a></td>
                 <td>${getStatusHTML(raza)}</td>
                 <td><span class="action_btn">${getActionHTML(raza)}</span></td>
+                <td>${formatDate(raza['time-stamp'])}</td>
             `;
 
       tbody.appendChild(row);
     }
   }
 
-  function formatSabil(raza) {
-    if (raza['sabil'] != '') {
-      if (raza['sabil']) {
-        return 'yes';
-      } else {
-        return 'no';
-      }
-    } else {
-      return ""
-    }
-  }
-
-  function formatFmbTameer(raza) {
-    if (raza['fmbtameer'] != '') {
-      if (raza['fmbtameer']) {
-        return 'yes';
-      } else {
-        return 'no';
-      }
-    } else {
-      return ""
-    }
-  }
-
-  function formatFmb(raza) {
-    if (raza['fmb'] != '') {
-      if (raza['fmb']) {
-        return 'yes';
-      } else {
-        return 'no';
-      }
-    } else {
-      return ""
-    }
-  }
+  // Sabil and FMB related columns removed; helper functions were removed accordingly.
 
   function formateRazaType(raza) {
-    let data = JSON.parse(raza.razadata);
-    let rf = JSON.parse(raza.razafields);
-    let razafields = rf.fields;
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
+    // If linked to a miqaat, show Name with small Type · Date
+    if (raza.miqaat_id && raza.miqaat_details) {
+      const m = parseMaybe(raza.miqaat_details) || {};
+      const date = m.date ? new Date(m.date).toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }) : '';
+      const name = m.name || '';
+      const type = m.type || '';
+      const assignedTo = m.assigned_to || '';
+      const parts = [];
+      if (type) parts.push(type);
+      if (assignedTo) parts.push(assignedTo);
+      if (date) parts.push(date);
+      const meta = parts.join(' · ');
+      return `${name}<br><small style="color:#6c757d;">${meta}</small>`;
+    }
 
-    // Logic for 'raza-purpose' can be included if needed
-    // if (data['raza-purpose']) {
-    //     let k = razafields.find(e => {
-    //         let name = e.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
-    //         return name === 'raza-purpose';
-    //     });
-    //     let value = k.options[data['raza-purpose']];
-    //     return `${raza.razaType}<br/> <span style='color:grey'>(${value.name})</span>`;
-    // } else {
-    //     return `${raza.razaType} (${raza.umoor || ''})`; // Add raza.umoor with razaType
-    // }
+    let data = parseMaybe(raza.razadata) || {};
+    let rf = parseMaybe(raza.razafields) || {};
+    let razafields = rf.fields || [];
 
-    // Return razaType and umoor
+    // Default: show umoor and razaType
     return `${raza.umoor ? raza.umoor + '\n' : ''}(${raza.razaType || ''})`;
   }
 
@@ -990,12 +964,21 @@
   }
 
   function formatEventDate(raza) {
-    let data = JSON.parse(raza.razadata)
-    let rf = JSON.parse(raza.razafields)
-    let razafields = rf.fields
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
+    let data = parseMaybe(raza.razadata) || {};
+    let rf = parseMaybe(raza.razafields) || {};
+    let razafields = rf.fields || [];
 
     if (raza.miqaat_id && raza.miqaat_details) {
-      let miqaat_info = JSON.parse(raza.miqaat_details);
+      let miqaat_info = parseMaybe(raza.miqaat_details) || {};
       const options = {
         weekday: 'short',
         year: 'numeric',
@@ -1030,21 +1013,21 @@
   }
 
   function getStatusHTML(raza) {
-    let statusHTML = '<div class="text-left">' + '<ul>';
+    let statusHTML = '<div class="text-left">';
 
     if (raza['status'] == 0) {
-      statusHTML += '<li><div><strong style="color: orange;">Pending</strong></div></li>';
+      statusHTML += '<div><strong style="color: orange;">Pending</strong></div>';
     } else if (raza['status'] == 1) {
-      statusHTML += '<li><div><strong style="color: blue;">Recommended</strong></div></li>';
+      statusHTML += '<div><strong style="color: blue;">Recommended</strong></div>';
     } else if (raza['status'] == 2) {
-      statusHTML += '<li><div><strong style="color: limegreen;">Approved</strong></div></li>';
+      statusHTML += '<div><strong style="color: limegreen;">Approved</strong></div>';
     } else if (raza['status'] == 3) {
-      statusHTML += '<li><div><strong style="color: red;">Rejected</strong></div></li>';
+      statusHTML += '<div><strong style="color: red;">Rejected</strong></div>';
     } else if (raza['status'] == 4) {
-      statusHTML += '<li><div><strong style="color: blue;">Not Recommended</strong></div></li>';
+      statusHTML += '<div><strong style="color: blue;">Not Recommended</strong></div>';
     }
 
-    statusHTML += '<li>';
+    statusHTML += '<ul><li>';
     if (raza['coordinator-status'] == 0) {
       statusHTML += '<div>Jamat <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
     } else if (raza['coordinator-status'] == 1) {
@@ -1107,12 +1090,21 @@
   }
 
   function getEventDate(razadata, miqaat_details = {}) {
-    // Implement logic to extract event date from razadata
-    let data = JSON.parse(razadata);
+    // Extract event date from razadata or miqaat_details; both may be object or JSON string
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
+    let data = parseMaybe(razadata) || {};
     if (data.date) {
       return new Date(data.date);
     } else if (miqaat_details) {
-      let miqaat_info = JSON.parse(miqaat_details);
+      let miqaat_info = parseMaybe(miqaat_details) || {};
       return new Date(miqaat_info.date);
     } else {
       return null;
@@ -1172,6 +1164,8 @@
 </script>
 <script>
   $(document).ready(function() {
-    $('.table').DataTable();
+    if ($.fn && $.fn.DataTable) {
+      $('.table').DataTable();
+    }
   });
 </script>

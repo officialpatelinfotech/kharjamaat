@@ -1,3 +1,33 @@
+<?php
+// Show only upcoming miqaats approved by Janab (status == 1)
+if (isset($miqaats) && is_array($miqaats)) {
+  $today = strtotime('today');
+  $miqaats = array_values(array_filter($miqaats, function ($m) use ($today) {
+    $status = null;
+    $dateStr = null;
+    if (is_array($m)) {
+      $status = $m['Janab-status'] ?? $m['janab_status'] ?? $m['status'] ?? null;
+      $dateStr = $m['date'] ?? $m['miqaat_date'] ?? $m['event_date'] ?? $m['start_date'] ?? null;
+    } elseif (is_object($m)) {
+      $status = isset($m->{'Janab-status'}) ? $m->{'Janab-status'} : ($m->janab_status ?? $m->status ?? null);
+      $dateStr = $m->date ?? $m->miqaat_date ?? $m->event_date ?? $m->start_date ?? null;
+    }
+    $isApproved = false;
+    if (is_string($status)) $isApproved = trim($status) === '1';
+    elseif (is_numeric($status)) $isApproved = ((int)$status === 1);
+    elseif (is_bool($status)) $isApproved = ($status === true);
+
+    $isUpcoming = false;
+    if (!empty($dateStr)) {
+      $d = strtotime($dateStr);
+      if ($d !== false) {
+        $isUpcoming = ($d >= $today);
+      }
+    }
+    return $isApproved && $isUpcoming;
+  }));
+}
+?>
 <div class="container margintopcontainer pt-5">
   <?php if ($this->session->flashdata('error')): ?>
     <div class="alert alert-danger">
@@ -16,13 +46,13 @@
       <?= $this->session->flashdata('warning'); ?>
     </div>
   <?php endif; ?>
-  <div class="mb-4 mb-md-0">
+  <div class="mb-4 mb-md-0 pt-5">
     <a href="<?php echo base_url('accounts/home') ?>" class="btn btn-outline-secondary inline-block text-blue-600 hover:underline">
       <i class="fas fa-arrow-left"></i>
     </a>
   </div>
 
-  <h3 class="heading text-center pb-5">RSVP <span class="text-primary">Dashboard</span></h3>
+  <h3 class="heading text-center mb-4">RSVP <span class="text-primary">Dashboard</span></h3>
   <?php if (!empty($miqaats) && is_array($miqaats)): ?>
     <div class="row justify-content-center">
       <?php foreach ($miqaats as $miqaat): ?>

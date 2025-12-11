@@ -76,57 +76,7 @@
         <div class="card-body">
           <form id="raza-form" class="main-form" action="<?= base_url("accounts/submit_raza") ?>" method="post">
             <?php if ($value === 'Private-Event' || $value === 'Public-Event'): ?>
-              <div class="form-group">
-                <label class="col-form-label requiredField">My Sabil Dues Are Paid<span
-                    class="asteriskField">*</span></label>
-                <div class="">
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input type="radio" class="form-check-input" name="sabil" value="0"
-                        required="required"> No
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input type="radio" class="form-check-input" name="sabil" value="1"
-                        required="required"> Yes
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="col-form-label requiredField">My FMB Dues Are Paid<span
-                    class="asteriskField">*</span></label>
-                <div class="">
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input type="radio" class="form-check-input" name="fmb" value="0"
-                        required="required"> No
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input type="radio" class="form-check-input" name="fmb" value="1"
-                        required="required"> Yes
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <!--<div class="form-group">-->
-              <!--    <label class="col-form-label requiredField">I Have Contributed in FMB Smart Kitchen Tameer<span class="asteriskField">*</span></label>-->
-              <!--    <div class="">-->
-              <!--        <div class="form-check">-->
-              <!--            <label class="form-check-label">-->
-              <!--                <input type="radio" class="form-check-input" name="fmbtameer" value="0" required="required"> No-->
-              <!--            </label>-->
-              <!--        </div>-->
-              <!--        <div class="form-check">-->
-              <!--            <label class="form-check-label">-->
-              <!--                <input type="radio" class="form-check-input" name="fmbtameer" value="1" required="required"> Yes-->
-              <!--            </label>-->
-              <!--        </div>-->
-              <!--    </div>-->
-              <!--</div>-->
+              <!-- Removed Sabil/FMB dues fields as requested -->
             <?php endif; ?>
 
             <div class="form-group">

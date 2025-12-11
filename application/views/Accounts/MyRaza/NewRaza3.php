@@ -91,8 +91,10 @@
                     </label></div>
                 </div>
               </div>
-              <div class="form-group"><label class="col-form-label  requiredField">
-                  My FMB Dues Are Paid<span class="asteriskField">*</span></label>
+              <div class="form-group">
+                <label class="col-form-label  requiredField">
+                  My FMB Dues Are Paid<span class="asteriskField">*</span>
+                </label>
                 <div class="">
                   <div class="form-check"><label
                       class="form-check-label"><input type="radio" class="form-check-input"

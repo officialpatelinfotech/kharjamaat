@@ -12,46 +12,335 @@ class Amilsaheb extends CI_Controller
     $this->load->model('AdminM');
     $this->load->model('AmilsahebM');
     $this->load->model('MasoolMusaidM');
+    $this->load->model('CommonM');
+    $this->load->model('HijriCalendar');
+      // Anjuman model provides takhmeen helpers we reuse here
+      $this->load->model('AnjumanM');
     $this->load->library('email', $this->config->item('email'));
   }
   public function index()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
+
+  $users = $this->AmilsahebM->get_all_ashara();
+  // Resident-only sector stats for dashboard cards
+  $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
+  $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
+
+    // Build resident-only overview counts for dashboard cards
+    $residentOverview = $this->AmilsahebM->get_resident_overview_counts();
+    $stats = [
+      'HOF' => (int)($residentOverview['hof'] ?? 0),
+      'FM' => (int)($residentOverview['fm'] ?? 0),
+      'Mardo' => (int)($residentOverview['male'] ?? 0),
+      'Bairo' => (int)($residentOverview['female'] ?? 0),
+      'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
+      'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
+      'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
+      'LeaveStatus' => [],
+      'Sectors' => $sectorsData,
+      'SubSectors' => $subSectorsData
+    ];
+
+    $data = [
+      'user_name' => $data['user_name'],
+      'users' => $users,
+      'stats' => $stats,
+      'current_sector' => '',
+      'current_sub_sector' => ''
+    ];
+
+    // Add current Hijri year's Miqaat/Thaali/Holiday day counts for display on home
+    $data['year_daytype_stats'] = $this->CommonM->get_year_calendar_daytypes();
+
+    // --- Build FMB & Sabeel takhmeen sector summaries (reuse logic from Anjuman controller) ---
+    // Compute current Hijri financial year string (same algorithm as Anjuman)
+    $current_hijri = $this->HijriCalendar->get_hijri_date(date("Y-m-d"));
+    $takhmeen_year_current = null;
+    if (!empty($current_hijri) && !empty($current_hijri['hijri_date'])) {
+      $parts = explode('-', $current_hijri['hijri_date']); // d-m-Y
+      if (count($parts) === 3) {
+        $m = str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+        $y = $parts[2];
+        if ($m >= '01' && $m <= '08') {
+          $y1 = intval($y) - 1;
+          $y2 = substr($y, -2);
+          $takhmeen_year_current = sprintf('%d-%s', $y1, $y2);
+        } else {
+          $y1 = intval($y);
+          $y2 = substr(strval($y + 1), -2);
+          $takhmeen_year_current = sprintf('%d-%s', $y1, $y2);
+        }
+      }
+    }
+
+    // Fallback to max year if detection fails
+    if (empty($takhmeen_year_current)) {
+      $row = $this->db->query("SELECT MAX(year) AS y FROM fmb_takhmeen")->row_array();
+      $takhmeen_year_current = $row && isset($row['y']) ? $row['y'] : null;
+    }
+
+    // FMB: per-user takhmeen details (model already does oldest-first allocation)
+    $fmb_users = $this->AnjumanM->get_user_takhmeen_details();
+    $fmb_agg = [];
+    foreach ($fmb_users as $u) {
+      $sector = isset($u['Sector']) ? trim($u['Sector']) : '';
+      if ($sector === '') $sector = 'Unassigned';
+      $total_year = 0.0;
+      $paid_year = 0.0;
+      if (!empty($u['all_takhmeen']) && is_array($u['all_takhmeen'])) {
+        foreach ($u['all_takhmeen'] as $yr) {
+          if (isset($yr['year']) && $yr['year'] == $takhmeen_year_current) {
+            $total_year = (float)($yr['total_amount'] ?? 0);
+            $paid_year  = (float)($yr['total_paid'] ?? 0);
+            break;
+          }
+        }
+      }
+      if (!isset($fmb_agg[$sector])) {
+        $fmb_agg[$sector] = [
+          'sector' => $sector,
+          'total_takhmeen' => 0.0,
+          'total_paid' => 0.0,
+          'members' => 0,
+        ];
+      }
+      $fmb_agg[$sector]['total_takhmeen'] += $total_year;
+      $fmb_agg[$sector]['total_paid'] += $paid_year;
+      if ($total_year > 0) $fmb_agg[$sector]['members'] += 1;
+    }
+    $fmb_rows = array_values(array_map(function ($r) {
+      $total = (float)($r['total_takhmeen'] ?? 0);
+      $paid = (float)($r['total_paid'] ?? 0);
+      $r['outstanding'] = max(0, $total - $paid);
+      return $r;
+    }, $fmb_agg));
+
+    // Sabeel: reuse model that supports allocation order
+    $sabeel_users = $this->AnjumanM->get_user_sabeel_takhmeen_details([
+      'allocation_order' => 'oldest-first',
+      'year' => $takhmeen_year_current,
+    ]);
+    $sabeel_agg = [];
+    foreach ($sabeel_users as $u) {
+      $sector = isset($u['Sector']) ? trim($u['Sector']) : '';
+      if ($sector === '') $sector = 'Unassigned';
+      $ct = isset($u['current_year_takhmeen']) ? $u['current_year_takhmeen'] : null;
+      $total_year = 0.0;
+      $paid_year = 0.0;
+      if (!empty($ct)) {
+        $estY = (float)($ct['establishment']['yearly'] ?? 0);
+        $resY = (float)($ct['residential']['yearly'] ?? 0);
+        $estP = (float)($ct['establishment']['paid'] ?? 0);
+        $resP = (float)($ct['residential']['paid'] ?? 0);
+        $total_year = $estY + $resY;
+        $paid_year = $estP + $resP;
+      }
+      if (!isset($sabeel_agg[$sector])) {
+        $sabeel_agg[$sector] = [
+          'sector' => $sector,
+          'total_takhmeen' => 0.0,
+          'total_paid' => 0.0,
+          'members' => 0,
+        ];
+      }
+      $sabeel_agg[$sector]['total_takhmeen'] += $total_year;
+      $sabeel_agg[$sector]['total_paid'] += $paid_year;
+      if ($total_year > 0) $sabeel_agg[$sector]['members'] += 1;
+    }
+    $sabeel_rows = array_values(array_map(function ($r) {
+      $total = (float)($r['total_takhmeen'] ?? 0);
+      $paid = (float)($r['total_paid'] ?? 0);
+      $r['outstanding'] = max(0, $total - $paid);
+      return $r;
+    }, $sabeel_agg));
+
+    // Raza summary to match Anjuman dashboard
+    $rz_row = $this->db->query(
+      "SELECT 
+          SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS pending,
+          SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS approved,
+          SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS rejected
+        FROM raza
+        WHERE active = 1"
+    )->row_array();
+    $raza_summary = [
+      'pending' => (int)($rz_row['pending'] ?? 0),
+      'approved' => (int)($rz_row['approved'] ?? 0),
+      'rejected' => (int)($rz_row['rejected'] ?? 0),
+    ];
+
+    // Build dashboard_data with monthly and weekly summaries
+    $dd = [
+      'fmb_takhmeen_sector' => $fmb_rows,
+      'fmb_takhmeen_year' => $takhmeen_year_current,
+      'sabeel_takhmeen_sector' => $sabeel_rows,
+      'sabeel_takhmeen_year' => $takhmeen_year_current,
+      'raza_summary' => $raza_summary,
+      // Weekly thaali signup averages (HOF signups) identical to Jamaat dashboard logic
+      'this_week_sector_signup_avg' => $this->get_this_week_sector_signup_avg(),
+      // Families (HOF) with zero thaali signups any day in current week
+      'no_thaali_families' => $this->get_no_thaali_families_this_week(),
+      // Initialize monthly placeholders (will populate below)
+      'this_month_families_signed_up' => 0,
+      'no_thaali_families_month' => [],
+    ];
+    $data['dashboard_data'] = $dd;
+
+    // Populate Hijri-month monthly stats (families signed up this month, and no-thaali list)
+    $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+    if ($today_parts && isset($today_parts['hijri_month']) && isset($today_parts['hijri_year'])) {
+      $mstats = $this->CommonM->get_monthly_thaali_stats((int)$today_parts['hijri_month'], (int)$today_parts['hijri_year']);
+      $data['dashboard_data']['this_month_families_signed_up'] = isset($mstats['families_signed_up']) ? (int)$mstats['families_signed_up'] : 0;
+      $data['dashboard_data']['no_thaali_families_month'] = isset($mstats['no_thaali_list']) ? $mstats['no_thaali_list'] : [];
+    }
+
+    // Member type distribution for dashboard
+    $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
+
+    // Corpus funds overview (parity with Anjuman)
+    $this->load->model('CorpusFundM');
+    $funds = $this->CorpusFundM->get_funds();
+    $corpus_funds = [];
+    foreach ($funds as $f) {
+      $fid = (int)($f['id'] ?? 0);
+      $amount = (float)($f['amount'] ?? 0);
+      $assignedTotal = 0.0;
+      $paidTotal = 0.0;
+      $assignments = [];
+      if ($fid > 0) {
+        $assignments = $this->CorpusFundM->get_assignments($fid);
+        foreach ($assignments as $a) {
+          $assignedAmt = (float)($a['amount_assigned'] ?? 0);
+          $assignedTotal += $assignedAmt;
+          $hofId = (int)($a['hof_id'] ?? $a['HOF_ID'] ?? 0);
+          // Sum payments for this assignment (fund + HOF)
+          if (method_exists($this->CorpusFundM, 'get_payments_for_assignment')) {
+            $plist = $this->CorpusFundM->get_payments_for_assignment($fid, $hofId);
+            foreach ($plist as $p) { $paidTotal += (float)($p['amount_paid'] ?? 0); }
+          }
+        }
+      }
+      // Outstanding should reflect unpaid amount on assigned totals
+      $outstanding = max(0, $assignedTotal - $paidTotal);
+      $f['assigned_total'] = $assignedTotal;
+      $f['paid_total'] = $paidTotal;
+      $f['outstanding'] = $outstanding;
+      $f['assignments'] = $assignments;
+      $corpus_funds[] = $f;
+    }
+    $data['corpus_funds'] = $corpus_funds;
+
     $this->load->view('Amilsaheb/Header', $data);
-    $this->load->view('Amilsaheb/Home');
+    $this->load->view('Amilsaheb/Home', $data);
+  }
+  /**
+   * Compute sector-wise aggregate total and average daily thaali signups (HOF) for current Mon-Sun week.
+   * Mirrors Anjuman::get_this_week_sector_signup_avg to keep dashboard parity.
+   */
+  private function get_this_week_sector_signup_avg()
+  {
+    $monday = date('Y-m-d', strtotime('monday this week'));
+    $sunday = date('Y-m-d', strtotime('sunday this week'));
+    $start = $monday; $end = $sunday;
+    $dates = [];
+    $cursor = strtotime($start); $endTs = strtotime($end);
+    while ($cursor <= $endTs) {
+      $dates[] = date('Y-m-d', $cursor);
+      $cursor = strtotime('+1 day', $cursor);
+    }
+    $days = count($dates);
+    if ($days <= 0) return ['start'=>$start,'end'=>$end,'days'=>0,'sectors'=>[]];
+    $agg = [];
+    foreach ($dates as $d) {
+      $rows = $this->CommonM->getsignupcount_by_sector($d);
+      foreach ($rows as $r) {
+        $sector = isset($r['Sector']) ? trim($r['Sector']) : '';
+        if ($sector === '' || strtolower($sector)==='unassigned') continue;
+        $cnt = (int)($r['hof_signup_count'] ?? 0);
+        if (!isset($agg[$sector])) $agg[$sector] = 0;
+        $agg[$sector] += $cnt;
+      }
+    }
+    $sectors = [];
+    foreach ($agg as $sector => $total) {
+      $sectors[] = [
+        'sector' => $sector,
+        'total' => (int)$total,
+        'avg' => $days > 0 ? round($total / $days, 2) : 0,
+      ];
+    }
+    usort($sectors, function($a,$b){
+      if ($a['avg'] == $b['avg']) return strcmp($a['sector'],$b['sector']);
+      return ($a['avg'] < $b['avg']) ? 1 : -1;
+    });
+    return [ 'start'=>$start,'end'=>$end,'days'=>$days,'sectors'=>$sectors ];
+  }
+  /**
+   * Return list of HOF family rows (from user table) who have no thaali signup on any day of current week.
+   * Parity with Anjuman dashboard logic.
+   */
+  private function get_no_thaali_families_this_week()
+  {
+    $monday = date('Y-m-d', strtotime('monday this week'));
+    $sunday = date('Y-m-d', strtotime('sunday this week'));
+    $dates = [];
+    $cursor = strtotime($monday); $endTs = strtotime($sunday);
+    while ($cursor <= $endTs) { $dates[] = date('Y-m-d', $cursor); $cursor = strtotime('+1 day', $cursor); }
+    $signedHofs = [];
+    foreach ($dates as $d) {
+      $rows = $this->CommonM->getsignupforaday_aggregated(['date'=>$d,'thali_taken'=>1]);
+      foreach ($rows as $r) {
+        $hofId = $r['ITS_ID'] ?? ($r['HOF_ID'] ?? null);
+        if ($hofId) $signedHofs[$hofId] = true;
+      }
+    }
+    $allHofs = $this->CommonM->get_all_users(); // includes HOF & FM; filter HOF only
+    $no = [];
+    foreach ($allHofs as $h) {
+      if (($h['HOF_FM_TYPE'] ?? '') !== 'HOF') continue;
+      $its = $h['ITS_ID'] ?? null; if (!$its) continue;
+      if (!isset($signedHofs[$its])) $no[] = $h;
+    }
+    return $no;
   }
   public function EventRazaRequest()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
-
+    $event_type = $this->input->get('event_type');
     // Fetch counts for Janab-status=0 and Janab-status=1
-    $janabStatus0Count = $this->AmilsahebM->get_raza_count_event(['Janab-status' => 0], true);
-    $janabStatus1Count = $this->AmilsahebM->get_raza_count_event(['Janab-status' => 1]);
+    $janabStatus0Count = $this->AmilsahebM->get_raza_count_event(['Janab-status' => 0], $event_type, true);
+    $janabStatus1Count = $this->AmilsahebM->get_raza_count_event(['Janab-status' => 1], $event_type);
 
     // Fetch count for coordinator-status=0
-    $coordinatorStatus0Count = $this->AmilsahebM->get_raza_count_event(['coordinator-status' => 0], true);
+    $coordinatorStatus0Count = $this->AmilsahebM->get_raza_count_event(['coordinator-status' => 0], $event_type, true);
 
-    // Additional data for view
-    $data['umoor'] = "Event Raza Applications";
-    $data['raza'] = $this->AmilsahebM->get_raza_event();
+    if ($event_type == 1) {
+      $data['umoor'] = "Miqaat Request";
+    } elseif ($event_type == 2) {
+      $data['umoor'] = "Kaaraj Request";
+    }
+    $data['raza'] = $this->AmilsahebM->get_raza_event($event_type);
     $data['razatype'] = $this->AdminM->get_eventrazatype();
 
     foreach ($data['raza'] as $key => $value) {
       $chatCount = $this->AccountM->get_chat_count($value['id']); // Assuming id is the raza_id
       $data['raza'][$key]['chat_count'] = $chatCount;
 
-      $username = $this->AccountM->get_user($value['user_id']);
-      $razatype = $this->AdminM->get_razatype_byid($value['razaType'])[0];
-      $data['raza'][$key]['razaType'] = $razatype['name'];
-      $data['raza'][$key]['razaType_id'] = $razatype['id'];
-      $data['raza'][$key]['razafields'] = $razatype['fields'];
-      $data['raza'][$key]['umoor'] = $razatype['umoor'];
-      $data['raza'][$key]['user_name'] = $username[0]['Full_Name'];
+      $usernameRows = $this->AccountM->get_user($value['user_id']);
+      $usernameRow = is_array($usernameRows) && !empty($usernameRows) ? $usernameRows[0] : [];
+      $razatypeRows = $this->AdminM->get_razatype_byid($value['razaType']);
+      $razatype = is_array($razatypeRows) && !empty($razatypeRows) ? $razatypeRows[0] : [];
+      $data['raza'][$key]['razaType'] = $razatype['name'] ?? '';
+      $data['raza'][$key]['razaType_id'] = $razatype['id'] ?? null;
+      $data['raza'][$key]['razafields'] = $razatype['fields'] ?? '';
+      $data['raza'][$key]['umoor'] = $razatype['umoor'] ?? '';
+      $data['raza'][$key]['user_name'] = $usernameRow['Full_Name'] ?? '';
       $data['raza'][$key]['miqaat_id'] = $value['miqaat_id'];
       if (!empty($value['miqaat_id'])) {
         $this->load->model('AnjumanM');
@@ -59,6 +348,7 @@ class Amilsaheb extends CI_Controller
       } else {
         $data['raza'][$key]['miqaat_details'] = "";
       }
+
     }
 
     $data['user_name'] = $_SESSION['user']['username'];
@@ -72,7 +362,7 @@ class Amilsaheb extends CI_Controller
 
   public function UmoorRazaRequest()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $data['umoor'] = "12 Umoor Raza Applications";
@@ -93,12 +383,14 @@ class Amilsaheb extends CI_Controller
     }
 
     foreach ($data['raza'] as $key => $value) {
-      $username = $this->AccountM->get_user($value['user_id']);
-      $razatype = $this->AdminM->get_razatype_byid($value['razaType'])[0];
-      $data['raza'][$key]['razaType'] = $razatype['name'];
-      $data['raza'][$key]['razafields'] = $razatype['fields'];
-      $data['raza'][$key]['umoor'] = $razatype['umoor'];
-      $data['raza'][$key]['user_name'] = $username[0]['Full_Name'];
+      $usernameRows = $this->AccountM->get_user($value['user_id']);
+      $usernameRow = is_array($usernameRows) && !empty($usernameRows) ? $usernameRows[0] : [];
+      $razatypeRows = $this->AdminM->get_razatype_byid($value['razaType']);
+      $razatype = is_array($razatypeRows) && !empty($razatypeRows) ? $razatypeRows[0] : [];
+      $data['raza'][$key]['razaType'] = $razatype['name'] ?? '';
+      $data['raza'][$key]['razafields'] = $razatype['fields'] ?? '';
+      $data['raza'][$key]['umoor'] = $razatype['umoor'] ?? '';
+      $data['raza'][$key]['user_name'] = $usernameRow['Full_Name'] ?? '';
     }
     $data['user_name'] = $_SESSION['user']['username'];
     $data['janab_status_0_count'] = $janabStatus0Count;
@@ -107,9 +399,66 @@ class Amilsaheb extends CI_Controller
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/RazaRequest', $data);
   }
+
+  public function corpusfunds_details()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('CorpusFundM');
+    // Build overview like on Home
+    $funds = $this->CorpusFundM->get_funds();
+    $details = [];
+    foreach ($funds as $f) {
+      $fid = (int)($f['id'] ?? 0);
+      if ($fid <= 0) continue;
+      $assignments = $this->CorpusFundM->get_assignments_with_payments_by_hof(null); // fallback if method not available
+      // If specific method exists to get per fund assignments
+      $assignments = $this->CorpusFundM->get_assignments($fid);
+      $rows = [];
+      $assignedTotal = 0.0; $paidTotal = 0.0; $outstandingTotal = 0.0;
+      foreach ($assignments as $a) {
+        $hof = (int)($a['hof_id'] ?? $a['HOF_ID'] ?? 0);
+        // Fetch authoritative member details from user table by HOF ITS_ID
+        $ud = $hof > 0 ? $this->db->query("SELECT Full_Name, Sector, Sub_Sector FROM user WHERE ITS_ID = ? LIMIT 1", [$hof])->row_array() : null;
+        $name = ($ud['Full_Name'] ?? '') ?: ($a['Full_Name'] ?? ($a['member_name'] ?? ''));
+        $sector = ($ud['Sector'] ?? '') ?: ($a['Sector'] ?? '');
+        $subsector = ($ud['Sub_Sector'] ?? '') ?: ($a['Sub_Sector'] ?? '');
+        $assigned = (float)($a['amount_assigned'] ?? ($a['amount'] ?? 0));
+        $paid = (float)($a['paid'] ?? 0);
+        if ($paid === 0.0) {
+          // Try compute paid via payments aggregate helper if available
+          $plist = method_exists($this->CorpusFundM, 'get_payments_for_assignment') ? $this->CorpusFundM->get_payments_for_assignment($fid, $hof) : [];
+          foreach ($plist as $p) { $paid += (float)($p['amount_paid'] ?? 0); }
+        }
+        $due = max(0, $assigned - $paid);
+        $assignedTotal += $assigned; $paidTotal += $paid; $outstandingTotal += $due;
+        $rows[] = [
+          'hof_id' => $hof,
+          'name' => $name,
+          'sector' => $sector,
+          'subsector' => $subsector,
+          'assigned' => $assigned,
+          'paid' => $paid,
+          'due' => $due
+        ];
+      }
+      $details[] = [
+        'fund' => $f,
+        'rows' => $rows,
+        'assigned_total' => $assignedTotal,
+        'paid_total' => $paidTotal,
+        'outstanding_total' => $outstandingTotal,
+      ];
+    }
+    $data['corpus_details'] = $details;
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Amilsaheb/CorpusFundsDetails', $data);
+  }
   public function miqaat()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -256,7 +605,7 @@ class Amilsaheb extends CI_Controller
   }
   public function managemiqaat()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -266,7 +615,7 @@ class Amilsaheb extends CI_Controller
   }
   public function addmiqaat()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -275,7 +624,7 @@ class Amilsaheb extends CI_Controller
   }
   public function submitmiqaat()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $miqaatname = $this->input->post('miqaatname');
@@ -301,7 +650,7 @@ class Amilsaheb extends CI_Controller
   }
   public function modifymiqaat($id)
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -311,7 +660,7 @@ class Amilsaheb extends CI_Controller
   }
   public function submitmodifymiqaat($id)
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $miqaatname = $this->input->post('miqaatname');
@@ -347,7 +696,7 @@ class Amilsaheb extends CI_Controller
 
   public function miqaatattendance()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -370,7 +719,7 @@ class Amilsaheb extends CI_Controller
 
   public function mumineendirectory()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     if ($this->input->post('search')) {
@@ -410,7 +759,7 @@ class Amilsaheb extends CI_Controller
 
   public function appointment()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
 
@@ -421,7 +770,7 @@ class Amilsaheb extends CI_Controller
   }
   public function manage_slots()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $this->load->model('AmilsahebM');
@@ -508,7 +857,7 @@ class Amilsaheb extends CI_Controller
 
   public function manage_appointment()
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -547,7 +896,7 @@ class Amilsaheb extends CI_Controller
   }
   public function update_appointment_list($id)
   {
-    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] != 2) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $check = $this->AmilsahebM->update_appointment_list($id);
@@ -559,18 +908,51 @@ class Amilsaheb extends CI_Controller
   }
   public function asharaohbat()
   {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+
     $username = $_SESSION['user']['username'];
+
+    // Year selection (Hijri)
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    // Fetch years directly from HijriCalendar for the dropdown
+    $year_options = $this->HijriCalendar->get_distinct_hijri_years();
+    $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
+    if (empty($year_options)) {
+      $year_options = [$current_hijri_year - 1, $current_hijri_year, $current_hijri_year + 1];
+    }
+    if (!in_array($selected_year, $year_options, true)) {
+      array_unshift($year_options, $selected_year);
+    }
+    $yearColumnExists = $this->db->field_exists('year', 'ashara_ohbat');
 
     // Fetch users based on search or get all
     if ($this->input->post('search')) {
-      $users = $this->AmilsahebM->search_all_ashara($this->input->post('search'));
+      $users = $this->AmilsahebM->search_all_ashara($this->input->post('search'), $selected_year);
     } else {
-      $users = $this->AmilsahebM->get_all_ashara();
+      $users = $this->AmilsahebM->get_all_ashara($selected_year);
+    }
+
+    if (!$yearColumnExists && $selected_year !== $current_hijri_year) {
+      // No year column: emulate "no data for selected year" by clearing status/comment
+      foreach ($users as &$u) {
+        $u['LeaveStatus'] = '';
+        $u['Comment'] = '';
+      }
+      unset($u);
     }
 
     // Fetch overall sector and sub-sector stats
-    $sectorsData = $this->AmilsahebM->get_all_sector_stats();
-    $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
+    $sectorsData = $this->AmilsahebM->get_all_sector_stats($selected_year);
+    $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats($selected_year);
+    if (!$yearColumnExists && $selected_year !== $current_hijri_year) {
+      $sectorsData = [];
+      $subSectorsData = [];
+    }
 
     // Initialize stats
     $stats = [
@@ -586,7 +968,6 @@ class Amilsaheb extends CI_Controller
       'SubSectors' => $subSectorsData
     ];
 
-    // Loop through users and populate stats
     foreach ($users as $u) {
       $type = $u['HOF_FM_TYPE'] ?? '';
       $gender = strtolower($u['Gender'] ?? '');
@@ -614,13 +995,15 @@ class Amilsaheb extends CI_Controller
       $stats['LeaveStatus'][$status]++;
     }
 
-    // Pass data to view
     $data = [
       'user_name' => $username,
       'users' => $users,
       'stats' => $stats,
       'current_sector' => '',
-      'current_sub_sector' => ''
+      'current_sub_sector' => '',
+      'selected_year' => $selected_year,
+      'year_options' => $year_options,
+      'back_url' => base_url('amilsaheb')
     ];
 
     $this->load->view('Amilsaheb/Header', $data);
@@ -639,6 +1022,20 @@ class Amilsaheb extends CI_Controller
     $sel_sector = $this->input->get('sector');
     $sel_sub = $this->input->get('subsector');
 
+    // Hijri Year selection (UI scope only; attendance table not year-scoped)
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $year_options = $this->HijriCalendar->get_distinct_hijri_years();
+    $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
+    if (empty($year_options)) {
+      $year_options = [$current_hijri_year - 1, $current_hijri_year, $current_hijri_year + 1];
+    }
+    if (!in_array($selected_year, $year_options, true)) {
+      array_unshift($year_options, $selected_year);
+    }
+
     // Fetch all sectors and sub-sectors for dropdowns
     $all_sectors = $this->MasoolMusaidM->get_all_sectors();
     $all_sub_sectors = $sel_sector ? $this->MasoolMusaidM->get_all_sub_sectors($sel_sector) : [];
@@ -646,13 +1043,13 @@ class Amilsaheb extends CI_Controller
     // Fetch attendance data
     if ($this->input->post('search')) {
       $kw = $this->input->post('search', true);
-      $users = $this->MasoolMusaidM->search_attendance_by_sector($kw, $sel_sector, $sel_sub);
+      $users = $this->MasoolMusaidM->search_attendance_by_sector($kw, $sel_sector, $sel_sub, $selected_year);
     } else {
-      $users = $this->MasoolMusaidM->get_attendance_by_sector($sel_sector, $sel_sub);
+      $users = $this->MasoolMusaidM->get_attendance_by_sector($sel_sector, $sel_sub, $selected_year);
     }
 
     // Stats
-    $stats = $this->MasoolMusaidM->get_sector_stats($sel_sector, $sel_sub);
+    $stats = $this->MasoolMusaidM->get_sector_stats($sel_sector, $sel_sub, $selected_year);
 
     // View Data
     $data = [
@@ -676,6 +1073,9 @@ class Amilsaheb extends CI_Controller
         'Not in Town',
         'Married Outcaste'
       ],
+      // Year dropdown support (UI only)
+      'selected_year' => $selected_year,
+      'year_options' => $year_options,
     ];
 
     // Load view

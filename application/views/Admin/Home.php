@@ -35,7 +35,7 @@
     <div class="row container mt-5">
       <!-- <a class="col-6 col-md-3 col-xxl-2 py-2" href="<?php echo base_url('admin/RazaRequest'); ?>">-->
       <!--    <div class="card text-center">-->
-      <!--        <div class="card-body">-->
+      <!--        <div class="card-body d-flex flex-column justify-content-between">-->
       <!--            <div class="title">Raza Request</div>-->
       <!--            <i class="icon fa-solid fa-hands-holding"></i>-->
       <!--        </div>-->
@@ -43,7 +43,7 @@
       <!--</a> -->
       <!-- <a href="<?php echo base_url('admin/managemiqaat'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
-          <div class="card-body">
+          <div class="card-body d-flex flex-column justify-content-between">
             <div class="title">Manage Miqaat</div>
             <i class="icon fa-solid fa-calendar-days"></i>
           </div>
@@ -51,7 +51,7 @@
       </a> -->
       <a href="<?php echo base_url('common/fmbcalendar?from=admin'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
-          <div class="card-body">
+          <div class="card-body d-flex flex-column justify-content-between">
             <div class="title">FMB Calendar</div>
             <i class="icon fa-solid fa-calendar-days"></i>
           </div>
@@ -59,7 +59,7 @@
       </a>
       <a href="<?php echo base_url('admin/razalist'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
-          <div class="card-body">
+          <div class="card-body d-flex flex-column justify-content-between">
             <div class="title">Manage Raza Form</div>
             <i class="icon fa-solid fa-list-check"></i>
           </div>
@@ -67,25 +67,33 @@
       </a>
       <a href="<?php echo base_url('admin/managefmbsettings'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
-          <div class="card-body">
-            <div class="title">Manage FMB Settings</div>
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Manage FMB Thaali & Niyaz</div>
             <i class="icon fa-solid fa-plate-wheat"></i>
           </div>
         </div>
       </a>
-      <a href="<?php echo base_url('admin/sabeeltakhmeendashboard'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+      <a href="<?php echo base_url('admin/managesabeeltakhmeen'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
-          <div class="card-body">
-            <div class="title">Manage Sabeel Settings</div>
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Manage Sabeel Takhmeen</div>
             <i class="icon fa-solid fa-hand-holding-heart"></i>
           </div>
         </div>
       </a>
-      <a href="<?php echo base_url('admin/addmumineen'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+      <a href="<?php echo base_url('admin/managemembers'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
-          <div class="card-body">
-            <div class="title">Add Mumineen</div>
-            <i class="icon fa-solid fa-user-plus"></i>
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Manage Members</div>
+            <i class="icon fa-solid fa-users-cog"></i>
+          </div>
+        </div>
+      </a>
+      <a href="<?php echo base_url('admin/corpusfunds'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Corpus Funds</div>
+            <i class="icon fa-solid fa-donate"></i>
           </div>
         </div>
       </a>

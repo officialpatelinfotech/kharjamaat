@@ -12,6 +12,11 @@
     }
 </style>
 <div class="container mt-5 pt-5">
+    <div class="row mb-4 p-0">
+        <div class="col-12 col-md-6">
+            <a href="<?php echo base_url("amilsaheb"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+        </div>
+    </div>
     <h1 class="text-center heading mb-4">Today's Appointment</h1>
     <hr>
     <div class="row gx-3 d-flex justify-content-center">

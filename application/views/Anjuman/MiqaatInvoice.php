@@ -1,4 +1,4 @@
-<div class="container margintopcontainer pt-5">
+<div class="margintopcontainer mx-5 pt-5">
   <?php if ($this->session->flashdata('error')): ?>
     <div class="alert alert-danger">
       <?= $this->session->flashdata('error'); ?>
@@ -21,15 +21,12 @@
       <a href="<?php echo base_url("anjuman/miqaatinvoicepayment") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     </div>
   </div>
-  <h2 class="text-center">Miqaat <span class="text-primary">Invoice</span></h2>
-  <div class="col-12 text-right">
-    <a href="<?php echo base_url("anjuman/newmiqaatinvoice"); ?>" class="btn btn-primary">Generate New Invoice</a>
-  </div>
+  <h4 class="text-center">Miqaat <span class="text-primary">Invoices</span></h4>
   <div class="col-12 mt-4">
     <div class="card-header">
-      <h5 class="mb-0 text-center">Invoice List</h5>
+      <!-- <h5 class="mb-0 text-center">Invoice List</h5> -->
     </div>
-    <div class="card-body p-0">
+    <div class="card-body p-0 table-responsive">
       <table class="table table-bordered">
         <thead>
           <tr>
@@ -90,6 +87,69 @@
       <?php endif; ?>
     </div>
   </div>
+
+  <hr>
+
+  <h4 class="text-center mt-4">Miqaats for which invoice has been generated</h4>
+  <div class="col-12 mt-4">
+    <div class="card-header"></div>
+    <div class="card-body p-0 table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Miqaat Date</th>
+            <th>Miqaat ID</th>
+            <th>Miqaat Name</th>
+            <th>Miqaat Type</th>
+            <th>Assigned To</th>
+            <th>Invoice Count</th>
+            <th>Total Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if (!empty($invoice_miqaats)): ?>
+            <?php foreach ($invoice_miqaats as $i => $row): ?>
+              <tr>
+                <td><?php echo $i + 1; ?></td>
+                <td><?php echo !empty($row['miqaat_date']) ? date('d-m-Y', strtotime($row['miqaat_date'])) : '-'; ?></td>
+                <td><?php echo htmlspecialchars($row['miqaat_id']); ?></td>
+                <td><?php echo htmlspecialchars($row['miqaat_name']); ?></td>
+                <td><?php echo htmlspecialchars($row['miqaat_type']); ?></td>
+                <td><?php echo htmlspecialchars($row['assigned_to']); ?></td>
+                <td><?php echo (int)($row['invoice_count'] ?? 0); ?></td>
+                <td><?php echo isset($row['total_amount']) ? number_format((float)$row['total_amount'], 2) : '0.00'; ?></td>
+              </tr>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="9" class="text-center">No data found.</td>
+            </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
+
+      <?php if (!empty($im_pagination) && ($im_pagination['pages'] ?? 0) > 1): ?>
+        <nav aria-label="Page navigation" class="mt-3 pt-3 pb-1 rounded border-0">
+          <ul class="pagination justify-content-center">
+            <?php $current = $im_pagination['page']; ?>
+            <li class="page-item<?php if ($current <= 1) echo ' disabled'; ?>">
+              <a class="page-link" href="?im_page=<?php echo $current - 1; ?>">Previous</a>
+            </li>
+            <?php for ($i = 1; $i <= $im_pagination['pages']; $i++): ?>
+              <li class="page-item<?php if ($i == $current) echo ' active'; ?>">
+                <a class="page-link" href="?im_page=<?php echo $i; ?>"><?php echo $i; ?></a>
+              </li>
+            <?php endfor; ?>
+            <li class="page-item<?php if ($current >= $im_pagination['pages']) echo ' disabled'; ?>">
+              <a class="page-link" href="?im_page=<?php echo $current + 1; ?>">Next</a>
+            </li>
+          </ul>
+        </nav>
+      <?php endif; ?>
+    </div>
+  </div>
+
 </div>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -163,8 +223,6 @@
   });
 
   document.addEventListener('DOMContentLoaded', function() {
-    // ...existing code for edit/save/cancel...
-
     document.querySelectorAll('.delete-invoice-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var tr = btn.closest('tr');

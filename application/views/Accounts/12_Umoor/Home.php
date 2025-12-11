@@ -153,8 +153,11 @@
 	}
 </style>
 
-<div class="container margintopcontainer">
-	<h1 class="text-center heading pt-5 mb-4">Welcome to Anjuman-e-Saifee Khar Jamaat</h1>
+<div class="container margintopcontainer pt-5">
+	<div class="text-start mb-3 pt-5">
+		<a href="<?= base_url('accounts') ?>" class="btn btn-sm btn-outline-secondary"><i class="fa fa-arrow-left"></i></a>
+	</div>
+	<h1 class="text-center heading mb-4">Welcome to Anjuman-e-Saifee Khar Jamaat</h1>
 
 	<!-- Search Bar -->
 	<div class="search-container">
@@ -169,7 +172,7 @@
 	<hr>
 	<div class="continer d-flex justify-content-center">
 		<div class="row container mt-3" id="razaCardsContainer">
-			<a class="col-12 col-md-6 col-xxl-2 py-2"
+			<!-- <a class="col-12 col-md-12 col-xxl-2 py-2"
 				href="<?= base_url('Umoor12/MyRazaRequest?value=Private-Event') ?>"
 				style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: center; height: 180px;">
 				<div class="card text-center" style="width: 100%; height: 100%;">
@@ -179,8 +182,8 @@
 								style="color:#AD7E05;">Private Event</b><br>Kaaraj Raza</div>
 					</div>
 				</div>
-			</a>
-			<a class="col-12 col-md-6 col-xxl-2 py-2" href="<?= base_url('Umoor12/MyRazaRequest?value=Public-Event') ?>"
+			</a> -->
+			<!-- <a class="col-12 col-md-6 col-xxl-2 py-2" href="<?= base_url('Umoor12/MyRazaRequest?value=Public-Event') ?>"
 				style="text-decoration: none; color: inherit; display: flex; align-items: center; justify-content: center; height: 180px;">
 				<div class="card text-center" style="width: 100%; height: 100%;">
 					<div class="card-body"
@@ -189,7 +192,7 @@
 								style="color:#AD7E05;">Public Event</b><br>Miqaat Raza</div>
 					</div>
 				</div>
-			</a>
+			</a> -->
 			<a class="col-12 col-md-3 col-xxl-2 py-2"
 				href="<?= base_url('Umoor12/MyRazaRequest?value=UmoorDeeniyah') ?>">
 				<div class="card text-center">

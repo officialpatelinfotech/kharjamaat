@@ -22,8 +22,111 @@
       padding: 0 1rem;
     }
   }
+
+  /* Hijri calendar styles */
+  #hijri-calendar .hijri-day.active {
+    background: #0d6efd;
+    color: #fff;
+  }
+
+  #hijri-calendar .hijri-day {
+    width: 34px;
+    padding: 4px 0;
+  }
+
+  #hijri-calendar .hijri-week-grid {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  #hijri-calendar .hijri-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 4px;
+  }
+
+  #hijri-calendar .hijri-head {
+    margin-bottom: 2px;
+  }
+
+  #hijri-calendar .hijri-cell {
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #hijri-calendar .hijri-cell.empty {
+    background: transparent;
+  }
+
+  #hijri-calendar .hijri-head-cell {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .hijri-cal-grid {
+    min-height: 60px;
+  }
+
+  .hijri-grid {
+    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    gap: 4px;
+  }
+
+  .hijri-week-grid {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hijri-row {
+    display: flex;
+    width: 100%;
+  }
+
+  .hijri-cell {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+    position: relative;
+  }
+
+  .hijri-head {
+    background-color: #f8f9fa;
+    font-weight: bold;
+  }
+
+  .hijri-head-cell {
+    position: relative;
+  }
+
+  .empty {
+    background-color: #f1f3f5;
+  }
 </style>
 <div class="container margintopcontainer pt-5">
+  <?php if ($this->session->flashdata('error')): ?>
+    <div class="alert alert-danger">
+      <?php echo $this->session->flashdata('error'); ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($this->session->flashdata('success')): ?>
+    <div class="alert alert-success">
+      <?php echo $this->session->flashdata('success'); ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($this->session->flashdata('warning')): ?>
+    <div class="alert alert-warning">
+      <?php echo $this->session->flashdata('warning'); ?>
+    </div>
+  <?php endif; ?>
+
   <div class="d-flex justify-content-between align-items-center mb-3">
     <a href="<?php echo base_url(isset($from) ? $from . "?from=$active_controller" : "common/managemiqaat"); ?>" class="btn btn-outline-secondary">
       <i class="fa-solid fa-arrow-left"></i>
@@ -31,15 +134,32 @@
   </div>
 
   <div class="mb-4">
-    <h3 class="heading text-center mb-4"><?php echo isset($edit_mode) && $edit_mode ? 'Edit Miqaat' : 'Create Miqaat'; ?></h3>
+    <h4 class="heading text-center mb-4"><?php echo isset($edit_mode) && $edit_mode ? 'Edit Miqaat' : 'Create Miqaat'; ?></h4>
     <div id="miqaat-form-container" class="col-12 border rounded">
       <form method="POST" action="<?php echo base_url(isset($edit_mode) && $edit_mode ? 'common/update_miqaat' : 'common/add_miqaat'); ?>">
         <div class="modal-body">
           <div class="form-group mb-3">
             <label for="date">Date:</label>
             <input type="text" id="date" name="date" class="form-control mb-3" required value="<?php echo isset($edit_mode) && $edit_mode && isset($miqaat['date']) ? date('d-m-Y', strtotime($miqaat['date'])) : (isset($date) ? date('d-m-Y', strtotime($date)) : ''); ?>" placeholder="Please select a date">
-            <p id="hijri-date-display" class="form-text text-muted"></p>
+            <p id="hijri-date-display" class="form-text text-muted">Hijri Date: <?php echo isset($hijri_date) ? $hijri_date : ''; ?></p>
           </div>
+
+          <div class="form-group mb-3 border rounded p-2 bg-light" id="hijri-selector-wrapper">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="fw-bold m-0">Select Hijri Date</label>
+              <div>
+                <select id="hijri-year-select" class="form-control form-select form-select-sm d-inline-block w-auto me-2" aria-label="Hijri Year" style="min-width:90px"></select>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <button type="button" id="hijri-prev" class="btn btn-sm btn-outline-secondary">«</button>
+              <span id="hijri-current" class="mx-2 fw-semibold small"></span>
+              <button type="button" id="hijri-next" class="btn btn-sm btn-outline-secondary">»</button>
+            </div>
+            <div id="hijri-calendar" class="hijri-cal-grid mb-2"></div>
+            <small class="text-muted d-block">Click a Hijri day to auto-fill the Gregorian date above.</small>
+          </div>
+
           <div class="form-group mb-3">
             <label for="miqaat-name">Miqaat Name:</label>
             <input type="text" class="form-control" name="name" id="miqaat-name" required value="<?php echo isset($edit_mode) && $edit_mode && isset($miqaat['name']) ? htmlspecialchars($miqaat['name'], ENT_QUOTES) : ''; ?>">
@@ -96,8 +216,7 @@
           <div id="assign-to-container" class="form-group mb-3"
             <?php echo isset($edit_mode) && $edit_mode ? 'style="display:none;"' : ''; ?>>
             <label for="assign-to">Assign To:</label>
-            <select name="assign_to" id="assign-to" class="form-control"
-              <?php echo isset($edit_mode) && $edit_mode ? '' : 'required'; ?>>
+            <select name="assign_to" id="assign-to" class="form-control">
               <option value="">-- Select Assign To --</option>
               <option value="Individual">Individual</option>
               <option value="Group">Sanstha / Group</option>
@@ -550,4 +669,432 @@
       }
     });
   });
+
+  $(".alert").delay(5000).slideUp(300);
+</script>
+<!-- Enhanced Hijri mapping script -->
+<script>
+  (function() {
+    const dateInput = document.getElementById('date');
+    const hijriEl = document.getElementById('hijri-date-display');
+    if (!dateInput || !hijriEl) return;
+
+    let lastRequested = null;
+    let fpInstance = null;
+
+    function toISO(dmy) {
+      if (!dmy) return '';
+      const parts = dmy.split('-');
+      if (parts.length !== 3) return '';
+      // Expecting d-m-Y -> Y-m-d
+      return parts[2] + "-" + parts[1] + "-" + parts[0];
+    }
+
+    function setStatus(text, klass) {
+      hijriEl.textContent = text;
+      if (klass) {
+        hijriEl.classList.remove('text-danger', 'text-muted');
+        hijriEl.classList.add(klass);
+      }
+    }
+
+    function fetchHijriIfNeeded(dmy) {
+      if (!dmy) {
+        setStatus('Hijri Date:', 'text-muted');
+        return;
+      }
+      const iso = toISO(dmy);
+      if (!iso) {
+        setStatus('Hijri Date:', 'text-muted');
+        return;
+      }
+      if (iso === lastRequested) return; // prevent duplicate
+      lastRequested = iso;
+      setStatus('Hijri Date: Loading...', 'text-muted');
+      fetch('<?php echo base_url("common/get_hijri_date_ajax"); ?>', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: new URLSearchParams({
+          greg_date: iso
+        })
+      }).then(r => r.json()).then(data => {
+        if (data && data.status === 'success' && data.hijri_date) {
+          hijriEl.textContent = 'Hijri Date: ' + data.hijri_date;
+          hijriEl.classList.remove('text-danger');
+          hijriEl.classList.add('text-muted');
+        } else {
+          setStatus('Hijri Date: Not found', 'text-danger');
+        }
+      }).catch(() => {
+        setStatus('Hijri Date: Error fetching', 'text-danger');
+      });
+    }
+
+    // Initialize / extend flatpickr if not already initialised by earlier script
+    if (typeof flatpickr !== 'undefined') {
+      // Reconfigure with onChange to ensure callback
+      fpInstance = flatpickr('#date', {
+        dateFormat: 'd-m-Y',
+        disable: (window.miqaatDates || []),
+        onChange: function(selectedDates, dateStr) {
+          fetchHijriIfNeeded(dateStr);
+        }
+      });
+    }
+
+    // Initial fetch if value pre-filled
+    if (dateInput.value) {
+      fetchHijriIfNeeded(dateInput.value);
+    }
+
+    // Fallback listener if user types manually
+    dateInput.addEventListener('change', function() {
+      fetchHijriIfNeeded(this.value);
+    });
+  })();
+</script>
+
+<script>
+  // Hijri calendar selector logic
+  (function() {
+    const calContainer = document.getElementById('hijri-calendar');
+    const currentLbl = document.getElementById('hijri-current');
+    const prevBtn = document.getElementById('hijri-prev');
+    const nextBtn = document.getElementById('hijri-next');
+    const yearSelect = document.getElementById('hijri-year-select');
+    const gregInput = document.getElementById('date');
+    const hijriDisplay = document.getElementById('hijri-date-display');
+    if (!calContainer || !gregInput) return;
+
+    let monthsCache = {}; // {year: [{id,name}]}
+    let daysCache = {}; // { 'year-month': [ {day,hijri_date,greg_date} ] }
+    let years = [];
+    let currentYear = null;
+    let currentMonth = 1;
+    let pendingSelectGreg = null; // store greg date to auto-select when calendar data ready
+
+    function fetchJSON(url) {
+      return fetch(url).then(r => r.json());
+    }
+
+    function monthName(year, month) {
+      const ms = monthsCache[year] || [];
+      const f = ms.find(m => parseInt(m.id) === parseInt(month));
+      return f ? f.name : ('Month ' + month);
+    }
+
+    function loadYears() {
+      return fetchJSON('<?php echo base_url('common/get_hijri_years'); ?>').then(d => {
+        if (d.status === 'success') {
+          years = d.years;
+          if (!currentYear) currentYear = years[0];
+          if (yearSelect) {
+            yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+            yearSelect.value = currentYear;
+          }
+        }
+      });
+    }
+
+    function loadMonths(year) {
+      if (monthsCache[year]) return Promise.resolve(monthsCache[year]);
+      return fetchJSON('<?php echo base_url('common/get_hijri_months'); ?>?year=' + year).then(d => {
+        if (d.status === 'success') monthsCache[year] = d.months;
+        return monthsCache[year] || [];
+      });
+    }
+
+    function loadDays(year, month) {
+      const k = year + '-' + month;
+      if (daysCache[k]) return Promise.resolve(daysCache[k]);
+      return fetchJSON('<?php echo base_url('common/get_hijri_days'); ?>?year=' + year + '&month=' + month).then(d => {
+        if (d.status === 'success') daysCache[k] = d.days;
+        return daysCache[k] || [];
+      });
+    }
+
+    function highlightGreg(iso) {
+      if (!iso) return;
+      const btn = calContainer.querySelector('[data-greg="' + iso + '"]');
+      if (btn) {
+        [...calContainer.querySelectorAll('.hijri-day')].forEach(x => x.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    }
+    // adjust applyAutoSelect to only highlight; avoid triggering click (which re-fetches unnecessarily)
+    function applyAutoSelect() {
+      if (!pendingSelectGreg) return;
+      highlightGreg(pendingSelectGreg);
+      pendingSelectGreg = null;
+    }
+
+    function gregWeekday(iso) { // iso = Y-m-d
+      const d = new Date(iso.replace(/-/g, '/')); // Safari friendly
+      return d.getDay(); // 0=Sun
+    }
+
+    function render() {
+      // Ensure months for current year are loaded before rendering (so monthName resolves correctly)
+      loadMonths(currentYear).then(() => loadDays(currentYear, currentMonth)).then(days => {
+        currentLbl.textContent = monthName(currentYear, currentMonth) + ' ' + currentYear;
+        const monthYearHeading = document.getElementById('hijri-month-year');
+        if (monthYearHeading) {
+          // monthYearHeading.textContent = currentLbl.textContent;
+        }
+        calContainer.innerHTML = '';
+        if (!days.length) {
+          calContainer.innerHTML = '<div class="text-muted small">No days.</div>';
+          return;
+        }
+
+        // Build 7-col structure: headers + weeks
+        const table = document.createElement('div');
+        table.className = 'hijri-week-grid';
+
+        const headers = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const headRow = document.createElement('div');
+        headRow.className = 'hijri-row hijri-head';
+        headers.forEach(h => {
+          const hd = document.createElement('div');
+          hd.className = 'hijri-cell hijri-head-cell fw-semibold text-center';
+          hd.textContent = h;
+          headRow.appendChild(hd);
+        });
+        table.appendChild(headRow);
+
+        // Map each day to weekday
+        // days are in ascending greg_date already
+        let weekRow = document.createElement('div');
+        weekRow.className = 'hijri-row';
+        let cellsInRow = 0;
+        // Determine offset for first day
+        const firstWeekday = gregWeekday(days[0].greg_date); // 0..6
+        for (let i = 0; i < firstWeekday; i++) {
+          const empty = document.createElement('div');
+          empty.className = 'hijri-cell empty';
+          weekRow.appendChild(empty);
+          cellsInRow++;
+        }
+
+        days.forEach(d => {
+          if (cellsInRow === 7) {
+            table.appendChild(weekRow);
+            weekRow = document.createElement('div');
+            weekRow.className = 'hijri-row';
+            cellsInRow = 0;
+          }
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn btn-sm btn-outline-primary hijri-day';
+          btn.textContent = d.day;
+          btn.dataset.greg = d.greg_date;
+          btn.dataset.hijri = d.hijri_date;
+          btn.addEventListener('click', () => {
+            const gp = d.greg_date.split('-');
+            if (gp.length === 3) {
+              gregInput.value = gp[2] + '-' + gp[1] + '-' + gp[0];
+              gregInput.dispatchEvent(new Event('change', {
+                bubbles: true
+              }));
+            }
+            const hp = d.hijri_date.split('-');
+            if (hp.length === 3) {
+              hijriDisplay.textContent = 'Hijri Date: ' + hp[0] + ' ' + monthName(currentYear, currentMonth) + ' ' + hp[2];
+            }
+            [...calContainer.querySelectorAll('.hijri-day')].forEach(x => x.classList.remove('active'));
+            btn.classList.add('active');
+            const selectedHeading = document.getElementById('hijri-selected-date');
+            if (selectedHeading) {
+              // selectedHeading.textContent = 'Selected Date: ' + d.day + ' ' + monthName(currentYear, currentMonth) + ' ' + currentYear;
+            }
+          });
+          const cell = document.createElement('div');
+          cell.className = 'hijri-cell text-center';
+          cell.appendChild(btn);
+          weekRow.appendChild(cell);
+          cellsInRow++;
+        });
+
+        // Trailing empties
+        if (cellsInRow > 0 && cellsInRow < 7) {
+          for (let i = cellsInRow; i < 7; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'hijri-cell empty';
+            weekRow.appendChild(empty);
+          }
+        }
+        table.appendChild(weekRow);
+        calContainer.appendChild(table);
+        applyAutoSelect();
+        // After auto-select ensure selected heading reflects active day if any (e.g., on sync)
+        const selectedHeading = document.getElementById('hijri-selected-date');
+        if (selectedHeading) {
+          const active = calContainer.querySelector('.hijri-day.active');
+          if (active) {
+            // selectedHeading.textContent = 'Selected Date: ' + active.textContent.trim() + ' ' + monthName(currentYear, currentMonth) + ' ' + currentYear;
+          }
+        }
+      });
+    }
+    // Insert toggle button (once) just above calendar wrapper
+    (function ensureToggle() {
+      const wrapper = document.getElementById('hijri-selector-wrapper');
+      if (wrapper && !document.getElementById('toggle-hijri-cal')) {
+        // Always clear stored preference to force reset each refresh
+        try {
+          localStorage.removeItem('hijriCalHidden');
+        } catch (e) {}
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'toggle-hijri-cal';
+        btn.className = 'btn btn-sm btn-outline-primary mb-2';
+        btn.setAttribute('aria-expanded', 'false');
+        btn.textContent = 'Show Hijri Calendar';
+        if (wrapper.children.length > 0) {
+          wrapper.insertBefore(btn, wrapper.children[1]);
+        } else {
+          wrapper.insertBefore(btn, wrapper.firstChild);
+        }
+        const note = wrapper.querySelector('small.text-muted');
+        calContainer.style.display = 'none';
+        if (note) note.style.display = 'none';
+        btn.addEventListener('click', () => {
+          const hidden = calContainer.style.display === 'none';
+          if (hidden) {
+            calContainer.style.display = '';
+            if (note) note.style.display = '';
+            btn.textContent = 'Hide Hijri Calendar';
+            btn.setAttribute('aria-expanded', 'true');
+          } else {
+            calContainer.style.display = 'none';
+            if (note) note.style.display = 'none';
+            btn.textContent = 'Show Hijri Calendar';
+            btn.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+    })();
+
+    function navigate(delta) {
+      currentMonth += delta;
+      if (currentMonth < 1) {
+        currentMonth = 12;
+        const idx = years.indexOf(currentYear);
+        if (idx > 0) {
+          currentYear = years[idx - 1];
+        }
+      } else if (currentMonth > 12) {
+        currentMonth = 1;
+        const idx = years.indexOf(currentYear);
+        if (idx < years.length - 1) {
+          currentYear = years[idx + 1];
+        }
+      }
+      if (yearSelect) yearSelect.value = currentYear;
+      // If new year months not cached, ensure they load before render
+      if (!monthsCache[currentYear]) {
+        loadMonths(currentYear).then(() => render());
+      } else {
+        render();
+      }
+    }
+
+    function syncCalendarToGregorian(dmy) {
+      if (!dmy) return;
+      const p = dmy.split('-');
+      if (p.length !== 3) return;
+      const iso = p[2] + '-' + p[1] + '-' + p[0];
+      pendingSelectGreg = iso; // target to auto-select
+      // First try cache
+      for (const key in daysCache) {
+        const days = daysCache[key];
+        if (days.some(d => d.greg_date === iso)) {
+          const partsKey = key.split('-');
+          currentYear = parseInt(partsKey[0]);
+          currentMonth = parseInt(partsKey[1]);
+          render();
+          return;
+        }
+      }
+      // If not in cache, query backend for hijri parts to jump directly
+      fetch('<?php echo base_url('common/get_hijri_parts'); ?>', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: new URLSearchParams({
+          greg_date: iso
+        })
+      }).then(r => r.json()).then(resp => {
+        if (resp.status === 'success' && resp.parts) {
+          currentYear = resp.parts.hijri_year;
+          currentMonth = parseInt(resp.parts.hijri_month);
+          if (yearSelect) yearSelect.value = currentYear;
+        }
+        render();
+      }).catch(() => {
+        render();
+      });
+    }
+
+    // Initial boot
+    loadYears().then(() => loadMonths(currentYear)).then(ms => {
+      if (ms && ms.length && !currentMonth) currentMonth = parseInt(ms[0].id) || 1;
+    }).then(() => {
+      // If greg date already set, store for auto-select
+      if (gregInput.value) {
+        syncCalendarToGregorian(gregInput.value);
+      } else {
+        render();
+      }
+    });
+
+    // Watch for external Gregorian date changes (flatpickr or manual)
+    gregInput.addEventListener('change', function() {
+      syncCalendarToGregorian(this.value);
+    });
+    // Attach navigation button handlers (may have been lost in refactors)
+    if (prevBtn && nextBtn) {
+      prevBtn.addEventListener('click', function() {
+        navigate(-1);
+      });
+      nextBtn.addEventListener('click', function() {
+        navigate(1);
+      });
+    }
+    if (yearSelect) {
+      yearSelect.addEventListener('change', function() {
+        const newYear = this.value;
+        if (newYear && newYear !== currentYear) {
+          currentYear = newYear;
+          // keep same month if possible, else fallback to 1
+          loadMonths(currentYear).then(ms => {
+            const exists = (ms || []).some(m => parseInt(m.id) === parseInt(currentMonth));
+            if (!exists) {
+              currentMonth = ms && ms.length ? parseInt(ms[0].id) : 1;
+            }
+            render();
+          });
+        }
+      });
+    }
+  })();
+</script>
+
+<script>
+  (function addHijriHeadings() {
+    const wrapper = document.getElementById('hijri-selector-wrapper');
+    if (wrapper && !document.getElementById('hijri-month-year')) {
+      const heading = document.createElement('div');
+      heading.id = 'hijri-month-year';
+      heading.className = 'mb-1 fw-semibold text-primary small';
+      wrapper.insertBefore(heading, document.getElementById('toggle-hijri-cal') ? document.getElementById('toggle-hijri-cal').nextSibling : wrapper.children[1]);
+      const sel = document.createElement('div');
+      sel.id = 'hijri-selected-date';
+      sel.className = 'mb-2 text-secondary small';
+      wrapper.insertBefore(sel, heading.nextSibling);
+    }
+  })();
 </script>

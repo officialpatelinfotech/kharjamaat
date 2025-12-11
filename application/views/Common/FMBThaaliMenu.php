@@ -2,6 +2,21 @@
   .menu-list-container {
     width: 100%;
   }
+  /* Hide Actions column and print button when printing */
+  @media print {
+    /* Hide actions column */
+    .menu-list-container table th:last-child,
+    .menu-list-container table td:last-child { display: none !important; }
+    /* Hide everything except heading and table */
+    #print-table-btn,
+    .print-controls,
+    .create-menu-btn,
+    .create-menu-btn form,
+    .create-menu-btn #clear-filter,
+    .container.mb-3.p-0 { display: none !important; }
+    /* Remove page padding for compact print */
+    body, .margintopcontainer { padding: 0 !important; margin: 0 !important; }
+  }
 </style>
 
 <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
@@ -12,7 +27,7 @@
 
 <div class="container margintopcontainer pt-5">
   <div class="container mb-3 p-0">
-    <a href="<?php echo base_url("admin/managefmbsettings"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+    <a href="<?php echo isset($from) ? base_url($from) : base_url("anjuman/fmbthaali"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
   <div class="create-menu-btn d-flex">
     <form method="post" action="<?php echo base_url("common/filter_menu"); ?>" id="filter-form" class="d-flex m-0">
@@ -46,7 +61,7 @@
           </select>
         </div> -->
       <div class="clear-filter-btn">
-        <a href="<?php echo base_url("common/fmbthaalimenu"); ?>" id="clear-filter" class="btn btn-secondary mx-3">Clear Filter</a>
+        <a href="<?php echo base_url("common/fmbthaalimenu?from=" . $from); ?>" id="clear-filter" class="btn btn-secondary mx-3"><i class="fa fa-times"></i></a>
       </div>
     </form>
 
@@ -55,23 +70,29 @@
           <i class="fa fa-copy"></i> Duplicate Last Month's Menu
         </a> -->
 
-      <a href="<?php echo base_url("common/add_menu_item?from=fmbthaalimenu"); ?>" class="btn btn-outline-secondary">Edit Items</a>
-      <a href="<?php echo base_url("common/createmenu"); ?>" class="btn btn-primary">Add Menu</a>
+      <a href="<?php echo base_url("common/add_menu_item?from=" . $from); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-pencil"></i> Edit Items</a>
+      <a href="<?php echo base_url("common/createmenu"); ?>" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Menu</a>
     </div>
   </div>
 
-  <h3 class="text-center mb-3">FMB Thaali Menu</h3>
+  
+
+  <h4 class="text-center mb-3">FMB Thaali Menu</h4>
+
+  <div class="mb-3 d-flex justify-content-end print-controls" style="gap:8px;">
+    <button type="button" id="print-table-btn" class="btn btn-outline-primary"><i class="fa fa-print"></i> Print Table</button>
+  </div>
 
   <div class="menu-list-container">
     <table class="table table-bordered mt-2">
       <thead>
         <tr>
-          <th>#</th>
+          <th data-no-sort>#</th>
           <th>Eng Date</th>
           <th>Hijri Date</th>
           <th>Day</th>
           <th>Menu</th>
-          <th>Actions</th>
+          <th data-no-sort>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -79,7 +100,7 @@
           <?php foreach ($menu as $key => $item) :
             if ($key === 0 || (isset($menu[$key - 1]) && explode(" ", $menu[$key - 1]["hijri_date"], 2)[1] != explode(" ", $menu[$key]["hijri_date"], 2)[1])):
           ?>
-              <tr>
+              <tr class="month-header" data-hijri-month-name="<?php echo htmlspecialchars(explode(" ", $menu[$key]["hijri_date"], 2)[1], ENT_QUOTES); ?>">
                 <td colspan="6" class="bg-dark text-white text-center">Hijri Month: <?php echo explode(" ", $menu[$key]["hijri_date"], 2)[1]; ?></td>
               </tr>
             <?php endif;
@@ -91,9 +112,9 @@
               $rowClass = 'class="table-secondary"';
             }
             ?>
-            <tr <?php echo $rowClass; ?>>
+            <tr <?php echo $rowClass; ?> data-eng-date="<?php echo isset($item['date']) ? htmlspecialchars($item['date'], ENT_QUOTES) : ''; ?>" data-hijri-date="<?php echo isset($item['hijri_date']) ? htmlspecialchars($item['hijri_date'], ENT_QUOTES) : ''; ?>">
               <td><?php echo $key + 1; ?></td>
-              <td>
+              <td data-sort-value="<?php echo isset($item['date']) ? htmlspecialchars($item['date'], ENT_QUOTES) : ''; ?>">
                 <?php echo isset($item['date']) ? date("d M Y", strtotime($item['date'])) : ""; ?>
               </td>
               <td>
@@ -109,7 +130,7 @@
               if (count($item["items"]) > 0) :
               ?>
                 <td>
-                  <a href="<?php echo base_url("common/edit_menu/" . $item['id']); ?>" class="btn btn-sm btn-primary mb-2 mb-md-0"><i class="fa fa-edit"></i></a>
+                  <a href="<?php echo base_url("common/edit_menu/" . $item['id'] . "?from=" . $from); ?>" class="btn btn-sm btn-primary mb-2 mb-md-0"><i class="fa fa-edit"></i></a>
                   <form method="POST" action="<?php echo base_url('common/delete_menu'); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this menu?');">
                     <input type="hidden" name="menu_id" value="<?php echo $item['id']; ?>">
                     <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
@@ -126,10 +147,102 @@
           <?php endforeach; ?>
         <?php else : ?>
           <tr>
-            <td colspan="3" class="text-center">No menu items found.</td>
+            <td colspan="6" class="text-center">No menu items found.</td>
           </tr>
         <?php endif; ?>
       </tbody>
+    </table>
+    <script>
+      (function(){
+        const table = document.querySelector('.menu-list-container table');
+        if(!table) return;
+        const thead = table.querySelector('thead');
+        const tbody = table.querySelector('tbody');
+        if(!thead || !tbody) return;
+
+        // Make headers sortable (except those marked data-no-sort)
+        thead.querySelectorAll('th').forEach((th, idx) => {
+          if(th.hasAttribute('data-no-sort')) return;
+          th.classList.add('sortable');
+          const original = th.innerHTML.trim();
+          th.innerHTML = '<span class="sort-label">'+original+'</span><span class="sort-indicator" aria-hidden="true"></span>';
+          th.setAttribute('role','button'); th.setAttribute('tabindex','0');
+          th.addEventListener('click', () => toggleSort(idx, th));
+          th.addEventListener('keydown', e => { if(['Enter',' '].includes(e.key)){ e.preventDefault(); toggleSort(idx, th); }});
+        });
+
+        function getCellValue(tr, index){
+          const cells = tr.querySelectorAll('td');
+          if(!cells[index]) return '';
+          return cells[index].getAttribute('data-sort-value') || cells[index].textContent.trim();
+        }
+        function inferType(val){
+          if(/^\d{4}-\d{2}-\d{2}$/.test(val)) return 'date';
+          if(!isNaN(parseFloat(val)) && isFinite(val)) return 'number';
+          return 'text';
+        }
+        function norm(val){
+          const t = inferType(val);
+          if(t==='date') return new Date(val).getTime();
+          if(t==='number') return parseFloat(val);
+          return val.toLowerCase();
+        }
+        function toggleSort(idx, th){
+          const newDir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+          thead.querySelectorAll('th.sortable').forEach(h => { h.dataset.sortDir=''; const ind=h.querySelector('.sort-indicator'); if(ind) ind.textContent=''; });
+          th.dataset.sortDir = newDir; const ind=th.querySelector('.sort-indicator'); if(ind) ind.textContent = newDir==='asc' ? '▲' : '▼';
+
+          const allRows = Array.from(tbody.querySelectorAll('tr'));
+          const monthHeaders = allRows.filter(r => r.classList.contains('month-header'));
+          const dataRows = allRows.filter(r => !r.classList.contains('month-header'));
+
+          dataRows.sort((a,b) => {
+            const va = norm(getCellValue(a, idx));
+            const vb = norm(getCellValue(b, idx));
+            if(va < vb) return newDir==='asc' ? -1 : 1;
+            if(va > vb) return newDir==='asc' ? 1 : -1;
+            return 0;
+          });
+
+          // Rebuild tbody with month headers preceding first row of each month in current order
+          tbody.innerHTML='';
+          const inserted = new Set();
+          dataRows.forEach(r => {
+            const m = r.getAttribute('data-hijri-date');
+            let mName = '';
+            if(m){ const parts = m.split(' '); parts.shift(); mName = parts.join(' ');} 
+            if(mName && !inserted.has(mName)){
+              const hdr = document.createElement('tr'); hdr.className='month-header'; const td=document.createElement('td'); td.colSpan=6; td.className='bg-dark text-white text-center'; td.style.fontWeight='bold'; td.textContent='Hijri Month: '+mName; hdr.appendChild(td); tbody.appendChild(hdr); inserted.add(mName);
+            }
+            tbody.appendChild(r);
+          });
+        }
+
+        // Eng Date filter (only this column controls filtering)
+        const engFilter = document.getElementById('eng-date-filter');
+        if(engFilter){
+          engFilter.addEventListener('change', () => {
+            const v = engFilter.value; // YYYY-MM-DD
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.forEach(r => {
+              if(r.classList.contains('month-header')) return; // keep headers for context
+              const eng = r.getAttribute('data-eng-date') || '';
+              if(!v || eng === v){ r.style.display=''; } else { r.style.display='none'; }
+            });
+          });
+        }
+
+        // Print table only
+        const printTableBtn = document.getElementById('print-table-btn');
+        if(printTableBtn){
+          printTableBtn.addEventListener('click', () => {
+            // Directly print current page; CSS @media print hides Actions column & button
+            window.print();
+          });
+        }
+
+      })();
+    </script>
   </div>
 </div>
 <script>

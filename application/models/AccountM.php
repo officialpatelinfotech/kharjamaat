@@ -335,7 +335,7 @@ class AccountM extends CI_Model
       ->join("user u", "u.ITS_ID = gc.user_id", "left")
       ->join("(SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) paid", "paid.fmbgc_id = gc.id", "left")
       ->where("u.ITS_ID", $user_id)
-      ->order_by('gc.created_at','DESC')
+      ->order_by('gc.created_at', 'DESC')
       ->get()
       ->result_array();
 
@@ -347,6 +347,50 @@ class AccountM extends CI_Model
       "current_year"          => $current_year_takhmeen,
       "current_hijri_year"    => isset($current_hijri_year) ? (int)$current_hijri_year : null,
       "general_contributions" => $general_contributions
+    ];
+  }
+
+  /**
+   * Fetch payment history for a single General Contribution invoice owned by the given user.
+   * Returns array: [success => bool, invoice => meta|NULL, payments => [], total_received => float, balance_due => float, message?]
+   */
+  public function get_user_gc_payment_history($user_id, $fmbgc_id)
+  {
+    $user_id = (int)$user_id;
+    $fmbgc_id = (int)$fmbgc_id;
+    if (!$user_id || !$fmbgc_id) {
+      return ['success' => false, 'message' => 'Invalid parameters'];
+    }
+
+    $invoice = $this->db->select('gc.id, gc.user_id, gc.contri_year, gc.fmb_type, gc.contri_type, gc.amount, gc.payment_status, gc.created_at, gc.description')
+      ->from('fmb_general_contribution gc')
+      ->where('gc.id', $fmbgc_id)
+      ->where('gc.user_id', $user_id)
+      ->get()->row_array();
+    if (!$invoice) {
+      return ['success' => false, 'message' => 'Invoice not found'];
+    }
+
+    $payments = $this->db->select('id AS payment_id, amount, payment_method, payment_date, remarks, created_at')
+      ->from('fmb_general_contribution_payments')
+      ->where('fmbgc_id', $fmbgc_id)
+      ->order_by('payment_date', 'DESC')
+      ->order_by('id', 'DESC')
+      ->get()->result_array();
+
+    $total_received = 0.0;
+    foreach ($payments as $p) {
+      $total_received += (float)$p['amount'];
+    }
+    $balance = (float)$invoice['amount'] - $total_received;
+    if ($balance < 0) $balance = 0.0;
+
+    return [
+      'success' => true,
+      'invoice' => $invoice,
+      'payments' => $payments,
+      'total_received' => $total_received,
+      'balance_due' => $balance
     ];
   }
 
@@ -394,16 +438,23 @@ class AccountM extends CI_Model
         SELECT 
           st.user_id,
           COALESCE(SUM(eg.amount),0) AS establishment_total,
-          COALESCE(SUM(CASE WHEN p.type = 'establishment' THEN p.amount ELSE 0 END),0) AS establishment_paid,
           COALESCE(SUM(rg.yearly_amount),0) AS residential_total,
-          COALESCE(SUM(CASE WHEN p.type = 'residential' THEN p.amount ELSE 0 END),0) AS residential_paid
+          -- payments aggregated separately to avoid duplication
+          (
+            SELECT COALESCE(SUM(amount),0)
+            FROM sabeel_takhmeen_payments p1
+            WHERE p1.user_id = st.user_id AND p1.type = 'establishment'
+          ) AS establishment_paid,
+          (
+            SELECT COALESCE(SUM(amount),0)
+            FROM sabeel_takhmeen_payments p2
+            WHERE p2.user_id = st.user_id AND p2.type = 'residential'
+          ) AS residential_paid
         FROM sabeel_takhmeen st
         LEFT JOIN sabeel_takhmeen_grade eg 
           ON eg.id = st.establishment_grade AND eg.type = 'establishment'
         LEFT JOIN sabeel_takhmeen_grade rg 
           ON rg.id = st.residential_grade AND rg.type = 'residential'
-        LEFT JOIN sabeel_takhmeen_payments p 
-          ON p.user_id = st.user_id AND p.type IN ('establishment','residential')
         WHERE st.user_id = {$this->db->escape_str($user_id)}
         GROUP BY st.user_id
       ) overall",
@@ -412,6 +463,61 @@ class AccountM extends CI_Model
     );
 
     $result = $this->db->get()->row_array();
+
+    // Compute current Hijri composite year (09–12 same year, 01–08 next year)
+    $today = date('Y-m-d');
+    $row = $this->db->select('hijri_date')
+      ->from('hijri_calendar')
+      ->where('greg_date', $today)
+      ->get()
+      ->row_array();
+    $currentCompositeYear = '';
+    if (!empty($row) && isset($row['hijri_date'])) {
+      $parts = explode('-', $row['hijri_date']); // d-m-Y
+      if (count($parts) === 3) {
+        $hm = (int)$parts[1];
+        $hy = (int)$parts[2];
+        if ($hm >= 9) {
+          $sy = $hy;
+          $ey = $hy + 1;
+        } else {
+          $sy = $hy - 1;
+          $ey = $hy;
+        }
+        $currentCompositeYear = $sy . '-' . substr((string)$ey, -2);
+      }
+    }
+
+    // Derive current-year totals/paid using existing FIFO-distributed details
+    $cy_total = 0.0;
+    $cy_paid = 0.0;
+    if ($currentCompositeYear !== '') {
+      $details = $this->viewSabeelTakhmeen($user_id);
+      if (isset($details['e_takhmeen']) && is_array($details['e_takhmeen'])) {
+        foreach ($details['e_takhmeen'] as $row) {
+          if (isset($row['year']) && (string)$row['year'] === $currentCompositeYear) {
+            $cy_total += (float)($row['total'] ?? 0);
+            $cy_paid  += (float)($row['paid'] ?? 0);
+          }
+        }
+      }
+      if (isset($details['r_takhmeen']) && is_array($details['r_takhmeen'])) {
+        foreach ($details['r_takhmeen'] as $row) {
+          if (isset($row['year']) && (string)$row['year'] === $currentCompositeYear) {
+            $cy_total += (float)($row['total'] ?? 0);
+            $cy_paid  += (float)($row['paid'] ?? 0);
+          }
+        }
+      }
+    }
+    $cy_due = max(0, $cy_total - $cy_paid);
+
+    if (!is_array($result)) $result = [];
+    $result['current_year']        = $currentCompositeYear;
+    $result['current_year_total']  = $cy_total;
+    $result['current_year_paid']   = $cy_paid;
+    $result['current_year_due']    = $cy_due;
+
     return $result ?: null;
   }
 
@@ -737,6 +843,98 @@ class AccountM extends CI_Model
     return $grouped;
   }
 
+  /**
+   * Fetch menu + miqaat + holiday structure for a specific Hijri month (month numeric, year numeric).
+   * Returns same structure as get_month_wise_menu() but for provided hijri month/year.
+   */
+  public function get_hijri_month_menu($hijri_year, $hijri_month)
+  {
+    if (empty($hijri_year) || empty($hijri_month)) return [];
+    $hijri_year = (int)$hijri_year;
+    $hijri_month = sprintf('%02d', (int)$hijri_month);
+    $hijri_month_year = $hijri_month . '-' . $hijri_year;
+
+    // All days for given hijri month/year
+    // Primary filter using LIKE on month-year substring
+    $month_days = $this->db->select('greg_date, hijri_date, hijri_month_id')
+      ->from('hijri_calendar')
+      ->like('hijri_date', $hijri_month_year) // matches DD-MM-YYYY where MM-YYYY substring appears
+      ->order_by('greg_date', 'ASC')
+      ->get()
+      ->result_array();
+
+    // Fallback: explicit filters (in case LIKE fails or collation issues) using hijri_month_id and year substring
+    if (empty($month_days)) {
+      $month_days = $this->db->select('greg_date, hijri_date, hijri_month_id')
+        ->from('hijri_calendar')
+        ->where('hijri_month_id', (int)$hijri_month)
+        ->like('hijri_date', '-' . $hijri_year) // ensure year present
+        ->order_by('greg_date', 'ASC')
+        ->get()
+        ->result_array();
+    }
+    if (empty($month_days)) return [];
+
+    $startOfMonth = $month_days[0]['greg_date'];
+    $endOfMonth   = $month_days[count($month_days) - 1]['greg_date'];
+
+    // Menus for range
+    $sql = "SELECT m.id, m.date, mim.item_id, mi.name AS item_name
+            FROM menu m
+            LEFT JOIN menu_items_map mim ON mim.menu_id = m.id
+            LEFT JOIN menu_item mi ON mi.id = mim.item_id
+            WHERE m.date BETWEEN ? AND ?
+            ORDER BY m.date ASC, m.id ASC";
+    $menu_results = $this->db->query($sql, [$startOfMonth, $endOfMonth])->result_array();
+    $menu_map = [];
+    foreach ($menu_results as $r) {
+      if (!isset($menu_map[$r['date']])) {
+        $menu_map[$r['date']] = ['id' => $r['id'], 'items' => []];
+      }
+      if (!empty($r['item_id']) && !empty($r['item_name'])) {
+        $menu_map[$r['date']]['items'][] = $r['item_name'];
+      }
+    }
+
+    // Miqaats for range
+    $miqaat_results = $this->db->select('id, name, date')
+      ->from('miqaat')
+      ->where('date >=', $startOfMonth)
+      ->where('date <=', $endOfMonth)
+      ->get()->result_array();
+    $miqaat_map = [];
+    foreach ($miqaat_results as $m) {
+      $miqaat_map[$m['date']][] = ['id' => $m['id'], 'name' => $m['name']];
+    }
+
+    // Build
+    $grouped = [];
+    foreach ($month_days as $d) {
+      $greg_date = $d['greg_date'];
+      $parts = explode('-', $d['hijri_date']);
+      $hijri_day = $parts[0];
+      $entry = [
+        'date' => $greg_date,
+        'hijri_day' => $hijri_day,
+        'hijri_month_id' => $d['hijri_month_id'],
+        'hijri_date' => $d['hijri_date'],
+        'menu' => [],
+        'miqaats' => [],
+        'is_holiday' => true
+      ];
+      if (isset($menu_map[$greg_date])) {
+        $entry['menu'] = ['menu_id' => $menu_map[$greg_date]['id'], 'items' => $menu_map[$greg_date]['items']];
+        $entry['is_holiday'] = false;
+      }
+      if (isset($miqaat_map[$greg_date])) {
+        $entry['miqaats'] = $miqaat_map[$greg_date];
+        $entry['is_holiday'] = false;
+      }
+      $grouped[] = $entry;
+    }
+    return $grouped;
+  }
+
   public function get_next_week_menu()
   {
     $today = date('Y-m-d');
@@ -779,6 +977,95 @@ class AccountM extends CI_Model
     return array_values($grouped);
   }
 
+  /**
+   * Fetch a single menu (with item names) for a specific Gregorian date (Y-m-d).
+   * Returns [date, id, items[]] or null if no menu.
+   */
+  public function get_menu_by_date($greg_date)
+  {
+    if (empty($greg_date)) return null;
+    $sql = "SELECT m.id, m.date, mim.item_id, mi.name AS item_name
+            FROM menu m
+            LEFT JOIN menu_items_map mim ON mim.menu_id = m.id
+            LEFT JOIN menu_item mi ON mi.id = mim.item_id
+            WHERE m.date = ?";
+    $rows = $this->db->query($sql, [$greg_date])->result_array();
+    if (empty($rows)) return null;
+    $menu = ['id' => $rows[0]['id'], 'date' => $rows[0]['date'], 'items' => []];
+    foreach ($rows as $r) {
+      if (!empty($r['item_id']) && !empty($r['item_name'])) {
+        $menu['items'][] = $r['item_name'];
+      }
+    }
+    return $menu;
+  }
+
+  /**
+   * Get menus between two Gregorian dates (inclusive), grouped with item names.
+   * Returns array of [ id, date, items[] ] ordered by date ASC.
+   */
+  public function get_menus_between($startDate, $endDate)
+  {
+    if (empty($startDate) || empty($endDate)) {
+      return [];
+    }
+
+    $sql = "SELECT 
+                m.*, 
+                mim.item_id, 
+                mi.name AS item_name
+            FROM menu m 
+            LEFT JOIN menu_items_map mim ON mim.menu_id = m.id 
+            LEFT JOIN menu_item mi ON mi.id = mim.item_id 
+            WHERE m.date BETWEEN ? AND ? 
+            ORDER BY m.date ASC, m.id ASC";
+
+    $query = $this->db->query($sql, array($startDate, $endDate));
+    $results = $query->result_array();
+
+    $grouped = [];
+    foreach ($results as $row) {
+      $menuId = $row['id'];
+      if (!isset($grouped[$menuId])) {
+        $grouped[$menuId] = [
+          'id' => $row['id'],
+          'date' => $row['date'],
+          'items' => [],
+        ];
+      }
+      if (!empty($row['item_id'])) {
+        $grouped[$menuId]['items'][] = $row['item_name'];
+      }
+    }
+    return array_values($grouped);
+  }
+
+  /**
+   * Get all menu days (raw rows) between two dates. Useful to compute total signup days.
+   */
+  public function get_fmb_signup_days_between($startDate, $endDate)
+  {
+    if (empty($startDate) || empty($endDate)) {
+      return [];
+    }
+    $sql = "SELECT * FROM menu WHERE date BETWEEN ? AND ? ORDER BY date ASC";
+    $query = $this->db->query($sql, array($startDate, $endDate));
+    return $query->result_array();
+  }
+
+  /**
+   * Get user's signup data for dates between range.
+   */
+  public function get_fmb_signup_data_between($userId, $startDate, $endDate)
+  {
+    if (empty($userId) || empty($startDate) || empty($endDate)) {
+      return [];
+    }
+    $sql = "SELECT * FROM fmb_weekly_signup WHERE user_id = ? AND signup_date BETWEEN ? AND ? ORDER BY signup_date ASC";
+    $query = $this->db->query($sql, array($userId, $startDate, $endDate));
+    return $query->result_array();
+  }
+
   public function save_fmb_signup($data)
   {
     if (empty($data['user_id']) || empty($data['signup_date'])) {
@@ -806,7 +1093,8 @@ class AccountM extends CI_Model
     return $result ? true : false;
   }
 
-  public function get_fmb_signup_days() {
+  public function get_fmb_signup_days()
+  {
     $today = date('Y-m-d');
     $startOfWeek = date('Y-m-d', strtotime('monday next week', strtotime($today)));
     $endOfWeek = date('Y-m-d', strtotime('saturday next week', strtotime($today)));
@@ -881,44 +1169,46 @@ class AccountM extends CI_Model
   public function get_feedback_data($fwsid)
   {
     if (!isset($fwsid)) {
-      return;
+      return [];
     }
-
-    $get_feedback_data = "SELECT * FROM fmb_weekly_signup WHERE id = $fwsid";
-    return $this->db->query($get_feedback_data)->result_array();
+    // Use Query Builder to prevent injection and return single row
+    $row = $this->db->get_where('fmb_weekly_signup', ['id' => $fwsid])->row_array();
+    return $row ? $row : [];
   }
 
   public function update_fmb_feedback($data)
   {
-    if (
-      empty($data['feedback_id']) ||
-      empty($data['delivery_time']) ||
-      empty($data['quality']) ||
-      empty($data['freshness']) ||
-      empty($data['quantity'])
-    ) {
+    // Require only the primary identifier; allow optional/blank fields
+    if (empty($data['feedback_id'])) {
       return false;
     }
 
-    $feedback_id = $data['feedback_id'];
-    $delivery_time = $data['delivery_time'];
-    $quality = $data['quality'];
-    $freshness = $data['freshness'];
-    $quantity = $data['quantity'];
-    $feedback = $data['feedback_remark'];
+    $feedback_id  = $data['feedback_id'];
+    // Preserve existing values if any field omitted: fetch current row first
+    $existing = $this->db->get_where('fmb_weekly_signup', ['id' => $feedback_id])->row_array();
+    if (!$existing) {
+      return false;
+    }
 
-    $data = array(
-      "feedback_date" => date("Y-m-d H:i:s"),
-      "delivery_time" => $delivery_time,
-      "quality" => $quality,
-      "freshness" => $freshness,
-      "quantity" => $quantity,
-      "feedback_remark" => $feedback,
-      "status" => 1
-    );
+    // Use null coalescing; allow empty strings (not treated as absence)
+    $delivery_time = array_key_exists('delivery_time', $data) ? $data['delivery_time'] : $existing['delivery_time'];
+    $quality       = array_key_exists('quality', $data) ? $data['quality'] : $existing['quality'];
+    $freshness     = array_key_exists('freshness', $data) ? $data['freshness'] : $existing['freshness'];
+    $quantity      = array_key_exists('quantity', $data) ? $data['quantity'] : $existing['quantity'];
+    $feedback      = array_key_exists('feedback_remark', $data) ? $data['feedback_remark'] : $existing['feedback_remark'];
+
+    $update = [
+      'feedback_date'   => date('Y-m-d H:i:s'),
+      'delivery_time'   => $delivery_time,
+      'quality'         => $quality,
+      'freshness'       => $freshness,
+      'quantity'        => $quantity,
+      'feedback_remark' => $feedback,
+      'status'          => 1
+    ];
 
     $this->db->where('id', $feedback_id);
-    $this->db->update('fmb_weekly_signup', $data);
+    $this->db->update('fmb_weekly_signup', $update);
     return $this->db->affected_rows() > 0;
   }
 
@@ -939,20 +1229,100 @@ class AccountM extends CI_Model
     return count($query->result_array()) > 0;
   }
 
+  /**
+   * Fetch all Miqaat invoices for a user (as HOF) with aggregated paid & due amounts.
+   * Returns array of invoices: id, miqaat_id, miqaat_name, miqaat_type, invoice_date, amount, paid_amount, due_amount, description.
+   */
+  public function get_user_miqaat_invoices($user_id)
+  {
+    if (!$user_id) {
+      return [];
+    }
+    $sql = "SELECT 
+              i.id,
+              i.miqaat_id,
+              m.name AS miqaat_name,
+              m.type AS miqaat_type,
+              i.date AS invoice_date,
+              i.amount,
+              i.description,
+              COALESCE(SUM(p.amount),0) AS paid_amount,
+              (i.amount - COALESCE(SUM(p.amount),0)) AS due_amount
+            FROM miqaat_invoice i
+            LEFT JOIN miqaat_payment p ON p.miqaat_invoice_id = i.id
+            LEFT JOIN miqaat m ON m.id = i.miqaat_id
+            WHERE i.user_id = ?
+            GROUP BY i.id, i.miqaat_id, m.name, m.type, i.date, i.amount, i.description
+            ORDER BY i.date DESC, i.id DESC";
+    $query = $this->db->query($sql, [$user_id]);
+    return $query->result_array();
+  }
+
+  /**
+   * Get detailed payment history for a single miqaat invoice belonging to the user.
+   * Returns [ invoice => {...}, payments => [...] ] or empty arrays if not found/unauthorized.
+   */
+  public function get_user_miqaat_invoice_history($user_id, $invoice_id)
+  {
+    if (!$user_id || !$invoice_id) {
+      return ['invoice' => null, 'payments' => []];
+    }
+    $inv = $this->db->select('i.id, i.miqaat_id, m.name AS miqaat_name, m.type AS miqaat_type, i.date AS invoice_date, i.amount, i.description, i.user_id')
+      ->from('miqaat_invoice i')
+      ->join('miqaat m', 'm.id = i.miqaat_id', 'left')
+      ->where('i.id', $invoice_id)
+      ->get()->row_array();
+    if (!$inv || (int)$inv['user_id'] !== (int)$user_id) {
+      return ['invoice' => null, 'payments' => []];
+    }
+    $pays = $this->db->select('p.id AS payment_id, p.amount, p.payment_method, p.payment_date, p.remarks, p.created_at')
+      ->from('miqaat_payment p')
+      ->where('p.miqaat_invoice_id', $invoice_id)
+      ->order_by('p.payment_date', 'DESC')
+      ->order_by('p.id', 'DESC')
+      ->get()->result_array();
+    // Compute aggregates
+    $total_paid = 0.0;
+    foreach ($pays as $pp) {
+      $total_paid += (float)$pp['amount'];
+    }
+    $inv['paid_amount'] = $total_paid;
+    $inv['due_amount'] = max(0, (float)$inv['amount'] - $total_paid);
+    return ['invoice' => $inv, 'payments' => $pays];
+  }
+
   public function get_all_upcoming_miqaat()
   {
-    $sql = "SELECT * FROM miqaat WHERE date > NOW() ORDER BY date ASC";
+    $sql = "
+      SELECT m.*, 1 AS janab_status
+      FROM miqaat m
+      WHERE m.date > NOW()
+        AND EXISTS (
+          SELECT 1
+          FROM raza r
+          WHERE r.miqaat_id = m.id
+            AND r.`Janab-status` = 1
+        )
+      ORDER BY m.date ASC
+    ";
     $query = $this->db->query($sql);
     return $query->result_array();
   }
 
   public function get_miqaat_raza_status($miqaat_id)
   {
-    $this->db->from("raza");
-    $this->db->where('miqaat_id', $miqaat_id);
-    $result = $this->db->get()->result_array();
-    if (!empty($result)) {
-      return $result[0]["Janab-status"];
+    $miqaat_id = (int)$miqaat_id;
+    $row = $this->db
+      ->select('`Janab-status` AS janab_status')
+      ->from('raza')
+      ->where('miqaat_id', $miqaat_id)
+      ->order_by('id', 'DESC')
+      ->limit(1)
+      ->get()
+      ->row_array();
+
+    if (!empty($row) && isset($row['janab_status'])) {
+      return (string)$row['janab_status'];
     }
     return false;
   }
@@ -991,6 +1361,17 @@ class AccountM extends CI_Model
     return $this->db->affected_rows() > 0;
   }
 
+  /**
+   * Clear any existing guest RSVP record for given hof and miqaat
+   */
+  public function clear_existing_guest_rsvp($hof_id, $miqaat_id)
+  {
+    $this->db->where('hof_id', $hof_id);
+    $this->db->where('miqaat_id', $miqaat_id);
+    $this->db->delete('general_guest_rsvp');
+    return $this->db->affected_rows() > 0;
+  }
+
   public function insert_rsvp($data)
   {
     if (empty($data)) {
@@ -998,6 +1379,37 @@ class AccountM extends CI_Model
     }
     $this->db->insert('general_rsvp', $data);
     return $this->db->affected_rows() > 0;
+  }
+
+  /**
+   * Insert guest RSVP counts for a hof + miqaat
+   * $data should contain hof_id, miqaat_id, gents, ladies, children
+   */
+  public function insert_guest_rsvp($data)
+  {
+    if (empty($data) || empty($data['hof_id']) || empty($data['miqaat_id'])) return false;
+    $row = [
+      'hof_id' => (int)$data['hof_id'],
+      'miqaat_id' => (int)$data['miqaat_id'],
+      'gents' => isset($data['gents']) ? (int)$data['gents'] : 0,
+      'ladies' => isset($data['ladies']) ? (int)$data['ladies'] : 0,
+      'children' => isset($data['children']) ? (int)$data['children'] : 0,
+    ];
+    $this->db->insert('general_guest_rsvp', $row);
+    return $this->db->insert_id();
+  }
+
+  /**
+   * Get guest RSVP row for given hof and miqaat
+   * Returns associative array or null
+   */
+  public function get_guest_rsvp($hof_id, $miqaat_id)
+  {
+    $this->db->where('hof_id', $hof_id);
+    $this->db->where('miqaat_id', $miqaat_id);
+    $query = $this->db->get('general_guest_rsvp');
+    $row = $query->row_array();
+    return empty($row) ? null : $row;
   }
 
   public function get_rsvp_by_miqaat_id($hof_id, $miqaat_id)

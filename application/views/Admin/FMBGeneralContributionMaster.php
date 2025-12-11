@@ -40,16 +40,6 @@
     border-color: rgb(0, 106, 63) !important;
     color: #fff !important;
   }
-  .btn-secondary {
-    background: #fff !important;
-    color: rgb(0, 106, 63) !important;
-    border: 2px solid rgb(0, 106, 63) !important;
-  }
-  .btn-secondary:hover {
-    background: rgb(0, 106, 63) !important;
-    color: #fff !important;
-    border-color: rgb(0, 106, 63) !important;
-  }
   .border {
     border-color: rgb(0, 106, 63) !important;
   }
@@ -60,26 +50,25 @@
 <div class="container margintopcontainer pt-5">
   <div class="row mb-4 p-0">
     <div class="col-12 p-0">
-      <a href="<?php echo base_url("admin/managefmbsettings"); ?>" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+      <a href="<?php echo base_url("admin/managefmbsettings"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     </div>
   </div>
-  <h2 class="heading text-center pb-4 mb-4">FMB General Contribution Settings</h2>
+  <h4 class="heading text-center mb-4">FMB Extra Contribution Master</h4>
   <div class="row mb-4">
     <div class="col-12 col-md-6">
-      <form method="POST" action="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" class="row">
+      <form method="POST" action="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" id="filter-form" class="row">
         <select name="filter_status" id="filter-status" class="form-control col-6">
           <option value="">Select Status</option>
           <option value="1" <?php echo isset($filter_status) ? ($filter_status === "1" ? "selected" : "") : ""; ?>>Active</option>
           <option value="0" <?php echo isset($filter_status) ? ($filter_status === "0" ? "selected" : "") : ""; ?>>Inactive</option>
         </select>
-        <button type="submit" class="btn btn-info col-3 mx-3">Filter</button>
         <a href="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" class="col-2">
-          <button class="btn btn-secondary"><i class="fa-solid fa-times"></i></button>
+          <button class="btn btn-outline-secondary"><i class="fa-solid fa-times"></i></button>
         </a>
       </form>
     </div>
     <div class="col-12 col-md-6 p-0 text-right">
-      <button id="add-contri-type" class="btn btn-primary">Add Contribution Type</button>
+      <button id="add-contri-type" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Contribution Type</button>
     </div>
     <div id="add-contri-type-form" class="col-12 border rounded pt-3 mt-3 hidden">
       <form method="POST" action="<?php echo base_url("admin/addfmbcontritype"); ?>" class="row col-12">
@@ -98,8 +87,8 @@
       </form>
     </div>
   </div>
-  <div class="row mb-4 p-0">
-    <table class="table table-striped table-hover">
+  <div class="row mb-4 p-0 responsive">
+    <table class="table table-striped table-bordered table-hover">
       <thead class="thead-dark">
         <tr>
           <th>#</th>
@@ -135,7 +124,7 @@
                 </select>
               </td>
               <td>
-                <button class="edit-fmbgc-btn btn btn-sm btn-secondary" id="edit-fmbgc-btn-<?php echo $value["id"]; ?>" data-fmbgc-id="<?php echo $value["id"]; ?>">Edit</button>
+                <button class="edit-fmbgc-btn btn btn-sm btn-secondary" id="edit-fmbgc-btn-<?php echo $value["id"]; ?>" data-fmbgc-id="<?php echo $value["id"]; ?>"><i class="fa-solid fa-pencil"></i></button>
                 <button class="save-fmbgc-btn btn btn-sm btn-success hidden" id="save-fmbgc-btn-<?php echo $value["id"]; ?>" data-fmbgc-id="<?php echo $value["id"]; ?>">Save</button>
               </td>
             </tr>
@@ -147,6 +136,10 @@
 </div>
 <script>
   $(document).ready(function() {
+    $("#filter-status").on("change", function() {
+      $("#filter-form").submit();
+    });
+    
     $("#add-contri-type").on("click", function() {
       $("#add-contri-type-form").show();
     });

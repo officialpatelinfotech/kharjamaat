@@ -16,7 +16,20 @@ class Accounts extends CI_Controller
   public function index()
   {
     if (!empty($_SESSION['user'])) {
-      redirect('/accounts/home');
+      $role = isset($_SESSION['user']['role']) ? (int)$_SESSION['user']['role'] : 0;
+      if ($role === 1) {
+        redirect('/admin');
+      } elseif ($role === 2) {
+        redirect('/amilsaheb');
+      } elseif ($role === 3) {
+        redirect('/anjuman');
+      } elseif ($role === 16) {
+        redirect('/MasoolMusaid');
+      } elseif ($role >= 4 && $role <= 15) {
+        redirect('/Umoor');
+      } else {
+        redirect('/accounts/home');
+      }
     }
     if (!empty($_SESSION['login_status'])) {
       $data['status'] = $_SESSION['login_status'];
@@ -108,12 +121,29 @@ class Accounts extends CI_Controller
   {
     $raza = $this->AccountM->get_raza($user_id);
 
+    if (empty($raza) || !is_array($raza)) {
+      return [];
+    }
+
     foreach ($raza as $key => $value) {
-      $member_name = $this->AccountM->get_user($value['user_id']);
-      $razatype = $this->AccountM->get_razatype_byid($value['razaType'])[0];
-      $raza[$key]['razaType'] = $razatype['name'];
-      $raza[$key]['razaType_id'] = $razatype['id'];
-      $raza[$key]['user_name'] = $member_name[0]['Full_Name'];
+      $member_rows = $this->AccountM->get_user($value['user_id']);
+      $member_full_name = '';
+      if (is_array($member_rows) && !empty($member_rows) && isset($member_rows[0]['Full_Name'])) {
+        $member_full_name = $member_rows[0]['Full_Name'];
+      }
+
+      $razatype_rows = $this->AccountM->get_razatype_byid($value['razaType']);
+      $razatype_name = '';
+      $razatype_id = '';
+      if (is_array($razatype_rows) && !empty($razatype_rows)) {
+        $first = $razatype_rows[0];
+        $razatype_name = isset($first['name']) ? $first['name'] : '';
+        $razatype_id = isset($first['id']) ? $first['id'] : '';
+      }
+
+      $raza[$key]['razaType'] = $razatype_name;
+      $raza[$key]['razaType_id'] = $razatype_id;
+      $raza[$key]['user_name'] = $member_full_name;
 
       // Fetch chat count
       $chatCount = $this->AccountM->get_chat_count($value['id']); // Assuming id is the raza_id
@@ -128,10 +158,18 @@ class Accounts extends CI_Controller
 
     $raza_data = array();
 
+    if (empty($raza) || !is_array($raza)) {
+      return $raza_data;
+    }
+
     foreach ($raza as $key => $value) {
       if ($value["status"] == 0 || $value["status"] == 1) {
-        $razatype = $this->AccountM->get_razatype_byid($value['razaType'])[0];
-        $raza_data[$key]['razaType'] = $razatype['name'];
+        $razatype_rows = $this->AccountM->get_razatype_byid($value['razaType']);
+        $razatype_name = '';
+        if (is_array($razatype_rows) && !empty($razatype_rows) && isset($razatype_rows[0]['name'])) {
+          $razatype_name = $razatype_rows[0]['name'];
+        }
+        $raza_data[$key]['razaType'] = $razatype_name;
 
         $raza_data[$key]['time-stamp'] = $value['time-stamp'];
         $raza_data[$key]['status'] = $value['status'];
@@ -141,69 +179,6 @@ class Accounts extends CI_Controller
   }
 
   // Updated by Patel Infotech Services
-
-  public function generate_pdf()
-  {
-    $this->load->library('dompdf_lib');
-    $dompdf = $this->dompdf_lib->load();
-
-    $payment_id = $this->input->post("id");
-    $for = $this->input->post("for");
-
-    $table = null;
-    switch ($for) {
-      case 1:
-        $table = "fmb_takhmeen_payments";
-        break;
-      case 2:
-        $table = "miqaat_payment";
-        break;
-      case 3:
-        $table = "fmb_general_contribution_payments";
-        break;
-      case 4:
-        $table = "sabeel_takhmeen_payments";
-        break;
-      default:
-        // Handle invalid 'for' value
-        echo "Invalid request.";
-        return;
-    }
-
-    $result = $this->AccountM->get_payment_details($payment_id, $table);
-
-    $data = [];
-
-    if ($result) {
-      $f = new NumberFormatter("en", NumberFormatter::SPELLOUT);
-      $raw_words = trim($f->format($result["amount"]));
-      // Convert to Title Case, including parts after hyphens (e.g., "thirty-five" -> "Thirty-Five")
-      $amount_words = implode(' ', array_map(function($token){
-        return implode('-', array_map(function($part){ return ucfirst($part); }, explode('-', $token)));
-      }, preg_split('/\s+/', $raw_words)));
-
-      $data = array(
-        "date" => $result["payment_date"],
-        "name" => $result["Full_Name"],
-        "address" => $result["Address"],
-        "amount" => $result["amount"],
-        "amount_words" => $amount_words,
-      );
-    }
-
-    $html = $this->load->view('pdf_template', $data, true);
-
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'landscape');
-    $dompdf->render();
-
-    // Download as file
-    // $dompdf->stream("myfile.pdf", array("Attachment" => 1));
-
-    // Or show in browser
-    $dompdf->stream("myfile.pdf", array("Attachment" => 0));
-  }
-
   public function get_hijri_day_month($greg_date)
   {
     $hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($greg_date)));
@@ -247,8 +222,144 @@ class Accounts extends CI_Controller
 
     $data["fmb_takhmeen_details"] = $this->AccountM->get_member_total_fmb_due($user_id);
     $data["sabeel_takhmeen_details"] = $this->AccountM->get_member_total_sabeel_due($user_id);
-    $data["signup_days"] = $this->AccountM->get_fmb_signup_days($user_id);
-    $data["signup_data"] = $this->AccountM->get_fmb_signup_data($user_id);
+
+    // Corpus funds summary for this family (HOF): total per family, assigned, paid, outstanding
+    $this->load->model('CorpusFundM');
+    $corpusFunds = $this->CorpusFundM->get_funds();
+    $totalPerFamily = 0.0; // Sum of base fund amounts
+    $assignedTotal = 0.0;  // Sum of assignments for this HOF across all funds
+    $paidTotal = 0.0;      // Sum of payments for this HOF across all funds
+    $fundsCount = is_array($corpusFunds) ? count($corpusFunds) : 0;
+    if (!empty($corpusFunds)) {
+      foreach ($corpusFunds as $f) {
+        $fid = (int)($f['id'] ?? 0);
+        $totalPerFamily += (float)($f['amount'] ?? 0);
+        if ($fid > 0 && !empty($hof_id)) {
+          // Assigned for this HOF + fund
+          $rowA = $this->db->select('COALESCE(SUM(amount_assigned),0) AS total_assigned')
+            ->from('corpus_fund_assignment')
+            ->where('fund_id', $fid)
+            ->where('hof_id', $hof_id)
+            ->get()->row_array();
+          $assignedTotal += isset($rowA['total_assigned']) ? (float)$rowA['total_assigned'] : 0.0;
+          // Paid for this HOF + fund
+          $rowP = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
+            ->from('corpus_fund_payment')
+            ->where('fund_id', $fid)
+            ->where('hof_id', $hof_id)
+            ->get()->row_array();
+          $paidTotal += isset($rowP['total_paid']) ? (float)$rowP['total_paid'] : 0.0;
+        }
+      }
+    }
+    $data['corpus_summary'] = [
+      'total_per_family' => $totalPerFamily,
+      'assigned_total' => $assignedTotal,
+      'paid_total' => $paidTotal,
+      'outstanding' => max(0, $assignedTotal - $paidTotal),
+      'funds_count' => $fundsCount,
+    ];
+
+    // Monthly signup overview using current Hijri month
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    if ($h && isset($h['hijri_date'])) {
+      $parts = explode('-', $h['hijri_date']); // d-m-Y
+      $hm = $parts[1];
+      $hy = $parts[2];
+      $days = $this->HijriCalendar->get_hijri_days_for_month_year($hm, $hy);
+      if (!empty($days)) {
+        $firstDay = $days[0]['greg_date'];
+        $lastDay  = $days[count($days) - 1]['greg_date'];
+        $data["signup_days"] = $this->AccountM->get_fmb_signup_days_between($firstDay, $lastDay);
+        $data["signup_data"] = $this->AccountM->get_fmb_signup_data_between($user_id, $firstDay, $lastDay);
+        // Month feedback summary (range + counts)
+        $month_feedback_signed = 0;
+        $month_feedback_given = 0;
+        foreach ($data['signup_data'] as $sdRow) {
+          if (isset($sdRow['want_thali']) && (string)$sdRow['want_thali'] === '1') {
+            $month_feedback_signed++;
+            if (isset($sdRow['status']) && (int)$sdRow['status'] === 1) {
+              $month_feedback_given++;
+            }
+          }
+        }
+        $month_feedback_status_class = 'secondary';
+        $month_feedback_status_text  = 'No Sign Ups';
+        if ($month_feedback_signed > 0) {
+          if ($month_feedback_given === 0) {
+            $month_feedback_status_class = 'primary';
+            $month_feedback_status_text  = 'Not Given';
+          } elseif ($month_feedback_given < $month_feedback_signed) {
+            $month_feedback_status_class = 'warning';
+            $month_feedback_status_text  = 'Partially Given';
+          } else {
+            $month_feedback_status_class = 'success';
+            $month_feedback_status_text  = 'Given';
+          }
+        }
+        $data['month_feedback_range'] = date('d-m-Y', strtotime($firstDay)) . ' - ' . date('d-m-Y', strtotime($lastDay));
+        $data['month_feedback_signed'] = $month_feedback_signed;
+        $data['month_feedback_given']  = $month_feedback_given;
+        $data['month_feedback_status_class'] = $month_feedback_status_class;
+        $data['month_feedback_status_text']  = $month_feedback_status_text;
+      } else {
+        $data["signup_days"] = [];
+        $data["signup_data"] = [];
+        $data['month_feedback_range'] = '';
+        $data['month_feedback_signed'] = 0;
+        $data['month_feedback_given']  = 0;
+        $data['month_feedback_status_class'] = 'secondary';
+        $data['month_feedback_status_text']  = 'No Sign Ups';
+      }
+      $month_row = $this->HijriCalendar->hijri_month_name((int)$parts[1]);
+      $data['current_hijri_month_label'] = ($month_row ? $month_row['hijri_month'] : $parts[1]) . ' ' . $parts[2];
+    } else {
+      $data["signup_days"] = [];
+      $data["signup_data"] = [];
+      $data['current_hijri_month_label'] = '';
+      $data['month_feedback_range'] = '';
+      $data['month_feedback_signed'] = 0;
+      $data['month_feedback_given']  = 0;
+      $data['month_feedback_status_class'] = 'secondary';
+      $data['month_feedback_status_text']  = 'No Sign Ups';
+    }
+
+    // Today signup status (only today's day)
+    $todayGreg = date('Y-m-d');
+    $nowTime = date('H:i:s');
+    $cutoff = '18:00:00';
+    $menuToday = $this->AccountM->get_menu_by_date($todayGreg);
+    // Map signup data by date for quick lookup
+    $signupByDate = [];
+    if (isset($data['signup_data']) && is_array($data['signup_data'])) {
+      foreach ($data['signup_data'] as $sd) {
+        if (isset($sd['signup_date'])) {
+          $signupByDate[$sd['signup_date']] = $sd;
+        }
+      }
+    }
+    $todaySigned = isset($signupByDate[$todayGreg]) && (string)$signupByDate[$todayGreg]['want_thali'] === '1';
+    $todayClosed = ($nowTime >= $cutoff);
+    $badgeClass = 'secondary';
+    $badgeText = 'No Thaali Today';
+    if ($menuToday) {
+      if ($todaySigned) {
+        $badgeClass = 'success';
+        $badgeText = 'Signed Up Today';
+      } else if ($todayClosed) {
+        $badgeClass = 'danger';
+        $badgeText = 'Sign-up Closed';
+      } else {
+        $badgeClass = 'warning text-dark';
+        $badgeText = 'Not Signed Today';
+      }
+    }
+    $data['fmb_today_status'] = [
+      'badge_class' => $badgeClass,
+      'badge_text'  => $badgeText,
+      'menu_items'  => $menuToday ? $menuToday['items'] : []
+    ];
     $data["feedback_data"] = $this->AccountM->get_fmb_feedback_data($user_id);
 
     $this->load->view('Accounts/Header', $data);
@@ -268,7 +379,6 @@ class Accounts extends CI_Controller
 
     $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
     $data['hof_data'] = $data['user_data']['HOF_ID'];
-    $data['member_name'] = $data['user_data']['Full_Name'];
 
     $data["miqaats"] = $this->AccountM->get_assigned_miqaats($user_id);
 
@@ -335,7 +445,6 @@ class Accounts extends CI_Controller
     $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
     $hof_id = $data['user_data']['HOF_ID'];
     $data['hof_data'] = $hof_id;
-    $data['member_name'] = $data['user_data']['Full_Name'];
 
     $miqaats = $this->AccountM->get_all_upcoming_miqaat();
     $data["miqaats"] = $miqaats;
@@ -358,6 +467,57 @@ class Accounts extends CI_Controller
     $this->load->view('Accounts/RSVP/Home', $data);
   }
 
+  public function corpusfunds_details()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+    $user_id = $_SESSION['user']['username'];
+    $data['user_data'] = $this->AccountM->getUserData($user_id);
+    $hof_id = $data['user_data']['HOF_ID'];
+
+    $this->load->model('CorpusFundM');
+    // Fetch assignments with paid/due per fund for this HOF
+    $rows = $this->db->query(
+      "SELECT a.fund_id, f.title, a.amount_assigned,
+              COALESCE(paid.total_paid, 0) AS amount_paid,
+              GREATEST(a.amount_assigned - COALESCE(paid.total_paid,0), 0) AS amount_due
+         FROM corpus_fund_assignment a
+         INNER JOIN corpus_fund f ON f.id = a.fund_id
+         LEFT JOIN (
+            SELECT fund_id, hof_id, SUM(amount_paid) AS total_paid
+              FROM corpus_fund_payment
+             WHERE hof_id = ?
+             GROUP BY fund_id, hof_id
+         ) paid ON paid.fund_id = a.fund_id AND paid.hof_id = a.hof_id
+        WHERE a.hof_id = ?
+        ORDER BY f.title",
+      [$hof_id, $hof_id]
+    )->result_array();
+
+    // Totals
+    $tot_assigned = 0.0;
+    $tot_paid = 0.0;
+    $tot_due = 0.0;
+    foreach ($rows as $r) {
+      $tot_assigned += (float)($r['amount_assigned'] ?? 0);
+      $tot_paid     += (float)($r['amount_paid'] ?? 0);
+      $tot_due      += (float)($r['amount_due'] ?? 0);
+    }
+    $data['corpus_details'] = [
+      'rows' => $rows,
+      'tot_assigned' => $tot_assigned,
+      'tot_paid' => $tot_paid,
+      'tot_due' => $tot_due,
+    ];
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/CorpusFundsDetails', $data);
+  }
+
   public function general_rsvp($miqaat_id)
   {
     if (empty($_SESSION['user'])) {
@@ -372,7 +532,6 @@ class Accounts extends CI_Controller
     $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
     $hof_id = $data['user_data']['HOF_ID'];
     $data['hof_data'] = $data['user_data']['HOF_ID'];
-    $data['member_name'] = $data['user_data']['Full_Name'];
 
     $family = $this->AccountM->get_all_family_member($data['hof_data']);
     $data['family'] = $family;
@@ -381,6 +540,9 @@ class Accounts extends CI_Controller
 
     $data["rsvp_by_miqaat_id"] = $this->AccountM->get_rsvp_by_miqaat_id($hof_id, $miqaat_id);
     $data["rsvp_miqaat_ids"] = array_column($data["rsvp_by_miqaat_id"], 'user_id');
+
+    // Load any saved guest counts for this hof + miqaat so view can prefill
+    $data['guest_rsvp'] = $this->AccountM->get_guest_rsvp($hof_id, $miqaat_id);
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/RSVP/GeneralRSVP', $data);
@@ -396,6 +558,9 @@ class Accounts extends CI_Controller
     $hof_id = $_SESSION['user_data']['HOF_ID'];
     $miqaat_id = $this->input->post('miqaat_id');
     $rsvp_members = $this->input->post('rsvp_members');
+    $guest_gents = $this->input->post('guest_gents');
+    $guest_ladies = $this->input->post('guest_ladies');
+    $guest_children = $this->input->post('guest_children');
 
     if (empty($rsvp_members)) {
       $this->session->set_flashdata('error', "Please select at least one family member to RSVP.");
@@ -415,6 +580,24 @@ class Accounts extends CI_Controller
       $this->AccountM->insert_rsvp($data);
     }
 
+    // Handle guest RSVP counts: clear previous and insert new if provided
+    $guest_flag = $this->input->post('guest_rsvp');
+    // Always clear any existing guest record for this hof+miqaat to keep single source of truth
+    $this->AccountM->clear_existing_guest_rsvp($hof_id, $miqaat_id);
+    if ($guest_flag) {
+      $gents = is_numeric($guest_gents) ? max(0, (int)$guest_gents) : 0;
+      $ladies = is_numeric($guest_ladies) ? max(0, (int)$guest_ladies) : 0;
+      $children = is_numeric($guest_children) ? max(0, (int)$guest_children) : 0;
+      $guestData = [
+        'hof_id' => $hof_id,
+        'miqaat_id' => $miqaat_id,
+        'gents' => $gents,
+        'ladies' => $ladies,
+        'children' => $children
+      ];
+      $this->AccountM->insert_guest_rsvp($guestData);
+    }
+
     $this->session->set_flashdata('success', "RSVP submitted successfully.");
     redirect('/accounts/rsvp_list');
   }
@@ -432,15 +615,88 @@ class Accounts extends CI_Controller
 
     $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
     $data['hof_data'] = $data['user_data']['HOF_ID'];
-    $data['member_name'] = $data['user_data']['Full_Name'];
 
-    $data["menu"] = $this->AccountM->get_next_week_menu();
-    $data["signup_days"] = $this->AccountM->get_fmb_signup_days($user_id);
-    $data["signup_data"] = $this->AccountM->get_fmb_signup_data($user_id);
+    // Monthly signup (Hijri): accept optional GET param hijri=YYYY-MM
+    $hijri = $this->input->get('hijri');
+    $todayGreg = date('Y-m-d');
+    $todayHijri = $this->HijriCalendar->get_hijri_date($todayGreg);
+    $defParts = $todayHijri && isset($todayHijri['hijri_date']) ? explode('-', $todayHijri['hijri_date']) : null; // d-m-Y
+    $defMonth = $defParts ? $defParts[1] : date('m');
+    $defYear  = $defParts ? $defParts[2] : date('Y');
 
+    if (preg_match('/^\d{4}-\d{2}$/', (string)$hijri)) {
+      list($hy, $hm) = explode('-', $hijri);
+    } else {
+      $hy = $defYear;
+      $hm = $defMonth;
+      $hijri = $hy . '-' . $hm;
+    }
+
+    $days = $this->HijriCalendar->get_hijri_days_for_month_year($hm, $hy);
+    if (!empty($days)) {
+      $firstDay = $days[0]['greg_date'];
+      $lastDay  = $days[count($days) - 1]['greg_date'];
+      $data["menu"] = $this->AccountM->get_menus_between($firstDay, $lastDay);
+      $data["signup_days"] = $this->AccountM->get_fmb_signup_days_between($firstDay, $lastDay);
+      $data["signup_data"] = $this->AccountM->get_fmb_signup_data_between($user_id, $firstDay, $lastDay);
+    } else {
+      $data["menu"] = [];
+      $data["signup_days"] = [];
+      $data["signup_data"] = [];
+    }
+
+    // Decorate with hijri labels
     foreach ($data["menu"] as $key => $value) {
       $data['menu'][$key]['hijri_date'] = $this->get_hijri_day_month($value["date"]);
     }
+
+    // Build all days of the Hijri month with merged menu + signup info
+    $menuByDate = [];
+    foreach ($data['menu'] as $m) {
+      $menuByDate[$m['date']] = $m;
+    }
+    $signupByDate = [];
+    if (isset($data['signup_data']) && is_array($data['signup_data'])) {
+      foreach ($data['signup_data'] as $sd) {
+        if (isset($sd['signup_date'])) {
+          $signupByDate[$sd['signup_date']] = $sd;
+        }
+      }
+    }
+    $all_days = [];
+    foreach ($days as $d) {
+      $greg = $d['greg_date'];
+      $weekday = date('l', strtotime($greg));
+      $hijri_full = isset($d['hijri_date']) ? $d['hijri_date'] : '';
+      $menu_items = [];
+      if (isset($menuByDate[$greg]) && isset($menuByDate[$greg]['items'])) {
+        $menu_items = $menuByDate[$greg]['items'];
+      }
+      $signup_row = isset($signupByDate[$greg]) ? $signupByDate[$greg] : [];
+      $all_days[] = [
+        'greg_date'   => $greg,
+        'weekday'     => $weekday,
+        'hijri_date'  => $hijri_full, // format d-m-Y
+        'menu_items'  => $menu_items,
+        'want_thali'  => isset($signup_row['want_thali']) ? $signup_row['want_thali'] : null,
+        'thali_size'  => isset($signup_row['thali_size']) ? $signup_row['thali_size'] : null,
+        'menu_id'     => isset($menuByDate[$greg]['id']) ? $menuByDate[$greg]['id'] : null
+      ];
+    }
+    $data['all_days'] = $all_days;
+
+    // Month label and navigation
+    $data['selected_hijri'] = $hijri;
+    $data['hijri_year'] = $hy;
+    $data['hijri_month'] = $hm;
+    $month_row = $this->HijriCalendar->hijri_month_name((int)$hm);
+    $data['hijri_month_name'] = $month_row ? $month_row['hijri_month'] : $hm;
+    $prevMonth = (int)$hm === 1 ? 12 : ((int)$hm - 1);
+    $prevYear  = (int)$hm === 1 ? ((int)$hy - 1) : (int)$hy;
+    $nextMonth = (int)$hm === 12 ? 1 : ((int)$hm + 1);
+    $nextYear  = (int)$hm === 12 ? ((int)$hy + 1) : (int)$hy;
+    $data['prev_hijri'] = sprintf('%04d-%02d', $prevYear, $prevMonth);
+    $data['next_hijri'] = sprintf('%04d-%02d', $nextYear, $nextMonth);
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/FMB/WeeklySignup', $data);
@@ -457,6 +713,13 @@ class Accounts extends CI_Controller
     $want_thali = $this->input->post('want-thali');
     $thali_size = $this->input->post('thali_size');
 
+    $today = date('Y-m-d');
+    $nowTime = date('H:i:s');
+    $cutoff = '18:00:00';
+
+    $saved = 0;
+    $skipped = 0;
+
     foreach ($signup_dates as $key => $date) {
       $data = array(
         'user_id' => $user_id,
@@ -464,10 +727,19 @@ class Accounts extends CI_Controller
         'want_thali' => isset($want_thali[$key]) ? $want_thali[$key] : 0,
         'thali_size' => isset($thali_size[$key]) ? $thali_size[$key] : ''
       );
-      $this->AccountM->save_fmb_signup($data);
+      if ($this->AccountM->save_fmb_signup($data)) {
+        $saved++;
+      } else {
+        $skipped++;
+      }
     }
 
-    redirect('/accounts/success/fmbweeklysignup?message=Thaali Sign Up saved successfully');
+    $msg = 'Thaali Sign Up saved successfully';
+    if ($skipped > 0) {
+      $msg .= " (" . $skipped . " date(s) unchanged)";
+    }
+    $this->session->set_flashdata('success', $msg);
+    redirect('/accounts/fmbweeklysignup');
   }
 
   public function FMBFeedback()
@@ -483,12 +755,74 @@ class Accounts extends CI_Controller
 
     $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
     $data['hof_data'] = $data['user_data']['HOF_ID'];
-    $data['member_name'] = $data['user_data']['Full_Name'];
 
-    $data["menu"] = $this->AccountM->get_this_week_menu($user_id);
+    // Determine selected Hijri month/year (from GET or default to current Hijri)
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $default_parts = explode('-', $today_hijri['hijri_date']); // d-m-Y
+    $default_month = isset($default_parts[1]) ? (int)$default_parts[1] : null;
+    $default_year  = isset($default_parts[2]) ? (int)$default_parts[2] : null;
+    $sel_month = $this->input->get('hijri_month') ? (int)$this->input->get('hijri_month') : $default_month;
+    $sel_year  = $this->input->get('hijri_year') ? (int)$this->input->get('hijri_year') : $default_year;
 
-    foreach ($data["menu"] as $key => $value) {
-      $data['menu'][$key]['hijri_date'] = $this->get_hijri_day_month($value['date']);
+    // Build month navigation labels
+    $months_this_year = $this->HijriCalendar->get_hijri_months_for_year($sel_year);
+    $current_month_name = '';
+    foreach ($months_this_year as $m) {
+      if ((int)$m['id'] === (int)$sel_month) {
+        $current_month_name = $m['name'];
+        break;
+      }
+    }
+    $data['hijri_nav'] = [
+      'sel_month' => $sel_month,
+      'sel_year' => $sel_year,
+      'current_month_name' => $current_month_name,
+      'months_this_year' => $months_this_year,
+    ];
+
+    // Fetch all Hijri days for the selected month and year
+    $days = $this->HijriCalendar->get_hijri_days_for_month_year($sel_month, $sel_year);
+    $data['days'] = $days;
+
+    // Fetch menus between first and last Gregorian date covering these days
+    $data['menu'] = [];
+    $data['signup_data'] = [];
+    if (!empty($days)) {
+      $first_greg = $days[0]['greg_date'];
+      $last_greg  = $days[count($days) - 1]['greg_date'];
+      $menus_between = $this->AccountM->get_menus_between($first_greg, $last_greg);
+      // Fetch user signup entries for the period
+      $data['signup_data'] = $this->AccountM->get_fmb_signup_data_between($user_id, $first_greg, $last_greg);
+      // Map signup by greg date for quick lookup
+      $signupByDate = [];
+      foreach ($data['signup_data'] as $sd) {
+        if (isset($sd['signup_date'])) {
+          $signupByDate[$sd['signup_date']] = $sd;
+        }
+      }
+      // Map menus to view-friendly structure
+      foreach ($menus_between as $mm) {
+        $greg = isset($mm['date']) ? $mm['date'] : null;
+        if (!$greg) continue;
+        // Find corresponding hijri day from $days
+        $hijri_date = '';
+        foreach ($days as $d) {
+          if ($d['greg_date'] === $greg) {
+            $hijri_date = $d['hijri_date'];
+            break;
+          }
+        }
+        $data['menu'][] = [
+          // signup_id used for feedback reference (fwsid legacy name in view)
+          'signup_id' => isset($signupByDate[$greg]['id']) ? $signupByDate[$greg]['id'] : null,
+          'item_names' => !empty($mm['items']) ? implode(', ', $mm['items']) : '',
+          'hijri_date' => $hijri_date,
+          'greg_date' => $greg,
+          'want_thali' => 0, // will be determined in view from signup_data
+          'thali_size' => isset($signupByDate[$greg]['thali_size']) ? $signupByDate[$greg]['thali_size'] : '',
+          'status' => isset($signupByDate[$greg]['status']) ? (int)$signupByDate[$greg]['status'] : 0,
+        ];
+      }
     }
 
     $this->load->view('Accounts/Header', $data);
@@ -528,8 +862,11 @@ class Accounts extends CI_Controller
       'feedback_remark' => $feedback_remark
     );
     $result = $this->AccountM->update_fmb_feedback($data);
-
-    echo $result;
+    $success = $result ? true : false;
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => $success,
+      'feedback_id' => $feedback_id,
+    ]));
   }
 
   public function viewmenu()
@@ -541,10 +878,45 @@ class Accounts extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
     $data['sector'] = $_SESSION['user_data']['Sector'];
-    $data['menus'] = $this->AccountM->get_month_wise_menu();
+    // Optional Hijri month navigation (?hijri=YYYY-MM)
+    $hijriParam = $this->input->get('hijri');
+    $todayGreg = date('Y-m-d');
+    $todayHijri = $this->HijriCalendar->get_hijri_date($todayGreg);
+    $parts = $todayHijri && isset($todayHijri['hijri_date']) ? explode('-', $todayHijri['hijri_date']) : [];
+    $currentHy = !empty($parts) ? $parts[2] : date('Y');
+    $currentHm = !empty($parts) ? $parts[1] : date('m');
+    if (preg_match('/^\d{4}-\d{2}$/', (string)$hijriParam)) {
+      list($hy, $hm) = explode('-', $hijriParam);
+    } else {
+      $hy = $currentHy;
+      $hm = $currentHm;
+      $hijriParam = $hy . '-' . $hm;
+    }
+    $data['selected_hijri'] = $hijriParam;
+    $data['hijri_year'] = $hy;
+    $data['hijri_month'] = $hm;
+    $monthRow = $this->HijriCalendar->hijri_month_name((int)$hm);
+    $data['hijri_month_name'] = $monthRow ? $monthRow['hijri_month'] : $hm;
+    // Prev / Next Hijri month
+    $prevMonth = (int)$hm === 1 ? 12 : ((int)$hm - 1);
+    $prevYear  = (int)$hm === 1 ? ((int)$hy - 1) : (int)$hy;
+    $nextMonth = (int)$hm === 12 ? 1 : ((int)$hm + 1);
+    $nextYear  = (int)$hm === 12 ? ((int)$hy + 1) : (int)$hy;
+    $data['prev_hijri'] = sprintf('%04d-%02d', $prevYear, $prevMonth);
+    $data['next_hijri'] = sprintf('%04d-%02d', $nextYear, $nextMonth);
 
-    foreach ($data["menus"] as $key => $value) {
-      $data['menus'][$key]['hijri_date'] = $this->get_hijri_day_month($value["date"]);
+    $data['menus'] = $this->AccountM->get_hijri_month_menu($hy, $hm);
+    // Provide debug meta if empty for troubleshooting
+    if (empty($data['menus'])) {
+      $data['menus_debug'] = [
+        'selected_hijri' => $hijriParam,
+        'year' => $hy,
+        'month' => $hm,
+        'reason' => 'No records found for provided Hijri month (check hijri_calendar and menu entries)'
+      ];
+    }
+    foreach ($data['menus'] as $key => $value) {
+      $data['menus'][$key]['hijri_date'] = $this->get_hijri_day_month($value['date']);
     }
 
     $this->load->view('Accounts/Header', $data);
@@ -561,9 +933,40 @@ class Accounts extends CI_Controller
     $data['sector'] = $_SESSION['user_data']['Sector'];
     $user_id = $_SESSION['user_data']['ITS_ID'];
     $data["fmb_takhmeen_details"] = $this->AccountM->viewfmbtakhmeen($user_id);
+    // Add Miqaat invoices listing for user with paid/due breakdown
+    $data['miqaat_invoices'] = $this->AccountM->get_user_miqaat_invoices($user_id);
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/FMB/ViewTakhmeen', $data);
+  }
+
+  /**
+   * AJAX: Return miqaat invoice payment history for the logged-in user.
+   * POST: invoice_id
+   * Response: { success, invoice, payments, message? }
+   */
+  public function miqaat_invoice_history()
+  {
+    if (empty($_SESSION['user'])) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Unauthorized']));
+      return;
+    }
+    $invoice_id = (int)$this->input->post('invoice_id');
+    if (!$invoice_id) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Missing invoice id']));
+      return;
+    }
+    $user_id = $_SESSION['user_data']['ITS_ID'];
+    $res = $this->AccountM->get_user_miqaat_invoice_history($user_id, $invoice_id);
+    if (!$res['invoice']) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Invoice not found']));
+      return;
+    }
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => true,
+      'invoice' => $res['invoice'],
+      'payments' => $res['payments']
+    ]));
   }
 
   /**
@@ -973,35 +1376,35 @@ class Accounts extends CI_Controller
       $email_template = str_replace($placeholder, $value, $email_template);
     }
 
-    // $this->email->from('admin@kharjamaat.in', 'New Raza');
-    // $this->email->to($_SESSION['user_data']['Email']);
-    // $this->email->subject('New Raza');
-    // $this->email->message($email_template);
-    // $this->email->send();
+    $this->email->from('admin@kharjamaat.in', 'New Raza');
+    $this->email->to($_SESSION['user_data']['Email']);
+    $this->email->subject('New Raza');
+    $this->email->message($email_template);
+    $this->email->send();
 
-    // $this->email->from('admin@kharjamaat.in', 'New Raza');
-    // $this->email->to('anjuman@kharjamaat.in');
-    // $this->email->subject('New Raza');
-    // $this->email->message($email_template);
-    // $this->email->send();
+    $this->email->from('admin@kharjamaat.in', 'New Raza');
+    $this->email->to('anjuman@kharjamaat.in');
+    $this->email->subject('New Raza');
+    $this->email->message($email_template);
+    $this->email->send();
 
-    // $this->email->from('admin@kharjamaat.in', 'New Raza');
-    // $this->email->to('amilsaheb@kharjamaat.in');
-    // $this->email->subject('New Raza');
-    // $this->email->message($email_template);
-    // $this->email->send();
+    $this->email->from('admin@kharjamaat.in', 'New Raza');
+    $this->email->to('amilsaheb@kharjamaat.in');
+    $this->email->subject('New Raza');
+    $this->email->message($email_template);
+    $this->email->send();
 
-    // $this->email->from('admin@kharjamaat.in', 'New Raza');
-    // $this->email->to('3042@carmelnmh.in');
-    // $this->email->subject('New Raza');
-    // $this->email->message($email_template);
-    // $this->email->send();
+    $this->email->from('admin@kharjamaat.in', 'New Raza');
+    $this->email->to('3042@carmelnmh.in');
+    $this->email->subject('New Raza');
+    $this->email->message($email_template);
+    $this->email->send();
 
-    // $this->email->from('admin@kharjamaat.in', 'New Raza');
-    // $this->email->to('kharjamaat@gmail.com');
-    // $this->email->subject('New Raza');
-    // $this->email->message($email_template);
-    // $this->email->send(); // Mail working fine
+    $this->email->from('admin@kharjamaat.in', 'New Raza');
+    $this->email->to('kharjamaat@gmail.com');
+    $this->email->subject('New Raza');
+    $this->email->message($email_template);
+    $this->email->send(); // Mail working fine
 
     $userId = $_SESSION['user_data']['ITS_ID'];
     unset($_POST['raza-type']);
@@ -1198,7 +1601,7 @@ class Accounts extends CI_Controller
     redirect('accounts/appointment');
   }
 
-  public function chat($id)
+  public function chat($id, $from = null)
   {
     $data['user_name'] = $_SESSION['user']['username'] ?? "";
     if ($_SESSION['user_data'] != "") {
@@ -1207,6 +1610,7 @@ class Accounts extends CI_Controller
     }
 
     $data['id'] = $id;
+    $data['from'] = $from;
 
     // Fetch chat data from the model
     $data['chat'] = $this->AccountM->get_chat_by_raza_id($id);
@@ -1215,7 +1619,11 @@ class Accounts extends CI_Controller
     $data['status'] = $this->AccountM->get_status_by_raza_id($id);
 
     // Load views
-    $this->load->view('Accounts/Header', $data);
+    if (isset($from)) {
+      $this->load->view("$from/Header", $data);
+    } else {
+      $this->load->view('Accounts/Header', $data);
+    }
     $this->load->view('Accounts/Chat', $data);
   }
 

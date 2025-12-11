@@ -7,6 +7,14 @@
   <h3 class="heading text-center mb-4">RSVP <span class="text-primary">Report</span></h3>
   <div class="row">
     <?php if (!empty($miqaats)) : ?>
+      <?php
+        // Sort miqaats by miqaat_date descending (latest first)
+        usort($miqaats, function($a, $b) {
+          $ta = (int)strtotime($a['miqaat_date'] ?? '0');
+          $tb = (int)strtotime($b['miqaat_date'] ?? '0');
+          return $tb <=> $ta;
+        });
+      ?>
       <?php foreach ($miqaats as $miqaat) : ?>
         <div class="col-md-4 col-sm-6 mb-4">
           <div class="card shadow-sm">

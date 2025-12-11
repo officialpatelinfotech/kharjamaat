@@ -64,7 +64,7 @@
     display: inline-block;
     margin-top: auto;
     margin-bottom: 0;
-    padding: 0.5rem 1.5rem;
+    padding: 0.2rem 0rem;
     font-size: 1rem;
     border-radius: 8px;
     background: #fff;
@@ -113,101 +113,27 @@
       </a>
     </div>
   </div>
-  <h4 class="heading text-center mb-4">FMB Settings</h4>
+  <h4 class="heading text-center mb-4">Manage FMB Thaali & Niyaz</h4>
   <div class="fmb-card-container">
     <div class="fmb-card">
       <span class="fmb-card-icon"><i class="fa-solid fa-calendar-days"></i></span>
-      <div class="fmb-card-title">Manage Miqaat</div>
+      <div class="fmb-card-title">Create & Manage Miqaat</div>
       <a href="<?php echo base_url('common/managemiqaat?from=admin'); ?>" class="fmb-card-link">Go to Miqaat</a>
     </div>
     <div class="fmb-card">
       <span class="fmb-card-icon"><i class="fa-solid fa-utensils"></i></span>
       <div class="fmb-card-title">Manage Thaali Menu</div>
-      <a href="<?php echo base_url('common/fmbthaalimenu?from=admin'); ?>" class="fmb-card-link">Go to Thaali Menu</a>
+      <a href="<?php echo base_url('common/fmbthaalimenu?from=admin/managefmbsettings'); ?>" class="fmb-card-link">Go to Thaali Menu</a>
     </div>
     <div class="fmb-card">
       <span class="fmb-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
-      <div class="fmb-card-title">Manage Takhmeen</div>
+      <div class="fmb-card-title">Manage Thaali Takhmeen</div>
       <a href="<?php echo base_url('admin/managefmbtakhmeen'); ?>" class="fmb-card-link">Go to Takhmeen</a>
     </div>
     <div class="fmb-card">
       <span class="fmb-card-icon"><i class="fa-solid fa-hand-holding-dollar"></i></span>
-      <div class="fmb-card-title">Manage General Contribution</div>
-      <a href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>" class="fmb-card-link">Go to General Contribution</a>
-    </div>
-  </div>
-</div>
-<div class="modal fade" id="add-takhmeen-container" tabindex="-1" aria-labelledby="add-takhmeen-container-label" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="add-takhmeen-container-label">Add FMB Takhmeen Amount</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <form method="POST" action="<?php echo base_url("admin/addfmbtakhmeenamount"); ?>">
-          <input type="hidden" name="user_id" id="user-id">
-          <p><b>Mumineen Name: <span id="user-name">Member Name</span></b></p>
-          <label for="takhmeen-year" class="form-label">Takhmeen Year</label>
-          <select name="fmb_takhmeen_year" id="takhmeen-year" class="form-control" required>
-            <option value="">-----</option>
-            <option value="1446-09|1447-09">1446-09 / 1447-09</option>
-            <option value="1447-09|1448-09">1447-09 / 1448-09</option>
-            <option value="1448-09|1449-09">1448-09 / 1449-09</option>
-            <option value="1449-09|1450-09">1449-09 / 1450-09</option>
-            <option value="1450-09|1451-09">1450-09 / 1451-09</option>
-            <option value="1451-09|1452-09">1451-09 / 1452-09</option>
-            <option value="1452-09|1453-09">1452-09 / 1453-09</option>
-            <option value="1453-09|1454-09">1453-09 / 1454-09</option>
-            <option value="1454-09|1455-09">1454-09 / 1455-09</option>
-            <option value="1455-09|1456-09">1455-09 / 1456-09</option>
-            <option value="1456-09|1457-09">1456-09 / 1457-09</option>
-            <option value="1457-09|1458-09">1457-09 / 1458-09</option>
-          </select>
-          <br>
-          <label for="takhmeen-amount" class="form-label">Takhmeen Amount</label>
-          <input type="number" id="takhmeen-amount" name="fmb_takhmeen_amount" class="form-control" value="" placeholder="Enter Takhmeen Amount" min="1" required>
-          <br>
-          <button type="submit" id="add-takhmeen-btn" class="btn btn-primary text-right">Add Takhmeen</button>
-          <p id="validate-takhmeen" class="text-secondary pt-3 m-0"></p>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="modal fade" id="update-takhmeen-modal" tabindex="-1" role="dialog" aria-labelledby="updateTakhmeenLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="updateTakhmeenLabel">Update FMB Takhmeen</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <form id="update-takhmeen-form" method="post" action="<?php echo base_url('Admin/updatefmbtakhmeen/1') ?>">
-        <div class="modal-body">
-          <input type="hidden" name="takhmeen_id" id="edit-takhmeen-id">
-          <input type="hidden" name="user_id" id="edit-user-id">
-          <div class="form-group">
-            <label>Member</label>
-            <p id="edit-user-name" class="font-weight-bold mb-0"></p>
-          </div>
-          <div class="form-group">
-            <label>Financial Year</label>
-            <input type="text" name="year" id="edit-takhmeen-year" class="form-control" readonly>
-          </div>
-          <div class="form-group">
-            <label for="edit-takhmeen-amount">Takhmeen Amount</label>
-            <input type="number" name="fmb_takhmeen_amount" id="edit-takhmeen-amount" class="form-control" required>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Update Takhmeen</button>
-        </div>
-      </form>
+      <div class="fmb-card-title">Manage Extra Contribution Master</div>
+      <a href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>" class="fmb-card-link">Go to Master</a>
     </div>
   </div>
 </div>

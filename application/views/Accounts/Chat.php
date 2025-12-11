@@ -160,9 +160,11 @@
   }
 </style>
 <div class="chat-container">
-
-
-
+  <div class="row mb-4 p-0 mr-auto">
+    <div class="col-12 col-md-6">
+      <a href="<?php echo isset($from) ? base_url($from) : base_url("accounts"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+    </div>
+  </div>
   <?php if (empty($chat)) : ?>
     <div class="chat-messages">
       <p style="text-align:center">No messages found.</p>

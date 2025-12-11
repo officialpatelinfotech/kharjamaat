@@ -1,3 +1,24 @@
+<?php
+// Show only upcoming miqaats in the assigned list
+if (isset($miqaats) && is_array($miqaats)) {
+  $today = strtotime('today');
+  $miqaats = array_values(array_filter($miqaats, function ($m) use ($today) {
+    $dateStr = null;
+    if (is_array($m)) {
+      $dateStr = $m['date'] ?? $m['miqaat_date'] ?? $m['event_date'] ?? $m['start_date'] ?? null;
+    } elseif (is_object($m)) {
+      $dateStr = $m->date ?? $m->miqaat_date ?? $m->event_date ?? $m->start_date ?? null;
+    }
+    if (!empty($dateStr)) {
+      $d = strtotime($dateStr);
+      if ($d !== false) {
+        return ($d >= $today);
+      }
+    }
+    return false;
+  }));
+}
+?>
 <style>
   .miqaat-status-badge {
     font-size: 0.875rem;
@@ -11,24 +32,24 @@
 </style>
 <div class="container margintopcontainer py-5">
   <?php if ($this->session->flashdata('error')): ?>
-    <div class="alert alert-danger">
+    <div class="alert alert-danger pt-5">
       <?= $this->session->flashdata('error'); ?>
     </div>
   <?php endif; ?>
 
   <?php if ($this->session->flashdata('success')): ?>
-    <div class="alert alert-success">
+    <div class="alert alert-success pt-5">
       <?= $this->session->flashdata('success'); ?>
     </div>
   <?php endif; ?>
 
   <?php if ($this->session->flashdata('warning')): ?>
-    <div class="alert alert-warning">
+    <div class="alert alert-warning pt-5">
       <?= $this->session->flashdata('warning'); ?>
     </div>
   <?php endif; ?>
 
-  <div class="mb-4 mb-md-0">
+  <div class="mb-4 mb-md-0 pt-5">
     <a href="<?php echo base_url('accounts/home') ?>" class="btn btn-outline-secondary inline-block text-blue-600 hover:underline">
       <i class="fas fa-arrow-left"></i>
     </a>
@@ -110,7 +131,12 @@
         </div>
       <?php }
     } else { ?>
-      <div class="col-span-2 text-center text-gray-500 py-8">No assigned miqaats found.</div>
+      <div class="col-span-2 d-flex justify-content-center py-8">
+        <div class="alert-info text-center w-100 p-5">
+          <h5 class="mb-2">You can apply for Miqaat Raza only if you have been assigned a Miqaat</h5>
+          <p class="mb-0 text-muted">You haven't been assigned any Miqaat yet</p>
+        </div>
+      </div>
     <?php } ?>
   </div>
 </div>

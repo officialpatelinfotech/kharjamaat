@@ -59,7 +59,7 @@
 </style>
 <div>
   <nav class="fixed-top navbar navbar-expand-lg navbar-light main-navbar">
-    <div class="navbar-brand"><a href="<?php echo base_url("/") ?>"><img
+    <div class="navbar-brand"><a href="<?php echo base_url("/?from=admin") ?>"><img
           src="<?php echo base_url('assets/main_logo.png') ?>" class="logo"></a><a
         href="<?php echo base_url("/admin") ?>" class="user-welcome font-lvl-3-xs"><?php echo $user_name ?></a>
     </div><button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse"
@@ -69,22 +69,22 @@
       <ul class="navbar-nav mr-auto">
         <li class="nav-item"><a href="<?php echo base_url("/admin") ?>" class="nav-link"><i
               class="fa fa-home px-1"></i>Home</a></li>
-        <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
+        <!-- <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
             class="nav-link dropdown-toggle" aria-expanded="false"><i
               class="fa fa-life-ring px-1"></i>Help</a>
           <div class="dropdown-menu"><a href="<?php echo base_url("admin/request-help") ?>"
               class="dropdown-item">Help Desk</a></div>
-        </li>
+        </li> -->
       </ul>
       <ul class="navbar-nav navbar-right">
-        <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
+        <!-- <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
             class="nav-link dropdown-toggle" aria-expanded="false"><i
               class="fa fa-user px-1"></i>Account</a>
           <div class="dropdown-menu"><a href="<?php echo base_url("/admin/update-profile/") ?>"
               class="dropdown-item"><i class="fa fa-edit px-1"></i>Update Profile</a><a
               href="<?php echo base_url('/accounts/changepassword/') ?>" class="dropdown-item"><i
                 class="fa fa-lock px-1"></i>Change Password</a></div>
-        </li>
+        </li> -->
         <li class="nav-item"><a href="<?php echo base_url('/accounts/logout/') ?>" class="nav-link"><i
               class="fa fa-sign-out-alt px-1"></i>Log Out</a></li>
       </ul>

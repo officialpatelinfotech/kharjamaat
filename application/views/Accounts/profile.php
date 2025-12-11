@@ -1,5 +1,5 @@
 <head>
-    
+
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         body {
@@ -14,7 +14,7 @@
 
         .profile-container {
             max-width: 1100px;
-            margin: 80px auto;
+            margin: 0px auto;
         }
 
         .profile-card {
@@ -39,19 +39,19 @@
         }
 
         .user-details {
-            background-color: #ffff; 
+            background-color: #ffff;
         }
 
         .family-details {
-            background-color: #ffff; 
+            background-color: #ffff;
         }
 
         .family-members {
-            background-color: #ffff; 
+            background-color: #ffff;
         }
 
         .incharge-details {
-            background-color: #ffff; 
+            background-color: #ffff;
         }
 
         @media (max-width: 768px) {
@@ -66,77 +66,80 @@
         }
     </style>
 </head>
-<body>
 
-    <div class="profile-container">
+<body>
+    <div class="d-flex align-items-center container margintopcontainer pt-5">
+        <a href="<?php echo base_url('accounts/home'); ?>" class="mt-4 btn btn-secondary me-2"><i class="fa-solid fa-arrow-left"></i></a>
+    </div>
+    <div class="profile-container mt-3 mb-5">
         <div class="row">
             <!-- User Profile Card (Left) -->
             <div class="col-md-6">
-            <div class="profile-card user-details">
-            <h2>PERSONAL DETAILS</h2>
-            <div class="detail-box">
-            <strong>ITS ID:</strong> <?php echo $user_data['ITS_ID']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Full Name:</strong> <?php echo $user_data['Full_Name']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Full Name (Arabic):</strong> <?php echo $user_data['Full_Name_Arabic']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Vatan:</strong>  <?php echo $user_data['Vatan']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Mobile:</strong> <?php echo $user_data['Mobile']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Email:</strong> <?php echo $user_data['Email']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Age:</strong> <?php echo $user_data['Age']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Gender:</strong> <?php echo $user_data['Gender']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Misaq:</strong> <?php echo $user_data['Misaq']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Marital Status:</strong> <?php echo $user_data['Marital_Status']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Blood Group:</strong> <?php echo $user_data['Blood_Group']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Organisation(s):</strong> <?php echo $user_data['Organisation']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>TanzeemFile No:</strong> <?php echo $user_data['TanzeemFile_No']; ?>
-            </div>
-        </div>
-            <div class="profile-card user-details">
-                <h2>RESIDENTIAL ADDRESS</h2>
-            <div class="detail-box">
-                <strong>Address:</strong> <?php echo $user_data['Address']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>City:</strong>  <?php echo $user_data['City']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Pincode:</strong>  <?php echo $user_data['Pincode']; ?>
-            </div>
-            </div>
-            <div class="profile-card user-details">
-                <h2>JAMAAT DETAILS</h2>
-            <div class="detail-box">
-                <strong>Jamaat:</strong>  <?php echo $user_data['Jamaat']; ?>
-            </div>
-            <div class="detail-box">
-                <strong>Jamiaat:</strong>  <?php echo $user_data['Jamiaat']; ?>
-            </div>
+                <div class="profile-card user-details">
+                    <h2>PERSONAL DETAILS</h2>
+                    <div class="detail-box">
+                        <strong>ITS ID:</strong> <?php echo $user_data['ITS_ID']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Full Name:</strong> <?php echo $user_data['Full_Name']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Full Name (Arabic):</strong> <?php echo $user_data['Full_Name_Arabic']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Vatan:</strong> <?php echo $user_data['Vatan']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Mobile:</strong> <?php echo $user_data['Mobile']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Email:</strong> <?php echo $user_data['Email']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Age:</strong> <?php echo $user_data['Age']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Gender:</strong> <?php echo $user_data['Gender']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Misaq:</strong> <?php echo $user_data['Misaq']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Marital Status:</strong> <?php echo $user_data['Marital_Status']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Blood Group:</strong> <?php echo $user_data['Blood_Group']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Organisation(s):</strong> <?php echo $user_data['Organisation']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>TanzeemFile No:</strong> <?php echo $user_data['TanzeemFile_No']; ?>
+                    </div>
+                </div>
+                <div class="profile-card user-details">
+                    <h2>RESIDENTIAL ADDRESS</h2>
+                    <div class="detail-box">
+                        <strong>Address:</strong> <?php echo $user_data['Address']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>City:</strong> <?php echo $user_data['City']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Pincode:</strong> <?php echo $user_data['Pincode']; ?>
+                    </div>
+                </div>
+                <div class="profile-card user-details">
+                    <h2>JAMAAT DETAILS</h2>
+                    <div class="detail-box">
+                        <strong>Jamaat:</strong> <?php echo $user_data['Jamaat']; ?>
+                    </div>
+                    <div class="detail-box">
+                        <strong>Jamiaat:</strong> <?php echo $user_data['Jamiaat']; ?>
+                    </div>
                 </div>
             </div>
-            
+
             <!-- Other Details Card (Right) -->
             <div class="col-md-6">
                 <!-- Family Details Card -->
@@ -180,10 +183,10 @@
                 <div class="profile-card incharge-details">
                     <h2>MASOOL / MUSAID</h2>
                     <div class="detail-box">
-                        <strong>Sector:</strong>  <?php echo $user_data['Sector']; ?>
+                        <strong>Sector:</strong> <?php echo $user_data['Sector']; ?>
                     </div>
                     <div class="detail-box">
-                        <strong>Sub Sector:</strong>  <?php echo $user_data['Sub_Sector']; ?>
+                        <strong>Sub Sector:</strong> <?php echo $user_data['Sub_Sector']; ?>
                     </div>
                     <div class="detail-box">
                         <strong>Sector Incharge (Masool):</strong> <?php echo $incharge_data['Sector_Incharge_Name']; ?>
@@ -206,5 +209,5 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
-</html>
 
+</html>

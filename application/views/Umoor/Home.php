@@ -41,23 +41,6 @@
                     </div>
                 </div>
             </a>
-            <a href="<?php echo base_url('Umoor/menulist'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <div class="title">Menu List</div>
-                        <i class="icon fa-solid fa-plate-wheat"></i>
-                    </div>
-                </div>
-            </a>
-            <a href="<?php echo base_url('Umoor/deliverydashboard'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <div class="title">Delivery Dashboard</div>
-                        <i class="fa-solid icon fa-shipping-fast"></i>
-                    </div>
-                </div>
-            </a>
-
             <!-- <a href="<?php echo base_url('anjuman/miqaat') ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
                 <div class="card text-center">
                     <div class="card-body">

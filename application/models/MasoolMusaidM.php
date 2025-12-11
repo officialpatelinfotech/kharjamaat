@@ -58,15 +58,20 @@ class MasoolMusaidM extends CI_Model
   }
 
 
-  public function get_ashara_by_sector($sector, $subsector)
+  public function get_ashara_by_sector($sector, $subsector, $year = null)
   {
     $this->db->select(
       'ao.ITS, ao.LeaveStatus, ao.Comment, 
          u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, 
          u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector'
     );
-    $this->db->from('ashara_ohbat ao');
-    $this->db->join('user u', 'u.ITS_ID = ao.ITS', 'left');
+    $this->db->from('user u');
+    // Left join ashara_ohbat, scoping by year in the JOIN so roster remains when no rows for that year
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
+      $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
+    } else {
+      $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
+    }
     $this->db->where('u.Sector', $sector);
     if (!empty($subsector)) {
       $this->db->where('u.Sub_Sector', $subsector);
@@ -74,15 +79,19 @@ class MasoolMusaidM extends CI_Model
     return $this->db->get()->result_array();
   }
 
-  public function search_ashara_by_sector($keyword, $sector, $subsector)
+  public function search_ashara_by_sector($keyword, $sector, $subsector, $year = null)
   {
     $this->db->select(
       'ao.ITS, ao.LeaveStatus, ao.Comment, 
          u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, 
          u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector'
     );
-    $this->db->from('ashara_ohbat ao');
-    $this->db->join('user u', 'u.ITS_ID = ao.ITS', 'left');
+    $this->db->from('user u');
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
+      $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
+    } else {
+      $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
+    }
 
     $this->db->group_start();
     $this->db->like('ao.ITS', $keyword);
@@ -100,7 +109,7 @@ class MasoolMusaidM extends CI_Model
   }
 
 
-  public function get_sectors_stats($sector = null, $subsector = null)
+  public function get_sectors_stats($sector = null, $subsector = null, $year = null)
   {
     $this->db->select([
       'u.Sector',
@@ -116,10 +125,18 @@ class MasoolMusaidM extends CI_Model
     ]);
 
     $this->db->from('user u');
-    $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
+      $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
+    } else {
+      $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
+    }
 
     if ($sector) {
       $this->db->where('u.Sector', $sector);
+    }
+    // Optional year filter if column exists
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
+      $this->db->where('ao.year', (int)$year);
     }
 
     $this->db->group_by('u.Sector');
@@ -128,7 +145,7 @@ class MasoolMusaidM extends CI_Model
     return $this->db->get()->result_array();
   }
 
-  public function get_sub_sectors_stats($sector = null, $subsector = null)
+  public function get_sub_sectors_stats($sector = null, $subsector = null, $year = null)
   {
     $this->db->select([
       'u.Sector',
@@ -145,7 +162,11 @@ class MasoolMusaidM extends CI_Model
     ]);
 
     $this->db->from('user u');
-    $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
+      $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
+    } else {
+      $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
+    }
 
     if ($sector) {
       $this->db->where('u.Sector', $sector);
@@ -155,27 +176,41 @@ class MasoolMusaidM extends CI_Model
       $this->db->where('u.Sub_Sector', $subsector);
     }
 
+    // Optional year filter if column exists
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
+      $this->db->where('ao.year', (int)$year);
+    }
+
     $this->db->group_by('u.Sector, u.Sub_Sector');
     $this->db->order_by('u.Sector, u.Sub_Sector');
 
     return $this->db->get()->result_array();
   }
 
-  public function upsert_ashara_row($ITS, $data)
+  public function upsert_ashara_row($ITS, $data, $year = null)
   {
     $this->db->where('ITS', $ITS);
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
+      $this->db->where('year', (int)$year);
+    }
     $query = $this->db->get('ashara_ohbat');
 
     if ($query->num_rows() > 0) {
       $this->db->where('ITS', $ITS);
+      if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
+        $this->db->where('year', (int)$year);
+      }
       return $this->db->update('ashara_ohbat', $data);
     } else {
       $data['ITS'] = $ITS; // Ensure ITS is included for insert
+      if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
+        $data['year'] = (int)$year;
+      }
       return $this->db->insert('ashara_ohbat', $data);
     }
   }
 
-  public function update_attendance_leave_status($ITS, $leaveStatus)
+  public function update_attendance_leave_status($ITS, $leaveStatus, $year = null)
   {
     $data = [
       'Day2' => $leaveStatus,
@@ -190,47 +225,64 @@ class MasoolMusaidM extends CI_Model
     ];
 
     $this->db->where('ITS', $ITS);
-    return $this->db->update('ashara_attendance', $data);
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_attendance')) {
+      $this->db->where('year', (int)$year);
+    }
+    $updated = $this->db->update('ashara_attendance', $data);
+
+    if (!$updated && $this->db->affected_rows() === 0) {
+      // If no row existed, insert a new one (upsert behavior)
+      $insert = ['ITS' => $ITS] + $data;
+      if (!is_null($year) && $this->db->field_exists('year', 'ashara_attendance')) {
+        $insert['year'] = (int)$year;
+      }
+      return $this->db->insert('ashara_attendance', $insert);
+    }
+    return $updated;
   }
 
 
 
-  public function get_attendance_by_sub_sector($sector, $sub_sector)
+  public function get_attendance_by_sub_sector($sector, $sub_sector, $year = null)
   {
     if (empty($sector))
-      return $this->get_all_attendance();
-    return $this->get_ashara_attendance($sector, $sub_sector);
+      return $this->get_all_attendance($year);
+    return $this->get_ashara_attendance($sector, $sub_sector, $year);
   }
 
-  public function get_attendance_by_sector($sector, $sub_sector = '')
+  public function get_attendance_by_sector($sector, $sub_sector = '', $year = null)
   {
     if (empty($sector))
-      return $this->get_all_attendance();
-    return $this->get_ashara_attendance($sector, $sub_sector);
+      return $this->get_all_attendance($year);
+    return $this->get_ashara_attendance($sector, $sub_sector, $year);
   }
 
-  public function get_sub_sector_stats($sector, $sub_sector)
+  public function get_sub_sector_stats($sector, $sub_sector, $year = null)
   {
     if (empty($sector))
-      return $this->get_all_attendance_stats();
-    return $this->get_attendance_stats($sector, $sub_sector);
+      return $this->get_all_attendance_stats($year);
+    return $this->get_attendance_stats($sector, $sub_sector, $year);
   }
 
-  public function get_sector_stats($sector, $sub_sector = '')
+  public function get_sector_stats($sector, $sub_sector = '', $year = null)
   {
     if (empty($sector))
-      return $this->get_all_attendance_stats();
-    return $this->get_attendance_stats($sector, $sub_sector);
+      return $this->get_all_attendance_stats($year);
+    return $this->get_attendance_stats($sector, $sub_sector, $year);
   }
 
-  private function get_ashara_attendance($sector, $sub_sector = '')
+  private function get_ashara_attendance($sector, $sub_sector = '', $year = null)
   {
     $this->db->select('u.ITS_ID, u.HOF_ID, u.Full_Name, u.Mobile, u.Sector, u.Sub_Sector, 
         a.Day2, a.Comment2, a.Day3, a.Comment3, a.Day4, a.Comment4, 
         a.Day5, a.Comment5, a.Day6, a.Comment6, a.Day7, a.Comment7, 
         a.Day8, a.Comment8, a.Day9, a.Comment9, a.Ashura, a.CommentAshura');
     $this->db->from('user u');
-    $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_attendance')) {
+      $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS AND a.year = ' . $this->db->escape((int)$year), 'left');
+    } else {
+      $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+    }
     $this->db->where('u.Sector', $sector);
     if (!empty($sub_sector)) {
       $this->db->where('u.Sub_Sector', $sub_sector);
@@ -239,19 +291,23 @@ class MasoolMusaidM extends CI_Model
     return $this->db->get()->result_array();
   }
 
-  public function get_all_attendance()
+  public function get_all_attendance($year = null)
   {
     $this->db->select('u.ITS_ID, u.HOF_ID, u.Full_Name, u.Mobile, u.Sector, u.Sub_Sector, 
         a.Day2, a.Comment2, a.Day3, a.Comment3, a.Day4, a.Comment4, 
         a.Day5, a.Comment5, a.Day6, a.Comment6, a.Day7, a.Comment7, 
         a.Day8, a.Comment8, a.Day9, a.Comment9, a.Ashura, a.CommentAshura');
     $this->db->from('user u');
-    $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_attendance')) {
+      $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS AND a.year = ' . $this->db->escape((int)$year), 'left');
+    } else {
+      $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+    }
     $this->db->order_by('u.Sector, u.Sub_Sector, u.Full_Name');
     return $this->db->get()->result_array();
   }
 
-  public function get_all_attendance_stats()
+  public function get_all_attendance_stats($year = null)
   {
     $days = ['Day2', 'Day3', 'Day4', 'Day5', 'Day6', 'Day7', 'Day8', 'Day9', 'Ashura'];
     $stats = [];
@@ -268,21 +324,29 @@ class MasoolMusaidM extends CI_Model
             COUNT(u.ITS_ID) as total_members
         ");
       $this->db->from('user u');
-      $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+      if (!is_null($year) && $this->db->field_exists('year', 'ashara_attendance')) {
+        $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS AND a.year = ' . $this->db->escape((int)$year), 'left');
+      } else {
+        $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+      }
       $stats[$day] = $this->db->get()->row_array();
     }
 
     return $stats;
   }
 
-  public function search_attendance_by_sector($keyword, $sector = '', $sub_sector = '')
+  public function search_attendance_by_sector($keyword, $sector = '', $sub_sector = '', $year = null)
   {
     $this->db->select('u.ITS_ID, u.HOF_ID, u.Full_Name, u.Mobile, u.Sector, u.Sub_Sector, 
         a.Day2, a.Comment2, a.Day3, a.Comment3, a.Day4, a.Comment4, 
         a.Day5, a.Comment5, a.Day6, a.Comment6, a.Day7, a.Comment7, 
         a.Day8, a.Comment8, a.Day9, a.Comment9, a.Ashura, a.CommentAshura');
     $this->db->from('user u');
-    $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+    if (!is_null($year) && $this->db->field_exists('year', 'ashara_attendance')) {
+      $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS AND a.year = ' . $this->db->escape((int)$year), 'left');
+    } else {
+      $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+    }
 
     if (!empty($sector)) {
       $this->db->where('u.Sector', $sector);
@@ -320,7 +384,7 @@ class MasoolMusaidM extends CI_Model
 
 
 
-  private function get_attendance_stats($sector, $sub_sector = '')
+  private function get_attendance_stats($sector, $sub_sector = '', $year = null)
   {
     $days = ['Day2', 'Day3', 'Day4', 'Day5', 'Day6', 'Day7', 'Day8', 'Day9', 'Ashura'];
     $stats = [];
@@ -337,7 +401,11 @@ class MasoolMusaidM extends CI_Model
             COUNT(u.ITS_ID) as total_members
         ");
       $this->db->from('user u');
-      $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+      if (!is_null($year) && $this->db->field_exists('year', 'ashara_attendance')) {
+        $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS AND a.year = ' . $this->db->escape((int)$year), 'left');
+      } else {
+        $this->db->join('ashara_attendance a', 'u.ITS_ID = a.ITS', 'left');
+      }
       $this->db->where('u.Sector', $sector);
 
       if (!empty($sub_sector)) {

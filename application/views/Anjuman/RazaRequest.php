@@ -1,5 +1,4 @@
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
-<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
 <style>
@@ -259,11 +258,12 @@
 <div id="toast-message" class="toast-message">
   Successfull
 </div>
-<div class="margintopcontainer">
+<div class="margintopcontainer mx-3 pb-4">
   <div class="ml-1 mr-1 pt-5">
-    <p class="h4 text-center mt-5" style="color:goldenrod; text-transform: uppercase;"><?php echo $umoor ?></p>
+    <a href="<?php echo base_url("anjuman") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+    <p class="h4 text-center mt-5" style="color:goldenrod; text-transform: uppercase;"><?php echo $umoor; ?></p>
     <div class="container">
-      <div class="row mt-5">
+      <div class="row">
         <form class="form-inline my-2 my-lg-0 w-100">
           <div class="input-group">
             <input class="form-control" type="search" placeholder="Search" aria-label="Search"
@@ -304,7 +304,7 @@
         </select>
       </div>
     </div>
-    <div class="table-responsive mt-5 mb-5">
+    <div class="table-responsive mb-5">
       <div class="table-container">
         <table class="table table-bordered text-center">
           <thead>
@@ -314,52 +314,38 @@
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
-              <th class="sno">Sabil
-                <span class="sort-icons" onclick="sortTable(1)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="sno">FMB Thaali
-                <span class="sort-icons" onclick="sortTable(2)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
               <!--<th class="sno">FMB Kitchen-->
               <!--    <span class="sort-icons" onclick="sortTable(3)">-->
               <!--        <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>-->
               <!--    </span>-->
               <!--</th>-->
-              <th class="created">Created
-                <span class="sort-icons" onclick="sortTable(4)">
+              <th class="name">Name
+                <span class="sort-icons" onclick="sortTable(1)">
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
               <th class="raza">Raza For
-                <span class="sort-icons" onclick="sortTable(5)">
+                <span class="sort-icons" onclick="sortTable(2)">
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
               <th class="eventdate">Event Date
-                <span class="sort-icons" onclick="sortTable(6)">
+                <span class="sort-icons" onclick="sortTable(3)">
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
-              <th class="name">Name
-                <span class="sort-icons" onclick="sortTable(7)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="remark">Remark
-                <span class="sort-icons" onclick="sortTable(8)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
+              <th class="chat">Chat</th>
               <th class="approval_status">Status
-                <span class="sort-icons" onclick="sortTable(9)">
+                <span class="sort-icons" onclick="sortTable(5)">
                   <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
                 </span>
               </th>
               <th class="action">Action</th>
+              <th class="created">Created
+                <span class="sort-icons" onclick="sortTable(7)">
+                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody id="datatable">
@@ -370,10 +356,27 @@
                   <?php echo $key + 1 ?>
                 </td>
                 <td>
-                  <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
+                  <?php echo $r['user_name'] ?>
                 </td>
                 <td>
-                  <?php echo $r['razaType'] ?>
+                  <?php
+                  if (!empty($r['miqaat_id']) && !empty($r['miqaat_details'])) {
+                    $miqaat = json_decode($r['miqaat_details'], true);
+                    if (is_array($miqaat)) {
+                      $mName = htmlspecialchars($miqaat['name'] ?? '', ENT_QUOTES, 'UTF-8');
+                      $mType = htmlspecialchars($miqaat['type'] ?? '', ENT_QUOTES, 'UTF-8');
+                      $mAssigned = htmlspecialchars($miqaat['assigned_to'] ?? '', ENT_QUOTES, 'UTF-8');
+                      $mDate = !empty($miqaat['date']) ? date('D, d M', strtotime($miqaat['date'])) : '';
+                      $metaParts = array_filter([$mType, $mAssigned, $mDate], function ($v) { return $v !== '' && $v !== null; });
+                      $meta = implode(' &middot; ', $metaParts);
+                      echo "$mName <br><small class=\"text-muted\">$meta</small>";
+                    } else {
+                      echo htmlspecialchars($r['razaType'], ENT_QUOTES, 'UTF-8');
+                    }
+                  } else {
+                    echo htmlspecialchars($r['razaType'], ENT_QUOTES, 'UTF-8');
+                  }
+                  ?>
                 </td>
                 <td>
                   <?php
@@ -388,12 +391,11 @@
                   }
                   ?>
                 </td>
-
                 <td>
-                  <?php echo $r['user_name'] ?>
-                </td>
-                <td>
-                  <?php echo $r['remark'] ?>
+                  <?php $chat_count = !empty($r['chat_count']) ? $r['chat_count'] : ''; ?>
+                  <a href="<?php echo base_url('Accounts/chat/') . $r['id'] . '/anjuman'; ?>" class="chat-button">
+                    Chat<?php echo $chat_count ? '<div class="chat-count">' . $chat_count . '</div>' : ''; ?>
+                  </a>
                 </td>
                 <td class="status">
                   <div class="text-left">
@@ -442,6 +444,9 @@
                     onclick="redirectto(<?php echo 'anjuman/DeleteRaza/' . $r['id'] ?>);"><i
                       class="fa fa-circle-xmark"></i></button>
                 </td>
+                <td>
+                  <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
+                </td>
               </tr>
             <?php } ?>
           </tbody>
@@ -489,14 +494,8 @@
   </form>
 </div>
 <script>
-  let razas = [];
-  <?php foreach ($raza as $r) { ?>
-    var data = {};
-    <?php foreach ($r as $key => $ele) { ?>
-      data['<?php echo $key ?>'] = '<?php echo $ele ?>';
-    <?php } ?>
-    razas.push(data);
-  <?php } ?>
+  // Build as proper JSON to preserve nested structures (razadata, razafields, miqaat_details)
+  let razas = <?php echo json_encode($raza, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
   function show_raza(id) {
     document.getElementById("show-form").style.display = "block";
@@ -650,6 +649,7 @@
   }
 </script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
 <script>
   function refresh() {
     window.location.reload()
@@ -692,7 +692,8 @@
 </script>
 <script>
   let tem = document.getElementById("sort");
-  tem.value = 4;
+  // Default to Event Date (New > Old)
+  tem.value = 2;
   updateTable();
 
   function updateTable() {
@@ -764,10 +765,10 @@
             return new Date(a['time-stamp']) - new Date(b['time-stamp']);
           case 2:
             // Implement sorting by event date (New > Old)
-            return new Date(getEventDate(b.razadata)) - new Date(getEventDate(a.razadata));
+            return new Date(getEventDate(b.razadata, b.miqaat_details)) - new Date(getEventDate(a.razadata, a.miqaat_details));
           case 3:
             // Implement sorting by event date (Old > New)
-            return new Date(getEventDate(a.razadata)) - new Date(getEventDate(b.razadata));
+            return new Date(getEventDate(a.razadata, a.miqaat_details)) - new Date(getEventDate(b.razadata, b.miqaat_details));
           case 6:
             refresh();
           default:
@@ -781,23 +782,17 @@
       var raza = filteredAndSortedRazas[i];
       var chatCount = raza.chat_count && raza.chat_count > 0 ? raza.chat_count : '';
       var chatCountHTML = chatCount ? `<div class="chat-count">${chatCount}</div>` : '';
-      var chatURL = `<?= base_url('Accounts/chat/') ?>${raza.id}`;
+      var chatURL = `<?php echo base_url('Accounts/chat/') ?>${raza.id}<?php echo "/anjuman"; ?>`;
       var row = document.createElement("tr");
       row.innerHTML = `
         <td>${i + 1}</td>
-        <td>${formatSabil(raza)}</td>
-        <td>${formatFmb(raza)}</td>
-        <td>${formatDate(raza['time-stamp'])}</td>
+        <td>${raza['user_name']}</td>
         <td>${formateRazaType(raza)}</td>
         <td>${formatEventDate(raza)}</td>
-        <td>${raza['user_name']}</td>
-        <td>
-            <a href="${chatURL}" class="chat-button">
-                Chat${chatCountHTML}
-            </a>
-        </td>
+        <td><a href="${chatURL}" class="chat-button">Chat${chatCountHTML}</a></td>
         <td>${getStatusHTML(raza)}</td>
         <td><span class="action_btn">${getActionHTML(raza)}</span></td>
+        <td>${formatDate(raza['time-stamp'])}</td>
     `;
       tbody.appendChild(row);
     }
@@ -841,9 +836,20 @@
   }
 
   function formateRazaType(raza) {
-    let data = JSON.parse(raza.razadata);
-    let rf = JSON.parse(raza.razafields);
-    let razafields = rf.fields;
+    const parseMaybe = (val) => { if (!val) return null; if (typeof val === 'object') return val; try { return JSON.parse(val); } catch (e) { return null; } };
+    // If miqaat present, show details similar to server rendering
+    if (raza.miqaat_id && raza.miqaat_details) {
+      const m = parseMaybe(raza.miqaat_details) || {};
+      const date = m.date ? new Date(m.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : '';
+      const name = m.name || '';
+      const type = m.type || '';
+      const assigned = m.assigned_to || '';
+      const parts = [type, assigned, date].filter(Boolean);
+      return `${name}<br><small style="color: #6c757d;">${parts.join(' · ')}</small>`;
+    }
+    let data = parseMaybe(raza.razadata) || {};
+    let rf = parseMaybe(raza.razafields) || {};
+    let razafields = rf.fields || [];
 
     // Logic for 'raza-purpose' can be included if needed
     // if (data['raza-purpose']) {
@@ -877,11 +883,12 @@
   }
 
   function formatEventDate(raza) {
-    let data = JSON.parse(raza.razadata)
-    let rf = JSON.parse(raza.razafields)
-    let razafields = rf.fields
+    const parseMaybe = (val) => { if (!val) return null; if (typeof val === 'object') return val; try { return JSON.parse(val); } catch (e) { return null; } };
+    let data = parseMaybe(raza.razadata) || {}
+    let rf = parseMaybe(raza.razafields) || {}
+    let razafields = rf.fields || []
     if (raza.miqaat_id && raza.miqaat_details) {
-      let miqaat_info = JSON.parse(raza.miqaat_details);
+      let miqaat_info = parseMaybe(raza.miqaat_details) || {};
       const options = {
         weekday: 'short',
         year: 'numeric',
@@ -917,21 +924,21 @@
   }
 
   function getStatusHTML(raza) {
-    let statusHTML = '<div class="text-left">' + '<ul>';
+    let statusHTML = '<div class="text-left">';
 
     if (raza['status'] == 0) {
-      statusHTML += '<li><div><strong style="color: orange;">Pending</strong></div></li>';
+      statusHTML += '<div><strong style="color: orange;">Pending</strong></div>';
     } else if (raza['status'] == 1) {
-      statusHTML += '<li><div><strong style="color: blue;">Recommended</strong></div></li>';
+      statusHTML += '<div><strong style="color: blue;">Recommended</strong></div>';
     } else if (raza['status'] == 2) {
-      statusHTML += '<li><div><strong style="color: limegreen;">Approved</strong></div></li>';
+      statusHTML += '<div><strong style="color: limegreen;">Approved</strong></div>';
     } else if (raza['status'] == 3) {
-      statusHTML += '<li><div><strong style="color: red;">Rejected</strong></div></li>';
+      statusHTML += '<div><strong style="color: red;">Rejected</strong></div>';
     } else if (raza['status'] == 4) {
-      statusHTML += '<li><div><strong style="color: blue;">Not Recommended</strong></div></li>';
+      statusHTML += '<div><strong style="color: blue;">Not Recommended</strong></div>';
     }
 
-    statusHTML += '<li>';
+    statusHTML += '<ul><li>';
     if (raza['coordinator-status'] == 0) {
       statusHTML += '<div>Jamat <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
     } else if (raza['coordinator-status'] == 1) {
@@ -993,10 +1000,18 @@
     return actionHTML;
   }
 
-  function getEventDate(razadata) {
-    // Implement logic to extract event date from razadata
-    let data = JSON.parse(razadata);
-    return data.date ? new Date(data.date) : null;
+  function getEventDate(razadata, miqaat_details = {}) {
+    // Extract event date from razadata or miqaat_details; both may be object or JSON string
+    const parseMaybe = (val) => { if (!val) return null; if (typeof val === 'object') return val; try { return JSON.parse(val); } catch (e) { return null; } };
+    let data = parseMaybe(razadata) || {};
+    if (data.date) {
+      return new Date(data.date);
+    } else if (miqaat_details) {
+      let miqaat_info = parseMaybe(miqaat_details) || {};
+      return new Date(miqaat_info.date);
+    } else {
+      return null;
+    }
   }
 </script>
 <script>
@@ -1052,6 +1067,8 @@
 </script>
 <script>
   $(document).ready(function() {
-    $('.table').DataTable();
+    if ($.fn && $.fn.DataTable) {
+      $('.table').DataTable();
+    }
   });
 </script>

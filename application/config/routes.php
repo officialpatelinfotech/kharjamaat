@@ -48,7 +48,30 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |
 | Examples:	my-controller/index	-> my_controller/index
 |		my-controller/my-method	-> my_controller/my_method
+// Corpus Funds feature routes
+$route['admin/corpusfunds'] = 'Admin/corpusfunds';
+$route['admin/corpusfunds/new'] = 'Admin/corpusfunds_new';
+$route['admin/corpusfunds/list'] = 'Admin/corpusfunds_list';
+$route['admin/corpusfunds/create'] = 'Admin/corpusfunds_create';
+$route['admin/corpusfunds/hofs'] = 'Admin/corpusfunds_hofs';
+$route['admin/corpusfunds/update_assignments'] = 'Admin/corpusfunds_update_assignments';
+$route['admin/corpusfunds/delete_assignment'] = 'Admin/corpusfunds_delete_assignment';
+$route['admin/corpusfunds/update_fund'] = 'Admin/corpusfunds_update_fund';
+$route['admin/corpusfunds/delete_fund'] = 'Admin/corpusfunds_delete_fund';
 */
 $route['default_controller'] = 'Home';
+$route['payment/ccavenue/checkout'] = 'PaymentCCAvenue/checkout';
+$route['payment/ccavenue/initiate'] = 'PaymentCCAvenue/initiate';
+$route['payment/ccavenue/callback'] = 'PaymentCCAvenue/callback';
+$route['accounts/corpusfunds'] = 'accounts/corpusfunds_details';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
+
+// Legal & Policy Pages
+$route['terms']   = 'legal/terms';
+$route['privacy'] = 'legal/privacy';
+$route['refund']  = 'legal/refund';
+$route['contact'] = 'legal/contact';
+
+// Public menu page (no login required)
+$route['menu'] = 'publicmenu';

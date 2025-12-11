@@ -5,6 +5,16 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
   die("Composer autoloader not found!");
 }
 
+// Load Dotenv for environment variables from .env
+if (class_exists('Dotenv\Dotenv')) {
+  try {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+    $dotenv->safeLoad();
+  } catch (Throwable $e) {
+    // Non-fatal: continue if dotenv fails
+  }
+}
+
 date_default_timezone_set('Asia/Kolkata');
 
 /*

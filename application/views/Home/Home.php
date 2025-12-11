@@ -179,5 +179,17 @@
         </div>
       </div>
     </div>
+    <?php
+    // Provide footer defaults for unauthenticated landing page.
+    $footer_defaults = array(
+      'org_name' => 'Anjuman-e-Saifee Khar',
+      'address_line' => '3RFP+FV4, SV Rd, Khar',
+      'city_state' => 'Khar West, Mumbai, Maharashtra',
+      'pincode' => '400052',
+      'support_email' => 'anjuman@kharjamaat.in',
+      'last_updated' => date('d M Y')
+    );
+    $this->load->view('Common/Footer', $footer_defaults);
+    ?>
   </div>
 </div>

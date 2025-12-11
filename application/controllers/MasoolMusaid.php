@@ -8,6 +8,7 @@ class MasoolMusaid extends CI_Controller
   {
     parent::__construct();
     $this->load->model('MasoolMusaidM'); // ✅ Load your dedicated model
+    $this->load->model('CommonM');
     $this->load->model('AdminM');
     $this->load->model('AccountM');
     $this->load->library('email', $this->config->item('email'));
@@ -21,9 +22,79 @@ class MasoolMusaid extends CI_Controller
       redirect('/accounts');
     }
 
-    $data['user_name'] = $_SESSION['user']['username'];
+    $username = $_SESSION['user']['username'];
+    $data['user_name'] = $username;
+
+    // Derive sector/sub-sector scope from username (e.g., BurhaniA -> sector=Burhani, sub=A)
+    $user_sector = '';
+    $user_sub = '';
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $m)) {
+      $user_sector = ucfirst(strtolower($m[1] ?? ''));
+      $user_sub = strtoupper($m[2] ?? '');
+    }
+
+    // Build current week Monday–Sunday
+    $start_date = date('Y-m-d', strtotime('monday this week'));
+    $end_date = date('Y-m-d', strtotime('sunday this week'));
+    $days = 7;
+
+    // Iterate each day, aggregate signed-up families per sector/sub-sector within scope
+    $bySub = [];
+    $cursor = strtotime($start_date);
+    $endTs = strtotime($end_date);
+    while ($cursor !== false && $cursor <= $endTs) {
+      $d = date('Y-m-d', $cursor);
+      $bd = $this->CommonM->get_thaali_signup_breakdown($d);
+      $rows = isset($bd['breakdown']) ? $bd['breakdown'] : [];
+      foreach ($rows as $r) {
+        $sec = trim($r['sector'] ?? '');
+        $sub = trim($r['sub_sector'] ?? '');
+        if ($sec === '' || strcasecmp($sec, $user_sector) !== 0) continue; // only within user's sector
+        if ($user_sub !== '' && strcasecmp($sub, $user_sub) !== 0) continue; // if user bound to sub-sector, filter it
+        $key = $sec . '||' . $sub;
+        if (!isset($bySub[$key])) {
+          $bySub[$key] = ['sector' => $sec, 'sub_sector' => $sub, 'total' => 0];
+        }
+        $bySub[$key]['total'] += (int)($r['signed_up'] ?? 0);
+      }
+      $cursor = strtotime('+1 day', $cursor);
+    }
+
+    // Ensure zero entries for sub-sectors (when user is sector-wide)
+    if ($user_sector !== '' && $user_sub === '') {
+      $subs = $this->MasoolMusaidM->get_all_sub_sectors($user_sector);
+      foreach ($subs as $row) {
+        $sub = trim($row['sub_sector'] ?? '');
+        $key = $user_sector . '||' . $sub;
+        if (!isset($bySub[$key])) {
+          $bySub[$key] = ['sector' => $user_sector, 'sub_sector' => $sub, 'total' => 0];
+        }
+      }
+    }
+
+    // Compose display items with avg/day
+    $items = [];
+    foreach ($bySub as $entry) {
+      $items[] = [
+        'sector' => $entry['sector'],
+        'sub_sector' => $entry['sub_sector'],
+        'total' => (int)$entry['total'],
+        'avg' => $days > 0 ? round(((int)$entry['total']) / $days, 2) : 0,
+      ];
+    }
+    // Sort by total desc for readability
+    usort($items, function($a, $b){ return ($b['total'] ?? 0) <=> ($a['total'] ?? 0); });
+
+    $data['weekly_signup_avg'] = [
+      'start' => $start_date,
+      'end' => $end_date,
+      'days' => $days,
+      'items' => $items,
+      'scope' => [ 'sector' => $user_sector, 'sub_sector' => $user_sub ],
+    ];
+
     $this->load->view('MasoolMusaid/Header', $data);
-    $this->load->view('MasoolMusaid/Home');
+    $this->load->view('MasoolMusaid/Home', $data);
   }
 
   public function mumineendirectory()
@@ -97,17 +168,33 @@ class MasoolMusaid extends CI_Controller
       $subsector = strtoupper($matches[2]); // Normalize to uppercase
     }
 
-    // Handle search or fetch all
+    // Determine Hijri year selection (default to current Hijri year)
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    // Fetch available Hijri years from calendar (fallback to +/-1 range if empty)
+    $year_options = $this->HijriCalendar->get_distinct_hijri_years();
+    $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
+    if (empty($year_options)) {
+      $year_options = [$current_hijri_year - 1, $current_hijri_year, $current_hijri_year + 1];
+    }
+    // Ensure the currently selected year appears in options
+    if (!in_array($selected_year, $year_options, true)) {
+      array_unshift($year_options, $selected_year);
+    }
+
+    // Handle search or fetch all (year-scoped if schema supports it)
     if ($this->input->post('search')) {
       $keyword = $this->input->post('search');
-      $users = $this->MasoolMusaidM->search_ashara_by_sector($keyword, $sector, $subsector);
+      $users = $this->MasoolMusaidM->search_ashara_by_sector($keyword, $sector, $subsector, $selected_year);
     } else {
-      $users = $this->MasoolMusaidM->get_ashara_by_sector($sector, $subsector);
+      $users = $this->MasoolMusaidM->get_ashara_by_sector($sector, $subsector, $selected_year);
     }
 
     // Get all sectors and sub-sectors data for the logged-in user's scope
-    $sectorsData = $this->MasoolMusaidM->get_sectors_stats($sector, $subsector);
-    $subSectorsData = $this->MasoolMusaidM->get_sub_sectors_stats($sector, $subsector);
+    $sectorsData = $this->MasoolMusaidM->get_sectors_stats($sector, $subsector, $selected_year);
+    $subSectorsData = $this->MasoolMusaidM->get_sub_sectors_stats($sector, $subsector, $selected_year);
 
     // Stats initialization
     $stats = [
@@ -157,7 +244,10 @@ class MasoolMusaid extends CI_Controller
       'users' => $users,
       'stats' => $stats,
       'current_sector' => $sector,
-      'current_sub_sector' => $subsector
+      'current_sub_sector' => $subsector,
+      'selected_year' => $selected_year,
+      'year_options' => $year_options,
+      'back_url' => base_url('MasoolMusaid')
     ];
 
     $this->load->view('MasoolMusaid/Header', $data);
@@ -168,6 +258,16 @@ class MasoolMusaid extends CI_Controller
   {
     $ITS = $this->input->post('ITS');
     $leaveStatus = $this->input->post('LeaveStatus');
+    $postedYear = $this->input->post('year');
+
+    // Fallback to current Hijri year if not provided
+    if ($postedYear) {
+      $year = (int)$postedYear;
+    } else {
+      $today = date('Y-m-d');
+      $h = $this->HijriCalendar->get_hijri_date($today);
+      $year = (int)explode('-', $h['hijri_date'])[2];
+    }
 
     $updateData = [
       'Type' => $this->input->post('Type'),
@@ -182,11 +282,12 @@ class MasoolMusaid extends CI_Controller
     ];
 
     $this->load->model('MasoolMusaidM');
-    $result = $this->MasoolMusaidM->upsert_ashara_row($ITS, $updateData);
+  $result = $this->MasoolMusaidM->upsert_ashara_row($ITS, $updateData, $year);
 
     // If LeaveStatus is special, also update ashara_attendance
     if (in_array($leaveStatus, ['Not in Town', 'Married Outcaste'])) {
-      $this->MasoolMusaidM->update_attendance_leave_status($ITS, $leaveStatus);
+      // Attendance may be year-scoped
+      $this->MasoolMusaidM->update_attendance_leave_status($ITS, $leaveStatus, $year);
     }
 
     return $this->output
@@ -213,6 +314,20 @@ class MasoolMusaid extends CI_Controller
     $sel_sector = $this->input->get('sector') ?? $user_sector;
     $sel_sub = $this->input->get('subsector') ?? $user_sub;
 
+    // Hijri Year selection (UI scope only; attendance table is not year-scoped)
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $year_options = $this->HijriCalendar->get_distinct_hijri_years();
+    $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
+    if (empty($year_options)) {
+      $year_options = [$current_hijri_year - 1, $current_hijri_year, $current_hijri_year + 1];
+    }
+    if (!in_array($selected_year, $year_options, true)) {
+      array_unshift($year_options, $selected_year);
+    }
+
     // Validate selected sector
     $all_sectors = $this->MasoolMusaidM->get_all_sectors();
     if (!in_array($sel_sector, array_column($all_sectors, 'sector'))) {
@@ -223,16 +338,16 @@ class MasoolMusaid extends CI_Controller
     // Determine whether to filter by sub-sector or allow search
     if (!empty($user_sub)) {
       $sel_sub = $user_sub;
-      $users = $this->MasoolMusaidM->get_attendance_by_sub_sector($user_sector, $user_sub);
-      $stats = $this->MasoolMusaidM->get_sub_sector_stats($user_sector, $user_sub);
+      $users = $this->MasoolMusaidM->get_attendance_by_sub_sector($user_sector, $user_sub, $selected_year);
+      $stats = $this->MasoolMusaidM->get_sub_sector_stats($user_sector, $user_sub, $selected_year);
     } else {
       if ($this->input->post('search')) {
         $kw = $this->input->post('search', true);
-        $users = $this->MasoolMusaidM->search_attendance_by_sector($kw, $sel_sector, $sel_sub);
+        $users = $this->MasoolMusaidM->search_attendance_by_sector($kw, $sel_sector, $sel_sub, $selected_year);
       } else {
-        $users = $this->MasoolMusaidM->get_attendance_by_sector($sel_sector, $sel_sub);
+        $users = $this->MasoolMusaidM->get_attendance_by_sector($sel_sector, $sel_sub, $selected_year);
       }
-      $stats = $this->MasoolMusaidM->get_sector_stats($sel_sector, $sel_sub);
+      $stats = $this->MasoolMusaidM->get_sector_stats($sel_sector, $sel_sub, $selected_year);
     }
 
     // Prepare view data
@@ -257,6 +372,9 @@ class MasoolMusaid extends CI_Controller
         'Married Outcaste'
       ],
       'all_sub_sectors' => $this->MasoolMusaidM->get_all_sub_sectors($sel_sector),
+      // Year dropdown support (UI only)
+      'selected_year' => $selected_year,
+      'year_options' => $year_options,
     ];
 
     // Load views
@@ -269,12 +387,20 @@ class MasoolMusaid extends CI_Controller
 
   public function update_attendance()
   {
-
-
     $its = $this->input->post('its');
     $dayInput = $this->input->post('day'); // 2–9 or "Ashura"
     $status = $this->input->post('status');
     $comment = $this->input->post('comment');
+    $postedYear = $this->input->post('year');
+
+    // Resolve year (default to current Hijri year)
+    if ($postedYear) {
+      $year = (int)$postedYear;
+    } else {
+      $today = date('Y-m-d');
+      $h = $this->HijriCalendar->get_hijri_date($today);
+      $year = (int)explode('-', $h['hijri_date'])[2];
+    }
 
     if (!$its || !$dayInput || !$status) {
       http_response_code(400); // Bad request
@@ -290,16 +416,29 @@ class MasoolMusaid extends CI_Controller
       $commentColumn => $comment
     ];
 
-    // Update or insert
-    $this->db->where('ITS', $its);
-    $exists = $this->db->get('ashara_attendance')->row();
-
-    if ($exists) {
-      $this->db->where('ITS', $its);
-      $result = $this->db->update('ashara_attendance', $data);
+    // Update or insert (year-scoped when column exists)
+    if ($this->db->field_exists('year', 'ashara_attendance')) {
+      $this->db->where('ITS', $its)->where('year', $year);
+      $exists = $this->db->get('ashara_attendance')->row();
+      if ($exists) {
+        $this->db->where('ITS', $its)->where('year', $year);
+        $result = $this->db->update('ashara_attendance', $data);
+      } else {
+        $data['ITS'] = $its;
+        $data['year'] = $year;
+        $result = $this->db->insert('ashara_attendance', $data);
+      }
     } else {
-      $data['ITS'] = $its;
-      $result = $this->db->insert('ashara_attendance', $data);
+      // Fallback for legacy schema without year column
+      $this->db->where('ITS', $its);
+      $exists = $this->db->get('ashara_attendance')->row();
+      if ($exists) {
+        $this->db->where('ITS', $its);
+        $result = $this->db->update('ashara_attendance', $data);
+      } else {
+        $data['ITS'] = $its;
+        $result = $this->db->insert('ashara_attendance', $data);
+      }
     }
 
     if ($result) {
@@ -318,20 +457,35 @@ class MasoolMusaid extends CI_Controller
     $its_list = $data['its_list'] ?? null;
     $day = $data['day'] ?? null;
     $status = $data['status'] ?? null;
+    $postedYear = $data['year'] ?? null;
+
+    // Resolve year (default current Hijri)
+    if ($postedYear) {
+      $year = (int)$postedYear;
+    } else {
+      $today = date('Y-m-d');
+      $h = $this->HijriCalendar->get_hijri_date($today);
+      $year = (int)explode('-', $h['hijri_date'])[2];
+    }
 
     if (!$its_list || !$day || !$status) {
       show_error('Invalid data provided.', 400);
     }
 
     foreach ($its_list as $its) {
-      $this->db->where('ITS', $its)->update('ashara_attendance', [
-        $day => $status
-      ]);
-
-      // Optional: Log if no row affected (not found)
-      // if ($this->db->affected_rows() == 0) {
-      //     log_message('error', "Update failed or no row found for ITS: $its");
-      // }
+      if ($this->db->field_exists('year', 'ashara_attendance')) {
+        // Try update first
+        $this->db->where('ITS', $its)->where('year', $year);
+        $exists = $this->db->get('ashara_attendance')->row();
+        if ($exists) {
+          $this->db->where('ITS', $its)->where('year', $year)->update('ashara_attendance', [ $day => $status ]);
+        } else {
+          $row = [ 'ITS' => $its, 'year' => $year, $day => $status ];
+          $this->db->insert('ashara_attendance', $row);
+        }
+      } else {
+        $this->db->where('ITS', $its)->update('ashara_attendance', [ $day => $status ]);
+      }
     }
     echo 'success';
   }

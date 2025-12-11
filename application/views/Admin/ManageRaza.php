@@ -127,7 +127,10 @@
 </div>
 <div class="margintopcontainer">
 	<div class="container pt-5">
-		<p class="h4 text-center mt-5">All Raza Form</p>
+		<div>
+			<a href="<?php echo base_url("admin"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+		</div>
+		<p class="h4 text-center">All Raza Form</p>
 		<div class="container">
 			<div class="row mt-5">
 				<form class="form-inline my-2 my-lg-0 w-100">
