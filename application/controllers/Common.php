@@ -14,7 +14,7 @@ class Common extends CI_Controller
 
   private function validateUser($user)
   {
-    if (empty($user) || ($user['role'] != 1 && $user['role'] != 3 && $user['role'] != 2)) {
+    if (empty($user) || ($user['role'] != 1 && $user['role'] != 3 && $user['role'] != 2 && $user['role'] != 16)) {
       redirect('/accounts');
     }
   }
@@ -60,18 +60,20 @@ class Common extends CI_Controller
         // Only apply to miqaat rows (skip holidays and Thaali rows). Allow miqaat rows even if name is empty.
         $row_type = isset($row['miqaat_type']) ? $row['miqaat_type'] : '';
         $row_name = isset($row['miqaat_name']) ? $row['miqaat_name'] : '';
-        if ($row_type === 'Thaali') return false;
-        if ($row_type === '' && $row_name === '') return false; // likely a holiday/empty row
+        if ($row_type === 'Thaali')
+          return false;
+        if ($row_type === '' && $row_name === '')
+          return false; // likely a holiday/empty row
 
         $hasAssignments = !empty($row['assignments']);
         $type = $row_type;
         $name = $row_name;
         $assigned_to = isset($row['assigned_to']) ? $row['assigned_to'] : '';
         // Build a combined haystack for robust FNN detection
-        $hay_parts = [(string)$type, (string)$name, (string)$assigned_to];
+        $hay_parts = [(string) $type, (string) $name, (string) $assigned_to];
         if ($hasAssignments) {
-          foreach ((array)$row['assignments'] as $as) {
-            $hay_parts[] = (string)($as['assign_type'] ?? '');
+          foreach ((array) $row['assignments'] as $as) {
+            $hay_parts[] = (string) ($as['assign_type'] ?? '');
           }
         }
         $hay = strtolower(trim(implode(' ', $hay_parts)));
@@ -97,24 +99,30 @@ class Common extends CI_Controller
     if ($memberFilter !== '') {
       $calendar = array_values(array_filter($calendar, function ($row) use ($memberFilter) {
         // Only consider miqaat rows with assignments
-        if (empty($row['miqaat_name']) || $row['miqaat_type'] === 'Thaali') return false;
+        if (empty($row['miqaat_name']) || $row['miqaat_type'] === 'Thaali')
+          return false;
         $assignments = isset($row['assignments']) ? $row['assignments'] : [];
-        if (empty($assignments)) return false;
+        if (empty($assignments))
+          return false;
         foreach ($assignments as $as) {
           if (isset($as['assign_type']) && $as['assign_type'] === 'Group') {
             $leaderName = strtolower($as['group_leader_name'] ?? '');
             $groupName = strtolower($as['group_name'] ?? '');
-            if ($leaderName !== '' && strpos($leaderName, $memberFilter) !== false) return true;
-            if ($groupName !== '' && strpos($groupName, $memberFilter) !== false) return true;
+            if ($leaderName !== '' && strpos($leaderName, $memberFilter) !== false)
+              return true;
+            if ($groupName !== '' && strpos($groupName, $memberFilter) !== false)
+              return true;
             if (!empty($as['members'])) {
               foreach ($as['members'] as $memb) {
                 $mname = strtolower($memb['name'] ?? '');
-                if ($mname !== '' && strpos($mname, $memberFilter) !== false) return true;
+                if ($mname !== '' && strpos($mname, $memberFilter) !== false)
+                  return true;
               }
             }
           } elseif (isset($as['assign_type']) && $as['assign_type'] === 'Individual') {
             $indName = strtolower($as['member_name'] ?? '');
-            if ($indName !== '' && strpos($indName, $memberFilter) !== false) return true;
+            if ($indName !== '' && strpos($indName, $memberFilter) !== false)
+              return true;
           }
         }
         return false;
@@ -193,12 +201,14 @@ class Common extends CI_Controller
 
     if ($result) {
       // Indian number words using Crore/Lakh/Thousand/Hundred
-      $amtInt = is_numeric($result["amount"]) ? (int)floor($result["amount"]) : 0;
+      $amtInt = is_numeric($result["amount"]) ? (int) floor($result["amount"]) : 0;
       $ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
       $tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
       $twoDigits = function ($n) use ($ones, $tens) {
-        if ($n == 0) return "";
-        if ($n < 20) return $ones[$n];
+        if ($n == 0)
+          return "";
+        if ($n < 20)
+          return $ones[$n];
         $ten = intdiv($n, 10);
         $one = $n % 10;
         return $tens[$ten] . ($one ? "-" . $ones[$one] : "");
@@ -207,8 +217,10 @@ class Common extends CI_Controller
         $s = "";
         $hund = intdiv($n, 100);
         $rem = $n % 100;
-        if ($hund) $s .= $ones[$hund] . " Hundred" . ($rem ? " " : "");
-        if ($rem) $s .= $twoDigits($rem);
+        if ($hund)
+          $s .= $ones[$hund] . " Hundred" . ($rem ? " " : "");
+        if ($rem)
+          $s .= $twoDigits($rem);
         return $s;
       };
       $parts = [];
@@ -219,16 +231,21 @@ class Common extends CI_Controller
       $thousand = intdiv($amtInt, 1000);
       $amtInt %= 1000;
       $hundreds = $amtInt; // 0..999
-      if ($crore) $parts[] = ($crore < 100 ? $twoDigits($crore) : $threeDigits($crore)) . " Crore";
-      if ($lakh) $parts[] = ($lakh < 100 ? $twoDigits($lakh) : $threeDigits($lakh)) . " Lakh";
-      if ($thousand) $parts[] = ($thousand < 100 ? $twoDigits($thousand) : $threeDigits($thousand)) . " Thousand";
-      if ($hundreds) $parts[] = $threeDigits($hundreds);
-      if (empty($parts)) $parts[] = "Zero";
+      if ($crore)
+        $parts[] = ($crore < 100 ? $twoDigits($crore) : $threeDigits($crore)) . " Crore";
+      if ($lakh)
+        $parts[] = ($lakh < 100 ? $twoDigits($lakh) : $threeDigits($lakh)) . " Lakh";
+      if ($thousand)
+        $parts[] = ($thousand < 100 ? $twoDigits($thousand) : $threeDigits($thousand)) . " Thousand";
+      if ($hundreds)
+        $parts[] = $threeDigits($hundreds);
+      if (empty($parts))
+        $parts[] = "Zero";
       $amount_words = implode(" ", $parts);
 
       // Format amount in INR (Indian grouping, no decimals) with Rupee symbol
-      $amt = is_numeric($result["amount"]) ? (int)round($result["amount"]) : 0;
-      $amtStr = (string)max(0, $amt);
+      $amt = is_numeric($result["amount"]) ? (int) round($result["amount"]) : 0;
+      $amtStr = (string) max(0, $amt);
       if (strlen($amtStr) > 3) {
         $last3 = substr($amtStr, -3);
         $rest = substr($amtStr, 0, strlen($amtStr) - 3);
@@ -332,10 +349,12 @@ class Common extends CI_Controller
         $dayName = isset($d['date']) ? date('l', strtotime($d['date'])) : '';
         $hasMenu = isset($d['menu']['items']) && is_array($d['menu']['items']) && count($d['menu']['items']) > 0;
         $hasMiqaat = isset($d['miqaats']) && is_array($d['miqaats']) && count($d['miqaats']) > 0;
-        if ($hasMenu) $summary_total_thaali_days++;
-        if ($hasMiqaat) $summary_miqaat_days++;
+        if ($hasMenu)
+          $summary_total_thaali_days++;
+        if ($hasMiqaat)
+          $summary_miqaat_days++;
         // Sundays + Utlat: Sundays with no Miqaat (ignore menu), plus non-Sunday holidays
-        $isHoliday = isset($d['is_holiday']) ? (bool)$d['is_holiday'] : false;
+        $isHoliday = isset($d['is_holiday']) ? (bool) $d['is_holiday'] : false;
         if ($dayName === 'Sunday' && !$hasMiqaat) {
           $summary_sundays_utlat++;
         } elseif ($isHoliday && $dayName !== 'Sunday') {
@@ -380,18 +399,18 @@ class Common extends CI_Controller
          )",
         [$range_start, $range_end]
       )->row_array();
-      $data['summary_individual'] = isset($individual_row['c']) ? (int)$individual_row['c'] : 0;
-      $data['summary_group'] = isset($group_row['c']) ? (int)$group_row['c'] : 0;
-      $data['summary_fnn'] = isset($fnn_row['c']) ? (int)$fnn_row['c'] : 0;
+      $data['summary_individual'] = isset($individual_row['c']) ? (int) $individual_row['c'] : 0;
+      $data['summary_group'] = isset($group_row['c']) ? (int) $group_row['c'] : 0;
+      $data['summary_fnn'] = isset($fnn_row['c']) ? (int) $fnn_row['c'] : 0;
     } else {
       $data['summary_individual'] = 0;
       $data['summary_group'] = 0;
       $data['summary_fnn'] = 0;
     }
-    $data['summary_miqaat_days'] = (int)$summary_miqaat_days;
-    $data['summary_total_thaali_days'] = (int)$summary_total_thaali_days;
+    $data['summary_miqaat_days'] = (int) $summary_miqaat_days;
+    $data['summary_total_thaali_days'] = (int) $summary_total_thaali_days;
     $data['summary_total_days'] = isset($data['menu']) ? count($data['menu']) : 0;
-    $data['summary_sundays'] = (int)$summary_sundays_utlat;
+    $data['summary_sundays'] = (int) $summary_sundays_utlat;
 
     $from = $this->input->get('from');
     $_SESSION["from"] = $from;
@@ -749,7 +768,7 @@ class Common extends CI_Controller
   // Create Menu
 
   // Create Miqaat
-  public  function managemiqaat()
+  public function managemiqaat()
   {
     $this->validateUser($_SESSION["user"]);
     $from = $this->input->get('from');
@@ -800,24 +819,30 @@ class Common extends CI_Controller
     $memberFilter = strtolower(trim($member_name_filter ?? ''));
     if ($memberFilter !== '') {
       $calendar = array_values(array_filter($calendar, function ($row) use ($memberFilter) {
-        if (empty($row['miqaat_name']) || $row['miqaat_type'] === 'Thaali') return false;
+        if (empty($row['miqaat_name']) || $row['miqaat_type'] === 'Thaali')
+          return false;
         $assignments = isset($row['assignments']) ? $row['assignments'] : [];
-        if (empty($assignments)) return false;
+        if (empty($assignments))
+          return false;
         foreach ($assignments as $as) {
           if (isset($as['assign_type']) && $as['assign_type'] === 'Group') {
             $leaderName = strtolower($as['group_leader_name'] ?? '');
             $groupName = strtolower($as['group_name'] ?? '');
-            if ($leaderName !== '' && strpos($leaderName, $memberFilter) !== false) return true;
-            if ($groupName !== '' && strpos($groupName, $memberFilter) !== false) return true;
+            if ($leaderName !== '' && strpos($leaderName, $memberFilter) !== false)
+              return true;
+            if ($groupName !== '' && strpos($groupName, $memberFilter) !== false)
+              return true;
             if (!empty($as['members'])) {
               foreach ($as['members'] as $memb) {
                 $mname = strtolower($memb['name'] ?? '');
-                if ($mname !== '' && strpos($mname, $memberFilter) !== false) return true;
+                if ($mname !== '' && strpos($mname, $memberFilter) !== false)
+                  return true;
               }
             }
           } elseif (isset($as['assign_type']) && $as['assign_type'] === 'Individual') {
             $indName = strtolower($as['member_name'] ?? '');
-            if ($indName !== '' && strpos($indName, $memberFilter) !== false) return true;
+            if ($indName !== '' && strpos($indName, $memberFilter) !== false)
+              return true;
           }
         }
         return false;
@@ -856,10 +881,10 @@ class Common extends CI_Controller
         if (!$isHoliday && $type !== 'Thaali') {
           $assignments = isset($row['assignments']) ? $row['assignments'] : [];
           // FNN detection
-          $hay_parts = [(string)$type, (string)$miqaat_name, (string)($row['assigned_to'] ?? '')];
+          $hay_parts = [(string) $type, (string) $miqaat_name, (string) ($row['assigned_to'] ?? '')];
           if (!empty($assignments)) {
             foreach ($assignments as $as_chk) {
-              $hay_parts[] = (string)($as_chk['assign_type'] ?? '');
+              $hay_parts[] = (string) ($as_chk['assign_type'] ?? '');
             }
           }
           $hay = strtolower(trim(implode(' ', $hay_parts)));
@@ -869,17 +894,22 @@ class Common extends CI_Controller
           $is_fnn = (strpos($basic, 'fnn') !== false)
             || ((strpos($basic, 'fala') !== false) && (strpos($basic, 'niyaz') !== false || strpos($basic, 'niaz') !== false))
             || ((strpos($letters, 'fala') !== false) && (strpos($letters, 'niyaz') !== false || strpos($letters, 'niaz') !== false));
-          if ($is_fnn) $summary_fnn++;
+          if ($is_fnn)
+            $summary_fnn++;
           // Individual/Group flags per row
           $row_has_individual = false;
           $row_has_group = false;
           foreach ($assignments as $as) {
             $t = isset($as['assign_type']) ? strtolower($as['assign_type']) : '';
-            if ($t === 'individual') $row_has_individual = true;
-            elseif ($t === 'group') $row_has_group = true;
+            if ($t === 'individual')
+              $row_has_individual = true;
+            elseif ($t === 'group')
+              $row_has_group = true;
           }
-          if ($row_has_individual) $summary_individual++;
-          if ($row_has_group) $summary_group++;
+          if ($row_has_individual)
+            $summary_individual++;
+          if ($row_has_group)
+            $summary_group++;
           // Miqaat days excluding Ladies
           if (strtolower($type) !== 'ladies') {
             $summary_miqaat_days_excl_ladies++;
@@ -888,12 +918,12 @@ class Common extends CI_Controller
       }
     }
     $data['calendar_summary'] = [
-      'total_miqaat_days' => (int)$summary_miqaat_days_excl_ladies,
-      'total_thaali_days' => (int)$summary_thaali_days,
-      'sundays_utlat' => (int)($summary_holidays_excl_sundays + $summary_sundays_without_miqaat_thaali),
-      'individual' => (int)$summary_individual,
-      'group' => (int)$summary_group,
-      'fnn' => (int)$summary_fnn,
+      'total_miqaat_days' => (int) $summary_miqaat_days_excl_ladies,
+      'total_thaali_days' => (int) $summary_thaali_days,
+      'sundays_utlat' => (int) ($summary_holidays_excl_sundays + $summary_sundays_without_miqaat_thaali),
+      'individual' => (int) $summary_individual,
+      'group' => (int) $summary_group,
+      'fnn' => (int) $summary_fnn,
     ];
     $data["hijri_months"] = $this->HijriCalendar->get_hijri_month();
     $data['hijri_month_id'] = $hijri_month_id;
@@ -1002,7 +1032,7 @@ class Common extends CI_Controller
     $summary_sundays = 0;
     $sunday_no_miqaat_dates = [];
     $no_miqaat_no_thaali_dates = [];
-    $year_for_summary = isset($data['hijri_year']) ? (int)$data['hijri_year'] : (int)$this_hijri_year;
+    $year_for_summary = isset($data['hijri_year']) ? (int) $data['hijri_year'] : (int) $this_hijri_year;
     if ($year_for_summary) {
       // Financial year: Hijri months 09–12 of current year + 01–08 of next year
       $months_current = [9, 10, 11, 12];
@@ -1033,7 +1063,8 @@ class Common extends CI_Controller
       foreach ($years_and_months as $ym) {
         list($yr, $hm) = $ym;
         $monthData = $this->AccountM->get_hijri_month_menu($yr, $hm);
-        if (empty($monthData)) continue;
+        if (empty($monthData))
+          continue;
         foreach ($monthData as $day) {
           if (!empty($day['miqaats'])) {
             $summary_miqaat_days++;
@@ -1050,11 +1081,13 @@ class Common extends CI_Controller
           $hasThaali = (!empty($day['menu']) && !empty($day['menu']['items']));
           if ($dayName === 'Sunday' && !$hasMiqaat) {
             $summary_sundays++;
-            if (!empty($day['date'])) $sunday_no_miqaat_dates[] = $day['date'];
+            if (!empty($day['date']))
+              $sunday_no_miqaat_dates[] = $day['date'];
           } elseif (!$hasMiqaat && !$hasThaali) {
             // Any day (including non-Sundays) with neither miqaat nor thaali
             $summary_sundays++;
-            if (!empty($day['date'])) $no_miqaat_no_thaali_dates[] = $day['date'];
+            if (!empty($day['date']))
+              $no_miqaat_no_thaali_dates[] = $day['date'];
           }
         }
       }
@@ -1067,7 +1100,7 @@ class Common extends CI_Controller
       $data['debug_sundays_union'] = [
         'sundays_without_miqaat' => $sunday_no_miqaat_dates,
         'no_miqaat_no_thaali' => $no_miqaat_no_thaali_dates,
-        'total_count' => (int)$summary_sundays
+        'total_count' => (int) $summary_sundays
       ];
     }
 
@@ -1136,7 +1169,7 @@ class Common extends CI_Controller
       if ($row) {
         $resp['has_miqaat'] = true;
         $resp['miqaat'] = [
-          'id'   => $row['id'] ?? null,
+          'id' => $row['id'] ?? null,
           'name' => $row['name'] ?? '',
           'type' => $row['type'] ?? '',
           'date' => $row['date'] ?? $date,
@@ -1270,7 +1303,7 @@ class Common extends CI_Controller
     $results = [];
     foreach ($query as $row) {
       $results[] = [
-        'id'   => $row['ITS_ID'],
+        'id' => $row['ITS_ID'],
         'name' => $row['Full_Name']
       ];
     }
@@ -1310,7 +1343,7 @@ class Common extends CI_Controller
         redirect('common/createmiqaat?date=' . $date);
       }
 
-      if ($hijri_month == 10 && $hijri_day == 1  && $miqaat_type != "Shehrullah") {
+      if ($hijri_month == 10 && $hijri_day == 1 && $miqaat_type != "Shehrullah") {
         $this->session->set_flashdata('error', 'Only Shehrullah Miqaat can be created on this date.');
         redirect('common/createmiqaat?date=' . $date);
       }
@@ -1636,29 +1669,40 @@ class Common extends CI_Controller
   // ===================== Sector/Sub-sector Wise Thaali Signup Breakdown =====================
   public function thaali_signups_breakdown()
   {
-    // Allow access to Admin/Anjuman/Amilsaheb and Masool/Musaid (role 16)
-    $user = isset($_SESSION['user']) ? $_SESSION['user'] : null;
-    if (empty($user) || !in_array((int)($user['role'] ?? 0), [1, 2, 3, 16], true)) {
+    // ================= AUTH =================
+    $user = $_SESSION['user'] ?? null;
+
+    if (empty($user) || !in_array((int) ($user['role'] ?? 0), [1, 2, 3, 16], true)) {
       redirect('/accounts');
     }
+
+    // ================= CONTEXT =================
     $from = $this->input->get('from');
     if ($from) {
-      $_SESSION["from"] = $from;
+      $_SESSION['from'] = $from;
     }
-    $data["active_controller"] = $_SESSION["from"] ? base_url($_SESSION["from"]) : base_url();
-    $data['user_name'] = $_SESSION['user']['username'];
 
-    // Date or date range filter (default today)
+    $data['active_controller'] = $_SESSION['from'] ? base_url($_SESSION['from']) : base_url();
+    $data['user_name'] = $user['username'];
+
+    // ================= SECTOR (ROLE 16 ONLY) =================
+    $sector = null;
+    if ((int) $user['role'] === 16) {
+      $sector = $user['username'];
+    }
+
+    // ================= INPUTS =================
     $date_raw = $this->input->get_post('date');
     $start_raw = $this->input->get_post('start_date');
     $end_raw = $this->input->get_post('end_date');
 
-    // Helper to normalize possibly d-m-Y to Y-m-d
+    // ================= DATE NORMALIZER =================
     $norm = function ($v) {
-      if (empty($v)) return '';
+      if (empty($v))
+        return '';
       if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $v)) {
-        $p = explode('-', $v);
-        return $p[2] . '-' . $p[1] . '-' . $p[0];
+        [$d, $m, $y] = explode('-', $v);
+        return "$y-$m-$d";
       }
       return date('Y-m-d', strtotime($v));
     };
@@ -1666,133 +1710,154 @@ class Common extends CI_Controller
     $start_date = $norm($start_raw);
     $end_date = $norm($end_raw);
 
-    // If hijri month/year params are provided, prefer them and map to Gregorian range
+    // ================= HIJRI PARAMS =================
     $hijri_year_param = $this->input->get('hijri_year');
     $hijri_month_param = $this->input->get('hijri_month');
-    if (!empty($hijri_year_param) && !empty($hijri_month_param)) {
-      // sanitize
-      $hy = $hijri_year_param;
-      $hm = (int)$hijri_month_param;
-      // Use HijriCalendar to get gregorian days for that hijri month/year
-      $days = $this->HijriCalendar->get_hijri_days_for_month_year($hm, $hy);
-      if (!empty($days) && is_array($days)) {
-        $first = isset($days[0]['greg_date']) ? $days[0]['greg_date'] : '';
-        $last = isset($days[count($days)-1]['greg_date']) ? $days[count($days)-1]['greg_date'] : '';
-        if ($first && $last) {
-          $start_date = $first;
-          $end_date = $last;
-          // clear single-date param to avoid conflicting logic
-          $date_raw = '';
-        }
+
+    if ($hijri_year_param && $hijri_month_param) {
+      $days = $this->HijriCalendar
+        ->get_hijri_days_for_month_year((int) $hijri_month_param, $hijri_year_param);
+
+      if (!empty($days)) {
+        $start_date = $days[0]['greg_date'];
+        $end_date = $days[count($days) - 1]['greg_date'];
+        $date_raw = '';
       }
     }
 
-    // Helper to compute Hijri year's gregorian start/end for a given base greg date
-    $getYearRange = function ($baseGreg) {
-      $range = [null, null];
-      if (empty($baseGreg)) return $range;
-      $hij = $this->HijriCalendar->get_hijri_date($baseGreg);
-      if (!empty($hij) && !empty($hij['hijri_date'])) {
-        $yr = explode('-', $hij['hijri_date'])[2] ?? '';
-        if ($yr !== '') {
-          $cal = $this->HijriCalendar->get_hijri_calendar($yr);
-          if (!empty($cal)) {
-            $gregs = array_column($cal, 'greg_date');
-            sort($gregs);
-            $range = [$gregs[0], end($gregs)];
-          }
-        }
-      }
-      return $range;
-    };
-
-    // Default: current Hijri month (fallback to current week when mapping unavailable)
+    // ================= DEFAULT RANGE =================
     if (empty($start_date) && empty($end_date) && empty($date_raw)) {
       $today = date('Y-m-d');
-      // Try to map today's Hijri month to gregorian start/end
-      $hp = $this->HijriCalendar->get_hijri_parts_by_greg_date($today);
-      if (!empty($hp) && isset($hp['hijri_month']) && isset($hp['hijri_year'])) {
-        $hm = (int)$hp['hijri_month'];
-        $hy = $hp['hijri_year'];
-        $days = $this->HijriCalendar->get_hijri_days_for_month_year($hm, $hy);
-        if (!empty($days) && is_array($days)) {
-          $start_date = isset($days[0]['greg_date']) ? $days[0]['greg_date'] : $today;
-          $end_date = isset($days[count($days)-1]['greg_date']) ? $days[count($days)-1]['greg_date'] : $today;
-        }
-      }
-      // Fallback to current week if we still don't have a range
-      if (empty($start_date) || empty($end_date)) {
-        $todayTs = strtotime($today);
-        $start_date = date('Y-m-d', strtotime('monday this week', $todayTs));
-        $end_date   = date('Y-m-d', strtotime('sunday this week', $todayTs));
-      }
+      $start_date = date('Y-m-d', strtotime('monday this week', strtotime($today)));
+      $end_date = date('Y-m-d', strtotime('sunday this week', strtotime($today)));
     }
 
-    // If only a single 'date' is given, treat it as start_date and run till end of that Hijri year
-    if (empty($start_date) && empty($end_date) && !empty($date_raw)) {
-      $base = $norm($date_raw);
-      [$yStart, $yEnd] = $getYearRange($base);
-      $start_date = $base;
-      $end_date = $yEnd ?: $base;
-    }
+    // ======================================================
+    // ================= RANGE MODE =========================
+    // ======================================================
+    if ($start_date || $end_date) {
 
-    // If start_date is given without end_date, extend to the end of that Hijri year
-    if (!empty($start_date) && empty($end_date)) {
-      [$yStart, $yEnd] = $getYearRange($start_date);
-      $end_date = $yEnd ?: $start_date;
-    }
+      // ================= SECTOR INCHARGE =================
+      if ($sector) {
 
-    if (!empty($start_date) || !empty($end_date)) {
-      $range = $this->CommonM->get_thaali_signup_breakdown_range($start_date, $end_date);
-      $data['start_date'] = $range['start_date'];
-      $data['end_date'] = $range['end_date'];
-      $data['date'] = '';
-      $data['breakdown'] = $range['breakdown'];
-      $data['totals'] = $range['totals'];
+        $range = $this->CommonM
+          ->get_thaali_signup_breakdown_range_by_sector(
+            $start_date,
+            $end_date,
+            $sector
+          );
 
-      // Build day-wise breakdowns for the selected range
-      $dayWise = [];
-      $cursor = strtotime($range['start_date']);
-      $endTs = strtotime($range['end_date']);
-      $hijriByDate = [];
-      if ($cursor !== false && $endTs !== false && $cursor <= $endTs) {
+        $data['start_date'] = $start_date;
+        $data['end_date'] = $end_date;
+        $data['date'] = '';
+        $data['breakdown'] = $range['breakdown'];
+        $data['totals'] = $range['totals'];
+
+        $dayWise = [];
+        $cursor = strtotime($start_date);
+        $endTs = strtotime($end_date);
+        $hijriByDate = [];
+
         while ($cursor <= $endTs) {
           $d = date('Y-m-d', $cursor);
-          $bd = $this->CommonM->get_thaali_signup_breakdown($d);
+
+          $bd = $this->CommonM
+            ->get_thaali_signup_breakdown_by_sector($d, $sector);
+
           $dayWise[] = [
             'date' => $d,
             'breakdown' => $bd['breakdown'] ?? [],
-            'totals' => $bd['totals'] ?? ['families' => 0, 'signed_up' => 0, 'not_signed' => 0, 'percent' => 0],
+            'totals' => $bd['totals'] ?? []
           ];
-          // Hijri parts for view display
+
           $hp = $this->HijriCalendar->get_hijri_parts_by_greg_date($d);
-          if (!empty($hp)) {
+          if ($hp) {
             $hijriByDate[$d] = $hp;
           }
+
           $cursor = strtotime('+1 day', $cursor);
         }
+
+        $data['daily_breakdowns'] = $dayWise;
+        $data['hijri_by_date'] = $hijriByDate;
       }
-      $data['daily_breakdowns'] = $dayWise;
-      $data['hijri_by_date'] = $hijriByDate;
-    } else {
-      // Single date fallback (this will rarely trigger now, as 'date' becomes start_date)
-      if (!empty($date_raw)) {
-        $date = $norm($date_raw);
+
+      // ================= ADMIN / JAMAAT =================
+      else {
+
+        $range = $this->CommonM
+          ->get_thaali_signup_breakdown_range($start_date, $end_date);
+
+        $data['start_date'] = $range['start_date'];
+        $data['end_date'] = $range['end_date'];
+        $data['date'] = '';
+        $data['breakdown'] = $range['breakdown'];
+        $data['totals'] = $range['totals'];
+
+        $dayWise = [];
+        $cursor = strtotime($range['start_date']);
+        $endTs = strtotime($range['end_date']);
+        $hijriByDate = [];
+
+        while ($cursor <= $endTs) {
+          $d = date('Y-m-d', $cursor);
+
+          $bd = $this->CommonM->get_thaali_signup_breakdown($d);
+
+          $dayWise[] = [
+            'date' => $d,
+            'breakdown' => $bd['breakdown'] ?? [],
+            'totals' => $bd['totals'] ?? []
+          ];
+
+          $hp = $this->HijriCalendar->get_hijri_parts_by_greg_date($d);
+          if ($hp) {
+            $hijriByDate[$d] = $hp;
+          }
+
+          $cursor = strtotime('+1 day', $cursor);
+        }
+
+        $data['daily_breakdowns'] = $dayWise;
+        $data['hijri_by_date'] = $hijriByDate;
+      }
+    }
+
+    // ======================================================
+    // ================= SINGLE DATE ========================
+    // ======================================================
+    else {
+
+      $date = $date_raw ? $norm($date_raw) : date('Y-m-d');
+
+      if ($sector) {
+        $bd = $this->CommonM
+          ->get_thaali_signup_breakdown_by_sector($date, $sector);
       } else {
-        $date = date('Y-m-d');
+        $bd = $this->CommonM
+          ->get_thaali_signup_breakdown($date);
       }
-      $breakdown = $this->CommonM->get_thaali_signup_breakdown($date);
+
       $data['date'] = $date;
-      $data['breakdown'] = $breakdown['breakdown'];
-      $data['totals'] = $breakdown['totals'];
-      // Hijri parts for single date
+      $data['breakdown'] = $bd['breakdown'];
+      $data['totals'] = $bd['totals'];
+
       $hp = $this->HijriCalendar->get_hijri_parts_by_greg_date($date);
       $data['hijri_by_date'] = $hp ? [$date => $hp] : [];
     }
 
-    $this->load->view("Common/Header", $data);
+    // ================= VIEWS =================
+    $this->load->view('Common/Header', $data);
     $this->load->view('Common/ThaaliSignupsBreakdown', $data);
   }
+
+
+
+
+
+
+
+
 
   public function rsvp_list()
   {
@@ -1878,9 +1943,9 @@ class Common extends CI_Controller
       $data["pending_days_in_year"] = $pendingDaysInYear;
       foreach ($data["pending_days_in_year"] as $key => $value) {
         $get_signup_data = $this->CommonM->getsignupcount($value["greg_date"]);
-        $data["pending_days_in_year"][$key]["signup_count"] = (int)$get_signup_data["hof_signup_count"];
-        $data["pending_days_in_year"][$key]["not_signup_count"] = (int)$hof_count - (int)$get_signup_data["hof_signup_count"];
-        $data["pending_days_in_year"][$key]["delivery_person_count"] = (int)$get_signup_data["delivery_person_count"];
+        $data["pending_days_in_year"][$key]["signup_count"] = (int) $get_signup_data["hof_signup_count"];
+        $data["pending_days_in_year"][$key]["not_signup_count"] = (int) $hof_count - (int) $get_signup_data["hof_signup_count"];
+        $data["pending_days_in_year"][$key]["delivery_person_count"] = (int) $get_signup_data["delivery_person_count"];
       }
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -1965,31 +2030,57 @@ class Common extends CI_Controller
   public function thaali_signup_report($date)
   {
     $this->validateUser($_SESSION["user"]);
-    $data["active_controller"] = $_SESSION["from"];
 
+    $user = $_SESSION['user'];
+    $role = (int) ($user['role'] ?? 0);
+    $username = $user['username'] ?? '';
+
+    $data["active_controller"] = $_SESSION["from"];
     $data['date'] = $date;
+
+    // ===== POST FILTERS =====
     $thali_taken = $this->input->post("thali_taken");
     $reg_dp_id = $this->input->post("reg_dp_id");
     $sub_dp_id = $this->input->post("sub_dp_id");
     $sector = $this->input->post('sector');
     $sub_sector = $this->input->post('sub_sector');
 
+    /**
+     * =================================================
+     * 🔐 SECTOR INCHARGE RESTRICTION (ROLE = 16)
+     * =================================================
+     * If logged in as sector incharge:
+     * - Force sector = username
+     * - Ignore any posted sector value
+     */
+    if ($role === 16) {
+      $sector = $username;
+    }
+
+    // ===== ASSIGN TO VIEW =====
     $data["thali_taken"] = $thali_taken;
     $data["reg_dp_id"] = $reg_dp_id;
     $data["sub_dp_id"] = $sub_dp_id;
-    $data['sector'] = $sector;
-    $data['sub_sector'] = $sub_sector;
+    $data["sector"] = $sector;
+    $data["sub_sector"] = $sub_sector;
 
-    $all_dp = $this->CommonM->get_all_dp();
-    $data['all_dp'] = $all_dp;
-    // Provide all users so the view can build sector/sub-sector filter options
-    $all_users = $this->CommonM->get_all_users();
-    $data['all_users'] = $all_users;
+    // ===== MASTER DATA =====
+    $data['all_dp'] = $this->CommonM->get_all_dp();
 
+    /**
+     * Admin/Jamaat need all users to filter
+     * Sector incharge technically doesn’t need it,
+     * but we keep it to avoid breaking the view
+     */
+    $data['all_users'] = $this->CommonM->get_all_users();
+
+    // ===== FETCH SIGNUPS FOR DAY =====
     $signupforaday = $this->CommonM->getsignupforaday($data);
     if ($signupforaday) {
       $data["signupdata"] = $signupforaday;
     }
+
+    // ===== FILTER STATE FOR VIEW =====
     $data["filter_data"] = array(
       "thali_taken" => $thali_taken,
       "reg_dp_id" => $reg_dp_id,
@@ -1997,12 +2088,16 @@ class Common extends CI_Controller
       "sector" => $sector,
       "sub_sector" => $sub_sector,
     );
-    $data['user_name'] = $_SESSION['user']['username'];
-    $from = $_SESSION["from"];
-    $data["from"] = $from;
+
+    // ===== VIEW META =====
+    $data['user_name'] = $username;
+    $data["from"] = $_SESSION["from"];
+
+    // ===== LOAD VIEWS =====
     $this->load->view("Common/Header", $data);
     $this->load->view("Common/ThaaliSignupReportForDay", $data);
   }
+
 
   public function managedeliveryperson()
   {
@@ -2111,7 +2206,8 @@ class Common extends CI_Controller
     $clean_date = '';
     if ($date) {
       $ts = strtotime($date);
-      if ($ts) $clean_date = date('Y-m-d', $ts);
+      if ($ts)
+        $clean_date = date('Y-m-d', $ts);
     }
     if (empty($clean_date)) {
       echo json_encode(['success' => false, 'message' => 'Invalid date']);
@@ -2124,8 +2220,8 @@ class Common extends CI_Controller
   public function update_delivery_override()
   {
     $this->validateUser($_SESSION['user']);
-    $id = (int)$this->input->post('id');
-    $dp_id = (int)$this->input->post('dp_id');
+    $id = (int) $this->input->post('id');
+    $dp_id = (int) $this->input->post('dp_id');
     $success = false;
     $message = '';
     if ($id && $dp_id) {
@@ -2140,7 +2236,7 @@ class Common extends CI_Controller
   public function delete_delivery_override()
   {
     $this->validateUser($_SESSION['user']);
-    $id = (int)$this->input->post('id');
+    $id = (int) $this->input->post('id');
     $success = false;
     $message = '';
     if ($id) {
@@ -2195,10 +2291,10 @@ class Common extends CI_Controller
     $year_start = null;
     if (!empty($year_param)) {
       // If param is a range like 1446-47, extract the start year; if numeric, use as-is
-      if (preg_match('/^(\d{4})-\d{2}$/', (string)$year_param, $m)) {
-        $year_start = (int)$m[1];
+      if (preg_match('/^(\d{4})-\d{2}$/', (string) $year_param, $m)) {
+        $year_start = (int) $m[1];
       } elseif (is_numeric($year_param)) {
-        $year_start = (int)$year_param;
+        $year_start = (int) $year_param;
       }
     }
     if ($year_start === null) {
@@ -2208,7 +2304,7 @@ class Common extends CI_Controller
       if ($hijri_today && isset($hijri_today['hijri_date'])) {
         $parts = explode('-', $hijri_today['hijri_date']);
         $hmon = isset($parts[1]) ? $parts[1] : '';
-        $hyr = isset($parts[2]) ? (int)$parts[2] : 0;
+        $hyr = isset($parts[2]) ? (int) $parts[2] : 0;
         if ($hmon >= '01' && $hmon <= '08') {
           $year_start = $hyr - 1;
         } else {
@@ -2251,10 +2347,10 @@ class Common extends CI_Controller
     $this->load->model('CommonM');
     $yearParam = $this->input->get_post('hijri_year');
     // Normalize year to numeric start year if a range like 1446-47 is provided
-    if (!empty($yearParam) && preg_match('/^(\d{4})-\d{2}$/', (string)$yearParam, $m)) {
-      $year = (int)$m[1];
+    if (!empty($yearParam) && preg_match('/^(\d{4})-\d{2}$/', (string) $yearParam, $m)) {
+      $year = (int) $m[1];
     } elseif (is_numeric($yearParam)) {
-      $year = (int)$yearParam;
+      $year = (int) $yearParam;
     } else {
       $year = null;
     }
@@ -2266,7 +2362,7 @@ class Common extends CI_Controller
     }
     $data['users'] = $this->CommonM->get_sabeel_user_details($year, null, $name_filter, $amount_zero);
     $data['hijri_years'] = $this->HijriCalendar->get_distinct_hijri_years();
-    $data['selected_hijri_year'] = sprintf('%d-%02d', (int)$year, ((int)$year + 1) % 100);
+    $data['selected_hijri_year'] = sprintf('%d-%02d', (int) $year, ((int) $year + 1) % 100);
     $data['name_filter'] = $name_filter ?? '';
     $data['amount_zero'] = !empty($amount_zero) ? 1 : 0;
     $data['user_name'] = $_SESSION['user']['username'];
@@ -2283,10 +2379,10 @@ class Common extends CI_Controller
     $this->load->model('CommonM');
     $yearParam = $this->input->get_post('hijri_year');
     // Normalize to numeric start year if range provided
-    if (!empty($yearParam) && preg_match('/^(\d{4})-\d{2}$/', (string)$yearParam, $m)) {
-      $year = (int)$m[1];
+    if (!empty($yearParam) && preg_match('/^(\d{4})-\d{2}$/', (string) $yearParam, $m)) {
+      $year = (int) $m[1];
     } elseif (is_numeric($yearParam)) {
-      $year = (int)$yearParam;
+      $year = (int) $yearParam;
     } else {
       $year = null;
     }
@@ -2298,7 +2394,7 @@ class Common extends CI_Controller
     $data['user_summary'] = count($user_rows) ? array_values($user_rows)[0] : null;
     $data['records'] = $this->CommonM->get_sabeel_user_records($user_id, $year);
     $data['payments'] = $this->CommonM->get_sabeel_payments_by_user($user_id);
-    $data['selected_hijri_year'] = !empty($year) ? sprintf('%d-%02d', (int)$year, ((int)$year + 1) % 100) : '';
+    $data['selected_hijri_year'] = !empty($year) ? sprintf('%d-%02d', (int) $year, ((int) $year + 1) % 100) : '';
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view("Common/Header", $data);
     $this->load->view('Common/SabeelUserDetails', $data);

@@ -106,92 +106,388 @@
 <div class="container margintopcontainer">
   <h1 class="text-center heading pt-5 mb-4">Welcome to Anjuman-e-Saifee Khar Jamaat</h1>
   <hr>
-  <?php
-  // Weekly Thaali Signups section (sector/sub-sector scoped)
-  $weekly = isset($weekly_signup_avg) ? $weekly_signup_avg : null;
-  $weekStart = $weekly['start'] ?? date('Y-m-d', strtotime('monday this week'));
-  $weekEnd = $weekly['end'] ?? date('Y-m-d', strtotime('sunday this week'));
-  $items = isset($weekly['items']) ? $weekly['items'] : [];
-  $scope = isset($weekly['scope']) ? $weekly['scope'] : ['sector' => '', 'sub_sector' => ''];
-  ?>
+  <div class="chart-container compact weekly-summary">
 
-  <div class="chart-container compact">
-    <h4 class="section-title text-center">This Week Thaali Signup Average (Sub-sector-wise)</h4>
-    <p class="text-center text-muted" style="margin-top:-10px; margin-bottom:14px;">
-      <?= htmlspecialchars($weekStart); ?> to <?= htmlspecialchars($weekEnd); ?>
-    </p>
+    <!-- HEADER -->
+    <div class="d-flex align-items-center justify-content-between">
+      <h4 class="section-title text-center m-0 flex-grow-1">
+        Thaali Signup for Current Month
+      </h4>
+    </div>
+
+    <!-- VIEW DETAILS -->
+    <div class="text-right my-2">
+      <a id="thaali-details-btn" href="#" class="btn btn-sm btn-primary text-white">
+        View details
+      </a>
+    </div>
+
     <?php
-    $sumWeekTotal = 0;
-    foreach ($items as $it) {
-      $sumWeekTotal += (int)($it['total'] ?? 0);
+    /* ==========================
+       HIJRI CONTEXT
+       ========================== */
+    $this->load->model('HijriCalendar');
+
+    $hijri_today = $selected_hijri_parts
+      ?? $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+
+    $current_hijri_year = (int) ($hijri_today['hijri_year'] ?? 0);
+    $current_hijri_month = (int) ($hijri_today['hijri_month'] ?? 0);
+
+    // Month name from hijri_month table
+    $monthRow = $this->db->where('id', $current_hijri_month)->get('hijri_month')->row_array();
+    $current_hijri_month_name = $monthRow['hijri_month'] ?? '';
+
+    // Prev / Next month logic (NO SKIP)
+    $prev_month = $current_hijri_month - 1;
+    $prev_year = $current_hijri_year;
+    $next_month = $current_hijri_month + 1;
+    $next_year = $current_hijri_year;
+
+    if ($prev_month < 1) {
+      $prev_month = 12;
+      $prev_year--;
     }
-    $days = (int)($weekly['days'] ?? 7);
-    if ($days <= 0) {
-      $days = 7;
+    if ($next_month > 12) {
+      $next_month = 1;
+      $next_year++;
     }
-    $overallAvgPerDay = $days > 0 ? round($sumWeekTotal / $days, 2) : 0;
+
+    // Gregorian range
+    $hijri_days = $this->HijriCalendar
+      ->get_hijri_days_for_month_year($current_hijri_month, $current_hijri_year);
+
+    $month_start = $hijri_days[0]['greg_date'] ?? date('Y-m-01');
+    $month_end = $hijri_days[count($hijri_days) - 1]['greg_date'] ?? date('Y-m-t');
     ?>
-    <div class="row text-center mb-2">
-      <div class="col-4 col-md-3 mb-2">
-        <div class="mini-card">
-          <div class="stats-value"><?= (int)$sumWeekTotal; ?></div>
-          <div class="stats-label">Total (Week)</div>
-        </div>
+
+    <script>
+      (function () {
+        const btn = document.getElementById('thaali-details-btn');
+        if (!btn) return;
+
+        if (!window.USER_NAME) {
+          console.error('[THAALI LINK] USER_NAME not found');
+          return;
+        }
+
+        const baseUrl = "<?= base_url('common/thaali_signups_breakdown'); ?>";
+
+        const params = new URLSearchParams({
+          from: 'masoolmusaid',
+          start_date: "<?= $month_start ?>",
+          end_date: "<?= $month_end ?>",
+          sector: window.USER_NAME   // ✅ Saifee / SaifeeA / BurhaniB etc
+        });
+
+        const finalUrl = baseUrl + '?' + params.toString();
+        btn.href = finalUrl;
+
+        console.log('[THAALI LINK SET]', finalUrl);
+      })();
+    </script>
+
+
+    <!-- HIJRI SWITCHER -->
+    <div class="d-flex justify-content-center align-items-center hijri-switcher my-2">
+
+      <a href="#" class="hijri-nav-btn" data-hijri-year="<?= $prev_year ?>" data-hijri-month="<?= $prev_month ?>">
+        <div class="chev-box"><i class="fa fa-chevron-left"></i></div>
+      </a>
+
+      <div id="hijri-current-title" style="margin:0 18px;color:#0ea5a4;font-weight:600;">
+        <?= htmlspecialchars($current_hijri_month_name . ' ' . $current_hijri_year) ?>
       </div>
-      <div class="col-4 col-md-3 mb-2">
-        <div class="mini-card">
-          <div class="stats-value"><?= number_format((float)$overallAvgPerDay, 2); ?></div>
-          <div class="stats-label">Avg/Day (Overall)</div>
-        </div>
+
+      <a href="#" class="hijri-nav-btn" data-hijri-year="<?= $next_year ?>" data-hijri-month="<?= $next_month ?>">
+        <div class="chev-box"><i class="fa fa-chevron-right"></i></div>
+      </a>
+
+    </div>
+
+    <!-- LOADER -->
+    <div id="monthLoader" class="text-center my-2" style="display:none;">
+      <i class="fa fa-spinner fa-spin"></i> Loading month…
+    </div>
+
+    <!-- MONTH STATS -->
+    <div id="thaali-month-block" class="row text-center">
+
+      <div class="col-md-6 mb-2">
+        <a href="#" class="open-hof-modal" data-modal-type="signed" data-hijri-year="<?= $current_hijri_year ?>"
+          data-hijri-month="<?= $current_hijri_month ?>">
+          <div class="mini-card">
+            <div class="stats-value"><?= (int) ($month_stats['families_signed_up'] ?? 0) ?></div>
+            <div class="stats-label">Sign up this month</div>
+          </div>
+        </a>
       </div>
-      <div class="col-4 col-md-3 mb-2">
-        <div class="mini-card">
-          <div class="stats-value"><?= count($items); ?></div>
-          <div class="stats-label">Sub-sectors</div>
+
+      <div class="col-md-6 mb-2">
+        <a href="#" class="open-hof-modal" data-modal-type="no" data-hijri-year="<?= $current_hijri_year ?>"
+          data-hijri-month="<?= $current_hijri_month ?>">
+          <div class="mini-card">
+            <div class="stats-value"><?= (int) ($month_stats['no_thaali_count'] ?? 0) ?></div>
+            <div class="stats-label">No sign up this month</div>
+          </div>
+        </a>
+      </div>
+
+    </div>
+
+    <!-- =======================
+       MODAL (REQUIRED)
+       ======================= -->
+    <div class="modal fade" id="hofListModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+          <div class="modal-header py-2">
+            <h6 class="modal-title" id="hofListLabel"></h6>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+          </div>
+
+          <div class="modal-body">
+            <div id="hofListLoading" class="text-center py-3" style="display:none;">
+              <i class="fa fa-spinner fa-spin"></i> Loading...
+            </div>
+            <div id="hofListContainer" style="max-height:60vh;overflow:auto;"></div>
+          </div>
+
         </div>
       </div>
     </div>
 
-    <?php if (!empty($items)): ?>
-      <div class="row g-2">
-        <?php foreach ($items as $item): ?>
-          <?php
-          $sector = isset($item['sector']) ? trim($item['sector']) : '';
-          $sub = isset($item['sub_sector']) ? trim($item['sub_sector']) : '';
-          $total = (int)($item['total'] ?? 0);
-          $avg = (float)($item['avg'] ?? 0);
-          $params = [
-            'from' => 'masoolmusaid',
-            'start_date' => $weekStart,
-            'end_date' => $weekEnd,
-            'sector' => $sector,
-          ];
-          if ($sub !== '') {
-            $params['sub_sector'] = $sub;
+
+
+    <!-- =======================
+       JS (MONTH + MODAL)
+       ======================= -->
+    <script>
+      (function () {
+
+        console.log('=== HIJRI DASHBOARD INITIALIZED ===');
+
+        /* ======================================================
+           USER SCOPE (USED ONLY FOR MODAL FILTERING)
+        ====================================================== */
+        const ALLOWED_SECTORS = ['BURHANI', 'MOHAMMEDI', 'NAJMI', 'SAIFEE', 'TAHERI'];
+        const ALLOWED_SUBS = ['A', 'B', 'C'];
+
+        function parseUserScope(userName) {
+          if (!userName) return null;
+
+          const name = userName.trim().toUpperCase();
+          const last = name.slice(-1);
+          const base = name.slice(0, -1);
+
+          if (ALLOWED_SUBS.includes(last) && ALLOWED_SECTORS.includes(base)) {
+            return { sector: base, sub: last };
           }
-          $href = base_url('common/thaali_signups_breakdown') . '?' . http_build_query($params);
-          ?>
-          <div class="col-12 col-md-6 col-lg-4 mt-2">
-            <a href="<?= $href; ?>" style="text-decoration:none;color:inherit;display:block;">
-              <div class="fmb-card">
-                <div class="fmb-head">
-                  <div class="fmb-name">
-                    <i class="fa fa-map-marker text-primary me-2"></i>
-                    <?= htmlspecialchars($sector); ?><?= $sub !== '' ? ' – ' . htmlspecialchars($sub) : ''; ?>
-                  </div>
-                </div>
-                <div class="fmb-amounts">
-                  <span>Avg/Day <span class="val"><?= number_format($avg, 2); ?></span></span>
-                  <span>Total <span class="val"><?= $total; ?></span></span>
-                </div>
-              </div>
-            </a>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php else: ?>
-      <div class="text-center text-muted">No thaali signups recorded this week.</div>
-    <?php endif; ?>
+          if (ALLOWED_SECTORS.includes(name)) {
+            return { sector: name, sub: null };
+          }
+          return null;
+        }
+
+        const USER_SCOPE = parseUserScope(window.USER_NAME || '');
+        console.log('[USER_SCOPE]', USER_SCOPE);
+
+        /* ======================================================
+           MOBILE FORMATTER
+           - 91XXXXXXXXXX → tel:
+           - others → click to copy
+        ====================================================== */
+        function renderMobile(raw) {
+          if (!raw) return '';
+
+          const digits = String(raw).replace(/\D/g, '');
+
+          // 🇮🇳 India number
+          if (digits.startsWith('91') && digits.length === 12) {
+            return `
+        <a href="tel:+${digits}"
+           style="color:blue;text-decoration:none;">
+          +${digits}
+        </a>`;
+          }
+
+          // 🌍 Other numbers → copy on click
+          return `
+      <span class="copy-mobile"
+            data-mobile="${raw}"
+            style="cursor:pointer;color:#0ea5a4;">
+        ${raw}
+      </span>`;
+        }
+
+        /* ======================================================
+           COPY HANDLER
+        ====================================================== */
+        document.addEventListener('click', function (e) {
+          const el = e.target.closest('.copy-mobile');
+          if (!el) return;
+
+          const num = el.dataset.mobile;
+          navigator.clipboard.writeText(num).then(() => {
+            const old = el.innerText;
+            el.innerText = 'Copied ✔';
+            setTimeout(() => el.innerText = old, 1200);
+          });
+        });
+
+        /* ======================================================
+           MODAL (JSON) – WORKING WITH YOUR CONTROLLER
+        ====================================================== */
+        $(document).on('click', '.open-hof-modal', function (e) {
+          e.preventDefault();
+
+          const type = $(this).data('modal-type'); // signed | no
+          const y = $(this).data('hijri-year');
+          const m = $(this).data('hijri-month');
+
+          if (!y || !m) return;
+
+          const url =
+            window.location.pathname +
+            `?hijri_year=${y}&hijri_month=${m}&format=json`;
+
+          $('#hofListContainer').html('');
+          $('#hofListLoading').show();
+          $('#hofListModal').modal('show');
+
+          fetch(url, { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+
+              let rows =
+                type === 'signed'
+                  ? data?.monthly_stats?.signed_hof_list || []
+                  : data?.monthly_stats?.no_thaali_list || [];
+
+              // 🔒 Sector filtering (matches backend logic)
+              if (USER_SCOPE) {
+                rows = rows.filter(r => {
+                  const s = String(r.Sector || '').toUpperCase();
+                  const sub = String(r.Sub_Sector || '').toUpperCase();
+                  if (s !== USER_SCOPE.sector) return false;
+                  if (USER_SCOPE.sub === null) return ALLOWED_SUBS.includes(sub);
+                  return sub === USER_SCOPE.sub;
+                });
+              }
+
+              $('#hofListLoading').hide();
+
+              if (!rows.length) {
+                $('#hofListContainer').html(
+                  '<div class="text-muted text-center">No records found</div>'
+                );
+                return;
+              }
+
+              let html = `
+          <table class="table table-sm table-striped">
+            <thead>
+              <tr>
+                <th>ITS</th>
+                <th>Name</th>
+                <th>Sector</th>
+                <th>Sub Sector</th>
+                <th>Mobile</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+              rows.forEach(r => {
+                html += `
+            <tr>
+              <td>${r.ITS_ID || ''}</td>
+              <td>${r.Full_Name || ''}</td>
+              <td>${r.Sector || ''}</td>
+              <td>${r.Sub_Sector || ''}</td>
+              <td>${renderMobile(r.Mobile || r.RFM_Mobile)}</td>
+            </tr>
+          `;
+              });
+
+              html += '</tbody></table>';
+              $('#hofListContainer').html(html);
+            })
+            .catch(() => {
+              $('#hofListLoading').hide();
+              $('#hofListContainer').html(
+                '<div class="text-danger">Failed to load data</div>'
+              );
+            });
+        });
+
+        /* ======================================================
+           HIJRI MONTH SWITCH (HTML RELOAD – CORRECT WAY)
+        ====================================================== */
+        function buildUrl(base, y, m) {
+          try {
+            const u = new URL(base, window.location.origin);
+            u.searchParams.set('hijri_year', y);
+            u.searchParams.set('hijri_month', m);
+            u.searchParams.set('ajax', '1');
+            return u.toString();
+          } catch {
+            return base + '?hijri_year=' + y + '&hijri_month=' + m + '&ajax=1';
+          }
+        }
+
+        function loadMonth(year, month, pushState) {
+          const url = buildUrl(window.location.pathname, year, month);
+
+          fetch(url, { credentials: 'same-origin' })
+            .then(r => r.text())
+            .then(html => {
+              const doc = new DOMParser().parseFromString(html, 'text/html');
+
+              const newBlock = doc.querySelector('#thaali-month-block');
+              const curBlock = document.querySelector('#thaali-month-block');
+              if (newBlock && curBlock) curBlock.replaceWith(newBlock);
+
+              const newTitle = doc.querySelector('#hijri-current-title');
+              const curTitle = document.getElementById('hijri-current-title');
+              if (newTitle && curTitle) curTitle.innerHTML = newTitle.innerHTML;
+
+              const newBtns = doc.querySelectorAll('.hijri-nav-btn');
+              const curBtns = document.querySelectorAll('.hijri-nav-btn');
+              newBtns.forEach((b, i) => {
+                if (!curBtns[i]) return;
+                curBtns[i].dataset.hijriYear = b.dataset.hijriYear || '';
+                curBtns[i].dataset.hijriMonth = b.dataset.hijriMonth || '';
+                curBtns[i].classList.toggle(
+                  'disabled',
+                  b.classList.contains('disabled')
+                );
+              });
+
+              if (pushState) {
+                history.pushState(
+                  { year, month },
+                  '',
+                  `?hijri_year=${year}&hijri_month=${month}`
+                );
+              }
+            });
+        }
+
+        document.addEventListener('click', function (e) {
+          const btn = e.target.closest('.hijri-nav-btn');
+          if (!btn || btn.classList.contains('disabled')) return;
+          e.preventDefault();
+          loadMonth(btn.dataset.hijriYear, btn.dataset.hijriMonth, true);
+        });
+
+      })();
+    </script>
+
+
+
+
   </div>
   <div class="continer d-flex justify-content-center">
     <div class="row container">
@@ -265,8 +561,8 @@
     "rgb(39, 174, 96)",
     "rgb(41, 128, 185)",
   ]
-  $(document).ready(function() {
-    $(".dashboard-card").each(function(i) {
+  $(document).ready(function () {
+    $(".dashboard-card").each(function (i) {
       this.style.backgroundColor = colors[i % colors.length];
     });
   })
@@ -274,7 +570,7 @@
 <script>
   // Disable browser back button
   history.pushState(null, null, location.href);
-  window.onpopstate = function() {
+  window.onpopstate = function () {
     history.pushState(null, null, location.href);
   };
 </script>
