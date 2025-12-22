@@ -434,15 +434,24 @@
                   </div>
                 </td>
                 <td>
-                  <button type="button" class="btn btn-sm btn-primary remove-form-row"
-                    onclick="approve_raza(<?php echo $r['id'] ?>);"><i
-                      class="fa fa-circle-check"></i></button>
-                  <button type="button" class="btn btn-sm btn-danger remove-form-row"
-                    onclick="reject_raza(<?php echo $r['id'] ?>);"><i
-                      class="fa fa-circle-xmark"></i></button>
-                  <button type="button" class="btn btn-sm btn-danger remove-form-row"
-                    onclick="redirectto(<?php echo 'anjuman/DeleteRaza/' . $r['id'] ?>);"><i
-                      class="fa fa-circle-xmark"></i></button>
+                  <div class="action-buttons">
+                    <div class="button-group">
+                      <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(<?php echo $r['id']; ?>);">
+                        <i class="fa fa-circle-check"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(<?php echo $r['id']; ?>);">
+                        <i class="fa fa-circle-xmark"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-warning remove-form-row" onclick="deleteRaza(<?php echo $r['id']; ?>);">
+                        <i class="fa fa-trash"></i>
+                      </button>
+                    </div>
+                    <div class="view-link btn btn-sm btn-primary remove-form-row">
+                      <a onclick="show_raza(<?php echo $r['id']; ?>);">
+                        <span style=" cursor:pointer;">View</span>
+                      </a>
+                    </div>
+                  </div>
                 </td>
                 <td>
                   <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
@@ -694,6 +703,8 @@
   let tem = document.getElementById("sort");
   // Default to Event Date (New > Old)
   tem.value = 2;
+  // Preserve initial server-rendered table HTML as a safe fallback
+  const _initialRazaTbodyHTML = (document.getElementById('datatable') || {innerHTML: ''}).innerHTML;
   updateTable();
 
   function updateTable() {
@@ -704,7 +715,15 @@
 
   function updateTableContent(filter, sort) {
     var tbody = document.getElementById('datatable');
-    tbody.innerHTML = "";
+    if (!tbody) return;
+    // If the server did not provide a JS array, keep server-rendered rows
+    if (!Array.isArray(razas) || razas.length === 0) {
+      tbody.innerHTML = _initialRazaTbodyHTML;
+      return;
+    }
+    // build into a fragment and only replace on success
+    var frag = document.createDocumentFragment();
+    var tempContainer = document.createElement('tbody');
 
     // Filter and sort your razas array based on the selected options
     var filteredAndSortedRazas = razas;
@@ -777,24 +796,34 @@
       });
     }
 
-    // Populate the table with the filtered and sorted data
-    for (var i = 0; i < filteredAndSortedRazas.length; i++) {
-      var raza = filteredAndSortedRazas[i];
-      var chatCount = raza.chat_count && raza.chat_count > 0 ? raza.chat_count : '';
-      var chatCountHTML = chatCount ? `<div class="chat-count">${chatCount}</div>` : '';
-      var chatURL = `<?php echo base_url('Accounts/chat/') ?>${raza.id}<?php echo "/anjuman"; ?>`;
-      var row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${i + 1}</td>
-        <td>${raza['user_name']}</td>
-        <td>${formateRazaType(raza)}</td>
-        <td>${formatEventDate(raza)}</td>
-        <td><a href="${chatURL}" class="chat-button">Chat${chatCountHTML}</a></td>
-        <td>${getStatusHTML(raza)}</td>
-        <td><span class="action_btn">${getActionHTML(raza)}</span></td>
-        <td>${formatDate(raza['time-stamp'])}</td>
-    `;
-      tbody.appendChild(row);
+    try {
+      // Populate the table with the filtered and sorted data into tempContainer
+      for (var i = 0; i < filteredAndSortedRazas.length; i++) {
+        var raza = filteredAndSortedRazas[i];
+        var chatCount = raza.chat_count && raza.chat_count > 0 ? raza.chat_count : '';
+        var chatCountHTML = chatCount ? `<div class="chat-count">${chatCount}</div>` : '';
+        var chatURL = `<?php echo base_url('Accounts/chat/') ?>${raza.id}<?php echo "/anjuman"; ?>`;
+        var row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${raza['user_name']}</td>
+          <td>${formateRazaType(raza)}</td>
+          <td>${formatEventDate(raza)}</td>
+          <td><a href="${chatURL}" class="chat-button">Chat${chatCountHTML}</a></td>
+          <td>${getStatusHTML(raza)}</td>
+          <td><span class="action_btn">${getActionHTML(raza)}</span></td>
+          <td>${formatDate(raza['time-stamp'])}</td>
+      `;
+        tempContainer.appendChild(row);
+      }
+      // Replace existing tbody content on success
+      tbody.innerHTML = '';
+      // move children from tempContainer to tbody
+      while (tempContainer.firstChild) tbody.appendChild(tempContainer.firstChild);
+    } catch (e) {
+      console.error('updateTableContent error', e);
+      // restore server-rendered rows so page doesn't appear empty
+      tbody.innerHTML = _initialRazaTbodyHTML;
     }
 
 
@@ -989,12 +1018,10 @@
     `;
     } else {
       actionHTML = `
-        <div class="view-link btn btn-sm btn-primary remove-form-row">
-            <a onclick="show_raza(${raza['id']});">
-                <span style=" cursor:pointer;">View</span>
-            </a>
+        <div class="view-link">
+          <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="show_raza(${raza['id']});">View</button>
         </div>
-    `;
+      `;
     }
 
     return actionHTML;

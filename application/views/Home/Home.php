@@ -59,7 +59,6 @@
 
 
 <div class="margintopcontainer">
-
   <div class="carousel-back">
     <div class="container">
       <img src="https://www.seattlejamaat.org/static/assets/images/Maula.tus.67235089a22e.jpg"

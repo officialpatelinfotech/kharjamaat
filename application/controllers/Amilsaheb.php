@@ -14,8 +14,8 @@ class Amilsaheb extends CI_Controller
     $this->load->model('MasoolMusaidM');
     $this->load->model('CommonM');
     $this->load->model('HijriCalendar');
-      // Anjuman model provides takhmeen helpers we reuse here
-      $this->load->model('AnjumanM');
+    // Anjuman model provides takhmeen helpers we reuse here
+    $this->load->model('AnjumanM');
     $this->load->library('email', $this->config->item('email'));
   }
   public function index()
@@ -25,10 +25,10 @@ class Amilsaheb extends CI_Controller
     }
     $data['user_name'] = $_SESSION['user']['username'];
 
-  $users = $this->AmilsahebM->get_all_ashara();
-  // Resident-only sector stats for dashboard cards
-  $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
-  $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
+    $users = $this->AmilsahebM->get_all_ashara();
+    // Resident-only sector stats for dashboard cards
+    $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
+    $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
 
     // Build resident-only overview counts for dashboard cards
     $residentOverview = $this->AmilsahebM->get_resident_overview_counts();
@@ -198,6 +198,34 @@ class Amilsaheb extends CI_Controller
       $data['dashboard_data']['no_thaali_families_month'] = isset($mstats['no_thaali_list']) ? $mstats['no_thaali_list'] : [];
     }
 
+    // Provide miqaat RSVP payload and upcoming miqaats for the RSVP container in the view
+    $data['dashboard_data']['miqaat_rsvp'] = $this->CommonM->get_next_miqaat_rsvp_stats();
+    // Fetch next upcoming miqaats (limit 5) — include all upcoming miqaats regardless of raza approval
+    $limit = 5;
+    $sql = "SELECT m.id, m.name, m.type, m.date, m.assigned_to
+      FROM miqaat m
+      WHERE m.date >= CURDATE()
+      ORDER BY m.date ASC
+      LIMIT " . (int)$limit;
+    $upcoming_miqaats = $this->db->query($sql)->result_array();
+    if (!empty($upcoming_miqaats)) {
+      foreach ($upcoming_miqaats as &$um) {
+        $um_date = isset($um['date']) ? $um['date'] : null;
+        $hparts = null;
+        if ($um_date) {
+          $hparts = $this->HijriCalendar->get_hijri_parts_by_greg_date($um_date);
+        }
+        if ($hparts && isset($hparts['hijri_day'])) {
+          $um['hijri_label'] = trim((($hparts['hijri_day'] ?? '')) . ' ' . (($hparts['hijri_month_name'] ?? $hparts['hijri_month'] ?? '')) . ' ' . (($hparts['hijri_year'] ?? '')));
+        } else {
+          $um['hijri_label'] = '';
+        }
+        $um['hijri_parts'] = $hparts;
+      }
+      unset($um);
+    }
+    $data['dashboard_data']['upcoming_miqaats'] = $upcoming_miqaats;
+
     // Member type distribution for dashboard
     $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
 
@@ -220,7 +248,9 @@ class Amilsaheb extends CI_Controller
           // Sum payments for this assignment (fund + HOF)
           if (method_exists($this->CorpusFundM, 'get_payments_for_assignment')) {
             $plist = $this->CorpusFundM->get_payments_for_assignment($fid, $hofId);
-            foreach ($plist as $p) { $paidTotal += (float)($p['amount_paid'] ?? 0); }
+            foreach ($plist as $p) {
+              $paidTotal += (float)($p['amount_paid'] ?? 0);
+            }
           }
         }
       }
@@ -245,21 +275,23 @@ class Amilsaheb extends CI_Controller
   {
     $monday = date('Y-m-d', strtotime('monday this week'));
     $sunday = date('Y-m-d', strtotime('sunday this week'));
-    $start = $monday; $end = $sunday;
+    $start = $monday;
+    $end = $sunday;
     $dates = [];
-    $cursor = strtotime($start); $endTs = strtotime($end);
+    $cursor = strtotime($start);
+    $endTs = strtotime($end);
     while ($cursor <= $endTs) {
       $dates[] = date('Y-m-d', $cursor);
       $cursor = strtotime('+1 day', $cursor);
     }
     $days = count($dates);
-    if ($days <= 0) return ['start'=>$start,'end'=>$end,'days'=>0,'sectors'=>[]];
+    if ($days <= 0) return ['start' => $start, 'end' => $end, 'days' => 0, 'sectors' => []];
     $agg = [];
     foreach ($dates as $d) {
       $rows = $this->CommonM->getsignupcount_by_sector($d);
       foreach ($rows as $r) {
         $sector = isset($r['Sector']) ? trim($r['Sector']) : '';
-        if ($sector === '' || strtolower($sector)==='unassigned') continue;
+        if ($sector === '' || strtolower($sector) === 'unassigned') continue;
         $cnt = (int)($r['hof_signup_count'] ?? 0);
         if (!isset($agg[$sector])) $agg[$sector] = 0;
         $agg[$sector] += $cnt;
@@ -273,11 +305,11 @@ class Amilsaheb extends CI_Controller
         'avg' => $days > 0 ? round($total / $days, 2) : 0,
       ];
     }
-    usort($sectors, function($a,$b){
-      if ($a['avg'] == $b['avg']) return strcmp($a['sector'],$b['sector']);
+    usort($sectors, function ($a, $b) {
+      if ($a['avg'] == $b['avg']) return strcmp($a['sector'], $b['sector']);
       return ($a['avg'] < $b['avg']) ? 1 : -1;
     });
-    return [ 'start'=>$start,'end'=>$end,'days'=>$days,'sectors'=>$sectors ];
+    return ['start' => $start, 'end' => $end, 'days' => $days, 'sectors' => $sectors];
   }
   /**
    * Return list of HOF family rows (from user table) who have no thaali signup on any day of current week.
@@ -288,11 +320,15 @@ class Amilsaheb extends CI_Controller
     $monday = date('Y-m-d', strtotime('monday this week'));
     $sunday = date('Y-m-d', strtotime('sunday this week'));
     $dates = [];
-    $cursor = strtotime($monday); $endTs = strtotime($sunday);
-    while ($cursor <= $endTs) { $dates[] = date('Y-m-d', $cursor); $cursor = strtotime('+1 day', $cursor); }
+    $cursor = strtotime($monday);
+    $endTs = strtotime($sunday);
+    while ($cursor <= $endTs) {
+      $dates[] = date('Y-m-d', $cursor);
+      $cursor = strtotime('+1 day', $cursor);
+    }
     $signedHofs = [];
     foreach ($dates as $d) {
-      $rows = $this->CommonM->getsignupforaday_aggregated(['date'=>$d,'thali_taken'=>1]);
+      $rows = $this->CommonM->getsignupforaday_aggregated(['date' => $d, 'thali_taken' => 1]);
       foreach ($rows as $r) {
         $hofId = $r['ITS_ID'] ?? ($r['HOF_ID'] ?? null);
         if ($hofId) $signedHofs[$hofId] = true;
@@ -302,7 +338,8 @@ class Amilsaheb extends CI_Controller
     $no = [];
     foreach ($allHofs as $h) {
       if (($h['HOF_FM_TYPE'] ?? '') !== 'HOF') continue;
-      $its = $h['ITS_ID'] ?? null; if (!$its) continue;
+      $its = $h['ITS_ID'] ?? null;
+      if (!$its) continue;
       if (!isset($signedHofs[$its])) $no[] = $h;
     }
     return $no;
@@ -348,7 +385,6 @@ class Amilsaheb extends CI_Controller
       } else {
         $data['raza'][$key]['miqaat_details'] = "";
       }
-
     }
 
     $data['user_name'] = $_SESSION['user']['username'];
@@ -417,7 +453,9 @@ class Amilsaheb extends CI_Controller
       // If specific method exists to get per fund assignments
       $assignments = $this->CorpusFundM->get_assignments($fid);
       $rows = [];
-      $assignedTotal = 0.0; $paidTotal = 0.0; $outstandingTotal = 0.0;
+      $assignedTotal = 0.0;
+      $paidTotal = 0.0;
+      $outstandingTotal = 0.0;
       foreach ($assignments as $a) {
         $hof = (int)($a['hof_id'] ?? $a['HOF_ID'] ?? 0);
         // Fetch authoritative member details from user table by HOF ITS_ID
@@ -430,10 +468,14 @@ class Amilsaheb extends CI_Controller
         if ($paid === 0.0) {
           // Try compute paid via payments aggregate helper if available
           $plist = method_exists($this->CorpusFundM, 'get_payments_for_assignment') ? $this->CorpusFundM->get_payments_for_assignment($fid, $hof) : [];
-          foreach ($plist as $p) { $paid += (float)($p['amount_paid'] ?? 0); }
+          foreach ($plist as $p) {
+            $paid += (float)($p['amount_paid'] ?? 0);
+          }
         }
         $due = max(0, $assigned - $paid);
-        $assignedTotal += $assigned; $paidTotal += $paid; $outstandingTotal += $due;
+        $assignedTotal += $assigned;
+        $paidTotal += $paid;
+        $outstandingTotal += $due;
         $rows[] = [
           'hof_id' => $hof,
           'name' => $name,

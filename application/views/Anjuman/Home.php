@@ -982,7 +982,40 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
   }
-</style>
+          </style>
+
+          <style>
+            /* Mobile-only: equalize miqaat mini-card heights (avoid desktop grid conflicts) */
+            @media (max-width:767.98px) {
+              #miqaat-rsvp-block .row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+              }
+
+              /* Ensure each column stretches to match siblings on small screens */
+              #miqaat-rsvp-block .row > [class*="col-"] {
+                display: flex;
+                align-items: stretch;
+              }
+
+              /* Make anchors and cards fill available height so .mini-card can stretch */
+              #miqaat-rsvp-block .row > [class*="col-"] a,
+              #miqaat-rsvp-block .row > [class*="col-"] > a > .mini-card {
+                display: flex;
+                flex: 1 1 auto;
+                align-items: stretch;
+              }
+
+              #miqaat-rsvp-block .mini-card {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                height: 100%;
+                min-height: 120px;
+              }
+            }
+          </style>
 
 <div class="container-fluid margintopcontainer mt-5 pt-5">
   <!-- Dashboard Header -->
@@ -1185,7 +1218,7 @@
                   <?php foreach ($sectorRows as $row): ?>
                     <div class="col-12 col-md-3 mb-3">
                       <a href="<?= base_url('anjuman/mumineendirectory?filter=sector&value=' . rawurlencode($row['Sector'] ?: '')); ?>" style="text-decoration:none;color:inherit;display:block;">
-                        <div class="overview-card">
+                        <div class="overview-card sector-card">
                           <div class="overview-icon"><i class="fa fa-map-marker"></i></div>
                           <div class="overview-body">
                             <span class="overview-title"><?= htmlspecialchars($row['Sector'] ?: 'Unassigned'); ?></span>
@@ -1550,6 +1583,10 @@
                       </button>
                     </div>
                     <div class="modal-body">
+                      <div id="miqaatPopupMeta" style="margin-bottom:12px; display:none;">
+                        <!-- Filled dynamically: miqaat name/date and counts -->
+                        <div class="text-muted">Loading miqaat information...</div>
+                      </div>
                       <div id="hofListLoading" class="text-center py-3" style="display:none;">
                         <i class="fa fa-spinner fa-spin"></i> Loading...
                       </div>
@@ -1657,6 +1694,8 @@
                 $('#hofListLabel').text(type === 'signed' ? 'HOFs Signed Up This Month' : 'HOFs With No Signup This Month');
                 $('#hofListContainer').html('');
                 $('#hofListLoading').show();
+                // Hide miqaat-specific meta when using this modal for HOF lists
+                try { $('#miqaatPopupMeta').hide(); } catch (e) {}
                 $('#hofListModal').modal('show');
                 // Use a lightweight endpoint via the same controller: return JSON of lists
                 var url = buildUrlWithParams(window.location.pathname, hijriYear, hijriMonth);
@@ -1814,24 +1853,140 @@
             </a>
           </div>
 
-          <div class="row text-center mb-2">
-            <div class="col-12 col-md-6 mb-2">
-              <a href="#" id="miqaatRsvpCard" class="open-miqaat-modal" data-type="rsvp" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+          <div id="miqaat-mobile-wrapper">
+            <div id="miqaat-mobile-left">
+              <div class="row text-center mb-2">
+                <div class="col-12 col-md-4 mb-2">
+              <a href="#" id="miqaatWillAttendCard" class="open-miqaat-modal" data-type="rsvp" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
                 <div class="mini-card">
-                  <div class="stats-value" id="miqaatRsvpCount"><?= $rsvp_count; ?></div>
-                  <div class="stats-label">RSVP'd</div>
+                  <div class="small text-muted" style="visibility:hidden;">&nbsp;</div>
+                  <div class="stats-value" id="willAttendCount"><?php
+                      $combined_total = isset($miq_rsvp['combined_summary']['total']) ? (int)$miq_rsvp['combined_summary']['total'] : (isset($miq_rsvp['rsvp_users_count']) ? (int)$miq_rsvp['rsvp_users_count'] : 0);
+                      echo $combined_total;
+                    ?></div>
+                  <div class="small text-muted" id="willAttendGuest"><?= isset($miq_rsvp['guest_summary']['total']) && (int)$miq_rsvp['guest_summary']['total'] > 0 ? ('+' . (int)$miq_rsvp['guest_summary']['total'] . ' guests') : ''; ?></div>
+                  <div class="stats-label">Will attend</div>
                 </div>
               </a>
             </div>
-            <div class="col-12 col-md-6 mb-2">
-              <a href="#" id="miqaatNotRsvpCard" class="open-miqaat-modal" data-type="no" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+            <div class="col-12 col-md-4 mb-2">
+              <a href="#" id="miqaatWillNotAttendCard" class="open-miqaat-modal" data-type="no" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
                 <div class="mini-card">
-                  <div class="stats-value" id="miqaatNotRsvpCount"><?= $not_count; ?></div>
-                  <div class="stats-label">Not RSVP'd</div>
+                  <div class="small text-muted" style="visibility:hidden;">&nbsp;</div>
+                  <div class="stats-value" id="willNotAttendCount"><?= isset($miq_rsvp['will_not_attend']) ? (int)$miq_rsvp['will_not_attend'] : 0; ?></div>
+                  <div class="stats-label">Will not attend</div>
                 </div>
               </a>
+            </div>
+            <div class="col-12 col-md-4 mb-2">
+              <a href="#" id="miqaatNotSubmittedCard" class="open-miqaat-modal" data-type="not_submitted" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                <div class="mini-card">
+                  <div class="small text-muted" style="visibility:hidden;">&nbsp;</div>
+                  <div class="stats-value" id="rsvpNotSubmittedCount"><?= isset($miq_rsvp['rsvp_not_submitted']) ? (int)$miq_rsvp['rsvp_not_submitted'] : 0; ?></div>
+                  <div class="stats-label">RSVP not submitted</div>
+                </div>
+              </a>
+                </div>
+              </div>
+            </div>
+            <div id="miqaat-mobile-right">
+              <!-- Guest breakdown: Gents / Ladies / Children / Guests -->
+              <div class="row text-center mb-3" id="miqaatGuestBreakdown">
+                <div class="col-12 col-md-4 mb-2 mb-md-0">
+              <a href="#" id="miqaatGuestGentsCard" class="open-miqaat-modal" data-type="gents" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                <div class="mini-card bg-white">
+                  <div class="small text-muted">Gents</div>
+                  <div class="stats-value" id="guestGentsCount"><?= isset($miq_rsvp['combined_summary']['gents']) ? (int)$miq_rsvp['combined_summary']['gents'] : (isset($miq_rsvp['guest_summary']['gents']) ? (int)$miq_rsvp['guest_summary']['gents'] : 0); ?></div>
+                  <div class="small text-muted" id="guestGentsBreakdown">
+                    Members: <?= isset($miq_rsvp['member_summary']['gents']) ? (int)$miq_rsvp['member_summary']['gents'] : 0; ?> | Guests: <?= isset($miq_rsvp['guest_summary']['gents']) ? (int)$miq_rsvp['guest_summary']['gents'] : 0; ?>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-12 col-md-4 mb-2 mb-md-0">
+              <a href="#" id="miqaatGuestLadiesCard" class="open-miqaat-modal" data-type="ladies" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                <div class="mini-card bg-white">
+                  <div class="small text-muted">Ladies</div>
+                  <div class="stats-value" id="guestLadiesCount"><?= isset($miq_rsvp['combined_summary']['ladies']) ? (int)$miq_rsvp['combined_summary']['ladies'] : (isset($miq_rsvp['guest_summary']['ladies']) ? (int)$miq_rsvp['guest_summary']['ladies'] : 0); ?></div>
+                  <div class="small text-muted" id="guestLadiesBreakdown">
+                    Members: <?= isset($miq_rsvp['member_summary']['ladies']) ? (int)$miq_rsvp['member_summary']['ladies'] : 0; ?> | Guests: <?= isset($miq_rsvp['guest_summary']['ladies']) ? (int)$miq_rsvp['guest_summary']['ladies'] : 0; ?>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-12 col-md-4 mb-2 mb-md-0">
+              <a href="#" id="miqaatGuestChildrenCard" class="open-miqaat-modal" data-type="children" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                <div class="mini-card bg-white">
+                  <div class="small text-muted">Children</div>
+                  <div class="stats-value" id="guestChildrenCount"><?= isset($miq_rsvp['combined_summary']['children']) ? (int)$miq_rsvp['combined_summary']['children'] : (isset($miq_rsvp['guest_summary']['children']) ? (int)$miq_rsvp['guest_summary']['children'] : 0); ?></div>
+                  <div class="small text-muted" id="guestChildrenBreakdown">
+                    Members: <?= isset($miq_rsvp['member_summary']['children']) ? (int)$miq_rsvp['member_summary']['children'] : 0; ?> | Guests: <?= isset($miq_rsvp['guest_summary']['children']) ? (int)$miq_rsvp['guest_summary']['children'] : 0; ?>
+                  </div>
+                </div>
+              </a>
+                </div>
+              </div>
             </div>
           </div>
+          <style>
+            @media (max-width:767.98px) {
+              /* Left/Right split for miqaat cards */
+              #miqaat-mobile-wrapper { display:flex; gap:8px; align-items:flex-start; }
+              #miqaat-mobile-left, #miqaat-mobile-right { width:50%; }
+
+              /* Make internal rows stack cleanly and ensure their children stretch */
+              #miqaat-mobile-left .row, #miqaat-mobile-right .row { margin-bottom:0; display:flex; flex-direction:column; gap:8px; }
+
+              /* Ensure each column cell becomes a flex container so cards can stretch */
+              #miqaat-mobile-left .row > [class*="col-"], #miqaat-mobile-right .row > [class*="col-"] { display:flex; align-items:stretch; }
+              /* Make the anchor fill the column so .mini-card can stretch uniformly */
+              #miqaat-mobile-left .row > [class*="col-"] > a, #miqaat-mobile-right .row > [class*="col-"] > a { display:flex; flex:1; align-items:stretch; width:100%; }
+
+              /* Make the mini-card fill available height and distribute content */
+              #miqaat-mobile-wrapper .mini-card {
+                display: flex;
+                flex-direction: column;
+                justify-content: center; /* center content vertically for uniform look */
+                align-items: center; /* center text horizontally */
+                text-align: center;
+                flex: 1 1 auto;
+                height: 150px;
+                padding: 18px 16px;
+                box-sizing: border-box;
+                overflow: visible;
+              }
+
+              /* Slight spacing adjustment for value text; prevent clipping */
+              #miqaat-mobile-wrapper .mini-card .stats-value {
+                margin-bottom: 8px;
+                font-size: 1.6rem;
+                font-weight:700;
+                line-height:1.1;
+                display:block;
+                white-space: nowrap;
+                overflow: visible !important;
+                text-overflow: clip;
+                max-width: none;
+                padding: 0 6px;
+              }
+              /* Allow labels to wrap to next line instead of being truncated */
+              #miqaat-mobile-wrapper .mini-card .stats-label {
+                white-space: normal;
+                overflow: visible;
+                text-overflow: clip;
+                overflow-wrap: break-word;
+                word-break: break-word;
+                font-size: 0.85rem;
+                color: #6b7280;
+                text-transform:uppercase;
+                letter-spacing:0.8px;
+                margin-top:8px;
+              }
+
+              /* Support for demographic small text lines */
+              #miqaat-mobile-wrapper .mini-card .small.text-muted { display:block; color:#6b7280; font-size:0.85rem; margin-top:6px; }
+            }
+          </style>
 
           <!-- inline message for miqaat actions (hidden by default) -->
           <div id="miqaatMessage" class="miqaat-message" style="display:none; margin-top:10px; text-align:center; color:#333; font-size:0.95rem;">&nbsp;</div>
@@ -1895,9 +2050,50 @@
                   return resp.json();
                 }).then(function(data) {
                   if (!data || !data.miqaat_rsvp) return;
-                  var m = data.miqaat_rsvp;
-                  if (rsvpCountEl) rsvpCountEl.textContent = (m.rsvp_count || 0);
-                  if (notCountEl) notCountEl.textContent = (m.not_rsvp_count || 0);
+                  var m = data.miqaat_rsvp || {};
+                  try { if (typeof updateGuestCountsFromPayload === 'function') updateGuestCountsFromPayload(m); } catch (e) {}
+                  // legacy counts (HOF-level) kept for compatibility
+                  if (typeof window !== 'undefined') {
+                    try {
+                      var waEl = document.getElementById('willAttendCount');
+                      var wnaEl = document.getElementById('willNotAttendCount');
+                      var nsEl = document.getElementById('rsvpNotSubmittedCount');
+                      // Initialize with zeros while user-level counts are fetched
+                      if (waEl) waEl.textContent = '0';
+                      if (wnaEl) wnaEl.textContent = '0';
+                      if (nsEl) nsEl.textContent = '0';
+                    } catch (e) {}
+                  }
+                  // Now fetch per-user classification counts from common endpoint
+                  try {
+                    var countsUrl = '<?= base_url('common/miqaat_rsvp_user_counts'); ?>?miqaat_id=' + encodeURIComponent(miqId);
+                    fetch(countsUrl, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(cdata) {
+                      if (cdata && cdata.success) {
+                          var wa = cdata.will_attend || 0;
+                          var wna = cdata.will_not_attend || 0;
+                          var ns = cdata.rsvp_not_submitted || 0;
+                          var waEl2 = document.getElementById('willAttendCount');
+                          var wnaEl2 = document.getElementById('willNotAttendCount');
+                          var nsEl2 = document.getElementById('rsvpNotSubmittedCount');
+                          // Prefer payload member/guest breakdown if available
+                          var memberTotal = (m && m.member_summary && m.member_summary.total) ? m.member_summary.total : 0;
+                          var guestTotal = (m && m.guest_summary && m.guest_summary.total) ? m.guest_summary.total : 0;
+                          var combined = (memberTotal + guestTotal) || wa;
+                          if (waEl2) waEl2.textContent = combined;
+                          // show guest subtext
+                          try {
+                            var waGuestEl = document.getElementById('willAttendGuest');
+                            if (waGuestEl) waGuestEl.textContent = (guestTotal > 0 ? ('+' + guestTotal + ' guests') : '');
+                          } catch (e) {}
+                          if (wnaEl2) wnaEl2.textContent = wna;
+                          if (nsEl2) nsEl2.textContent = ns;
+                      }
+                    }).catch(function(err) {
+                      console.warn('Failed to fetch per-user RSVP counts', err);
+                    });
+                  } catch (e) {
+                    console.warn('Counts fetch failed', e);
+                  }
                 }).catch(function(err) {
                   console.error('Failed to fetch miqaat rsvp data', err);
                 });
@@ -2037,27 +2233,49 @@
                       return 0;
                     });
                   } catch (e) { console.warn('sort error', e); }
-                  html += '<table class="table table-sm table-striped"><thead><tr><th>HOF ID</th><th>Name</th><th>Sector</th><th>Sub Sector</th><th>Mobile</th></tr></thead><tbody>';
+                  // Choose first-column header based on whether this is a member list
+                  var firstCol = (title && String(title).toLowerCase().indexOf('member') !== -1) ? 'Member ID' : 'HOF ID';
+                  html += '<table class="table table-sm table-striped"><thead><tr><th>' + _escapeHtml(firstCol) + '</th><th>Name</th><th>Sector</th><th>Sub Sector</th></tr></thead><tbody>';
                   rows.forEach(function(r) {
                     var id = (r && (r.ITS_ID || r.hof_id || r.ITS)) ? (r.ITS_ID || r.hof_id || r.ITS) : '';
                     var name = (r && (r.Full_Name || r.name)) ? (r.Full_Name || r.name) : '';
                     var sector = (r && (r.Sector || r.sector)) ? (r.Sector || r.sector) : '';
                     var subSector = (r && (r.Sub_Sector || r.sub_sector || r.SubSector)) ? (r.Sub_Sector || r.sub_sector || r.SubSector) : '';
-                    var mobile = (r && (r.RFM_Mobile || r.rfm_mobile || r.Mobile || r.mobile)) ? (r.RFM_Mobile || r.rfm_mobile || r.Mobile || r.mobile) : '';
-                    var tel = mobile ? _normalizePhone(mobile) : '';
-                    var mobileHtml = mobile ? (tel ? ('<a href="tel:' + _escapeHtml(tel) + '" style="text-decoration:none;color:blue;">' + _escapeHtml(mobile) + '</a>') : _escapeHtml(mobile)) : '';
-                    html += '<tr><td>' + _escapeHtml(id) + '</td><td>' + _escapeHtml(name) + '</td><td>' + _escapeHtml(sector) + '</td><td>' + _escapeHtml(subSector) + '</td><td>' + mobileHtml + '</td></tr>';
+                    // Mobile column removed per UX change
+                    html += '<tr><td>' + _escapeHtml(id) + '</td><td>' + _escapeHtml(name) + '</td><td>' + _escapeHtml(sector) + '</td><td>' + _escapeHtml(subSector) + '</td></tr>';
                   });
                   html += '</tbody></table>';
                   return html;
                 }
 
-                // show modal and loading
-                try { $('#hofListLabel').text(dtype === 'rsvp' ? "RSVP'd for Miqaat" : "Not RSVP'd for Miqaat"); } catch (e) {}
+                // show modal and loading; populate meta block with basic miqaat info
+                try {
+                  var lbl = "Will not attend for Miqaat";
+                  if (dtype === 'rsvp') lbl = "RSVP'd for Miqaat";
+                  else if (dtype === 'not_submitted') lbl = "RSVP not submitted for Miqaat";
+                  try { $('#hofListLabel').text(lbl); } catch (e) {}
+                } catch (e) {}
                 var loading = document.getElementById('hofListLoading');
                 var containerEl = document.getElementById('hofListContainer');
+                var metaEl = document.getElementById('miqaatPopupMeta');
                 if (loading) loading.style.display = 'block';
                 if (containerEl) containerEl.innerHTML = '';
+                // determine a local miqaat object if available
+                try {
+                  var miObj = (upcoming || []).find(function(x) { return String(x.id || x.miqaat_id || '') === String(mid); }) || (upcoming[index] || {});
+                  var miName = miObj && (miObj.name || miObj.miqaat_name) ? (miObj.name || miObj.miqaat_name) : '';
+                  var miDateLabel = miObj && (miObj.hijri_label || miObj.date) ? (miObj.hijri_label || miObj.date) : '';
+                  if (metaEl) {
+                    metaEl.innerHTML = '<div style="font-weight:600;">' + _escapeHtml(miName || 'Miqaat') + '</div>' +
+                                      (miDateLabel ? ('<div class="text-muted">' + _escapeHtml(miDateLabel) + '</div>') : '') +
+                                      '<div style="margin-top:8px;">' +
+                                        '<span class="badge badge-success" id="popupWillAttend" style="margin-right:8px;">Will attend: 0</span>' +
+                                        '<span class="badge badge-danger" id="popupWillNotAttend" style="margin-right:8px;">Will not attend: 0</span>' +
+                                        '<span class="badge badge-secondary" id="popupNotSubmitted">Not submitted: 0</span>' +
+                                      '</div>';
+                    try { $('#miqaatPopupMeta').show(); } catch (e) {}
+                  }
+                } catch (e) { console.warn('Failed to prepare miqaat meta', e); }
                 try { $('#hofListModal').modal('show'); } catch (e) { /* ignore if bootstrap unavailable */ }
 
                 var url = window.location.pathname;
@@ -2077,14 +2295,91 @@
                     return;
                   }
                   var m = data.miqaat_rsvp;
-                  var rows = (dtype === 'rsvp') ? (m.rsvp_list || []) : (m.not_rsvp_list || []);
-                  if (containerEl) containerEl.innerHTML = renderHofListLocal(dtype === 'rsvp' ? "RSVP'd Members" : "Members Not RSVP'd", rows);
+                  try { if (typeof updateGuestCountsFromPayload === 'function') updateGuestCountsFromPayload(m); } catch (e) {}
+                  // Prefer member-level lists when available (show individual users)
+                  var rows = [];
+                  var titleTxt = '';
+                  if (dtype === 'rsvp') {
+                    rows = (m.rsvp_member_list && m.rsvp_member_list.length) ? m.rsvp_member_list : (m.rsvp_list || []);
+                    titleTxt = "RSVP'd Members";
+                  } else if (dtype === 'no') {
+                    rows = (m.not_rsvp_member_list && m.not_rsvp_member_list.length) ? m.not_rsvp_member_list : (m.not_rsvp_list || []);
+                    titleTxt = "Members Will not attend";
+                  } else if (dtype === 'not_submitted') {
+                    rows = (m.not_submitted_member_list && m.not_submitted_member_list.length) ? m.not_submitted_member_list : [];
+                    titleTxt = "Members Not Submitted";
+                  } else if (dtype === 'gents') {
+                    rows = (m.rsvp_male_member_list && m.rsvp_male_member_list.length) ? m.rsvp_male_member_list : (m.rsvp_member_list || []);
+                    titleTxt = "Gents";
+                  } else if (dtype === 'ladies') {
+                    rows = (m.rsvp_female_member_list && m.rsvp_female_member_list.length) ? m.rsvp_female_member_list : (m.rsvp_member_list || []);
+                    titleTxt = "Ladies";
+                  } else if (dtype === 'children') {
+                    rows = (m.rsvp_children_member_list && m.rsvp_children_member_list.length) ? m.rsvp_children_member_list : [];
+                    titleTxt = "Children";
+                  } else {
+                    // fallback to HOF-level not-rsvp list
+                    rows = (m.not_rsvp_member_list && m.not_rsvp_member_list.length) ? m.not_rsvp_member_list : (m.not_rsvp_list || []);
+                    titleTxt = "Members";
+                  }
+                  if (containerEl) containerEl.innerHTML = renderHofListLocal(titleTxt, rows);
+
+                  // fetch per-user classification counts and update popup badges
+                  try {
+                    var countsUrl = '<?= base_url('common/miqaat_rsvp_user_counts'); ?>?miqaat_id=' + encodeURIComponent(mid);
+                    fetch(countsUrl, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(cdata) {
+                      if (cdata && cdata.success) {
+                        var pw = document.getElementById('popupWillAttend');
+                        var pwn = document.getElementById('popupWillNotAttend');
+                        var pns = document.getElementById('popupNotSubmitted');
+                        if (pw) pw.textContent = 'Will attend: ' + (cdata.will_attend || 0);
+                        if (pwn) pwn.textContent = 'Will not attend: ' + (cdata.will_not_attend || 0);
+                        if (pns) pns.textContent = 'Not submitted: ' + (cdata.rsvp_not_submitted || 0);
+                      }
+                    }).catch(function(err) { console.warn('Failed to fetch popup counts', err); });
+                  } catch (e) { console.warn('Counts fetch failed', e); }
+
                 }).catch(function(err) {
                   if (loading) loading.style.display = 'none';
                   if (containerEl) containerEl.innerHTML = '<div class="text-danger">Failed to load list.</div>';
                   console.error('miqaat rsvp fetch failed', err);
                 });
               });
+
+              // Update guest breakdown counts when miqaat JSON is loaded elsewhere (renderFor initial fetch)
+              function updateGuestCountsFromPayload(m) {
+                try {
+                  var gs = (m && m.guest_summary) ? m.guest_summary : {gents:0,ladies:0,children:0,total:0};
+                  var ms = (m && m.member_summary) ? m.member_summary : {gents:0,ladies:0,children:0,total:0};
+                  var cs = (m && m.combined_summary) ? m.combined_summary : {
+                    gents: (ms.gents || 0) + (gs.gents || 0),
+                    ladies: (ms.ladies || 0) + (gs.ladies || 0),
+                    children: (ms.children || 0) + (gs.children || 0),
+                    total: (ms.total || 0) + (gs.total || 0)
+                  };
+                  var gentsEl = document.getElementById('guestGentsCount');
+                  var ladiesEl = document.getElementById('guestLadiesCount');
+                  var childrenEl = document.getElementById('guestChildrenCount');
+                  var totalEl = document.getElementById('guestTotalCount');
+                  var gentsBreak = document.getElementById('guestGentsBreakdown');
+                  var ladiesBreak = document.getElementById('guestLadiesBreakdown');
+                  var childrenBreak = document.getElementById('guestChildrenBreakdown');
+                  var totalBreak = document.getElementById('guestTotalBreakdown');
+                  if (gentsEl) gentsEl.textContent = (cs.gents || 0);
+                  if (ladiesEl) ladiesEl.textContent = (cs.ladies || 0);
+                  if (childrenEl) childrenEl.textContent = (cs.children || 0);
+                  if (totalEl) totalEl.textContent = (cs.total || 0);
+                  if (gentsBreak) gentsBreak.textContent = 'Members: ' + (ms.gents || 0) + ' | Guests: ' + (gs.gents || 0);
+                  if (ladiesBreak) ladiesBreak.textContent = 'Members: ' + (ms.ladies || 0) + ' | Guests: ' + (gs.ladies || 0);
+                  if (childrenBreak) childrenBreak.textContent = 'Members: ' + (ms.children || 0) + ' | Guests: ' + (gs.children || 0);
+                  if (totalBreak) totalBreak.textContent = 'Members: ' + (ms.total || 0) + ' | Guests: ' + (gs.total || 0);
+                  // also update willAttend guest short text
+                  try {
+                    var waGuestEl = document.getElementById('willAttendGuest');
+                    if (waGuestEl) waGuestEl.textContent = (gs.total > 0 ? ('+' + (gs.total || 0) + ' guests') : '');
+                  } catch (e) {}
+                } catch (e) { console.warn('Failed to update guest counts', e); }
+              }
             })();
           </script>
         </div>
@@ -2789,27 +3084,11 @@
           } : null;
         }
 
-        // Overview mini-cards: icon background (remove left border accent)
-        document.querySelectorAll('.overview-card').forEach((card, i) => {
-          const c = accents[i % accents.length];
-          try {
-            // Remove left border accent per request
-            card.style.borderLeft = 'none';
-            const icon = card.querySelector('.overview-icon');
-            if (icon) {
-              icon.style.background = c.bg;
-              icon.style.color = c.fg;
-            }
-          } catch (e) {
-            /* no-op */
-          }
-        });
-
         // Finance cards: soft tint and accented numbers (remove left border accent)
         document.querySelectorAll('.fmb-card').forEach((card, i) => {
           const c = accents[i % accents.length];
           // Remove left border accent per request
-          card.style.borderLeft = 'none';
+          // card.style.borderLeft = 'none';
           const rgb = hexToRgb(c.fg);
           if (rgb) {
             const tint = `linear-gradient(180deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.06), rgba(255,255,255,0))`;

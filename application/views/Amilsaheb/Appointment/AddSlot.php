@@ -27,14 +27,61 @@
       /* Adjusted margin-top for centering */
     }
 
-    .time-slot {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
+    .time-slots-container {
+      display: grid;
+      gap: 12px;
     }
 
-    .time-slot input {
-      margin-right: 10px;
+    .time-slot-card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #e1e7ea;
+      border-radius: 6px;
+      padding: 10px 8px;
+      background: #fff;
+      cursor: pointer;
+      transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+      user-select: none;
+    }
+
+    .time-slot-card input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .time-slot-card {
+      width: 100%;
+      text-align: center;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .time-slot-card.selected {
+      background-color: #007bff;
+      color: #fff !important;
+      border-color: #007bff;
+    }
+
+    /* Grouping styles */
+    .slot-group {
+      margin-bottom: 18px;
+      padding: 8px 0 6px 0;
+      background: transparent;
+    }
+
+    .group-header {
+      font-weight: 700;
+      margin: 6px 0 10px 4px;
+      color: #444;
+    }
+
+    .group-slots {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
     }
 
     .btn-submit {
@@ -43,41 +90,6 @@
 
     #selectAll {
       margin-top: 10px;
-    }
-  </style>
-  <style>
-    .time-slot {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-      border: 1px solid #ced4da;
-      /* Add border */
-      border-radius: 5px;
-      /* Add rounded corners */
-      overflow: hidden;
-      /* Hide overflow for a cleaner appearance */
-    }
-
-    .time-slot input {
-      margin-right: 10px;
-    }
-
-    .time-label {
-      flex: 1;
-      padding: 8px;
-      text-align: center;
-      border-radius: 5px;
-      /* Add rounded corners */
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      /* Smooth transition for background color */
-    }
-
-    .time-label.selected {
-      background-color: #007bff;
-      /* Change background color on selection */
-      color: #fff;
-      /* Change text color on selection */
     }
 
     .btn-submit {
@@ -114,6 +126,12 @@
         <!-- Time slot selection part -->
         <div class="col-md-12" style="padding: 20px 50px">
           <label for="selected_time_slots">Select Time Slots:</label>
+
+          <div id="selectedSlotsDisplay" class="mt-3">
+            <h6>Selected Slots (<span id="selectedCount">0</span>)</h6>
+            <div id="selectedList" class="d-flex flex-wrap"></div>
+          </div>
+
           <div class="form-check mb-3" id="selectAll">
             <input class="form-check-input" type="checkbox" id="selectAllCheckbox"></input>
             <label class="form-check-label" for="selectAllCheckbox">
@@ -122,6 +140,7 @@
           </div>
 
           <div id="timeSlots" class="time-slots-container"></div>
+          <!-- Selected slots display -->
         </div>
       </div>
     </form>
@@ -150,45 +169,70 @@
       return hours + '_' + minutes + ampm;
     }
     $(function() {
-      // Function to generate time slots with a 10-minute gap
+      // Function to generate full-day time slots (15-min) grouped by time of day
       function generateTimeSlots() {
-        var startTime = new Date();
-        startTime.setHours(6, 0, 0); // Set start time to 6:00 AM
-        var endTime = new Date();
-        endTime.setHours(23, 50, 0); // Set end time to 11:50 PM
-
-        var timeSlotsHTML = '<div class="row">'; // Start the first row
-        var count = 0;
-
-        while (startTime < endTime) {
-          timeSlotsHTML += '<div class="col-md-3">' +
-            '<div class="time-slot">' +
-            '<input type="checkbox" class="form-check-input time-checkbox" name="selected_time_slot[]" value="' +
-            startTime.toLocaleTimeString([], {
+        // Helper to generate slots between two hours (start inclusive, end exclusive)
+        // Accepts groupName so each checkbox can be tagged with its group
+        function generateRange(startH, startM, endH, endM, groupName) {
+          var arr = [];
+          var cur = new Date();
+          cur.setHours(startH, startM, 0, 0);
+          var end = new Date();
+          end.setHours(endH, endM, 0, 0);
+          while (cur < end) {
+            var timeText = cur.toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit'
-            }) +
-            '" id="timeSlot_' + formatTime(startTime) + '"> ' +
-            '<label class="form-check-label time-label" for="timeSlot_' + formatTime(startTime) + '">' +
-            startTime.toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit'
-            }) +
-            '</label>' +
-            '</div>' +
-            '</div>';
-
-          startTime.setMinutes(startTime.getMinutes() + 15); // Increment by 10 minutes
-          count++;
-
-          if (count === 4) {
-            timeSlotsHTML += '</div><div class="row">'; // Start a new row after every 4 time slots
-            count = 0;
+            });
+            var id = 'timeSlot_' + formatTime(cur);
+            var slotHtml = '<label class="time-slot-card" for="' + id + '">' +
+              '<input type="checkbox" class="time-checkbox" name="selected_time_slot[]" value="' + timeText + '" id="' + id + '" data-group="' + groupName + '">' +
+              '<span class="time-label">' + timeText + '</span>' +
+              '</label>';
+            arr.push(slotHtml);
+            cur = new Date(cur.getTime() + 15 * 60000);
           }
+          return arr;
         }
 
-        timeSlotsHTML += '</div>'; // Close the last row
-        $('#timeSlots').html(timeSlotsHTML);
+        // Build groups in desired display order
+        var groups = {
+          'Night': [],
+          'Morning': [],
+          'Afternoon': [],
+          'Evening': []
+        };
+
+        // Night: 22:00 -> 24:00, then 00:00 -> 10:00 (so display from 22:00 onwards)
+        groups['Night'] = groups['Night'].concat(generateRange(22, 0, 24, 0, 'Night'));
+        groups['Night'] = groups['Night'].concat(generateRange(0, 0, 10, 0, 'Night'));
+
+        // Morning: 10:00 -> 13:00
+        groups['Morning'] = generateRange(10, 0, 13, 0, 'Morning');
+
+        // Afternoon: 13:00 -> 17:00
+        groups['Afternoon'] = generateRange(13, 0, 17, 0, 'Afternoon');
+
+        // Evening: 17:00 -> 22:00
+        groups['Evening'] = generateRange(17, 0, 22, 0, 'Evening');
+
+        // Render groups in the desired order (each group gets a group-select checkbox)
+        // Show Night at the last position
+        var order = ['Morning', 'Afternoon', 'Evening', 'Night'];
+        var out = '';
+        order.forEach(function(groupName) {
+          var slots = groups[groupName];
+          var groupId = 'group_' + groupName.replace(/\s+/g, '_');
+          out += '<div class="slot-group">';
+          out += '<div class="group-header">' +
+            '<input type="checkbox" class="form-check-input group-select" id="' + groupId + '" data-group="' + groupName + '"> ' +
+            '<label for="' + groupId + '" style="margin-left:6px; font-weight:700;">' + groupName + '</label>' +
+            '</div>';
+          out += '<div class="group-slots">' + slots.join('') + '</div>';
+          out += '</div>';
+        });
+
+        $('#timeSlots').html(out);
       }
 
       // Event handler for date selection
@@ -201,18 +245,54 @@
         fetchExistingTimeSlots(selectedDate);
       });
 
-      // Event handler for time slot selection
+      // Event handler for time slot selection (toggle selected visual state)
       $('#timeSlots').on('change', '.time-checkbox', function() {
-        var label = $(this).siblings('.time-label');
-        label.toggleClass('selected', $(this).prop('checked'));
+        var card = $(this).closest('.time-slot-card');
+        card.toggleClass('selected', $(this).prop('checked'));
+        updateSelectedDisplay();
+        updateGroupAndGlobalState();
       });
 
       // Event handler for "Select All" checkbox
       $('#selectAllCheckbox').on('change', function() {
+        var checked = $(this).prop('checked');
         var checkboxes = $('.time-checkbox');
-        checkboxes.prop('checked', $(this).prop('checked'));
-        $('.time-label').toggleClass('selected', $(this).prop('checked'));
+        checkboxes.each(function() {
+          $(this).prop('checked', checked);
+          $(this).closest('.time-slot-card').toggleClass('selected', checked);
+        });
+        updateSelectedDisplay();
+        // Update group selects to match
+        $('.group-select').prop('checked', checked);
       });
+
+      // Event handler for per-group select-all checkbox
+      $('#timeSlots').on('change', '.group-select', function() {
+        var groupName = $(this).data('group');
+        var checked = $(this).prop('checked');
+        var groupCheckboxes = $('.time-checkbox[data-group="' + groupName + '"]');
+        groupCheckboxes.each(function() {
+          $(this).prop('checked', checked);
+          $(this).closest('.time-slot-card').toggleClass('selected', checked);
+        });
+        updateSelectedDisplay();
+        updateGroupAndGlobalState();
+      });
+
+      // Utility: update group-select checkboxes and global select-all based on current state
+      function updateGroupAndGlobalState() {
+        // Update each group-select
+        $('.group-select').each(function() {
+          var groupName = $(this).data('group');
+          var total = $('.time-checkbox[data-group="' + groupName + '"]').length;
+          var checked = $('.time-checkbox[data-group="' + groupName + '"]:checked').length;
+          $(this).prop('checked', total > 0 && checked === total);
+        });
+        // Update global select all
+        var totalAll = $('.time-checkbox').length;
+        var checkedAll = $('.time-checkbox:checked').length;
+        $('#selectAllCheckbox').prop('checked', totalAll > 0 && checkedAll === totalAll);
+      }
 
       // Function to fetch existing time slots for the selected date
       function fetchExistingTimeSlots(selectedDate) {
@@ -220,20 +300,22 @@
         $.ajax({
           url: '<?= base_url('Amilsaheb/getExistingTimeSlots') ?>',
           method: 'GET',
+          dataType: 'json',
           data: {
             date: selectedDate
           },
           success: function(response) {
-            console.log(response)
-            existingTimeSlots = JSON.parse(response)
+            if (!response || !Array.isArray(response)) return updateSelectedDisplay();
             // Loop through existing time slots and mark corresponding checkboxes as checked
-            existingTimeSlots.forEach(function(timeSlot) {
+            response.forEach(function(timeSlot) {
               var checkbox = $('#timeSlot_' + getTimeAsString(timeSlot.time));
               if (checkbox.length > 0) {
                 checkbox.prop('checked', true);
-                checkbox.siblings('.time-label').addClass('selected');
+                checkbox.closest('.time-slot-card').addClass('selected');
               }
             });
+            // Update the selected slots display after marking existing ones
+            updateSelectedDisplay();
           },
           error: function() {
             console.error('Error fetching existing time slots');
@@ -241,26 +323,56 @@
         });
       }
 
-      // Function to get the time in milliseconds from a time string (HH:mm)
+      // Function to convert DB time string (HH:MM[:SS]) to id fragment used by generated checkboxes
       function getTimeAsString(timeString) {
-        var timeParts = timeString.split(':');
-        var hours = parseInt(timeParts[0]);
-        var minutes_ampm = timeParts[1].split(' ');
-        var minutes = minutes_ampm[0];
-        var ampm = minutes_ampm[1];
+        // Accept formats like "HH:MM:SS", "HH:MM" or "H:MM AM/PM" and convert
+        if (!timeString) return '';
+        var lower = timeString.toLowerCase();
+        var hasAmPm = lower.indexOf('am') !== -1 || lower.indexOf('pm') !== -1;
+        var hours = 0;
+        var minutes = '00';
 
-        console.log(hours + '_' + minutes + ampm);
-        return hours + '_' + minutes + ampm.toLowerCase();
+        // Split by ':' to get hours and minutes
+        var parts = timeString.split(':');
+        hours = parseInt(parts[0], 10) || 0;
+        minutes = (parts[1] || '00').toString().substr(0, 2);
+
+        // Determine am/pm
+        var ampm = null;
+        if (hasAmPm) {
+          ampm = lower.indexOf('pm') !== -1 ? 'pm' : 'am';
+        } else {
+          ampm = hours >= 12 ? 'pm' : 'am';
+        }
+
+        // Convert to 12-hour format for id matching
+        var hours12 = hours % 12;
+        if (hours12 === 0) hours12 = 12;
+
+        if (minutes.length === 1) minutes = '0' + minutes;
+        return hours12 + '_' + minutes + ampm;
       }
-
 
       // Initial generation of time slots
       generateTimeSlots();
       fetchExistingTimeSlots($("#selected_date").val());
     });
+
+    // Update the display of selected slots
+    function updateSelectedDisplay() {
+      var selected = [];
+      $('.time-checkbox:checked').each(function() {
+        selected.push($(this).val());
+      });
+      $('#selectedCount').text(selected.length);
+      var list = $('#selectedList');
+      list.empty();
+      selected.forEach(function(t) {
+        var badge = $('<span class="badge badge-primary mr-2 mb-2">').text(t);
+        list.append(badge);
+      });
+    }
   </script>
-
-
 
   <script>
     $(document).ready(function() {

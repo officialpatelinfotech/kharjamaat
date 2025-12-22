@@ -1376,35 +1376,24 @@ class Accounts extends CI_Controller
       $email_template = str_replace($placeholder, $value, $email_template);
     }
 
+    // Send single email with BCC to all admin recipients to reduce SMTP handshakes
+    $this->load->library('email');
+    $to = $_SESSION['user_data']['Email'];
+    $bcc = [
+      'anjuman@kharjamaat.in',
+      'amilsaheb@kharjamaat.in',
+      '3042@carmelnmh.in',
+      'kharjamaat@gmail.com',
+      'kharamilsaheb@gmail.com',
+      'kharjamaat786@gmail.com'
+    ];
+
     $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to($_SESSION['user_data']['Email']);
+    $this->email->to($to);
+    $this->email->bcc($bcc);
     $this->email->subject('New Raza');
     $this->email->message($email_template);
     $this->email->send();
-
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to('anjuman@kharjamaat.in');
-    $this->email->subject('New Raza');
-    $this->email->message($email_template);
-    $this->email->send();
-
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to('amilsaheb@kharjamaat.in');
-    $this->email->subject('New Raza');
-    $this->email->message($email_template);
-    $this->email->send();
-
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to('3042@carmelnmh.in');
-    $this->email->subject('New Raza');
-    $this->email->message($email_template);
-    $this->email->send();
-
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to('kharjamaat@gmail.com');
-    $this->email->subject('New Raza');
-    $this->email->message($email_template);
-    $this->email->send(); // Mail working fine
 
     $userId = $_SESSION['user_data']['ITS_ID'];
     unset($_POST['raza-type']);
@@ -1570,6 +1559,8 @@ class Accounts extends CI_Controller
     // Retrieve data from the URL parameters
     $slot_id = $this->input->get('slot_id');
     $time = $this->input->get('time');
+    $purpose = $this->input->get('purpose');
+    $details = $this->input->get('details');
 
     // Retrieve user_id from the session
     $user_id = $_SESSION['user']['username'];
@@ -1580,10 +1571,47 @@ class Accounts extends CI_Controller
     $user_info = $this->AccountM->get_user_info($user_id);
 
     if ($user_info) {
-      // Store the appointment in the appointments table
-      $this->AccountM->book_slot($slot_id, $user_info->ITS_ID, $user_info->Full_Name);
+      // Store the appointment in the appointments table (include purpose and other details)
+      $this->AccountM->book_slot($slot_id, $user_info->ITS_ID, $user_info->Full_Name, $purpose, $details);
 
       // Add any additional logic or redirects as needed
+      // Send confirmation email to the user and notify amilsaheb
+      try {
+        $this->load->library('email');
+        $user_data = $this->AccountM->getUserData($user_id);
+        // Fetch slot date for inclusion in emails
+        $slot_info = $this->AccountM->get_slot_info($slot_id);
+        $slot_date = isset($slot_info->date) ? $slot_info->date : '';
+        $user_email = isset($user_data['Email']) ? $user_data['Email'] : null;
+        $user_name = $user_info->Full_Name;
+        $msg = "Dear " . $user_name . ",<br/><br/>Your appointment has been booked for <b>" . htmlspecialchars($time) . "</b> on <b>" . htmlspecialchars(date("d-m-Y", strtotime($slot_date))) . "</b>.<br/>";
+        if (!empty($purpose)) $msg .= "Purpose: " . htmlspecialchars($purpose) . "<br/>";
+        $msg .= "<br/>";
+        if (!empty($details)) $msg .= " Details: " . htmlspecialchars($details) . "<br/>";
+        $msg .= "<br/>Thank you,<br/>Khar Jamaat";
+
+        if ($user_email) {
+          $this->email->from('admin@kharjamaat.in', 'Khar Jamaat - Appointment');
+          $this->email->to($user_email);
+          $this->email->subject('Appointment Confirmation');
+          $this->email->message($msg);
+          $this->email->send();
+        }
+
+        // Notify amilsaheb as well
+        $this->email->from('admin@kharjamaat.in', 'Khar Jamaat - Appointment');
+        $this->email->to('amilsaheb@kharjamaat.in');
+        $this->email->to('kharamilsaheb@gmail.com');
+        $this->email->subject('New Appointment Booked');
+        $adminMsg = "Hello, <br/><br/>A new appointment has been booked by <b>" . htmlspecialchars($user_name) . "</b> for <b>" . htmlspecialchars($time) . "</b> on <b>" . htmlspecialchars(date("d-m-Y", strtotime($slot_date))) . "</b>.<br/>";
+        if (!empty($purpose)) $adminMsg .= "<b>Purpose:</b> " . htmlspecialchars($purpose) . "<br/>";
+        if (!empty($details)) $adminMsg .= "<b>Details:</b> " . htmlspecialchars($details) . "<br/>";
+        $this->email->message($adminMsg);
+        $this->email->send();
+      } catch (Exception $e) {
+        log_message('error', 'Error sending appointment email: ' . $e->getMessage());
+      }
+
       redirect('accounts/appointment');
     } else {
       // Handle the case where user info is not found

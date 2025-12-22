@@ -531,30 +531,6 @@
     }
   }
 
-  <?php
-  if (!function_exists('format_inr_no_decimals')) {
-    function format_inr_no_decimals($num)
-    {
-      if ($num === null || $num === '' || !is_numeric($num)) {
-        $num = 0;
-      }
-      $num = (int) round($num);
-      $neg = $num < 0;
-      if ($neg) $num = abs($num);
-      $str = (string)$num;
-      if (strlen($str) <= 3) {
-        $res = $str;
-      } else {
-        $last3 = substr($str, -3);
-        $rest = substr($str, 0, -3);
-        $rest = preg_replace('/\B(?=(?:\d{2})+(?!\d))/', ',', $rest);
-        $res = $rest . ',' . $last3;
-      }
-      return ($neg ? '-' : '') . $res;
-    }
-  }
-  ?>
-
   /* Mobile toolbar for sidebar toggle */
   .mobile-toolbar {
     display: flex;
@@ -705,39 +681,110 @@
       display: block;
     }
   }
+
   /* Beautification enhancements */
-  .dashboard-title { font-weight: 800; letter-spacing: -0.02em; }
-  @media (min-width: 992px){ .dashboard-title { font-size: 2.1rem; } }
-  .dashboard-subtitle { color:#6b7280; font-weight:600; }
+  .dashboard-title {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
 
-  .mini-card { border:1px solid #eef2f7; border-radius:14px; box-shadow:0 4px 14px rgba(0,0,0,0.05); transition: transform .12s ease, box-shadow .12s ease; }
-  .mini-card:hover { transform: translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.08); }
-  .mini-card .stats-value { font-weight:800; letter-spacing:-0.01em; }
-  .mini-card .stats-label { font-weight:600; color:#6b7280; }
+  @media (min-width: 992px) {
+    .dashboard-title {
+      font-size: 2.1rem;
+    }
+  }
 
-  .sidebar-menu .menu-item .menu-label { font-size:.95rem; }
+  .dashboard-subtitle {
+    color: #6b7280;
+    font-weight: 600;
+  }
 
-  .chart-container.grouped-block { margin-top:8px; }
-  .chart-container.compact { padding-top:8px; }
-  .section-title { margin-bottom:12px; }
+  .mini-card {
+    border: 1px solid #eef2f7;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
 
-  #familiesSignedUpCard { border-left:none; background-image:linear-gradient(180deg, rgba(22,163,74,0.06), rgba(255,255,255,0)); }
-  #familiesSignedUpCard .stats-value { color:#16a34a; }
-  #noThaaliCard { border-left:none; background-image:linear-gradient(180deg, rgba(220,38,38,0.06), rgba(255,255,255,0)); }
-  #noThaaliCard .stats-value { color:#dc2626; }
+  .mini-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .mini-card .stats-value {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .mini-card .stats-label {
+    font-weight: 600;
+    color: #6b7280;
+  }
+
+  .sidebar-menu .menu-item .menu-label {
+    font-size: .95rem;
+  }
+
+  .chart-container.grouped-block {
+    margin-top: 8px;
+  }
+
+  .chart-container.compact {
+    padding-top: 8px;
+  }
+
+  .section-title {
+    margin-bottom: 12px;
+  }
+
+  #familiesSignedUpCard {
+    border-left: none;
+    background-image: linear-gradient(180deg, rgba(22, 163, 74, 0.06), rgba(255, 255, 255, 0));
+  }
+
+  #familiesSignedUpCard .stats-value {
+    color: #16a34a;
+  }
+
+  #noThaaliCard {
+    border-left: none;
+    background-image: linear-gradient(180deg, rgba(220, 38, 38, 0.06), rgba(255, 255, 255, 0));
+  }
+
+  #noThaaliCard .stats-value {
+    color: #dc2626;
+  }
 
   /* Finance summary colors: Paid green, Due red; Total default */
-  .takhmeen-summary .overview-value.text-success { color:#16a34a !important; }
-  .takhmeen-summary .overview-value.text-danger { color:#dc2626 !important; }
-  .takhmeen-summary .overview-value.text-primary { color:#111 !important; }
+  .takhmeen-summary .overview-value.text-success {
+    color: #16a34a !important;
+  }
+
+  .takhmeen-summary .overview-value.text-danger {
+    color: #dc2626 !important;
+  }
+
+  .takhmeen-summary .overview-value.text-primary {
+    color: #111 !important;
+  }
 
   /* Corpus funds colors: Received green, Pending red; Total default */
-  .corpus-summary .stats-value.text-success { color:#16a34a !important; }
-  .corpus-summary .stats-value.text-danger { color:#dc2626 !important; }
-  .corpus-summary .stats-value:not(.text-success):not(.text-danger) { color:#111 !important; }
+  .corpus-summary .stats-value.text-success {
+    color: #16a34a !important;
+  }
+
+  .corpus-summary .stats-value.text-danger {
+    color: #dc2626 !important;
+  }
+
+  .corpus-summary .stats-value:not(.text-success):not(.text-danger) {
+    color: #111 !important;
+  }
 
   /* Within sector cards: ensure Total amount chips are black */
-  .fmb-amounts .val.text-primary { color:#111 !important; }
+  .fmb-amounts .val.text-primary {
+    color: #111 !important;
+  }
 </style>
 
 <div class="container-fluid margintopcontainer mt-5 pt-5">
@@ -771,7 +818,7 @@
           <li><a class="menu-item" href="<?php echo base_url('common/fmb_general_contributions?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-inr"></i></span><span class="menu-label">FMB General Contributions</span></a></li>
           <li><a class="menu-item" href="<?= base_url('amilsaheb/corpusfunds_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
         </ul>
-        
+
         <div class="menu-section">Reports</div>
         <ul class="menu-list">
           <li><a class="menu-item" href="<?php echo base_url('common/miqaatattendance?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Miqaat Attendance Report</span></a></li>
@@ -1031,7 +1078,7 @@
         <div class="chart-container member-types-block" style="padding-top: 0px; padding: 0px;">
           <h4 class="section-title text-center">Members By Types</h4>
           <?php $mt = isset($member_type_counts) ? $member_type_counts : ['resident' => 0, 'external' => 0, 'moved_out' => 0, 'non_sabeel' => 0, 'temporary' => 0, 'total' => 0]; ?>
-            <div class="row">
+          <div class="row">
             <div class="col-12 col-md-3 mb-3">
               <a href="<?= base_url('amilsaheb/mumineendirectory?filter=member_type&value=' . rawurlencode('Resident Mumineen')); ?>" style="text-decoration:none;color:inherit;display:block;">
                 <div class="overview-card">
@@ -1154,29 +1201,30 @@
         }
         ?>
         <?php
-          // Determine current hijri parts (controller may provide $selected_hijri_parts)
-          if (isset($selected_hijri_parts) && is_array($selected_hijri_parts) && !empty($selected_hijri_parts)) {
-            $hijri_today = $selected_hijri_parts;
-          } else {
-            $hijri_today = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-          }
-          $current_hijri_month = isset($hijri_today['hijri_month']) ? (int)$hijri_today['hijri_month'] : 1;
-          $current_hijri_year = isset($hijri_today['hijri_year']) ? (int)$hijri_today['hijri_year'] : (int)date('Y');
-          $month_names_raw = $this->HijriCalendar->get_hijri_month();
-          $month_names = [];
-          foreach ($month_names_raw as $mn) {
-            $id = isset($mn['id']) ? (int)$mn['id'] : null;
-            $name = isset($mn['hijri_month']) ? $mn['hijri_month'] : '';
-            if ($id) $month_names[$id] = $name;
-          }
+        // Determine current hijri parts (controller may provide $selected_hijri_parts)
+        if (isset($selected_hijri_parts) && is_array($selected_hijri_parts) && !empty($selected_hijri_parts)) {
+          $hijri_today = $selected_hijri_parts;
+        } else {
+          $hijri_today = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+        }
+        $current_hijri_month = isset($hijri_today['hijri_month']) ? (int)$hijri_today['hijri_month'] : 1;
+        $current_hijri_year = isset($hijri_today['hijri_year']) ? (int)$hijri_today['hijri_year'] : (int)date('Y');
+        $month_names_raw = $this->HijriCalendar->get_hijri_month();
+        $month_names = [];
+        foreach ($month_names_raw as $mn) {
+          $id = isset($mn['id']) ? (int)$mn['id'] : null;
+          $name = isset($mn['hijri_month']) ? $mn['hijri_month'] : '';
+          if ($id) $month_names[$id] = $name;
+        }
         ?>
-        <div class="chart-container compact" id="thaali-month-block" data-hijri-month="<?= $current_hijri_month ?>" data-hijri-year="<?= $current_hijri_year ?>">
-          <div class="d-flex justify-content-between align-items-center">
+        <div class="chart-container" id="thaali-month-block" data-hijri-month="<?= $current_hijri_month ?>" data-hijri-year="<?= $current_hijri_year ?>">
+          <div class="d-flex justify-content-center align-items-center">
             <div>
-              <h4 class="section-title mb-1">Thaali Signup for Current Month</h4>
-              <div style="height:4px;width:140px;background:linear-gradient(90deg,#60a5fa,#22d3ee,#f59e0b);border-radius:2px;margin-top:4px"></div>
+              <h4 class="section-title">Thaali Signup for Current Month</h4>
             </div>
-            <a href="<?= base_url('common/thaali_signups_breakdown?from=amilsaheb'); ?>" class="btn btn-primary" style="border-radius:8px;">View details</a>
+          </div>
+          <div class="d-flex justify-content-end align-items-center">
+            <a href="<?= base_url('common/thaali_signups_breakdown?from=amilsaheb'); ?>" class="btn btn-sm btn-primary my-2">View details</a>
           </div>
 
           <div class="d-flex align-items-center justify-content-center mt-3 mb-3">
@@ -1190,9 +1238,9 @@
           </div>
 
           <?php
-            // Reuse existing variables to populate initial counts for the current month
-            $noThaali = isset($dashboard_data['no_thaali_families_month']) ? $dashboard_data['no_thaali_families_month'] : (isset($dashboard_data['no_thaali_families']) ? $dashboard_data['no_thaali_families'] : []);
-            $familiesSignedUp = isset($dashboard_data['this_month_families_signed_up']) ? (int)$dashboard_data['this_month_families_signed_up'] : max(0, (isset($stats['HOF']) ? (int)$stats['HOF'] : 0) - (int)count($noThaali));
+          // Reuse existing variables to populate initial counts for the current month
+          $noThaali = isset($dashboard_data['no_thaali_families_month']) ? $dashboard_data['no_thaali_families_month'] : (isset($dashboard_data['no_thaali_families']) ? $dashboard_data['no_thaali_families'] : []);
+          $familiesSignedUp = isset($dashboard_data['this_month_families_signed_up']) ? (int)$dashboard_data['this_month_families_signed_up'] : max(0, (isset($stats['HOF']) ? (int)$stats['HOF'] : 0) - (int)count($noThaali));
           ?>
 
           <div class="row text-center mb-2">
@@ -1210,6 +1258,196 @@
             </div>
           </div>
         </div>
+
+        <?php
+        // Inject RSVP container (if controller provided miqaat RSVP data)
+        $miq_rsvp = isset($dashboard_data['miqaat_rsvp']) ? $dashboard_data['miqaat_rsvp'] : null;
+        $upcoming = isset($dashboard_data['upcoming_miqaats']) ? $dashboard_data['upcoming_miqaats'] : [];
+        $initial_index = 0;
+        $initial_id = isset($miq_rsvp['next_miqaat']['id']) ? $miq_rsvp['next_miqaat']['id'] : (isset($upcoming[0]['id']) ? $upcoming[0]['id'] : '');
+        foreach ($upcoming as $k => $m) {
+          if (isset($m['id']) && $m['id'] == $initial_id) {
+            $initial_index = $k;
+            break;
+          }
+        }
+        ?>
+
+        <div class="chart-container" id="miqaat-rsvp-block" data-initial-index="<?= $initial_index; ?>">
+          <div class="d-flex align-items-center justify-content-between" style="gap:12px;">
+            <h4 class="section-title text-center m-0" style="flex:1;">RSVP for Next Miqaat</h4>
+          </div>
+          <div style="min-width:140px;text-align:right;">
+            <a href="#" class="btn btn-sm btn-primary text-white my-2" id="miqaat-view-details">View details</a>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-center mt-3 mb-3">
+            <a href="#" class="miqaat-nav-btn prev" aria-label="Previous miqaat" style="display:inline-flex;align-items:center;justify-content:center;height:40px;width:40px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.04);color:#374151;text-decoration:none;margin-right:12px;">
+              <span style="font-size:18px;line-height:1">&#x2039;</span>
+            </a>
+            <span id="miqaat-current-title" class="mx-3" style="font-weight:600;color:#0ea5a5;font-size:18px;"></span>
+            <a href="#" class="miqaat-nav-btn next" aria-label="Next miqaat" style="display:inline-flex;align-items:center;justify-content:center;height:40px;width:40px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.04);color:#374151;text-decoration:none;margin-left:12px;">
+              <span style="font-size:18px;line-height:1">&#x203A;</span>
+            </a>
+          </div>
+
+          <div id="miqaat-mobile-wrapper">
+            <div id="miqaat-mobile-left">
+              <div class="row text-center mb-2">
+                <div class="col-12 col-md-4 mb-2">
+                  <a href="#" id="miqaatWillAttendCard" class="open-miqaat-modal" data-type="rsvp" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="mini-card">
+                      <div class="small text-muted" style="visibility:hidden;">&nbsp;</div>
+                      <div class="stats-value" id="willAttendCount"><?= isset($miq_rsvp['combined_summary']['total']) ? (int)$miq_rsvp['combined_summary']['total'] : 0; ?></div>
+                      <div class="small text-muted" id="willAttendGuest"><?= isset($miq_rsvp['guest_summary']['total']) && (int)$miq_rsvp['guest_summary']['total'] > 0 ? ('+' . (int)$miq_rsvp['guest_summary']['total'] . ' guests') : ''; ?></div>
+                      <div class="stats-label">Will attend</div>
+                    </div>
+                  </a>
+                </div>
+                <div class="col-12 col-md-4 mb-2">
+                  <a href="#" id="miqaatWillNotAttendCard" class="open-miqaat-modal" data-type="no" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="mini-card">
+                      <div class="small text-muted" style="visibility:hidden;">&nbsp;</div>
+                      <div class="stats-value" id="willNotAttendCount"><?= isset($miq_rsvp['will_not_attend']) ? (int)$miq_rsvp['will_not_attend'] : 0; ?></div>
+                      <div class="stats-label">Will not attend</div>
+                    </div>
+                  </a>
+                </div>
+                <div class="col-12 col-md-4 mb-2">
+                  <a href="#" id="miqaatNotSubmittedCard" class="open-miqaat-modal" data-type="not_submitted" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="mini-card">
+                      <div class="small text-muted" style="visibility:hidden;">&nbsp;</div>
+                      <div class="stats-value" id="rsvpNotSubmittedCount"><?= isset($miq_rsvp['rsvp_not_submitted']) ? (int)$miq_rsvp['rsvp_not_submitted'] : 0; ?></div>
+                      <div class="stats-label">RSVP not submitted</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div id="miqaat-mobile-right">
+              <div class="row text-center mb-3" id="miqaatGuestBreakdown">
+                <div class="col-12 col-md-4 mb-2 mb-md-0">
+                  <a href="#" id="miqaatGuestGentsCard" class="open-miqaat-modal" data-type="gents" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="mini-card bg-white">
+                      <div class="small text-muted">Gents</div>
+                      <div class="stats-value" id="guestGentsCount"><?= isset($miq_rsvp['combined_summary']['gents']) ? (int)$miq_rsvp['combined_summary']['gents'] : 0; ?></div>
+                      <div class="small text-muted" id="guestGentsBreakdown">Members: <?= isset($miq_rsvp['member_summary']['gents']) ? (int)$miq_rsvp['member_summary']['gents'] : 0; ?> | Guests: <?= isset($miq_rsvp['guest_summary']['gents']) ? (int)$miq_rsvp['guest_summary']['gents'] : 0; ?></div>
+                    </div>
+                  </a>
+                </div>
+                <div class="col-12 col-md-4 mb-2 mb-md-0">
+                  <a href="#" id="miqaatGuestLadiesCard" class="open-miqaat-modal" data-type="ladies" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="mini-card bg-white">
+                      <div class="small text-muted">Ladies</div>
+                      <div class="stats-value" id="guestLadiesCount"><?= isset($miq_rsvp['combined_summary']['ladies']) ? (int)$miq_rsvp['combined_summary']['ladies'] : 0; ?></div>
+                      <div class="small text-muted" id="guestLadiesBreakdown">Members: <?= isset($miq_rsvp['member_summary']['ladies']) ? (int)$miq_rsvp['member_summary']['ladies'] : 0; ?> | Guests: <?= isset($miq_rsvp['guest_summary']['ladies']) ? (int)$miq_rsvp['guest_summary']['ladies'] : 0; ?></div>
+                    </div>
+                  </a>
+                </div>
+                <div class="col-12 col-md-4 mb-2 mb-md-0">
+                  <a href="#" id="miqaatGuestChildrenCard" class="open-miqaat-modal" data-type="children" data-miqaat-id="" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="mini-card bg-white">
+                      <div class="small text-muted">Children</div>
+                      <div class="stats-value" id="guestChildrenCount"><?= isset($miq_rsvp['combined_summary']['children']) ? (int)$miq_rsvp['combined_summary']['children'] : 0; ?></div>
+                      <div class="small text-muted" id="guestChildrenBreakdown">Members: <?= isset($miq_rsvp['member_summary']['children']) ? (int)$miq_rsvp['member_summary']['children'] : 0; ?> | Guests: <?= isset($miq_rsvp['guest_summary']['children']) ? (int)$miq_rsvp['guest_summary']['children'] : 0; ?></div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <style>
+            @media (max-width:767.98px) {
+              #miqaat-mobile-wrapper {
+                display: flex;
+                gap: 8px;
+                align-items: flex-start;
+              }
+
+              #miqaat-mobile-left,
+              #miqaat-mobile-right {
+                width: 50%;
+              }
+
+              #miqaat-mobile-left .row,
+              #miqaat-mobile-right .row {
+                margin-bottom: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+              }
+
+              #miqaat-mobile-left .row>[class*="col-"],
+              #miqaat-mobile-right .row>[class*="col-"] {
+                display: flex;
+                align-items: stretch;
+              }
+
+              #miqaat-mobile-left .row>[class*="col-"]>a,
+              #miqaat-mobile-right .row>[class*="col-"]>a {
+                display: flex;
+                flex: 1;
+                align-items: stretch;
+                width: 100%;
+              }
+
+              #miqaat-mobile-wrapper .mini-card {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                flex: 1 1 auto;
+                height: 150px;
+                padding: 18px 16px;
+                box-sizing: border-box;
+                overflow: visible;
+              }
+
+              #miqaat-mobile-wrapper .mini-card .stats-value {
+                margin-bottom: 8px;
+                font-size: 1.6rem;
+                font-weight: 700;
+                line-height: 1.1;
+                display: block;
+                white-space: nowrap;
+                overflow: visible !important;
+                text-overflow: clip;
+                max-width: none;
+                padding: 0 6px;
+              }
+
+              #miqaat-mobile-wrapper .mini-card .stats-label {
+                white-space: normal;
+                overflow: visible;
+                text-overflow: clip;
+                overflow-wrap: break-word;
+                word-break: break-word;
+                font-size: 0.85rem;
+                color: #6b7280;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                margin-top: 8px;
+              }
+
+              #miqaat-mobile-wrapper .mini-card .small.text-muted {
+                display: block;
+                color: #6b7280;
+                font-size: 0.85rem;
+                margin-top: 6px;
+              }
+            }
+          </style>
+
+          <div id="miqaatMessage" class="miqaat-message" style="display:none; margin-top:10px; text-align:center; color:#333; font-size:0.95rem;">&nbsp;</div>
+          <div id="miqaatLoading" class="miqaat-loading-overlay" style="display:none;">
+            <div class="miqaat-spinner" aria-hidden="true"></div>
+          </div>
+
+
+        </div>
+
         <!-- HOF List Modal -->
         <div class="modal fade" id="hofListModal" tabindex="-1" role="dialog" aria-labelledby="hofListLabel" aria-hidden="true">
           <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
@@ -1223,15 +1461,31 @@
               <div class="modal-body">
                 <style>
                   /* Make table body scrollable and keep header sticky */
-                  #hofListContainer .table-responsive { max-height: 60vh; overflow: auto; }
-                  #hofListTable thead th { position: sticky; top: 0; background: #fff; z-index: 2; }
-                  #hofListInnerHeader { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+                  #hofListContainer .table-responsive {
+                    max-height: 60vh;
+                    overflow: auto;
+                  }
+
+                  #hofListTable thead th {
+                    position: sticky;
+                    top: 0;
+                    background: #fff;
+                    z-index: 2;
+                  }
+
+                  #hofListInnerHeader {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 8px;
+                  }
                 </style>
                 <div id="hofListSpinner" style="display:none;text-align:center;padding:24px;">Loading…</div>
                 <div id="hofListInnerHeader" style="display:none;">
                   <!-- <h5 id="hofListInnerTitle" class="mb-0">HOFs Signed Up This Month</h5> -->
                   <small id="hofListCount" class="mr-auto text-muted">Count: 0</small>
                 </div>
+                <div id="miqaatPopupMeta" style="display:none;margin-bottom:8px;"></div>
                 <div id="hofListContainer" style="display:none;">
                   <div class="table-responsive">
                     <table class="table table-sm table-striped" id="hofListTable">
@@ -1241,7 +1495,7 @@
                           <th>Name</th>
                           <th>Sector</th>
                           <th>Sub Sector</th>
-                          <th>Mobile</th>
+                          <th id="hofMobileHeader" class="mobile-col">Mobile</th>
                         </tr>
                       </thead>
                       <tbody></tbody>
@@ -1255,15 +1509,24 @@
             </div>
           </div>
         </div>
+        <style>
+          /* Hide Mobile column when HOF modal is in miqaat mode */
+          #hofListModal[data-mode="miqaat"] .mobile-col { display: none; }
+        </style>
         <script>
-          (function(){
+          (function() {
             var baseUrl = '<?= rtrim(base_url('anjuman'), '/'); ?>';
             var monthNames = <?= json_encode($month_names); ?>;
+
             function updateCardsFor(month, year) {
               var url = baseUrl + '?format=json&hijri_year=' + encodeURIComponent(year) + '&hijri_month=' + encodeURIComponent(month);
-              fetch(url, { credentials: 'same-origin' })
-                .then(function(res){ return res.json(); })
-                .then(function(payload){
+              fetch(url, {
+                  credentials: 'same-origin'
+                })
+                .then(function(res) {
+                  return res.json();
+                })
+                .then(function(payload) {
                   if (!payload || !payload.success) return;
                   var m = payload.monthly_stats || {};
                   var signed = parseInt(m.families_signed_up || 0, 10);
@@ -1281,21 +1544,30 @@
                     container.setAttribute('data-hijri-month', month);
                     container.setAttribute('data-hijri-year', year);
                   }
-                }).catch(function(err){
+                }).catch(function(err) {
                   console.error('Failed to fetch monthly stats', err);
                 });
             }
 
             function deltaMonth(currentMonth, currentYear, delta) {
-              var m = parseInt(currentMonth,10);
-              var y = parseInt(currentYear,10);
+              var m = parseInt(currentMonth, 10);
+              var y = parseInt(currentYear, 10);
               m += delta;
-              if (m < 1) { m = 12; y -= 1; }
-              if (m > 12) { m = 1; y += 1; }
-              return { month: m, year: y };
+              if (m < 1) {
+                m = 12;
+                y -= 1;
+              }
+              if (m > 12) {
+                m = 1;
+                y += 1;
+              }
+              return {
+                month: m,
+                year: y
+              };
             }
 
-            document.addEventListener('click', function(e){
+            document.addEventListener('click', function(e) {
               var t = e.target.closest && e.target.closest('.hijri-nav-btn');
               if (!t) return;
               e.preventDefault();
@@ -1313,19 +1585,19 @@
               if (!raw) return '';
               var s = String(raw).trim();
               // strip common separators
-              s = s.replace(/[\s\-\.\(\)]/g,'');
+              s = s.replace(/[\s\-\.\(\)]/g, '');
               // if starts with +, keep digits
               if (s.charAt(0) === '+') {
-                var d = s.slice(1).replace(/\D/g,'');
+                var d = s.slice(1).replace(/\D/g, '');
                 return '+' + d;
               }
               // if starts with 00 international prefix
               if (s.indexOf('00') === 0) {
-                var d2 = s.slice(2).replace(/\D/g,'');
+                var d2 = s.slice(2).replace(/\D/g, '');
                 return '+' + d2;
               }
               // remove non-digits
-              var digits = s.replace(/\D/g,'');
+              var digits = s.replace(/\D/g, '');
               if (!digits) return '';
               // common local formats: leading 0 removed, then prepend default CC
               if (digits.length === 10) {
@@ -1345,10 +1617,21 @@
             function renderHofList(rows) {
               var tbody = document.querySelector('#hofListTable tbody');
               tbody.innerHTML = '';
+              // Determine whether to show mobile column based on modal mode
+              try {
+                var modalEl = document.getElementById('hofListModal');
+                var mode = modalEl ? (modalEl.getAttribute('data-mode') || '') : '';
+                var showMobile = (mode !== 'miqaat');
+                var mobileHeader = document.getElementById('hofMobileHeader');
+                if (mobileHeader) mobileHeader.style.display = showMobile ? '' : 'none';
+              } catch (e) {
+                console.warn('Failed to toggle mobile header', e);
+              }
               if (!rows || !rows.length) {
                 var tr = document.createElement('tr');
                 var td = document.createElement('td');
-                td.colSpan = 5;
+                var colSpanVal = showMobile ? 5 : 4;
+                td.colSpan = colSpanVal;
                 td.className = 'text-center text-muted';
                 td.textContent = 'No records found.';
                 tr.appendChild(td);
@@ -1357,20 +1640,23 @@
               }
               // sort rows by Sector then Sub_Sector (case-insensitive)
               try {
-                rows.sort(function(a, b){
+                rows.sort(function(a, b) {
                   var sa = (a.Sector || a.sector || '') + '';
                   var sb = (b.Sector || b.sector || '') + '';
-                  sa = sa.toLowerCase(); sb = sb.toLowerCase();
+                  sa = sa.toLowerCase();
+                  sb = sb.toLowerCase();
                   if (sa < sb) return -1;
                   if (sa > sb) return 1;
                   var ssa = (a.Sub_Sector || a.sub_sector || a.SubSector || '') + '';
                   var ssb = (b.Sub_Sector || b.sub_sector || b.SubSector || '') + '';
-                  ssa = ssa.toLowerCase(); ssb = ssb.toLowerCase();
+                  ssa = ssa.toLowerCase();
+                  ssb = ssb.toLowerCase();
                   if (ssa < ssb) return -1;
                   if (ssa > ssb) return 1;
                   var na = (a.Full_Name || a.full_name || a.name || '') + '';
                   var nb = (b.Full_Name || b.full_name || b.name || '') + '';
-                  na = na.toLowerCase(); nb = nb.toLowerCase();
+                  na = na.toLowerCase();
+                  nb = nb.toLowerCase();
                   if (na < nb) return -1;
                   if (na > nb) return 1;
                   return 0;
@@ -1380,7 +1666,7 @@
                 console.warn('HOF list sort failed', e);
               }
 
-              rows.forEach(function(r){
+              rows.forEach(function(r) {
                 var tr = document.createElement('tr');
                 var its = r.ITS_ID || r.its_id || r.ITS || '';
                 var name = r.Full_Name || r.full_name || r.name || '';
@@ -1404,18 +1690,29 @@
                 tdSub.textContent = sub;
                 tr.appendChild(tdSub);
 
-                var tdMobile = document.createElement('td');
-                if (mobile) {
-                  var telVal = _normalizePhone(mobile);
-                  var a = document.createElement('a');
-                  a.href = telVal ? ('tel:' + telVal) : ('tel:' + mobile);
-                  a.textContent = mobile;
-                  a.style.textDecoration = 'none';
-                  tdMobile.appendChild(a);
-                } else {
-                  tdMobile.textContent = '';
+                // append mobile column only when visible for this modal mode
+                try {
+                  var modalEl2 = document.getElementById('hofListModal');
+                  var mode2 = modalEl2 ? (modalEl2.getAttribute('data-mode') || '') : '';
+                  var showMobile2 = (mode2 !== 'miqaat');
+                    if (showMobile2) {
+                    var tdMobile = document.createElement('td');
+                    tdMobile.classList.add('mobile-col');
+                    if (mobile) {
+                      var telVal = _normalizePhone(mobile);
+                      var a = document.createElement('a');
+                      a.href = telVal ? ('tel:' + telVal) : ('tel:' + mobile);
+                      a.textContent = mobile;
+                      a.style.textDecoration = 'none';
+                      tdMobile.appendChild(a);
+                    } else {
+                      tdMobile.textContent = '';
+                    }
+                    tr.appendChild(tdMobile);
+                  }
+                } catch (e) {
+                  console.warn('Failed to append mobile cell', e);
                 }
-                tr.appendChild(tdMobile);
 
                 tbody.appendChild(tr);
               });
@@ -1439,14 +1736,30 @@
               if (countEl) countEl.textContent = 'Count: 0';
               if (innerHeader) innerHeader.style.display = '';
 
+              // Hide miqaat-specific meta when this modal is opened for Thaali signup
+              var miqMeta = document.getElementById('miqaatPopupMeta');
+              if (miqMeta) {
+                miqMeta.style.display = 'none';
+                miqMeta.innerHTML = '';
+              }
+
+              // mark modal mode for Thaali (so mobile column remains visible)
+              try {
+                var modalEl = document.getElementById('hofListModal');
+                if (modalEl) modalEl.setAttribute('data-mode', 'thaali');
+              } catch (e) {}
               // show spinner
               var spinner = document.getElementById('hofListSpinner');
               var cont = document.getElementById('hofListContainer');
               if (spinner) spinner.style.display = '';
               if (cont) cont.style.display = 'none';
-              fetch(url, { credentials: 'same-origin' })
-                .then(function(res){ return res.json(); })
-                .then(function(payload){
+              fetch(url, {
+                  credentials: 'same-origin'
+                })
+                .then(function(res) {
+                  return res.json();
+                })
+                .then(function(payload) {
                   if (!payload || !payload.success) {
                     renderHofList([]);
                     if (countEl) countEl.textContent = 'Count: 0';
@@ -1456,11 +1769,11 @@
                   var rows = (type === 'signed') ? (m.signed_hof_list || []) : (m.no_thaali_list || []);
                   renderHofList(rows);
                   if (countEl) countEl.textContent = 'Count: ' + (Array.isArray(rows) ? rows.length : 0);
-                }).catch(function(err){
+                }).catch(function(err) {
                   console.error('Failed to fetch HOF list', err);
                   renderHofList([]);
                   if (countEl) countEl.textContent = 'Count: 0';
-                }).finally(function(){
+                }).finally(function() {
                   if (spinner) spinner.style.display = 'none';
                   if (cont) cont.style.display = '';
                   // show bootstrap modal if available
@@ -1478,16 +1791,20 @@
             var noCard = document.getElementById('noThaaliMonthCard');
             if (signedCard) {
               signedCard.style.cursor = 'pointer';
-              signedCard.addEventListener('click', function(){ showHofModal('signed'); });
+              signedCard.addEventListener('click', function() {
+                showHofModal('signed');
+              });
             }
             if (noCard) {
               noCard.style.cursor = 'pointer';
-              noCard.addEventListener('click', function(){ showHofModal('not-signed'); });
+              noCard.addEventListener('click', function() {
+                showHofModal('not-signed');
+              });
             }
           })();
         </script>
 
-          
+
 
         <?php if (!empty($year_daytype_stats)) { ?>
           <div class="chart-container calendar-block">
@@ -1936,7 +2253,7 @@
                 const c = accents[i % accents.length];
                 try {
                   // Remove left border accent per request
-                  card.style.borderLeft = 'none';
+                  // card.style.borderLeft = 'none';
                   const icon = card.querySelector('.overview-icon');
                   if (icon) {
                     icon.style.background = c.bg;
@@ -1965,13 +2282,14 @@
               // Calendar tiles: top border accent
               document.querySelectorAll('.calendar-block .stat-card').forEach((card, i) => {
                 const c = accents[i % accents.length];
-                card.style.borderTop = '3px solid ' + c.fg;
+                // card.style.borderTop = '3px solid ' + c.fg;
               });
             })();
 
             // Disable corpus funds modal popups; navigation handled via anchor links
             (function() {
-              /* no-op: popups removed per requirements */ })();
+              /* no-op: popups removed per requirements */
+            })();
 
             // Sidebar toggle for mobile
             (function() {
@@ -2001,7 +2319,8 @@
 
             // Disable sector details modal; cards now navigate via links
             (function() {
-              /* no-op: modal removed per requirements */ })();
+              /* no-op: modal removed per requirements */
+            })();
 
             // Toggle takhmeen containers (summary -> sector details)
             (function() {
@@ -2059,3 +2378,382 @@
       </div>
     </div>
   </div>
+  <script>
+    (function() {
+      var upcoming = <?= json_encode(array_values($upcoming)); ?> || [];
+      var container = document.getElementById('miqaat-rsvp-block');
+      var index = parseInt(container ? container.getAttribute('data-initial-index') || '0' : '0', 10) || 0;
+      var titleEl = document.getElementById('miqaat-current-title');
+      var rsvpCountEl = document.getElementById('miqaatRsvpCount');
+      var notCountEl = document.getElementById('miqaatNotRsvpCount');
+      var rsvpCard = document.getElementById('miqaatRsvpCard');
+      var notCard = document.getElementById('miqaatNotRsvpCard');
+      var viewDetails = document.getElementById('miqaat-view-details');
+
+      // Update guest breakdown counts when miqaat JSON is loaded
+      function updateGuestCountsFromPayload(m) {
+        try {
+          var gs = (m && m.guest_summary) ? m.guest_summary : {
+            gents: 0,
+            ladies: 0,
+            children: 0,
+            total: 0
+          };
+          var ms = (m && m.member_summary) ? m.member_summary : {
+            gents: 0,
+            ladies: 0,
+            children: 0,
+            total: 0
+          };
+          var cs = (m && m.combined_summary) ? m.combined_summary : {
+            gents: (ms.gents || 0) + (gs.gents || 0),
+            ladies: (ms.ladies || 0) + (gs.ladies || 0),
+            children: (ms.children || 0) + (gs.children || 0),
+            total: (ms.total || 0) + (gs.total || 0)
+          };
+          var gentsEl = document.getElementById('guestGentsCount');
+          var ladiesEl = document.getElementById('guestLadiesCount');
+          var childrenEl = document.getElementById('guestChildrenCount');
+          var totalEl = document.getElementById('guestTotalCount');
+          var gentsBreak = document.getElementById('guestGentsBreakdown');
+          var ladiesBreak = document.getElementById('guestLadiesBreakdown');
+          var childrenBreak = document.getElementById('guestChildrenBreakdown');
+          var totalBreak = document.getElementById('guestTotalBreakdown');
+          if (gentsEl) gentsEl.textContent = (cs.gents || 0);
+          if (ladiesEl) ladiesEl.textContent = (cs.ladies || 0);
+          if (childrenEl) childrenEl.textContent = (cs.children || 0);
+          if (totalEl) totalEl.textContent = (cs.total || 0);
+          if (gentsBreak) gentsBreak.textContent = 'Members: ' + (ms.gents || 0) + ' | Guests: ' + (gs.gents || 0);
+          if (ladiesBreak) ladiesBreak.textContent = 'Members: ' + (ms.ladies || 0) + ' | Guests: ' + (gs.ladies || 0);
+          if (childrenBreak) childrenBreak.textContent = 'Members: ' + (ms.children || 0) + ' | Guests: ' + (gs.children || 0);
+          if (totalBreak) totalBreak.textContent = 'Members: ' + (ms.total || 0) + ' | Guests: ' + (gs.total || 0);
+          try {
+            var waGuestEl = document.getElementById('willAttendGuest');
+            if (waGuestEl) waGuestEl.textContent = (gs.total > 0 ? ('+' + (gs.total || 0) + ' guests') : '');
+          } catch (e) {}
+        } catch (e) {
+          console.warn('Failed to update guest counts', e);
+        }
+      }
+
+      function renderFor(i) {
+        if (!upcoming || !upcoming.length) {
+          if (titleEl) titleEl.textContent = 'No upcoming miqaat';
+          return;
+        }
+        if (i < 0) i = 0;
+        if (i >= upcoming.length) i = upcoming.length - 1;
+        index = i;
+        var mi = upcoming[index];
+        var miqId = mi.id || mi.miqaat_id || '';
+        var miqName = mi.name || ('Miqaat ' + miqId);
+        var dateLabel = mi.hijri_label || mi.date || '';
+        if (titleEl) {
+          function _escapeHtml(s) {
+            return String(s === null || s === undefined ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          }
+          var nameHtml = '<div class="miqaat-name">' + _escapeHtml(miqName) + '</div>';
+          var dateHtml = dateLabel ? ('<div class="miqaat-date text-center" style="font-size: 14px;">' + _escapeHtml(dateLabel) + '</div>') : '';
+          titleEl.innerHTML = nameHtml + dateHtml;
+        }
+        if (rsvpCard) rsvpCard.setAttribute('data-miqaat-id', miqId);
+        if (notCard) notCard.setAttribute('data-miqaat-id', miqId);
+        if (viewDetails) viewDetails.href = '<?= base_url("common/rsvp_list?from=amilsaheb"); ?>' + '?miqaat_id=' + encodeURIComponent(miqId);
+
+        var apiBase = '<?= rtrim(base_url('anjuman'), '/'); ?>';
+        var url = apiBase + '?format=json&miqaat_rsvp=1&miqaat_id=' + encodeURIComponent(miqId);
+        fetch(url, {
+          credentials: 'same-origin'
+        }).then(function(resp) {
+          return resp.json();
+        }).then(function(data) {
+          if (!data || !data.miqaat_rsvp) return;
+          var m = data.miqaat_rsvp || {};
+          try {
+            if (typeof updateGuestCountsFromPayload === 'function') updateGuestCountsFromPayload(m);
+          } catch (e) {}
+          try {
+            var waEl = document.getElementById('willAttendCount');
+            var wnaEl = document.getElementById('willNotAttendCount');
+            var nsEl = document.getElementById('rsvpNotSubmittedCount');
+            if (waEl) waEl.textContent = '0';
+            if (wnaEl) wnaEl.textContent = '0';
+            if (nsEl) nsEl.textContent = '0';
+          } catch (e) {}
+
+          try {
+            var countsUrl = '<?= base_url('common/miqaat_rsvp_user_counts'); ?>?miqaat_id=' + encodeURIComponent(miqId);
+            fetch(countsUrl, {
+              credentials: 'same-origin'
+            }).then(function(r) {
+              return r.json();
+            }).then(function(cdata) {
+              if (cdata && cdata.success) {
+                var wa = cdata.will_attend || 0;
+                var wna = cdata.will_not_attend || 0;
+                var ns = cdata.rsvp_not_submitted || 0;
+                var waEl2 = document.getElementById('willAttendCount');
+                var wnaEl2 = document.getElementById('willNotAttendCount');
+                var nsEl2 = document.getElementById('rsvpNotSubmittedCount');
+                var memberTotal = (m && m.member_summary && m.member_summary.total) ? m.member_summary.total : 0;
+                var guestTotal = (m && m.guest_summary && m.guest_summary.total) ? m.guest_summary.total : 0;
+                var combined = (memberTotal + guestTotal) || wa;
+                if (waEl2) waEl2.textContent = combined;
+                try {
+                  var waGuestEl = document.getElementById('willAttendGuest');
+                  if (waGuestEl) waGuestEl.textContent = (guestTotal > 0 ? ('+' + guestTotal + ' guests') : '');
+                } catch (e) {}
+                if (wnaEl2) wnaEl2.textContent = wna;
+                if (nsEl2) nsEl2.textContent = ns;
+              }
+            }).catch(function(err) {
+              console.warn('Failed to fetch per-user RSVP counts', err);
+            });
+          } catch (e) {
+            console.warn('Counts fetch failed', e);
+          }
+        }).catch(function(err) {
+          console.error('Failed to fetch miqaat rsvp data', err);
+        });
+      }
+
+      document.addEventListener('click', function(e) {
+        var t = e.target.closest && e.target.closest('.miqaat-nav-btn');
+        if (!t) return;
+        e.preventDefault();
+        if (t.classList.contains('prev')) {
+          if (index > 0) {
+            renderFor(index - 1);
+            return;
+          }
+          var first = (upcoming && upcoming.length) ? upcoming[0] : null;
+          var beforeDate = first ? (first.date || '') : '';
+          if (!beforeDate) return;
+          var apiBase = '<?= rtrim(base_url('anjuman'), '/'); ?>';
+          var url = apiBase + '?format=json&miqaat_prev=1&before_date=' + encodeURIComponent(beforeDate);
+          var loadingEl = document.getElementById('miqaatLoading');
+          var msgEl = document.getElementById('miqaatMessage');
+          if (loadingEl) loadingEl.style.display = 'flex';
+          t.style.pointerEvents = 'none';
+          fetch(url, {
+            credentials: 'same-origin'
+          }).then(function(resp) {
+            return resp.json();
+          }).then(function(data) {
+            if (loadingEl) loadingEl.style.display = 'none';
+            t.style.pointerEvents = '';
+            if (!data || !data.success || !data.miqaat) {
+              if (msgEl) {
+                msgEl.textContent = 'No earlier miqaat found';
+                msgEl.style.display = 'block';
+                clearTimeout(msgEl._t);
+                msgEl._t = setTimeout(function() {
+                  msgEl.style.display = 'none';
+                }, 3000);
+              }
+              return;
+            }
+            upcoming.unshift(data.miqaat);
+            renderFor(0);
+          }).catch(function(err) {
+            if (loadingEl) loadingEl.style.display = 'none';
+            t.style.pointerEvents = '';
+            console.error('Failed to fetch previous miqaat', err);
+            if (msgEl) {
+              msgEl.textContent = 'Failed to fetch earlier miqaat';
+              msgEl.style.display = 'block';
+              clearTimeout(msgEl._t);
+              msgEl._t = setTimeout(function() {
+                msgEl.style.display = 'none';
+              }, 3000);
+            }
+          });
+        } else {
+          renderFor(index + 1);
+        }
+      });
+
+      // initial render
+      renderFor(index);
+
+      // Click handler for opening miqaat RSVP modal: fetch miqaat JSON and populate HOF modal
+      document.addEventListener('click', function(e) {
+        var a = e.target.closest && e.target.closest('.open-miqaat-modal');
+        if (!a) return;
+        e.preventDefault();
+        var dtype = a.getAttribute('data-type') || 'rsvp';
+        var mid = a.getAttribute('data-miqaat-id') || (upcoming && upcoming[index] && (upcoming[index].id || upcoming[index].miqaat_id)) || '';
+        if (!mid) return;
+
+        function _escapeHtml(s) {
+          return String(s === null || s === undefined ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // set modal title and show inner header
+        var labelEl = document.getElementById('hofListLabel');
+        var innerHeader = document.getElementById('hofListInnerHeader');
+        var countEl = document.getElementById('hofListCount');
+        if (labelEl) labelEl.textContent = (dtype === 'rsvp' ? "RSVP'd Members" : (dtype === 'no' ? 'Members Will not attend' : (dtype === 'not_submitted' ? 'Members Not Submitted' : (dtype === 'gents' ? 'Gents' : (dtype === 'ladies' ? 'Ladies' : (dtype === 'children' ? 'Children' : 'Members'))))));
+        if (innerHeader) innerHeader.style.display = '';
+        if (countEl) countEl.textContent = 'Count: 0';
+
+        var spinner = document.getElementById('hofListSpinner');
+        var container = document.getElementById('hofListContainer');
+        if (spinner) spinner.style.display = '';
+        if (container) container.style.display = 'none';
+
+        // mark modal mode for Miqaat (hide mobile column)
+        try {
+          var modalEl = document.getElementById('hofListModal');
+          if (modalEl) modalEl.setAttribute('data-mode', 'miqaat');
+        } catch (e) {}
+        // fetch miqaat JSON from Anjuman endpoint
+        var apiBase = '<?= rtrim(base_url('anjuman'), '/'); ?>';
+        var url = apiBase + '?format=json&miqaat_rsvp=1&miqaat_id=' + encodeURIComponent(mid);
+        fetch(url, {
+          credentials: 'same-origin'
+        }).then(function(resp) {
+          return resp.json();
+        }).then(function(data) {
+          if (spinner) spinner.style.display = 'none';
+          if (!data || !data.miqaat_rsvp) {
+            if (container) {
+              // render empty state inside table body
+              var tbody = document.querySelector('#hofListTable tbody');
+              try {
+                var modalElTmp = document.getElementById('hofListModal');
+                var modeTmp = modalElTmp ? (modalElTmp.getAttribute('data-mode') || '') : '';
+                var showMobileTmp = (modeTmp !== 'miqaat');
+                var colspanTmp = showMobileTmp ? 5 : 4;
+                if (tbody) tbody.innerHTML = '<tr><td colspan="' + colspanTmp + '" class="text-center text-muted">No records found.</td></tr>';
+              } catch (e) {
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No records found.</td></tr>';
+              }
+              container.style.display = '';
+            }
+            if (countEl) countEl.textContent = 'Count: 0';
+            return;
+          }
+          var m = data.miqaat_rsvp;
+          try {
+            if (typeof updateGuestCountsFromPayload === 'function') updateGuestCountsFromPayload(m);
+          } catch (e) {}
+
+          // populate miqaat meta (name, date, counts badges)
+          try {
+            var miObj = (upcoming || []).find(function(x) {
+              return String(x.id || x.miqaat_id || '') === String(mid);
+            }) || {};
+            var miName = miObj && (miObj.name || miObj.miqaat_name) ? (miObj.name || miObj.miqaat_name) : '';
+            var miDateLabel = miObj && (miObj.hijri_label || miObj.date) ? (miObj.hijri_label || miObj.date) : '';
+            var metaEl = document.getElementById('miqaatPopupMeta');
+            if (metaEl) {
+              metaEl.innerHTML = '<div style="font-weight:600;">' + _escapeHtml(miName || 'Miqaat') + '</div>' + (miDateLabel ? ('<div class="text-muted">' + _escapeHtml(miDateLabel) + '</div>') : '') + '<div style="margin-top:8px;">' + '<span class="badge badge-success" id="popupWillAttend" style="margin-right:8px;">Will attend: 0</span>' + '<span class="badge badge-danger" id="popupWillNotAttend" style="margin-right:8px;">Will not attend: 0</span>' + '<span class="badge badge-secondary" id="popupNotSubmitted">Not submitted: 0</span>' + '</div>';
+              metaEl.style.display = '';
+            }
+            // fetch per-user classification counts and update popup badges
+            try {
+              var countsUrl = '<?= base_url('common/miqaat_rsvp_user_counts'); ?>?miqaat_id=' + encodeURIComponent(mid);
+              fetch(countsUrl, {
+                credentials: 'same-origin'
+              }).then(function(r) {
+                return r.json();
+              }).then(function(cdata) {
+                if (cdata && cdata.success) {
+                  var pw = document.getElementById('popupWillAttend');
+                  var pwn = document.getElementById('popupWillNotAttend');
+                  var pns = document.getElementById('popupNotSubmitted');
+                  if (pw) pw.textContent = 'Will attend: ' + (cdata.will_attend || 0);
+                  if (pwn) pwn.textContent = 'Will not attend: ' + (cdata.will_not_attend || 0);
+                  if (pns) pns.textContent = 'Not submitted: ' + (cdata.rsvp_not_submitted || 0);
+                }
+              }).catch(function(err) {
+                console.warn('Failed to fetch popup counts', err);
+              });
+            } catch (e) {
+              console.warn('Counts fetch failed', e);
+            }
+          } catch (e) {
+            console.warn('Failed to prepare miqaat meta', e);
+          }
+
+          var rows = [];
+          if (dtype === 'rsvp') {
+            rows = (m.rsvp_member_list && m.rsvp_member_list.length) ? m.rsvp_member_list : (m.rsvp_list || []);
+          } else if (dtype === 'no') {
+            rows = (m.not_rsvp_member_list && m.not_rsvp_member_list.length) ? m.not_rsvp_member_list : (m.not_rsvp_list || []);
+          } else if (dtype === 'not_submitted') {
+            rows = (m.not_submitted_member_list && m.not_submitted_member_list.length) ? m.not_submitted_member_list : [];
+          } else if (dtype === 'gents') {
+            rows = (m.rsvp_male_member_list && m.rsvp_male_member_list.length) ? m.rsvp_male_member_list : (m.rsvp_member_list || []);
+          } else if (dtype === 'ladies') {
+            rows = (m.rsvp_female_member_list && m.rsvp_female_member_list.length) ? m.rsvp_female_member_list : (m.rsvp_member_list || []);
+          } else if (dtype === 'children') {
+            rows = (m.rsvp_children_member_list && m.rsvp_children_member_list.length) ? m.rsvp_children_member_list : [];
+          }
+
+          // render using existing renderHofList helper
+          try {
+            renderHofList(rows);
+          } catch (e) {
+            // fallback: build simple tbody
+            var tbody = document.querySelector('#hofListTable tbody');
+            if (tbody) {
+              tbody.innerHTML = '';
+              try {
+                var modalElTmp2 = document.getElementById('hofListModal');
+                var modeTmp2 = modalElTmp2 ? (modalElTmp2.getAttribute('data-mode') || '') : '';
+                var showMobileTmp2 = (modeTmp2 !== 'miqaat');
+                if (!rows || !rows.length) {
+                  var colspanTmp2 = showMobileTmp2 ? 5 : 4;
+                  tbody.innerHTML = '<tr><td colspan="' + colspanTmp2 + '" class="text-center text-muted">No records found.</td></tr>';
+                } else {
+                  rows.forEach(function(r) {
+                    var tr = document.createElement('tr');
+                    var its = r.ITS_ID || r.its_id || r.ITS || '';
+                    var name = r.Full_Name || r.full_name || r.name || '';
+                    var sector = r.Sector || r.sector || '';
+                    var sub = r.Sub_Sector || r.sub_sector || r.SubSector || '';
+                    var html = '<td>' + _escapeHtml(its) + '</td><td>' + _escapeHtml(name) + '</td><td>' + _escapeHtml(sector) + '</td><td>' + _escapeHtml(sub) + '</td>';
+                          if (showMobileTmp2) html += '<td class="mobile-col"></td>';
+                    tr.innerHTML = html;
+                    tbody.appendChild(tr);
+                  });
+                }
+              } catch (e) {
+                if (!rows || !rows.length) {
+                  tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No records found.</td></tr>';
+                } else {
+                  rows.forEach(function(r) {
+                    var tr = document.createElement('tr');
+                    var its = r.ITS_ID || r.its_id || r.ITS || '';
+                    var name = r.Full_Name || r.full_name || r.name || '';
+                    var sector = r.Sector || r.sector || '';
+                    var sub = r.Sub_Sector || r.sub_sector || r.SubSector || '';
+                    tr.innerHTML = '<td>' + _escapeHtml(its) + '</td><td>' + _escapeHtml(name) + '</td><td>' + _escapeHtml(sector) + '</td><td>' + _escapeHtml(sub) + '</td><td></td>';
+                    tbody.appendChild(tr);
+                  });
+                }
+              }
+            }
+          }
+          if (container) container.style.display = '';
+          if (countEl) countEl.textContent = 'Count: ' + (Array.isArray(rows) ? rows.length : 0);
+          try {
+            if (window.jQuery && typeof window.jQuery('#hofListModal').modal === 'function') {
+              window.jQuery('#hofListModal').modal('show');
+            } else {
+              var modal = document.getElementById('hofListModal');
+              if (modal) modal.style.display = 'block';
+            }
+          } catch (e) {}
+        }).catch(function(err) {
+          if (spinner) spinner.style.display = 'none';
+          console.error('Failed to fetch miqaat rsvp for modal', err);
+          if (container) container.style.display = '';
+          if (countEl) countEl.textContent = 'Count: 0';
+        });
+      });
+
+    })();
+  </script>

@@ -86,22 +86,22 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
     <?php if (!empty($from)): ?>
       <input type="hidden" name="from" value="<?php echo htmlspecialchars($from); ?>">
     <?php endif; ?>
-    <div class="col-auto">
+    <div class="col-12 col-md-auto mt-3">
       <label for="date" class="form-label mb-0">Date</label>
       <input type="date" class="form-control" id="date" name="date" value="<?php echo htmlspecialchars($date); ?>"
         oninput="document.getElementById('start_date').value='';document.getElementById('end_date').value='';">
     </div>
-    <div class="col-auto">
+    <div class="col-12 col-md-auto mt-3">
       <label for="start_date" class="form-label mb-0">Start date</label>
       <input type="date" class="form-control" id="start_date" name="start_date"
         value="<?php echo htmlspecialchars($start_date); ?>" oninput="document.getElementById('date').value='';">
     </div>
-    <div class="col-auto">
+    <div class="col-12 col-md-auto mt-3">
       <label for="end_date" class="form-label mb-0">End date</label>
       <input type="date" class="form-control" id="end_date" name="end_date"
         value="<?php echo htmlspecialchars($end_date); ?>" oninput="document.getElementById('date').value='';">
     </div>
-    <div class="col-auto">
+    <div class="col-12 col-md-auto mt-3">
       <button type="submit" class="btn btn-primary">Apply</button>
     </div>
     <div class="col-auto">
@@ -370,6 +370,17 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
         'total' => $total
       ];
     }
+  } else {
+    // Single date: use controller-provided $breakdown which includes totals
+    $d = $date;
+    foreach ($breakdown as $r) {
+      $sec = isset($r['sector']) ? trim($r['sector']) : '';
+      if ($sec === '') $sec = 'Unassigned';
+      $signed = (int)($r['signed_up'] ?? 0);
+      $total = (int)($r['total_families'] ?? 0);
+      $rows[] = ['date' => $d, 'sector' => $sec, 'signed' => $signed, 'total' => $total];
+    }
+  }
 
   }
 
@@ -421,6 +432,10 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
                 <th class="text-end"><?= htmlspecialchars($sec) ?></th>
               <?php endforeach; endif; ?>
             <th class="text-end">Total</th>
+            <?php if (!empty($sectors)): foreach ($sectors as $sec): ?>
+                <th class="text-end"><?= htmlspecialchars($sec) ?></th>
+            <?php endforeach;
+            endif; ?>
           </tr>
         </thead>
         <tbody>
@@ -469,7 +484,8 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
                 }
                 ?></td>
               </tr>
-            <?php endforeach; endif; ?>
+          <?php endforeach;
+          endif; ?>
         </tbody>
       </table>
     </div>
@@ -497,7 +513,10 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
           b.dataset.orig = b.innerHTML;
           b.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
         } else {
-          if (b.dataset.orig) { b.innerHTML = b.dataset.orig; delete b.dataset.orig; }
+          if (b.dataset.orig) {
+            b.innerHTML = b.dataset.orig;
+            delete b.dataset.orig;
+          }
         }
       });
     }
@@ -506,9 +525,15 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
       var a = e.target.closest && e.target.closest('.hijri-nav-btn');
       if (!a) return;
       // allow normal behavior for disabled
-      if (a.classList.contains('disabled')) { e.preventDefault(); return; }
+      if (a.classList.contains('disabled')) {
+        e.preventDefault();
+        return;
+      }
       var href = a.getAttribute('href') || '#';
-      if (href === '#') { e.preventDefault(); return; }
+      if (href === '#') {
+        e.preventDefault();
+        return;
+      }
       e.preventDefault();
       var url = buildAjaxUrl(href);
       setSpinner(true);
@@ -636,14 +661,24 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
         const tRect = target.getBoundingClientRect();
         // Amount the row is from top of container
         const delta = (tRect.top - cRect.top) - (container.clientHeight / 2 - tRect.height / 2);
-        container.scrollBy({ top: delta, left: 0, behavior: 'smooth' });
+        container.scrollBy({
+          top: delta,
+          left: 0,
+          behavior: 'smooth'
+        });
       } else {
         // Fallback: scroll the page
-        target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        target.scrollIntoView({
+          block: 'center',
+          behavior: 'smooth'
+        });
       }
     } catch (e) {
       // Fallback if any error
-      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      target.scrollIntoView({
+        block: 'center',
+        behavior: 'smooth'
+      });
     }
   })();
 </script>

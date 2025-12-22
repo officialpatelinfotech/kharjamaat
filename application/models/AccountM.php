@@ -1789,9 +1789,8 @@ class AccountM extends CI_Model
 
   public function get_available_time_slots($date)
   {
-    $this->db->select('time');
-    $this->db->select('slot_id');
-    $this->db->select('date');
+    // Select date and time and pick a representative slot_id (MIN) to satisfy ONLY_FULL_GROUP_BY
+    $this->db->select('date, time, MIN(slot_id) AS slot_id', false);
     $this->db->from('slots');
     $this->db->where('date', $date);
     $this->db->where('booked', 0);
@@ -1845,13 +1844,15 @@ class AccountM extends CI_Model
     return $query->row(); // Fetch a single row as an object
   }
 
-  public function book_slot($slot_id, $its_id, $full_name)
+  public function book_slot($slot_id, $its_id, $full_name, $purpose = null, $other_details = null)
   {
     // Store the appointment in the appointments table
     $appointment_data = array(
       'slot_id' => $slot_id,
       'its' => $its_id,
       'name' => $full_name,
+      'purpose' => $purpose,
+      'other_details' => $other_details,
     );
 
     $this->db->insert('appointments', $appointment_data);
@@ -1868,7 +1869,8 @@ class AccountM extends CI_Model
   public function get_user_appointments($user_name)
   {
     // Assuming you have a 'slots' table and an 'appointments' table
-    $this->db->select('appointments.id,appointments.slot_id, appointments.status');
+    // include purpose and other_details so views can display them
+    $this->db->select('appointments.id, appointments.slot_id, appointments.status, appointments.purpose, appointments.other_details');
     $this->db->from('appointments');
     $this->db->where('appointments.its', $user_name);
     $query = $this->db->get();
