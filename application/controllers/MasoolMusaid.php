@@ -15,9 +15,93 @@ class MasoolMusaid extends CI_Controller
     $this->load->model('HijriCalendar');
   }
 
+  // public function index()
+  // {
+  //   // ✅ Restrict access strictly to role 16 (Masool/Musaid)
+  //   if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+  //     redirect('/accounts');
+  //   }
+
+  //   $username = $_SESSION['user']['username'];
+  //   $data['user_name'] = $username;
+
+  //   // Derive sector/sub-sector scope from username (e.g., BurhaniA -> sector=Burhani, sub=A)
+  //   $user_sector = '';
+  //   $user_sub = '';
+  //   if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $m)) {
+  //     $user_sector = ucfirst(strtolower($m[1] ?? ''));
+  //     $user_sub = strtoupper($m[2] ?? '');
+  //   }
+
+  //   // Build current week Monday–Sunday
+  //   $start_date = date('Y-m-d', strtotime('monday this week'));
+  //   $end_date = date('Y-m-d', strtotime('sunday this week'));
+  //   $days = 7;
+
+  //   // Iterate each day, aggregate signed-up families per sector/sub-sector within scope
+  //   $bySub = [];
+  //   $cursor = strtotime($start_date);
+  //   $endTs = strtotime($end_date);
+  //   while ($cursor !== false && $cursor <= $endTs) {
+  //     $d = date('Y-m-d', $cursor);
+  //     $bd = $this->CommonM->get_thaali_signup_breakdown($d);
+  //     $rows = isset($bd['breakdown']) ? $bd['breakdown'] : [];
+  //     foreach ($rows as $r) {
+  //       $sec = trim($r['sector'] ?? '');
+  //       $sub = trim($r['sub_sector'] ?? '');
+  //       if ($sec === '' || strcasecmp($sec, $user_sector) !== 0) continue; // only within user's sector
+  //       if ($user_sub !== '' && strcasecmp($sub, $user_sub) !== 0) continue; // if user bound to sub-sector, filter it
+  //       $key = $sec . '||' . $sub;
+  //       if (!isset($bySub[$key])) {
+  //         $bySub[$key] = ['sector' => $sec, 'sub_sector' => $sub, 'total' => 0];
+  //       }
+  //       $bySub[$key]['total'] += (int)($r['signed_up'] ?? 0);
+  //     }
+  //     $cursor = strtotime('+1 day', $cursor);
+  //   }
+
+  //   // Ensure zero entries for sub-sectors (when user is sector-wide)
+  //   if ($user_sector !== '' && $user_sub === '') {
+  //     $subs = $this->MasoolMusaidM->get_all_sub_sectors($user_sector);
+  //     foreach ($subs as $row) {
+  //       $sub = trim($row['sub_sector'] ?? '');
+  //       $key = $user_sector . '||' . $sub;
+  //       if (!isset($bySub[$key])) {
+  //         $bySub[$key] = ['sector' => $user_sector, 'sub_sector' => $sub, 'total' => 0];
+  //       }
+  //     }
+  //   }
+
+  //   // Compose display items with avg/day
+  //   $items = [];
+  //   foreach ($bySub as $entry) {
+  //     $items[] = [
+  //       'sector' => $entry['sector'],
+  //       'sub_sector' => $entry['sub_sector'],
+  //       'total' => (int)$entry['total'],
+  //       'avg' => $days > 0 ? round(((int)$entry['total']) / $days, 2) : 0,
+  //     ];
+  //   }
+  //   // Sort by total desc for readability
+  //   usort($items, function($a, $b){ return ($b['total'] ?? 0) <=> ($a['total'] ?? 0); });
+
+  //   $data['weekly_signup_avg'] = [
+  //     'start' => $start_date,
+  //     'end' => $end_date,
+  //     'days' => $days,
+  //     'items' => $items,
+  //     'scope' => [ 'sector' => $user_sector, 'sub_sector' => $user_sub ],
+  //   ];
+
+  //   $this->load->view('MasoolMusaid/Header', $data);
+  //   $this->load->view('MasoolMusaid/Home', $data);
+  // }
+
+
+
   public function index()
   {
-    // ✅ Restrict access strictly to role 16 (Masool/Musaid)
+    // 🔐 Auth
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
       redirect('/accounts');
     }
@@ -25,73 +109,75 @@ class MasoolMusaid extends CI_Controller
     $username = $_SESSION['user']['username'];
     $data['user_name'] = $username;
 
-    // Derive sector/sub-sector scope from username (e.g., BurhaniA -> sector=Burhani, sub=A)
-    $user_sector = '';
-    $user_sub = '';
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $m)) {
-      $user_sector = ucfirst(strtolower($m[1] ?? ''));
-      $user_sub = strtoupper($m[2] ?? '');
+    $this->load->model('CommonM');
+    $this->load->model('HijriCalendar');
+
+    /* ===============================
+       ✅ EARLY JSON HANDLER (CRITICAL)
+    ================================ */
+    if ($this->input->get('format') === 'json') {
+
+      $hijri_year = (int) $this->input->get('hijri_year');
+      $hijri_month = (int) $this->input->get('hijri_month');
+
+      if ($hijri_year && $hijri_month) {
+
+        // 🔥 SAME METHOD AS ANJUMAN
+        $mstats = $this->CommonM
+          ->get_monthly_thaali_stats($hijri_month, $hijri_year, $username);
+
+        return $this->output
+          ->set_content_type('application/json')
+          ->set_output(json_encode([
+            'success' => true,
+            'monthly_stats' => $mstats
+          ]));
+      }
+
+      return $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode([
+          'success' => false,
+          'error' => 'Missing hijri month/year'
+        ]));
     }
 
-    // Build current week Monday–Sunday
+    /* ===============================
+       NORMAL PAGE LOAD (HTML)
+    ================================ */
+
+    // 📅 Hijri selection
+    $hijri_year = $this->input->get('hijri_year');
+    $hijri_month = $this->input->get('hijri_month');
+
+    if ($hijri_year && $hijri_month) {
+      $data['selected_hijri_parts'] = [
+        'hijri_year' => $hijri_year,
+        'hijri_month' => $hijri_month
+      ];
+    } else {
+      $data['selected_hijri_parts'] =
+        $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+    }
+
+    // 📊 Weekly
     $start_date = date('Y-m-d', strtotime('monday this week'));
     $end_date = date('Y-m-d', strtotime('sunday this week'));
-    $days = 7;
 
-    // Iterate each day, aggregate signed-up families per sector/sub-sector within scope
-    $bySub = [];
-    $cursor = strtotime($start_date);
-    $endTs = strtotime($end_date);
-    while ($cursor !== false && $cursor <= $endTs) {
-      $d = date('Y-m-d', $cursor);
-      $bd = $this->CommonM->get_thaali_signup_breakdown($d);
-      $rows = isset($bd['breakdown']) ? $bd['breakdown'] : [];
-      foreach ($rows as $r) {
-        $sec = trim($r['sector'] ?? '');
-        $sub = trim($r['sub_sector'] ?? '');
-        if ($sec === '' || strcasecmp($sec, $user_sector) !== 0) continue; // only within user's sector
-        if ($user_sub !== '' && strcasecmp($sub, $user_sub) !== 0) continue; // if user bound to sub-sector, filter it
-        $key = $sec . '||' . $sub;
-        if (!isset($bySub[$key])) {
-          $bySub[$key] = ['sector' => $sec, 'sub_sector' => $sub, 'total' => 0];
-        }
-        $bySub[$key]['total'] += (int)($r['signed_up'] ?? 0);
-      }
-      $cursor = strtotime('+1 day', $cursor);
-    }
+    $data['weekly_signup_avg'] =
+      $this->CommonM->get_weekly_thaali_by_username(
+        $username,
+        $start_date,
+        $end_date
+      );
 
-    // Ensure zero entries for sub-sectors (when user is sector-wide)
-    if ($user_sector !== '' && $user_sub === '') {
-      $subs = $this->MasoolMusaidM->get_all_sub_sectors($user_sector);
-      foreach ($subs as $row) {
-        $sub = trim($row['sub_sector'] ?? '');
-        $key = $user_sector . '||' . $sub;
-        if (!isset($bySub[$key])) {
-          $bySub[$key] = ['sector' => $user_sector, 'sub_sector' => $sub, 'total' => 0];
-        }
-      }
-    }
-
-    // Compose display items with avg/day
-    $items = [];
-    foreach ($bySub as $entry) {
-      $items[] = [
-        'sector' => $entry['sector'],
-        'sub_sector' => $entry['sub_sector'],
-        'total' => (int)$entry['total'],
-        'avg' => $days > 0 ? round(((int)$entry['total']) / $days, 2) : 0,
-      ];
-    }
-    // Sort by total desc for readability
-    usort($items, function($a, $b){ return ($b['total'] ?? 0) <=> ($a['total'] ?? 0); });
-
-    $data['weekly_signup_avg'] = [
-      'start' => $start_date,
-      'end' => $end_date,
-      'days' => $days,
-      'items' => $items,
-      'scope' => [ 'sector' => $user_sector, 'sub_sector' => $user_sub ],
-    ];
+    // 📆 Monthly (for cards only)
+    $data['month_stats'] =
+      $this->CommonM->get_monthly_thaali_by_username(
+        $username,
+        $data['selected_hijri_parts']['hijri_month'],
+        $data['selected_hijri_parts']['hijri_year']
+      );
 
     $this->load->view('MasoolMusaid/Header', $data);
     $this->load->view('MasoolMusaid/Home', $data);

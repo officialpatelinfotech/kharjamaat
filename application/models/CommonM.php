@@ -97,18 +97,19 @@ class CommonM extends CI_Model
 
         $paid_map = [];
         foreach ($paid_by_user as $r) {
-          $paid_map[$r['user_id']] = (float)($r['total_paid'] ?? 0);
+          $paid_map[$r['user_id']] = (float) ($r['total_paid'] ?? 0);
         }
 
         // Build map user => years[]
         $user_years = [];
         foreach ($per_user_years as $r) {
           $uid = $r['user_id'];
-          if (!isset($user_years[$uid])) $user_years[$uid] = [];
+          if (!isset($user_years[$uid]))
+            $user_years[$uid] = [];
           $user_years[$uid][] = [
             'year' => $r['year'],
-            'yr_start' => (int)$r['yr_start'],
-            'total' => (float)($r['total'] ?? 0),
+            'yr_start' => (int) $r['yr_start'],
+            'total' => (float) ($r['total'] ?? 0),
           ];
         }
 
@@ -148,7 +149,7 @@ class CommonM extends CI_Model
             $r['outstanding'] = $alloc_map[$uid]['due'];
           } else {
             $r['total_paid'] = 0.0;
-            $r['outstanding'] = (float)($r['total_takhmeen'] ?? 0) - 0.0;
+            $r['outstanding'] = (float) ($r['total_takhmeen'] ?? 0) - 0.0;
           }
         }
         unset($r);
@@ -169,7 +170,7 @@ class CommonM extends CI_Model
     $years = [];
     foreach ($rows as $r) {
       if (isset($r['start_year']) && $r['start_year'] !== null) {
-        $years[] = (int)$r['start_year'];
+        $years[] = (int) $r['start_year'];
       }
     }
     return $years;
@@ -208,7 +209,7 @@ class CommonM extends CI_Model
     $row = $this->db->select('SUM(total_amount) AS total')
       ->from('fmb_takhmeen')
       ->get()->row_array();
-    $summary['total_fmb_takhmeen_amount'] = (float)($row['total'] ?? 0);
+    $summary['total_fmb_takhmeen_amount'] = (float) ($row['total'] ?? 0);
 
     // Total Outstanding FMB amount (aggregate per user, clamp >= 0)
     $due_sql = "SELECT SUM(GREATEST(user_due, 0)) AS total_due FROM (
@@ -223,7 +224,7 @@ class CommonM extends CI_Model
       GROUP BY ft.user_id
     ) AS user_dues";
     $row = $this->db->query($due_sql)->row_array();
-    $summary['total_outstanding_fmb_amount'] = (float)($row['total_due'] ?? 0);
+    $summary['total_outstanding_fmb_amount'] = (float) ($row['total_due'] ?? 0);
 
     // Optional: per-year filtered totals (if year provided)
     if (!empty($year)) {
@@ -232,7 +233,7 @@ class CommonM extends CI_Model
         ->from('fmb_takhmeen')
         ->where('year', $takhmeen_year)
         ->get()->row_array();
-      $summary['year_total_fmb_takhmeen_amount'] = (float)($yr_row['total'] ?? 0);
+      $summary['year_total_fmb_takhmeen_amount'] = (float) ($yr_row['total'] ?? 0);
 
       // Sector-wise breakdown (include all sectors; zero when no takhmeen in selected year)
       $sector_list_sql = "SELECT DISTINCT u.Sector AS sector
@@ -274,18 +275,19 @@ class CommonM extends CI_Model
 
       $paid_map = [];
       foreach ($paid_by_user as $r) {
-        $paid_map[$r['user_id']] = (float)($r['total_paid'] ?? 0);
+        $paid_map[$r['user_id']] = (float) ($r['total_paid'] ?? 0);
       }
 
       // Build map user => [years...]
       $user_years = [];
       foreach ($per_user_years as $r) {
         $uid = $r['user_id'];
-        if (!isset($user_years[$uid])) $user_years[$uid] = [];
+        if (!isset($user_years[$uid]))
+          $user_years[$uid] = [];
         $user_years[$uid][] = [
           'year' => $r['year'],
-          'yr_start' => (int)$r['yr_start'],
-          'total' => (float)($r['total'] ?? 0),
+          'yr_start' => (int) $r['yr_start'],
+          'total' => (float) ($r['total'] ?? 0),
         ];
       }
 
@@ -342,18 +344,18 @@ class CommonM extends CI_Model
 
         $unknown_sector_due = 0.0;
         foreach ($user_allocations as $uid => $alloc) {
-          $sector = isset($user_sector_map[$uid]) ? trim((string)$user_sector_map[$uid]) : '';
+          $sector = isset($user_sector_map[$uid]) ? trim((string) $user_sector_map[$uid]) : '';
           if ($sector === '' || strcasecmp($sector, 'unknown') === 0) {
             // Accumulate unknown sector due (we will exclude these from sector table)
-            $unknown_sector_due += (float)$alloc['due'];
+            $unknown_sector_due += (float) $alloc['due'];
             continue;
           }
           if (!isset($sector_map[$sector])) {
             $sector_map[$sector] = ['sector' => $sector, 'sector_total' => 0.0, 'sector_paid' => 0.0, 'sector_due' => 0.0, 'member_count' => 0];
           }
-          $sector_map[$sector]['sector_total'] += (float)$alloc['total'];
-          $sector_map[$sector]['sector_paid'] += (float)$alloc['paid'];
-          $sector_map[$sector]['sector_due'] += (float)$alloc['due'];
+          $sector_map[$sector]['sector_total'] += (float) $alloc['total'];
+          $sector_map[$sector]['sector_paid'] += (float) $alloc['paid'];
+          $sector_map[$sector]['sector_due'] += (float) $alloc['due'];
           $sector_map[$sector]['member_count'] += 1;
         }
 
@@ -413,12 +415,13 @@ class CommonM extends CI_Model
     $rsvp_rows = $this->db->distinct()->select('hof_id')->from('general_rsvp')->where('miqaat_id', $miqaat_pk)->get()->result_array();
     $rsvp_ids = [];
     foreach ($rsvp_rows as $r) {
-      if (!empty($r['hof_id'])) $rsvp_ids[] = $r['hof_id'];
+      if (!empty($r['hof_id']))
+        $rsvp_ids[] = $r['hof_id'];
     }
 
     // Total HOFs (active)
     $total_hof_row = $this->db->select('COUNT(*) AS total')->from('user')->where("HOF_FM_TYPE = 'HOF'")->where('Inactive_Status IS NULL', null, false)->where("Sector IS NOT NULL", null, false)->where("Sub_Sector IS NOT NULL", null, false)->get()->row_array();
-    $total_hof = isset($total_hof_row['total']) ? (int)$total_hof_row['total'] : 0;
+    $total_hof = isset($total_hof_row['total']) ? (int) $total_hof_row['total'] : 0;
 
     $rsvp_count = count($rsvp_ids);
     $not_rsvp_count = max(0, $total_hof - $rsvp_count);
@@ -690,18 +693,19 @@ class CommonM extends CI_Model
 
       $paid_map = [];
       foreach ($paid_by_user as $r) {
-        $paid_map[$r['user_id']] = (float)($r['total_paid'] ?? 0);
+        $paid_map[$r['user_id']] = (float) ($r['total_paid'] ?? 0);
       }
 
       // Build map user => years[]
       $user_years = [];
       foreach ($per_user_years as $r) {
         $uid = $r['user_id'];
-        if (!isset($user_years[$uid])) $user_years[$uid] = [];
+        if (!isset($user_years[$uid]))
+          $user_years[$uid] = [];
         $user_years[$uid][] = [
           'year' => $r['year'],
-          'yr_start' => (int)$r['yr_start'],
-          'total' => (float)($r['total'] ?? 0),
+          'yr_start' => (int) $r['yr_start'],
+          'total' => (float) ($r['total'] ?? 0),
         ];
       }
 
@@ -742,7 +746,7 @@ class CommonM extends CI_Model
           $r['outstanding'] = $alloc_map[$uid]['due'];
         } else {
           $r['total_paid'] = 0.0;
-          $r['outstanding'] = (float)($r['total_takhmeen'] ?? 0) - 0.0;
+          $r['outstanding'] = (float) ($r['total_takhmeen'] ?? 0) - 0.0;
         }
       }
       unset($r);
@@ -797,10 +801,12 @@ class CommonM extends CI_Model
       ->where('u.HOF_FM_TYPE', 'HOF')
       ->get()->result_array();
 
-    if (empty($users)) return $details;
+    if (empty($users))
+      return $details;
 
     $user_ids = array_column($users, 'user_id');
-    if (empty($user_ids)) return $details;
+    if (empty($user_ids))
+      return $details;
 
     // Per-user per-year totals for these users only
     $in_ids = implode(',', array_map(function ($id) {
@@ -824,18 +830,19 @@ class CommonM extends CI_Model
 
     $paid_map = [];
     foreach ($paid_by_user as $r) {
-      $paid_map[$r['user_id']] = (float)($r['total_paid'] ?? 0);
+      $paid_map[$r['user_id']] = (float) ($r['total_paid'] ?? 0);
     }
 
     // Organize per user
     $per_by_user = [];
     foreach ($per_user_years as $r) {
       $uid = $r['user_id'];
-      if (!isset($per_by_user[$uid])) $per_by_user[$uid] = [];
+      if (!isset($per_by_user[$uid]))
+        $per_by_user[$uid] = [];
       $per_by_user[$uid][] = [
         'year' => $r['year'],
-        'yr_start' => (int)$r['yr_start'],
-        'total' => (float)($r['total'] ?? 0),
+        'yr_start' => (int) $r['yr_start'],
+        'total' => (float) ($r['total'] ?? 0),
       ];
     }
 
@@ -851,7 +858,8 @@ class CommonM extends CI_Model
     $agg_due = 0.0;
     foreach ($user_ids as $uid) {
       $rows_for = isset($per_by_user[$uid]) ? $per_by_user[$uid] : [];
-      if (empty($rows_for)) continue; // No takhmeen any year
+      if (empty($rows_for))
+        continue; // No takhmeen any year
       usort($rows_for, function ($a, $b) {
         return $a['yr_start'] <=> $b['yr_start'];
       });
@@ -872,7 +880,7 @@ class CommonM extends CI_Model
       if ($yr_total > 0) {
         $rows[] = [
           'user_id' => $uid,
-          'name' => $name_map[$uid] ?? (string)$uid,
+          'name' => $name_map[$uid] ?? (string) $uid,
           'total' => $yr_total,
           'paid' => $yr_paid,
           'due' => $yr_due,
@@ -885,7 +893,8 @@ class CommonM extends CI_Model
 
     // Sort by due desc then name
     usort($rows, function ($a, $b) {
-      if ($b['due'] == $a['due']) return strcasecmp($a['name'], $b['name']);
+      if ($b['due'] == $a['due'])
+        return strcasecmp($a['name'], $b['name']);
       return $b['due'] <=> $a['due'];
     });
 
@@ -953,7 +962,8 @@ class CommonM extends CI_Model
 
   public function get_fmb_gc_payments_summary_by_contribution_ids($contributionIds = [])
   {
-    if (empty($contributionIds)) return [];
+    if (empty($contributionIds))
+      return [];
     $this->db->select('fmbgc_id, SUM(amount) AS total_paid, COUNT(*) AS payment_count')
       ->from('fmb_general_contribution_payments')
       ->where_in('fmbgc_id', $contributionIds)
@@ -962,8 +972,8 @@ class CommonM extends CI_Model
     $map = [];
     foreach ($rows as $r) {
       $map[$r['fmbgc_id']] = [
-        'total_paid' => (float)($r['total_paid'] ?? 0),
-        'payment_count' => (int)($r['payment_count'] ?? 0),
+        'total_paid' => (float) ($r['total_paid'] ?? 0),
+        'payment_count' => (int) ($r['payment_count'] ?? 0),
       ];
     }
     return $map;
@@ -971,7 +981,8 @@ class CommonM extends CI_Model
 
   public function get_fmb_gc_payments_by_contribution_ids($contributionIds = [])
   {
-    if (empty($contributionIds)) return [];
+    if (empty($contributionIds))
+      return [];
     $this->db->select('id, created_at, user_id, fmbgc_id, amount, payment_method, payment_date, remarks')
       ->from('fmb_general_contribution_payments')
       ->where_in('fmbgc_id', $contributionIds)
@@ -980,7 +991,8 @@ class CommonM extends CI_Model
     $map = [];
     foreach ($rows as $r) {
       $fid = $r['fmbgc_id'];
-      if (!isset($map[$fid])) $map[$fid] = [];
+      if (!isset($map[$fid]))
+        $map[$fid] = [];
       $map[$fid][] = $r;
     }
     return $map;
@@ -1017,9 +1029,9 @@ class CommonM extends CI_Model
     // Normalize keys/types
     return array_map(function ($r) {
       return [
-        'contri_type' => (string)($r['contri_type'] ?? ''),
-        'count' => (int)($r['cnt'] ?? 0),
-        'total_amount' => (float)($r['total_amount'] ?? 0),
+        'contri_type' => (string) ($r['contri_type'] ?? ''),
+        'count' => (int) ($r['cnt'] ?? 0),
+        'total_amount' => (float) ($r['total_amount'] ?? 0),
       ];
     }, $rows);
   }
@@ -1670,7 +1682,8 @@ class CommonM extends CI_Model
       $this->db->from('hijri_calendar');
       $this->db->where('greg_date', $today);
       $row = $this->db->get()->row();
-      if (!$row) return [];
+      if (!$row)
+        return [];
       $hijri_year = explode("-", $row->hijri_date)[2];
       $hijri_month_id = -1;
     }
@@ -1689,7 +1702,8 @@ class CommonM extends CI_Model
 
     // Step 3: Get all miqaat assignments for these dates
     $greg_dates = array_column($hijri_dates, 'greg_date');
-    if (empty($greg_dates)) return [];
+    if (empty($greg_dates))
+      return [];
     $this->db->select('
         m.id,
         m.name as name,
@@ -1728,7 +1742,8 @@ class CommonM extends CI_Model
     }
     foreach ($rows as $row) {
       $date = $row['date'];
-      if (!isset($miqaats_by_date[$date])) continue;
+      if (!isset($miqaats_by_date[$date]))
+        continue;
       $mid = $row['id'];
       if (!isset($miqaats_by_date[$date]['miqaats'][$mid])) {
         $miqaats_by_date[$date]['miqaats'][$mid] = [
@@ -1989,7 +2004,7 @@ class CommonM extends CI_Model
   {
     $this->db->where('id', $miqaat_id);
     if (isset($data['status'])) {
-      $data['status'] = (int)$data['status'];
+      $data['status'] = (int) $data['status'];
     }
     return $this->db->update('miqaat', $data);
   }
@@ -2090,7 +2105,7 @@ class CommonM extends CI_Model
   {
     $this->db->select('u.ITS_ID, u.full_name, u.mobile, u.sector, u.sub_sector, a.comment');
     $this->db->from('user u');
-    $this->db->join('miqaat_attendance a', 'u.ITS_ID = a.user_id AND a.miqaat_id = ' . (int)$miqaat_id, 'left');
+    $this->db->join('miqaat_attendance a', 'u.ITS_ID = a.user_id AND a.miqaat_id = ' . (int) $miqaat_id, 'left');
     $this->db->order_by('u.sector, u.Sub_Sector, u.full_name', 'ASC');
     return $this->db->get()->result_array();
   }
@@ -2106,8 +2121,7 @@ class CommonM extends CI_Model
   {
     $this->db->select('u.ITS_ID, u.full_name, u.mobile, u.sector, u.sub_sector, IF(rsvp.id IS NOT NULL, 1, 0) as rsvp_status');
     $this->db->from('user u');
-    $this->db->join('general_rsvp rsvp', 'u.ITS_ID = rsvp.user_id AND rsvp.miqaat_id = ' . (int)$miqaat_id, 'left');
-    $this->db->where('u.sector is not null and u.sub_sector is not null and inactive_status is null', null, false); // Exclude umoor fmb users
+    $this->db->join('general_rsvp rsvp', 'u.ITS_ID = rsvp.user_id AND rsvp.miqaat_id = ' . (int) $miqaat_id, 'left');
     $this->db->order_by('u.sector, u.Sub_Sector, u.full_name', 'ASC');
     return $this->db->get()->result_array();
   }
@@ -2398,8 +2412,8 @@ class CommonM extends CI_Model
   public function substitutedeliveryperson($data)
   {
     $start_date = $data["start_date"];
-    $end_date   = $data["end_date"];
-    $user_id    = $data["user_id"];
+    $end_date = $data["end_date"];
+    $user_id = $data["user_id"];
 
     $this->db->where("user_id", $user_id);
     $this->db->where("start_date <=", $end_date);
@@ -2483,12 +2497,12 @@ class CommonM extends CI_Model
         'error' => 'Record not found',
       ];
     }
-    if ((int)$existing['dp_id'] === (int)$dp_id) {
+    if ((int) $existing['dp_id'] === (int) $dp_id) {
       return [
         'success' => true,
         'unchanged' => true,
-        'old_dp_id' => (int)$existing['dp_id'],
-        'new_dp_id' => (int)$existing['dp_id']
+        'old_dp_id' => (int) $existing['dp_id'],
+        'new_dp_id' => (int) $existing['dp_id']
       ];
     }
     $this->db->where('id', $id);
@@ -2499,8 +2513,8 @@ class CommonM extends CI_Model
     $resp = [
       'success' => $ok && $affected > 0,
       'affected_rows' => $affected,
-      'old_dp_id' => (int)$existing['dp_id'],
-      'new_dp_id' => (int)$dp_id,
+      'old_dp_id' => (int) $existing['dp_id'],
+      'new_dp_id' => (int) $dp_id,
     ];
     if (defined('ENVIRONMENT') && ENVIRONMENT !== 'production') {
       $resp['last_query'] = $this->db->last_query();
@@ -2518,7 +2532,8 @@ class CommonM extends CI_Model
    */
   public function delete_delivery_override($id)
   {
-    if (empty($id)) return false;
+    if (empty($id))
+      return false;
     $this->db->where('id', $id);
     $this->db->delete('delivery_overrides');
     return $this->db->affected_rows() > 0;
@@ -2666,7 +2681,8 @@ class CommonM extends CI_Model
    */
   public function getsignupcount_aggregated($greg_date)
   {
-    if (empty($greg_date)) return ['hof_signup_count' => 0, 'delivery_person_count' => 0];
+    if (empty($greg_date))
+      return ['hof_signup_count' => 0, 'delivery_person_count' => 0];
     $date_esc = $this->db->escape($greg_date);
     $families_with_signup = "SELECT u.HOF_ID AS hof_id FROM fmb_weekly_signup fs JOIN user u ON u.ITS_ID = fs.user_id WHERE fs.signup_date = $date_esc AND fs.want_thali = 1 GROUP BY u.HOF_ID";
     $effective_dp_per_hof = "SELECT u.ITS_ID AS hof_id, COALESCE((SELECT do.dp_id FROM delivery_overrides do WHERE do.user_id = u.ITS_ID AND do.start_date <= $date_esc AND do.end_date >= $date_esc ORDER BY do.id DESC LIMIT 1),(SELECT dpm.dp_id FROM delivery_person_mapping dpm WHERE dpm.user_id = u.ITS_ID AND dpm.start_date <= $date_esc AND (dpm.end_date >= $date_esc OR dpm.end_date IS NULL) ORDER BY dpm.id DESC LIMIT 1)) AS effective_dp_id FROM user u WHERE u.HOF_FM_TYPE = 'HOF'";
@@ -2686,7 +2702,8 @@ class CommonM extends CI_Model
    */
   public function getsignupforaday_aggregated($data)
   {
-    if (empty($data['date'])) return [];
+    if (empty($data['date']))
+      return [];
     $date = $data['date'];
     // Member-level snapshot for date
     $member_signups_sql = "SELECT u.ITS_ID, u.HOF_ID, MAX(CASE WHEN fs.signup_date = '$date' THEN fs.want_thali END) AS want_thali, MAX(CASE WHEN fs.signup_date = '$date' THEN fs.thali_size END) AS thali_size FROM user u LEFT JOIN fmb_weekly_signup fs ON fs.user_id = u.ITS_ID AND fs.signup_date = '$date' WHERE u.Inactive_Status IS NULL AND u.Sector IS NOT NULL GROUP BY u.ITS_ID, u.HOF_ID";
@@ -2710,8 +2727,10 @@ class CommonM extends CI_Model
     }
     if (!empty($data['reg_dp_id']) || !empty($data['sub_dp_id'])) {
       $this->db->group_start();
-      if (!empty($data['reg_dp_id'])) $this->db->where('dpm.dp_id', $data['reg_dp_id']);
-      if (!empty($data['sub_dp_id'])) $this->db->or_where('do.dp_id', $data['sub_dp_id']);
+      if (!empty($data['reg_dp_id']))
+        $this->db->where('dpm.dp_id', $data['reg_dp_id']);
+      if (!empty($data['sub_dp_id']))
+        $this->db->or_where('do.dp_id', $data['sub_dp_id']);
       $this->db->group_end();
     }
     $this->db->order_by('fam.Sector, fam.Sub_Sector, fam.HOF_Name');
@@ -2729,11 +2748,13 @@ class CommonM extends CI_Model
    */
   public function get_monthly_thaali_stats($hijri_month, $hijri_year)
   {
-    if (empty($hijri_month) || empty($hijri_year)) return ['families_signed_up' => 0, 'signed_hof_list' => [], 'no_thaali_list' => []];
+    if (empty($hijri_month) || empty($hijri_year))
+      return ['families_signed_up' => 0, 'signed_hof_list' => [], 'no_thaali_list' => []];
     // Load HijriCalendar model (models can load other models)
     $this->load->model('HijriCalendar');
     $days = $this->HijriCalendar->get_hijri_days_for_month_year($hijri_month, $hijri_year);
-    if (empty($days)) return ['families_signed_up' => 0, 'signed_hof_list' => [], 'no_thaali_list' => []];
+    if (empty($days))
+      return ['families_signed_up' => 0, 'signed_hof_list' => [], 'no_thaali_list' => []];
 
     $dates = array_map(function ($r) {
       return $r['greg_date'];
@@ -2749,7 +2770,8 @@ class CommonM extends CI_Model
     $rows = $this->db->query($sql)->result_array();
     $signedHofs = [];
     foreach ($rows as $r) {
-      if (!empty($r['hof_id'])) $signedHofs[$r['hof_id']] = true;
+      if (!empty($r['hof_id']))
+        $signedHofs[$r['hof_id']] = true;
     }
 
     // Get all active HOF users with required fields for modal
@@ -2763,7 +2785,8 @@ class CommonM extends CI_Model
     $yes = [];
     foreach ($allHofs as $h) {
       $its = isset($h['ITS_ID']) ? $h['ITS_ID'] : null;
-      if (!$its) continue;
+      if (!$its)
+        continue;
       if (!isset($signedHofs[$its])) {
         $no[] = $h;
       } else {
@@ -2787,7 +2810,8 @@ class CommonM extends CI_Model
    */
   public function get_thaali_signup_breakdown($date)
   {
-    if (empty($date)) $date = date('Y-m-d');
+    if (empty($date))
+      $date = date('Y-m-d');
     $escDate = $this->db->escape($date);
 
     // Member-level snapshot for date (want_thali per member on date)
@@ -2840,13 +2864,13 @@ class CommonM extends CI_Model
     $breakdown = [];
     $totals = ['families' => 0, 'signed_up' => 0, 'not_signed' => 0, 'percent' => 0.0];
     foreach ($rows as $r) {
-      $families = (int)($r['total_families'] ?? 0);
-      $signed = (int)($r['signed_up'] ?? 0);
+      $families = (int) ($r['total_families'] ?? 0);
+      $signed = (int) ($r['signed_up'] ?? 0);
       $not_signed = max($families - $signed, 0);
       $pct = $families > 0 ? round(($signed / $families) * 100, 2) : 0.0;
       $breakdown[] = [
-        'sector' => (string)($r['sector'] ?? ''),
-        'sub_sector' => (string)($r['sub_sector'] ?? ''),
+        'sector' => (string) ($r['sector'] ?? ''),
+        'sub_sector' => (string) ($r['sub_sector'] ?? ''),
         'total_families' => $families,
         'signed_up' => $signed,
         'not_signed' => $not_signed,
@@ -2874,8 +2898,10 @@ class CommonM extends CI_Model
     if (empty($start_date) && empty($end_date)) {
       $start_date = $end_date = date('Y-m-d');
     }
-    if (empty($start_date)) $start_date = $end_date;
-    if (empty($end_date)) $end_date = $start_date;
+    if (empty($start_date))
+      $start_date = $end_date;
+    if (empty($end_date))
+      $end_date = $start_date;
     // Swap if reversed
     if (strtotime($start_date) > strtotime($end_date)) {
       $tmp = $start_date;
@@ -2935,13 +2961,13 @@ class CommonM extends CI_Model
     $breakdown = [];
     $totals = ['families' => 0, 'signed_up' => 0, 'not_signed' => 0, 'percent' => 0.0];
     foreach ($rows as $r) {
-      $families = (int)($r['total_families'] ?? 0);
-      $signed = (int)($r['signed_up'] ?? 0);
+      $families = (int) ($r['total_families'] ?? 0);
+      $signed = (int) ($r['signed_up'] ?? 0);
       $not_signed = max($families - $signed, 0);
       $pct = $families > 0 ? round(($signed / $families) * 100, 2) : 0.0;
       $breakdown[] = [
-        'sector' => (string)($r['sector'] ?? ''),
-        'sub_sector' => (string)($r['sub_sector'] ?? ''),
+        'sector' => (string) ($r['sector'] ?? ''),
+        'sub_sector' => (string) ($r['sub_sector'] ?? ''),
         'total_families' => $families,
         'signed_up' => $signed,
         'not_signed' => $not_signed,
@@ -2961,6 +2987,210 @@ class CommonM extends CI_Model
       'totals' => $totals,
     ];
   }
+
+
+  public function get_thaali_signup_breakdown_by_sector($date, $sector)
+  {
+    if (empty($date))
+      $date = date('Y-m-d');
+    if (empty($sector))
+      return ['date' => $date, 'breakdown' => [], 'totals' => []];
+
+    $escDate = $this->db->escape($date);
+    $escSector = $this->db->escape($sector);
+
+    // ✅ SAME AS REFERENCE (ONLY sector filter added)
+    $member_signups_sql = "
+      SELECT u.ITS_ID, u.HOF_ID,
+             MAX(CASE WHEN fs.signup_date = {$escDate} THEN fs.want_thali END) AS want_thali
+      FROM user u
+      LEFT JOIN fmb_weekly_signup fs
+        ON fs.user_id = u.ITS_ID AND fs.signup_date = {$escDate}
+      WHERE u.Inactive_Status IS NULL
+        AND u.Sector = {$escSector}
+      GROUP BY u.ITS_ID, u.HOF_ID
+    ";
+
+    // ✅ SAME AGGREGATION PATH
+    $hof_agg_sql = "
+      SELECT hof_u.ITS_ID AS HOF_ID,
+             hof_u.Sector,
+             hof_u.Sub_Sector,
+             MAX(ms.want_thali) AS family_want_thali
+      FROM ({$member_signups_sql}) ms
+      JOIN user hof_u ON hof_u.ITS_ID = ms.HOF_ID
+      WHERE hof_u.HOF_FM_TYPE = 'HOF'
+        AND hof_u.Inactive_Status IS NULL
+        AND hof_u.Sector = {$escSector}
+      GROUP BY hof_u.ITS_ID, hof_u.Sector, hof_u.Sub_Sector
+    ";
+
+    // Total families per sub-sector (DENOMINATOR)
+    $families_sql = "
+      SELECT Sub_Sector AS sub_sector, COUNT(*) AS total_families
+      FROM user
+      WHERE HOF_FM_TYPE='HOF'
+        AND Inactive_Status IS NULL
+        AND Sector = {$escSector}
+      GROUP BY Sub_Sector
+    ";
+
+    // Signed-up families per sub-sector (NUMERATOR)
+    $signed_sql = "
+      SELECT Sub_Sector AS sub_sector,
+             SUM(CASE WHEN family_want_thali = 1 THEN 1 ELSE 0 END) AS signed_up
+      FROM ({$hof_agg_sql}) x
+      GROUP BY Sub_Sector
+    ";
+
+    $sql = "
+      SELECT f.sub_sector, f.total_families,
+             COALESCE(s.signed_up,0) AS signed_up
+      FROM ({$families_sql}) f
+      LEFT JOIN ({$signed_sql}) s
+        ON s.sub_sector = f.sub_sector
+      ORDER BY f.sub_sector ASC
+    ";
+
+    $rows = $this->db->query($sql)->result_array();
+
+    $breakdown = [];
+    $totals = ['families' => 0, 'signed_up' => 0, 'not_signed' => 0, 'percent' => 0];
+
+    foreach ($rows as $r) {
+      $fam = (int) $r['total_families'];
+      $sig = (int) $r['signed_up'];
+      $not = max($fam - $sig, 0);
+
+      $breakdown[] = [
+        'sector' => $sector,
+        'sub_sector' => $r['sub_sector'],
+        'total_families' => $fam,
+        'signed_up' => $sig,
+        'not_signed' => $not,
+        'percent' => $fam ? round(($sig / $fam) * 100, 2) : 0
+      ];
+
+      $totals['families'] += $fam;
+      $totals['signed_up'] += $sig;
+      $totals['not_signed'] += $not;
+    }
+
+    if ($totals['families'] > 0) {
+      $totals['percent'] = round(($totals['signed_up'] / $totals['families']) * 100, 2);
+    }
+
+    return [
+      'date' => $date,
+      'breakdown' => $breakdown,
+      'totals' => $totals
+    ];
+  }
+
+
+
+
+
+  public function get_thaali_signup_breakdown_range_by_sector($start_date, $end_date, $sector)
+  {
+    if (empty($sector))
+      return ['breakdown' => [], 'totals' => []];
+
+    if (empty($start_date))
+      $start_date = $end_date;
+    if (empty($end_date))
+      $end_date = $start_date;
+
+    $escStart = $this->db->escape($start_date);
+    $escEnd = $this->db->escape($end_date);
+    $escSector = $this->db->escape($sector);
+
+    $member_sql = "
+      SELECT u.ITS_ID, u.HOF_ID,
+             MAX(CASE WHEN fs.signup_date BETWEEN {$escStart} AND {$escEnd}
+                      THEN fs.want_thali END) AS want_thali
+      FROM user u
+      LEFT JOIN fmb_weekly_signup fs
+        ON fs.user_id = u.ITS_ID
+       AND fs.signup_date BETWEEN {$escStart} AND {$escEnd}
+      WHERE u.Inactive_Status IS NULL
+        AND u.Sector = {$escSector}
+      GROUP BY u.ITS_ID, u.HOF_ID
+    ";
+
+    $hof_sql = "
+      SELECT hof_u.Sub_Sector,
+             MAX(ms.want_thali) AS family_want_thali
+      FROM ({$member_sql}) ms
+      JOIN user hof_u ON hof_u.ITS_ID = ms.HOF_ID
+      WHERE hof_u.HOF_FM_TYPE = 'HOF'
+        AND hof_u.Inactive_Status IS NULL
+        AND hof_u.Sector = {$escSector}
+      GROUP BY hof_u.Sub_Sector
+    ";
+
+    $families_sql = "
+      SELECT u.Sub_Sector AS sub_sector, COUNT(*) AS total_families
+      FROM user u
+      WHERE u.HOF_FM_TYPE = 'HOF'
+        AND u.Inactive_Status IS NULL
+        AND u.Sector = {$escSector}
+      GROUP BY u.Sub_Sector
+    ";
+
+    $signed_sql = "
+      SELECT Sub_Sector AS sub_sector,
+             SUM(CASE WHEN family_want_thali = 1 THEN 1 ELSE 0 END) AS signed_up
+      FROM ({$hof_sql}) x
+      GROUP BY Sub_Sector
+    ";
+
+    $sql = "
+      SELECT f.sub_sector, f.total_families,
+             COALESCE(s.signed_up,0) AS signed_up
+      FROM ({$families_sql}) f
+      LEFT JOIN ({$signed_sql}) s
+        ON s.sub_sector = f.sub_sector
+      ORDER BY f.sub_sector ASC
+    ";
+
+    $rows = $this->db->query($sql)->result_array();
+
+    $breakdown = [];
+    $totals = ['families' => 0, 'signed_up' => 0, 'not_signed' => 0, 'percent' => 0];
+
+    foreach ($rows as $r) {
+      $families = (int) $r['total_families'];
+      $signed = (int) $r['signed_up'];
+      $not = max($families - $signed, 0);
+      $pct = $families > 0 ? round(($signed / $families) * 100, 2) : 0;
+
+      $breakdown[] = [
+        'sector' => $sector,
+        'sub_sector' => $r['sub_sector'],
+        'total_families' => $families,
+        'signed_up' => $signed,
+        'not_signed' => $not,
+        'percent' => $pct
+      ];
+
+      $totals['families'] += $families;
+      $totals['signed_up'] += $signed;
+      $totals['not_signed'] += $not;
+    }
+
+    if ($totals['families'] > 0) {
+      $totals['percent'] = round(($totals['signed_up'] / $totals['families']) * 100, 2);
+    }
+
+    return [
+      'start_date' => $start_date,
+      'end_date' => $end_date,
+      'breakdown' => $breakdown,
+      'totals' => $totals
+    ];
+  }
+
 
   /**
    * Get comprehensive Takhmeen summary
@@ -3106,18 +3336,19 @@ class CommonM extends CI_Model
 
     $paid_map = [];
     foreach ($paid_by_user as $r) {
-      $paid_map[$r['user_id']] = (float)($r['total_paid'] ?? 0);
+      $paid_map[$r['user_id']] = (float) ($r['total_paid'] ?? 0);
     }
 
     // Build map user => years[]
     $user_years = [];
     foreach ($per_user_years as $r) {
       $uid = $r['user_id'];
-      if (!isset($user_years[$uid])) $user_years[$uid] = [];
+      if (!isset($user_years[$uid]))
+        $user_years[$uid] = [];
       $user_years[$uid][] = [
         'year' => $r['year'],
-        'yr_start' => (int)$r['yr_start'],
-        'total' => (float)($r['total'] ?? 0),
+        'yr_start' => (int) $r['yr_start'],
+        'total' => (float) ($r['total'] ?? 0),
       ];
     }
 
@@ -3135,7 +3366,8 @@ class CommonM extends CI_Model
           $user_allocations[$uid] = ['total' => $row['total'], 'paid' => $alloc, 'due' => $due];
         }
         $remain -= $alloc;
-        if ($remain <= 0) $remain = 0;
+        if ($remain <= 0)
+          $remain = 0;
       }
       if (!isset($user_allocations[$uid])) {
         $user_allocations[$uid] = ['total' => 0.0, 'paid' => 0.0, 'due' => 0.0];
@@ -3146,8 +3378,8 @@ class CommonM extends CI_Model
     $total_due_from_alloc = 0.0;
     $total_paid_from_alloc = 0.0;
     foreach ($user_allocations as $a) {
-      $total_due_from_alloc += (float)($a['due'] ?? 0.0);
-      $total_paid_from_alloc += (float)($a['paid'] ?? 0.0);
+      $total_due_from_alloc += (float) ($a['due'] ?? 0.0);
+      $total_paid_from_alloc += (float) ($a['paid'] ?? 0.0);
     }
     // Year-scoped amounts (for the selected hijri year)
     $summary['year_paid_sabeel_amount'] = $total_paid_from_alloc;
@@ -3167,7 +3399,7 @@ class CommonM extends CI_Model
       }
 
       foreach ($user_allocations as $uid => $alloc) {
-        $sector = isset($user_sector_map[$uid]) ? trim((string)$user_sector_map[$uid]) : '';
+        $sector = isset($user_sector_map[$uid]) ? trim((string) $user_sector_map[$uid]) : '';
         if ($sector === '' || strcasecmp($sector, 'unknown') === 0) {
           continue;
         }
@@ -3183,12 +3415,12 @@ class CommonM extends CI_Model
             'member_count' => 0
           ];
         }
-        $sector_map[$sector]['sector_total'] += (float)$alloc['total'];
-        $sector_map[$sector]['sector_paid'] += (float)$alloc['paid'];
-        $sector_map[$sector]['sector_due'] += (float)$alloc['due'];
-        $sector_map[$sector]['total_takhmeen'] += (float)$alloc['total'];
-        $sector_map[$sector]['total_paid'] += (float)$alloc['paid'];
-        $sector_map[$sector]['outstanding'] += (float)$alloc['due'];
+        $sector_map[$sector]['sector_total'] += (float) $alloc['total'];
+        $sector_map[$sector]['sector_paid'] += (float) $alloc['paid'];
+        $sector_map[$sector]['sector_due'] += (float) $alloc['due'];
+        $sector_map[$sector]['total_takhmeen'] += (float) $alloc['total'];
+        $sector_map[$sector]['total_paid'] += (float) $alloc['paid'];
+        $sector_map[$sector]['outstanding'] += (float) $alloc['due'];
         $sector_map[$sector]['member_count'] += 1;
       }
     }
@@ -3214,23 +3446,25 @@ class CommonM extends CI_Model
 
     foreach ($user_grade_rows as $ug) {
       $uid = $ug['user_id'];
-      $estg = trim((string)($ug['est_grade'] ?? '')) ?: 'Unknown';
-      $resg = trim((string)($ug['res_grade'] ?? '')) ?: 'Unknown';
+      $estg = trim((string) ($ug['est_grade'] ?? '')) ?: 'Unknown';
+      $resg = trim((string) ($ug['res_grade'] ?? '')) ?: 'Unknown';
       $alloc = $user_allocations[$uid] ?? ['total' => 0.0, 'paid' => 0.0, 'due' => 0.0];
 
       if ($estg !== '' && strcasecmp($estg, 'unknown') !== 0) {
-        if (!isset($est_map[$estg])) $est_map[$estg] = ['grade' => $estg, 'est_total' => 0.0, 'est_paid' => 0.0, 'est_due' => 0.0, 'member_count' => 0];
-        $est_map[$estg]['est_total'] += (float)$alloc['total'];
-        $est_map[$estg]['est_paid'] += (float)$alloc['paid'];
-        $est_map[$estg]['est_due'] += (float)$alloc['due'];
+        if (!isset($est_map[$estg]))
+          $est_map[$estg] = ['grade' => $estg, 'est_total' => 0.0, 'est_paid' => 0.0, 'est_due' => 0.0, 'member_count' => 0];
+        $est_map[$estg]['est_total'] += (float) $alloc['total'];
+        $est_map[$estg]['est_paid'] += (float) $alloc['paid'];
+        $est_map[$estg]['est_due'] += (float) $alloc['due'];
         $est_map[$estg]['member_count'] += 1;
       }
 
       if ($resg !== '' && strcasecmp($resg, 'unknown') !== 0) {
-        if (!isset($res_map[$resg])) $res_map[$resg] = ['grade' => $resg, 'res_total' => 0.0, 'res_paid' => 0.0, 'res_due' => 0.0, 'member_count' => 0];
-        $res_map[$resg]['res_total'] += (float)$alloc['total'];
-        $res_map[$resg]['res_paid'] += (float)$alloc['paid'];
-        $res_map[$resg]['res_due'] += (float)$alloc['due'];
+        if (!isset($res_map[$resg]))
+          $res_map[$resg] = ['grade' => $resg, 'res_total' => 0.0, 'res_paid' => 0.0, 'res_due' => 0.0, 'member_count' => 0];
+        $res_map[$resg]['res_total'] += (float) $alloc['total'];
+        $res_map[$resg]['res_paid'] += (float) $alloc['paid'];
+        $res_map[$resg]['res_due'] += (float) $alloc['due'];
         $res_map[$resg]['member_count'] += 1;
       }
     }
@@ -3263,7 +3497,7 @@ class CommonM extends CI_Model
     ) AS user_dues";
     $row = $this->db->query($due_sql)->row_array();
     // Cumulative outstanding (all years)
-    $summary['total_outstanding_sabeel_amount'] = (float)($row['total_due'] ?? 0);
+    $summary['total_outstanding_sabeel_amount'] = (float) ($row['total_due'] ?? 0);
 
     /** -------------------------------
      * 5️⃣ Total Sabeel Takhmeen amount (sum of all grade amounts)
@@ -3275,7 +3509,7 @@ class CommonM extends CI_Model
       ->join('sabeel_takhmeen_grade res', 'res.id = st.residential_grade', 'left')
       ->where('st.year', $takhmeen_year_current);
     $row = $this->db->get()->row_array();
-    $summary['total_sabeel_takhmeen_amount'] = (float)($row['total_sabeel'] ?? 0);
+    $summary['total_sabeel_takhmeen_amount'] = (float) ($row['total_sabeel'] ?? 0);
 
     if ($include_allocations) {
       // Expose debug information to help validate allocations/payments
@@ -3287,5 +3521,146 @@ class CommonM extends CI_Model
     }
 
     return $summary;
+  }
+
+
+
+
+
+
+
+  private function parse_username_scope($username)
+  {
+    $sector = '';
+    $sub = '';
+
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $m)) {
+      $sector = ucfirst(strtolower($m[1]));
+      $sub = strtoupper($m[2] ?? '');
+    }
+
+    return [
+      'sector' => $sector,
+      'sub_sector' => $sub
+    ];
+  }
+
+  public function get_weekly_thaali_by_username($username, $start_date, $end_date)
+  {
+    log_message('debug', '[CommonM] Weekly by username: ' . $username);
+
+    $scope = $this->parse_username_scope($username);
+    $sector = $scope['sector'];
+    $sub = $scope['sub_sector'];
+
+    if ($sector === '') {
+      log_message('error', '[CommonM] Invalid username scope');
+      return [
+        'items' => [],
+        'scope' => $scope,
+        'days' => 0
+      ];
+    }
+
+    $days = 7;
+    $bySub = [];
+
+    $cursor = strtotime($start_date);
+    $endTs = strtotime($end_date);
+
+    while ($cursor <= $endTs) {
+      $date = date('Y-m-d', $cursor);
+      $bd = $this->get_thaali_signup_breakdown($date);
+
+      foreach ($bd['breakdown'] ?? [] as $r) {
+
+        if (strcasecmp($r['sector'], $sector) !== 0)
+          continue;
+        if ($sub !== '' && strcasecmp($r['sub_sector'], $sub) !== 0)
+          continue;
+
+        $key = $r['sector'] . '||' . $r['sub_sector'];
+
+        if (!isset($bySub[$key])) {
+          $bySub[$key] = [
+            'sector' => $r['sector'],
+            'sub_sector' => $r['sub_sector'],
+            'total' => 0
+          ];
+        }
+
+        $bySub[$key]['total'] += (int) $r['signed_up'];
+      }
+
+      $cursor = strtotime('+1 day', $cursor);
+    }
+
+    $items = [];
+    foreach ($bySub as $v) {
+      $items[] = [
+        'sector' => $v['sector'],
+        'sub_sector' => $v['sub_sector'],
+        'total' => $v['total'],
+        'avg' => round($v['total'] / $days, 2)
+      ];
+    }
+
+    usort($items, function ($a, $b) {
+      return ($b['total'] ?? 0) <=> ($a['total'] ?? 0);
+    });
+
+    return [
+      'start' => $start_date,
+      'end' => $end_date,
+      'days' => $days,
+      'items' => $items,
+      'scope' => $scope
+    ];
+  }
+
+  public function get_monthly_thaali_by_username($username, $hijri_month, $hijri_year)
+  {
+    log_message('debug', '[CommonM] Monthly by username: ' . $username);
+
+    $scope = $this->parse_username_scope($username);
+    $sector = $scope['sector'];
+    $sub = $scope['sub_sector'];
+
+    if ($sector === '')
+      return [];
+
+    $this->load->model('HijriCalendar');
+    $days = $this->HijriCalendar
+      ->get_hijri_days_for_month_year($hijri_month, $hijri_year);
+
+    if (empty($days))
+      return [];
+
+    $start = $days[0]['greg_date'];
+    $end = $days[count($days) - 1]['greg_date'];
+
+    $range = $this->get_thaali_signup_breakdown_range($start, $end);
+
+    $signed = 0;
+    $no = 0;
+
+    foreach ($range['breakdown'] ?? [] as $r) {
+
+      if (strcasecmp($r['sector'], $sector) !== 0)
+        continue;
+      if ($sub !== '' && strcasecmp($r['sub_sector'], $sub) !== 0)
+        continue;
+
+      $signed += (int) $r['signed_up'];
+      $no += (int) $r['not_signed'];
+    }
+
+    return [
+      'families_signed_up' => $signed,
+      'no_thaali_count' => $no,
+      'start' => $start,
+      'end' => $end,
+      'scope' => $scope
+    ];
   }
 }

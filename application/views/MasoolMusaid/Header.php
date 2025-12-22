@@ -89,3 +89,7 @@
     </div>
   </nav>
 </div>
+
+<script>
+  window.USER_NAME = <?= json_encode($user_name) ?>;
+</script>
