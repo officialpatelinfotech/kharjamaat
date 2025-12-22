@@ -61,16 +61,20 @@
   <div class="card mb-2">
     <div class="card-body py-2">
       <div class="row g-2 align-items-center">
-        <div class="col-md-4 mb-2 mb-md-0">
+        <div class="col-md-3 mb-2 mb-md-0">
           <label class="small mb-1">Filter by Name</label>
-          <input type="text" class="form-control form-control-sm" id="filterName" placeholder="Search HOF name..." />
+          <input type="text" class="form-control form-control-sm" id="filterName" placeholder="Search HOF name..." value="<?= isset($filter_name) ? htmlspecialchars($filter_name) : ''; ?>" />
+        </div>
+        <div class="col-md-2 mb-2 mb-md-0">
+          <label class="small mb-1">ITS ID</label>
+          <input type="text" class="form-control form-control-sm" id="filterITS" name="its_id" placeholder="ITS or HOF ID" value="<?= isset($filter_its) ? htmlspecialchars($filter_its) : ''; ?>" />
         </div>
         <div class="col-md-2 mb-2 mb-md-0">
           <label class="small mb-1">Sector</label>
           <select class="form-control form-control-sm" id="filterSector">
             <option value="">All</option>
             <?php foreach ($sectorList as $sec => $label): ?>
-              <option value="<?= htmlspecialchars($sec); ?>"><?= htmlspecialchars($label); ?></option>
+              <option value="<?= htmlspecialchars($sec); ?>" <?= isset($filter_sector) && $filter_sector === $sec ? 'selected' : ''; ?>><?= htmlspecialchars($label); ?></option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -79,21 +83,22 @@
           <select class="form-control form-control-sm" id="filterSubSector">
             <option value="">All</option>
             <?php foreach ($subSectorList as $ssec => $label): ?>
-              <option value="<?= htmlspecialchars($ssec); ?>"><?= htmlspecialchars($label); ?></option>
+              <option value="<?= htmlspecialchars($ssec); ?>" <?= isset($filter_sub_sector) && $filter_sub_sector === $ssec ? 'selected' : ''; ?>><?= htmlspecialchars($label); ?></option>
             <?php endforeach; ?>
           </select>
         </div>
-        <div class="col-md-3 mb-2 mb-md-0">
+        <div class="col-md-2 mb-2 mb-md-0">
           <label class="small mb-1">Filter by Fund</label>
           <select class="form-control form-control-sm" id="filterFund">
             <option value="">All funds</option>
             <?php foreach ($fundList as $fid => $ftitle): ?>
-              <option value="<?= (int)$fid; ?>"><?= htmlspecialchars($ftitle); ?></option>
+              <option value="<?= (int)$fid; ?>" <?= isset($filter_fund) && (int)$filter_fund === (int)$fid ? 'selected' : ''; ?>><?= htmlspecialchars($ftitle); ?></option>
             <?php endforeach; ?>
           </select>
         </div>
-        <div class="col-md-1 text-md-right">
+        <div class="col-md-1 mb-2 mb-md-0">
           <label class="d-none d-md-block mb-1">&nbsp;</label>
+          <button type="button" id="applyFiltersBtn" class="btn btn-primary btn-sm w-100 mb-1">Apply</button>
           <button type="button" id="clearFilters" class="btn btn-light btn-sm w-100">Clear</button>
         </div>
       </div>
@@ -119,12 +124,13 @@
         // Group assignments by HOF for unique member view
         $hofMap = [];
         if (!empty($assignments)) {
-          foreach ($assignments as $row) {
+            foreach ($assignments as $row) {
             $hid = (int)($row['hof_id'] ?? 0);
             if ($hid <= 0) continue;
             if (!isset($hofMap[$hid])) {
               $hofMap[$hid] = [
                 'hof_id' => $hid,
+                'its_id' => isset($row['its_id']) ? $row['its_id'] : null,
                 'hof_name' => $row['hof_name'] ?? '',
                 'sector' => $row['sector'] ?? '',
                 'sub_sector' => $row['sub_sector'] ?? '',
@@ -154,9 +160,10 @@
             $dueT = (int)round($h['due_total']);
             $fundIdsCsv = implode(',', array_keys($h['fund_ids']));
         ?>
-            <tr data-hof-id="<?= (int)$h['hof_id']; ?>" data-fund-ids="<?= htmlspecialchars($fundIdsCsv); ?>">
+            <?php $rowIts = isset($h['its_id']) && $h['its_id'] !== null ? $h['its_id'] : ''; ?>
+            <tr data-hof-id="<?= (int)$h['hof_id']; ?>" data-fund-ids="<?= htmlspecialchars($fundIdsCsv); ?>" data-its="<?= htmlspecialchars($rowIts); ?>">
               <td class="td-idx"><?= $i++; ?></td>
-              <td class="td-its" data-val="<?= (int)$h['hof_id']; ?>"><?= (int)$h['hof_id']; ?></td>
+              <td class="td-its" data-val="<?= htmlspecialchars($rowIts !== '' ? $rowIts : (int)$h['hof_id']); ?>"><?= $rowIts !== '' ? htmlspecialchars($rowIts) : (int)$h['hof_id']; ?></td>
               <td class="td-hofname"><?= htmlspecialchars($h['hof_name']); ?></td>
               <td class="td-sector"><?= htmlspecialchars($h['sector'] ?? ''); ?></td>
               <td class="td-subsector"><?= htmlspecialchars($h['sub_sector'] ?? ''); ?></td>
@@ -349,6 +356,7 @@
 
     function applyFilters() {
       var nameQ = ($('#filterName').val() || '').trim().toLowerCase();
+      var itsQ = ($('#filterITS').val() || '').trim().toLowerCase();
       var fundId = ($('#filterFund').val() || '').trim();
       var sectorQ = ($('#filterSector').val() || '').trim().toLowerCase();
       var subSectorQ = ($('#filterSubSector').val() || '').trim().toLowerCase();
@@ -360,11 +368,13 @@
         var textSector = ($tr.find('.td-sector').text() || '').trim().toLowerCase();
         var textSubSector = ($tr.find('.td-subsector').text() || '').trim().toLowerCase();
         var rowFundIds = ($tr.data('fund-ids') || '').toString();
+        var rowIts = (($tr.data('its') || '') + '').toString().trim().toLowerCase();
         var matchName = !nameQ || textName.indexOf(nameQ) !== -1;
+        var matchIts = !itsQ || rowIts.indexOf(itsQ) !== -1 || (String($tr.find('.td-its').text() || '').toLowerCase().indexOf(itsQ) !== -1);
         var matchFund = !fundId || (',' + rowFundIds + ',').indexOf(',' + fundId + ',') !== -1;
         var matchSector = !sectorQ || textSector === sectorQ;
         var matchSubSector = !subSectorQ || textSubSector === subSectorQ;
-        var show = matchName && matchFund && matchSector && matchSubSector;
+        var show = matchName && matchIts && matchFund && matchSector && matchSubSector;
         $tr.toggle(show);
         if (show) anyVisible = true;
       });
@@ -375,13 +385,39 @@
     $('#filterFund').on('change', applyFilters);
     $('#filterSector').on('change', applyFilters);
     $('#filterSubSector').on('change', applyFilters);
+
+    // Apply: if only name is set, use client-side filter for snappy UX; otherwise redirect with GET params
+    $('#applyFiltersBtn').on('click', function() {
+      var nameQ = ($('#filterName').val() || '').trim();
+      var itsQ = ($('#filterITS').val() || '').trim();
+      var fundId = ($('#filterFund').val() || '').trim();
+      var sectorQ = ($('#filterSector').val() || '').trim();
+      var subSectorQ = ($('#filterSubSector').val() || '').trim();
+      var onlyName = nameQ && !itsQ && !fundId && !sectorQ && !subSectorQ;
+      if (onlyName) { applyFilters(); return; }
+      var url = '<?= base_url('anjuman/corpusfunds_receive'); ?>';
+      var params = [];
+      if (itsQ) params.push('its_id=' + encodeURIComponent(itsQ));
+      if (fundId) params.push('fund_id=' + encodeURIComponent(fundId));
+      if (sectorQ) params.push('sector=' + encodeURIComponent(sectorQ));
+      if (subSectorQ) params.push('sub_sector=' + encodeURIComponent(subSectorQ));
+      if (params.length) url += '?' + params.join('&');
+      window.location = url;
+    });
+
     $('#clearFilters').on('click', function() {
       $('#filterName').val('');
+      $('#filterITS').val('');
       $('#filterFund').val('');
       $('#filterSector').val('');
       $('#filterSubSector').val('');
       applyFilters();
+      refreshPage();
     });
+
+    function refreshPage() {
+      window.location = '<?= base_url('anjuman/corpusfunds_receive'); ?>';
+    }
 
     // View funds for a HOF: fetch list via AJAX and render
     $(document).on('click', '.js-view-funds', function() {

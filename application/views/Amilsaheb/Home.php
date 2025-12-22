@@ -813,8 +813,8 @@
 
         <div class="menu-section">Finance</div>
         <ul class="menu-list">
-          <li><a class="menu-item" href="<?php echo base_url('common/sabeeltakhmeen?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-heart"></i></span><span class="menu-label">Sabeel Takhmeen</span></a></li>
-          <li><a class="menu-item" href="<?php echo base_url('common/fmbtakhmeen?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">FMB Thaali Takhmeen</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('common/sabeeltakhmeen?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-hand-holding-heart"></i></span><span class="menu-label">Sabeel Takhmeen</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('common/fmbtakhmeen?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-hand-holding-heart"></i></span><span class="menu-label">FMB Thaali Takhmeen</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/fmb_general_contributions?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-inr"></i></span><span class="menu-label">FMB General Contributions</span></a></li>
           <li><a class="menu-item" href="<?= base_url('amilsaheb/corpusfunds_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
         </ul>
@@ -830,7 +830,7 @@
         <div class="menu-section">Appointments</div>
         <ul class="menu-list">
           <li><a class="menu-item" href="<?php echo base_url('amilsaheb/manage_appointment') ?>"><span class="menu-icon"><i class="fa fa-list"></i></span><span class="menu-label">Appointments</span></a></li>
-          <li><a class="menu-item" href="<?php echo base_url('amilsaheb/manage_slots') ?>"><span class="menu-icon"><i class="fa fa-clock-o"></i></span><span class="menu-label">Manage Time Slots</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('amilsaheb/slots_calendar') ?>"><span class="menu-icon"><i class="fa fa-clock-o"></i></span><span class="menu-label">Manage Time Slots</span></a></li>
         </ul>
 
         <div class="menu-section">Activity</div>

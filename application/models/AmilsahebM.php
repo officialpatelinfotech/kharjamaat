@@ -132,6 +132,85 @@ class AmilsahebM extends CI_Model
     // Return the result as an array
     return $query->result_array();
   }
+
+  /**
+   * Get per-day slot summary for a given month/year.
+   * Returns associative array keyed by YYYY-MM-DD => ['available'=>int,'booked'=>int]
+   */
+  public function get_slot_summary_for_month($year, $month)
+  {
+    $start = sprintf('%04d-%02d-01', (int)$year, (int)$month);
+    $end = date('Y-m-t', strtotime($start));
+
+    $sql = "SELECT s.date AS dt, COUNT(s.slot_id) AS total_slots, 
+      COALESCE(SUM(CASE WHEN a.id IS NOT NULL THEN 1 ELSE 0 END),0) AS booked
+      FROM slots s
+      LEFT JOIN appointments a ON a.slot_id = s.slot_id
+      WHERE s.active = 1 AND s.date >= ? AND s.date <= ?
+      GROUP BY s.date";
+
+    $query = $this->db->query($sql, [$start, $end]);
+    $rows = $query->result_array();
+    $out = [];
+    foreach ($rows as $r) {
+      $total = (int)$r['total_slots'];
+      $booked = (int)$r['booked'];
+      $available = max(0, $total - $booked);
+      $out[$r['dt']] = [
+        'total' => $total,
+        'booked' => $booked,
+        'available' => $available
+      ];
+    }
+    // Merge FMB calendar days (if any) for the month range
+    $fmbRows = $this->db->query("SELECT date, day_type FROM fmb_calendar_days WHERE date >= ? AND date <= ?", [$start, $end])->result_array();
+    foreach ($fmbRows as $fr) {
+      $d = $fr['date'];
+      if (!isset($out[$d])) {
+        $out[$d] = ['total' => 0, 'booked' => 0, 'available' => 0];
+      }
+      $out[$d]['fmb_day'] = isset($fr['day_type']) ? $fr['day_type'] : '';
+    }
+    return $out;
+  }
+
+  /**
+   * Get per-day slot summary for an arbitrary date range (inclusive).
+   * Returns associative array keyed by YYYY-MM-DD => ['total'=>int,'booked'=>int,'available'=>int]
+   */
+  public function get_slot_summary_for_range($start_date, $end_date)
+  {
+    $sql = "SELECT s.date AS dt, COUNT(s.slot_id) AS total_slots, 
+      COALESCE(SUM(CASE WHEN a.id IS NOT NULL THEN 1 ELSE 0 END),0) AS booked
+      FROM slots s
+      LEFT JOIN appointments a ON a.slot_id = s.slot_id
+      WHERE s.active = 1 AND s.date >= ? AND s.date <= ?
+      GROUP BY s.date";
+
+    $query = $this->db->query($sql, [$start_date, $end_date]);
+    $rows = $query->result_array();
+    $out = [];
+    foreach ($rows as $r) {
+      $total = (int)$r['total_slots'];
+      $booked = (int)$r['booked'];
+      $available = max(0, $total - $booked);
+      $out[$r['dt']] = [
+        'total' => $total,
+        'booked' => $booked,
+        'available' => $available
+      ];
+    }
+    // Merge FMB calendar days (if any) for the requested range
+    $fmbRows = $this->db->query("SELECT date, day_type FROM fmb_calendar_days WHERE date >= ? AND date <= ?", [$start_date, $end_date])->result_array();
+    foreach ($fmbRows as $fr) {
+      $d = $fr['date'];
+      if (!isset($out[$d])) {
+        $out[$d] = ['total' => 0, 'booked' => 0, 'available' => 0];
+      }
+      $out[$d]['fmb_day'] = isset($fr['day_type']) ? $fr['day_type'] : '';
+    }
+    return $out;
+  }
   public function saveSlots($selectedDate, $selectedTimeSlots)
   {
     // Delete existing records for the selected date
@@ -168,7 +247,10 @@ class AmilsahebM extends CI_Model
       'date' => $selectedDate,
       'time' => $selectedTime
     );
-    $this->db->insert('slots', $data);
+    // Insert three physical slot rows per time to represent capacity of 3
+    for ($i = 0; $i < 3; $i++) {
+      $this->db->insert('slots', $data);
+    }
   }
 
   public function getExistingTimeSlots($selectedDate)

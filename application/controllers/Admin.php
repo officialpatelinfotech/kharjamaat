@@ -481,24 +481,29 @@ class Admin extends CI_Controller
     $this->email->message('Mubarak!<br/><br/><br/> Your Raza request has received a recommendation from Anjuman e Saifee Jamaat.<br/>Kindly reach out to Janab Amil Saheb via phone or WhatsApp at +91-8452840052 to obtain his final Raza and Dua.<br/><br/>Wassalaam. ');
     $this->email->send();
 
-    $msg = $user['Full_Name'] . ' (' . $user['ITS_ID'] . ') Raza has been recommended by Jamaat coordinator';
+    // Compose clearer text and HTML versions to avoid inline quoted-printable breaks
+    $msg_text = 'Raza request for ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ') has been recommended by the Jamaat Coordinator.';
+    $msg_html = 'Raza request for <strong>' . htmlspecialchars($user['Full_Name']) . '</strong> (' . htmlspecialchars($user['ITS_ID']) . ') has been recommended by the Jamaat Coordinator.';
+
+    // Ensure HTML mail type to prevent quoted-printable soft-breaks ("=") in some mail clients
+    $this->email->set_mailtype('html');
 
     $this->email->from('admin@kharjamaat.in', 'Admin');
     $this->email->to('kharjamaat@gmail.com');
     $this->email->subject('Raza Recommended');
-    $this->email->message($msg);
+    $this->email->message($msg_html);
     $this->email->send();
 
     $this->email->from('admin@kharjamaat.in', 'Admin');
     $this->email->to('3042@carmelnmh.in');
     $this->email->subject('Raza Recommended');
-    $this->email->message($msg);
+    $this->email->message($msg_html);
     $this->email->send();
 
     $this->email->from('admin@kharjamaat.in', 'Admin');
     $this->email->to('anjuman@kharjamaat.in');
     $this->email->subject('Raza Recommended');
-    $this->email->message($msg);
+    $this->email->message($msg_html);
     $this->email->send();
 
     if ($flag) {
@@ -524,29 +529,33 @@ class Admin extends CI_Controller
     $this->email->message("Sorry. Your Raza has not been recommended by Jamaat coordinator. Wait for Janab's response.");
     $this->email->send();
 
-    $msg = $user['Full_Name'] . ' (' . $user['ITS_ID'] . ') Raza not recommended by jamaat coordinator';
+    $msg_text = 'Raza request for ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ') has not been recommended by the Jamaat Coordinator.';
+    $msg_html = 'Raza request for <strong>' . htmlspecialchars($user['Full_Name']) . '</strong> (' . htmlspecialchars($user['ITS_ID']) . ') has <strong>not</strong> been recommended by the Jamaat Coordinator.';
+
+    $this->email->set_mailtype('html');
+
     $this->email->from('admin@kharjamaat.in', 'Admin');
     $this->email->to('amilsaheb@kharjamaat.in');
     $this->email->subject('Raza Not Recommended');
-    $this->email->message($msg);
+    $this->email->message($msg_html);
     $this->email->send();
 
     $this->email->from('admin@kharjamaat.in', 'Admin');
     $this->email->to('kharjamaat@gmail.com');
     $this->email->subject('Raza Not Recommended');
-    $this->email->message($msg);
+    $this->email->message($msg_html);
     $this->email->send();
 
     $this->email->from('admin@kharjamaat.in', 'Admin');
     $this->email->to('3042@carmelnmh.in');
     $this->email->subject('Raza Not Recommended');
-    $this->email->message($msg);
+    $this->email->message($msg_html);
     $this->email->send();
 
     $this->email->from('admin@kharjamaat.in', 'Admin');
     $this->email->to('anjuman@kharjamaat.in');
     $this->email->subject('Raza Not Recommended');
-    $this->email->message($msg);
+    $this->email->message($msg_html);
     $this->email->send();
 
     if ($flag) {

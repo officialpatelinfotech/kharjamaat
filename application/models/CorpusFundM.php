@@ -289,21 +289,47 @@ class CorpusFundM extends CI_Model
     return ['success'=>true,'id'=>$this->db->insert_id()];
   }
 
-  public function get_all_assignments_with_payments()
+  public function get_all_assignments_with_payments($filters = [])
   {
-    // Aggregated payments per assignment
+    // Aggregated payments per assignment with optional filters (its_id, sector, sub_sector, fund_id)
     $this->ensure_payment_table();
+    $params = [];
     $sql = "SELECT a.id AS assignment_id, a.fund_id, f.title, a.hof_id,
-              u.Full_Name AS hof_name, u.Sector AS sector, u.Sub_Sector AS sub_sector, a.amount_assigned,
+              u.ITS_ID AS its_id, u.Full_Name AS hof_name, u.Sector AS sector, u.Sub_Sector AS sub_sector, a.amount_assigned,
               COALESCE(SUM(p.amount_paid),0) AS amount_paid,
               (a.amount_assigned - COALESCE(SUM(p.amount_paid),0)) AS amount_due
             FROM corpus_fund_assignment a
             INNER JOIN corpus_fund f ON f.id = a.fund_id
             LEFT JOIN corpus_fund_payment p ON p.fund_id = a.fund_id AND p.hof_id = a.hof_id
             LEFT JOIN user u ON u.HOF_ID = a.hof_id AND u.HOF_FM_TYPE = 'HOF'
-            GROUP BY a.id, a.fund_id, f.title, a.hof_id, u.Full_Name, u.Sector, u.Sub_Sector, a.amount_assigned
+            WHERE 1=1";
+
+    // ITS filter: match either ITS_ID (user table) or HOF_ID
+    if (!empty($filters['its_id'])) {
+      $sql .= " AND (u.ITS_ID = ? OR a.hof_id = ? )";
+      $params[] = $filters['its_id'];
+      $params[] = (int)$filters['its_id'];
+    }
+    if (!empty($filters['sector'])) {
+      $sql .= " AND u.Sector = ?";
+      $params[] = $filters['sector'];
+    }
+    if (!empty($filters['sub_sector'])) {
+      $sql .= " AND u.Sub_Sector = ?";
+      $params[] = $filters['sub_sector'];
+    }
+    if (!empty($filters['fund_id'])) {
+      $sql .= " AND a.fund_id = ?";
+      $params[] = (int)$filters['fund_id'];
+    }
+
+    $sql .= " GROUP BY a.id, a.fund_id, f.title, a.hof_id, u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, a.amount_assigned
             ORDER BY u.Sector, u.Sub_Sector, u.Full_Name, a.hof_id, a.fund_id";
-    return $this->db->query($sql)->result_array();
+
+    if (empty($params)) {
+      return $this->db->query($sql)->result_array();
+    }
+    return $this->db->query($sql, $params)->result_array();
   }
 
   public function get_payments_for_assignment($fund_id, $hof_id)

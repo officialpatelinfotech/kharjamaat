@@ -279,12 +279,14 @@
       </div>
       <div class="row d-flex justify-content-between mt-3">
         <select onchange="updateTable();" name="filter" class="select mb-3" id="filter">
-          <option value="" selected disabled>Filter</option>
+          <option value="" selected disabled>Status</option>
+
           <?php foreach ($razatype as $key => $value) { ?>
             <option class="options" value="<?php echo $value['name'] ?>">
               <?php echo $value['name'] ?>
             </option>
           <?php } ?>
+
           <option class="options" value="pending">Pending</option>
           <option class="options" value="approved">Approved</option>
           <option class="options" value="recommended">Recommended</option>
@@ -292,6 +294,14 @@
           <option class="options" value="rejected">Rejected</option>
           <option class="options" value="clear">Clear</option>
         </select>
+        <select onchange="updateTable();" name="miqaat_filter" class="select mb-3" id="miqaat_filter">
+          <option value="" selected>All Miqaat Types</option>
+          <option class="options" value="Shehrullah">Shehrullah</option>
+          <option class="options" value="Ashara">Ashara</option>
+          <option class="options" value="General">General</option>
+          <option class="options" value="Ladies">Ladies</option>
+        </select>
+
         <select onchange="updateTable();" name="sort" class="select mb-3" id="sort">
           <option value="" selected disabled>Sort</option>
           <option class="options" value="0">Name(A-Z)</option>
@@ -356,7 +366,49 @@
                   <?php echo $key + 1 ?>
                 </td>
                 <td>
-                  <?php echo $r['user_name'] ?>
+                  <?php
+                  // If this request is a Fala ni Niyaz (FNN), show that label instead of the user's name
+                  $is_fnn = false;
+                  if (!empty($r['miqaat_id']) && !empty($r['miqaat_details'])) {
+                    $miq = json_decode($r['miqaat_details'], true);
+                    if (is_array($miq)) {
+                      // check assigned_to text
+                      $mAssigned = strtolower($miq['assigned_to'] ?? '');
+                      if (strpos($mAssigned, 'fnn') !== false || (strpos($mAssigned, 'fala') !== false && (strpos($mAssigned, 'niyaz') !== false || strpos($mAssigned, 'niaz') !== false))) {
+                        $is_fnn = true;
+                      }
+                      // check top-level assign_type (e.g., 'Fala ni Niyaz')
+                      if (!$is_fnn && !empty($miq['assign_type'])) {
+                        $atop = strtolower($miq['assign_type']);
+                        if (strpos($atop, 'fnn') !== false || (strpos($atop, 'fala') !== false && (strpos($atop, 'niyaz') !== false || strpos($atop, 'niaz') !== false))) {
+                          $is_fnn = true;
+                        }
+                      }
+                      // check each assignment entry for assign_type indicating FNN
+                      if (!$is_fnn && !empty($miq['assignments']) && is_array($miq['assignments'])) {
+                        foreach ($miq['assignments'] as $as) {
+                          $asz = strtolower((string)($as['assign_type'] ?? $as['type'] ?? ''));
+                          if (strpos($asz, 'fnn') !== false || (strpos($asz, 'fala') !== false && (strpos($asz, 'niyaz') !== false || strpos($asz, 'niaz') !== false))) {
+                            $is_fnn = true;
+                            break;
+                          }
+                        }
+                      }
+                    }
+                  }
+                  if (!$is_fnn && isset($r['razaType'])) {
+                    $rt = strtolower($r['razaType']);
+                    if (strpos($rt, 'fnn') !== false || (strpos($rt, 'fala') !== false && (strpos($rt, 'niyaz') !== false || strpos($rt, 'niaz') !== false))) {
+                      $is_fnn = true;
+                    }
+                  }
+
+                  if ($is_fnn) {
+                    echo 'Fala ni Niyaz';
+                  } else {
+                    echo htmlspecialchars($r['user_name'], ENT_QUOTES, 'UTF-8');
+                  }
+                  ?>
                 </td>
                 <td>
                   <?php
@@ -367,7 +419,9 @@
                       $mType = htmlspecialchars($miqaat['type'] ?? '', ENT_QUOTES, 'UTF-8');
                       $mAssigned = htmlspecialchars($miqaat['assigned_to'] ?? '', ENT_QUOTES, 'UTF-8');
                       $mDate = !empty($miqaat['date']) ? date('D, d M', strtotime($miqaat['date'])) : '';
-                      $metaParts = array_filter([$mType, $mAssigned, $mDate], function ($v) { return $v !== '' && $v !== null; });
+                      $metaParts = array_filter([$mType, $mAssigned, $mDate], function ($v) {
+                        return $v !== '' && $v !== null;
+                      });
                       $meta = implode(' &middot; ', $metaParts);
                       echo "$mName <br><small class=\"text-muted\">$meta</small>";
                     } else {
@@ -704,16 +758,20 @@
   // Default to Event Date (New > Old)
   tem.value = 2;
   // Preserve initial server-rendered table HTML as a safe fallback
-  const _initialRazaTbodyHTML = (document.getElementById('datatable') || {innerHTML: ''}).innerHTML;
+  const _initialRazaTbodyHTML = (document.getElementById('datatable') || {
+    innerHTML: ''
+  }).innerHTML;
   updateTable();
 
   function updateTable() {
     var filterValue = document.getElementById("filter").value;
     var sortValue = document.getElementById("sort").value;
-    updateTableContent(filterValue, sortValue);
+    var miqaatFilterElem = document.getElementById("miqaat_filter");
+    var miqaatFilter = miqaatFilterElem ? miqaatFilterElem.value : "";
+    updateTableContent(filterValue, sortValue, miqaatFilter);
   }
 
-  function updateTableContent(filter, sort) {
+  function updateTableContent(filter, sort, miqaatFilter) {
     var tbody = document.getElementById('datatable');
     if (!tbody) return;
     // If the server did not provide a JS array, keep server-rendered rows
@@ -727,6 +785,26 @@
 
     // Filter and sort your razas array based on the selected options
     var filteredAndSortedRazas = razas;
+
+    // helper to safely parse JSON-ish fields
+    function parseMaybe(val) {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Apply miqaat type filter if selected
+    if (miqaatFilter && miqaatFilter !== "") {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        var m = parseMaybe(raza.miqaat_details) || {};
+        var miqaatType = (m.type || raza.razaType || '').toString();
+        return miqaatType.toLowerCase() === miqaatFilter.toLowerCase();
+      });
+    }
 
     if (filter !== "") {
       switch (filter) {
@@ -804,16 +882,51 @@
         var chatCountHTML = chatCount ? `<div class="chat-count">${chatCount}</div>` : '';
         var chatURL = `<?php echo base_url('Accounts/chat/') ?>${raza.id}<?php echo "/anjuman"; ?>`;
         var row = document.createElement("tr");
+        // Determine display name: if this is a Fala ni Niyaz (FNN) show label instead of user name
+        var nameDisplay = raza['user_name'] || '';
+        try {
+          var _m = parseMaybe(raza.miqaat_details) || {};
+          var miqAssignedTo = (_m.assigned_to || '').toString().toLowerCase();
+          var miqType = (_m.type || '').toString().toLowerCase();
+          var miqName = (_m.name || '').toString().toLowerCase();
+          var miqAssignType = (_m.assign_type || _m.assignType || '').toString().toLowerCase();
+          var rt = (raza.razaType || '').toString().toLowerCase();
+          var isFnn = false;
+          var checkFnn = function(s) {
+            if (!s) return false;
+            if (s.indexOf('fnn') !== -1) return true;
+            if (s.indexOf('fala') !== -1 && (s.indexOf('niyaz') !== -1 || s.indexOf('niaz') !== -1)) return true;
+            return false;
+          };
+          if (checkFnn(miqAssignedTo) || checkFnn(miqType) || checkFnn(miqName) || checkFnn(miqAssignType) || checkFnn(rt)) {
+            isFnn = true;
+          }
+          // check assignments array
+          if (!isFnn && Array.isArray(_m.assignments)) {
+            for (var ai = 0; ai < _m.assignments.length; ai++) {
+              var as = _m.assignments[ai] || {};
+              var ast = (as.assign_type || as.type || '').toString().toLowerCase();
+              if (checkFnn(ast)) {
+                isFnn = true;
+                break;
+              }
+            }
+          }
+          if (isFnn) nameDisplay = 'Fala ni Niyaz';
+        } catch (e) {
+          // ignore
+        }
+
         row.innerHTML = `
-          <td>${i + 1}</td>
-          <td>${raza['user_name']}</td>
-          <td>${formateRazaType(raza)}</td>
-          <td>${formatEventDate(raza)}</td>
-          <td><a href="${chatURL}" class="chat-button">Chat${chatCountHTML}</a></td>
-          <td>${getStatusHTML(raza)}</td>
-          <td><span class="action_btn">${getActionHTML(raza)}</span></td>
-          <td>${formatDate(raza['time-stamp'])}</td>
-      `;
+            <td>${i + 1}</td>
+            <td>${nameDisplay}</td>
+            <td>${formateRazaType(raza)}</td>
+            <td>${formatEventDate(raza)}</td>
+            <td><a href="${chatURL}" class="chat-button">Chat${chatCountHTML}</a></td>
+            <td>${getStatusHTML(raza)}</td>
+            <td><span class="action_btn">${getActionHTML(raza)}</span></td>
+            <td>${formatDate(raza['time-stamp'])}</td>
+        `;
         tempContainer.appendChild(row);
       }
       // Replace existing tbody content on success
@@ -865,11 +978,24 @@
   }
 
   function formateRazaType(raza) {
-    const parseMaybe = (val) => { if (!val) return null; if (typeof val === 'object') return val; try { return JSON.parse(val); } catch (e) { return null; } };
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
     // If miqaat present, show details similar to server rendering
     if (raza.miqaat_id && raza.miqaat_details) {
       const m = parseMaybe(raza.miqaat_details) || {};
-      const date = m.date ? new Date(m.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : '';
+      const date = m.date ? new Date(m.date).toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }) : '';
       const name = m.name || '';
       const type = m.type || '';
       const assigned = m.assigned_to || '';
@@ -912,7 +1038,15 @@
   }
 
   function formatEventDate(raza) {
-    const parseMaybe = (val) => { if (!val) return null; if (typeof val === 'object') return val; try { return JSON.parse(val); } catch (e) { return null; } };
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
     let data = parseMaybe(raza.razadata) || {}
     let rf = parseMaybe(raza.razafields) || {}
     let razafields = rf.fields || []
@@ -1029,7 +1163,15 @@
 
   function getEventDate(razadata, miqaat_details = {}) {
     // Extract event date from razadata or miqaat_details; both may be object or JSON string
-    const parseMaybe = (val) => { if (!val) return null; if (typeof val === 'object') return val; try { return JSON.parse(val); } catch (e) { return null; } };
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
     let data = parseMaybe(razadata) || {};
     if (data.date) {
       return new Date(data.date);

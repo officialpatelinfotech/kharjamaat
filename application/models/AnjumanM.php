@@ -1431,6 +1431,10 @@ class AnjumanM extends CI_Model
     if (!empty($filter_data["member_name"])) {
       $this->db->like("u.Full_Name", $filter_data["member_name"]);
     }
+    if (!empty($filter_data["its_id"])) {
+      // exact match on ITS
+      $this->db->where("u.ITS_ID", $filter_data["its_id"]);
+    }
 
     $this->db->where("u.Inactive_Status IS NULL 
                       AND u.HOF_FM_TYPE = 'HOF' 
@@ -1614,11 +1618,27 @@ class AnjumanM extends CI_Model
       // --- Aggregate totals across ALL years for convenience ---
       $totalEstYearly = 0; $totalResYearly = 0;
       $totalEstPaid = 0; $totalResPaid = 0;
+      // Exclude upcoming/future takhmeen years from "All Yrs" aggregates.
+      // A takhmeen is considered upcoming if its starting year (before '-') is greater than the
+      // current financial takhmeen year computed earlier in this method ($takhmeen_year).
       foreach ($u['takhmeens'] as $tk) {
-        $totalEstYearly += (float)($tk['establishment']['yearly'] ?? 0);
-        $totalResYearly += (float)($tk['residential']['yearly'] ?? 0);
-        $totalEstPaid += (float)($tk['establishment']['paid'] ?? 0);
-        $totalResPaid += (float)($tk['residential']['paid'] ?? 0);
+        $include = true;
+        // Use the user's selected/current hijri year (if available) to determine upcoming years
+        if (!empty($u['hijri_year']) && !empty($tk['year'])) {
+          $curParts = explode('-', $u['hijri_year']);
+          $tkParts = explode('-', $tk['year']);
+          $curStart = intval($curParts[0]);
+          $tkStart = intval($tkParts[0]);
+          if ($tkStart > $curStart) {
+            $include = false; // upcoming year, skip in All Yrs totals
+          }
+        }
+        if ($include) {
+          $totalEstYearly += (float)($tk['establishment']['yearly'] ?? 0);
+          $totalResYearly += (float)($tk['residential']['yearly'] ?? 0);
+          $totalEstPaid += (float)($tk['establishment']['paid'] ?? 0);
+          $totalResPaid += (float)($tk['residential']['paid'] ?? 0);
+        }
       }
       $totalEstDue = max(0, $totalEstYearly - $totalEstPaid);
       $totalResDue = max(0, $totalResYearly - $totalResPaid);

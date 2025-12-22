@@ -1183,7 +1183,7 @@ class Anjuman extends CI_Controller
       }
     }
     // exit;
-
+    $data['event_type'] = $event_type;
     // Set user name
     $data['user_name'] = $_SESSION['user']['username'];
 
@@ -1942,11 +1942,40 @@ class Anjuman extends CI_Controller
       $users[$idx]['selected_takhmeen_year'] = $selectedYear;
     }
 
-    $data["all_user_fmb_takhmeen"] = $users;
+    // Server-side filtering (optional) via GET params: its, sector, sub_sector
+    $filter_its = trim($this->input->get('its') ?? '');
+    $filter_sector = trim($this->input->get('sector') ?? '');
+    $filter_sub_sector = trim($this->input->get('sub_sector') ?? '');
+
+    $filtered = $users;
+    if ($filter_its !== '') {
+      $filtered = array_filter($filtered, function ($row) use ($filter_its) {
+        return (strpos((string)$row['ITS_ID'], $filter_its) !== false);
+      });
+    }
+    if ($filter_sector !== '') {
+      $filtered = array_filter($filtered, function ($row) use ($filter_sector) {
+        return (isset($row['Sector']) && stripos($row['Sector'], $filter_sector) !== false);
+      });
+    }
+    if ($filter_sub_sector !== '') {
+      $filtered = array_filter($filtered, function ($row) use ($filter_sub_sector) {
+        return (isset($row['Sub_Sector']) && stripos($row['Sub_Sector'], $filter_sub_sector) !== false);
+      });
+    }
+
+    // Reindex array for view
+    $filtered = array_values($filtered);
+
+    $data["all_user_fmb_takhmeen"] = $filtered;
     $data["user_name"] = $username;
     $data['hijri_years'] = $yearOptions;
     $data['current_year'] = $currentCompositeYear;
     $data['selected_year'] = $selectedYear;
+    // expose current filters so view can prefill inputs
+    $data['filter_its'] = $filter_its;
+    $data['filter_sector'] = $filter_sector;
+    $data['filter_sub_sector'] = $filter_sub_sector;
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/FMBThaaliTakhmeen', $data);
   }
@@ -2283,6 +2312,7 @@ class Anjuman extends CI_Controller
 
     $username = $_SESSION['user']['username'];
     $member_name = $this->input->post("member_name");
+    $its_id = $this->input->post("its_id");
     $selectedYear = $this->input->post('sabeel_year');
 
     // If year not posted, compute current composite like in main method
@@ -2305,6 +2335,7 @@ class Anjuman extends CI_Controller
 
     $filter_data = [];
     if (!empty($member_name)) $filter_data["member_name"] = $member_name;
+    if (!empty($its_id)) $filter_data["its_id"] = $its_id;
     if (!empty($selectedYear)) $filter_data['year'] = $selectedYear;
     // Include HOF even if they have no takhmeen for selected year
     $filter_data['require_current_year'] = false;
@@ -2320,6 +2351,7 @@ class Anjuman extends CI_Controller
 
     $data["user_name"] = $username;
     $data["member_name"] = $member_name;
+    $data["its_id"] = $its_id;
     $data['hijri_years'] = $yearOptions;
     $data['selected_year'] = $selectedYear;
     $this->load->view('Anjuman/Header', $data);
@@ -3053,8 +3085,21 @@ class Anjuman extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $data['message'] = $this->session->flashdata('corpus_payment_message');
     $data['error'] = $this->session->flashdata('corpus_payment_error');
-    // Fetch all assignments with payment aggregates
-    $data['assignments'] = $this->CorpusFundM->get_all_assignments_with_payments();
+    // Read optional filters from GET (for persistent server-side filtering)
+    $filters = [];
+    // Avoid trim(null) deprecation by casting to string when input may be null
+    $filters['its_id'] = ($this->input->get('its_id') !== null) ? trim((string)$this->input->get('its_id')) : null;
+    $filters['sector'] = ($this->input->get('sector') !== null) ? trim((string)$this->input->get('sector')) : null;
+    $filters['sub_sector'] = ($this->input->get('sub_sector') !== null) ? trim((string)$this->input->get('sub_sector')) : null;
+    $filters['fund_id'] = $this->input->get('fund_id') ? (int)$this->input->get('fund_id') : null;
+
+    // Fetch all assignments with payment aggregates (apply filters if any)
+    $data['assignments'] = $this->CorpusFundM->get_all_assignments_with_payments($filters);
+    // Expose filter values back to view for prefill
+    $data['filter_its'] = $filters['its_id'];
+    $data['filter_sector'] = $filters['sector'];
+    $data['filter_sub_sector'] = $filters['sub_sector'];
+    $data['filter_fund'] = $filters['fund_id'];
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/CorpusFundsReceive', $data);
   }
@@ -3184,6 +3229,200 @@ class Anjuman extends CI_Controller
     $this->load->model('CorpusFundM');
     $rows = $this->CorpusFundM->get_assignments_with_payments_by_hof($hof_id);
     $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'funds' => $rows]));
+  }
+
+  /**
+   * Member financials: show Sabeel, FMB, Corpus and General/Miqaat items for a member
+   * Accepts GET: its_id OR hof_id
+   */
+  public function member_financials()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $this->load->model('AnjumanM');
+    $this->load->model('CorpusFundM');
+    $this->load->model('AccountM');
+    $this->load->model('AdminM');
+
+    $its = null;
+    $hof_id = null;
+    $reqIts = $this->input->get('its_id');
+    $reqHof = $this->input->get('hof_id');
+
+    // If ITS provided, always try to resolve the HOF_ID from the user table first
+    if (!empty($reqIts)) {
+      $its_in = trim((string)$reqIts);
+      // lookup user row by ITS_ID
+      $userRow = $this->db->get_where('user', ['ITS_ID' => $its_in])->row_array();
+      if (!empty($userRow)) {
+        $its = isset($userRow['ITS_ID']) ? $userRow['ITS_ID'] : $its_in;
+        $hof_id = isset($userRow['HOF_ID']) ? (int)$userRow['HOF_ID'] : null;
+      } else {
+        // no user row — keep raw ITS for later probing (payments/takhmeen rows)
+        $its = $its_in;
+      }
+    }
+
+    // If HOF provided explicitly and not already set from ITS, use it
+    if (!empty($reqHof) && empty($hof_id)) {
+      $hof_id = (int)$reqHof;
+      // if ITS not resolved, try to pick an ITS under this HOF (for member-scoped queries)
+      if (empty($its)) {
+        $row = $this->db->get_where('user', ['HOF_ID' => $hof_id])->row_array();
+        if (!empty($row)) $its = isset($row['ITS_ID']) ? $row['ITS_ID'] : null;
+      }
+    }
+
+    // Fallback: if an ITS was provided but no user row found, accept the raw ITS
+    // when there's evidence of finance rows for that ITS (payments or takhmeen entries).
+    if (empty($its) && !empty($reqIts)) {
+      $probeIts = trim((string)$reqIts);
+      // check presence in finance-related tables
+      $found = false;
+      $tables = [
+        'fmb_takhmeen' => 'user_id',
+        'fmb_takhmeen_payments' => 'user_id',
+        'sabeel_takhmeen' => 'user_id',
+        'fmb_general_contribution' => 'user_id',
+        'miqaat_invoice' => 'user_id'
+      ];
+      foreach ($tables as $tbl => $col) {
+        $r = $this->db->query("SELECT 1 FROM {$tbl} WHERE {$col} = ? LIMIT 1", [$probeIts])->row_array();
+        if (!empty($r)) {
+          $found = true;
+          break;
+        }
+      }
+      if ($found) {
+        $its = $probeIts;
+      }
+    }
+
+    // Resolve HOF name (if we have a hof_id)
+    $hof_name = null;
+    if (!empty($hof_id)) {
+      $hofRow = $this->db->get_where('user', ['ITS_ID' => (string)$hof_id])->row_array();
+      if (!empty($hofRow)) {
+        $hof_name = isset($hofRow['Full_Name']) ? $hofRow['Full_Name'] : (isset($hofRow['Fullname']) ? $hofRow['Fullname'] : null);
+      }
+    }
+
+    if (empty($its) && empty($hof_id)) {
+      // No identifier provided — render the page with a search form instead of redirecting to dashboard.
+      $data = [
+        'user_its' => null,
+        'user_hof' => null,
+        'hof_name' => null,
+        'sabeel' => [],
+        'fmb_takhheen' => [],
+        'corpus' => [],
+        'general_contribs' => [],
+        'miqaat_invoices' => [],
+        'user_name' => $_SESSION['user']['username'],
+        'need_search' => true
+      ];
+      $this->load->view('Anjuman/Header', $data);
+      $this->load->view('Anjuman/MemberFinancials', $data);
+      return;
+    }
+
+    // Sabeel takhmeen details (use AnjumanM helper)
+    $sabeel = [];
+    if (!empty($hof_id)) {
+      $sabeelRows = $this->AnjumanM->get_user_sabeel_takhmeen_details(['its_id' => $hof_id, 'require_current_year' => false, 'allow_latest_when_missing' => true]);
+      // function returns keyed by ITS; take single entry
+      if (!empty($sabeelRows) && isset($sabeelRows[$hof_id])) {
+        $sabeel = $sabeelRows[$hof_id];
+      } else if (!empty($sabeelRows)) {
+        // if array numeric, take first
+        $sabeel = reset($sabeelRows);
+      }
+    }
+
+    // FMB takhmeen: payments are stored per-user in `fmb_takhmeen_payments` (no takhmeen_id)
+    // Allocate total paid amount FIFO to oldest takhmeen entries so each takhmeen shows its actual paid portion.
+    $fmbTakhveen = [];
+    if (!empty($hof_id)) {
+      // fetch takhmeen rows for user ordered oldest first for allocation
+      $rows = $this->db->query("SELECT id, user_id, year, total_amount, remark FROM fmb_takhmeen WHERE user_id = ? ORDER BY year ASC, id ASC", [$hof_id])->result_array();
+      // total paid by user (all payments against fmb takhmeen)
+      $paidRow = $this->db->query("SELECT COALESCE(SUM(amount),0) AS total_paid FROM fmb_takhmeen_payments WHERE user_id = ?", [$hof_id])->row_array();
+      $total_paid = (float)($paidRow['total_paid'] ?? 0.0);
+
+      // Fallback: if no takhmeen rows found for this ITS, it's possible the input was a HOF id
+      // (or the family's takhmeen rows are under other ITS). Try fetching takhmeen rows
+      // for all members with this HOF and aggregate payments across them so amounts show.
+      if (empty($rows) && is_numeric($hof_id)) {
+        $hof = (int)$hof_id;
+        $memberRows = $this->db->query("SELECT ITS_ID FROM user WHERE HOF_ID = ?", [$hof])->result_array();
+        $memberIts = array_column($memberRows, 'ITS_ID');
+        if (!empty($memberIts)) {
+          // fetch takhmeen rows for all members in this HOF
+          $placeholders = implode(',', array_fill(0, count($memberIts), '?'));
+          $q = "SELECT id, user_id, year, total_amount, remark FROM fmb_takhmeen WHERE user_id IN ($placeholders) ORDER BY year ASC, id ASC";
+          $rows = $this->db->query($q, $memberIts)->result_array();
+          // sum payments across these members
+          $q2 = "SELECT COALESCE(SUM(amount),0) AS total_paid FROM fmb_takhmeen_payments WHERE user_id IN ($placeholders)";
+          $paidRow = $this->db->query($q2, $memberIts)->row_array();
+          $total_paid = (float)($paidRow['total_paid'] ?? 0.0);
+        }
+      }
+
+      // allocate FIFO to rows
+      $remaining = $total_paid;
+      $allocated = [];
+      foreach ($rows as $r) {
+        $amt = (float)($r['total_amount'] ?? 0.0);
+        $alloc = min($amt, max(0.0, $remaining));
+        $remaining -= $alloc;
+        if ($remaining < 0) $remaining = 0;
+        $r['amount_paid'] = round($alloc, 2);
+        $r['due'] = round(max(0.0, $amt - $alloc), 2);
+        $allocated[] = $r;
+      }
+
+      // For display, show most recent first (consistent with previous ordering)
+      $fmbTakhveen = array_reverse($allocated);
+    }
+
+    // Corpus fund assignments/payments by HOF id
+    $corpus = [];
+    if (!empty($hof_id)) {
+      $corpus = $this->CorpusFundM->get_assignments_with_payments_by_hof($hof_id);
+    }
+
+    // General contributions (FMB GC) for user
+    $generalContribs = [];
+    if (!empty($its)) {
+      $sql = "SELECT gc.*, COALESCE(p.total_received,0) AS amount_paid, (gc.amount - COALESCE(p.total_received,0)) AS amount_due
+              FROM fmb_general_contribution gc
+              LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id
+              WHERE gc.user_id = ?
+              ORDER BY gc.created_at DESC";
+      $generalContribs = $this->db->query($sql, [$its])->result_array();
+    }
+
+    // Miqaat invoices
+    $miqaatInvoices = [];
+    if (!empty($its)) {
+      $miqaatInvoices = $this->AccountM->get_user_miqaat_invoices($its);
+    }
+
+    $data = [
+      'user_its' => $its,
+      'user_hof' => $hof_id,
+      'hof_name' => $hof_name,
+      'sabeel' => $sabeel,
+      'fmb_takhmeen' => $fmbTakhveen,
+      'corpus' => $corpus,
+      'general_contribs' => $generalContribs,
+      'miqaat_invoices' => $miqaatInvoices,
+      'user_name' => $_SESSION['user']['username']
+    ];
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/MemberFinancials', $data);
   }
 
   // Updated by Patel Infotech Services
