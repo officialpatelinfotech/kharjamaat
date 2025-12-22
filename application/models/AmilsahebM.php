@@ -194,9 +194,10 @@ class AmilsahebM extends CI_Model
   public function get_all_appointment()
   {
 
-    $this->db->select('*');
+    $this->db->select('appointments.*, slots.date, slots.time, u.Mobile as mobile');
     $this->db->from('appointments');
     $this->db->join('slots', 'appointments.slot_id = slots.slot_id');
+    $this->db->join('user u', 'appointments.its = u.ITS_ID', 'left');
     $this->db->where('slots.active', 1);
     $this->db->order_by('slots.date', 'DESC');
     $query = $this->db->get();
@@ -222,6 +223,7 @@ class AmilsahebM extends CI_Model
   {
     $this->db->select('u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector');
     $this->db->from('user u');
+    $this->db->where('u.sector is not null and u.sub_sector is not null and u.inactive_status is null', null, false); // Exclude umoor fmb users
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'ao.ITS = u.ITS_ID AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -290,6 +292,7 @@ class AmilsahebM extends CI_Model
       'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
     ]);
     $this->db->from('user u');
+    $this->db->where('u.sector is not null and u.sub_sector is not null and u.inactive_status is null');
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -316,6 +319,7 @@ class AmilsahebM extends CI_Model
         SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'temporary%' OR LOWER(TRIM(member_type)) LIKE 'visitor%' THEN 1 ELSE 0 END) AS temporary,
         COUNT(*) AS total
       FROM user
+      WHERE sector IS NOT NULL AND sub_sector IS NOT NULL AND inactive_status IS NULL
     ";
     $row = $this->db->query($sql)->row_array();
     // Ensure integer values and defaults
@@ -346,7 +350,7 @@ class AmilsahebM extends CI_Model
         SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) AS seniors,
         COUNT(*) AS total
       FROM user u
-      WHERE LOWER(TRIM(u.member_type)) LIKE 'resident%'
+      WHERE LOWER(TRIM(u.member_type)) LIKE 'resident%' AND u.sector IS NOT NULL AND u.sub_sector IS NOT NULL AND u.inactive_status IS NULL
     ";
     $row = $this->db->query($sql)->row_array();
     return [

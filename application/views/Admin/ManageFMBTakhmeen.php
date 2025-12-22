@@ -78,11 +78,11 @@
   endif;
   ?>
   <h4 class="heading text-center mb-4">FMB Thaali Takhmeen for <span class="text-primary"><?php echo $hijri_year; ?></span></h4>
-  <div class="text-center mb-3">
+  <!-- <div class="text-center mb-3">
     <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#adminTakhmeenPayModal">
       <i class="fa fa-credit-card me-1"></i> Pay Now
     </button>
-  </div>
+  </div> -->
   <div class="table-responsive" style="overflow-x:auto;">
     <table class="table table-bordered table-striped" style="min-width: 700px;">
       <thead>
@@ -152,6 +152,11 @@
           <div class="form-group">
             <label for="takhmeen-year">Year</label>
             <select name="fmb_takhmeen_year" id="takhmeen-year" class="form-control" required>
+              <option value="1442-43">1442-43</option>
+              <option value="1443-44">1443-44</option>
+              <option value="1444-45">1444-45</option>
+              <option value="1445-46">1445-46</option>
+              <option value="1446-47">1446-47</option>
               <option value="1447-48">1447-48</option>
               <option value="1448-49">1448-49</option>
               <option value="1449-50">1449-50</option>

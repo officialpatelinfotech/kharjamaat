@@ -973,6 +973,21 @@ class AdminM extends CI_Model
       return 0; // Return 0 if there are no users
     }
   }
+
+  /**
+   * Return count of active members where Sector and Sub_Sector are set
+   * and Inactive_Status is empty/null.
+   */
+  public function get_active_member_count()
+  {
+    $sql = "SELECT COUNT(*) as user_count FROM `user` WHERE (Sector IS NOT NULL AND TRIM(Sector) <> '') AND (Sub_Sector IS NOT NULL AND TRIM(Sub_Sector) <> '') AND (Inactive_Status IS NULL OR TRIM(Inactive_Status) = '')";
+    $query = $this->db->query($sql);
+    $result = $query->row_array();
+    if (!empty($result['user_count'])) {
+      return (int)$result['user_count'];
+    }
+    return 0;
+  }
   public function addMumineen($data, $logindata)
   {
     $this->db->trans_start();

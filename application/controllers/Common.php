@@ -1677,7 +1677,7 @@ class Common extends CI_Controller
       $days = $this->HijriCalendar->get_hijri_days_for_month_year($hm, $hy);
       if (!empty($days) && is_array($days)) {
         $first = isset($days[0]['greg_date']) ? $days[0]['greg_date'] : '';
-        $last = isset($days[count($days)-1]['greg_date']) ? $days[count($days)-1]['greg_date'] : '';
+        $last = isset($days[count($days) - 1]['greg_date']) ? $days[count($days) - 1]['greg_date'] : '';
         if ($first && $last) {
           $start_date = $first;
           $end_date = $last;
@@ -1717,7 +1717,7 @@ class Common extends CI_Controller
         $days = $this->HijriCalendar->get_hijri_days_for_month_year($hm, $hy);
         if (!empty($days) && is_array($days)) {
           $start_date = isset($days[0]['greg_date']) ? $days[0]['greg_date'] : $today;
-          $end_date = isset($days[count($days)-1]['greg_date']) ? $days[count($days)-1]['greg_date'] : $today;
+          $end_date = isset($days[count($days) - 1]['greg_date']) ? $days[count($days) - 1]['greg_date'] : $today;
         }
       }
       // Fallback to current week if we still don't have a range
@@ -1806,6 +1806,21 @@ class Common extends CI_Controller
     // Fetch all miqaat dates and their RSVP lists
     $miqaats = $this->CommonM->get_miqaats();
 
+    // Filter to upcoming miqaats (date >= today) and sort ascending (earliest upcoming first)
+    if (!empty($miqaats) && is_array($miqaats)) {
+      $today = date('Y-m-d');
+      $miqaats = array_filter($miqaats, function($m) use ($today) {
+        $d = isset($m['miqaat_date']) ? substr($m['miqaat_date'], 0, 10) : '';
+        return $d >= $today;
+      });
+      usort($miqaats, function($a, $b) {
+        $ta = isset($a['miqaat_date']) ? strtotime($a['miqaat_date']) : 0;
+        $tb = isset($b['miqaat_date']) ? strtotime($b['miqaat_date']) : 0;
+        return $ta <=> $tb;
+      });
+      $miqaats = array_values($miqaats);
+    }
+
     // For each miqaat, fetch RSVP records
     $rsvp_by_miqaat = [];
     foreach ($miqaats as $miqaat) {
@@ -1818,6 +1833,9 @@ class Common extends CI_Controller
 
     $from = $_SESSION["from"];
     $data["from"] = $from;
+    // Total members for RSVP list header (only active members with sector/sub_sector)
+    $this->load->model('AdminM');
+    $data['total_members'] = $this->AdminM->get_active_member_count();
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/RSVPList', $data);
   }
@@ -2448,5 +2466,85 @@ class Common extends CI_Controller
     $data['selected_hijri_year'] = $year;
     $this->load->view("Common/Header", $data);
     $this->load->view('Common/FMBUserDetails', $data);
+  }
+
+  /**
+   * Return per-user RSVP counts for a miqaat as JSON.
+   * GET params: miqaat_id
+   */
+  public function miqaat_rsvp_user_counts()
+  {
+    $miqaat_id = (int)$this->input->get('miqaat_id');
+    $this->output->set_content_type('application/json');
+    if (!$miqaat_id) {
+      echo json_encode(['success' => false, 'message' => 'miqaat_id required']);
+      return;
+    }
+
+    // Count of individual users who have RSVP'd for this miqaat
+    $sql1 = "SELECT COUNT(DISTINCT gr.user_id) AS will_attend
+            FROM general_rsvp gr
+            JOIN `user` u ON u.ITS_ID = gr.user_id
+            WHERE gr.miqaat_id = ? AND u.Inactive_Status IS NULL AND COALESCE(u.Sector,'') <> '' AND COALESCE(u.Sub_Sector,'') <> ''";
+    $row1 = $this->db->query($sql1, [$miqaat_id])->row_array();
+    $will_attend_members = isset($row1['will_attend']) ? (int)$row1['will_attend'] : 0;
+
+    // Include guest counts submitted via general_guest_rsvp (gents+ladies+children)
+    $guest_row = $this->db->query("SELECT COALESCE(SUM(gents),0) AS gents, COALESCE(SUM(ladies),0) AS ladies, COALESCE(SUM(children),0) AS children FROM general_guest_rsvp WHERE miqaat_id = ?", [$miqaat_id])->row_array();
+    $guest_total = 0;
+    if ($guest_row) {
+      $guest_total = (int)($guest_row['gents'] ?? 0) + (int)($guest_row['ladies'] ?? 0) + (int)($guest_row['children'] ?? 0);
+    }
+
+    // Final will_attend includes both individual members who RSVP'd and guest counts
+    $will_attend = $will_attend_members + $guest_total;
+
+    // Get distinct hof_ids that have at least one RSVP (exclude null/empty)
+    $hof_rows = $this->db->query("SELECT DISTINCT hof_id FROM general_rsvp WHERE miqaat_id = ?", [$miqaat_id])->result_array();
+    $hof_ids = array_values(array_filter(array_map(function ($r) {
+      return isset($r['hof_id']) ? (int)$r['hof_id'] : 0;
+    }, $hof_rows), function ($v) {
+      return $v > 0;
+    }));
+
+    // Also get distinct user_ids who submitted RSVP for this miqaat (cleaned)
+    $rsvp_user_rows = $this->db->query("SELECT DISTINCT user_id FROM general_rsvp WHERE miqaat_id = ?", [$miqaat_id])->result_array();
+    $rsvp_user_ids = array_values(array_filter(array_map(function ($r) {
+      return isset($r['user_id']) ? (int)$r['user_id'] : 0;
+    }, $rsvp_user_rows), function ($v) {
+      return $v > 0;
+    }));
+
+    $will_not_attend = 0;
+    $not_submitted = 0;
+
+    // Base user filter: active + sector/subsector set
+    $base_where = "u.Inactive_Status IS NULL AND COALESCE(u.Sector,'') <> '' AND COALESCE(u.Sub_Sector,'') <> ''";
+
+    if (!empty($hof_ids)) {
+      // Users who did NOT RSVP but their HOF has some RSVP
+      $this->db->from('user u')->where($base_where, null, false)->where_in('u.HOF_ID', $hof_ids);
+      if (!empty($rsvp_user_ids)) {
+        $this->db->where_not_in('u.ITS_ID', $rsvp_user_ids);
+      }
+      $will_not_attend = (int)$this->db->count_all_results();
+
+      // Users whose family has not submitted RSVP (their HOF is not in hof_ids)
+      $this->db->from('user u')->where($base_where, null, false)->where_not_in('u.HOF_ID', $hof_ids);
+      $not_submitted = (int)$this->db->count_all_results();
+    } else {
+      // No family RSVP at all: will_not_attend = 0; not_submitted = total active users
+      $this->db->from('user u')->where($base_where, null, false);
+      $not_submitted = (int)$this->db->count_all_results();
+      $will_not_attend = 0;
+    }
+
+    echo json_encode([
+      'success' => true,
+      'miqaat_id' => $miqaat_id,
+      'will_attend' => $will_attend,
+      'will_not_attend' => $will_not_attend,
+      'rsvp_not_submitted' => $not_submitted
+    ]);
   }
 }

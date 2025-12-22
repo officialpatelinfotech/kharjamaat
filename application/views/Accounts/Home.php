@@ -171,11 +171,13 @@
   .dashboard-card .card-header span {
     font-size: 1rem;
   }
+
   /* Compact height for small stat cards in Sabeel/FMB sections */
   .mini-stat-card .card-body {
     height: 95px;
     overflow-y: hidden;
   }
+
   /* Ensure dues cards don't show internal scrollbars */
   .dashboard-card.dues .card-body {
     height: auto;
@@ -183,16 +185,19 @@
     padding-top: 10px;
     padding-bottom: 10px;
   }
+
   /* Tighten spacing inside dues containers */
   .dashboard-card.dues .mini-stat-card .card-body {
     padding-top: .5rem;
     padding-bottom: .5rem;
   }
+
   .dashboard-card.dues h6,
   .dashboard-card.dues .h4,
   .dashboard-card.dues .h5 {
     margin-bottom: .25rem;
   }
+
   /* Disable scrollbars explicitly where needed */
   .dashboard-card .card-body.no-scroll {
     height: auto !important;
@@ -338,6 +343,15 @@
           <i class="fa fa-donate"></i>
         </div>
         <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Corpus Funds</span>
+        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
+      </a>
+    </div>
+    <div class="col-6 mt-3 col-md-3 col-xl-2">
+      <a href="<?php echo base_url('accounts/appointment') ?>" aria-label="Appointments" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
+        <div class="stat-icon-wrap mb-1">
+          <i class="fa fa-calendar"></i>
+        </div>
+        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Appointments</span>
         <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
       </a>
     </div>
@@ -805,13 +819,13 @@
     ["rgb(0, 106, 63)", "rgb(255, 255, 255)"],
     ["rgb(41, 128, 185)", "rgb(255, 255, 255)"],
     ["rgb(39, 174, 96)", "rgb(255, 255, 255)"],
-    ["rgb(41, 128, 185)", "rgb(255, 255, 255)"],
+    ["rgb(142, 68, 173)", "rgb(255, 255, 255)"],
     ["rgb(135, 0, 0)", "rgb(255, 255, 255)"],
     ["rgb(211, 84, 0)", "rgb(255, 255, 255)"],
+    ["rgb(41, 128, 185)", "rgb(255, 255, 255)"],
     ["rgb(192, 57, 43)", "rgb(255, 255, 255)"],
     ["rgb(135, 0, 0)", "rgb(255, 255, 255)"],
     ["rgb(192, 57, 43)", "rgb(255, 255, 255)"],
-    ["rgb(142, 68, 173)", "rgb(255, 255, 255)"],
     ["rgb(255, 247, 230)", "rgb(0, 0, 0)"],
     ["rgb(243, 156, 18)", "rgb(255, 255, 255)"],
     ["rgb(135, 0, 0)", "rgb(255, 255, 255)"],

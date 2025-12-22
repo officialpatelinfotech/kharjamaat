@@ -594,12 +594,10 @@ class Anjuman extends CI_Controller
   private function get_upcoming_miqaats($limit = 5)
   {
     $limit = (int)$limit;
-    // Only include miqaats approved by Janab (raza.Janab-status = 1)
+    // Return upcoming miqaats by date (do not restrict to raza-approved)
     $sql = "SELECT m.id, m.name, m.type, m.date, m.assigned_to
         FROM miqaat m
-        INNER JOIN raza r ON r.miqaat_id = m.id AND r.`Janab-status` = 1
         WHERE m.date >= CURDATE()
-        GROUP BY m.id, m.name, m.type, m.date, m.assigned_to
         ORDER BY m.date ASC
         LIMIT $limit";
     return $this->db->query($sql)->result_array();
