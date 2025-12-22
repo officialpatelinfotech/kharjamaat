@@ -23,7 +23,17 @@ class Migration_Add_purpose_and_details_to_appointments extends CI_Migration {
             ),
         );
 
-        $this->dbforge->add_column('appointments', $fields);
+        // Only add columns that do not already exist to avoid duplicate column errors
+        $to_add = array();
+        foreach (array_keys($fields) as $col) {
+            if (!$this->db->field_exists($col, 'appointments')) {
+                $to_add[$col] = $fields[$col];
+            }
+        }
+
+        if (!empty($to_add)) {
+            $this->dbforge->add_column('appointments', $to_add);
+        }
     }
 
     public function down()
