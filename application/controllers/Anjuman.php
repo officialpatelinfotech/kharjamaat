@@ -208,124 +208,141 @@ class Anjuman extends CI_Controller
   }
 
   private function get_dashboard_summary_data($sel_hijri_month = null, $sel_hijri_year = null)
-  {
-    // Get Sabeel summary
-    $sabeel_summary = $this->get_sabeel_summary();
+{
+  // Get Sabeel summary
+  $sabeel_summary = $this->get_sabeel_summary();
 
-    // Get Thaali summary  
-    $thaali_summary = $this->get_thaali_summary();
+  // Get Thaali summary  
+  $thaali_summary = $this->get_thaali_summary();
 
-    // Get FMB General Contribution summary
-    $fmb_summary = $this->get_fmb_contribution_summary();
+  // Get FMB General Contribution summary
+  $fmb_summary = $this->get_fmb_contribution_summary();
 
-    // Get Miqaat payment summary
-    $miqaat_summary = $this->get_miqaat_payment_summary();
+  // Get Miqaat payment summary
+  $miqaat_summary = $this->get_miqaat_payment_summary();
 
-    // Raza summary (pending/approved/rejected)
-    $raza_summary = $this->get_raza_summary();
+  // Raza summary (pending/approved/rejected)
+  $raza_summary = $this->get_raza_summary();
 
-    // Miqaat finance summary (invoices vs payments)
-    $miqaat_finance = $this->get_miqaat_finance_summary();
+  // Miqaat finance summary (invoices vs payments)
+  $miqaat_finance = $this->get_miqaat_finance_summary();
 
-    // FMB Miqaats (current Hijri year): count + finance
-    $fmb_miqaats = $this->get_fmb_miqaats_summary();
-    $fmb_miqaats_items = $this->get_fmb_miqaats_items(5);
+  // FMB Miqaats (current Hijri year): count + finance
+  $fmb_miqaats = $this->get_fmb_miqaats_summary();
+  $fmb_miqaats_items = $this->get_fmb_miqaats_items(5);
 
-    // Upcoming miqaats (next 5)
-    $upcoming_miqaats = $this->get_upcoming_miqaats(5);
-    // Enrich upcoming miqaats with hijri parts/label for view convenience
-    if (!empty($upcoming_miqaats)) {
-      foreach ($upcoming_miqaats as &$um) {
-        $um_date = isset($um['date']) ? $um['date'] : null;
-        $hparts = null;
-        if ($um_date) {
-          $hparts = $this->HijriCalendar->get_hijri_parts_by_greg_date($um_date);
-        }
-        if ($hparts && isset($hparts['hijri_day'])) {
-          $um['hijri_label'] = trim(($hparts['hijri_day'] ?? '') . ' ' . ($hparts['hijri_month_name'] ?? $hparts['hijri_month'] ?? '') . ' ' . ($hparts['hijri_year'] ?? ''));
-        } else {
-          $um['hijri_label'] = '';
-        }
-        $um['hijri_parts'] = $hparts;
+  // Upcoming miqaats (next 5)
+  $upcoming_miqaats = $this->get_upcoming_miqaats(25);
+  if (!empty($upcoming_miqaats)) {
+    foreach ($upcoming_miqaats as &$um) {
+      $um_date = isset($um['date']) ? $um['date'] : null;
+      $hparts = null;
+      if ($um_date) {
+        $hparts = $this->HijriCalendar->get_hijri_parts_by_greg_date($um_date);
       }
-      unset($um);
-    }
-
-    // Top dues (Sabeel & Thaali)
-    $top_dues = [
-      'sabeel' => $this->get_top_dues_sabeel(5),
-      'thaali' => $this->get_top_dues_thaali(5)
-    ];
-
-    // Get member grade breakdown (establishment & residential)
-    $grade_breakdown = $this->get_grade_breakdown();
-    $grade_breakdown_res = $this->get_grade_breakdown_residential();
-
-    // Get mohallah breakdown
-    $mohallah_breakdown = $this->get_mohallah_breakdown();
-
-    // FMB takhmeen sector-wise (current Hijri year)
-    $fmb_takhmeen_sector = $this->get_fmb_takhmeen_sector_breakdown();
-
-    // Sabeel takhmeen sector-wise (current Hijri year)
-    $sabeel_takhmeen_sector = $this->get_sabeel_takhmeen_sector_breakdown();
-
-    // Weekly signup trends (placeholder for now)
-    $weekly_signups = $this->get_weekly_signup_trends();
-
-    // Recent member details for table
-    $recent_members = $this->get_recent_member_details();
-
-    // This week (Mon-Sun) thaali signup average per sector (HOF per day)
-    $this_week_sector_signup_avg = $this->get_this_week_sector_signup_avg();
-    // Families who did NOT sign up for thaali any day in the current week
-    $no_thaali_families = $this->get_no_thaali_families_this_week();
-
-    // Monthly (Hijri) thaali stats - compute for selected month if provided, otherwise current Hijri month
-    $month_signed_up = 0;
-    $no_thaali_month_list = [];
-    if ($sel_hijri_month && $sel_hijri_year) {
-      $mstats = $this->CommonM->get_monthly_thaali_stats($sel_hijri_month, $sel_hijri_year);
-      $month_signed_up = isset($mstats['families_signed_up']) ? (int)$mstats['families_signed_up'] : 0;
-      $no_thaali_month_list = isset($mstats['no_thaali_list']) ? $mstats['no_thaali_list'] : [];
-    } else {
-      // current hijri month
-      $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-      if ($today_parts && isset($today_parts['hijri_month']) && isset($today_parts['hijri_year'])) {
-        $mstats = $this->CommonM->get_monthly_thaali_stats($today_parts['hijri_month'], $today_parts['hijri_year']);
-        $month_signed_up = isset($mstats['families_signed_up']) ? (int)$mstats['families_signed_up'] : 0;
-        $no_thaali_month_list = isset($mstats['no_thaali_list']) ? $mstats['no_thaali_list'] : [];
+      if ($hparts && isset($hparts['hijri_day'])) {
+        $um['hijri_label'] = trim(
+          ($hparts['hijri_day'] ?? '') . ' ' .
+          ($hparts['hijri_month_name'] ?? $hparts['hijri_month'] ?? '') . ' ' .
+          ($hparts['hijri_year'] ?? '')
+        );
+      } else {
+        $um['hijri_label'] = '';
       }
+      $um['hijri_parts'] = $hparts;
     }
-
-    return [
-      'sabeel_summary' => $sabeel_summary,
-      'thaali_summary' => $thaali_summary,
-      'fmb_summary' => $fmb_summary,
-      'miqaat_summary' => $miqaat_summary,
-      'raza_summary' => $raza_summary,
-      'miqaat_finance' => $miqaat_finance,
-      'fmb_miqaats' => $fmb_miqaats,
-      'fmb_miqaats_items' => $fmb_miqaats_items,
-      'upcoming_miqaats' => $upcoming_miqaats,
-      'top_dues' => $top_dues,
-      'grade_breakdown' => $grade_breakdown,
-      'grade_breakdown_est' => $grade_breakdown, // keep legacy key & explicit est
-      'grade_breakdown_res' => $grade_breakdown_res,
-      'mohallah_breakdown' => $mohallah_breakdown,
-      'fmb_takhmeen_sector' => $fmb_takhmeen_sector['rows'],
-      'fmb_takhmeen_year' => $fmb_takhmeen_sector['year'],
-      'sabeel_takhmeen_sector' => $sabeel_takhmeen_sector['rows'],
-      'sabeel_takhmeen_year' => $sabeel_takhmeen_sector['year'],
-      'weekly_signups' => $weekly_signups,
-      'recent_members' => $recent_members,
-      'this_week_sector_signup_avg' => $this_week_sector_signup_avg,
-      'no_thaali_families' => $no_thaali_families,
-      'this_month_families_signed_up' => $month_signed_up,
-      'no_thaali_families_month' => $no_thaali_month_list,
-      'miqaat_rsvp' => $this->CommonM->get_next_miqaat_rsvp_stats(),
-    ];
+    unset($um);
   }
+
+  // Top dues (Sabeel & Thaali)
+  $top_dues = [
+    'sabeel' => $this->get_top_dues_sabeel(5),
+    'thaali' => $this->get_top_dues_thaali(5)
+  ];
+
+  // Grade & mohallah breakdowns
+  $grade_breakdown = $this->get_grade_breakdown();
+  $grade_breakdown_res = $this->get_grade_breakdown_residential();
+  $mohallah_breakdown = $this->get_mohallah_breakdown();
+
+  // Takhmeen summaries
+  $fmb_takhmeen_sector = $this->get_fmb_takhmeen_sector_breakdown();
+  $sabeel_takhmeen_sector = $this->get_sabeel_takhmeen_sector_breakdown();
+
+  // Weekly & recent data
+  $weekly_signups = $this->get_weekly_signup_trends();
+  $recent_members = $this->get_recent_member_details();
+  $this_week_sector_signup_avg = $this->get_this_week_sector_signup_avg();
+  $no_thaali_families = $this->get_no_thaali_families_this_week();
+
+  // Monthly (Hijri) thaali stats
+  $month_signed_up = 0;
+  $no_thaali_month_list = [];
+
+  if ($sel_hijri_month && $sel_hijri_year) {
+    $mstats = $this->CommonM->get_monthly_thaali_stats($sel_hijri_month, $sel_hijri_year);
+    $month_signed_up = (int) ($mstats['families_signed_up'] ?? 0);
+    $no_thaali_month_list = $mstats['no_thaali_list'] ?? [];
+  } else {
+    $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+    if ($today_parts) {
+      $mstats = $this->CommonM->get_monthly_thaali_stats(
+        $today_parts['hijri_month'],
+        $today_parts['hijri_year']
+      );
+      $month_signed_up = (int) ($mstats['families_signed_up'] ?? 0);
+      $no_thaali_month_list = $mstats['no_thaali_list'] ?? [];
+    }
+  }
+
+  /* ==================================================
+     🔍 MIQAAT RSVP (WITH SIMPLE LOGGING)
+  ================================================== */
+  $this->load->helper('dashboard_log');
+
+  dashboard_log('Fetching miqaat RSVP');
+
+  $miqaat_rsvp = $this->CommonM->get_next_miqaat_rsvp_stats();
+
+  if (empty($miqaat_rsvp)) {
+    dashboard_log('Miqaat RSVP is EMPTY');
+  } else {
+    dashboard_log('Miqaat RSVP data received', [
+      'type'  => gettype($miqaat_rsvp),
+      'keys'  => is_array($miqaat_rsvp) ? array_keys($miqaat_rsvp) : null,
+      'count' => is_array($miqaat_rsvp) ? count($miqaat_rsvp) : 1
+    ]);
+  }
+
+  return [
+    'sabeel_summary' => $sabeel_summary,
+    'thaali_summary' => $thaali_summary,
+    'fmb_summary' => $fmb_summary,
+    'miqaat_summary' => $miqaat_summary,
+    'raza_summary' => $raza_summary,
+    'miqaat_finance' => $miqaat_finance,
+    'fmb_miqaats' => $fmb_miqaats,
+    'fmb_miqaats_items' => $fmb_miqaats_items,
+    'top_dues' => $top_dues,
+    'grade_breakdown' => $grade_breakdown,
+    'grade_breakdown_est' => $grade_breakdown,
+    'grade_breakdown_res' => $grade_breakdown_res,
+    'mohallah_breakdown' => $mohallah_breakdown,
+    'fmb_takhmeen_sector' => $fmb_takhmeen_sector['rows'],
+    'fmb_takhmeen_year' => $fmb_takhmeen_sector['year'],
+    'sabeel_takhmeen_sector' => $sabeel_takhmeen_sector['rows'],
+    'sabeel_takhmeen_year' => $sabeel_takhmeen_sector['year'],
+    'weekly_signups' => $weekly_signups,
+    'recent_members' => $recent_members,
+    'this_week_sector_signup_avg' => $this_week_sector_signup_avg,
+    'no_thaali_families' => $no_thaali_families,
+    'this_month_families_signed_up' => $month_signed_up,
+    'no_thaali_families_month' => $no_thaali_month_list,
+    'upcoming_miqaats' => $upcoming_miqaats,
+    'miqaat_rsvp' => $miqaat_rsvp,
+  ];
+}
+
 
   /**
    * Return list of HOF families who did not sign up for thaali on any day
