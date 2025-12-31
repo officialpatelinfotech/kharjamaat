@@ -481,7 +481,7 @@ class CommonM extends CI_Model
       if (!empty($rsvp_ids)) {
         // prepare hof id list as integers
         $in_hofs = implode(',', array_map(function ($v) {
-          return (int)$v;
+          return (int) $v;
         }, $rsvp_ids));
         // select users left-joined with general_rsvp for this miqaat and pick those with no rsvp (rsvp.id IS NULL)
         $sql_nr = "SELECT u.ITS_ID AS ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, u.HOF_ID, COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile
@@ -520,7 +520,7 @@ class CommonM extends CI_Model
       $base_active = "u.Inactive_Status IS NULL AND COALESCE(u.Sector,'') <> '' AND COALESCE(u.Sub_Sector,'') <> ''";
       if (!empty($rsvp_ids)) {
         $in_hofs = implode(',', array_map(function ($v) {
-          return (int)$v;
+          return (int) $v;
         }, $rsvp_ids));
         $sql_ns = "SELECT u.ITS_ID AS ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, u.HOF_ID, COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile
                    FROM `user` u
@@ -545,9 +545,9 @@ class CommonM extends CI_Model
       if (!empty($miqaat_pk)) {
         $g = $this->db->query("SELECT COALESCE(SUM(gents),0) AS gents, COALESCE(SUM(ladies),0) AS ladies, COALESCE(SUM(children),0) AS children FROM general_guest_rsvp WHERE miqaat_id = ?", [$miqaat_pk])->row_array();
         if ($g) {
-          $guest_summary['gents'] = isset($g['gents']) ? (int)$g['gents'] : 0;
-          $guest_summary['ladies'] = isset($g['ladies']) ? (int)$g['ladies'] : 0;
-          $guest_summary['children'] = isset($g['children']) ? (int)$g['children'] : 0;
+          $guest_summary['gents'] = isset($g['gents']) ? (int) $g['gents'] : 0;
+          $guest_summary['ladies'] = isset($g['ladies']) ? (int) $g['ladies'] : 0;
+          $guest_summary['children'] = isset($g['children']) ? (int) $g['children'] : 0;
           $guest_summary['total'] = $guest_summary['gents'] + $guest_summary['ladies'] + $guest_summary['children'];
         }
       }
@@ -569,10 +569,10 @@ class CommonM extends CI_Model
           WHERE gr.miqaat_id = ? AND u.Inactive_Status IS NULL AND COALESCE(u.Sector,'') <> '' AND COALESCE(u.Sub_Sector,'') <> ''";
         $mrow = $this->db->query($sql_ms, [$miqaat_pk])->row_array();
         if ($mrow) {
-          $member_summary['gents'] = isset($mrow['gents']) ? (int)$mrow['gents'] : 0;
-          $member_summary['ladies'] = isset($mrow['ladies']) ? (int)$mrow['ladies'] : 0;
-          $member_summary['children'] = isset($mrow['children']) ? (int)$mrow['children'] : 0;
-          $member_summary['total'] = isset($mrow['total']) ? (int)$mrow['total'] : ($member_summary['gents'] + $member_summary['ladies'] + $member_summary['children']);
+          $member_summary['gents'] = isset($mrow['gents']) ? (int) $mrow['gents'] : 0;
+          $member_summary['ladies'] = isset($mrow['ladies']) ? (int) $mrow['ladies'] : 0;
+          $member_summary['children'] = isset($mrow['children']) ? (int) $mrow['children'] : 0;
+          $member_summary['total'] = isset($mrow['total']) ? (int) $mrow['total'] : ($member_summary['gents'] + $member_summary['ladies'] + $member_summary['children']);
         }
       }
     } catch (Exception $e) {
@@ -608,6 +608,244 @@ class CommonM extends CI_Model
       'combined_summary' => $combined_summary
     ];
   }
+
+  public function get_next_miqaat_rsvp_stats_sector($sector, $miqaat_id = null)
+  {
+    /* ===============================
+       GUARD
+    =============================== */
+    if (empty($sector)) {
+      return [
+        'next_miqaat' => null,
+        'total_hof' => 0,
+        'rsvp_count' => 0,
+        'not_rsvp_count' => 0,
+        'rsvp_list' => [],
+        'rsvp_member_list' => [],
+        'rsvp_male_member_list' => [],
+        'rsvp_female_member_list' => [],
+        'rsvp_children_member_list' => [],
+        'not_rsvp_member_list' => [],
+        'not_submitted_member_list' => [],
+        'member_summary' => ['gents' => 0, 'ladies' => 0, 'children' => 0, 'total' => 0],
+        'combined_summary' => ['gents' => 0, 'ladies' => 0, 'children' => 0, 'total' => 0],
+      ];
+    }
+
+    $sector_esc = $this->db->escape($sector);
+
+    /* ===============================
+       FIND MIQAAT
+    =============================== */
+    if ($miqaat_id) {
+      $mi = $this->db->select('m.*')
+        ->from('miqaat m')
+        ->join('raza r', 'r.miqaat_id = m.id AND r.`Janab-status` = 1', 'inner')
+        ->where('m.id', $miqaat_id)
+        ->get()->row_array();
+    } else {
+      $mi = $this->db->select('m.*')
+        ->from('miqaat m')
+        ->join('raza r', 'r.miqaat_id = m.id AND r.`Janab-status` = 1', 'inner')
+        ->where('m.date >=', date('Y-m-d'))
+        ->where('m.status', 1)
+        ->order_by('m.date', 'ASC')
+        ->limit(1)
+        ->get()->row_array();
+    }
+
+    if (empty($mi)) {
+      return [
+        'next_miqaat' => null,
+        'total_hof' => 0,
+        'rsvp_count' => 0,
+        'not_rsvp_count' => 0,
+        'rsvp_list' => [],
+      ];
+    }
+
+    $miqaat_pk = (int) $mi['id'];
+
+    /* ===============================
+       TOTAL HOF (SECTOR ONLY)
+    =============================== */
+    $total_hof = (int) ($this->db
+      ->select('COUNT(*) total')
+      ->from('user')
+      ->where("HOF_FM_TYPE = 'HOF'")
+      ->where("Inactive_Status IS NULL", null, false)
+      ->where("Sector = {$sector_esc}", null, false)
+      ->where("COALESCE(Sub_Sector,'') <> ''", null, false)
+      ->get()->row()->total ?? 0);
+
+    /* ===============================
+       RSVP HOF IDS (SECTOR ONLY)
+    =============================== */
+    $rsvp_rows = $this->db->distinct()
+      ->select('gr.hof_id')
+      ->from('general_rsvp gr')
+      ->join('user u', 'u.ITS_ID = gr.hof_id')
+      ->where('gr.miqaat_id', $miqaat_pk)
+      ->where("u.Sector = {$sector_esc}", null, false)
+      ->get()->result_array();
+
+    $rsvp_ids = array_map('intval', array_column($rsvp_rows, 'hof_id'));
+    $rsvp_count = count($rsvp_ids);
+
+    /* ===============================
+       RSVP HOF LIST
+    =============================== */
+    $rsvp_list = [];
+    if (!empty($rsvp_ids)) {
+      $in = implode(',', $rsvp_ids);
+      $rsvp_list = $this->db->query("
+      SELECT ITS_ID, Full_Name, Sector, Sub_Sector,
+             COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') AS mobile
+      FROM user
+      WHERE ITS_ID IN ($in)
+        AND Sector = {$sector_esc}
+        AND COALESCE(Sub_Sector,'') <> ''
+      ORDER BY Sub_Sector, Full_Name
+    ")->result_array();
+    }
+
+    /* ===============================
+       RSVP MEMBER LISTS
+    =============================== */
+    $base_member_sql = "
+    FROM user u
+    JOIN general_rsvp gr ON gr.user_id = u.ITS_ID
+    WHERE gr.miqaat_id = ?
+      AND u.Sector = {$sector_esc}
+      AND COALESCE(u.Sub_Sector,'') <> ''
+  ";
+
+    $rsvp_member_list = $this->db->query("
+    SELECT u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector,
+           COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile
+    {$base_member_sql}
+    ORDER BY u.Sub_Sector, u.Full_Name
+  ", [$miqaat_pk])->result_array();
+
+    $rsvp_male_member_list = $this->db->query("
+    SELECT u.ITS_ID, u.Full_Name {$base_member_sql}
+      AND LOWER(u.Gender) = 'male'
+  ", [$miqaat_pk])->result_array();
+
+    $rsvp_female_member_list = $this->db->query("
+    SELECT u.ITS_ID, u.Full_Name {$base_member_sql}
+      AND LOWER(u.Gender) = 'female'
+  ", [$miqaat_pk])->result_array();
+
+    $rsvp_children_member_list = $this->db->query("
+    SELECT u.ITS_ID, u.Full_Name {$base_member_sql}
+      AND u.Age <= 15
+  ", [$miqaat_pk])->result_array();
+
+    /* ===============================
+       NOT RSVP MEMBER LIST
+       (members of RSVP’d HOFs who did not RSVP)
+    =============================== */
+    $not_rsvp_member_list = $this->db->query("
+    SELECT u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, u.HOF_ID,
+           COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile
+    FROM user u
+    LEFT JOIN general_rsvp gr
+      ON gr.user_id = u.ITS_ID AND gr.miqaat_id = ?
+    WHERE u.Inactive_Status IS NULL
+      AND u.Sector = {$sector_esc}
+      AND COALESCE(u.Sub_Sector,'') <> ''
+      AND gr.id IS NULL
+  ", [$miqaat_pk])->result_array();
+
+    /* ===============================
+       NOT SUBMITTED MEMBER LIST
+       (HOFs who NEVER submitted RSVP)
+    =============================== */
+    if (!empty($rsvp_ids)) {
+      $in = implode(',', $rsvp_ids);
+      $not_submitted_member_list = $this->db->query("
+      SELECT u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, u.HOF_ID,
+             COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile
+      FROM user u
+      WHERE u.Inactive_Status IS NULL
+        AND u.Sector = {$sector_esc}
+        AND u.HOF_FM_TYPE = 'HOF'
+        AND COALESCE(u.Sub_Sector,'') <> ''
+        AND u.ITS_ID NOT IN ($in)
+      ORDER BY u.Sub_Sector, u.Full_Name
+    ")->result_array();
+    } else {
+      $not_submitted_member_list = $this->db->query("
+      SELECT u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, u.HOF_ID,
+             COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile
+      FROM user u
+      WHERE u.Inactive_Status IS NULL
+        AND u.Sector = {$sector_esc}
+        AND u.HOF_FM_TYPE = 'HOF'
+        AND COALESCE(u.Sub_Sector,'') <> ''
+      ORDER BY u.Sub_Sector, u.Full_Name
+    ")->result_array();
+    }
+
+    /* ===============================
+       🔁 FINAL SWAP + COUNTS
+    =============================== */
+    $final_not_rsvp_list = $not_submitted_member_list;        // HOF never RSVP
+    $final_not_rsvp_count = count($final_not_rsvp_list);
+
+    $final_not_submitted_list = $not_rsvp_member_list;        // member-level
+    $final_not_submitted_count = count($final_not_submitted_list);
+
+    /* ===============================
+       MEMBER SUMMARY
+    =============================== */
+    $m = $this->db->query("
+    SELECT
+      SUM(CASE WHEN u.Age <= 15 THEN 1 ELSE 0 END) AS children,
+      SUM(CASE WHEN u.Age > 15 AND LOWER(u.Gender)='male' THEN 1 ELSE 0 END) AS gents,
+      SUM(CASE WHEN u.Age > 15 AND LOWER(u.Gender)='female' THEN 1 ELSE 0 END) AS ladies,
+      COUNT(DISTINCT gr.user_id) AS total
+    FROM general_rsvp gr
+    JOIN user u ON u.ITS_ID = gr.user_id
+    WHERE gr.miqaat_id = ?
+      AND u.Sector = {$sector_esc}
+  ", [$miqaat_pk])->row_array();
+
+    $member_summary = [
+      'gents' => (int) ($m['gents'] ?? 0),
+      'ladies' => (int) ($m['ladies'] ?? 0),
+      'children' => (int) ($m['children'] ?? 0),
+      'total' => (int) ($m['total'] ?? 0),
+    ];
+
+    return [
+      'next_miqaat' => $mi,
+      'total_hof' => $total_hof,
+      'rsvp_count' => $rsvp_count,
+
+      'not_rsvp_count' => $final_not_rsvp_count,
+      'not_rsvp_member_list' => $final_not_rsvp_list,
+
+      'not_submitted_count' => $final_not_submitted_count,
+      'not_submitted_member_list' => $final_not_submitted_list,
+
+      'rsvp_list' => $rsvp_list,
+      'rsvp_member_list' => $rsvp_member_list,
+      'rsvp_male_member_list' => $rsvp_male_member_list,
+      'rsvp_female_member_list' => $rsvp_female_member_list,
+      'rsvp_children_member_list' => $rsvp_children_member_list,
+
+      'member_summary' => $member_summary,
+      'combined_summary' => $member_summary
+    ];
+  }
+
+
+
+
+
+
 
   public function get_fmb_user_details($year = null, $name_filter = null, $amount_zero = null)
   {
@@ -2117,6 +2355,25 @@ class CommonM extends CI_Model
     return $this->db->count_all_results();
   }
 
+  public function get_rsvp_by_miqaat_sector($miqaat_id, $sector)
+{
+  if (empty($sector) || empty($miqaat_id)) {
+    return 0;
+  }
+
+  $this->db->from('general_rsvp gr');
+  $this->db->join('user u', 'u.ITS_ID = gr.user_id', 'inner');
+  $this->db->where('gr.miqaat_id', (int)$miqaat_id);
+  $this->db->where('u.Sector', $sector);
+
+  // keep consistency with rest of logic
+  $this->db->where("COALESCE(u.Sub_Sector,'') <> ''", null, false);
+  $this->db->where('u.Inactive_Status IS NULL', null, false);
+
+  return (int)$this->db->count_all_results();
+}
+
+
   public function get_members_with_rsvp($miqaat_id)
   {
     $this->db->select('u.ITS_ID, u.full_name, u.mobile, u.sector, u.sub_sector, IF(rsvp.id IS NOT NULL, 1, 0) as rsvp_status');
@@ -2125,6 +2382,36 @@ class CommonM extends CI_Model
     $this->db->order_by('u.sector, u.Sub_Sector, u.full_name', 'ASC');
     return $this->db->get()->result_array();
   }
+
+  public function get_members_with_rsvp_sector($miqaat_id, $sector)
+  {
+    $this->db->select("
+    u.ITS_ID,
+    u.Full_Name,
+    u.Mobile,
+    u.Sector,
+    u.Sub_Sector,
+    IF(rsvp.id IS NOT NULL, 1, 0) AS rsvp_status
+  ");
+    $this->db->from('user u');
+    $this->db->join(
+      'general_rsvp rsvp',
+      'u.ITS_ID = rsvp.user_id AND rsvp.miqaat_id = ' . (int) $miqaat_id,
+      'left'
+    );
+
+    // ✅ sector filter
+    $this->db->where('u.Sector', $sector);
+
+    // (optional but recommended – matches rest of your logic)
+    $this->db->where("COALESCE(u.Sub_Sector,'') <> ''", null, false);
+    $this->db->where('u.Inactive_Status IS NULL', null, false);
+
+    $this->db->order_by('u.Sector, u.Sub_Sector, u.Full_Name', 'ASC');
+
+    return $this->db->get()->result_array();
+  }
+
 
   public function generate_miqaat_id($year)
   {

@@ -179,24 +179,28 @@ class AdminM extends CI_Model
   {
     $todayGreg = date('Y-m-d');
     $currentHijri = $this->HijriCalendar->get_hijri_date($todayGreg);
-    if (!$currentHijri || empty($currentHijri['hijri_date'])) return;
+    if (!$currentHijri || empty($currentHijri['hijri_date']))
+      return;
     $partsNow = explode('-', $currentHijri['hijri_date']); // d-m-Y
-    if (count($partsNow) < 3) return;
-    $currentMonth = (int)$partsNow[1];
-    $currentYear  = (int)$partsNow[2];
-    $nextYear     = $currentYear + 1;
+    if (count($partsNow) < 3)
+      return;
+    $currentMonth = (int) $partsNow[1];
+    $currentYear = (int) $partsNow[2];
+    $nextYear = $currentYear + 1;
 
     $nextYearExists = $this->db->like('hijri_date', '-' . $nextYear)->limit(1)->get('hijri_calendar')->num_rows() > 0;
-    if ($nextYearExists) return;
+    if ($nextYearExists)
+      return;
 
     $monthsRemaining = 12 - $currentMonth;
-    if ($monthsRemaining > 6) return;
+    if ($monthsRemaining > 6)
+      return;
 
     $get_last_date = "SELECT * FROM hijri_calendar ORDER BY greg_date DESC LIMIT 1";
     $last_date = $this->db->query($get_last_date)->result_array();
     $last_greg_date = $last_date[0]["greg_date"];
 
-    $last_hijri_date = (int)explode("-", $last_date[0]["hijri_date"])[2] + 1;
+    $last_hijri_date = (int) explode("-", $last_date[0]["hijri_date"])[2] + 1;
 
     $position_in_cycle = $last_hijri_date % 30;
     $leap_years = [2, 5, 8, 10, 13, 16, 19, 21, 24, 27, 29];
@@ -214,8 +218,9 @@ class AdminM extends CI_Model
         $upcoming_year_hijri_date = preg_replace("/1442/", $last_hijri_date, $hijri_dates[$day]["hijri_date"]);
       } else {
         $upcoming_year_hijri_date = "30-12-" . $last_hijri_date;
-      };
-      $month_number = (int)explode("-", $upcoming_year_hijri_date)[1];
+      }
+      ;
+      $month_number = (int) explode("-", $upcoming_year_hijri_date)[1];
       $new_greg_date = $last_greg_date->add(new DateInterval('P1D'))->format('Y-m-d');
       $new_hijri_date = array(
         "greg_date" => $new_greg_date,
@@ -413,7 +418,7 @@ class AdminM extends CI_Model
     $ok = $this->db->update("fmb_takhmeen", ["total_amount" => $data["fmb_takhmeen_amount"], "remark" => isset($data["remark"]) ? $data["remark"] : null]);
 
     // Best-effort audit log if table exists and remark provided
-    if ($ok && isset($data['remark']) && trim((string)$data['remark']) !== '') {
+    if ($ok && isset($data['remark']) && trim((string) $data['remark']) !== '') {
       $remark = trim($data['remark']);
       $updated_by = isset($data['updated_by']) ? $data['updated_by'] : 'admin';
       $old_amount = isset($existing['total_amount']) ? $existing['total_amount'] : null;
@@ -448,9 +453,9 @@ class AdminM extends CI_Model
       $current_hijri_year = null;
     }
 
-  // 🔹 Step 2: Fetch all raw rows (without duplicate payment join)
-  // Coalesce numeric grade amounts to 0 so PHP receives numeric values (no NULLs)
-  $this->db->select("
+    // 🔹 Step 2: Fetch all raw rows (without duplicate payment join)
+    // Coalesce numeric grade amounts to 0 so PHP receives numeric values (no NULLs)
+    $this->db->select("
     u.ITS_ID,
     u.First_Name,
     u.Surname,
@@ -518,7 +523,7 @@ class AdminM extends CI_Model
     $paymentIndex = [];
     foreach ($payments as $p) {
       // index by user_id -> type ('establishment'|'residential') => total_paid (numeric)
-      $paymentIndex[$p['user_id']][$p['type']] = isset($p['total_paid']) ? (float)$p['total_paid'] : 0.0;
+      $paymentIndex[$p['user_id']][$p['type']] = isset($p['total_paid']) ? (float) $p['total_paid'] : 0.0;
     }
 
     // 🔹 Step 4: Restructure into grouped users
@@ -546,9 +551,9 @@ class AdminM extends CI_Model
         $resPaid = $paymentIndex[$itsId]['residential'] ?? 0.0;
 
         // Ensure amounts are numeric (COALESCE above helps, but double-guard here)
-        $est_amount = isset($row['establishment_amount']) ? (float)$row['establishment_amount'] : 0.0;
-        $res_amount = isset($row['residential_amount']) ? (float)$row['residential_amount'] : 0.0;
-        $res_yearly_amount = isset($row['residential_yearly_amount']) ? (float)$row['residential_yearly_amount'] : ($res_amount ? $res_amount * 12 : 0.0);
+        $est_amount = isset($row['establishment_amount']) ? (float) $row['establishment_amount'] : 0.0;
+        $res_amount = isset($row['residential_amount']) ? (float) $row['residential_amount'] : 0.0;
+        $res_yearly_amount = isset($row['residential_yearly_amount']) ? (float) $row['residential_yearly_amount'] : ($res_amount ? $res_amount * 12 : 0.0);
 
         $takhmeenEntry = [
           'id' => $row['takhmeen_id'],
@@ -557,15 +562,15 @@ class AdminM extends CI_Model
             'grade' => $row['establishment_grade'],
             'yearly' => $est_amount,
             'monthly' => $est_amount ? round($est_amount / 12, 2) : 0.0,
-            'paid' => (float)$estPaid,
-            'due' => max(0, $est_amount - (float)$estPaid),
+            'paid' => (float) $estPaid,
+            'due' => max(0, $est_amount - (float) $estPaid),
           ],
           'residential' => [
             'grade' => $row['residential_grade'],
             'monthly' => $res_amount,
             'yearly' => $res_yearly_amount,
-            'paid' => (float)$resPaid,
-            'due' => max(0, $res_yearly_amount - (float)$resPaid),
+            'paid' => (float) $resPaid,
+            'due' => max(0, $res_yearly_amount - (float) $resPaid),
           ]
         ];
 
@@ -651,9 +656,9 @@ class AdminM extends CI_Model
     $selected = $this->db->get()->row_array();
 
     return [
-      "grades"   => $grades,
+      "grades" => $grades,
       "selected" => $selected,
-      "year"     => $year
+      "year" => $year
     ];
   }
 
@@ -663,11 +668,17 @@ class AdminM extends CI_Model
     $takhmeen_id = $data["takhmeen_id"];
     $establishment_grade = $data["establishment_grade"];
     $residential_grade = $data["residential_grade"];
-    if (!$user_id || !$takhmeen_id) return false;
+    if (!$user_id || !$takhmeen_id)
+      return false;
     $update = [];
-    if (!empty($establishment_grade)) { $update['establishment_grade'] = $establishment_grade; }
-    if (!empty($residential_grade))   { $update['residential_grade']   = $residential_grade; }
-    if (empty($update)) return false; // nothing to update
+    if (!empty($establishment_grade)) {
+      $update['establishment_grade'] = $establishment_grade;
+    }
+    if (!empty($residential_grade)) {
+      $update['residential_grade'] = $residential_grade;
+    }
+    if (empty($update))
+      return false; // nothing to update
 
     $this->db->where("user_id", $user_id);
     $this->db->where("id", $takhmeen_id);
@@ -676,7 +687,8 @@ class AdminM extends CI_Model
 
   public function deletesabeeltakhmeen($takhmeen_id)
   {
-    if (!$takhmeen_id) return false;
+    if (!$takhmeen_id)
+      return false;
     $this->db->where('id', $takhmeen_id);
     return $this->db->delete('sabeel_takhmeen');
   }
@@ -831,7 +843,8 @@ class AdminM extends CI_Model
     $map = [];
     foreach ($rows as $r) {
       $sector = $r['Sector'];
-      if (!isset($map[$sector])) $map[$sector] = [];
+      if (!isset($map[$sector]))
+        $map[$sector] = [];
       $sub = $r['Sub_Sector'];
       if ($sub !== null && $sub !== '' && !in_array($sub, $map[$sector], true)) {
         $map[$sector][] = $sub;
@@ -984,10 +997,35 @@ class AdminM extends CI_Model
     $query = $this->db->query($sql);
     $result = $query->row_array();
     if (!empty($result['user_count'])) {
-      return (int)$result['user_count'];
+      return (int) $result['user_count'];
     }
     return 0;
   }
+  public function get_active_member_count_sector($sector)
+  {
+    if (empty($sector)) {
+      return 0;
+    }
+
+    $sql = "
+    SELECT COUNT(*) AS user_count
+    FROM `user`
+    WHERE (Sector IS NOT NULL AND TRIM(Sector) <> '')
+      AND (Sub_Sector IS NOT NULL AND TRIM(Sub_Sector) <> '')
+      AND (Inactive_Status IS NULL OR TRIM(Inactive_Status) = '')
+      AND Sector = ?
+  ";
+
+    $query = $this->db->query($sql, [$sector]);
+    $result = $query->row_array();
+
+    if (!empty($result['user_count'])) {
+      return (int) $result['user_count'];
+    }
+
+    return 0;
+  }
+
   public function addMumineen($data, $logindata)
   {
     $this->db->trans_start();
@@ -1011,9 +1049,9 @@ class AdminM extends CI_Model
     $loginPayload = [
       'username' => $itsId,
       'password' => isset($logindata['password']) ? $logindata['password'] : md5($itsId),
-      'hof'      => $hofId,
-      'role'     => isset($logindata['role']) ? $logindata['role'] : 0,
-      'active'   => isset($logindata['active']) ? $logindata['active'] : 1,
+      'hof' => $hofId,
+      'role' => isset($logindata['role']) ? $logindata['role'] : 0,
+      'active' => isset($logindata['active']) ? $logindata['active'] : 1,
     ];
 
     // Create login only if it doesn't already exist
@@ -1038,7 +1076,8 @@ class AdminM extends CI_Model
   /* ================= Member Maintenance (Edit / Update) ================= */
   public function get_member_by_its($its_id)
   {
-    if (!$its_id) return null;
+    if (!$its_id)
+      return null;
     return $this->db->where('ITS_ID', $its_id)->get('user')->row_array();
   }
 
@@ -1052,7 +1091,8 @@ class AdminM extends CI_Model
 
   public function update_member($its_id, $data)
   {
-    if (!$its_id || empty($data)) return false;
+    if (!$its_id || empty($data))
+      return false;
     $this->db->where('ITS_ID', $its_id);
     return $this->db->update('user', $data);
   }
@@ -1065,8 +1105,10 @@ class AdminM extends CI_Model
   {
     $this->db->from('user');
     if (!empty($filters['status'])) {
-      if ($filters['status'] === 'active') $this->db->where('Inactive_Status IS NULL', null, false);
-      elseif ($filters['status'] === 'inactive') $this->db->where('Inactive_Status IS NOT NULL', null, false);
+      if ($filters['status'] === 'active')
+        $this->db->where('Inactive_Status IS NULL', null, false);
+      elseif ($filters['status'] === 'inactive')
+        $this->db->where('Inactive_Status IS NOT NULL', null, false);
     }
     if (!empty($filters['sector'])) {
       $this->db->where('Sector', $filters['sector']);
@@ -1167,16 +1209,20 @@ class AdminM extends CI_Model
     ];
     $clean = [];
     foreach ($allowed as $f) {
-      if (isset($row[$f]) && $row[$f] !== '') $clean[$f] = trim($row[$f]);
+      if (isset($row[$f]) && $row[$f] !== '')
+        $clean[$f] = trim($row[$f]);
     }
-    if (empty($clean['Full_Name'])) return 'skipped';
+    if (empty($clean['Full_Name']))
+      return 'skipped';
     if (!$exists) {
       // Default new imports to HOF_FM_TYPE FM unless self-referencing later corrections
-      if (!isset($clean['HOF_FM_TYPE'])) $clean['HOF_FM_TYPE'] = 'FM';
+      if (!isset($clean['HOF_FM_TYPE']))
+        $clean['HOF_FM_TYPE'] = 'FM';
       $this->db->insert('user', $clean);
       return 'inserted';
     } else {
-      if (empty($clean)) return 'skipped';
+      if (empty($clean))
+        return 'skipped';
       $this->db->where('ITS_ID', $its)->update('user', $clean);
       return 'updated';
     }
@@ -1189,7 +1235,8 @@ class AdminM extends CI_Model
    */
   public function mark_members_moved_out($currentItsIds)
   {
-    if (!is_array($currentItsIds)) return 0;
+    if (!is_array($currentItsIds))
+      return 0;
     // Ensure sanitized ITS IDs
     $cleanIds = array_values(array_filter(array_map('trim', $currentItsIds), function ($v) {
       return $v !== '';
@@ -1347,9 +1394,9 @@ class AdminM extends CI_Model
         $loginRow = [
           'username' => $itsId,
           'password' => md5($itsId), // default password = ITS ID (hashed)
-          'role'     => 0,
-          'hof'      => $hofId,
-          'active'   => 1,
+          'role' => 0,
+          'hof' => $hofId,
+          'active' => 1,
         ];
         $this->db->insert('login', $loginRow);
       }

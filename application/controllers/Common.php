@@ -1853,61 +1853,99 @@ class Common extends CI_Controller
 
 
 
-
-
-
-
-
-
   public function rsvp_list()
   {
     $this->validateUser($_SESSION["user"]);
+
     $from = $this->input->get('from');
     $_SESSION["from"] = $from;
+
     $data['from'] = $from;
     $data["active_controller"] = $from ? base_url($from) : base_url();
     $data['user_name'] = $_SESSION['user']['username'];
 
-    // Fetch all miqaat dates and their RSVP lists
+    /* ===============================
+       FETCH MIQAATS
+    =============================== */
     $miqaats = $this->CommonM->get_miqaats();
 
-    // Filter to upcoming miqaats (date >= today) and sort ascending (earliest upcoming first)
+    // Upcoming miqaats only
     if (!empty($miqaats) && is_array($miqaats)) {
       $today = date('Y-m-d');
-      $miqaats = array_filter($miqaats, function($m) use ($today) {
+
+      $miqaats = array_filter($miqaats, function ($m) use ($today) {
         $d = isset($m['miqaat_date']) ? substr($m['miqaat_date'], 0, 10) : '';
         return $d >= $today;
       });
-      usort($miqaats, function($a, $b) {
+
+      usort($miqaats, function ($a, $b) {
         $ta = isset($a['miqaat_date']) ? strtotime($a['miqaat_date']) : 0;
         $tb = isset($b['miqaat_date']) ? strtotime($b['miqaat_date']) : 0;
         return $ta <=> $tb;
       });
+
       $miqaats = array_values($miqaats);
     }
 
-    // For each miqaat, fetch RSVP records
+    /* ===============================
+       RSVP BY MIQAAT (ROLE BASED)
+    =============================== */
     $rsvp_by_miqaat = [];
+
+    $user = $_SESSION['user'];
+    $role = (int) ($user['role'] ?? 0);
+
+    if ($role === 16) {
+      // 🔒 Sector user
+      $sector = $user['username']; // username = sector
+    }
+
     foreach ($miqaats as $miqaat) {
-      $rsvp = $this->CommonM->get_rsvp_by_miqaat($miqaat['miqaat_id']);
+      if ($role === 16) {
+        // sector-only RSVP count
+        $rsvp = $this->CommonM->get_rsvp_by_miqaat_sector(
+          $miqaat['miqaat_id'],
+          $sector
+        );
+      } else {
+        // full RSVP count
+        $rsvp = $this->CommonM->get_rsvp_by_miqaat(
+          $miqaat['miqaat_id']
+        );
+      }
+
       $rsvp_by_miqaat[$miqaat['miqaat_id']] = $rsvp;
     }
 
     $data['miqaats'] = $miqaats;
     $data['rsvp_by_miqaat'] = $rsvp_by_miqaat;
 
-    $from = $_SESSION["from"];
-    $data["from"] = $from;
-    // Total members for RSVP list header (only active members with sector/sub_sector)
+    /* ===============================
+       TOTAL MEMBERS (ROLE BASED)
+    =============================== */
     $this->load->model('AdminM');
-    $data['total_members'] = $this->AdminM->get_active_member_count();
+
+    if ($role === 16) {
+      $data['total_members'] =
+        $this->AdminM->get_active_member_count_sector($sector);
+    } else {
+      $data['total_members'] =
+        $this->AdminM->get_active_member_count();
+    }
+
+    /* ===============================
+       RENDER
+    =============================== */
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/RSVPList', $data);
   }
 
+
+
   public function rsvp_details($miqaat_id = null)
   {
     $this->validateUser($_SESSION["user"]);
+
     if (!$miqaat_id) {
       $this->session->set_flashdata('error', 'Invalid Miqaat.');
       redirect('common/rsvp_list');
@@ -1916,7 +1954,9 @@ class Common extends CI_Controller
     $data["active_controller"] = $_SESSION["from"];
     $data['user_name'] = $_SESSION['user']['username'];
 
-    // Fetch miqaat details
+    /* ===============================
+       MIQAAT DETAILS
+    =============================== */
     $miqaat = $this->CommonM->get_miqaat_by_id($miqaat_id);
     if (!$miqaat) {
       $this->session->set_flashdata('error', 'Miqaat not found.');
@@ -1924,7 +1964,9 @@ class Common extends CI_Controller
     }
     $data['miqaat'] = $miqaat;
 
-    // Fetch hijri date and month name for this miqaat
+    /* ===============================
+       HIJRI DATE
+    =============================== */
     $hijri = null;
     if (!empty($miqaat['date'])) {
       $hijri = $this->CommonM->get_hijri_date_by_greg_date($miqaat['date']);
@@ -1932,15 +1974,32 @@ class Common extends CI_Controller
       $hijri = $this->CommonM->get_hijri_date_by_greg_date($miqaat['miqaat_date']);
     }
     $data['hijri_date'] = $hijri;
-    // Fetch RSVP records for this miqaat
-    $rsvp = $this->CommonM->get_members_with_rsvp($miqaat_id);
+
+    /* ===============================
+       RSVP LIST (ROLE BASED)
+    =============================== */
+    $user = $_SESSION['user'];
+    $role = (int) ($user['role'] ?? 0);
+
+    if ($role === 16) {
+      // 🔒 Sector user → sector-based RSVP
+      $sector = $user['username']; // sector = username
+      $rsvp = $this->CommonM->get_members_with_rsvp_sector($miqaat_id, $sector);
+    } else {
+      // 👑 Admin / others → full RSVP list
+      $rsvp = $this->CommonM->get_members_with_rsvp($miqaat_id);
+    }
+
     $data['rsvp'] = $rsvp;
 
-    $from = $_SESSION["from"];
-    $data["from"] = $from;
+    /* ===============================
+       RENDER
+    =============================== */
+    $data["from"] = $_SESSION["from"];
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/RSVPDetails', $data);
   }
+
 
   // Delivery Person Management
   public function deliverydashboard()
@@ -2570,7 +2629,7 @@ class Common extends CI_Controller
    */
   public function miqaat_rsvp_user_counts()
   {
-    $miqaat_id = (int)$this->input->get('miqaat_id');
+    $miqaat_id = (int) $this->input->get('miqaat_id');
     $this->output->set_content_type('application/json');
     if (!$miqaat_id) {
       echo json_encode(['success' => false, 'message' => 'miqaat_id required']);
@@ -2583,13 +2642,13 @@ class Common extends CI_Controller
             JOIN `user` u ON u.ITS_ID = gr.user_id
             WHERE gr.miqaat_id = ? AND u.Inactive_Status IS NULL AND COALESCE(u.Sector,'') <> '' AND COALESCE(u.Sub_Sector,'') <> ''";
     $row1 = $this->db->query($sql1, [$miqaat_id])->row_array();
-    $will_attend_members = isset($row1['will_attend']) ? (int)$row1['will_attend'] : 0;
+    $will_attend_members = isset($row1['will_attend']) ? (int) $row1['will_attend'] : 0;
 
     // Include guest counts submitted via general_guest_rsvp (gents+ladies+children)
     $guest_row = $this->db->query("SELECT COALESCE(SUM(gents),0) AS gents, COALESCE(SUM(ladies),0) AS ladies, COALESCE(SUM(children),0) AS children FROM general_guest_rsvp WHERE miqaat_id = ?", [$miqaat_id])->row_array();
     $guest_total = 0;
     if ($guest_row) {
-      $guest_total = (int)($guest_row['gents'] ?? 0) + (int)($guest_row['ladies'] ?? 0) + (int)($guest_row['children'] ?? 0);
+      $guest_total = (int) ($guest_row['gents'] ?? 0) + (int) ($guest_row['ladies'] ?? 0) + (int) ($guest_row['children'] ?? 0);
     }
 
     // Final will_attend includes both individual members who RSVP'd and guest counts
@@ -2598,7 +2657,7 @@ class Common extends CI_Controller
     // Get distinct hof_ids that have at least one RSVP (exclude null/empty)
     $hof_rows = $this->db->query("SELECT DISTINCT hof_id FROM general_rsvp WHERE miqaat_id = ?", [$miqaat_id])->result_array();
     $hof_ids = array_values(array_filter(array_map(function ($r) {
-      return isset($r['hof_id']) ? (int)$r['hof_id'] : 0;
+      return isset($r['hof_id']) ? (int) $r['hof_id'] : 0;
     }, $hof_rows), function ($v) {
       return $v > 0;
     }));
@@ -2606,7 +2665,7 @@ class Common extends CI_Controller
     // Also get distinct user_ids who submitted RSVP for this miqaat (cleaned)
     $rsvp_user_rows = $this->db->query("SELECT DISTINCT user_id FROM general_rsvp WHERE miqaat_id = ?", [$miqaat_id])->result_array();
     $rsvp_user_ids = array_values(array_filter(array_map(function ($r) {
-      return isset($r['user_id']) ? (int)$r['user_id'] : 0;
+      return isset($r['user_id']) ? (int) $r['user_id'] : 0;
     }, $rsvp_user_rows), function ($v) {
       return $v > 0;
     }));
@@ -2623,15 +2682,15 @@ class Common extends CI_Controller
       if (!empty($rsvp_user_ids)) {
         $this->db->where_not_in('u.ITS_ID', $rsvp_user_ids);
       }
-      $will_not_attend = (int)$this->db->count_all_results();
+      $will_not_attend = (int) $this->db->count_all_results();
 
       // Users whose family has not submitted RSVP (their HOF is not in hof_ids)
       $this->db->from('user u')->where($base_where, null, false)->where_not_in('u.HOF_ID', $hof_ids);
-      $not_submitted = (int)$this->db->count_all_results();
+      $not_submitted = (int) $this->db->count_all_results();
     } else {
       // No family RSVP at all: will_not_attend = 0; not_submitted = total active users
       $this->db->from('user u')->where($base_where, null, false);
-      $not_submitted = (int)$this->db->count_all_results();
+      $not_submitted = (int) $this->db->count_all_results();
       $will_not_attend = 0;
     }
 

@@ -101,87 +101,275 @@ class MasoolMusaid extends CI_Controller
 
   public function index()
   {
-    // 🔐 Auth
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
-      redirect('/accounts');
-    }
+    try {
 
-    $username = $_SESSION['user']['username'];
-    $data['user_name'] = $username;
+      /* ===============================
+         STEP 1: AUTH
+      ================================ */
+      if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+        redirect('/accounts');
+      }
 
-    $this->load->model('CommonM');
-    $this->load->model('HijriCalendar');
+      $username = $_SESSION['user']['username'];
+      $data['user_name'] = $username;
 
-    /* ===============================
-       ✅ EARLY JSON HANDLER (CRITICAL)
-    ================================ */
-    if ($this->input->get('format') === 'json') {
+      /* ===============================
+         STEP 2: MODELS
+      ================================ */
+      $this->load->model('CommonM');
+      $this->load->model('HijriCalendar');
 
-      $hijri_year = (int) $this->input->get('hijri_year');
-      $hijri_month = (int) $this->input->get('hijri_month');
+      /* ==========================================================
+         STEP 3: EARLY JSON HANDLER (MULTI-ENDPOINT)
+      ========================================================== */
+      if ($this->input->get('format') === 'json') {
 
-      if ($hijri_year && $hijri_month) {
+        /* ---------- Monthly stats ---------- */
+        $hijri_year = (int) $this->input->get('hijri_year');
+        $hijri_month = (int) $this->input->get('hijri_month');
 
-        // 🔥 SAME METHOD AS ANJUMAN
-        $mstats = $this->CommonM
-          ->get_monthly_thaali_stats($hijri_month, $hijri_year, $username);
+        if ($hijri_year && $hijri_month) {
 
+          $mstats = $this->CommonM
+            ->get_monthly_thaali_stats($hijri_month, $hijri_year, $username);
+
+          return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+              'success' => true,
+              'monthly_stats' => $mstats
+            ]));
+        }
+
+        /* ---------- Miqaat RSVP ---------- */
+        // if ($this->input->get('miqaat_rsvp')) {
+
+        //   $miqaat_id = (int) $this->input->get('miqaat_id');
+
+        //   $m = $miqaat_id
+        //     ? $this->CommonM->get_next_miqaat_rsvp_stats($miqaat_id)
+        //     : $this->CommonM->get_next_miqaat_rsvp_stats();
+
+        //   return $this->output
+        //     ->set_content_type('application/json')
+        //     ->set_output(json_encode([
+        //       'success' => true,
+        //       'miqaat_rsvp' => $m
+        //     ]));
+        // }
+
+        /* ---------- Miqaat RSVP ---------- */
+        if ($this->input->get('miqaat_rsvp')) {
+
+          $miqaat_id = (int) $this->input->get('miqaat_id');
+          $sector = $username; // Sector Incharge: username = sector
+
+          $m = $miqaat_id
+            ? $this->CommonM->get_next_miqaat_rsvp_stats_sector($sector, $miqaat_id)
+            : $this->CommonM->get_next_miqaat_rsvp_stats_sector($sector);
+
+          return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+              'success' => true,
+              'miqaat_rsvp' => $m
+            ]));
+        }
+
+
+        /* ---------- Previous miqaat ---------- */
+        if ($this->input->get('miqaat_prev')) {
+
+          $before_date = $this->input->get('before_date');
+
+          $payload = ['success' => false, 'miqaat' => null];
+
+          if ($before_date) {
+            $row = $this->db->query(
+              "SELECT id, name, type, date, assigned_to
+             FROM miqaat
+             WHERE date < ?
+             ORDER BY date DESC
+             LIMIT 1",
+              [$before_date]
+            )->row_array();
+
+            if ($row) {
+              $hparts = $this->HijriCalendar
+                ->get_hijri_parts_by_greg_date($row['date']);
+
+              $row['hijri_parts'] = $hparts;
+              $row['hijri_label'] = ($hparts && isset($hparts['hijri_day']))
+                ? trim(
+                  ($hparts['hijri_day'] ?? '') . ' ' .
+                  ($hparts['hijri_month_name'] ?? $hparts['hijri_month'] ?? '') . ' ' .
+                  ($hparts['hijri_year'] ?? '')
+                )
+                : '';
+
+              $payload = ['success' => true, 'miqaat' => $row];
+            }
+          }
+
+          return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($payload));
+        }
+
+        /* ---------- Unknown JSON ---------- */
         return $this->output
           ->set_content_type('application/json')
           ->set_output(json_encode([
-            'success' => true,
-            'monthly_stats' => $mstats
+            'success' => false,
+            'error' => 'Unknown JSON request'
           ]));
       }
 
-      return $this->output
-        ->set_content_type('application/json')
-        ->set_output(json_encode([
-          'success' => false,
-          'error' => 'Missing hijri month/year'
-        ]));
+      /* ==========================================================
+         STEP 4: HIJRI SELECTION (HTML)
+      ========================================================== */
+      $hijri_year = $this->input->get('hijri_year');
+      $hijri_month = $this->input->get('hijri_month');
+
+      if ($hijri_year && $hijri_month) {
+        $data['selected_hijri_parts'] = compact('hijri_year', 'hijri_month');
+      } else {
+        $data['selected_hijri_parts'] =
+          $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+      }
+
+      /* ===============================
+         STEP 5: WEEKLY STATS
+      ================================ */
+      $start_date = date('Y-m-d', strtotime('last monday'));
+      $end_date = date('Y-m-d', strtotime('next sunday'));
+
+      $data['weekly_signup_avg'] =
+        $this->CommonM->get_weekly_thaali_by_username(
+          $username,
+          $start_date,
+          $end_date
+        );
+
+      /* ===============================
+         STEP 6: MONTHLY STATS
+      ================================ */
+      $data['month_stats'] =
+        $this->CommonM->get_monthly_thaali_by_username(
+          $username,
+          $data['selected_hijri_parts']['hijri_month'],
+          $data['selected_hijri_parts']['hijri_year']
+        );
+
+      /* ===============================
+         STEP 7: DASHBOARD SUMMARY
+      ================================ */
+      $data['dashboard_data'] = $this->get_dashboard_summary_data();
+
+      /* ===============================
+         STEP 8: RENDER
+      ================================ */
+      $this->load->view('MasoolMusaid/Header', $data);
+      $this->load->view('MasoolMusaid/Home', $data);
+
+    } catch (Throwable $e) {
+      show_error('Dashboard error. Please try again later.', 500);
     }
-
-    /* ===============================
-       NORMAL PAGE LOAD (HTML)
-    ================================ */
-
-    // 📅 Hijri selection
-    $hijri_year = $this->input->get('hijri_year');
-    $hijri_month = $this->input->get('hijri_month');
-
-    if ($hijri_year && $hijri_month) {
-      $data['selected_hijri_parts'] = [
-        'hijri_year' => $hijri_year,
-        'hijri_month' => $hijri_month
-      ];
-    } else {
-      $data['selected_hijri_parts'] =
-        $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-    }
-
-    // 📊 Weekly
-    $start_date = date('Y-m-d', strtotime('monday this week'));
-    $end_date = date('Y-m-d', strtotime('sunday this week'));
-
-    $data['weekly_signup_avg'] =
-      $this->CommonM->get_weekly_thaali_by_username(
-        $username,
-        $start_date,
-        $end_date
-      );
-
-    // 📆 Monthly (for cards only)
-    $data['month_stats'] =
-      $this->CommonM->get_monthly_thaali_by_username(
-        $username,
-        $data['selected_hijri_parts']['hijri_month'],
-        $data['selected_hijri_parts']['hijri_year']
-      );
-
-    $this->load->view('MasoolMusaid/Header', $data);
-    $this->load->view('MasoolMusaid/Home', $data);
   }
+
+
+
+
+  /* ================================================= */
+
+  private function get_dashboard_summary_data()
+  {
+    $this->load->helper('dashboard_log');
+    $this->load->model('HijriCalendar');
+    $this->load->model('CommonM');
+
+    // Logged-in user (role 16 => username == sector)
+    $sector = $_SESSION['user']['username'] ?? null;
+
+    // ---- Upcoming miqaats ----
+    dashboard_log('Fetching upcoming miqaats');
+
+    $upcoming_miqaats = $this->get_upcoming_miqaats(25);
+
+    dashboard_log('Upcoming miqaats fetched', [
+      'count' => is_array($upcoming_miqaats) ? count($upcoming_miqaats) : 0
+    ]);
+
+    if (!empty($upcoming_miqaats)) {
+      foreach ($upcoming_miqaats as &$um) {
+
+        $um['hijri_parts'] = null;
+        $um['hijri_label'] = '';
+
+        if (!empty($um['date'])) {
+          $hparts = $this->HijriCalendar
+            ->get_hijri_parts_by_greg_date($um['date']);
+
+          if ($hparts) {
+            $um['hijri_parts'] = $hparts;
+            $um['hijri_label'] = trim(
+              ($hparts['hijri_day'] ?? '') . ' ' .
+              ($hparts['hijri_month_name'] ?? '') . ' ' .
+              ($hparts['hijri_year'] ?? '')
+            );
+          }
+        }
+      }
+      unset($um);
+    }
+
+    // ---- Miqaat RSVP (SECTOR BASED) ----
+    dashboard_log('Fetching miqaat RSVP (sector based)', [
+      'sector' => $sector
+    ]);
+
+    if (!empty($sector)) {
+      $miqaat_rsvp = $this->CommonM
+        ->get_next_miqaat_rsvp_stats_sector($sector);
+    } else {
+      // fallback safety (should not happen for role 16)
+      $miqaat_rsvp = [];
+    }
+
+    if (empty($miqaat_rsvp)) {
+      dashboard_log('Miqaat RSVP is EMPTY (sector)');
+    } else {
+      dashboard_log('Miqaat RSVP FULL DATA (sector)', [
+        'miqaat_rsvp' => $miqaat_rsvp
+      ]);
+    }
+
+    return [
+      'upcoming_miqaats' => $upcoming_miqaats,
+      'miqaat_rsvp' => $miqaat_rsvp,
+    ];
+  }
+
+
+
+
+
+  /* ================================================= */
+
+  private function get_upcoming_miqaats($limit = 5)
+  {
+    $limit = (int) $limit;
+
+    $sql = "SELECT id, name, type, date, assigned_to
+          FROM miqaat
+          WHERE date >= CURDATE()
+          ORDER BY date ASC
+          LIMIT ?";
+
+    return $this->db->query($sql, [$limit])->result_array();
+  }
+
+
 
   public function mumineendirectory()
   {
@@ -257,8 +445,8 @@ class MasoolMusaid extends CI_Controller
     // Determine Hijri year selection (default to current Hijri year)
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $current_hijri_year = (int) explode('-', $h['hijri_date'])[2];
+    $selected_year = (int) ($this->input->get('year') ?: $current_hijri_year);
     // Fetch available Hijri years from calendar (fallback to +/-1 range if empty)
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
@@ -348,11 +536,11 @@ class MasoolMusaid extends CI_Controller
 
     // Fallback to current Hijri year if not provided
     if ($postedYear) {
-      $year = (int)$postedYear;
+      $year = (int) $postedYear;
     } else {
       $today = date('Y-m-d');
       $h = $this->HijriCalendar->get_hijri_date($today);
-      $year = (int)explode('-', $h['hijri_date'])[2];
+      $year = (int) explode('-', $h['hijri_date'])[2];
     }
 
     $updateData = [
@@ -368,7 +556,7 @@ class MasoolMusaid extends CI_Controller
     ];
 
     $this->load->model('MasoolMusaidM');
-  $result = $this->MasoolMusaidM->upsert_ashara_row($ITS, $updateData, $year);
+    $result = $this->MasoolMusaidM->upsert_ashara_row($ITS, $updateData, $year);
 
     // If LeaveStatus is special, also update ashara_attendance
     if (in_array($leaveStatus, ['Not in Town', 'Married Outcaste'])) {
@@ -403,8 +591,8 @@ class MasoolMusaid extends CI_Controller
     // Hijri Year selection (UI scope only; attendance table is not year-scoped)
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $current_hijri_year = (int) explode('-', $h['hijri_date'])[2];
+    $selected_year = (int) ($this->input->get('year') ?: $current_hijri_year);
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
     if (empty($year_options)) {
@@ -481,11 +669,11 @@ class MasoolMusaid extends CI_Controller
 
     // Resolve year (default to current Hijri year)
     if ($postedYear) {
-      $year = (int)$postedYear;
+      $year = (int) $postedYear;
     } else {
       $today = date('Y-m-d');
       $h = $this->HijriCalendar->get_hijri_date($today);
-      $year = (int)explode('-', $h['hijri_date'])[2];
+      $year = (int) explode('-', $h['hijri_date'])[2];
     }
 
     if (!$its || !$dayInput || !$status) {
@@ -547,11 +735,11 @@ class MasoolMusaid extends CI_Controller
 
     // Resolve year (default current Hijri)
     if ($postedYear) {
-      $year = (int)$postedYear;
+      $year = (int) $postedYear;
     } else {
       $today = date('Y-m-d');
       $h = $this->HijriCalendar->get_hijri_date($today);
-      $year = (int)explode('-', $h['hijri_date'])[2];
+      $year = (int) explode('-', $h['hijri_date'])[2];
     }
 
     if (!$its_list || !$day || !$status) {
@@ -564,13 +752,13 @@ class MasoolMusaid extends CI_Controller
         $this->db->where('ITS', $its)->where('year', $year);
         $exists = $this->db->get('ashara_attendance')->row();
         if ($exists) {
-          $this->db->where('ITS', $its)->where('year', $year)->update('ashara_attendance', [ $day => $status ]);
+          $this->db->where('ITS', $its)->where('year', $year)->update('ashara_attendance', [$day => $status]);
         } else {
-          $row = [ 'ITS' => $its, 'year' => $year, $day => $status ];
+          $row = ['ITS' => $its, 'year' => $year, $day => $status];
           $this->db->insert('ashara_attendance', $row);
         }
       } else {
-        $this->db->where('ITS', $its)->update('ashara_attendance', [ $day => $status ]);
+        $this->db->where('ITS', $its)->update('ashara_attendance', [$day => $status]);
       }
     }
     echo 'success';
