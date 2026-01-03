@@ -15,6 +15,18 @@ class AdminM extends CI_Model
     $query = $this->db->query($sql);
     return $query->result_array();
   }
+  function get_user_by_role($role)
+  {
+    $this->db->select('u.*');
+    $this->db->from('user u');
+    $this->db->join('user_roles ur', 'ur.user_id = u.ITS_ID');
+    $this->db->join('roles r', 'r.id = ur.role_id');
+    $this->db->where('r.role_name', $role);
+    $this->db->where('u.Inactive_Status IS NULL', null, false);
+    $this->db->order_by('u.Full_Name ASC');
+    $query = $this->db->get();
+    return $query->result_array();
+  }
   function get_raza()
   {
     $sql = " SELECT * FROM `raza` where active=1 ORDER BY `raza`.`time-stamp` DESC";
@@ -1040,6 +1052,14 @@ class AdminM extends CI_Model
   {
     if (!$its_id) return null;
     return $this->db->where('ITS_ID', $its_id)->get('user')->row_array();
+  }
+
+  public function get_family_members_by_hof_id($hof_id)
+  {
+    if (!$hof_id) return [];
+    return $this->db->where('HOF_ID', $hof_id)
+      ->order_by('First_Name, Surname ASC')
+      ->get('user')->result_array();
   }
 
   public function get_all_hofs()

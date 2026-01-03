@@ -193,29 +193,17 @@ class Umoor12 extends CI_Controller
 
     $msg = '<div style="padding: 0 !important; margin: 0 !important; display: block !important; width: 100% !important; background: #ffffff;" bgcolor="#ffffff"><table style="width: 100%; table-layout: fixed" align="center" cellspacing="0" border="0"><tbody><tr><td bgcolor="#ebe7e7" background="https://ci6.googleusercontent.com/proxy/fimhfkE_9YDx8Rr6KswSYnADXdusNOjQyhQYjmj6Y--V1LSV4Ip4qtqX_ZGMMFZ0c0loFqvg0fFiScuVZC7BF0isbDlIixR6=s0-d-e1-ft#https://www.its52.com/imgs/Email/1438_security_bg.png" align="center"><table class="m_455932988559829971its-mailer-container" style="max-width: 600x" width="100%" align="center" cellpadding="0" cellspacing="0" border="0"><tbody><tr><td><table style="max-width: 600px" width="100%" align="center" cellpadding="0" cellspacing="0" border="0"><tbody><tr><td align="center"><p style="color: #555555; font-weight: normal; margin: 0px; padding: 5px; font-size: 12px; font-family: Roboto, arial, sans-serif;">To ensure delivery to your inbox, <br />kindly add <a style="color: #555555; text-decoration: underline;" href="mailto:info@kharjamaat.in" target="_blank">info@kharjamaat.in</a> and <a style="color: #555555; text-decoration: underline;" href="mailto:admin@kharjamaat.in" target="_blank">admin@kharjamaat.in</a> to your address book.</p></td></tr><tr><td align="center" valign="top" bgcolor="#d94235" class="m_455932988559829971two-column"><div class="m_455932988559829971column" style="width: 100%; max-width: 285px; display: inline-block; padding: 5px; vertical-align: middle; text-align: left;"><table width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100% !important"><tbody><tr><td align="center"><a href="https://www.kharjamaat.in" style="color: #ffffff !important; text-decoration: none; margin: 0px; padding: 10px; font-size: 22px; font-weight: normal; font-style: italic; font-family: Georgia, arial, sans-serif;" target="_blank">www.kharjamaat.in</a></td></tr></tbody></table></div><div class="m_455932988559829971column" style="width: 100%; max-width: 285px; display: inline-block; padding: 5px; vertical-align: middle; text-align: left;"><table width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100% !important"><tbody><tr><td align="center"><p style="color: #ffffff; margin: 0px; padding: 10px; font-size: 12px; font-weight: normal; font-family: Roboto, arial, sans-serif;">' . $weekDateTime . '</p></td></tr></tbody></table></div></td></tr><tr><td valign="top" align="center"><a href="https://www.kharjamaat.in" target="_blank"><img src="https://demo.kharjamaat.in/assets/home_banner.jpg" width="100%" height="170px" style="display: block; max-width: 600px; width: 100%; object-fit:cover" border="0" class="CToWUd" data-bit="iit" /></a></td></tr><tr><td align="center" valign="top" bgcolor="#f8dcda"><h1 style="color: #d94235; margin: 0px; padding: 30px 10px 30px 10px; font-size: 22px; font-weight: normal; font-style: italic; font-family: Georgia, arial, sans-serif;">New Raza Application</h1></td></tr><tr><td align="left" bgcolor="#ffffff"><h2 style="color: #000; margin: 0px; padding: 20px 20px 0px 20px; font-style: italic; font-weight: normal; line-height: 24px; font-size: 16px; font-family: Georgia, serif;"><b>Baad Afzalus Salaam,</b><br />' . $user_data['Full_Name'] . ' - ' . $user_data['ITS_ID'] . '<br /></h2></td></tr><tr><td bgcolor="#ffffff"><div style="color: #000; margin: 0px; padding: 20px; line-height: 24px; font-size: 14px; font-weight: normal; font-family: Roboto, arial, sans-serif;">Your Raza form has been submitted successfully as mentioned below.<br /><br />' . $table . '<br /><br />If you have not Applied for this Raza, inform us by email on <a href="mailto:admin@kharjamaat.in" target="_blank">admin@kharjamaat.in</a></div></td></tr><tr><td align="left" bgcolor="#ffffff"><h2 style="color: #000; margin: 0px; padding: 0px 20px 0px 20px; font-style: italic; font-weight: normal; line-height: 24px; font-size: 16px; font-family: Georgia, serif;"><b>Wasalaam,</b><br />Anjuman-e-Saifee </h2><br /></td></tr><tr><td align="center" valign="top" bgcolor="#d94235" class="m_455932988559829971two-column"><p style="color: #ffffff; margin: 0px; padding: 20px; line-height: 24px; font-size: 14px; font-weight: normal; font-family: Roboto, arial, sans-serif;">Powered by:<br /><span style="font-size: 18px">Anjuman-e-Saifee, Khar (Khar),</span><br />Bohra Masjid,<br />Khar - 312604, Rajasthan India.<br /><a href="tel:+912268075353" style="color: #ffffff !important; text-decoration: none; font-size: 14px; font-weight: normal; font-family: Roboto, arial, sans-serif;" target="_blank">+91 7023270086</a> | <a href="mailto:admin@kharjamaat.in" style="color: #ffffff !important; text-decoration: none; font-size: 14px; font-weight: normal; font-family: Roboto, arial, sans-serif;" target="_blank">admin@kharjamaat.in</a><br /></p><p style="border-top: dashed 1px #fff; color: #ffffff; margin: 0px; padding: 10px; line-height: 24px; font-size: 12px; font-weight: normal; font-family: Roboto, arial, sans-serif;">You received this mandatory email service announcement to update you about important changes to your account.</p></td></tr></tbody></table></td></tr></tbody></table></div>';
 
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to($_SESSION['user_data']['Email']);
-    $this->email->subject('New Raza');
-    $this->email->message($msg);
-    $this->email->send();
+    $this->load->model('EmailQueueM');
+    $razacc = ['khozemtopiwalla@gmail.com', 'ybookwala@gmail.com'];
 
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to('anjuman@kharjamaat.in');
-    $this->email->subject('New Raza');
-    $this->email->message($msg);
-    $this->email->send();
+    // Enqueue a single message to the user with monitoring BCCs
+    $this->EmailQueueM->enqueue($_SESSION['user_data']['Email'], 'New Raza', $msg, $razacc, 'html');
 
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to('amilsaheb@kharjamaat.in');
-    $this->email->subject('New Raza');
-    $this->email->message($msg);
-    $this->email->send();
-
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to('kharjamaat@gmail.com');
-    $this->email->subject('New Raza');
-    $this->email->message($msg);
-    $this->email->send();
+    // Enqueue admin notifications (they'll also get monitored via the BCC list above if desired)
+    $adminRecipients = ['anjuman@kharjamaat.in', 'amilsaheb@kharjamaat.in', 'kharjamaat@gmail.com'];
+    foreach ($adminRecipients as $r) {
+      $this->EmailQueueM->enqueue($r, 'New Raza', $msg, $razacc, 'html');
+    }
 
     $userId = $_SESSION['user_data']['ITS_ID'];
     unset($_POST['raza-type']);

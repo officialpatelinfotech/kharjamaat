@@ -186,21 +186,22 @@
         <thead class="table-light">
           <tr>
             <th style="width:60px">#</th>
-            <th>Full Name</th>
-            <th>Sector</th>
-            <th>Sub Sector</th>
+            <th class="sortable" data-key="Full_Name">Full Name <span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="Sector">Sector <span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="Sub_Sector">Sub Sector <span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="Age" style="width:80px">Age <span class="sort-arrow"></span></th>
             <th style="width:110px">Relation</th>
-            
             <th class="text-center" style="width:120px;">Actions</th>
           </tr>
         </thead>
         <tbody>
         <?php $rowIndex = 1; foreach($groups as $hofId => $rows): $hofRec = $getHofRecord($rows); ?>
-          <tr class="table-primary" style="--bs-table-bg:#e7f1ff;">
-            <td colspan="6" class="py-2">
+          <tr class="table-primary" data-hof="<?php echo htmlspecialchars($hofId); ?>" data-hof-name="<?php echo htmlspecialchars($hofRec['Full_Name'] ?? ''); ?>" data-hof-its="<?php echo htmlspecialchars($hofRec['ITS_ID'] ?? ''); ?>" data-hof-sector="<?php echo htmlspecialchars($hofRec['Sector'] ?? ''); ?>" data-hof-sub="<?php echo htmlspecialchars($hofRec['Sub_Sector'] ?? ''); ?>" data-member-count="<?php echo count($rows); ?>" style="--bs-table-bg:#e7f1ff;">
+            <td colspan="7" class="py-2">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
                   <strong>HOF:</strong> <?php echo htmlspecialchars($hofRec['Full_Name'] ?? ''); ?>
+                  <span class="badge bg-secondary text-white ms-2">Members: <?php echo count($rows); ?></span>
                   <span class="text-white badge bg-primary ms-2">ITS: <?php echo htmlspecialchars($hofRec['ITS_ID'] ?? ''); ?></span>
                   <?php if(!empty($hofRec['Sector'])): ?>
                     <span class="text-white badge bg-info text-dark ms-1">Sector: <?php echo htmlspecialchars($hofRec['Sector']); ?></span>
@@ -220,11 +221,17 @@
           </tr>
           <?php foreach($rows as $r): ?>
             <?php $isHof = (($r['HOF_FM_TYPE'] ?? '') === 'HOF'); ?>
-            <tr>
-              <td><?php echo $rowIndex++; ?></td>
-              <td><?php echo htmlspecialchars($r['Full_Name'] ?? ''); ?></td>
-              <td><?php echo htmlspecialchars($r['Sector'] ?? ''); ?></td>
-              <td><?php echo htmlspecialchars($r['Sub_Sector'] ?? ''); ?></td>
+            <tr data-hof="<?php echo htmlspecialchars($hofId); ?>" data-full_name="<?php echo htmlspecialchars($r['Full_Name'] ?? ''); ?>" data-sector="<?php echo htmlspecialchars($r['Sector'] ?? ''); ?>" data-sub_sector="<?php echo htmlspecialchars($r['Sub_Sector'] ?? ''); ?>" data-age="<?php echo isset($r['Age']) && $r['Age'] !== null && $r['Age'] !== '' ? (int)$r['Age'] : ''; ?>">
+                <td><?php echo $rowIndex++; ?></td>
+                <td>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="member-name-text"><?php echo htmlspecialchars($r['Full_Name'] ?? ''); ?></div>
+                    <div class="its-badge-cell"><span class="badge bg-light text-muted">ITS: <?php echo htmlspecialchars($r['ITS_ID'] ?? ''); ?></span></div>
+                  </div>
+                </td>
+                <td><?php echo htmlspecialchars($r['Sector'] ?? ''); ?></td>
+                <td><?php echo htmlspecialchars($r['Sub_Sector'] ?? ''); ?></td>
+                <td><?php echo isset($r['Age']) && $r['Age'] !== null && $r['Age'] !== '' ? (int)$r['Age'] : ''; ?></td>
               <td>
                 <?php if($isHof): ?>
                   <span class="text-white badge bg-primary">HOF</span>
@@ -279,6 +286,69 @@
 </div>
 
 <script>
+  // Sorting support for ManageMembers table: click header to sort by column (Full Name, Sector, Sub Sector, Age)
+  document.addEventListener('DOMContentLoaded', function(){
+    const table = document.querySelector('.table-responsive table');
+    if(!table) return;
+    const tbody = table.querySelector('tbody');
+    const ths = table.querySelectorAll('th.sortable');
+
+    // Capture original HOF header HTML by data-hof
+    const hofHeaderMap = {};
+    Array.from(tbody.querySelectorAll('tr.table-primary')).forEach(tr => {
+      const hof = tr.getAttribute('data-hof') || '';
+      if(hof) hofHeaderMap[hof] = tr.outerHTML;
+    });
+
+    ths.forEach(th => {
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', function(){
+        const key = th.getAttribute('data-key');
+        if(!key) return;
+        // toggle direction
+        const currentDir = th.getAttribute('data-dir');
+        const dir = currentDir === 'asc' ? 'desc' : 'asc';
+        ths.forEach(t => { t.removeAttribute('data-dir'); const s = t.querySelector('.sort-arrow'); if(s) s.textContent = ''; });
+        th.setAttribute('data-dir', dir);
+        const arrow = th.querySelector('.sort-arrow'); if(arrow) arrow.textContent = dir === 'asc' ? ' ▲' : ' ▼';
+
+        // collect member rows (exclude HOF header rows)
+        const memberRows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('table-primary'));
+
+        memberRows.sort((a,b) => {
+          const aRaw = (a.getAttribute('data-' + key.toLowerCase()) || '').toString();
+          const bRaw = (b.getAttribute('data-' + key.toLowerCase()) || '').toString();
+          const aVal = aRaw.trim().toLowerCase();
+          const bVal = bRaw.trim().toLowerCase();
+          if(key.toLowerCase() === 'age'){
+            const na = parseInt(aVal,10); const nb = parseInt(bVal,10);
+            if(isNaN(na) && isNaN(nb)) return 0;
+            if(isNaN(na)) return dir === 'asc' ? 1 : -1;
+            if(isNaN(nb)) return dir === 'asc' ? -1 : 1;
+            return dir === 'asc' ? na - nb : nb - na;
+          }
+          return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        });
+
+        // Rebuild tbody grouped by hof
+        tbody.innerHTML = '';
+        const added = new Set();
+        memberRows.forEach(r => {
+          const hof = r.getAttribute('data-hof') || '';
+          if(!added.has(hof)){
+            if(hofHeaderMap[hof]){
+              tbody.insertAdjacentHTML('beforeend', hofHeaderMap[hof]);
+            } else {
+              // fallback header
+              tbody.insertAdjacentHTML('beforeend', '<tr class="table-primary" data-hof="'+ (hof ? hof.replace(/"/g,'') : '') +'">\n<td colspan="7" class="py-2"><strong>HOF:</strong> '+ (hof ? hof : '') +'</td>\n</tr>');
+            }
+            added.add(hof);
+          }
+          tbody.appendChild(r);
+        });
+      });
+    });
+  });
   (function(){
     const modalEl = document.getElementById('memberDetailsModal');
     if(!modalEl) return;

@@ -5,6 +5,20 @@
     /* enable horizontal scroll on small screens */
   }
 
+  /* Wrapper to enable vertical scrolling so table header can stick */
+  .miqaat-table-wrapper {
+    max-height: 60vh;
+    overflow: auto;
+  }
+
+  /* Sticky header for miqaat table */
+  .miqaat-table-wrapper table thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 5;
+  }
+
   .d-grid>* {
     width: 100%;
     min-width: 0;
@@ -145,7 +159,7 @@
   <style>
     .stats-cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px;
       align-items: stretch;
       justify-content: center;
@@ -157,19 +171,28 @@
 
     /* Smaller screens: two columns is fine */
     @media (max-width: 768px) {
-      .stats-cards-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); gap: 12px; }
-      .stat-card { min-width: auto; width: 100%; }
+      .stats-cards-grid {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+        gap: 12px;
+      }
+
+      .stat-card {
+        min-width: auto;
+        width: 100%;
+      }
     }
 
     .stat-card {
       border-radius: 16px;
-      padding: 12px 14px; /* slightly smaller */
+      padding: 12px 14px;
+      /* slightly smaller */
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-width: 160px; /* slightly smaller */
+      min-width: 160px;
+      /* slightly smaller */
       gap: 6px;
       box-sizing: border-box;
     }
@@ -181,7 +204,8 @@
     }
 
     .stat-card .value {
-      font-size: 22px; /* slightly smaller */
+      font-size: 22px;
+      /* slightly smaller */
       font-weight: 700;
       color: #0f172a;
     }
@@ -190,18 +214,27 @@
     .miqaat-table-container {
       overflow-x: auto;
     }
+
     .miqaat-table {
-      table-layout: auto; /* natural column widths */
-      width: max-content; /* expand to fit content; scroll container handles overflow */
+      table-layout: auto;
+      /* natural column widths */
+      width: max-content;
+      /* expand to fit content; scroll container handles overflow */
     }
+
     .miqaat-table th,
     .miqaat-table td {
       white-space: nowrap;
-      overflow: visible;        /* let columns size naturally */
-      text-overflow: clip;      /* no ellipsis to avoid cramped look */
-      word-break: normal;       /* do not break words */
-      overflow-wrap: normal;    /* prevent wrapping within words */
-      hyphens: none;            /* avoid automatic hyphenation */
+      overflow: visible;
+      /* let columns size naturally */
+      text-overflow: clip;
+      /* no ellipsis to avoid cramped look */
+      word-break: normal;
+      /* do not break words */
+      overflow-wrap: normal;
+      /* prevent wrapping within words */
+      hyphens: none;
+      /* avoid automatic hyphenation */
     }
 
     .stat-card.general {
@@ -227,6 +260,18 @@
     .stat-card.fnn {
       background: #fef3c7;
     }
+    /* New specific colors for requested cards */
+    .stat-card.ladies {
+      background: #fff0f6; /* very light pink */
+    }
+
+    .stat-card.shehrullah {
+      background: #e6f7ff; /* light cyan */
+    }
+
+    .stat-card.ashara {
+      background: #fff1f0; /* light rose */
+    }
   </style>
   <div>
     <?php
@@ -237,6 +282,10 @@
     $sum_individual = isset($summary_individual) ? (int)$summary_individual : 0;
     $sum_group = isset($summary_group) ? (int)$summary_group : 0;
     $sum_fnn = isset($summary_fnn) ? (int)$summary_fnn : 0;
+    $sum_ashara = isset($summary_ashara) ? (int)$summary_ashara : 0;
+    $sum_shehrullah = isset($summary_shehrullah) ? (int)$summary_shehrullah : 0;
+    $sum_general = isset($summary_general) ? (int)$summary_general : 0;
+    $sum_ladies = isset($summary_ladies) ? (int)$summary_ladies : 0;
 
     // Recompute lightweight fallbacks only for miqaat/niyaaz counts; do not override Sundays from controller
     if ($sum_total_miqaats === 0 || $sum_individual === 0 || $sum_group === 0 || $sum_fnn === 0) {
@@ -246,13 +295,17 @@
       $sum_individual = 0;
       $sum_group = 0;
       $sum_fnn = 0;
+      $sum_ashara = 0;
+      $sum_shehrullah = 0;
+      $sum_general = 0;
+      $sum_ladies = 0;
       // Do not reset $sum_sundays; keep controller value intact
       if (!empty($miqaats) && is_array($miqaats)) {
         foreach ($miqaats as $d) {
           $dayName = isset($d['date']) ? date('l', strtotime($d['date'])) : '';
           $hasMiqaat = !empty($d['miqaats']);
           // Skip recomputing Sundays here; controller provides authoritative count
-          if ($hasMiqaat) {
+              if ($hasMiqaat) {
             foreach ($d['miqaats'] as $m) {
               $sum_total_miqaats++;
               $hasInd = false;
@@ -266,12 +319,18 @@
               }
               if ($hasInd) $sum_individual++;
               if ($hasGrp) $sum_group++;
-              $hay = strtolower(trim(((string)($m['type'] ?? '') . ' ' . (string)($m['name'] ?? '') . ' ' . (string)($m['assigned_to'] ?? ''))));
+                  $hay = strtolower(trim(((string)($m['type'] ?? '') . ' ' . (string)($m['name'] ?? '') . ' ' . (string)($m['assigned_to'] ?? ''))));
               $letters = preg_replace('/[^a-z]/', '', preg_replace('/\s+/', ' ', $hay));
               $is_fnn = (strpos($hay, 'fnn') !== false)
                 || ((strpos($hay, 'fala') !== false) && (strpos($hay, 'niyaz') !== false or strpos($hay, 'niaz') !== false))
                 || ((strpos($letters, 'fala') !== false) && (strpos($letters, 'niyaz') !== false or strpos($letters, 'niaz') !== false));
               if ($is_fnn) $sum_fnn++;
+                  // count by type
+                  $type_l = strtolower(trim($m['type'] ?? ''));
+                  if ($type_l === 'ashara') $sum_ashara++;
+                  if ($type_l === 'shehrullah') $sum_shehrullah++;
+                  if ($type_l === 'general') $sum_general++;
+                  if ($type_l === 'ladies') $sum_ladies++;
             }
           }
         }
@@ -279,16 +338,18 @@
     }
     ?>
     <div class="stats-cards-grid my-3" aria-label="Miqaat summary">
-      <div class="stat-card general"><span class="label">Total Miqaat Days</span><span class="value"><?php echo isset($calendar_summary['total_miqaat_days']) ? (int)$calendar_summary['total_miqaat_days'] : (isset($summary_miqaat_days) ? (int)$summary_miqaat_days : (int)$sum_total_miqaats); ?></span></div>
-      <div class="stat-card thaali"><span class="label">Total Thaali Days</span><span class="value"><?php echo isset($calendar_summary['total_thaali_days']) ? (int)$calendar_summary['total_thaali_days'] : (isset($summary_total_thaali_days) ? (int)$summary_total_thaali_days : (int)$sum_total_thaali_days); ?></span></div>
-      <div class="stat-card holidays"><span class="label">Sundays + Utlat</span><span class="value"><?php echo isset($calendar_summary['sundays_utlat']) ? (int)$calendar_summary['sundays_utlat'] : (isset($summary_sundays) ? (int)$summary_sundays : (int)$sum_sundays); ?></span></div>
+      <div class="stat-card general"><span class="label">Total Miqaat</span><span class="value"><?php echo isset($calendar_summary['total_miqaat_days']) ? (int)$calendar_summary['total_miqaat_days'] : (isset($summary_miqaat_days) ? (int)$summary_miqaat_days : (int)$sum_total_miqaats); ?></span></div>
+      <div class="stat-card ashara"><span class="label">Ashara Miqaat</span><span class="value"><?php echo isset($calendar_summary['ashara']) ? (int)$calendar_summary['ashara'] : (int)$sum_ashara; ?></span></div>
+      <div class="stat-card shehrullah"><span class="label">Shehrullah Miqaat</span><span class="value"><?php echo isset($calendar_summary['shehrullah']) ? (int)$calendar_summary['shehrullah'] : (int)$sum_shehrullah; ?></span></div>
+      <div class="stat-card general"><span class="label">General Miqaat</span><span class="value"><?php echo isset($calendar_summary['general']) ? (int)$calendar_summary['general'] : (int)$sum_general; ?></span></div>
+      <div class="stat-card ladies"><span class="label">Ladies Miqaat</span><span class="value"><?php echo isset($calendar_summary['ladies']) ? (int)$calendar_summary['ladies'] : (int)$sum_ladies; ?></span></div>
       <div class="stat-card individual"><span class="label">Individual Niyaaz</span><span class="value"><?php echo isset($calendar_summary['individual']) ? (int)$calendar_summary['individual'] : (int)$sum_individual; ?></span></div>
       <div class="stat-card group"><span class="label">Group Niyaaz</span><span class="value"><?php echo isset($calendar_summary['group']) ? (int)$calendar_summary['group'] : (int)$sum_group; ?></span></div>
       <div class="stat-card fnn"><span class="label">Fala ni Niyaaz</span><span class="value"><?php echo isset($calendar_summary['fnn']) ? (int)$calendar_summary['fnn'] : (int)$sum_fnn; ?></span></div>
     </div>
   </div>
   <div class="miqaat-list-container">
-    <div class="border">
+    <div class="border miqaat-table-wrapper">
       <table class="table table-striped table-bordered mb-0">
         <thead class="thead-dark">
           <tr>
@@ -479,23 +540,7 @@
                       </td>
                       <td>
                         <div class="d-grid gap-2" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 5px;">
-                          <!-- Edit Button -->
-                          <div>
-                            <a href="<?php echo base_url('common/edit_miqaat?id=' . $miqaat['id']); ?>" class="btn btn-sm btn-primary">
-                              <i class="fa fa-edit"></i>
-                            </a>
-                          </div>
-                          <!-- Cancel Button -->
-                          <div>
-                            <form method="POST" action="<?php echo base_url('common/cancel_miqaat'); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to cancel this Miqaat?');">
-                              <input type="hidden" name="miqaat_id" value="<?php echo $miqaat['id']; ?>">
-                              <button type="submit" class="btn btn-sm btn-warning"
-                                <?php echo (isset($miqaat['status']) && $miqaat['status'] == 2) ? 'disabled' : ''; ?>>
-                                <i class="fa fa-ban"></i>
-                              </button>
-                            </form>
-                          </div>
-                          <!-- Make Active Button -->
+                          <!-- Activate Button -->
                           <div>
                             <form method="POST" action="<?php echo base_url('common/activate_miqaat'); ?>" style="display:inline;">
                               <input type="hidden" name="miqaat_id" value="<?php echo $miqaat['id']; ?>">
@@ -507,6 +552,24 @@
                               </button>
                             </form>
                           </div>
+                          <!-- Cancel Button -->
+                          <div>
+                            <form method="POST" action="<?php echo base_url('common/cancel_miqaat'); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to make this Miqaat inactive?');">
+                              <input type="hidden" name="miqaat_id" value="<?php echo $miqaat['id']; ?>">
+                              <button type="submit" class="btn btn-sm btn-warning"
+                                <?php echo (isset($miqaat['status']) && $miqaat['status'] == 2) ? 'disabled' : ''; ?>>
+                                <i class="fa fa-ban"></i>
+                              </button>
+                            </form>
+                          </div>
+                          <!-- Edit Button -->
+
+                          <div>
+                            <a href="<?php echo base_url('common/edit_miqaat?id=' . $miqaat['id']); ?>" class="btn btn-sm btn-primary">
+                              <i class="fa fa-edit"></i>
+                            </a>
+                          </div>
+
                           <!-- Delete Button -->
                           <div>
                             <form method="POST" action="<?php echo base_url('common/delete_miqaat'); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this Miqaat?');">

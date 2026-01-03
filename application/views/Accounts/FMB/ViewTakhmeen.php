@@ -672,7 +672,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
             <div class="metric-head mb-2">
               <div class="icon-wrap"><i class="fa-solid fa-layer-group"></i></div>
               <div>
-                <h6 class="mb-1">TAKHMEEN</h6>
+                <h6 class="mb-1">THAALI TAKHMEEN</h6>
                 <div class="metric-inline">
                   <div>
                     <div class="label">Amount</div>
@@ -700,7 +700,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
             <div class="metric-head mb-2">
               <div class="icon-wrap"><i class="fa-solid fa-calendar-day"></i></div>
               <div>
-                <h6 class="mb-1">MIQAAT INVOICES</h6>
+                <h6 class="mb-1">MIQAAT NIYAZ INVOICES</h6>
                 <div class="metric-inline">
                   <div>
                     <div class="label">Amount</div>
@@ -732,7 +732,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
             <div class="metric-head mb-2">
               <div class="icon-wrap"><i class="fa-solid fa-hand-holding-dollar"></i></div>
               <div>
-                <h6 class="mb-1">GENERAL CONTRIBUTIONS</h6>
+                <h6 class="mb-1">FMB EXTRA CONTRIBUTIONS</h6>
                 <div class="metric-inline">
                   <div>
                     <div class="label">Amount</div>
@@ -947,7 +947,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
       <!-- MIQAAT SECTION (Cards) -->
       <div id="sec-miqaat" class="detail-section card shadow-sm mt-4 d-none">
         <div class="card-header text-center bg-light">
-          <h5 class="mb-0">Miqaat Invoices</h5>
+          <h5 class="mb-0">Miqaat Niyaz Invoices</h5>
         </div>
         <div class="card-body p-0">
           <div id="miqaat-card-list" class="p-2">

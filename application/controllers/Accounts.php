@@ -384,10 +384,13 @@ class Accounts extends CI_Controller
 
     foreach ($data["miqaats"] as $key => $miqaat) {
       $hijri_date = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])))["hijri_date"]);
+
       $hijri_month = $this->HijriCalendar->hijri_month_name($this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])))["hijri_month_id"])["hijri_month"];
+
       $data["miqaats"][$key]["hijri_date"] = $hijri_date[0] . " " . $hijri_month . " " . $hijri_date[2];
 
       $data["miqaats"][$key]["raza"] = $this->AccountM->get_raza_by_miqaat($miqaat["id"], $user_id);
+
       $data["miqaats"][$key]["invoice_status"] = $this->AccountM->get_miqaat_invoice_status($miqaat["id"]);
     }
 
@@ -465,6 +468,44 @@ class Accounts extends CI_Controller
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/RSVP/Home', $data);
+  }
+
+  /**
+   * AJAX endpoint: search upcoming miqaats and return rendered cards
+   */
+  public function rsvp_search()
+  {
+    if (empty($_SESSION['user'])) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Unauthorized']));
+      return;
+    }
+    $q = $this->input->get('q', true);
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+    $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
+    $hof_id = $data['user_data']['HOF_ID'];
+
+    $miqaats = $this->AccountM->search_upcoming_miqaat($q);
+    foreach ($miqaats as $key => $miqaat) {
+      $hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])));
+      $hijri_month = $this->HijriCalendar->hijri_month_name($hijri_date["hijri_month_id"])['hijri_month'];
+      $miqaats[$key]["hijri_date"] = explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month . " " . explode("-", $hijri_date["hijri_date"])[2];
+      $miqaats[$key]["raza_status"] = $this->AccountM->get_miqaat_raza_status($miqaat["id"]);
+    }
+
+    $rsvp_overview = $this->AccountM->get_rsvp_overview($hof_id, $miqaats);
+    if (!empty($rsvp_overview) && isset($rsvp_overview[$hof_id])) {
+      $data['rsvp_overview'] = $rsvp_overview[$hof_id];
+    } else {
+      $data['rsvp_overview'] = [];
+    }
+
+    $data['miqaats'] = $miqaats;
+    $html = $this->load->view('Accounts/RSVP/_miqaat_cards', $data, true);
+
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'html' => $html]));
   }
 
   public function corpusfunds_details()
@@ -1052,6 +1093,323 @@ class Accounts extends CI_Controller
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/MyRaza/NewRaza3', $data);
   }
+
+  /**
+   * AJAX: return member financial dues as JSON for current logged-in user
+   */
+  public function get_member_dues()
+  {
+    if (empty($_SESSION['user'])) {
+      return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+    }
+    $user_id = $_SESSION['user']['username'];
+    $this->load->model('AccountM');
+    $this->load->model('CorpusFundM');
+
+    // FMB takhmeen due
+    $fmb = $this->AccountM->get_member_total_fmb_due($user_id);
+    $fmb_due = is_array($fmb) && isset($fmb['total_due']) ? (float)$fmb['total_due'] : 0.0;
+
+    // Sabeel due
+    $sabeel = $this->AccountM->get_member_total_sabeel_due($user_id);
+    $sabeel_due = is_array($sabeel) && isset($sabeel['total_due']) ? (float)$sabeel['total_due'] : 0.0;
+
+    // General contributions (GC): sum of amount - paid
+    $gcRow = $this->db->query("SELECT COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due FROM fmb_general_contribution gc LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id WHERE gc.user_id = ?", [$user_id])->row_array();
+    $gc_due = isset($gcRow['total_due']) ? (float)$gcRow['total_due'] : 0.0;
+
+    // Miqaat invoices due
+    // Miqaat invoices due and details (include family members if HOF present)
+    $miq_due = 0.0;
+    $miq_list = [];
+    $memberIds = [$user_id];
+    // if session user_data has HOF_ID, include family invoices
+    if (!empty($_SESSION['user_data']['HOF_ID'])) {
+      $hof = $_SESSION['user_data']['HOF_ID'];
+      $rows = $this->db->query("SELECT ITS_ID FROM user WHERE HOF_ID = ?", [$hof])->result_array();
+      foreach ($rows as $r) {
+        if (!empty($r['ITS_ID'])) $memberIds[] = (string)$r['ITS_ID'];
+      }
+      // ensure hof itself included
+      if (!in_array((string)$hof, $memberIds, true)) $memberIds[] = (string)$hof;
+    }
+    $memberIds = array_values(array_unique($memberIds));
+    if (!empty($memberIds)) {
+      $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
+      $sql = "SELECT i.id, i.miqaat_id, m.name AS miqaat_name, i.date AS invoice_date, i.amount, i.description, i.user_id, u.Full_Name as owner_name, COALESCE(SUM(p.amount),0) AS paid_amount, (i.amount - COALESCE(SUM(p.amount),0)) AS due_amount
+              FROM miqaat_invoice i
+              LEFT JOIN miqaat_payment p ON p.miqaat_invoice_id = i.id
+              LEFT JOIN miqaat m ON m.id = i.miqaat_id
+              LEFT JOIN user u ON u.ITS_ID = i.user_id
+              WHERE i.user_id IN ($placeholders)
+              GROUP BY i.id, i.miqaat_id, m.name, i.date, i.amount, i.description, i.user_id, u.Full_Name
+              ORDER BY i.date DESC, i.id DESC";
+      $miq_rows = $this->db->query($sql, $memberIds)->result_array();
+      foreach ($miq_rows as $mi) {
+        $miq_due += (float)($mi['due_amount'] ?? 0);
+        $miq_list[] = $mi;
+      }
+    }
+
+    // Corpus fund outstanding for this HOF (use hof_id from user_data if available)
+    $hof_id = null;
+    if (isset($_SESSION['user_data']['HOF_ID'])) $hof_id = $_SESSION['user_data']['HOF_ID'];
+    $corpus_due = 0.0;
+    if (!empty($hof_id)) {
+      $assigns = $this->CorpusFundM->get_assignments_with_payments_by_hof($hof_id);
+      if (is_array($assigns)) {
+        foreach ($assigns as $a) {
+          $assigned = (float)($a['amount_assigned'] ?? 0);
+          $paid = (float)($a['amount_paid'] ?? 0);
+          $corpus_due += max(0, $assigned - $paid);
+        }
+      }
+    }
+
+    $total_due = $fmb_due + $sabeel_due + $gc_due + $miq_due + $corpus_due;
+
+    $payload = [
+      'success' => true,
+      'dues' => [
+        'fmb_due' => round($fmb_due, 2),
+        'sabeel_due' => round($sabeel_due, 2),
+        'gc_due' => round($gc_due, 2),
+        'miqaat_due' => round($miq_due, 2),
+        'corpus_due' => round($corpus_due, 2),
+        'total_due' => round($total_due, 2)
+      ],
+      'miqaat_invoices' => isset($miq_list) ? $miq_list : []
+    ];
+
+    return $this->output->set_content_type('application/json')->set_output(json_encode($payload));
+  }
+
+  /**
+   * Send dues notification emails to members related to current user (HOF family + self)
+   * Sends per-member miqaat invoice dues list if any.
+   */
+  public function send_dues_email()
+  {
+    if (empty($_SESSION['user'])) {
+      return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+    }
+    $this->load->model('CorpusFundM');
+
+    $user_id = $_SESSION['user']['username'];
+
+    // Build member list (self + family by HOF)
+    $memberIds = [$user_id];
+    if (!empty($_SESSION['user_data']['HOF_ID'])) {
+      $hof = $_SESSION['user_data']['HOF_ID'];
+      $rows = $this->db->query("SELECT ITS_ID, Email, Full_Name FROM user WHERE HOF_ID = ?", [$hof])->result_array();
+      foreach ($rows as $r) {
+        if (!empty($r['ITS_ID'])) $memberIds[] = (string)$r['ITS_ID'];
+      }
+      if (!in_array((string)$hof, $memberIds, true)) $memberIds[] = (string)$hof;
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    // Aggregate family-level dues
+    $family_fmb = 0.0;
+    $family_sabeel = 0.0;
+    foreach ($memberIds as $m) {
+      $f = $this->AccountM->get_member_total_fmb_due($m);
+      $family_fmb += is_array($f) && isset($f['total_due']) ? (float)$f['total_due'] : 0.0;
+      $s = $this->AccountM->get_member_total_sabeel_due($m);
+      $family_sabeel += is_array($s) && isset($s['total_due']) ? (float)$s['total_due'] : 0.0;
+    }
+
+    // General contributions for family
+    $gc_due = 0.0;
+    if (!empty($memberIds)) {
+      $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
+      $gcRow = $this->db->query("SELECT COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due FROM fmb_general_contribution gc LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id WHERE gc.user_id IN ($placeholders)", $memberIds)->row_array();
+      $gc_due = isset($gcRow['total_due']) ? (float)$gcRow['total_due'] : 0.0;
+    }
+
+    // Miqaat invoices for family
+    $miq_due = 0.0;
+    $miq_list = [];
+    if (!empty($memberIds)) {
+      $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
+      $sql = "SELECT i.id, i.miqaat_id, m.name AS miqaat_name, i.date AS invoice_date, i.amount, i.description, i.user_id, u.Full_Name as owner_name, COALESCE(SUM(p.amount),0) AS paid_amount, (i.amount - COALESCE(SUM(p.amount),0)) AS due_amount
+              FROM miqaat_invoice i
+              LEFT JOIN miqaat_payment p ON p.miqaat_invoice_id = i.id
+              LEFT JOIN miqaat m ON m.id = i.miqaat_id
+              LEFT JOIN user u ON u.ITS_ID = i.user_id
+              WHERE i.user_id IN ($placeholders)
+              GROUP BY i.id, i.miqaat_id, m.name, i.date, i.amount, i.description, i.user_id, u.Full_Name
+              ORDER BY i.date DESC, i.id DESC";
+      $miq_rows = $this->db->query($sql, $memberIds)->result_array();
+      foreach ($miq_rows as $mi) {
+        $miq_due += (float)($mi['due_amount'] ?? 0);
+        $miq_list[] = $mi;
+      }
+    }
+
+    // Corpus for HOF
+    $corpus_due = 0.0;
+    $hof_id = (!empty($_SESSION['user_data']['HOF_ID'])) ? $_SESSION['user_data']['HOF_ID'] : null;
+    if (!empty($hof_id)) {
+      $assigns = $this->CorpusFundM->get_assignments_with_payments_by_hof($hof_id);
+      if (is_array($assigns)) {
+        foreach ($assigns as $a) {
+          $assigned = (float)($a['amount_assigned'] ?? 0);
+          $paid = (float)($a['amount_paid'] ?? 0);
+          $corpus_due += max(0, $assigned - $paid);
+        }
+      }
+    }
+
+    $family_total = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due;
+
+    // prepare recipients: submitter and HOF (if email present)
+    $submitterEmail = $_SESSION['user_data']['Email'] ?? null;
+    $submitterName = $_SESSION['user_data']['First_Name'] . ' ' . $_SESSION['user_data']['Surname'];
+    $hofEmail = null;
+    $hofName = null;
+    if (!empty($hof_id)) {
+      $hofRow = $this->db->query('SELECT Email, Full_Name FROM user WHERE ITS_ID = ? LIMIT 1', [$hof_id])->row_array();
+      if (!empty($hofRow)) {
+        $hofEmail = $hofRow['Email'] ?? null;
+        $hofName = $hofRow['Full_Name'] ?? null;
+      }
+    }
+
+    // Build HTML body with improved layout and red styling for positive dues
+    $subject = 'Pending Family Dues Summary';
+    // small cleaning helper to remove control/format characters and collapse whitespace
+    $clean = function ($s) {
+      if ($s === null) return '';
+      if (!is_string($s)) $s = (string)$s;
+      // decode any entities
+      $s = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+      // remove control & format characters and zero-width joiners
+      $s = preg_replace('/[\p{C}\x{200B}\x{200C}\x{200D}\x{2060}]+/u', '', $s);
+      // collapse multiple whitespace
+      $s = preg_replace('/\s{2,}/u', ' ', $s);
+      return trim($s);
+    };
+
+    $submitterNameClean = $clean($submitterName);
+    $hofNameClean = $clean($hofName);
+
+    $loginUrl = htmlspecialchars($clean(base_url('accounts/login')));
+    $hofLabel = htmlspecialchars($clean($hof_id ?? '')) . ($hofNameClean ? ' - ' . htmlspecialchars($hofNameClean) : '');
+    $submitter = htmlspecialchars($clean($submitterNameClean));
+    $subject = $clean($subject);
+    $logoUrl = htmlspecialchars($clean(base_url('assets/logo.png')));
+    $title = htmlspecialchars($clean('Pending Dues — Family Summary'));
+    $orgName = htmlspecialchars($clean('Khar Jamaat'));
+
+    $body = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
+    $body .= '<style>
+      body{font-family:Arial,Helvetica,sans-serif;color:#222;margin:0;padding:0;background:#f6f6f6}
+      .container{max-width:640px;margin:18px auto;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+      .header{background:#0b5;color:#fff;padding:14px 18px}
+      .header h1{margin:0;font-size:18px;font-weight:700}
+      .content{padding:18px}
+      .muted{color:#666;font-size:13px}
+      table.totals{width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #e6e6e6}
+      table.totals th, table.totals td{padding:10px;border:1px solid #e6e6e6}
+      table.totals tr.total td{font-weight:700;border-top:2px solid #ddd;background:#fafafa}
+      .amount{ text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums }
+      .amount.positive{ color:#c00; font-weight:700 }
+      .details{width:100%;border-collapse:collapse;margin-top:12px;border:1px solid #e6e6e6}
+      .details th, .details td{padding:8px;border:1px solid #e6e6e6;text-align:left;font-size:13px}
+      .details th{background:#fafafa;font-weight:600}
+      .cta{display:inline-block;margin-top:14px;padding:10px 14px;background:#0b5;color:#fff;text-decoration:none;border-radius:4px}
+      @media (max-width:520px){ .header h1{font-size:16px} .details th,.details td{font-size:12px} }
+      </style></head><body>';
+    $body .= '<div style="padding:12px;text-align:center"><img src="' . $logoUrl . '" alt="' . $orgName . '" style="max-height:48px"></div>';
+    $body .= '<div class="container">';
+    $body .= '<div class="header"><h1>' . $title . '</h1></div>';
+    $body .= '<div class="content">';
+    $body .= '<p class="muted">Assalamu alaikum ' . $submitter . ',</p>';
+    $body .= '<p class="muted">Below is the summary of pending dues for your family (HOF: ' . $hofLabel . ').</p>';
+
+    // summary totals
+    $body .= '<table class="totals">';
+    $fmb_fmt = htmlspecialchars($clean(number_format($family_fmb)));
+    $sabeel_fmt = htmlspecialchars($clean(number_format($family_sabeel)));
+    $gc_fmt = htmlspecialchars($clean(number_format($gc_due)));
+    $corpus_fmt = htmlspecialchars($clean(number_format($corpus_due)));
+    $miq_fmt = htmlspecialchars($clean(number_format($miq_due)));
+    $total_fmt = htmlspecialchars($clean(number_format($family_total)));
+
+    $body .= '<tr><td>FMB Takhmeen</td><td class="amount ' . ($family_fmb > 0 ? 'positive' : '') . '">₹ ' . $fmb_fmt . '</td></tr>';
+    $body .= '<tr><td>Sabeel Takhmeen</td><td class="amount ' . ($family_sabeel > 0 ? 'positive' : '') . '">₹ ' . $sabeel_fmt . '</td></tr>';
+    $body .= '<tr><td>General Contributions</td><td class="amount ' . ($gc_due > 0 ? 'positive' : '') . '">₹ ' . $gc_fmt . '</td></tr>';
+    $body .= '<tr><td>Corpus Fund</td><td class="amount ' . ($corpus_due > 0 ? 'positive' : '') . '">₹ ' . $corpus_fmt . '</td></tr>';
+    $body .= '<tr><td>Miqaat Invoices</td><td class="amount ' . ($miq_due > 0 ? 'positive' : '') . '">₹ ' . $miq_fmt . '</td></tr>';
+    $body .= '<tr class="total"><td>Total</td><td class="amount">₹ ' . $total_fmt . '</td></tr>';
+    $body .= '</table>';
+
+    // details table
+    if (!empty($miq_list)) {
+      $body .= '<h3 style="margin:12px 0 6px 0;font-size:15px">Miqaat / Invoice Details</h3>';
+      $body .= '<table class="details">';
+      $body .= '<thead><tr>'
+        . '<th>Assigned to</th>'
+        . '<th>Event</th>'
+        . '<th style="text-align:right">Amount (₹)</th>'
+        . '<th style="text-align:right">Paid (₹)</th>'
+        . '<th style="text-align:right">Due (₹)</th>'
+        . '</tr></thead><tbody>';
+      foreach ($miq_list as $mi) {
+        $owner = htmlspecialchars($clean($mi['owner_name'] ?? $mi['user_id'] ?? ''));
+        $event = htmlspecialchars($clean($mi['miqaat_name'] ?? ('#' . ($mi['miqaat_id'] ?? ''))));
+        $amt = htmlspecialchars($clean(number_format($mi['amount'] ?? 0)));
+        $paid = htmlspecialchars($clean(number_format($mi['paid_amount'] ?? 0)));
+        $dueVal = (float)($mi['due_amount'] ?? 0);
+        $dueFmt = htmlspecialchars($clean(number_format($dueVal)));
+        $dueHtml = $dueVal > 0 ? '<span class="amount positive">₹ ' . $dueFmt . '</span>' : '<span class="amount">₹ ' . $dueFmt . '</span>';
+        $body .= '<tr>'
+          . '<td>' . $owner . '</td>'
+          . '<td>' . $event . '</td>'
+          . '<td style="text-align:right">₹ ' . $amt . '</td>'
+          . '<td style="text-align:right">₹ ' . $paid . '</td>'
+          . '<td style="text-align:right">' . $dueHtml . '</td>'
+          . '</tr>';
+      }
+      $body .= '</tbody></table>';
+    }
+
+    $body .= '<p style="margin-top:14px">Please <a class="cta" href="' . $loginUrl . '">Login to your account</a> to view invoices and make payments, or contact the office for assistance.</p>';
+    $body .= '<p class="muted" style="margin-top:18px">Regards,<br>' . $orgName . '</p>';
+    $body .= '</div></div></body></html>';
+
+    // final cleanup: decode any double-encoded entities, then strip control/format characters
+    $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $body = preg_replace('/[\p{Cc}\p{Cf}]+/u', '', $body);
+    // collapse incidental whitespace between tags
+    $body = preg_replace('/>\s+</', '><', $body);
+    $body = trim($body);
+
+    // Send to submitter and HOF (if present)
+    $recipients = [];
+    if (!empty($submitterEmail)) $recipients[] = $submitterEmail;
+    if (!empty($hofEmail) && $hofEmail !== $submitterEmail) $recipients[] = $hofEmail;
+
+    $sent = 0;
+    if (!empty($recipients)) {
+      $this->email->clear(true);
+      // initialize email settings to ensure UTF-8 charset and HTML mailtype
+      $this->email->initialize(['mailtype' => 'html', 'charset' => 'utf-8']);
+      $this->email->from('admin@kharjamaat.in', 'Khar Jamaat');
+      $this->email->to($recipients);
+      $this->email->subject($subject);
+      $this->email->message($body);
+      try {
+        $ok = $this->email->send();
+        if ($ok) $sent = count($recipients);
+      } catch (Exception $e) {
+        // ignore
+      }
+    }
+
+    return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'sent' => $sent]));
+  }
   public function updateraza($id)
   {
     $this->email->from('admin@kharjamaat.in', 'Raza Update');
@@ -1377,7 +1735,8 @@ class Accounts extends CI_Controller
     }
 
     // Send single email with BCC to all admin recipients to reduce SMTP handshakes
-    $this->load->library('email');
+    // Enqueue the notification so sending occurs in background
+    $this->load->model('EmailQueueM');
     $to = $_SESSION['user_data']['Email'];
     $bcc = [
       'anjuman@kharjamaat.in',
@@ -1385,15 +1744,11 @@ class Accounts extends CI_Controller
       '3042@carmelnmh.in',
       'kharjamaat@gmail.com',
       'kharamilsaheb@gmail.com',
-      'kharjamaat786@gmail.com'
+      'kharjamaat786@gmail.com',
+      'khozemtopiwalla@gmail.com',
+      'ybookwala@gmail.com'
     ];
-
-    $this->email->from('admin@kharjamaat.in', 'New Raza');
-    $this->email->to($to);
-    $this->email->bcc($bcc);
-    $this->email->subject('New Raza');
-    $this->email->message($email_template);
-    $this->email->send();
+    $this->EmailQueueM->enqueue($to, 'New Raza', $email_template, $bcc, 'html');
 
     $userId = $_SESSION['user_data']['ITS_ID'];
     unset($_POST['raza-type']);
@@ -1523,6 +1878,46 @@ class Accounts extends CI_Controller
     $this->load->view('Accounts/Header', $data);
     // Load the view with inline CSS
     $this->load->view('Accounts/profile', $data);
+  }
+
+  public function update_profile_contact()
+  {
+    header('Content-Type: application/json');
+    if (empty($_SESSION['user'])) {
+      http_response_code(403);
+      echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+
+    $its = $_SESSION['user_data']['ITS_ID'];
+    $mobile = $this->input->post('mobile');
+    $email = $this->input->post('email');
+    $family_mobile = $this->input->post('registered_family_mobile');
+
+    $data = [];
+    if ($mobile !== null) $data['Mobile'] = trim($mobile);
+    if ($email !== null) $data['Email'] = trim($email);
+    if ($family_mobile !== null) $data['Registered_Family_Mobile'] = trim($family_mobile);
+
+    if (empty($data)) {
+      http_response_code(400);
+      echo json_encode(['success' => false, 'error' => 'No data to update']);
+      return;
+    }
+
+    $this->load->model('AmilsahebM');
+    $flag = $this->AmilsahebM->update_user_by_its_id($its, $data);
+
+    if ($flag) {
+      // Update session cache
+      foreach ($data as $k => $v) {
+        $_SESSION['user_data'][$k] = $v;
+      }
+      echo json_encode(['success' => true, 'data' => $data]);
+    } else {
+      http_response_code(500);
+      echo json_encode(['success' => false, 'error' => 'Failed to update']);
+    }
   }
   public function appointment()
   {

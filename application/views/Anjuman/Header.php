@@ -58,7 +58,7 @@
 <div>
   <nav class="fixed-top navbar navbar-expand-lg navbar-light main-navbar">
     <div class="navbar-brand">
-      <a href="<?php echo base_url("/?from=anjuman") ?>">
+      <a href="<?php echo base_url("/?from=anjuman") ?>" style="text-decoration: none;">
         <img src="<?php echo base_url('assets/main_logo.png') ?>" class="logo">
       </a>
       <a href="<?php echo base_url("/anjuman") ?>" class="user-welcome font-lvl-3-xs">

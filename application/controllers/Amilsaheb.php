@@ -387,6 +387,7 @@ class Amilsaheb extends CI_Controller
       }
     }
 
+    $data['event_type'] = $event_type;
     $data['user_name'] = $_SESSION['user']['username'];
     $data['janab_status_0_count'] = $janabStatus0Count;
     $data['janab_status_1_count'] = $janabStatus1Count;
@@ -810,13 +811,88 @@ class Amilsaheb extends CI_Controller
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Appointment/Home', $data);
   }
+  public function slots_calendar() {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+    $this->load->model('AmilsahebM');
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    // Use Hijri month/year selection. Accept ?hijri_month & ?hijri_year; otherwise compute from today.
+    $this->load->model('HijriCalendar');
+    $hijri_month = $this->input->get('hijri_month');
+    $hijri_year = $this->input->get('hijri_year');
+
+    if (empty($hijri_month) || empty($hijri_year)) {
+      $parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+      if ($parts) {
+        $hijri_month = $parts['hijri_month'];
+        $hijri_year = $parts['hijri_year'];
+      }
+    }
+
+    // provide lists for selects
+    $data['hijri_years'] = $this->HijriCalendar->get_distinct_hijri_years();
+    $data['hijri_months'] = $this->HijriCalendar->get_hijri_months_for_year($hijri_year);
+    $data['hijri_month'] = (int)$hijri_month;
+    $data['hijri_year'] = (int)$hijri_year;
+
+    // get gregorian date range for the selected hijri month
+    $hijri_days = $this->HijriCalendar->get_hijri_days_for_month_year($data['hijri_month'], $data['hijri_year']);
+    if (!empty($hijri_days)) {
+      $start = $hijri_days[0]['greg_date'];
+      $end = $hijri_days[count($hijri_days)-1]['greg_date'];
+      $data['slot_statuses'] = $this->AmilsahebM->get_slot_summary_for_range($start, $end);
+      // also provide hijri_days to view so the calendar renders hijri dates mapped to gregorian
+      $data['hijri_days'] = $hijri_days;
+      // set view_month/year to the gregorian month/year of the start date for initial table context
+      $sd = new DateTime($start);
+      $data['view_year'] = (int)$sd->format('Y');
+      $data['view_month'] = (int)$sd->format('n');
+    } else {
+      // fallback to current gregorian month
+      $data['view_year'] = (int)date('Y');
+      $data['view_month'] = (int)date('n');
+      $data['slot_statuses'] = $this->AmilsahebM->get_slot_summary_for_month($data['view_year'], $data['view_month']);
+    }
+
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Amilsaheb/Appointment/SlotsCalendar', $data);
+  }
   public function manage_slots()
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
     $this->load->model('AmilsahebM');
-    $_SESSION['slotdate'] = date('Y-m-d');
+    // allow ?start=YYYY-MM-DD&end=YYYY-MM-DD to open manage_slots for a week range
+    $startParam = $this->input->get('start');
+    $endParam = $this->input->get('end');
+    $requested = $this->input->get('date');
+    if (!empty($startParam) && !empty($endParam)) {
+      $ds = DateTime::createFromFormat('Y-m-d', $startParam);
+      $de = DateTime::createFromFormat('Y-m-d', $endParam);
+      if ($ds && $ds->format('Y-m-d') === $startParam && $de && $de->format('Y-m-d') === $endParam) {
+        $_SESSION['slotdate'] = $startParam;
+        $_SESSION['slotdate_end'] = $endParam;
+      } else {
+        $_SESSION['slotdate'] = date('Y-m-d');
+        unset($_SESSION['slotdate_end']);
+      }
+    } elseif (!empty($requested)) {
+      // basic validation for single date
+      $d = DateTime::createFromFormat('Y-m-d', $requested);
+      if ($d && $d->format('Y-m-d') === $requested) {
+        $_SESSION['slotdate'] = $requested;
+        unset($_SESSION['slotdate_end']);
+      } else {
+        $_SESSION['slotdate'] = date('Y-m-d');
+        unset($_SESSION['slotdate_end']);
+      }
+    } else {
+      $_SESSION['slotdate'] = date('Y-m-d');
+      unset($_SESSION['slotdate_end']);
+    }
     $data['user_name'] = $_SESSION['user']['username'];
     $data['slots'] = $this->AmilsahebM->getSlotsData();
 
@@ -825,62 +901,81 @@ class Amilsaheb extends CI_Controller
   }
   public function save_slots()
   {
-    if ($this->input->post('selected_date') && $this->input->post('selected_time_slot')) {
-      $selectedDate = $this->input->post('selected_date');
-      $_SESSION['slotdate'] = $selectedDate;
-      $selectedTimeSlots = $this->input->post('selected_time_slot');
+    $selectedDate = $this->input->post('selected_date');
+    $selectedTimeSlots = $this->input->post('selected_time_slot');
+    // Normalize session values
+    $rangeStart = isset($_SESSION['slotdate']) ? $_SESSION['slotdate'] : null;
+    $rangeEnd = isset($_SESSION['slotdate_end']) ? $_SESSION['slotdate_end'] : null;
 
-      $old_slot = $this->AmilsahebM->getExistingTimeSlots($selectedDate);
-      foreach ($old_slot as $key => $os) {
-        // Check if the existing slot is not present in the selected time slots
-        if (!in_array($os['time'], $selectedTimeSlots)) {
-          // Delete this slot as it is not present in selected time slots
+    if (!empty($selectedDate) && !empty($selectedTimeSlots) && is_array($selectedTimeSlots)) {
+      // If a week range is active, apply changes to each date in range; otherwise apply to single selected_date
+      $datesToProcess = [];
+      if (!empty($rangeStart) && !empty($rangeEnd)) {
+        $ds = DateTime::createFromFormat('Y-m-d', $rangeStart);
+        $de = DateTime::createFromFormat('Y-m-d', $rangeEnd);
+        if ($ds && $de && $ds->format('Y-m-d') === $rangeStart && $de->format('Y-m-d') === $rangeEnd && $ds <= $de) {
+          $period = new DatePeriod($ds, new DateInterval('P1D'), (clone $de)->modify('+1 day'));
+          foreach ($period as $dt) $datesToProcess[] = $dt->format('Y-m-d');
+        } else {
+          $datesToProcess[] = $selectedDate;
+        }
+      } else {
+        $datesToProcess[] = $selectedDate;
+      }
+
+      foreach ($datesToProcess as $d) {
+        // remove slots not in selected list
+        $old_slots = $this->AmilsahebM->getExistingTimeSlots($d);
+        foreach ($old_slots as $os) {
+          if (!in_array($os['time'], $selectedTimeSlots)) {
+            $this->AmilsahebM->deleteSlot($os['slot_id']);
+            $this->AmilsahebM->unassignSlot($os['slot_id']);
+          }
+        }
+        // refresh existing slots and add missing ones
+        $existing = $this->AmilsahebM->getExistingTimeSlots($d);
+        $existingTimes = array_map(function($r){ return $r['time']; }, $existing);
+        foreach ($selectedTimeSlots as $sel) {
+          if (!in_array($sel, $existingTimes)) {
+            $this->AmilsahebM->addSlot($d, $sel);
+          }
+        }
+      }
+
+      // After processing, keep session slotdate = first processed date
+      $_SESSION['slotdate'] = $datesToProcess[0];
+      if (count($datesToProcess) > 1) $_SESSION['slotdate_end'] = end($datesToProcess);
+
+      $data['user_name'] = $_SESSION['user']['username'];
+      $data['slots'] = $this->AmilsahebM->getSlotsData();
+      $this->load->view('Amilsaheb/Header', $data);
+      $this->load->view('Amilsaheb/Appointment/AddSlot', $data);
+    } else {
+      // No selected time slots: treat as delete-all for the selected date or range
+      $toDelete = [];
+      if (!empty($rangeStart) && !empty($rangeEnd)) {
+        $ds = DateTime::createFromFormat('Y-m-d', $rangeStart);
+        $de = DateTime::createFromFormat('Y-m-d', $rangeEnd);
+        if ($ds && $de && $ds->format('Y-m-d') === $rangeStart && $de->format('Y-m-d') === $rangeEnd && $ds <= $de) {
+          $period = new DatePeriod($ds, new DateInterval('P1D'), (clone $de)->modify('+1 day'));
+          foreach ($period as $dt) $toDelete[] = $dt->format('Y-m-d');
+        } else {
+          $toDelete[] = $selectedDate ?: date('Y-m-d');
+        }
+      } else {
+        $toDelete[] = $selectedDate ?: date('Y-m-d');
+      }
+      foreach ($toDelete as $d) {
+        $old_slot = $this->AmilsahebM->getExistingTimeSlots($d);
+        foreach ($old_slot as $os) {
           $this->AmilsahebM->deleteSlot($os['slot_id']);
           $this->AmilsahebM->unassignSlot($os['slot_id']);
         }
       }
-
-      $new_slot = $this->AmilsahebM->getExistingTimeSlots($selectedDate);
-      foreach ($selectedTimeSlots as $selectedSlot) {
-        // Check if the selected slot is not present in the existing time slots
-        $slotExists = false;
-        foreach ($new_slot as $ns) {
-          if ($ns['time'] == $selectedSlot) {
-            $slotExists = true;
-            break;
-          }
-        }
-        // If the slot doesn't exist, add it
-        if (!$slotExists) {
-          $this->AmilsahebM->addSlot($selectedDate, $selectedSlot);
-          $this->AmilsahebM->addSlot($selectedDate, $selectedSlot);
-          $this->AmilsahebM->addSlot($selectedDate, $selectedSlot);
-        }
-      }
-
-      // Save new slots
-      // $this->AmilsahebM->saveSlots($selectedDate, $selectedTimeSlots);
-
       $data['user_name'] = $_SESSION['user']['username'];
       $data['slots'] = $this->AmilsahebM->getSlotsData();
-
       $this->load->view('Amilsaheb/Header', $data);
       $this->load->view('Amilsaheb/Appointment/AddSlot', $data);
-    } else {
-      $selectedDate = $this->input->post('selected_date');
-      $_SESSION['slotdate'] = $selectedDate;
-      $this->load->model('AmilsahebM');
-      $old_slot = $this->AmilsahebM->getExistingTimeSlots($selectedDate);
-      foreach ($old_slot as $key => $os) {
-        $this->AmilsahebM->deleteSlot($os['slot_id']);
-        $this->AmilsahebM->unassignSlot($os['slot_id']);
-      }
-      $data['user_name'] = $_SESSION['user']['username'];
-      $data['slots'] = $this->AmilsahebM->getSlotsData();
-
-      $this->load->view('Amilsaheb/Header', $data);
-      $this->load->view('Amilsaheb/Appointment/AddSlot', $data);
-      // Show an alert using JavaScript
       echo '<script>alert("All Slots Deleted successful!");</script>';
     }
   }

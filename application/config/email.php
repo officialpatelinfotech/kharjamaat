@@ -12,6 +12,7 @@ $config['charset'] = 'utf-8';
 $config['newline'] = "\r\n";
 $config["mailpath"] = "/usr/sbin/sendmail";
 $config["smtp_timeout"] = "7";
+$config["smtp_keepalive"] = true;
 $config["validate"] = true;
 $config["wordwrap"] = true;
 $config["smtp_encryption"] = "TLS";

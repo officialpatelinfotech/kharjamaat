@@ -11,7 +11,7 @@
   <h4 class="heading text-center pt-5 mb-4">Sabeel Grade</h4>
   <div class="row mb-4 p-0">
     <div class="col-12 col-md-6">
-      <a href="<?php echo base_url("admin/sabeeltakhmeendashboard"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+      <a href="<?php echo base_url("admin/managesabeeltakhmeen"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     </div>
     <div class="col-12 col-md-6">
       <form method="POST" action="<?php echo base_url("admin/filtersabeelgrade"); ?>" id="filter-sabeel-grade-form" class="d-flex m-0">

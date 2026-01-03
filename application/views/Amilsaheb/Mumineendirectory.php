@@ -99,7 +99,7 @@
 
   <div id="activeFilter" class="card" style="display:none;">
     <span id="activeFilterText"></span>
-    <a id="clearFilterLink" href="<?php echo base_url('amilsaheb/mumineendirectory'); ?>" class="btn btn-sm btn-outline-secondary ms-2">Clear</a>
+    <button id="clearFilterLink" type="button" class="btn btn-sm btn-outline-secondary ms-2">Clear</button>
   </div>
 
   <div class="card">
@@ -133,7 +133,7 @@
 <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
-      <form id="userDetailsForm">
+      <div id="userDetailsForm">
         <div class="modal-header">
           <h5 class="modal-title" id="userDetailsModalLabel">User Details</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -142,11 +142,9 @@
           <div id="userDetailsFields" class="row row-cols-1 row-cols-md-2 g-3"></div>
         </div>
         <div class="modal-footer">
-          <input type="hidden" name="ITS_ID" id="modal_ITS_ID">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-success">Update</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>
@@ -257,32 +255,17 @@
       input.id = key;
       input.name = key;
       input.value = user[key] || '';
+      input.readOnly = true;
 
       col.appendChild(label);
       col.appendChild(input);
       container.appendChild(col);
     });
-    document.getElementById('modal_ITS_ID').value = user.ITS_ID;
+    // modal is view-only now
     modal.show();
   }
 
-  document.getElementById('userDetailsForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    fetch('<?php echo isset($update_user_url) ? $update_user_url : base_url('amilsaheb/update_user_details'); ?>', {
-        method: 'POST',
-        body: formData
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          alert('User details updated successfully');
-          location.reload();
-        } else {
-          alert('Update failed');
-        }
-      });
-  });
+  // Removed update handler: modal is view-only
 
   // Utilities: read URL params and filter data accordingly
   function applyInitialFilterFromQuery() {
@@ -364,4 +347,27 @@
       chip.style.display = 'none';
     }
   }
+
+  // Clear filters without navigating away
+  function clearFilters() {
+    // remove query params from URL
+    history.replaceState(null, '', window.location.pathname);
+    // reset search input
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+    // hide active filter chip
+    const chip = document.getElementById('activeFilter');
+    if (chip) chip.style.display = 'none';
+    // reset data and UI
+    currentData = [...originalData];
+    sortDirection = {};
+    document.querySelectorAll('th.sortable').forEach(th => th.classList.remove('asc', 'desc'));
+    updateSectorCount(currentData);
+    updateUserTable(currentData);
+  }
+
+  document.getElementById('clearFilterLink').addEventListener('click', function(e) {
+    e.preventDefault();
+    clearFilters();
+  });
 </script>

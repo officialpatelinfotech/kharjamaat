@@ -13,55 +13,80 @@
     </div>
   </div>
   <h4 class="heading text-center mb-4">FMB Thaali Takhmeen</h4>
-    <?php
-      $unique_sectors = [];
-      $unique_sub_sectors = [];
-      if(isset($all_user_fmb_takhmeen)){
-        foreach($all_user_fmb_takhmeen as $u){
-          if(!empty($u['Sector'])) $unique_sectors[$u['Sector']] = true;
-          if(!empty($u['Sub_Sector'])) $unique_sub_sectors[$u['Sub_Sector']] = true;
-        }
-      }
-    ?>
-    <div class="row mb-3" id="takhmeen-filters">
-      <div class="col-12 col-md-3 mb-2">
-        <input type="text" id="filter-member" class="form-control form-control-sm" placeholder="Filter Member Name" autocomplete="off" />
-      </div>
-      <div class="col-6 col-md-2 mb-2">
-        <form method="post" action="<?php echo base_url('anjuman/fmbthaalitakhmeen'); ?>">
-          <select name="fmb_year" id="fmb-year" class="form-control form-control-sm" onchange="this.form.submit()">
-            <?php if (!empty($hijri_years)):
-              foreach ($hijri_years as $y): ?>
-                <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ($selected_year === $y) ? 'selected' : ''; ?>><?php echo htmlspecialchars($y); ?></option>
-              <?php endforeach; endif; ?>
-          </select>
-        </form>
-      </div>
-      <div class="col-6 col-md-2 mb-2">
-        <select id="filter-sector" class="form-control form-control-sm">
-          <option value="">All Sectors</option>
-          <?php foreach(array_keys($unique_sectors) as $sec): ?>
-            <option value="<?php echo htmlspecialchars($sec, ENT_QUOTES); ?>"><?php echo htmlspecialchars($sec); ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <div class="col-6 col-md-2 mb-2">
-        <select id="filter-sub-sector" class="form-control form-control-sm">
-          <option value="">All Sub-Sectors</option>
-          <?php foreach(array_keys($unique_sub_sectors) as $sub): ?>
-            <option value="<?php echo htmlspecialchars($sub, ENT_QUOTES); ?>"><?php echo htmlspecialchars($sub); ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <div class="col-12 col-md-3 d-flex justify-content-md-end align-items-start" id="takhmeen-toolbar" style="gap:8px;">
-        <button type="button" id="apply-filters-btn" class="btn btn-sm btn-primary" title="Apply filters"><i class="fa fa-filter"></i> Apply</button>
-        <button type="button" id="clear-filters-btn" class="btn btn-sm btn-outline-secondary" title="Clear filters"><i class="fa fa-times"></i> Clear</button>
-        <button type="button" id="reset-sort-btn" class="btn btn-sm btn-outline-secondary" title="Reset original order"><i class="fa fa-rotate-left"></i> Refresh Order</button>
-      </div>
+  <style>
+    /* Scrollable table container with sticky header */
+    .table-scroll-fixed {
+      max-height: calc(100vh - 320px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .table-scroll-fixed table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table-scroll-fixed thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: #f8fafc;
+      /* match card header */
+    }
+  </style>
+  <?php
+  $unique_sectors = [];
+  $unique_sub_sectors = [];
+  if (isset($all_user_fmb_takhmeen)) {
+    foreach ($all_user_fmb_takhmeen as $u) {
+      if (!empty($u['Sector'])) $unique_sectors[$u['Sector']] = true;
+      if (!empty($u['Sub_Sector'])) $unique_sub_sectors[$u['Sub_Sector']] = true;
+    }
+  }
+  ?>
+  <div class="row mb-3" id="takhmeen-filters">
+    <div class="col-12 col-md-2 mb-2">
+      <input type="text" id="filter-member" class="form-control form-control-sm" placeholder="Filter Member Name" autocomplete="off" />
     </div>
+    <div class="col-12 col-md-2 mb-2">
+      <input type="text" id="filter-its" class="form-control form-control-sm" placeholder="Filter ITS ID" autocomplete="off" value="<?php echo htmlspecialchars(isset($filter_its) ? $filter_its : $this->input->get('its')); ?>" />
+    </div>
+    <div class="col-12 col-md-1 mb-2">
+      <form method="post" action="<?php echo base_url('anjuman/fmbthaalitakhmeen'); ?>" class="m-0">
+        <select name="fmb_year" id="fmb-year" class="form-control form-control-sm" onchange="this.form.submit()">
+          <?php if (!empty($hijri_years)):
+            foreach ($hijri_years as $y): ?>
+              <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ($selected_year === $y) ? 'selected' : ''; ?>><?php echo htmlspecialchars($y); ?></option>
+          <?php endforeach;
+          endif; ?>
+        </select>
+      </form>
+    </div>
+    <div class="col-12 col-md-1 mb-2">
+      <select id="filter-sector" class="form-control form-control-sm">
+        <option value="">All Sectors</option>
+        <?php foreach (array_keys($unique_sectors) as $sec): ?>
+          <option value="<?php echo htmlspecialchars($sec, ENT_QUOTES); ?>"><?php echo htmlspecialchars($sec); ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="col-12 col-md-2 mb-2">
+      <select id="filter-sub-sector" class="form-control form-control-sm">
+        <option value="">All Sub-Sectors</option>
+        <?php foreach (array_keys($unique_sub_sectors) as $sub): ?>
+          <option value="<?php echo htmlspecialchars($sub, ENT_QUOTES); ?>"><?php echo htmlspecialchars($sub); ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="col-12 col-md-3 d-flex justify-content-md-end align-items-start" id="takhmeen-toolbar" style="gap:8px;">
+      <button type="button" id="apply-filters-btn" class="btn btn-sm btn-primary" title="Apply filters"><i class="fa fa-filter"></i> Apply</button>
+      <button type="button" id="clear-filters-btn" class="btn btn-sm btn-outline-secondary" title="Clear filters"><i class="fa fa-times"></i> Clear</button>
+      <button type="button" id="reset-sort-btn" class="btn btn-sm btn-outline-secondary" title="Reset original order"><i class="fa fa-rotate-left"></i> Refresh Order</button>
+    </div>
+  </div>
   <div class="card shadow-sm rounded-3 mt-4">
     <div class="card-header bg-light"></div>
-    <div class="card-body p-0 table-responsive">
+    <div class="card-body p-0 table-responsive table-scroll-fixed">
       <table id="takhmeen-table" class="table table-bordered table-striped">
         <thead class="thead-dark">
           <tr>
@@ -257,10 +282,13 @@
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#039;');
 
-        const fmt = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const fmt = new Intl.NumberFormat('en-IN', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        });
         const amtTotal = `₹${fmt.format(parseFloat(takhmeen.total_amount||0))}`;
-        const amtPaid  = `₹${fmt.format(parseFloat(takhmeen.total_paid||0))}`;
-        const amtDue   = `₹${fmt.format(parseFloat(takhmeen.due||0))}`;
+        const amtPaid = `₹${fmt.format(parseFloat(takhmeen.total_paid||0))}`;
+        const amtDue = `₹${fmt.format(parseFloat(takhmeen.due||0))}`;
 
         $("#due-details").append(`
         <tr>
@@ -275,6 +303,43 @@
 
       $("#due-overview-modal").modal("show");
     });
+  });
+
+  // Apply button now submits filters to server via GET so server-side filtering is used
+  // Remove earlier client-side-only behavior and redirect to controller with query params
+  $('#apply-filters-btn').on('click', function(e) {
+    e.preventDefault();
+    var base = '<?php echo site_url('anjuman/fmbthaalitakhmeen'); ?>';
+    var its = ($('#filter-its').val() || '').toString().trim();
+    var sector = ($('#filter-sector').val() || '').toString().trim();
+    var sub = ($('#filter-sub-sector').val() || '').toString().trim();
+    var fmbYear = ($('#fmb-year').val() || '').toString().trim();
+    var memberOnlyVal = ($('#filter-member').val() || '').toString().trim();
+    // If only member name is provided (no ITS/sector/sub-sector), apply client-side filter
+    // NOTE: we intentionally ignore fmbYear here so quick name searches don't force a reload
+    if (memberOnlyVal && !its && !sector && !sub) {
+      if (typeof window.applyFmbLocalFilters === 'function') {
+        window.applyFmbLocalFilters();
+        return;
+      }
+      // fallback: continue to server redirect if local filter unavailable
+    }
+    var params = {};
+    if (fmbYear) params.fmb_year = fmbYear;
+    if (its) params.its = its;
+    if (sector) params.sector = sector;
+    if (sub) params.sub_sector = sub;
+    var qs = Object.keys(params).length ? ('?' + $.param(params)) : '';
+    window.location.href = base + qs;
+  });
+
+  // Clear filters: navigate to base (optionally preserve fmb_year selection)
+  $('#clear-filters-btn').on('click', function(e) {
+    e.preventDefault();
+    var base = '<?php echo site_url('anjuman/fmbthaalitakhmeen'); ?>';
+    var fmbYear = ($('#fmb-year').val() || '').toString().trim();
+    var qs = fmbYear ? ('?fmb_year=' + encodeURIComponent(fmbYear)) : '';
+    window.location.href = base + qs;
   });
 
   $(document).on("click", ".pay-takhmeen-btn", function() {
@@ -400,54 +465,67 @@
   $(".alert").hide(3000);
 
   // Improved sortable columns for main takhmeen table
-  (function(){
+  (function() {
     const table = document.getElementById('takhmeen-table');
-    if(!table) return;
+    if (!table) return;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
-    if(!thead || !tbody) return;
+    if (!thead || !tbody) return;
 
     // Capture original order
-    Array.from(tbody.querySelectorAll('tr')).forEach((tr,i)=>{ tr.dataset.originalIndex = i; });
+    Array.from(tbody.querySelectorAll('tr')).forEach((tr, i) => {
+      tr.dataset.originalIndex = i;
+    });
 
     thead.querySelectorAll('th').forEach((th, idx) => {
       const label = th.textContent.trim();
-      if(idx === 0 || label === 'Action') return; // skip serial and action
+      if (idx === 0 || label === 'Action') return; // skip serial and action
       th.classList.add('sortable');
-      th.innerHTML = '<span class="sort-label">'+label+'</span><span class="sort-indicator" aria-hidden="true"></span>';
-      th.setAttribute('role','button');
-      th.style.cursor='pointer';
+      th.innerHTML = '<span class="sort-label">' + label + '</span><span class="sort-indicator" aria-hidden="true"></span>';
+      th.setAttribute('role', 'button');
+      th.style.cursor = 'pointer';
       th.addEventListener('click', () => toggleSort(idx, th));
     });
 
-    function getCellValue(tr, index){
+    function getCellValue(tr, index) {
       const cells = tr.querySelectorAll('td');
-      if(!cells[index]) return '';
+      if (!cells[index]) return '';
       // Prefer explicit data-sort-value
       let raw = cells[index].getAttribute('data-sort-value');
-      if(raw === null){ raw = cells[index].textContent; }
-      raw = raw.replace(/₹|,/g,'').replace(/\s+/g,' ').trim();
+      if (raw === null) {
+        raw = cells[index].textContent;
+      }
+      raw = raw.replace(/₹|,/g, '').replace(/\s+/g, ' ').trim();
       return raw;
     }
-    function inferType(val){
-      if(/^[-+]?\d+(\.\d+)?$/.test(val)) return 'number';
+
+    function inferType(val) {
+      if (/^[-+]?\d+(\.\d+)?$/.test(val)) return 'number';
       return 'text';
     }
-    function normalize(val){
+
+    function normalize(val) {
       const t = inferType(val);
-      if(t==='number') return parseFloat(val)||0;
+      if (t === 'number') return parseFloat(val) || 0;
       return val.toLowerCase();
     }
-    function toggleSort(idx, th){
+
+    function toggleSort(idx, th) {
       const newDir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
-      thead.querySelectorAll('th.sortable').forEach(h => { h.dataset.sortDir=''; const ind=h.querySelector('.sort-indicator'); if(ind) ind.textContent=''; });
-      th.dataset.sortDir = newDir; const ind=th.querySelector('.sort-indicator'); if(ind) ind.textContent = newDir==='asc' ? '▲' : '▼';
+      thead.querySelectorAll('th.sortable').forEach(h => {
+        h.dataset.sortDir = '';
+        const ind = h.querySelector('.sort-indicator');
+        if (ind) ind.textContent = '';
+      });
+      th.dataset.sortDir = newDir;
+      const ind = th.querySelector('.sort-indicator');
+      if (ind) ind.textContent = newDir === 'asc' ? '▲' : '▼';
       const rows = Array.from(tbody.querySelectorAll('tr'));
-      rows.sort((a,b) => {
+      rows.sort((a, b) => {
         const va = normalize(getCellValue(a, idx));
         const vb = normalize(getCellValue(b, idx));
-        if(va < vb) return newDir==='asc' ? -1 : 1;
-        if(va > vb) return newDir==='asc' ? 1 : -1;
+        if (va < vb) return newDir === 'asc' ? -1 : 1;
+        if (va > vb) return newDir === 'asc' ? 1 : -1;
         return 0;
       });
       rows.forEach(r => tbody.appendChild(r));
@@ -456,13 +534,17 @@
 
     // Reset button logic
     const resetBtn = document.getElementById('reset-sort-btn');
-    if(resetBtn){
+    if (resetBtn) {
       resetBtn.addEventListener('click', () => {
         const rows = Array.from(tbody.querySelectorAll('tr'));
-        rows.sort((a,b)=> parseInt(a.dataset.originalIndex,10) - parseInt(b.dataset.originalIndex,10));
-        rows.forEach(r=> tbody.appendChild(r));
+        rows.sort((a, b) => parseInt(a.dataset.originalIndex, 10) - parseInt(b.dataset.originalIndex, 10));
+        rows.forEach(r => tbody.appendChild(r));
         // Clear indicators
-        thead.querySelectorAll('th.sortable').forEach(h => { h.dataset.sortDir=''; const ind=h.querySelector('.sort-indicator'); if(ind) ind.textContent=''; });
+        thead.querySelectorAll('th.sortable').forEach(h => {
+          h.dataset.sortDir = '';
+          const ind = h.querySelector('.sort-indicator');
+          if (ind) ind.textContent = '';
+        });
         applyFilters(); // keep current filters applied after reset
       });
     }
@@ -474,37 +556,55 @@
     const applyBtn = document.getElementById('apply-filters-btn');
     const clearBtn = document.getElementById('clear-filters-btn');
 
-    function applyFilters(){
-      const nameVal = (memberInput.value||'').toLowerCase().trim();
+    function applyFilters() {
+      const nameVal = (memberInput.value || '').toLowerCase().trim();
       const sectorVal = sectorSelect.value;
       const subVal = subSectorSelect.value;
       const rows = Array.from(tbody.querySelectorAll('tr'));
       rows.forEach(r => {
         const cells = r.querySelectorAll('td');
-        if(cells.length < 5){ r.style.display=''; return; }
+        if (cells.length < 5) {
+          r.style.display = '';
+          return;
+        }
         const nameCell = cells[2].textContent.toLowerCase();
         const sectorCell = cells[3].textContent.trim();
         const subCell = cells[4].textContent.trim();
         let show = true;
-        if(nameVal && !nameCell.includes(nameVal)) show = false;
-        if(sectorVal && sectorCell !== sectorVal) show = false;
-        if(subVal && subCell !== subVal) show = false;
+        if (nameVal && !nameCell.includes(nameVal)) show = false;
+        if (sectorVal && sectorCell !== sectorVal) show = false;
+        if (subVal && subCell !== subVal) show = false;
         r.style.display = show ? '' : 'none';
       });
       renumberVisible();
     }
 
-    function renumberVisible(){
+    function renumberVisible() {
       let counter = 1;
       Array.from(tbody.querySelectorAll('tr')).forEach(r => {
-        if(r.style.display === 'none') return; const idxCell = r.querySelector('.row-index'); if(idxCell) idxCell.textContent = counter++; });
+        if (r.style.display === 'none') return;
+        const idxCell = r.querySelector('.row-index');
+        if (idxCell) idxCell.textContent = counter++;
+      });
     }
 
-    if(applyBtn) applyBtn.addEventListener('click', applyFilters);
-    [memberInput, sectorSelect, subSectorSelect].forEach(el => { if(el) el.addEventListener('keyup', e => { if(e.key==='Enter') applyFilters(); }); if(el) el.addEventListener('change', applyFilters); });
-    if(clearBtn) clearBtn.addEventListener('click', () => { memberInput.value=''; sectorSelect.value=''; subSectorSelect.value=''; applyFilters(); });
+    // The apply/clear buttons above perform server navigation (server-side filtering).
+    // Keep live filtering on Enter/change for local member name/sector/sub-sector controls.
+    [memberInput, sectorSelect, subSectorSelect].forEach(el => {
+      if (el) el.addEventListener('keyup', e => {
+        if (e.key === 'Enter') applyFilters();
+      });
+      if (el) el.addEventListener('change', applyFilters);
+    });
+    // Expose local filter function for use by outer handlers
+    window.applyFmbLocalFilters = applyFilters;
 
-    // Initial numbering alignment
+    [memberInput, sectorSelect, subSectorSelect].forEach(el => {
+      if (el) el.addEventListener('keyup', e => {
+        if (e.key === 'Enter') applyFilters();
+      });
+      if (el) el.addEventListener('change', applyFilters);
+    });
     renumberVisible();
   })();
 </script>

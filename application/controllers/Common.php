@@ -1871,16 +1871,13 @@ class Common extends CI_Controller
     // Fetch all miqaat dates and their RSVP lists
     $miqaats = $this->CommonM->get_miqaats();
 
-    // Filter to upcoming miqaats (date >= today) and sort ascending (earliest upcoming first)
+    // Sort miqaats by date ascending (earliest first). Do not filter out past miqaats
     if (!empty($miqaats) && is_array($miqaats)) {
-      $today = date('Y-m-d');
-      $miqaats = array_filter($miqaats, function($m) use ($today) {
-        $d = isset($m['miqaat_date']) ? substr($m['miqaat_date'], 0, 10) : '';
-        return $d >= $today;
-      });
       usort($miqaats, function($a, $b) {
-        $ta = isset($a['miqaat_date']) ? strtotime($a['miqaat_date']) : 0;
-        $tb = isset($b['miqaat_date']) ? strtotime($b['miqaat_date']) : 0;
+        $da = isset($a['miqaat_date']) ? $a['miqaat_date'] : (isset($a['date']) ? $a['date'] : '');
+        $db = isset($b['miqaat_date']) ? $b['miqaat_date'] : (isset($b['date']) ? $b['date'] : '');
+        $ta = $da ? strtotime(substr($da,0,10)) : 0;
+        $tb = $db ? strtotime(substr($db,0,10)) : 0;
         return $ta <=> $tb;
       });
       $miqaats = array_values($miqaats);

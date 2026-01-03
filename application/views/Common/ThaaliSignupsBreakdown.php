@@ -272,7 +272,7 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
   </style>
 
   <script>
-    (function () {
+    (function() {
       const dateEl = document.getElementById('date');
       const startEl = document.getElementById('start_date');
       const endEl = document.getElementById('end_date');
@@ -294,7 +294,11 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
       startEl.addEventListener('change', syncMinMax);
       endEl.addEventListener('change', syncMinMax);
       // Also when date is typed, it clears range (handled inline); ensure constraints reset
-      dateEl && dateEl.addEventListener('input', () => { startEl.value = ''; endEl.value = ''; syncMinMax(); });
+      dateEl && dateEl.addEventListener('input', () => {
+        startEl.value = '';
+        endEl.value = '';
+        syncMinMax();
+      });
       syncMinMax();
     })();
   </script>
@@ -341,8 +345,6 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
             'total' => $total
           ];
         }
-
-
       }
     }
   } else {
@@ -370,19 +372,8 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
         'total' => $total
       ];
     }
-  } else {
-    // Single date: use controller-provided $breakdown which includes totals
-    $d = $date;
-    foreach ($breakdown as $r) {
-      $sec = isset($r['sector']) ? trim($r['sector']) : '';
-      if ($sec === '') $sec = 'Unassigned';
-      $signed = (int)($r['signed_up'] ?? 0);
-      $total = (int)($r['total_families'] ?? 0);
-      $rows[] = ['date' => $d, 'sector' => $sec, 'signed' => $signed, 'total' => $total];
-    }
   }
 
-  }
 
   // Sort rows by date asc then sector asc
   usort($rows, function ($a, $b) {
@@ -430,12 +421,10 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
             <?php if (!empty($sectors)):
               foreach ($sectors as $sec): ?>
                 <th class="text-end"><?= htmlspecialchars($sec) ?></th>
-              <?php endforeach; endif; ?>
-            <th class="text-end">Total</th>
-            <?php if (!empty($sectors)): foreach ($sectors as $sec): ?>
-                <th class="text-end"><?= htmlspecialchars($sec) ?></th>
             <?php endforeach;
             endif; ?>
+            <th class="text-end">Total</th>
+            <!-- (no duplicate sector headers here) -->
           </tr>
         </thead>
         <tbody>
@@ -443,7 +432,7 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
             <tr>
               <td colspan="<?= max(2, count($sectors) + 2) ?>" class="text-center text-muted py-4">No data available.</td>
             </tr>
-          <?php else:
+            <?php else:
             foreach ($dates as $d): ?>
               <?php
               $rowCounts = $dateSectorCounts[$d];
@@ -469,20 +458,20 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
                   $not_signed = max($total - $signed, 0);
                   $sum_signed += $signed;
                   $sum_total += $total;
-                  ?>
+                ?>
                   <td class="text-end fw-semibold">
                     <span class="text-success"><?= number_format($signed) ?></span> -
                     <span class="text-danger"><?= number_format($not_signed) ?></span>
                   </td>
                 <?php endforeach; ?>
                 <td class="text-end fw-bold"><?php
-                if ($sum_total > 0) {
-                  $sum_not = max($sum_total - $sum_signed, 0);
-                  echo '<span class="text-success">' . number_format($sum_signed) . '</span>' . ' - ' . '<span class="text-danger">' . number_format($sum_not) . '</span>';
-                } else {
-                  echo '-';
-                }
-                ?></td>
+                                              if ($sum_total > 0) {
+                                                $sum_not = max($sum_total - $sum_signed, 0);
+                                                echo '<span class="text-success">' . number_format($sum_signed) . '</span>' . ' - ' . '<span class="text-danger">' . number_format($sum_not) . '</span>';
+                                              } else {
+                                                echo '-';
+                                              }
+                                              ?></td>
               </tr>
           <?php endforeach;
           endif; ?>
@@ -495,7 +484,7 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
 
 <script>
   // Hijri month AJAX navigation: fetch fragment and replace table + title
-  (function () {
+  (function() {
     function buildAjaxUrl(href) {
       try {
         var u = new URL(href, window.location.origin);
@@ -508,7 +497,7 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
     }
 
     function setSpinner(on) {
-      document.querySelectorAll('.hijri-nav-btn .chev-box').forEach(function (b) {
+      document.querySelectorAll('.hijri-nav-btn .chev-box').forEach(function(b) {
         if (on) {
           b.dataset.orig = b.innerHTML;
           b.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
@@ -521,7 +510,7 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
       });
     }
 
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', function(e) {
       var a = e.target.closest && e.target.closest('.hijri-nav-btn');
       if (!a) return;
       // allow normal behavior for disabled
@@ -537,7 +526,11 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
       e.preventDefault();
       var url = buildAjaxUrl(href);
       setSpinner(true);
-      fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (text) {
+      fetch(url, {
+        credentials: 'same-origin'
+      }).then(function(r) {
+        return r.text();
+      }).then(function(text) {
         var parser = new DOMParser();
         var doc = parser.parseFromString(text, 'text/html');
         var newBlock = doc.getElementById('thaali-breakdown-block');
@@ -569,11 +562,12 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
         var curNav = document.querySelectorAll('.hijri-nav-btn');
         if (navBtns && navBtns.length && curNav && curNav.length) {
           for (var i = 0; i < Math.min(navBtns.length, curNav.length); i++) {
-            var src = navBtns[i]; var dst = curNav[i];
+            var src = navBtns[i];
+            var dst = curNav[i];
             dst.className = src.className;
             // copy href and data-* attributes
             dst.setAttribute('href', src.getAttribute('href') || '#');
-            Array.prototype.slice.call(src.attributes).forEach(function (attr) {
+            Array.prototype.slice.call(src.attributes).forEach(function(attr) {
               if (attr.name.indexOf('data-') === 0) dst.setAttribute(attr.name, attr.value);
             });
             // copy inner HTML (chevron content)
@@ -584,19 +578,21 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
         try {
           var pushUrl = href;
           history.pushState({}, '', pushUrl);
-        } catch (e) { }
-      }).catch(function (err) {
+        } catch (e) {}
+      }).catch(function(err) {
         console.error('Failed to load month fragment', err);
-      }).finally(function () { setSpinner(false); });
+      }).finally(function() {
+        setSpinner(false);
+      });
     });
 
     // support back/forward
-    window.addEventListener('popstate', function (ev) {
+    window.addEventListener('popstate', function(ev) {
       // simply reload to ensure state matches (safe fallback)
       window.location.reload();
     });
   })();
-  (function () {
+  (function() {
     const rows = document.querySelectorAll('tr.table-row-click[data-date]');
 
     if (!rows.length) return;
@@ -643,7 +639,7 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
   })();
 
   // Auto-scroll to today's date within the table (if present)
-  (function () {
+  (function() {
     const today = '<?= date('Y-m-d'); ?>';
     const target = document.querySelector('tbody tr.table-row-click[data-date="' + today + '"]');
     if (!target) return;

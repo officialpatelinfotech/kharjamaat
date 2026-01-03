@@ -48,12 +48,12 @@
 </style>
 <div class="margintopcontainer pt-5">
   <div class="container">
-    <div class="text-center">
-      <a href="<?php echo base_url('accounts/home'); ?>" class="btn btn-sm btn-outline-secondary">
+    <div class="">
+      <a href="<?php echo base_url('accounts/home'); ?>" class="btn btn-outline-secondary">
         <i class="fa fa-arrow-left"></i>
       </a>
     </div>
-    <p class="h4 text-center mt-5" style="text-transform: uppercase; color: goldenrod;">My Raza Request For <?php echo $value ?></p>
+    <p class="h4 text-center" style="text-transform: uppercase; color: goldenrod;">My Raza Request For <?php echo $value ?></p>
     <div class="container">
       <div class="row mt-5">
         <form class="form-inline my-2 my-lg-0 w-100">

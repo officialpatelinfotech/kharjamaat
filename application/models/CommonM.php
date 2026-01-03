@@ -2077,7 +2077,7 @@ class CommonM extends CI_Model
 
   public function get_miqaats()
   {
-    $this->db->select('m.id as miqaat_id, m.name as miqaat_name, m.date as miqaat_date');
+    $this->db->select('m.id as miqaat_id, m.name as miqaat_name, m.type as miqaat_type, m.date as miqaat_date');
     $this->db->from('miqaat m');
     $this->db->order_by('m.date', 'ASC');
     $miqaats = $this->db->get()->result_array();

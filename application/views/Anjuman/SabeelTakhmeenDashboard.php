@@ -20,20 +20,70 @@
   .est-due { color:#dc3545; font-weight:600; }
   .res-due { color:#dc3545; font-weight:600; }
   .due-wrapper .label-prefix { opacity:0.8; font-weight:500; margin-right:2px; }
+  /* Scrollable table with sticky header (Sabeel dashboard) */
+  .table-scroll-fixed {
+    max-height: calc(100vh - 320px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-scroll-fixed table { width:100%; border-collapse: collapse; }
+  .table-scroll-fixed thead tr:first-child th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: #f8fafc;
+  }
+  /* Prevent small year text from wrapping onto two lines */
+  .table-scroll-fixed td small { white-space: nowrap; }
+  .table-scroll-fixed thead tr:nth-child(2) th {
+    position: sticky;
+    top: 38px; /* offset to sit below the first header row */
+    z-index: 3;
+    background: #f8fafc;
+  }
+    /* Center Grade columns (Establishment and Residential) */
+    .table-scroll-fixed thead tr:nth-child(2) th:nth-child(5),
+    .table-scroll-fixed thead tr:nth-child(2) th:nth-child(9),
+    .table-scroll-fixed tbody td:nth-child(5),
+    .table-scroll-fixed tbody td:nth-child(9) {
+      text-align: center;
+      vertical-align: middle;
+    }
+    /* Center Action column (last column) both horizontally and vertically */
+    .table-scroll-fixed thead th:last-child,
+    .table-scroll-fixed tbody td:last-child {
+      text-align: center;
+      vertical-align: middle;
+    }
+  /* Thick vertical separators around column groups */
+  .table-scroll-fixed table th, .table-scroll-fixed table td { border-color: #dee2e6; }
+  /* Member Info group: cols 1-4 */
+  .table-scroll-fixed table th:first-child, .table-scroll-fixed table td:first-child { border-left: 2px solid #343a40; }
+  .table-scroll-fixed table th:nth-child(4), .table-scroll-fixed table td:nth-child(4) { border-right: 2px solid #343a40; }
+  /* Establishment group: cols 5-8 */
+  .table-scroll-fixed table th:nth-child(5), .table-scroll-fixed table td:nth-child(5) { border-left: 2px solid #343a40; }
+  .table-scroll-fixed table th:nth-child(8), .table-scroll-fixed table td:nth-child(8) { border-right: 2px solid #343a40; }
+  /* Residential group: cols 9-12 */
+  .table-scroll-fixed table th:nth-child(9), .table-scroll-fixed table td:nth-child(9) { border-left: 2px solid #343a40; }
+  .table-scroll-fixed table th:nth-child(12), .table-scroll-fixed table td:nth-child(12) { border-right: 2px solid #343a40; }
 </style>
-<div class="margintopcontainer mx-5 pt-5">
+<div class="margintopcontainer mx-2 mx-md-5 pt-5">
   <div class="p-0">
     <a href="<?php echo base_url("anjuman"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
-  <h4 class="heading text-center mb-4">Receive Sabeel Payments</h4>
+  <h4 class="heading text-center my-4">Receive Sabeel Payments</h4>
   <div class="row mb-4">
     <div class="col-12 col-md-8">
       <form method="POST" action="<?php echo base_url("anjuman/filteruserinsabeeltakhmeen"); ?>" class="d-flex flex-wrap m-0 align-items-end">
-        <div class="mr-2 mb-2" style="min-width:200px;">
+        <div class="col-12 col-md-3 mb-2">
           <label class="small text-muted m-0">Member Name</label>
           <input type="text" name="member_name" id="member-name" class="form-control form-control-sm" placeholder="Member name" value="<?php echo isset($member_name) ? htmlspecialchars($member_name) : ''; ?>">
         </div>
-        <div class="mr-2 mb-2" style="min-width:180px;">
+        <div class="col-12 col-md-3 mb-2">
+          <label class="small text-muted m-0">ITS ID</label>
+          <input type="text" name="its_id" id="filter-its" class="form-control form-control-sm" placeholder="ITS ID" value="<?php echo isset($its_id) ? htmlspecialchars($its_id) : ''; ?>">
+        </div>
+        <div class="col-12 col-md-3 mb-2">
           <label class="small text-muted m-0">Hijri Financial Year</label>
           <select name="sabeel_year" id="sabeel-year" class="form-control form-control-sm" onchange="this.form.submit()">
             <?php 
@@ -50,14 +100,14 @@
             ?>
           </select>
         </div>
-        <div class="mb-2">
+        <div class="col-12 col-md-3 mb-2">
           <button type="submit" class="btn btn-sm btn-primary mr-2">Submit</button>
-          <a href="<?php echo base_url("anjuman/sabeeltakhmeendashboard"); ?>" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-times"></i></a>
+          <a href="<?php echo base_url("anjuman/sabeeltakhmeendashboard"); ?>" class="btn btn-sm btn-outline-secondary mt-2 mt-md-0"><i class="fa-solid fa-times"></i></a>
         </div>
       </form>
     </div>
   </div>
-  <div>
+  <div class="table-scroll-fixed">
     <table class="table table-bordered table-striped">
     <?php
       // Helper: Indian Rupee formatting (no decimals, Indian grouping)
@@ -145,6 +195,8 @@
               <td class="takhmeen-amount due-wrapper">
                 <?php if ($est && $estDue > 0) { ?>
                   <span class="est-due"><?php echo inr_format(round($estDue)); ?></span>
+                <?php } else { ?>
+                  0
                 <?php } ?>
                 <?php 
                   $allEstVal = is_numeric($allEstDue) ? round($allEstDue) : 0;
@@ -168,6 +220,8 @@
               <td class="takhmeen-amount due-wrapper">
                 <?php if ($res && $resDue > 0) { ?>
                   <span class="res-due"><?php echo inr_format(round($resDue)); ?></span>
+                <?php } else { ?>
+                  0
                 <?php } ?>
                 <?php 
                   $allResVal = is_numeric($allResDue) ? round($allResDue) : 0;

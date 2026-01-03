@@ -84,6 +84,21 @@
       gap: 12px;
     }
 
+    /* Force 4 columns on narrow/mobile screens so slots show 4 per row */
+    @media (max-width: 575px) {
+      .group-slots {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 8px;
+      }
+      .time-slot-card {
+        padding: 8px 6px;
+        font-size: 14px;
+      }
+      .group-slots .time-slot-card .time-label {
+        display: block;
+      }
+    }
+
     .btn-submit {
       margin-top: 15px;
     }
@@ -104,9 +119,27 @@
 
 <body>
   <div class="container mt-4">
+    <?php
+    $ci = get_instance();
+    $ci->load->model('HijriCalendar');
+    if (!empty($_SESSION['slotdate_end'])):
+        $ds = DateTime::createFromFormat('Y-m-d', $_SESSION['slotdate']);
+        $de = DateTime::createFromFormat('Y-m-d', $_SESSION['slotdate_end']);
+        $dispStart = $ds ? $ds->format('d-m-Y') : htmlspecialchars($_SESSION['slotdate']);
+        $dispEnd = $de ? $de->format('d-m-Y') : htmlspecialchars($_SESSION['slotdate_end']);
+        // Hijri parts
+        $hstart = $ci->HijriCalendar->get_hijri_parts_by_greg_date($_SESSION['slotdate']);
+        $hend = $ci->HijriCalendar->get_hijri_parts_by_greg_date($_SESSION['slotdate_end']);
+        $hstartText = $hstart ? ($hstart['hijri_day'] . ' ' . htmlspecialchars($hstart['hijri_month_name']) . ' ' . $hstart['hijri_year']) : '';
+        $hendText = $hend ? ($hend['hijri_day'] . ' ' . htmlspecialchars($hend['hijri_month_name']) . ' ' . $hend['hijri_year']) : '';
+    ?>
+      <div class="alert alert-info" role="alert">
+        Managing slots for the week: <strong><?php echo $dispStart; ?></strong> <small class="text-muted">(Hijri: <?php echo $hstartText; ?>)</small> — <strong><?php echo $dispEnd; ?></strong> <small class="text-muted">(Hijri: <?php echo $hendText; ?>)</small>
+      </div>
+    <?php endif; ?>
     <div class="row mb-4 p-0">
       <div class="col-12 col-md-6">
-        <a href="<?php echo base_url("amilsaheb"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+        <a href="<?php echo base_url("amilsaheb/slots_calendar"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
       </div>
     </div>
     <form id="slotForm" action="<?= base_url('Amilsaheb/save_slots') ?>" method="post">
@@ -117,6 +150,20 @@
             <div class="col-md-6">
               <label for="selected_date">Select Date:</label>
               <input type="date" id="selected_date" value="<?php echo $_SESSION['slotdate']; ?>" name="selected_date" class="form-control" autocomplete="off">
+              <?php
+                // show hijri date for initial selected date
+                $selDate = isset($_SESSION['slotdate']) ? $_SESSION['slotdate'] : null;
+                $hselText = '';
+                if ($selDate) {
+                  $hparts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($selDate);
+                  if ($hparts) {
+                    $hselText = $hparts['hijri_day'] . ' ' . htmlspecialchars($hparts['hijri_month_name']) . ' ' . $hparts['hijri_year'];
+                  }
+                }
+                if ($hselText !== '') {
+                  echo '<div style="margin-top:6px;font-size:13px;color:#6b7280">Hijri: <strong>' . $hselText . '</strong></div>';
+                }
+              ?>
             </div>
             <div class="col-md-6">
               <button id="submitBtn" class="btn btn-primary mt-3 float-right">Submit</button>
