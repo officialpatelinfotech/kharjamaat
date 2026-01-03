@@ -281,11 +281,11 @@
         <select onchange="updateTable();" name="filter" class="select mb-3" id="filter">
           <option value="" selected disabled>Status</option>
 
-          <?php foreach ($razatype as $key => $value) { ?>
+          <!-- <?php foreach ($razatype as $key => $value) { ?>
             <option class="options" value="<?php echo $value['name'] ?>">
               <?php echo $value['name'] ?>
             </option>
-          <?php } ?>
+          <?php } ?> -->
 
           <option class="options" value="pending">Pending</option>
           <option class="options" value="approved">Approved</option>
@@ -294,13 +294,105 @@
           <option class="options" value="rejected">Rejected</option>
           <option class="options" value="clear">Clear</option>
         </select>
-        <select onchange="updateTable();" name="miqaat_filter" class="select mb-3" id="miqaat_filter">
-          <option value="" selected>All Miqaat Types</option>
-          <option class="options" value="Shehrullah">Shehrullah</option>
-          <option class="options" value="Ashara">Ashara</option>
-          <option class="options" value="General">General</option>
-          <option class="options" value="Ladies">Ladies</option>
+        <?php if (empty($umoor) || $umoor !== '12 Umoor Raza Applications'): ?>
+          <?php if (empty($umoor) || stripos($umoor, 'Kaaraj') === false): ?>
+            <select onchange="updateTable();" name="miqaat_filter" class="select mb-3" id="miqaat_filter">
+              <option value="" selected>All Miqaat Types</option>
+              <option class="options" value="Shehrullah">Shehrullah</option>
+              <option class="options" value="Ashara">Ashara</option>
+              <option class="options" value="General">General</option>
+              <option class="options" value="Ladies">Ladies</option>
+            </select>
+          <?php endif; ?>
+        <?php else: ?>
+          <?php
+          $umoors = [];
+          foreach ($razatype as $rt) {
+            if (!empty($rt['umoor'])) $umoors[$rt['umoor']] = $rt['umoor'];
+          }
+          ?>
+          <select onchange="updateTable();" name="umoor_filter" class="select mb-3" id="umoor_filter">
+            <option value="" selected>All Umoor Types</option>
+            <?php foreach ($umoors as $u): ?>
+              <option value="<?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        <?php endif; ?>
+
+        <?php
+        // Build a list of Hijri event years from $raza (miqaat_details or razadata)
+        $ci = &get_instance();
+        $ci->load->model('HijriCalendar');
+        $hijri_years = [];
+        foreach ($raza as $r) {
+          $d = '';
+          if (!empty($r['miqaat_details'])) {
+            $md = json_decode($r['miqaat_details'], true);
+            if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+          }
+          if (empty($d) && !empty($r['razadata'])) {
+            $rd = json_decode($r['razadata'], true);
+            if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+          }
+          if (!empty($d)) {
+            // expect Y-m-d; use HijriCalendar helper to get hijri parts
+            $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+            if (!empty($parts) && !empty($parts['hijri_year'])) {
+              $hijri_years[$parts['hijri_year']] = $parts['hijri_year'];
+            }
+          }
+        }
+        krsort($hijri_years);
+        // build map of raza_id => hijri_year for client-side use
+        $hijri_map = [];
+        foreach ($raza as $r) {
+          $d = '';
+          if (!empty($r['miqaat_details'])) {
+            $md = json_decode($r['miqaat_details'], true);
+            if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+          }
+          if (empty($d) && !empty($r['razadata'])) {
+            $rd = json_decode($r['razadata'], true);
+            if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+          }
+          $hyear = '';
+          if (!empty($d)) {
+            $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+            if (!empty($parts) && !empty($parts['hijri_year'])) $hyear = $parts['hijri_year'];
+          }
+          $hijri_map[$r['id']] = $hyear;
+        }
+        ?>
+
+        <select onchange="updateTable();" name="year_filter" class="select mb-3" id="year_filter">
+          <option value="" selected>All Hijri Years</option>
+          <?php foreach ($hijri_years as $y): ?>
+            <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
+          <?php endforeach; ?>
         </select>
+
+        <!-- <?php
+
+              // Build Hijri months (1-12) using get_hijri_month()
+              $ci = &get_instance();
+              $ci->load->model('HijriCalendar');
+              $hijri_months = $ci->HijriCalendar->get_hijri_month();
+              ?>
+        <select onchange="updateTable();" name="hijri_month_filter" class="select mb-3" id="hijri_month_filter">
+          <option value="" selected>All Hijri Months</option>
+          <?php foreach ($hijri_months as $m): ?>
+            <option value="<?php echo $m['id']; ?>"><?php echo htmlspecialchars($m['hijri_month'], ENT_QUOTES, 'UTF-8'); ?></option>
+          <?php endforeach; ?>
+        </select>
+
+        <select onchange="updateTable();" name="hijri_day_filter" class="select mb-3" id="hijri_day_filter">
+          <option value="" selected>All Hijri Days</option>
+          <?php for ($d = 1; $d <= 30; $d++): ?>
+            <option value="<?php echo $d; ?>"><?php echo $d; ?></option>
+          <?php endfor; ?>
+        </select> -->
+
+
 
         <select onchange="updateTable();" name="sort" class="select mb-3" id="sort">
           <option value="" selected disabled>Sort</option>
@@ -360,8 +452,24 @@
           </thead>
           <tbody id="datatable">
             <?php
-            foreach ($raza as $key => $r) { ?>
-              <tr>
+            foreach ($raza as $key => $r) {
+              // determine hijri year for this row (used for client-side filtering)
+              $hijri_year_attr = '';
+              $d = '';
+              if (!empty($r['miqaat_details'])) {
+                $md = json_decode($r['miqaat_details'], true);
+                if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+              }
+              if (empty($d) && !empty($r['razadata'])) {
+                $rd = json_decode($r['razadata'], true);
+                if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+              }
+              if (!empty($d)) {
+                $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+                if (!empty($parts) && !empty($parts['hijri_year'])) $hijri_year_attr = $parts['hijri_year'];
+              }
+            ?>
+              <tr data-hijri-year="<?php echo $hijri_year_attr; ?>">
                 <td>
                   <?php echo $key + 1 ?>
                 </td>
@@ -434,13 +542,27 @@
                 </td>
                 <td>
                   <?php
+                  // Gregorian date
+                  $greg_date = '';
                   if (!empty($r['miqaat_id']) && !empty($r['miqaat_details'])) {
                     $miqaat_info = json_decode($r['miqaat_details'], true);
-                    echo date('D, d M', strtotime($miqaat_info['date']));
+                    if (!empty($miqaat_info['date'])) {
+                      $greg_date = $miqaat_info['date'];
+                      echo date('D, d M', strtotime($greg_date));
+                    }
                   } else {
                     $temp = json_decode($r['razadata'], true);
                     if (!empty($temp['date'])) {
-                      echo date('D, d M ', strtotime($temp['date']));
+                      $greg_date = $temp['date'];
+                      echo date('D, d M', strtotime($greg_date));
+                    }
+                  }
+                  // Hijri date below
+                  if (!empty($greg_date)) {
+                    $hijri = $ci->HijriCalendar->get_hijri_parts_by_greg_date(substr($greg_date, 0, 10));
+                    if (!empty($hijri['hijri_day']) && !empty($hijri['hijri_month']) && !empty($hijri['hijri_year'])) {
+                      $hijri_month_name = $ci->HijriCalendar->hijri_month_name($hijri['hijri_month']);
+                      echo '<br><small class="text-muted">(' . $hijri['hijri_day'] . ' ' . $hijri_month_name . ' ' . $hijri['hijri_year'] . 'H)</small>';
                     }
                   }
                   ?>
@@ -529,7 +651,7 @@
         style="max-width:100%; height:100%"></textarea>
     </div>
     <div class="submit">
-      <button class="btn btn-danger w100percent-xs mbm-xs" onclick="clearForm();">Cancel</button>
+      <button type="button" class="btn btn-danger w100percent-xs mbm-xs" onclick="clearForm();">Cancel</button>
       <button type="submit" class="btn btn-success w100percent-xs mbm-xs">Recommend</button>
     </div>
   </form>
@@ -543,7 +665,7 @@
         style="max-width:100%; height:100%"></textarea>
     </div>
     <div class="submit">
-      <button class="btn btn-primary w100percent-xs mbm-xs" onclick="clearForm();">Cancel</button>
+      <button type="button" class="btn btn-primary w100percent-xs mbm-xs" onclick="clearForm();">Cancel</button>
       <button type="submit" class="btn btn-danger w100percent-xs mbm-xs">Not Recommend</button>
     </div>
   </form>
@@ -552,13 +674,59 @@
   <table id="details-table-show" class="table"></table>
   <form class="reject" id="show">
     <div class="submit">
-      <button class="btn btn-primary w100percent-xs mbm-xs" onclick="clearForm();">Close</button>
+      <button type="button" class="close-btn btn btn-primary w100percent-xs mbm-xs" onclick="clearForm();">Close</button>
     </div>
   </form>
 </div>
+<!-- Financials modal (rendered from JSON) -->
+<div id="financials-modal" class="query-form" style="width:520px; max-width:95%; display:none;">
+  <div id="financials-modal-content" style="padding:8px 12px;"></div>
+</div>
 <script>
   // Build as proper JSON to preserve nested structures (razadata, razafields, miqaat_details)
-  let razas = <?php echo json_encode($raza, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+
+  // Build razas array with hijri_parts for each entry
+  let razas = [
+    <?php
+    foreach ($raza as $r) {
+      $d = '';
+      if (!empty($r['miqaat_details'])) {
+        $md = json_decode($r['miqaat_details'], true);
+        if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+      }
+      if (empty($d) && !empty($r['razadata'])) {
+        $rd = json_decode($r['razadata'], true);
+        if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+      }
+      $hijri_parts = null;
+      if (!empty($d)) {
+        $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+        if (!empty($parts['hijri_year']) && !empty($parts['hijri_month']) && !empty($parts['hijri_day'])) {
+          $hijri_parts = [
+            'year' => $parts['hijri_year'],
+            'month' => $parts['hijri_month'],
+            'day' => $parts['hijri_day']
+          ];
+        }
+      }
+      $r['hijri_parts'] = $hijri_parts;
+      echo json_encode($r, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) . ",\n";
+    }
+    ?>
+  ];
+  let hijriMap = <?php echo json_encode($hijri_map ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+
+  // Expose Hijri month names for JS rendering of hijri date
+  <?php
+  $ci = isset($ci) ? $ci : get_instance();
+  $ci->load->model('HijriCalendar');
+  $hijri_months = $ci->HijriCalendar->get_hijri_month();
+  $hijri_months_js = [];
+  foreach ($hijri_months as $m) {
+    $hijri_months_js[$m['id']] = $m['hijri_month'];
+  }
+  ?>
+  window.hijriMonths = <?php echo json_encode($hijri_months_js, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
   function show_raza(id) {
     document.getElementById("show-form").style.display = "block";
@@ -568,13 +736,25 @@
   }
 
   function approve_raza(id) {
+    // Open approve form; financials modal will appear when Recommend is clicked
+    let raza = razas.find(e => e.id == id);
+    // clear any previous hidden inputs
+    $('#approve').find('input[name="raza_id"]').parent().remove();
+    $('#approve').find('input[name="its_id"]').parent().remove();
     document.getElementById("approve-form").style.display = "block";
     document.getElementById("product-overlay").style.display = "block";
     const newInput = document.createElement("div");
     newInput.innerHTML = `<input type="text" hidden name="raza_id" value=${id} Required=true>`;
     document.getElementById("approve").appendChild(newInput);
-    let raza = razas.find(e => e.id == id)
-    otherdetails(raza, 'approve')
+    try {
+      var its = raza.user_id || raza.userId || raza.ITS_ID || raza.its_id || raza.its || null;
+      if (its) {
+        const itsInput = document.createElement('div');
+        itsInput.innerHTML = `<input type="text" hidden name="its_id" value="${its}" Required=true>`;
+        document.getElementById('approve').appendChild(itsInput);
+      }
+    } catch (e) {}
+    otherdetails(raza, 'approve');
   }
 
   function reject_raza(id) {
@@ -594,7 +774,78 @@
     document.getElementById("reject-form").style.display = "none";
     document.getElementById("show-form").style.display = "none";
     document.getElementById("product-overlay").style.display = "none";
-    event.preventDefault();
+  }
+
+  function closeFinancialsModal() {
+    document.getElementById('financials-modal').style.display = 'none';
+    document.getElementById('financials-modal-content').innerHTML = '';
+  }
+
+  function formatINR(n) {
+    // simple formatting without decimals
+    return '₹' + (Math.round(n)).toLocaleString('en-IN');
+  }
+
+  function renderFinancialsModal(data, raza_id, raza) {
+    var c = document.getElementById('financials-modal-content');
+    var html = '';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+    html += '<h5 style="margin:0">Pending Financial Dues</h5>';
+    html += '<button onclick="closeFinancialsModal()" style="border:0;background:transparent;font-size:18px">&times;</button>';
+    html += '</div>';
+    html += '<div style="margin-top:8px;padding:8px;border-radius:4px;background:#fff3cd;border:1px solid #ffeeba;color:#856404">The member has pending dues. Please review before proceeding.</div>';
+    html += '<table class="table" style="margin-top:12px;font-size:14px;width:100%">';
+    html += '<thead><tr><th>Category</th><th style="text-align:right">Due</th></tr></thead>';
+    html += '<tbody>';
+    html += `<tr><td>FMB Takhmeen</td><td style="text-align:right;color:${data.fmb_due>0?'#dc3545':'#6c757d'}">${formatINR(data.fmb_due)}</td></tr>`;
+    html += `<tr><td>Sabeel Takhmeen</td><td style="text-align:right;color:${data.sabeel_due>0?'#dc3545':'#6c757d'}">${formatINR(data.sabeel_due)}</td></tr>`;
+    html += `<tr><td>General Contributions</td><td style="text-align:right;color:${data.gc_due>0?'#dc3545':'#6c757d'}">${formatINR(data.gc_due)}</td></tr>`;
+    html += `<tr><td>Miqaat Invoices</td><td style="text-align:right;color:${data.miqaat_due>0?'#dc3545':'#6c757d'}">${formatINR(data.miqaat_due)}</td></tr>`;
+    html += `<tr><td>Corpus Fund</td><td style="text-align:right;color:${data.corpus_due>0?'#dc3545':'#6c757d'}">${formatINR(data.corpus_due)}</td></tr>`;
+    html += `<tr><th style="text-align:left">Total</th><th style="text-align:right;color:#dc3545">${formatINR(data.total_due)}</th></tr>`;
+    html += '</tbody></table>';
+
+    // Miqaat / Member invoices table (if any)
+    if (Array.isArray(data.miqaat_invoices) && data.miqaat_invoices.length > 0) {
+      html += '<h6 style="margin-top:8px">Miqaat / Member Invoices</h6>';
+      html += '<div style="max-height:180px;overflow:auto;border-top:1px solid #eee;padding-top:8px">';
+      html += '<table class="table table-sm" style="width:100%;font-size:13px">';
+      html += '<thead><tr><th>Assigned to</th><th>Invoice</th><th style="text-align:right">Amount</th><th style="text-align:right">Paid</th><th style="text-align:right">Due</th></tr></thead>';
+      html += '<tbody>';
+      data.miqaat_invoices.forEach(function(row) {
+        html += '<tr>';
+        html += `<td>${(row.assigned_to||'')}</td>`;
+        html += `<td>${(row.invoice||'')}</td>`;
+        html += `<td style="text-align:right">${formatINR(row.amount)}</td>`;
+        html += `<td style="text-align:right">${formatINR(row.paid)}</td>`;
+        html += `<td style="text-align:right;color:#dc3545">${formatINR(row.due)}</td>`;
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    // Footer buttons
+    html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">';
+    html += `<button class="btn btn-secondary" onclick="closeFinancialsModal()">Cancel</button>`;
+    html += `<button class="btn btn-primary" onclick="proceedFromFinancials(${raza_id})">Proceed</button>`;
+    html += '</div>';
+
+    c.innerHTML = html;
+    document.getElementById('financials-modal').style.display = 'block';
+  }
+
+  function proceedFromFinancials(raza_id) {
+    // When user clicks Proceed in financials modal, submit the approve form
+    try {
+      closeFinancialsModal();
+    } catch (e) {}
+    // ensure raza_id exists in form
+    $('#approve').find('input[name="raza_id"]').parent().remove();
+    const newInput = document.createElement("div");
+    newInput.innerHTML = `<input type="text" hidden name="raza_id" value=${raza_id} Required=true>`;
+    document.getElementById("approve").appendChild(newInput);
+    // submit via AJAX
+    submitApproveForm($('#approve'));
   }
 
   function otherdetails(raza, action) {
@@ -612,7 +863,16 @@
       let miqaat_info = JSON.parse(raza.miqaat_details);
       tbodydata += `<tr><th scope=\"row\">Miqaat Name</th><td>${miqaat_info.name}</td></tr>`;
       tbodydata += `<tr><th scope=\"row\">Miqaat Type</th><td>${miqaat_info.type}</td></tr>`;
-      tbodydata += `<tr><th scope=\"row\">Miqaat Date</th><td>${miqaat_info.date}</td></tr>`;
+      // Format miqaat_info.date as dd-mm-yyyy
+      let miqaatDateStr = '';
+      if (miqaat_info.date) {
+        let d = new Date(miqaat_info.date);
+        let day = String(d.getDate()).padStart(2, '0');
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let year = d.getFullYear();
+        miqaatDateStr = `${day}-${month}-${year}`;
+      }
+      tbodydata += `<tr><th scope=\"row\">Miqaat Date</th><td>${miqaatDateStr}</td></tr>`;
       tbodydata += `<tr><th scope=\"row\">Assigned To</th><td>${miqaat_info.assigned_to}</td></tr>`;
       tbodydata += `<tr><th scope=\"row\">Status</th><td>${miqaat_info.status == 1 ? 'Active' : 'Inactive'}</td></tr>`;
       // If group assignment, show group leader and all members' names
@@ -644,9 +904,38 @@
   $(document).ready(function() {
     $('#approve').submit(function(event) {
       event.preventDefault();
+      var raza_id = $(this).find('input[name="raza_id"]').val();
+      var its = $(this).find('input[name="its_id"]').val();
+      var hof = $(this).find('input[name="hof_id"]').val();
+      var q = '';
+      if (its) q = 'its_id=' + encodeURIComponent(its);
+      else if (hof) q = 'hof_id=' + encodeURIComponent(hof);
+      if (!q) {
+        // No identifier; submit directly
+        submitApproveForm($(this));
+        return;
+      }
+      var url = `<?php echo base_url('anjuman/member_financials_json'); ?>?` + q;
+      fetch(url, {
+          credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(function(data) {
+          if (!data || !data.success) {
+            // no data -> submit directly
+            submitApproveForm($('#approve'));
+            return;
+          }
+          renderFinancialsModal(data, raza_id, null);
+        })
+        .catch(function(e) {
+          console.error('financials fetch error', e);
+          submitApproveForm($('#approve'));
+        });
+    });
 
-      var formData = $(this).serialize();
-
+    window.submitApproveForm = function($form) {
+      var formData = $form.serialize();
       $.ajax({
         type: 'POST',
         url: "<?php echo base_url('admin/approveRaza'); ?>",
@@ -660,7 +949,7 @@
           console.error('query submission failed');
         }
       });
-    });
+    }
 
     function showSuccessMessage() {
       var toastMessage = $('#toast-message');
@@ -768,10 +1057,18 @@
     var sortValue = document.getElementById("sort").value;
     var miqaatFilterElem = document.getElementById("miqaat_filter");
     var miqaatFilter = miqaatFilterElem ? miqaatFilterElem.value : "";
-    updateTableContent(filterValue, sortValue, miqaatFilter);
+    var umoorFilterElem = document.getElementById("umoor_filter");
+    var umoorFilter = umoorFilterElem ? umoorFilterElem.value : "";
+    var yearFilterElem = document.getElementById("year_filter");
+    var yearFilter = yearFilterElem ? yearFilterElem.value : "";
+    var hijriMonthElem = document.getElementById("hijri_month_filter");
+    var hijriMonth = hijriMonthElem ? hijriMonthElem.value : "";
+    var hijriDayElem = document.getElementById("hijri_day_filter");
+    var hijriDay = hijriDayElem ? hijriDayElem.value : "";
+    updateTableContent(filterValue, sortValue, miqaatFilter, yearFilter, umoorFilter, hijriMonth, hijriDay);
   }
 
-  function updateTableContent(filter, sort, miqaatFilter) {
+  function updateTableContent(filter, sort, miqaatFilter, yearFilter, umoorFilter, hijriMonth, hijriDay) {
     var tbody = document.getElementById('datatable');
     if (!tbody) return;
     // If the server did not provide a JS array, keep server-rendered rows
@@ -803,6 +1100,57 @@
         var m = parseMaybe(raza.miqaat_details) || {};
         var miqaatType = (m.type || raza.razaType || '').toString();
         return miqaatType.toLowerCase() === miqaatFilter.toLowerCase();
+      });
+    }
+
+
+    // Apply Hijri year filter if selected (uses server-provided hijriMap)
+    if (yearFilter && yearFilter !== "") {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        var hy = (hijriMap && hijriMap[raza.id]) ? hijriMap[raza.id].toString() : '';
+        return hy === yearFilter;
+      });
+    }
+
+    // Hijri month/day filter: parse hijri date from event date (server must provide hijriMap or parse client-side)
+    if ((hijriMonth && hijriMonth !== "") || (hijriDay && hijriDay !== "")) {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        // Try to get gregorian date from miqaat_details or razadata
+        function parseMaybe(val) {
+          if (!val) return null;
+          if (typeof val === 'object') return val;
+          try {
+            return JSON.parse(val);
+          } catch (e) {
+            return null;
+          }
+        }
+        var d = '';
+        var m = parseMaybe(raza.miqaat_details);
+        if (m && m.date) d = m.date;
+        if (!d) {
+          var rd = parseMaybe(raza.razadata);
+          if (rd && rd.date) d = rd.date;
+        }
+        if (!d) return false;
+        // Use a simple Hijri conversion if available, else skip
+        // If server provides hijriMap[raza.id] as {year,month,day}, use it
+        var hijri = (raza.hijri_parts || null);
+        if (!hijri && window.hijriPartsMap && window.hijriPartsMap[raza.id]) hijri = window.hijriPartsMap[raza.id];
+        // If not, try to parse from data-hijri-date attribute (not present in this table)
+        // If not, skip filtering
+        if (!hijri) return true;
+        if (hijriMonth && hijriMonth !== "" && parseInt(hijri.month) !== parseInt(hijriMonth)) return false;
+        if (hijriDay && hijriDay !== "" && parseInt(hijri.day) !== parseInt(hijriDay)) return false;
+        return true;
+      });
+    }
+
+    // Apply Umoor filter if selected
+    if (umoorFilter && umoorFilter !== "") {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        var u = (raza.umoor || '').toString();
+        return u.toLowerCase() === umoorFilter.toLowerCase();
       });
     }
 
@@ -999,7 +1347,7 @@
       const name = m.name || '';
       const type = m.type || '';
       const assigned = m.assigned_to || '';
-      const parts = [type, assigned, date].filter(Boolean);
+      const parts = [type, assigned].filter(Boolean);
       return `${name}<br><small style="color: #6c757d;">${parts.join(' · ')}</small>`;
     }
     let data = parseMaybe(raza.razadata) || {};
@@ -1050,39 +1398,43 @@
     let data = parseMaybe(raza.razadata) || {}
     let rf = parseMaybe(raza.razafields) || {}
     let razafields = rf.fields || []
+    let gregDate = '';
+    let gregDateStr = '';
+    const options = {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    };
     if (raza.miqaat_id && raza.miqaat_details) {
       let miqaat_info = parseMaybe(raza.miqaat_details) || {};
-      const options = {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      };
-      return new Date(miqaat_info.date).toLocaleDateString('en-US', options);
-    }
-    let dateString = data.date
-
-    if (dateString) {
-
-      const options = {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      };
-      if (data['time']) {
-        let k = razafields.find(e => {
-          let name = e.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
-          return name === 'time';
-        });
-        let value = k.options[data['time']]
-        return `${new Date(dateString).toLocaleDateString('en-US', options)}<br/> <span style='color:grey'>${value.name}</span>`;
-      } else {
-        return new Date(dateString).toLocaleDateString('en-US', options);
+      gregDate = miqaat_info.date;
+      if (gregDate) {
+        gregDateStr = new Date(gregDate).toLocaleDateString('en-US', options);
       }
-
     } else {
-      return ""
+      gregDate = data.date;
+      if (gregDate) {
+        gregDateStr = new Date(gregDate).toLocaleDateString('en-US', options);
+      }
+    }
+    // Hijri date from hijri_parts (provided by server)
+    let hijriStr = '';
+    if (raza.hijri_parts && raza.hijri_parts.year && raza.hijri_parts.month && raza.hijri_parts.day) {
+      // Use hijri_months array if available, else fallback to number
+      let hijriMonthName = '';
+      if (window.hijriMonths && window.hijriMonths[raza.hijri_parts.month]) {
+        hijriMonthName = window.hijriMonths[raza.hijri_parts.month];
+      } else {
+        // fallback: just show month number
+        hijriMonthName = 'Month ' + raza.hijri_parts.month;
+      }
+      hijriStr = `<br><small class=\"text-muted\">(${raza.hijri_parts.day} ${hijriMonthName} ${raza.hijri_parts.year}H)</small>`;
+    }
+    if (gregDateStr) {
+      return gregDateStr + hijriStr;
+    } else {
+      return '';
     }
   }
 
@@ -1239,5 +1591,11 @@
     if ($.fn && $.fn.DataTable) {
       $('.table').DataTable();
     }
+  });
+
+  $(document).ready(function() {
+    $('.close-btn').click(function(e) {
+      e.preventDefault();
+    });
   });
 </script>

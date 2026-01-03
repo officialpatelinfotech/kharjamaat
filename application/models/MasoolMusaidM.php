@@ -421,10 +421,26 @@ class MasoolMusaidM extends CI_Model
   public function get_upcoming_miqaats()
   {
     $today = date('Y-m-d');
-    $this->db->where('date >=', $today);
     $this->db->order_by('date', 'ASC');
     $query = $this->db->get('miqaat');
     return $query->result_array();
+  }
+
+  /**
+   * Search upcoming miqaats by name or formatted date
+   */
+  public function search_upcoming_miqaats($keyword = '')
+  {
+    $today = date('Y-m-d');
+    $this->db->from('miqaat m');
+    if (!empty($keyword)) {
+      $this->db->group_start();
+      $this->db->like('m.name', $keyword);
+      $this->db->or_like("DATE_FORMAT(m.date, '%d %b %Y')", $keyword);
+      $this->db->group_end();
+    }
+    $this->db->order_by('m.date', 'ASC');
+    return $this->db->get()->result_array();
   }
 
   public function get_miqaat_by_id($miqaat_id)
@@ -502,9 +518,48 @@ class MasoolMusaidM extends CI_Model
     }
 
     // Future miqaāts
-    $this->db->where('m.date >=', date('Y-m-d'));
+    // $this->db->where('m.date >=', date('Y-m-d'));
 
     // One row per miqaat
+    $this->db->group_by('m.id');
+    $this->db->order_by('m.date', 'ASC');
+
+    return $this->db->get()->result_array();
+  }
+
+  /**
+   * Search miqaat RSVP counts by name or date (for MasoolMusaid search)
+   */
+  public function search_rsvp_counts_by_miqaat($keyword = '', $sector = '', $sub_sector = '')
+  {
+    $this->db->select('
+        m.id as miqaat_id, 
+        m.name as miqaat_name, 
+        m.date as miqaat_date,
+        COUNT(DISTINCT CASE WHEN u.ITS_ID IS NOT NULL THEN r.user_id END) as rsvp_count,
+        COUNT(DISTINCT u2.ITS_ID) as member_count
+    ');
+    $this->db->from('miqaat m');
+    $this->db->join('general_rsvp r', 'm.id = r.miqaat_id', 'left');
+    $this->db->join('user u', 'u.ITS_ID = r.user_id', 'left');
+    $this->db->join('user u2', '1=1', 'left');
+
+    if (!empty($sector)) {
+      $this->db->where('u2.Sector', $sector);
+      $this->db->where('(u.Sector IS NULL OR u.Sector = ' . $this->db->escape($sector) . ')');
+    }
+    if (!empty($sub_sector)) {
+      $this->db->where('u2.Sub_Sector', $sub_sector);
+      $this->db->where('(u.Sub_Sector IS NULL OR u.Sub_Sector = ' . $this->db->escape($sub_sector) . ')');
+    }
+
+    if (!empty($keyword)) {
+      $this->db->group_start();
+      $this->db->like('m.name', $keyword);
+      $this->db->or_like("DATE_FORMAT(m.date, '%d %b %Y')", $keyword);
+      $this->db->group_end();
+    }
+
     $this->db->group_by('m.id');
     $this->db->order_by('m.date', 'ASC');
 

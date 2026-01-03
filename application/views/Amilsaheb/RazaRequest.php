@@ -204,33 +204,126 @@
     /* Add shadow for depth */
   }
 
-  .dashboard-container {
+
+  .better-dashboard {
     display: flex;
-    justify-content: space-between;
-    margin: 20px auto;
+    justify-content: center;
+    gap: 2.5rem;
+    margin: 30px auto 20px auto;
+    flex-wrap: wrap;
   }
 
-  .dashboard-card {
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    width: calc(25% - 20px);
+  .better-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.08), 0 1.5px 6px 0 rgba(0, 0, 0, 0.04);
+    padding: 1.2rem 1.7rem 1.2rem 1.2rem;
+    min-width: 220px;
+    max-width: 320px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.1rem;
+    transition: box-shadow 0.2s, transform 0.2s;
+    position: relative;
+    cursor: pointer;
+    border: none;
   }
 
-  .dashboard-icon {
-    font-size: 2rem;
-    color: #007bff;
-    margin-bottom: 15px;
-    display: block;
-    text-align: center;
+  .better-card:hover {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.16), 0 3px 12px 0 rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px) scale(1.03);
   }
 
-  .card-title {
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-    display: inline-flex;
+  .better-card .better-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.1rem;
+    color: #fff;
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .better-card.pending .better-icon {
+    background: linear-gradient(135deg, #ffe066 60%, #ffd700 100%);
+    color: #bfa100;
+  }
+
+  .better-card.completed .better-icon {
+    background: linear-gradient(135deg, #66cdaa 60%, #43b97f 100%);
+    color: #1e6b4c;
+  }
+
+  .better-card.processing .better-icon {
+    background: linear-gradient(135deg, #afeeee 60%, #4fd1c5 100%);
+    color: #1b6e6e;
+  }
+
+  .better-card .better-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.2rem;
+  }
+
+  .better-label {
+    font-size: 1.08rem;
+    color: #444;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    margin-bottom: 0;
+    text-align: left;
+  }
+
+  .better-value {
+    font-size: 2.3rem;
+    font-weight: 700;
+    color: #222;
+    margin-top: 0.1rem;
+    text-align: left;
+    letter-spacing: 0.01em;
+  }
+
+  @media (max-width: 900px) {
+    .better-dashboard {
+      gap: 1.2rem;
+    }
+
+    .better-card {
+      min-width: 120px;
+      max-width: 160px;
+      padding: 1.3rem 1rem 1rem 1rem;
+    }
+
+    .better-card .better-icon {
+      font-size: 1.5rem;
+      width: 38px;
+      height: 38px;
+    }
+
+    .better-value {
+      font-size: 1.4rem;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .better-dashboard {
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+    }
+
+    .better-card {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
   }
 
   .card-text {
@@ -331,39 +424,31 @@
   <div class="ml-1 mr-1">
     <p class="h4 text-center mt-5" style="color: goldenrod; text-transform: uppercase;"><?php echo $umoor ?></p>
     <div class="container">
-      <div class="dashboard-container">
-        <div class="dashboard-card" style="background-color: #ffe066;">
-          <i class="fas fa-clock dashboard-icon"></i>
-          <h2 class="card-title">Pending Tasks</h2>
-          <h2 style="display: inline-flex; padding-left: 15px;"><?php echo $janab_status_0_count ?></h2>
+      <div class="dashboard-container better-dashboard">
+        <div class="better-card pending">
+          <div class="better-icon"><i class="fas fa-clock"></i></div>
+          <div class="better-content">
+            <div class="better-label">Pending Tasks</div>
+            <div class="better-value"><?php echo $janab_status_0_count ?></div>
+          </div>
         </div>
-
-        <div class="dashboard-card" style="background-color: #66cdaa;">
-          <i class="fas fa-check-circle dashboard-icon"></i>
-          <h2 class="card-title">Completed Tasks</h2>
-          <h2 style="display: inline-flex; padding-left: 15px;"><?php echo $janab_status_1_count ?></h2>
+        <div class="better-card completed">
+          <div class="better-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="better-content">
+            <div class="better-label">Completed Tasks</div>
+            <div class="better-value"><?php echo $janab_status_1_count ?></div>
+          </div>
         </div>
-
-        <div class="dashboard-card" style="background-color: #afeeee;">
-          <i class="fas fa-sync dashboard-icon"></i>
-          <h2 class="card-title">Processing Tasks</h2>
-          <h2 style="display: inline-flex; padding-left: 15px;"><?php echo $coordinator_status_0_count ?></h2>
+        <div class="better-card processing">
+          <div class="better-icon"><i class="fas fa-sync"></i></div>
+          <div class="better-content">
+            <div class="better-label">Processing Tasks</div>
+            <div class="better-value"><?php echo $coordinator_status_0_count ?></div>
+          </div>
         </div>
+      </div>
 
-        <!-- <div class="dashboard-card" style="background-color: #e6e6fa;">
-                    <i class="far fa-calendar-alt dashboard-icon"></i>
-                    <h2 class="card-title">Upcoming Events</h2>
-                    <div class="event-list" onmouseover="showAllEvents()">
-                        <ul class="event-list-content">
-                            <li>Event 1 - <span id="event1-date"></span></li>
-                            <li>Event 2 - <span id="event2-date"></span></li>
-                            <li>Event 3 - <span id="event3-date"></span></li>
-                            <li>Event 4 - <span id="event4-date"></span></li>
-                        </ul>
-                    </div>
-                </div> -->
-
-        <!-- <script>
+      <!-- <script>
                     // Generate random dates for the dummy data
                     function generateRandomDate() {
                         const startDate = new Date();
@@ -391,221 +476,323 @@
 
 
 
-      </div>
-      <div class="row mt-5">
-        <form class="form-inline my-2 my-lg-0 w-100">
-          <div class="input-group">
-            <input class="form-control" type="search" placeholder="Search" aria-label="Search" id="razaSearchInput">
-            <div class="input-group-append">
-              <span class="input-group-text">
-                <i class="fa fa-search"></i>
-              </span>
-            </div>
+    </div>
+    <div class="row m-2 mt-md-5">
+      <form class="form-inline my-2 my-lg-0 w-100">
+        <div class="input-group">
+          <input class="form-control" type="search" placeholder="Search" aria-label="Search" id="razaSearchInput">
+          <div class="input-group-append">
+            <span class="input-group-text">
+              <i class="fa fa-search"></i>
+            </span>
           </div>
-          <a class="form-control btn btn-success my-2 my-lg-0 ml-auto" onclick="refresh();">Refresh</a>
-        </form>
-      </div>
-      <div class="row d-flex justify-content-between mt-3">
-        <select onchange="updateTable();" name="filter" class="select mb-3" id="filter">
-          <option value="" selected disabled>Filter</option>
-          <?php
-          foreach ($razatype as $key => $value) { ?>
+        </div>
+        <a class="form-control btn btn-success my-2 my-lg-0 ml-auto" onclick="refresh();">Refresh</a>
+      </form>
+    </div>
+    <div class="row d-flex justify-content-between border rounded p-2 p-md-3 m-2 mt-md-3">
+      <select onchange="updateTable();" name="filter" class="select mb-3" id="filter">
+        <option value="" selected disabled>Filter</option>
+        <!-- <?php
+              foreach ($razatype as $key => $value) { ?>
             <option class="options" value="<?php echo $value['name'] ?>">
               <?php echo $value['name'] ?>
             </option>
           <?php
-          } ?>
-          <option class="options" value="pending">Pending</option>
-          <option class="options" value="approved">Approved</option>
-          <option class="options" value="recommended">Recommended</option>
-          <option class="options" value="notrecommended">Not Recommended</option>
-          <option class="options" value="rejected">Rejected</option>
-          <option class="options" value="clear">Clear</option>
+              } ?> -->
+        <option class="options" value="pending">Pending</option>
+        <option class="options" value="approved">Approved</option>
+        <option class="options" value="recommended">Recommended</option>
+        <option class="options" value="notrecommended">Not Recommended</option>
+        <option class="options" value="rejected">Rejected</option>
+        <option class="options" value="clear">Clear</option>
+      </select>
+      <?php if (empty($umoor) || $umoor !== '12 Umoor Raza Applications'): ?>
+        <?php if (empty($umoor) || (stripos($umoor, 'Kaaraj') === false && $umoor !== '12 Umoor Raza Applications')): ?>
+          <select onchange="updateTable();" name="miqaat_filter" class="select mb-3" id="miqaat_filter">
+            <option value="" selected>All Miqaat Types</option>
+            <option class="options" value="Shehrullah">Shehrullah</option>
+            <option class="options" value="Ashara">Ashara</option>
+            <option class="options" value="General">General</option>
+            <option class="options" value="Ladies">Ladies</option>
+          </select>
+        <?php elseif ($umoor === '12 Umoor Raza Applications'): ?>
+          <?php
+          // Build distinct umoor categories from $razatype
+          $umoors = [];
+          foreach ($razatype as $rt) {
+            if (!empty($rt['umoor'])) $umoors[$rt['umoor']] = $rt['umoor'];
+          }
+          ?>
+          <select onchange="updateTable();" name="umoor_filter" class="select mb-3" id="umoor_filter">
+            <option value="" selected>All Umoor Types</option>
+            <?php foreach ($umoors as $u): ?>
+              <option value="<?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        <?php else: ?>
+          <!-- Kaaraj view: miqaat filter intentionally hidden -->
+        <?php endif; ?>
+      <?php else: ?>
+        <?php
+        // Build distinct umoor categories from $razatype
+        $umoors = [];
+        foreach ($razatype as $rt) {
+          if (!empty($rt['umoor'])) $umoors[$rt['umoor']] = $rt['umoor'];
+        }
+        ?>
+        <select onchange="updateTable();" name="umoor_filter" class="select mb-3" id="umoor_filter">
+          <option value="" selected>All Umoor Types</option>
+          <?php foreach ($umoors as $u): ?>
+            <option value="<?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?></option>
+          <?php endforeach; ?>
         </select>
-        <select onchange="updateTable();" name="miqaat_filter" class="select mb-3" id="miqaat_filter">
-          <option value="" selected>All Miqaat Types</option>
-          <option class="options" value="Shehrullah">Shehrullah</option>
-          <option class="options" value="Ashara">Ashara</option>
-          <option class="options" value="General">General</option>
-          <option class="options" value="Ladies">Ladies</option>
-        </select>
+      <?php endif; ?>
 
-        <select onchange="updateTable();" name="sort" class="select mb-3" id="sort">
-          <option value="" selected disabled>Sort</option>
-          <option class="options" value="0">Name(A-Z)</option>
-          <option class="options" value="1">Name(Z-A)</option>
-          <option class="options" value="2">Event Date (New>Old)</option>
-          <option class="options" value="3">Event Date (Old>New)</option>
-          <option class="options" value="4">Create Date (New>Old)</option>
-          <option class="options" value="5">Create Date (Old>New)</option>
-          <option class="options" value="6">Clear</option>
-        </select>
-      </div>
-    </div>
-    <div class="table-responsive mt-5 mb-5">
-      <div class="table-container">
-        <!-- <?php echo "<pre>";
-              print_r($raza);
-              echo "</pre>"; ?> -->
-        <table class="table table-bordered text-center">
-          <thead>
-            <tr>
-              <th class="sno">S.No.
-                <span class="sort-icons" onclick="sortTable(0)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="name">Name
-                <span class="sort-icons" onclick="sortTable(1)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="raza">Raza For
-                <span class="sort-icons" onclick="sortTable(2)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="eventdate">Event Date
-                <span class="sort-icons" onclick="sortTable(3)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="chat">Chat</th>
-              <th class="approval_status">Status
-                <span class="sort-icons" onclick="sortTable(5)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="action">Action</th>
-              <th class="created">Created
-                <span class="sort-icons" onclick="sortTable(8)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody id="datatable">
-            <?php
-            foreach ($raza as $key => $r) { ?>
-              <tr>
-                <td>
-                  <?php echo $key + 1 ?>
-                </td>
-                <td>
-                  <?php
-                  // If this request is a Fala ni Niyaz (FNN), show that label instead of the user's name
-                  $is_fnn = false;
-                  if (!empty($r['miqaat_details'])) {
-                    $miq = json_decode($r['miqaat_details'], true);
-                    if (is_array($miq)) {
-                      $miq_type = strtolower($miq['type'] ?? '');
-                      $miq_name = strtolower($miq['name'] ?? '');
-                      if (strpos($miq_type, 'fnn') !== false || (strpos($miq_type, 'fala') !== false && (strpos($miq_type, 'niyaz') !== false || strpos($miq_type, 'niaz') !== false))) {
-                        $is_fnn = true;
-                      }
-                      if (!$is_fnn && (strpos($miq_name, 'fnn') !== false || (strpos($miq_name, 'fala') !== false && (strpos($miq_name, 'niyaz') !== false || strpos($miq_name, 'niaz') !== false)))) {
-                        $is_fnn = true;
-                      }
-                      // check top-level assign_type
-                      if (!$is_fnn && !empty($miq['assign_type'])) {
-                        $atop = strtolower($miq['assign_type']);
-                        if (strpos($atop, 'fnn') !== false || (strpos($atop, 'fala') !== false && (strpos($atop, 'niyaz') !== false || strpos($atop, 'niaz') !== false))) {
-                          $is_fnn = true;
-                        }
-                      }
-                      // check assignments entries
-                      if (!$is_fnn && !empty($miq['assignments']) && is_array($miq['assignments'])) {
-                        foreach ($miq['assignments'] as $as) {
-                          $asz = strtolower((string)($as['assign_type'] ?? $as['type'] ?? ''));
-                          if (strpos($asz, 'fnn') !== false || (strpos($asz, 'fala') !== false && (strpos($asz, 'niyaz') !== false || strpos($asz, 'niaz') !== false))) {
-                            $is_fnn = true;
-                            break;
-                          }
-                        }
-                      }
-                    }
-                  }
-                  if (!$is_fnn && isset($r['razaType'])) {
-                    $rt = strtolower($r['razaType']);
-                    if (strpos($rt, 'fnn') !== false || (strpos($rt, 'fala') !== false && (strpos($rt, 'niyaz') !== false || strpos($rt, 'niaz') !== false))) {
-                      $is_fnn = true;
-                    }
-                  }
+      <?php
+      // Build a list of Hijri event years from $raza (miqaat_details or razadata)
+      $ci = &get_instance();
+      $ci->load->model('HijriCalendar');
+      $hijri_years = [];
+      foreach ($raza as $r) {
+        $d = '';
+        if (!empty($r['miqaat_details'])) {
+          $md = json_decode($r['miqaat_details'], true);
+          if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+        }
+        if (empty($d) && !empty($r['razadata'])) {
+          $rd = json_decode($r['razadata'], true);
+          if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+        }
+        if (!empty($d)) {
+          $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+          if (!empty($parts) && !empty($parts['hijri_year'])) {
+            $hijri_years[$parts['hijri_year']] = $parts['hijri_year'];
+          }
+        }
+      }
+      krsort($hijri_years);
+      ?>
 
-                  if ($is_fnn) {
-                    echo 'Fala ni Niyaz';
-                  } else {
-                    echo htmlspecialchars($r['user_name'], ENT_QUOTES, 'UTF-8');
-                  }
-                  ?>
-                </td>
-                <td>
-                  <?php echo $r['razaType'] ?>
-                </td>
-                <td>
-                  <?php $temp = json_decode($r['razadata'], true);
-                  if (!empty($temp['date'])) {
-                    echo date('D, d M ', strtotime($temp['date']));
-                  } ?>
-                </td>
-                <td>
-                  <?php $chat_count = !empty($r['chat_count']) ? $r['chat_count'] : ''; ?>
-                  <a href="<?php echo base_url('Accounts/chat/') . $r['id'] . '/amilsaheb'; ?>" class="chat-button">
-                    Chat<?php echo $chat_count ? '<div class="chat-count">' . $chat_count . '</div>' : ''; ?>
-                  </a>
-                </td>
-                <td class="status">
-                  <div class="text-left">
-                    <ul>
-                      <?php if ($r['status'] == 0) {
-                        echo '<div><strong style="color: orange;">Pending</strong></div>';
-                      } elseif ($r['status'] == 1) {
-                        echo '<div><strong style="color: blue;">Recommended</strong></div>';
-                      } elseif ($r['status'] == 2) {
-                        echo '<div><strong style="color: limegreen;">Approved</strong></div>';
-                      } elseif ($r['status'] == 3) {
-                        echo '<div><strong style="color: red;">Rejected</strong></div>';
-                      } elseif ($r['status'] == 4) {
-                        echo '<div><strong style="color: blue;">Not Recommended</strong></div>';
-                      } ?>
-                      <li>
-                        <?php if ($r['coordinator-status'] == 0) {
-                          echo '<div>Jamat <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
-                        } elseif ($r['coordinator-status'] == 1) {
-                          echo '<div>Jamat <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
-                        } elseif ($r['coordinator-status'] == 2) {
-                          echo '<div>Jamat <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
-                        } ?>
-                      </li>
-                      <li>
-                        <?php if ($r['Janab-status'] == 0) {
-                          echo '<div>Amil Saheb <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
-                        } elseif ($r['Janab-status'] == 1) {
-                          echo '<div>Amil Saheb <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
-                        } elseif ($r['Janab-status'] == 2) {
-                          echo '<div>Amil Saheb <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
-                        } ?>
-                      </li>
+      <select onchange="updateTable();" name="year_filter" class="select mb-3" id="year_filter">
+        <option value="" selected>All Hijri Years</option>
+        <?php foreach ($hijri_years as $y): ?>
+          <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
+        <?php endforeach; ?>
+      </select>
 
-                    </ul>
-                  </div>
-                </td>
-                <td>
-                  <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(<?php echo $r['id'] ?>);"><i class="fa fa-circle-check"></i></button>
-                  <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(<?php echo $r['id'] ?>);"><i class="fa fa-circle-xmark"></i></button>
-                  <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="redirectto(<?php echo 'amilsaheb/DeleteRaza/' . $r['id'] ?>);"><i class="fa fa-circle-xmark"></i></button>
-                </td>
-                <td>
-                  <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
-                </td>
-              </tr>
-            <?php } ?>
-          </tbody>
-          <tfoot></tfoot>
-        </table>
-      </div>
+      <!-- <?php
+      // Build Hijri months (1-12) using get_hijri_month()
+      $ci = &get_instance();
+      $ci->load->model('HijriCalendar');
+      $hijri_months = $ci->HijriCalendar->get_hijri_month();
+      ?>
+      <select onchange="updateTable();" name="hijri_month_filter" class="select mb-3" id="hijri_month_filter">
+        <option value="" selected>All Hijri Months</option>
+        <?php foreach ($hijri_months as $m): ?>
+          <option value="<?php echo $m['id']; ?>"><?php echo htmlspecialchars($m['hijri_month'], ENT_QUOTES, 'UTF-8'); ?></option>
+        <?php endforeach; ?>
+      </select>
+
+      <select onchange="updateTable();" name="hijri_day_filter" class="select mb-3" id="hijri_day_filter">
+        <option value="" selected>All Hijri Days</option>
+        <?php for ($d = 1; $d <= 30; $d++): ?>
+          <option value="<?php echo $d; ?>"><?php echo $d; ?></option>
+        <?php endfor; ?>
+      </select> -->
+
+      <select onchange="updateTable();" name="sort" class="select mb-3" id="sort">
+        <option value="" selected disabled>Sort</option>
+        <option class="options" value="0">Name(A-Z)</option>
+        <option class="options" value="1">Name(Z-A)</option>
+        <option class="options" value="2">Event Date (New>Old)</option>
+        <option class="options" value="3">Event Date (Old>New)</option>
+        <option class="options" value="4">Create Date (New>Old)</option>
+        <option class="options" value="5">Create Date (Old>New)</option>
+        <option class="options" value="6">Clear</option>
+      </select>
     </div>
   </div>
+  <div class="table-responsive mt-5 mb-5">
+    <div class="table-container">
+      <!-- <?php echo "<pre>";
+            print_r($raza);
+            echo "</pre>"; ?> -->
+      <table class="table table-bordered text-center">
+        <thead>
+          <tr>
+            <th class="sno">S.No.
+              <span class="sort-icons" onclick="sortTable(0)">
+                <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+              </span>
+            </th>
+            <th class="name">Name
+              <span class="sort-icons" onclick="sortTable(1)">
+                <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+              </span>
+            </th>
+            <th class="raza">Raza For
+              <span class="sort-icons" onclick="sortTable(2)">
+                <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+              </span>
+            </th>
+            <th class="eventdate">Event Date
+              <span class="sort-icons" onclick="sortTable(3)">
+                <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+              </span>
+            </th>
+            <th class="chat">Chat</th>
+            <th class="approval_status">Status
+              <span class="sort-icons" onclick="sortTable(5)">
+                <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+              </span>
+            </th>
+            <th class="action">Action</th>
+            <th class="created">Created
+              <span class="sort-icons" onclick="sortTable(8)">
+                <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="datatable">
+          <?php
+          foreach ($raza as $key => $r) {
+            // compute hijri year for this row
+            $hijri_year_attr = '';
+            $d = '';
+            if (!empty($r['miqaat_details'])) {
+              $md = json_decode($r['miqaat_details'], true);
+              if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+            }
+            if (empty($d) && !empty($r['razadata'])) {
+              $rd = json_decode($r['razadata'], true);
+              if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+            }
+            if (!empty($d)) {
+              $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+              if (!empty($parts) && !empty($parts['hijri_year'])) $hijri_year_attr = $parts['hijri_year'];
+            }
+          ?>
+            <tr data-hijri-year="<?php echo $hijri_year_attr; ?>">
+              <td>
+                <?php echo $key + 1 ?>
+              </td>
+              <td>
+                <?php
+                // If this request is a Fala ni Niyaz (FNN), show that label instead of the user's name
+                $is_fnn = false;
+                if (!empty($r['miqaat_details'])) {
+                  $miq = json_decode($r['miqaat_details'], true);
+                  if (is_array($miq)) {
+                    $miq_type = strtolower($miq['type'] ?? '');
+                    $miq_name = strtolower($miq['name'] ?? '');
+                    if (strpos($miq_type, 'fnn') !== false || (strpos($miq_type, 'fala') !== false && (strpos($miq_type, 'niyaz') !== false || strpos($miq_type, 'niaz') !== false))) {
+                      $is_fnn = true;
+                    }
+                    if (!$is_fnn && (strpos($miq_name, 'fnn') !== false || (strpos($miq_name, 'fala') !== false && (strpos($miq_name, 'niyaz') !== false || strpos($miq_name, 'niaz') !== false)))) {
+                      $is_fnn = true;
+                    }
+                    // check top-level assign_type
+                    if (!$is_fnn && !empty($miq['assign_type'])) {
+                      $atop = strtolower($miq['assign_type']);
+                      if (strpos($atop, 'fnn') !== false || (strpos($atop, 'fala') !== false && (strpos($atop, 'niyaz') !== false || strpos($atop, 'niaz') !== false))) {
+                        $is_fnn = true;
+                      }
+                    }
+                    // check assignments entries
+                    if (!$is_fnn && !empty($miq['assignments']) && is_array($miq['assignments'])) {
+                      foreach ($miq['assignments'] as $as) {
+                        $asz = strtolower((string)($as['assign_type'] ?? $as['type'] ?? ''));
+                        if (strpos($asz, 'fnn') !== false || (strpos($asz, 'fala') !== false && (strpos($asz, 'niyaz') !== false || strpos($asz, 'niaz') !== false))) {
+                          $is_fnn = true;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }
+                if (!$is_fnn && isset($r['razaType'])) {
+                  $rt = strtolower($r['razaType']);
+                  if (strpos($rt, 'fnn') !== false || (strpos($rt, 'fala') !== false && (strpos($rt, 'niyaz') !== false || strpos($rt, 'niaz') !== false))) {
+                    $is_fnn = true;
+                  }
+                }
+
+                if ($is_fnn) {
+                  echo 'Fala ni Niyaz';
+                } else {
+                  echo htmlspecialchars($r['user_name'], ENT_QUOTES, 'UTF-8');
+                }
+                ?>
+              </td>
+              <td>
+                <?php echo $r['razaType'] ?>
+              </td>
+              <td>
+                <?php $temp = json_decode($r['razadata'], true);
+                if (!empty($temp['date'])) {
+                  echo date('D, d M ', strtotime($temp['date']));
+                } ?>
+              </td>
+              <td>
+                <?php $chat_count = !empty($r['chat_count']) ? $r['chat_count'] : ''; ?>
+                <a href="<?php echo base_url('Accounts/chat/') . $r['id'] . '/amilsaheb'; ?>" class="chat-button">
+                  Chat<?php echo $chat_count ? '<div class="chat-count">' . $chat_count . '</div>' : ''; ?>
+                </a>
+              </td>
+              <td class="status">
+                <div class="text-left">
+                  <ul>
+                    <?php if ($r['status'] == 0) {
+                      echo '<div><strong style="color: orange;">Pending</strong></div>';
+                    } elseif ($r['status'] == 1) {
+                      echo '<div><strong style="color: blue;">Recommended</strong></div>';
+                    } elseif ($r['status'] == 2) {
+                      echo '<div><strong style="color: limegreen;">Approved</strong></div>';
+                    } elseif ($r['status'] == 3) {
+                      echo '<div><strong style="color: red;">Rejected</strong></div>';
+                    } elseif ($r['status'] == 4) {
+                      echo '<div><strong style="color: blue;">Not Recommended</strong></div>';
+                    } ?>
+                    <li>
+                      <?php if ($r['coordinator-status'] == 0) {
+                        echo '<div>Jamat <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
+                      } elseif ($r['coordinator-status'] == 1) {
+                        echo '<div>Jamat <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
+                      } elseif ($r['coordinator-status'] == 2) {
+                        echo '<div>Jamat <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
+                      } ?>
+                    </li>
+                    <li>
+                      <?php if ($r['Janab-status'] == 0) {
+                        echo '<div>Amil Saheb <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
+                      } elseif ($r['Janab-status'] == 1) {
+                        echo '<div>Amil Saheb <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
+                      } elseif ($r['Janab-status'] == 2) {
+                        echo '<div>Amil Saheb <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
+                      } ?>
+                    </li>
+
+                  </ul>
+                </div>
+              </td>
+              <td>
+                <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(<?php echo $r['id'] ?>);"><i class="fa fa-circle-check"></i></button>
+                <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(<?php echo $r['id'] ?>);"><i class="fa fa-circle-xmark"></i></button>
+                <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="redirectto(<?php echo 'amilsaheb/DeleteRaza/' . $r['id'] ?>);"><i class="fa fa-circle-xmark"></i></button>
+              </td>
+              <td>
+                <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
+              </td>
+            </tr>
+          <?php } ?>
+        </tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
 </div>
 <div id="product-overlay"></div>
 <div id="approve-form" class="query-form">
@@ -644,7 +831,69 @@
 </div>
 <script>
   // Build razas as a proper JSON array to prevent parsing issues
-  let razas = <?php echo json_encode($raza, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+  // Build razas array with hijri_parts for each entry
+  let razas = [
+    <?php
+    foreach ($raza as $r) {
+      $d = '';
+      if (!empty($r['miqaat_details'])) {
+        $md = json_decode($r['miqaat_details'], true);
+        if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+      }
+      if (empty($d) && !empty($r['razadata'])) {
+        $rd = json_decode($r['razadata'], true);
+        if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+      }
+      $hijri_parts = null;
+      if (!empty($d)) {
+        $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+        if (!empty($parts['hijri_year']) && !empty($parts['hijri_month']) && !empty($parts['hijri_day'])) {
+          $hijri_parts = [
+            'year' => $parts['hijri_year'],
+            'month' => $parts['hijri_month'],
+            'day' => $parts['hijri_day']
+          ];
+        }
+      }
+      $r['hijri_parts'] = $hijri_parts;
+      echo json_encode($r, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) . ",\n";
+    }
+    ?>
+  ];
+  let hijriMap = <?php
+                  // build map of raza id => hijri year for JS
+                  $hmap = [];
+                  foreach ($raza as $r) {
+                    $d = '';
+                    if (!empty($r['miqaat_details'])) {
+                      $md = json_decode($r['miqaat_details'], true);
+                      if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+                    }
+                    if (empty($d) && !empty($r['razadata'])) {
+                      $rd = json_decode($r['razadata'], true);
+                      if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+                    }
+                    $hyear = '';
+                    if (!empty($d)) {
+                      $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+                      if (!empty($parts) && !empty($parts['hijri_year'])) $hyear = $parts['hijri_year'];
+                    }
+                    $hmap[$r['id']] = $hyear;
+                  }
+                  echo json_encode($hmap, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+                  ?>;
+
+  // Expose Hijri month names for JS rendering of hijri date
+  <?php
+    $ci = isset($ci) ? $ci : get_instance();
+    $ci->load->model('HijriCalendar');
+    $hijri_months = $ci->HijriCalendar->get_hijri_month();
+    $hijri_months_js = [];
+    foreach ($hijri_months as $m) {
+      $hijri_months_js[$m['id']] = $m['hijri_month'];
+    }
+  ?>
+  window.hijriMonths = <?php echo json_encode($hijri_months_js, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
   function show_raza(id) {
     document.getElementById("show-form").style.display = "block";
@@ -708,7 +957,16 @@
       let miqaat_info = parseMaybe(raza.miqaat_details) || {};
       tbodydata += `<tr><th scope=\"row\">Miqaat Name</th><td>${miqaat_info.name}</td></tr>`;
       tbodydata += `<tr><th scope=\"row\">Miqaat Type</th><td>${miqaat_info.type}</td></tr>`;
-      tbodydata += `<tr><th scope=\"row\">Miqaat Date</th><td>${miqaat_info.date}</td></tr>`;
+      // Format miqaat_info.date as dd-mm-yyyy
+      let miqaatDateStr = '';
+      if (miqaat_info.date) {
+        let d = new Date(miqaat_info.date);
+        let day = String(d.getDate()).padStart(2, '0');
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let year = d.getFullYear();
+        miqaatDateStr = `${day}-${month}-${year}`;
+      }
+      tbodydata += `<tr><th scope=\"row\">Miqaat Date</th><td>${miqaatDateStr}</td></tr>`;
       tbodydata += `<tr><th scope=\"row\">Assigned To</th><td>${miqaat_info.assigned_to}</td></tr>`;
       tbodydata += `<tr><th scope=\"row\">Status</th><td>${miqaat_info.status == 1 ? 'Active' : 'Inactive'}</td></tr>`;
       // If group assignment, show group leader and all members' names
@@ -860,10 +1118,18 @@
     var sortValue = document.getElementById("sort").value;
     var miqaatFilterElem = document.getElementById("miqaat_filter");
     var miqaatFilter = miqaatFilterElem ? miqaatFilterElem.value : "";
-    updateTableContent(filterValue, sortValue, miqaatFilter);
+    var umoorFilterElem = document.getElementById("umoor_filter");
+    var umoorFilter = umoorFilterElem ? umoorFilterElem.value : "";
+    var yearFilterElem = document.getElementById("year_filter");
+    var yearFilter = yearFilterElem ? yearFilterElem.value : "";
+    var hijriMonthElem = document.getElementById("hijri_month_filter");
+    var hijriMonth = hijriMonthElem ? hijriMonthElem.value : "";
+    var hijriDayElem = document.getElementById("hijri_day_filter");
+    var hijriDay = hijriDayElem ? hijriDayElem.value : "";
+    updateTableContent(filterValue, sortValue, miqaatFilter, yearFilter, umoorFilter, hijriMonth, hijriDay);
   }
 
-  function updateTableContent(filter, sort, miqaatFilter) {
+  function updateTableContent(filter, sort, miqaatFilter, yearFilter, umoorFilter, hijriMonth, hijriDay) {
     var tbody = document.getElementById('datatable');
     tbody.innerHTML = "";
 
@@ -887,6 +1153,34 @@
         var m = parseMaybe(raza.miqaat_details) || {};
         var miqaatType = (m.type || raza.razaType || '').toString();
         return miqaatType.toLowerCase() === miqaatFilter.toLowerCase();
+      });
+    }
+
+
+    // Apply Hijri year filter if selected (uses server-provided hijriMap)
+    if (yearFilter && yearFilter !== "") {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        var hy = (hijriMap && hijriMap[raza.id]) ? hijriMap[raza.id].toString() : '';
+        return hy === yearFilter;
+      });
+    }
+
+    // Hijri month/day filter: parse hijri_parts from raza
+    if ((hijriMonth && hijriMonth !== "") || (hijriDay && hijriDay !== "")) {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        var hijri = (raza.hijri_parts || null);
+        if (!hijri) return true;
+        if (hijriMonth && hijriMonth !== "" && parseInt(hijri.month) !== parseInt(hijriMonth)) return false;
+        if (hijriDay && hijriDay !== "" && parseInt(hijri.day) !== parseInt(hijriDay)) return false;
+        return true;
+      });
+    }
+
+    // Apply Umoor filter (for 12 Umoor view) if selected
+    if (umoorFilter && umoorFilter !== "") {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        var u = (raza.umoor || '').toString();
+        return u.toLowerCase() === umoorFilter.toLowerCase();
       });
     }
 
@@ -974,7 +1268,15 @@
       // Determine display name: if this is a Fala ni Niyaz (FNN) show label instead of user name
       var nameDisplay = raza['user_name'] || '';
       try {
-        var _m = (function(v){ if(!v) return null; if(typeof v==='object') return v; try{return JSON.parse(v);}catch(e){return null;} })(raza.miqaat_details) || {};
+        var _m = (function(v) {
+          if (!v) return null;
+          if (typeof v === 'object') return v;
+          try {
+            return JSON.parse(v);
+          } catch (e) {
+            return null;
+          }
+        })(raza.miqaat_details) || {};
         var miqAssignedTo = (_m.assigned_to || '').toString().toLowerCase();
         var miqType = (_m.type || '').toString().toLowerCase();
         var miqName = (_m.name || '').toString().toLowerCase();
@@ -1047,7 +1349,6 @@
       const parts = [];
       if (type) parts.push(type);
       if (assignedTo) parts.push(assignedTo);
-      if (date) parts.push(date);
       const meta = parts.join(' · ');
       return `${name}<br><small style="color:#6c757d;">${meta}</small>`;
     }
@@ -1087,39 +1388,43 @@
     let data = parseMaybe(raza.razadata) || {};
     let rf = parseMaybe(raza.razafields) || {};
     let razafields = rf.fields || [];
-
+    let gregDate = '';
+    let gregDateStr = '';
+    const options = {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    };
     if (raza.miqaat_id && raza.miqaat_details) {
       let miqaat_info = parseMaybe(raza.miqaat_details) || {};
-      const options = {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      };
-      return new Date(miqaat_info.date).toLocaleDateString('en-US', options);
-    }
-
-    let dateString = data.date
-    if (dateString) {
-      const options = {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      };
-      if (data['time']) {
-        let k = razafields.find(e => {
-          let name = e.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
-          return name === 'time';
-        });
-        let value = k.options[data['time']]
-        return `${new Date(dateString).toLocaleDateString('en-US', options)}<br/> <span style='color:grey'>${value.name}</span>`;
-      } else {
-        return new Date(dateString).toLocaleDateString('en-US', options);
+      gregDate = miqaat_info.date;
+      if (gregDate) {
+        gregDateStr = new Date(gregDate).toLocaleDateString('en-US', options);
       }
-
     } else {
-      return ""
+      gregDate = data.date;
+      if (gregDate) {
+        gregDateStr = new Date(gregDate).toLocaleDateString('en-US', options);
+      }
+    }
+    // Hijri date from hijri_parts (provided by server)
+    let hijriStr = '';
+    if (raza.hijri_parts && raza.hijri_parts.year && raza.hijri_parts.month && raza.hijri_parts.day) {
+      // Use hijri_months array if available, else fallback to number
+      let hijriMonthName = '';
+      if (window.hijriMonths && window.hijriMonths[raza.hijri_parts.month]) {
+        hijriMonthName = window.hijriMonths[raza.hijri_parts.month];
+      } else {
+        // fallback: just show month number
+        hijriMonthName = 'Month ' + raza.hijri_parts.month;
+      }
+      hijriStr = `<br><small class=\"text-muted\">(${raza.hijri_parts.day} ${hijriMonthName} ${raza.hijri_parts.year}H)</small>`;
+    }
+    if (gregDateStr) {
+      return gregDateStr + hijriStr;
+    } else {
+      return '';
     }
   }
 
@@ -1180,19 +1485,19 @@
                     <i class="fa fa-trash"></i>
                 </button>
             </div>
-            <div class="view-link btn btn-sm btn-primary remove-form-row">
-                <a onclick="show_raza(${raza['id']});">
-                    <span style=" cursor:pointer;">View</span>
-                </a>
+            <div class="view-link remove-form-row">
+              <a class="btn btn-sm btn-primary" onclick="show_raza(${raza['id']});">
+                <span style=" cursor:pointer;">View</span>
+              </a>
             </div>
         </div>
     `;
     } else {
       actionHTML = `
-        <div class="view-link btn btn-sm btn-primary remove-form-row">
-            <a onclick="show_raza(${raza['id']});">
-                <span style=" cursor:pointer;">View</span>
-            </a>
+        <div class="view-link remove-form-row">
+          <a class="btn btn-sm btn-primary" onclick="show_raza(${raza['id']});">
+            <span style=" cursor:pointer;">View</span>
+          </a>
         </div>
     `;
     }

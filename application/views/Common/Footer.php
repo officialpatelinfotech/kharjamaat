@@ -3,7 +3,6 @@
     background: #222;
     color: #eee;
     font-size: 14px;
-    margin-top: 40px;
     padding: 32px 0 16px;
   }
 

@@ -89,11 +89,42 @@
                     <div class="detail-box">
                         <strong>Vatan:</strong> <?php echo $user_data['Vatan']; ?>
                     </div>
-                    <div class="detail-box">
-                        <strong>Mobile:</strong> <?php echo $user_data['Mobile']; ?>
+                    <div class="detail-box" id="mobile-row">
+                        <strong>Mobile:</strong>
+                        <span id="mobile-display"><?php echo htmlspecialchars($user_data['Mobile']); ?></span>
+                        <button class="btn btn-sm btn-outline-primary ml-2" id="edit-mobile">Edit</button>
+                        <div id="mobile-edit" style="display:none; margin-top:8px;">
+                            <input type="text" id="mobile-input" class="form-control" value="<?php echo htmlspecialchars($user_data['Mobile']); ?>" placeholder="Enter mobile">
+                            <div style="margin-top:6px;">
+                                <button class="btn btn-sm btn-success" id="save-mobile">Save</button>
+                                <button class="btn btn-sm btn-secondary" id="cancel-mobile">Cancel</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-box">
-                        <strong>Email:</strong> <?php echo $user_data['Email']; ?>
+                    <div class="detail-box" id="family-mobile-row">
+                        <strong>Registered Family Mobile:</strong>
+                        <span id="family-mobile-display"><?php echo htmlspecialchars($user_data['Registered_Family_Mobile'] ?? ''); ?></span>
+                        <button class="btn btn-sm btn-outline-primary ml-2" id="edit-family-mobile">Edit</button>
+                        <div id="family-mobile-edit" style="display:none; margin-top:8px;">
+                            <input type="text" id="family-mobile-input" class="form-control" value="<?php echo htmlspecialchars($user_data['Registered_Family_Mobile'] ?? ''); ?>" placeholder="Enter family mobile">
+                            <div style="margin-top:6px;">
+                                <button class="btn btn-sm btn-success" id="save-family-mobile">Save</button>
+                                <button class="btn btn-sm btn-secondary" id="cancel-family-mobile">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-box" id="email-row">
+                        <strong>Email:</strong>
+                        <span id="email-display"><?php echo htmlspecialchars($user_data['Email']); ?></span>
+                        <button class="btn btn-sm btn-outline-primary ml-2" id="edit-email">Edit</button>
+                        <div id="email-edit" style="display:none; margin-top:8px;">
+                            <input type="email" id="email-input" class="form-control" value="<?php echo htmlspecialchars($user_data['Email']); ?>" placeholder="Enter email">
+                            <div style="margin-top:6px;">
+                                <button class="btn btn-sm btn-success" id="save-email">Save</button>
+                                <button class="btn btn-sm btn-secondary" id="cancel-email">Cancel</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="detail-box">
                         <strong>Age:</strong> <?php echo $user_data['Age']; ?>
@@ -208,6 +239,125 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // Inline edit handlers for Mobile, Email, Registered Family Mobile
+        (function() {
+            function show(el) {
+                el.style.display = 'block';
+            }
+
+            function hide(el) {
+                el.style.display = 'none';
+            }
+
+            // Mobile
+            var editMobileBtn = document.getElementById('edit-mobile');
+            var mobileEdit = document.getElementById('mobile-edit');
+            var mobileDisplay = document.getElementById('mobile-display');
+            var mobileInput = document.getElementById('mobile-input');
+            var saveMobile = document.getElementById('save-mobile');
+            var cancelMobile = document.getElementById('cancel-mobile');
+            editMobileBtn && editMobileBtn.addEventListener('click', function() {
+                show(mobileEdit);
+                editMobileBtn.style.display = 'none';
+            });
+            cancelMobile && cancelMobile.addEventListener('click', function() {
+                hide(mobileEdit);
+                editMobileBtn.style.display = 'inline-block';
+            });
+            saveMobile && saveMobile.addEventListener('click', function() {
+                var v = mobileInput.value.trim();
+                saveField({
+                    mobile: v
+                }, function(success) {
+                    if (success) {
+                        mobileDisplay.textContent = v;
+                        hide(mobileEdit);
+                        editMobileBtn.style.display = 'inline-block';
+                    }
+                });
+            });
+
+            // Email
+            var editEmailBtn = document.getElementById('edit-email');
+            var emailEdit = document.getElementById('email-edit');
+            var emailDisplay = document.getElementById('email-display');
+            var emailInput = document.getElementById('email-input');
+            var saveEmail = document.getElementById('save-email');
+            var cancelEmail = document.getElementById('cancel-email');
+            editEmailBtn && editEmailBtn.addEventListener('click', function() {
+                show(emailEdit);
+                editEmailBtn.style.display = 'none';
+            });
+            cancelEmail && cancelEmail.addEventListener('click', function() {
+                hide(emailEdit);
+                editEmailBtn.style.display = 'inline-block';
+            });
+            saveEmail && saveEmail.addEventListener('click', function() {
+                var v = emailInput.value.trim();
+                saveField({
+                    email: v
+                }, function(success) {
+                    if (success) {
+                        emailDisplay.textContent = v;
+                        hide(emailEdit);
+                        editEmailBtn.style.display = 'inline-block';
+                    }
+                });
+            });
+
+            // Family mobile
+            var editFamilyBtn = document.getElementById('edit-family-mobile');
+            var familyEdit = document.getElementById('family-mobile-edit');
+            var familyDisplay = document.getElementById('family-mobile-display');
+            var familyInput = document.getElementById('family-mobile-input');
+            var saveFamily = document.getElementById('save-family-mobile');
+            var cancelFamily = document.getElementById('cancel-family-mobile');
+            editFamilyBtn && editFamilyBtn.addEventListener('click', function() {
+                show(familyEdit);
+                editFamilyBtn.style.display = 'none';
+            });
+            cancelFamily && cancelFamily.addEventListener('click', function() {
+                hide(familyEdit);
+                editFamilyBtn.style.display = 'inline-block';
+            });
+            saveFamily && saveFamily.addEventListener('click', function() {
+                var v = familyInput.value.trim();
+                saveField({
+                    registered_family_mobile: v
+                }, function(success) {
+                    if (success) {
+                        familyDisplay.textContent = v;
+                        hide(familyEdit);
+                        editFamilyBtn.style.display = 'inline-block';
+                    }
+                });
+            });
+
+            function saveField(payload, cb) {
+                var form = new FormData();
+                for (var k in payload) form.append(k, payload[k]);
+                fetch('<?php echo base_url("accounts/update_profile_contact"); ?>', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: form
+                }).then(function(r) {
+                    return r.json();
+                }).then(function(json) {
+                    if (json && json.success) {
+                        if (cb) cb(true);
+                    } else {
+                        alert('Save failed: ' + (json && json.error ? json.error : 'Unknown'));
+                        if (cb) cb(false);
+                    }
+                }).catch(function(e) {
+                    console.error(e);
+                    alert('Save failed');
+                    if (cb) cb(false);
+                });
+            }
+        })();
+    </script>
 </body>
 
 </html>

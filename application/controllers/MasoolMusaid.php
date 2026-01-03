@@ -620,6 +620,50 @@ class MasoolMusaid extends CI_Controller
     $this->load->view('MasoolMusaid/RSVP/Home');
   }
 
+  /**
+   * AJAX endpoint: search miqaat rsvp counts and return rendered cards
+   */
+  public function rsvp_search()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Unauthorized']));
+      return;
+    }
+
+    $username = $_SESSION['user']['username'];
+    $sector = '';
+    $subsector = '';
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+      $sector = $matches[1];
+      $subsector = $matches[2];
+    }
+
+    $q = $this->input->get('q', true);
+    if ($q === null) $q = '';
+
+    $miqaat_rsvp_counts = $this->MasoolMusaidM->search_rsvp_counts_by_miqaat($q, $sector, $subsector);
+
+    if (isset($miqaat_rsvp_counts)) {
+      foreach ($miqaat_rsvp_counts as $key => $miqaat) {
+        $hijri_date = $this->HijriCalendar->get_hijri_date($miqaat['miqaat_date']);
+        $hijri_month = $this->HijriCalendar->hijri_month_name(explode("-", $hijri_date["hijri_date"])[1])["hijri_month"];
+        $miqaat_rsvp_counts[$key]["hijri_date"] = explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month . " " . explode("-", $hijri_date["hijri_date"])[2];
+
+        $miqaat_raza_status = $this->AccountM->get_miqaat_raza_status($miqaat["miqaat_id"]);
+        if ($miqaat_raza_status) {
+          $miqaat_rsvp_counts[$key]["raza_status"] = $miqaat_raza_status ?? 'Unknown';
+        } else {
+          $miqaat_rsvp_counts[$key]["raza_status"] = 'Unknown';
+        }
+      }
+    } else {
+      $miqaat_rsvp_counts = [];
+    }
+
+    $html = $this->load->view('MasoolMusaid/RSVP/_miqaat_cards', ['miqaat_rsvp_counts' => $miqaat_rsvp_counts], true);
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'html' => $html]));
+  }
+
   public function general_rsvp($miqaat_id)
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
@@ -658,6 +702,59 @@ class MasoolMusaid extends CI_Controller
 
     $this->load->view('MasoolMusaid/Header', $data);
     $this->load->view('MasoolMusaid/RSVP/GeneralRSVP', $data);
+  }
+
+  /**
+   * AJAX: search upcoming miqaats (for Miqaat Home)
+   */
+  public function miqaat_search()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Unauthorized']));
+      return;
+    }
+
+    $username = $_SESSION['user']['username'];
+    $sector = '';
+    $subsector = '';
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+      $sector = $matches[1];
+      $subsector = $matches[2];
+    }
+
+    $q = $this->input->get('q', true);
+    if ($q === null) $q = '';
+
+    $miqaats = $this->MasoolMusaidM->search_upcoming_miqaats($q);
+    if ($miqaats) {
+      foreach ($miqaats as $key => $miqaat) {
+        if (isset($miqaat['date'])) {
+          $hijri_date = $this->HijriCalendar->get_hijri_date($miqaat['date']);
+          $hijri_month = $this->HijriCalendar->hijri_month_name(explode("-", $hijri_date["hijri_date"])[1])["hijri_month"];
+          $miqaats[$key]["hijri_date"] = explode("-", $hijri_date["hijri_date"])[0] . " " . $hijri_month . " " . explode("-", $hijri_date["hijri_date"])[2];
+        }
+
+        if (isset($miqaat['id'])) {
+          $miqaats[$key]['member_count'] = count($this->MasoolMusaidM->get_members_by_sector_sub_sector($sector, $subsector));
+          $miqaats[$key]['attendee_count'] = $this->MasoolMusaidM->get_miqaat_attendee_count($miqaat['id'], $sector, $subsector);
+
+          $miqaat_raza_status = $this->AccountM->get_miqaat_raza_status($miqaat["id"]);
+          if ($miqaat_raza_status) {
+            $miqaats[$key]["raza_status"] = $miqaat_raza_status ?? 'Unknown';
+          } else {
+            $miqaats[$key]["raza_status"] = 'Unknown';
+          }
+        }
+
+        unset($miqaats[$key]['sector']);
+        unset($miqaats[$key]['subsector']);
+      }
+    } else {
+      $miqaats = [];
+    }
+
+    $html = $this->load->view('MasoolMusaid/Miqaat/_miqaat_cards', ['miqaats' => $miqaats], true);
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'html' => $html]));
   }
 
   public function submit_general_rsvp()

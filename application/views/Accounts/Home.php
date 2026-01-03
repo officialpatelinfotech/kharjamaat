@@ -241,7 +241,7 @@
         <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Create</span>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
+    <!-- <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/Umoor') ?>" aria-label="12 Umoor Raza" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-edit"></i>
@@ -249,7 +249,7 @@
         <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">12 Umoor Raza</span>
         <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Create</span>
       </a>
-    </div>
+    </div> -->
     <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/MyRazaRequest') ?>" aria-label="My Applications" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
@@ -372,7 +372,7 @@
         <div class="dashboard-card mx-1">
           <div class="card-header">
             <span>Pending Raza Request</span>
-            <a href="<?php echo base_url("accounts/Umoor") ?>" class="text-primary">+ Submit a New Raza</a>
+            <!-- <a href="<?php echo base_url("accounts/Umoor") ?>" class="text-primary">+ Submit a New Raza</a> -->
           </div>
           <div class="card-body">
             <table class="table">

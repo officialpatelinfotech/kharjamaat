@@ -8,7 +8,7 @@
 
   .table-container div {
     border-radius: 5px;
-    border: 1px solid #999;
+    /* border: 1px solid #999; */
   }
 
   /* Make all table columns the same width */
@@ -402,34 +402,63 @@
                 }
                 echo '<tr><td colspan="9" class="text-center text-muted">' . $msg . '</td></tr>';
               }
+              // Group calendar rows by greg_date so multiple entries on the same date render in a single table row
+              $grouped = [];
               foreach ($calendar as $row) {
-                $date = $row['greg_date'];
-                $menu_id = isset($row['menu_id']) ? $row['menu_id'] : '';
+                $d = isset($row['greg_date']) ? $row['greg_date'] : '';
+                if (!isset($grouped[$d])) $grouped[$d] = [];
+                $grouped[$d][] = $row;
+              }
+
+              // iterate grouped dates in order
+              ksort($grouped);
+              foreach ($grouped as $date => $rows_for_date) {
+                $first = $rows_for_date[0];
+                $menu_id = isset($first['menu_id']) ? $first['menu_id'] : '';
                 $eng_date = date('d-m-Y', strtotime($date));
                 $day = date('l', strtotime($date));
                 $rowClass = ($day === 'Sunday') ? 'style="background:#ffe5e5"' : '';
-                $type = $row['miqaat_type'];
-                $miqaat_name = $row['miqaat_name'];
-                $assigned_to = $row['assigned_to'];
-                $assignments = isset($row['assignments']) ? $row['assignments'] : [];
-                $menu_items = !empty($row['menu_items']) ? implode(', ', $row['menu_items']) : '';
-                $contact = $row['contact'];
-                $isHoliday = empty($type) && empty($miqaat_name) && empty($menu_items);
-                $hijri_date = isset($row['hijri_date']) ? $row['hijri_date'] : '';
+                $hijri_date = isset($first['hijri_date']) ? $first['hijri_date'] : '';
                 $hijri_parts = explode('-', $hijri_date);
                 $hijri_month = isset($hijri_parts[1]) ? $hijri_parts[1] : '';
                 $hijri_year = isset($hijri_parts[2]) ? $hijri_parts[2] : '';
+
                 // Show month header if month changes
                 if ($hijri_month !== $last_month) {
                   $last_month = $hijri_month;
-                  $month_name = isset($row['hijri_month_name']) ? $row['hijri_month_name'] : '';
+                  $month_name = isset($first['hijri_month_name']) ? $first['hijri_month_name'] : '';
                   echo '<tr class="month-header" data-hijri-month="' . htmlspecialchars($hijri_month, ENT_QUOTES) . '" data-hijri-month-name="' . htmlspecialchars($month_name, ENT_QUOTES) . '" data-hijri-year="' . htmlspecialchars($hijri_year, ENT_QUOTES) . '" style="background:linear-gradient(90deg,#e0eafc,#cfdef3);font-weight:bold;"><td colspan="9">Hijri Month: ' . $month_name . ' (' . $hijri_month . ') / Year: ' . $hijri_year . '</td></tr>';
                 }
-            ?>
-                <?php
-                // Prepare sortable keys
+
+                // Prepare combined cell contents for this date
+                $types_html = [];
+                $names_html = [];
+                $assigned_html = [];
+                $menus_html = [];
+
+                foreach ($rows_for_date as $r) {
+                  $type = isset($r['miqaat_type']) ? $r['miqaat_type'] : '';
+                  $miqaat_name = isset($r['miqaat_name']) ? $r['miqaat_name'] : '';
+                  $assignments = isset($r['assignments']) ? $r['assignments'] : [];
+                  $menu_items = !empty($r['menu_items']) ? implode(', ', $r['menu_items']) : '';
+                  $assigned_to = isset($r['assigned_to']) ? $r['assigned_to'] : '';
+
+                  $types_html[] = '<div class="miqaat-entry">' . htmlspecialchars($type) . '</div>';
+                  $names_html[] = '<div class="miqaat-entry">' . htmlspecialchars($miqaat_name) . '</div>';
+
+                  if (!empty($assignments)) {
+                    // Preserve JSON double-quotes but escape HTML special chars; wrap the JSON in single quotes for the attribute
+                    $assign_json = htmlspecialchars(json_encode($assignments), ENT_NOQUOTES, 'UTF-8');
+                    $assigned_html[] = '<div class="miqaat-entry"><a href="#" class="show-assignment-details" data-assignments=' . "'" . $assign_json . "'" . '>' . htmlspecialchars($assigned_to) . '</a></div>';
+                  } else {
+                    $assigned_html[] = '<div class="miqaat-entry">' . htmlspecialchars($assigned_to) . '</div>';
+                  }
+
+                  $menus_html[] = '<div class="miqaat-entry">' . htmlspecialchars($menu_items) . '</div>';
+                }
+
+                // sortable keys
                 $eng_sort_value = $date; // YYYY-MM-DD
-                // Hijri sort value from dd-mm-YYYY -> YYYY-MM-DD
                 $hijri_sort_value = '';
                 if (!empty($hijri_date)) {
                   $hp = explode('-', $hijri_date);
@@ -437,31 +466,30 @@
                     $hijri_sort_value = sprintf('%04d-%02d-%02d', (int)$hp[2], (int)$hp[1], (int)$hp[0]);
                   }
                 }
+
                 ?>
                 <tr <?php echo $rowClass; ?> data-hijri-month="<?php echo htmlspecialchars($hijri_month, ENT_QUOTES); ?>" data-hijri-month-name="<?php echo htmlspecialchars($month_name, ENT_QUOTES); ?>" data-hijri-year="<?php echo htmlspecialchars($hijri_year, ENT_QUOTES); ?>">
                   <td class="sno"><?php echo $sno++; ?></td>
                   <td data-sort-value="<?php echo htmlspecialchars($eng_sort_value, ENT_QUOTES); ?>"><?php echo date("d M Y", strtotime($eng_date)); ?></td>
-                  <td class="hijri-col" data-sort-value="<?php echo htmlspecialchars($hijri_sort_value, ENT_QUOTES); ?>"><?php echo isset($row['hijri_date_with_month']) ? $row['hijri_date_with_month'] : $hijri_date; ?></td>
+                  <td class="hijri-col" data-sort-value="<?php echo htmlspecialchars($hijri_sort_value, ENT_QUOTES); ?>"><?php echo isset($first['hijri_date_with_month']) ? $first['hijri_date_with_month'] : $hijri_date; ?></td>
                   <td class="day-col" style="white-space:nowrap;"><?php echo $day; ?></td>
-                  <?php if ($isHoliday): ?>
+                  <?php
+                  // If the date is effectively a holiday (no entries with type/name/menu)
+                  $allEmpty = true;
+                  foreach ($rows_for_date as $rchk) {
+                    if (!empty($rchk['miqaat_type']) || !empty($rchk['miqaat_name']) || !empty($rchk['menu_items'])) {
+                      $allEmpty = false;
+                      break;
+                    }
+                  }
+                  if ($allEmpty): ?>
                     <td colspan="4">Holiday</td>
                   <?php else: ?>
-                    <td><?php echo $isHoliday ? 'Holiday' : $type; ?></td>
-                    <td><?php echo $isHoliday ? 'Holiday' : $miqaat_name; ?></td>
-                    <td>
-                      <?php if ($isHoliday): ?>
-                        Holiday
-                      <?php elseif (!empty($assignments)): ?>
-                        <a href="#" class="show-assignment-details" data-assignments='<?php echo json_encode($assignments); ?>'>
-                          <?php echo $assigned_to; ?>
-                        </a>
-                      <?php else: ?>
-                        <?php echo $assigned_to; ?>
-                      <?php endif; ?>
-                    </td>
-                    <td><?php echo $isHoliday ? 'Holiday' : $menu_items; ?></td>
+                    <td><?php echo implode('<hr style="margin:6px 0">', $types_html); ?></td>
+                    <td><?php echo implode('<hr style="margin:6px 0">', $names_html); ?></td>
+                    <td><?php echo implode('<hr style="margin:6px 0">', $assigned_html); ?></td>
+                    <td><?php echo implode('<hr style="margin:6px 0">', $menus_html); ?></td>
                   <?php endif; ?>
-
                 </tr>
             <?php
               }
@@ -526,16 +554,27 @@
 <script>
   $(document).on("click", ".show-assignment-details", function(e) {
     e.preventDefault();
-    var assignments = $(this).data("assignments");
+    var raw = $(this).attr('data-assignments');
+    var assignments = [];
+    if (raw) {
+      try {
+        assignments = JSON.parse(raw);
+      } catch (err) {
+        // fallback to jQuery data if parsing fails
+        assignments = $(this).data('assignments') || [];
+      }
+    } else {
+      assignments = $(this).data('assignments') || [];
+    }
     var html = "";
     if (assignments && assignments.length > 0) {
       assignments.forEach(function(assignment) {
         if (assignment.assign_type === "Individual") {
-          html += "<div><strong>Individual:</strong> " + assignment.member_name + "<span class='text-muted'> (Mobile: " + (assignment.member_mobile || "N/A") + ")</span></div>";
+          html += "<div><strong>Individual:</strong> " + (assignment.member_name || '') + "<span class='text-muted'> (Mobile: " + (assignment.member_mobile || "N/A") + ")</span></div>";
         } else if (assignment.assign_type === "Group") {
-          html += "<div><strong>Sanstha / Group:</strong> " + assignment.group_name + " <br><br><strong>Leader:</strong> " + assignment.group_leader_name + "<span class='text-muted'> (Mobile: " + (assignment.group_leader_mobile || "N/A") + ")</span></div><br>";
+          html += "<div><strong>Sanstha / Group:</strong> " + (assignment.group_name || '') + " <br><br><strong>Leader:</strong> " + (assignment.group_leader_name || '') + "<span class='text-muted'> (Mobile: " + (assignment.group_leader_mobile || "N/A") + ")</span></div><br>";
           if (assignment.members && assignment.members.length > 0) {
-            html += "<div><strong>Co-leader:</strong> " + assignment.members[0].name + " <span class='text-muted'>(Mobile: " + (assignment.members[0].mobile || "N/A") + ")</span></div>";
+            html += "<div><strong>Co-leader:</strong> " + (assignment.members[0].name || '') + " <span class='text-muted'>(Mobile: " + (assignment.members[0].mobile || "N/A") + ")</span></div>";
           }
         }
       });

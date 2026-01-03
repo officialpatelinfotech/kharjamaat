@@ -45,11 +45,29 @@ class AccountM extends CI_Model
   // Updated by Patel Infotech Services
   public function get_assigned_miqaats_count($user_id)
   {
+    // include family members (HOF children) along with the user
+    $memberIds = [$user_id];
+    $family = $this->get_all_family_member($user_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) $memberIds[] = $f['ITS_ID'];
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
     $escaped_user = $this->db->escape($user_id);
+    $escaped_list = array_map(array($this->db, 'escape'), $memberIds);
+    $in_list = implode(',', $escaped_list);
+
+    $today = date('Y-m-d');
     $this->db->select('COUNT(DISTINCT ma.miqaat_id) as pending_cnt', FALSE);
     $this->db->from('miqaat_assignments ma');
+    // only count upcoming miqaats (miqaat date on or after today)
+    $this->db->join('miqaat m', 'm.id = ma.miqaat_id', 'inner');
+    $this->db->where('m.date >=', $today);
+    // keep raza check for current user only (r.user_id = current user)
     $this->db->join('raza r', 'r.miqaat_id = ma.miqaat_id AND r.user_id = ' . $escaped_user, 'left');
-    $this->db->where('( (ma.assign_type = "Individual" AND ma.member_id = ' . $escaped_user . ') OR (ma.assign_type = "Group" AND ma.group_leader_id = ' . $escaped_user . ') )', NULL, FALSE);
+    $this->db->where('((ma.assign_type = "Individual" AND ma.member_id IN (' . $in_list . ')) OR (ma.assign_type = "Group" AND ma.group_leader_id IN (' . $in_list . ')))', NULL, FALSE);
     $this->db->where('r.id IS NULL', NULL, FALSE);
     $row = $this->db->get()->row();
     return $row ? (int)$row->pending_cnt : 0;
@@ -57,11 +75,22 @@ class AccountM extends CI_Model
 
   public function get_assigned_miqaats($user_id)
   {
-    // Get miqaat IDs where user is assigned as individual or group leader
+    // Include assignments for the user and their family (HOF children)
+    $memberIds = [$user_id];
+    $family = $this->get_all_family_member($user_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) $memberIds[] = $f['ITS_ID'];
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    // Get miqaat IDs where user or any family member is assigned as individual or group leader
     $this->db->select('miqaat_id');
     $this->db->from('miqaat_assignments');
-    $this->db->where('(assign_type = "Individual" AND member_id = ' . $this->db->escape($user_id) . ')', NULL, FALSE);
-    $this->db->or_where('(assign_type = "Group" AND group_leader_id = ' . $this->db->escape($user_id) . ')', NULL, FALSE);
+    // Note: do not prefix columns with alias here since the table isn't aliased in from()
+    $this->db->where('(assign_type = "Individual" AND member_id IN (' . implode(',', array_map(array($this->db, 'escape'), $memberIds)) . '))', NULL, FALSE);
+    $this->db->or_where('(assign_type = "Group" AND group_leader_id IN (' . implode(',', array_map(array($this->db, 'escape'), $memberIds)) . '))', NULL, FALSE);
     $query = $this->db->get();
     $miqaat_ids = array_unique(array_column($query->result_array(), 'miqaat_id'));
     if (empty($miqaat_ids)) return [];
@@ -77,13 +106,11 @@ class AccountM extends CI_Model
     if (!empty($miqaat_ids)) {
       $this->db->select('ma.*, 
         u1.Full_Name as member_name, 
-        u2.Full_Name as group_leader_name, 
-        u3.Full_Name as co_leader_name,
-        u1.ITS_ID as member_id, u2.ITS_ID as group_leader_id, u3.ITS_ID as co_leader_id');
+        u2.Full_Name as group_leader_name,
+        u1.ITS_ID as member_id, u2.ITS_ID as group_leader_id');
       $this->db->from('miqaat_assignments ma');
       $this->db->join('user u1', 'u1.ITS_ID = ma.member_id', 'left');
       $this->db->join('user u2', 'u2.ITS_ID = ma.group_leader_id', 'left');
-      $this->db->join('user u3', 'u3.ITS_ID = ma.member_id', 'left');
       $this->db->where_in('ma.miqaat_id', $miqaat_ids);
       $assignments_result = $this->db->get()->result_array();
       // Group assignments by miqaat_id
@@ -203,6 +230,21 @@ class AccountM extends CI_Model
       $result['excess_paid'] = $excess;
     }
     return $result;
+  }
+
+  /**
+   * Get total outstanding amount for FMB General Contribution invoices for a user
+   * Returns a float representing total due (>= 0)
+   */
+  public function get_member_total_general_contrib_due($user_id)
+  {
+    $user_id = (int) $user_id;
+    $sql = "SELECT COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due
+            FROM fmb_general_contribution gc
+            LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id
+            WHERE gc.user_id = ?";
+    $row = $this->db->query($sql, [$user_id])->row_array();
+    return isset($row['total_due']) ? (float)$row['total_due'] : 0.0;
   }
 
   public function viewfmbtakhmeen($user_id)
@@ -1296,17 +1338,35 @@ class AccountM extends CI_Model
     $sql = "
       SELECT m.*, 1 AS janab_status
       FROM miqaat m
-      WHERE m.date > NOW()
-        AND EXISTS (
-          SELECT 1
-          FROM raza r
-          WHERE r.miqaat_id = m.id
-            AND r.`Janab-status` = 1
-        )
+      WHERE m.status = 1
       ORDER BY m.date ASC
     ";
     $query = $this->db->query($sql);
     return $query->result_array();
+  }
+
+  /**
+   * Search upcoming miqaats by query string (name, type or date)
+   * Returns array of miqaat rows
+   */
+  public function search_upcoming_miqaat($q)
+  {
+    $q = trim($q);
+    $this->db->select('m.*');
+    $this->db->from('miqaat m');
+    $this->db->where('m.status', 1);
+    if ($q !== '') {
+      $like = '%' . $this->db->escape_like_str($q) . '%';
+      $this->db->group_start();
+      $this->db->like('m.name', $q);
+      $this->db->or_like('m.type', $q);
+      // allow searching by formatted date as typed by user (e.g., 01 Jan 2026)
+      $this->db->or_like("DATE_FORMAT(m.date, '%d %b %Y')", $q);
+      $this->db->group_end();
+    }
+    $this->db->order_by('m.date', 'ASC');
+    $res = $this->db->get()->result_array();
+    return $res;
   }
 
   public function get_miqaat_raza_status($miqaat_id)

@@ -885,9 +885,22 @@ class AnjumanM extends CI_Model
       // Restrict to requested type
       $this->db->where('(m.type = ' . $this->db->escape($miqaat_type) . ' OR (i.miqaat_id IS NULL AND i.miqaat_type = ' . $this->db->escape($miqaat_type) . '))', null, false);
       $this->db->group_by([
-        'u.ITS_ID', 'u.Full_Name', 'u.HOF_ID', 'u.Sector', 'u.Sub_Sector',
-        'm.id', 'm.miqaat_id', 'm.name', 'm.type', 'm.date',
-        'i.id', 'i.amount', 'i.date', 'i.description', 'i.year', 'i.miqaat_type'
+        'u.ITS_ID',
+        'u.Full_Name',
+        'u.HOF_ID',
+        'u.Sector',
+        'u.Sub_Sector',
+        'm.id',
+        'm.miqaat_id',
+        'm.name',
+        'm.type',
+        'm.date',
+        'i.id',
+        'i.amount',
+        'i.date',
+        'i.description',
+        'i.year',
+        'i.miqaat_type'
       ]);
       $this->db->order_by('u.Full_Name, i.date DESC');
       $fmInvoiceRows = $this->db->get()->result_array();
@@ -1178,8 +1191,8 @@ class AnjumanM extends CI_Model
 
     // Get all takhmeens and payments, then allocate payments from oldest to newest year
     foreach ($users as &$user) {
-  // Fetch all takhmeen years for the user, oldest first (ASC)
-  $this->db->select("year, total_amount, remark");
+      // Fetch all takhmeen years for the user, oldest first (ASC)
+      $this->db->select("year, total_amount, remark");
       $this->db->from("fmb_takhmeen");
       $this->db->where("user_id", $user['ITS_ID']);
       $this->db->order_by("year", "ASC");
@@ -1389,8 +1402,8 @@ class AnjumanM extends CI_Model
       $current_hijri_year = null;
     }
 
-  // Coalesce grade amounts to 0 to avoid NULL values causing arithmetic issues
-  $this->db->select("
+    // Coalesce grade amounts to 0 to avoid NULL values causing arithmetic issues
+    $this->db->select("
     u.ITS_ID,
     u.First_Name,
     u.Surname,
@@ -1520,7 +1533,7 @@ class AnjumanM extends CI_Model
         ];
       }
 
-      $tRef =& $users[$itsId]['_takhmeens_index'][$takhmeenId];
+      $tRef = &$users[$itsId]['_takhmeens_index'][$takhmeenId];
 
       // (Payments removed from this phase)
 
@@ -1540,8 +1553,8 @@ class AnjumanM extends CI_Model
       $this->db->select('user_id, type, SUM(amount) AS total_amount');
       $this->db->from('sabeel_takhmeen_payments');
       $this->db->where_in('user_id', $userIds);
-      $this->db->where_in('type', ['establishment','residential']);
-      $this->db->group_by(['user_id','type']);
+      $this->db->where_in('type', ['establishment', 'residential']);
+      $this->db->group_by(['user_id', 'type']);
       $paymentSums = $this->db->get()->result_array();
 
       // Map: payments[user_id][type] = total amount
@@ -1560,7 +1573,9 @@ class AnjumanM extends CI_Model
 
         // Build year list for allocation (ascending for oldest-first, descending for current-first)
         $yearRows = array_values($uData['_takhmeens_index']);
-        usort($yearRows, function($a,$b){ return strcmp($a['year'],$b['year']); }); // ascending initially
+        usort($yearRows, function ($a, $b) {
+          return strcmp($a['year'], $b['year']);
+        }); // ascending initially
         if ($allocationOrder === 'current-first') {
           $yearRows = array_reverse($yearRows); // newest first
         }
@@ -1616,8 +1631,10 @@ class AnjumanM extends CI_Model
       unset($u['_takhmeens_index']); // Clean internal index
 
       // --- Aggregate totals across ALL years for convenience ---
-      $totalEstYearly = 0; $totalResYearly = 0;
-      $totalEstPaid = 0; $totalResPaid = 0;
+      $totalEstYearly = 0;
+      $totalResYearly = 0;
+      $totalEstPaid = 0;
+      $totalResPaid = 0;
       // Exclude upcoming/future takhmeen years from "All Yrs" aggregates.
       // A takhmeen is considered upcoming if its starting year (before '-') is greater than the
       // current financial takhmeen year computed earlier in this method ($takhmeen_year).
@@ -1644,24 +1661,24 @@ class AnjumanM extends CI_Model
       $totalResDue = max(0, $totalResYearly - $totalResPaid);
       $totalAllDue = $totalEstDue + $totalResDue;
 
-  $u['total_establishment_yearly'] = $totalEstYearly;
-  $u['total_residential_yearly'] = $totalResYearly;
-  $u['total_paid_establishment'] = $totalEstPaid;
-  $u['total_paid_residential'] = $totalResPaid;
-  $u['total_establishment_due'] = $totalEstDue;
-  $u['total_residential_due'] = $totalResDue;
-  $u['total_due_all_years'] = $totalAllDue;
+      $u['total_establishment_yearly'] = $totalEstYearly;
+      $u['total_residential_yearly'] = $totalResYearly;
+      $u['total_paid_establishment'] = $totalEstPaid;
+      $u['total_paid_residential'] = $totalResPaid;
+      $u['total_establishment_due'] = $totalEstDue;
+      $u['total_residential_due'] = $totalResDue;
+      $u['total_due_all_years'] = $totalAllDue;
 
       // Also embed an aggregate block inside current_year_takhmeen for quick view access
       if (!empty($u['current_year_takhmeen'])) {
         $u['current_year_takhmeen']['aggregate'] = [
           'establishment_yearly_total' => $totalEstYearly,
-            'residential_yearly_total' => $totalResYearly,
-            'establishment_paid_total' => $totalEstPaid,
-            'residential_paid_total' => $totalResPaid,
-            'establishment_due_total' => $totalEstDue,
-            'residential_due_total' => $totalResDue,
-            'overall_due_total' => $totalAllDue,
+          'residential_yearly_total' => $totalResYearly,
+          'establishment_paid_total' => $totalEstPaid,
+          'residential_paid_total' => $totalResPaid,
+          'establishment_due_total' => $totalEstDue,
+          'residential_due_total' => $totalResDue,
+          'overall_due_total' => $totalAllDue,
         ];
       }
     }
@@ -1669,7 +1686,7 @@ class AnjumanM extends CI_Model
 
     // If required, keep only users who have an actual takhmeen for the computed current financial year
     if ($requireCurrentYear) {
-      $users = array_filter($users, function($u){
+      $users = array_filter($users, function ($u) {
         return !empty($u['current_year_takhmeen']) && isset($u['hijri_year']) && ($u['current_year_takhmeen']['year'] === $u['hijri_year']);
       });
     }

@@ -50,31 +50,33 @@ $colorIndex = 0;
   </div>
 
   <h3 class="heading pb-5 text-center">RSVP <span class="text-primary">Dashboard</span></h3>
-  <div id="rsvp-dashboard">
-    <div class="row">
-      <?php foreach ($miqaat_rsvp_counts as $miqaat): ?>
-        <?php $bgColor = $colors[$colorIndex % count($colors)]; ?>
-        <div class="col-12 col-md-6 col-lg-4 mb-3 d-flex">
-          <div class="miqaat-card card shadow-sm border rounded flex-fill d-flex flex-column justify-content-between"
-            style="min-height:180px; background-color: <?php echo $bgColor; ?>;">
-            <div class="card-body d-flex flex-column">
-              <h5 class="card-title mb-2"><?php echo htmlspecialchars($miqaat['miqaat_name']); ?></h5>
-              <div class="mb-1"><span class="fw-bold">Date:</span> <?php echo date('d M Y', strtotime($miqaat['miqaat_date'])); ?></div>
-              <div class="mb-1"><span class="fw-bold">Hijri Date:</span> <?php echo htmlspecialchars($miqaat['hijri_date']); ?></div>
-              <div class="mb-1"><span class="fw-bold">Total Members:</span> <span class="badge badge-secondary"><?php echo $miqaat['member_count']; ?></span></div>
-              <div class="mb-1"><span class="fw-bold">RSVPs Confirmed:</span> <span class="badge badge-success"><?php echo $miqaat['rsvp_count']; ?></span></div>
-              <div class="d-flex justify-content-end align-items-end flex-grow-1 mt-2">
-                <?php if (isset($miqaat["raza_status"]) && $miqaat["raza_status"] == 1): ?>
-                  <a href="<?php echo site_url('MasoolMusaid/general_rsvp/' . $miqaat['miqaat_id']); ?>" class="btn btn-sm btn-primary ms-auto">RSVP</a>
-                <?php else: ?>
-                  <button class="btn btn-sm btn-secondary ms-auto" disabled>RSVP</button>
-                <?php endif; ?>
-              </div>
-            </div>
-          </div>
-        </div>
-        <?php $colorIndex++; ?>
-      <?php endforeach; ?>
+  <div class="row justify-content-center mb-4">
+    <div class="col-12 col-md-8">
+      <input id="miqaat-filter" type="search" class="form-control" placeholder="Search miqaat (name or date)...">
     </div>
   </div>
+  <div id="rsvp-dashboard">
+    <?php $this->load->view('MasoolMusaid/RSVP/_miqaat_cards', ['miqaat_rsvp_counts' => $miqaat_rsvp_counts]); ?>
+  </div>
 </div>
+<script>
+  $(function(){
+    var searchTimer = null;
+    $("#miqaat-filter").on('input', function(){
+      clearTimeout(searchTimer);
+      var q = $(this).val().trim();
+      searchTimer = setTimeout(function(){
+        $.getJSON("<?php echo base_url('MasoolMusaid/rsvp_search'); ?>", { q: q })
+          .done(function(res){
+            if(res.success){
+              if($('#miqaat-cards').length){
+                $('#miqaat-cards').replaceWith(res.html);
+              } else {
+                $('#miqaat-filter').closest('.row').after(res.html);
+              }
+            }
+          });
+      }, 300);
+    });
+  });
+</script>

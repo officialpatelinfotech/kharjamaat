@@ -31,7 +31,7 @@ class Admin extends CI_Controller
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Home');
   }
-  
+
   public function corpusfunds()
   {
     $this->validateUser($_SESSION['user']);
@@ -44,8 +44,10 @@ class Admin extends CI_Controller
   public function corpusfunds_create()
   {
     $this->validateUser($_SESSION['user']);
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { redirect('admin/corpusfunds'); }
-    $title = trim($this->input->post('title'));    
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      redirect('admin/corpusfunds');
+    }
+    $title = trim($this->input->post('title'));
     $amount = (float)$this->input->post('amount');
     $description = trim($this->input->post('description'));
     if ($title === '' || $amount <= 0) {
@@ -53,11 +55,11 @@ class Admin extends CI_Controller
       redirect('admin/corpusfunds_new');
     }
     $this->load->model('CorpusFundM');
-    $result = $this->CorpusFundM->create_fund($title, $amount, $description, isset($_SESSION['user']['ITS_ID'])?$_SESSION['user']['ITS_ID']:null);
+    $result = $this->CorpusFundM->create_fund($title, $amount, $description, isset($_SESSION['user']['ITS_ID']) ? $_SESSION['user']['ITS_ID'] : null);
     if (is_array($result) && isset($result['success']) && $result['success'] === true) {
       $fund_id = $result['id'];
       $assigned = $this->CorpusFundM->assign_to_all_hofs($fund_id, $amount);
-      $this->session->set_flashdata('corpus_fund_message', 'Corpus fund created (ID '.$fund_id.') and assigned to ' . $assigned . ' HOFs.');
+      $this->session->set_flashdata('corpus_fund_message', 'Corpus fund created (ID ' . $fund_id . ') and assigned to ' . $assigned . ' HOFs.');
       redirect('admin/corpusfunds_list');
     } else {
       $errMsg = 'Failed to create corpus fund.';
@@ -102,14 +104,20 @@ class Admin extends CI_Controller
     if (!empty($data['hof_fund_details'])) {
       foreach ($data['hof_fund_details'] as $hid => $funds) {
         foreach ($funds as $f) {
-          $greg = substr($f['created_at'],0,10);
+          $greg = substr($f['created_at'], 0, 10);
           $parts = $this->HijriCalendar->get_hijri_parts_by_greg_date($greg);
-            if ($parts && isset($parts['hijri_year'])) {
-              $yr = $parts['hijri_year'];
-              if (!isset($hof_hijri_years[$hid])) { $hof_hijri_years[$hid] = []; }
-              if (!in_array($yr, $hof_hijri_years[$hid])) { $hof_hijri_years[$hid][] = $yr; }
-              if (!in_array($yr, $all_years)) { $all_years[] = $yr; }
+          if ($parts && isset($parts['hijri_year'])) {
+            $yr = $parts['hijri_year'];
+            if (!isset($hof_hijri_years[$hid])) {
+              $hof_hijri_years[$hid] = [];
             }
+            if (!in_array($yr, $hof_hijri_years[$hid])) {
+              $hof_hijri_years[$hid][] = $yr;
+            }
+            if (!in_array($yr, $all_years)) {
+              $all_years[] = $yr;
+            }
+          }
         }
       }
     }
@@ -122,19 +130,25 @@ class Admin extends CI_Controller
     foreach ($data['hofs'] as $row) {
       $sector = trim($row['Sector']);
       $sub = trim($row['Sub_Sector']);
-      if ($sector !== '') { $sectorSet[$sector] = true; }
       if ($sector !== '') {
-        if (!isset($subSectorMap[$sector])) { $subSectorMap[$sector] = []; }
-        if ($sub !== '' && !isset($subSectorMap[$sector][$sub])) { $subSectorMap[$sector][$sub] = true; }
+        $sectorSet[$sector] = true;
+      }
+      if ($sector !== '') {
+        if (!isset($subSectorMap[$sector])) {
+          $subSectorMap[$sector] = [];
+        }
+        if ($sub !== '' && !isset($subSectorMap[$sector][$sub])) {
+          $subSectorMap[$sector][$sub] = true;
+        }
       }
     }
     $sectors = array_keys($sectorSet);
-    sort($sectors, SORT_NATURAL|SORT_FLAG_CASE);
+    sort($sectors, SORT_NATURAL | SORT_FLAG_CASE);
     // Normalize sub sector arrays
     $subSectorMapOut = [];
     foreach ($subSectorMap as $sec => $subs) {
       $subList = array_keys($subs);
-      sort($subList, SORT_NATURAL|SORT_FLAG_CASE);
+      sort($subList, SORT_NATURAL | SORT_FLAG_CASE);
       $subSectorMapOut[$sec] = $subList;
     }
     $data['sectors'] = $sectors;
@@ -147,22 +161,26 @@ class Admin extends CI_Controller
   {
     // AJAX: return JSON instead of redirect on auth failure
     if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Unauthorized']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
       return;
     }
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { 
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Invalid method']));
-      return; 
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid method']));
+      return;
     }
     $hof_id = (int)$this->input->post('hof_id');
     $raw = $this->input->post('assignments');
     $assignments = [];
     if (is_string($raw)) {
       $decoded = json_decode($raw, true);
-      if (is_array($decoded)) { $assignments = $decoded; }
-    } elseif (is_array($raw)) { $assignments = $raw; }
+      if (is_array($decoded)) {
+        $assignments = $decoded;
+      }
+    } elseif (is_array($raw)) {
+      $assignments = $raw;
+    }
     if ($hof_id <= 0) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Invalid hof_id']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid hof_id']));
       return;
     }
     $this->load->model('CorpusFundM');
@@ -180,17 +198,17 @@ class Admin extends CI_Controller
   {
     // AJAX: return JSON instead of redirect on auth failure
     if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Unauthorized']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
       return;
     }
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Invalid method']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid method']));
       return;
     }
     $hof_id = (int)$this->input->post('hof_id');
     $fund_id = (int)$this->input->post('fund_id');
-    if ($hof_id <=0 || $fund_id <=0) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Invalid hof_id or fund_id']));
+    if ($hof_id <= 0 || $fund_id <= 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid hof_id or fund_id']));
       return;
     }
     $this->load->model('CorpusFundM');
@@ -261,11 +279,11 @@ class Admin extends CI_Controller
   {
     // AJAX endpoint to update a corpus fund's amount (and optionally propagate to all assignments)
     if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Unauthorized']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
       return;
     }
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Invalid method']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid method']));
       return;
     }
     $fund_id = (int)$this->input->post('fund_id');
@@ -276,16 +294,16 @@ class Admin extends CI_Controller
     $propagate_flag = ($propagate === '0' || $propagate === 0) ? false : true; // default true
 
     if ($fund_id <= 0) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Invalid fund_id']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid fund_id']));
       return;
     }
     if ($amount_raw === null || $amount_raw === '') {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Amount required']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Amount required']));
       return;
     }
     $new_amount = (float)$amount_raw;
     if (!is_numeric($amount_raw) || $new_amount < 0) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Invalid amount']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid amount']));
       return;
     }
     $this->load->model('CorpusFundM');
@@ -306,16 +324,16 @@ class Admin extends CI_Controller
   public function corpusfunds_delete_fund()
   {
     if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Unauthorized']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
       return;
     }
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Invalid method']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid method']));
       return;
     }
     $fund_id = (int)$this->input->post('fund_id');
     if ($fund_id <= 0) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['success'=>false,'error'=>'Invalid fund id']));
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid fund id']));
       return;
     }
     $this->load->model('CorpusFundM');
@@ -337,7 +355,7 @@ class Admin extends CI_Controller
       'sub_sector' => $this->input->get('sub_sector')
     ];
     $rows = $this->AdminM->get_all_members_for_export($filters);
-    if($isTemplate){
+    if ($isTemplate) {
       // Keep only first 5 rows for sample (or pad header only if none)
       $rows = array_slice($rows, 0, 5);
     }
@@ -346,28 +364,35 @@ class Admin extends CI_Controller
     header('Content-Disposition: attachment; filename=' . $filename);
     echo "\xEF\xBB\xBF"; // BOM
     $out = fopen('php://output', 'w');
-    if(empty($rows)){
+    if (empty($rows)) {
       // Provide a minimal header for template even if no data
-      $header = ['ITS_ID','Full_Name'];
+      $header = ['ITS_ID', 'Full_Name'];
       fputcsv($out, $header);
-      if($isTemplate){
+      if ($isTemplate) {
         // Provide 5 blank sample lines
-        for($i=0;$i<5;$i++){ fputcsv($out, ['','']); }
+        for ($i = 0; $i < 5; $i++) {
+          fputcsv($out, ['', '']);
+        }
       }
-      fclose($out); return;
+      fclose($out);
+      return;
     }
     $header = array_keys($rows[0]);
     fputcsv($out, $header);
-    foreach($rows as $r){
+    foreach ($rows as $r) {
       $line = [];
-      foreach($header as $col){ $line[] = isset($r[$col]) ? $r[$col] : ''; }
+      foreach ($header as $col) {
+        $line[] = isset($r[$col]) ? $r[$col] : '';
+      }
       fputcsv($out, $line);
     }
     // If template requested but fewer than 5 rows, pad blank rows
-    if($isTemplate && count($rows) < 5){
-      for($i=count($rows); $i<5; $i++){
+    if ($isTemplate && count($rows) < 5) {
+      for ($i = count($rows); $i < 5; $i++) {
         $blank = [];
-        foreach($header as $col){ $blank[]=''; }
+        foreach ($header as $col) {
+          $blank[] = '';
+        }
         fputcsv($out, $blank);
       }
     }
@@ -381,48 +406,163 @@ class Admin extends CI_Controller
   public function importlatest()
   {
     $this->validateUser($_SESSION['user']);
-    if($_SERVER['REQUEST_METHOD'] === 'POST'){
-  $summary = [ 'processed'=>0,'inserted'=>0,'updated'=>0,'skipped'=>0,'moved_out'=>0,'errors'=>[] ];
-  $importedIds = [];
-      if(empty($_FILES['data_file']['tmp_name'])){
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      $summary = ['processed' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'moved_out' => 0, 'errors' => []];
+      $importedIds = [];
+      if (empty($_FILES['data_file']['tmp_name'])) {
         $summary['errors'][] = 'No file uploaded';
       } else {
         $fh = fopen($_FILES['data_file']['tmp_name'], 'r');
-        if(!$fh){ $summary['errors'][]='Cannot open uploaded file'; }
-        else {
+        if (!$fh) {
+          $summary['errors'][] = 'Cannot open uploaded file';
+        } else {
           $header = fgetcsv($fh);
-          if(!$header){ $summary['errors'][]='Empty file'; }
-          else {
-            $normalizedHeader = array_map(function($h){ return trim($h); }, $header);
+          if (!$header) {
+            $summary['errors'][] = 'Empty file';
+          } else {
+            $normalizedHeader = array_map(function ($h) {
+              return trim($h);
+            }, $header);
             $colIndex = array_flip($normalizedHeader);
-            $required = ['ITS_ID','Full_Name'];
-            foreach($required as $req){ if(!isset($colIndex[$req])) $summary['errors'][] = "Missing required column: $req"; }
-            if(empty($summary['errors'])){
-              while(($row = fgetcsv($fh)) !== false){
+            $required = ['ITS_ID', 'Full_Name'];
+            foreach ($required as $req) {
+              if (!isset($colIndex[$req])) $summary['errors'][] = "Missing required column: $req";
+            }
+            if (empty($summary['errors'])) {
+              $createdSectorLogins = [];
+              $createdSubSectorLogins = [];
+              while (($row = fgetcsv($fh)) !== false) {
                 $summary['processed']++;
                 $assoc = [];
-                foreach($normalizedHeader as $idxName){
+                foreach ($normalizedHeader as $idxName) {
                   $idx = $colIndex[$idxName];
                   $assoc[$idxName] = isset($row[$idx]) ? trim($row[$idx]) : '';
                 }
-                if($assoc['ITS_ID'] === '' || $assoc['Full_Name'] === ''){ $summary['skipped']++; continue; }
+                if ($assoc['ITS_ID'] === '' || $assoc['Full_Name'] === '') {
+                  $summary['skipped']++;
+                  continue;
+                }
+
+                // Only process Residential / Resident Mumineen rows during import.
+                $memberType = '';
+                if (isset($assoc['Member_Type'])) $memberType = $assoc['Member_Type'];
+                elseif (isset($assoc['member_type'])) $memberType = $assoc['member_type'];
+                $memberType = trim(strtolower((string)$memberType));
+                $allowed = ['resident mumineen', 'residential mumineen'];
+                if ($memberType === '' || !in_array($memberType, $allowed, true)) {
+                  // Skip rows that are not Residential/Resident Mumineen
+                  $summary['skipped']++;
+                  continue;
+                }
                 $importedIds[] = $assoc['ITS_ID'];
                 try {
                   $result = $this->AdminM->upsert_member_from_row($assoc);
-                  if($result === 'inserted') $summary['inserted']++; elseif($result==='updated') $summary['updated']++; else $summary['skipped']++;
-                } catch(Exception $e){ $summary['errors'][] = 'Row '.$summary['processed'].': '.$e->getMessage(); }
+                  if ($result === 'inserted') $summary['inserted']++;
+                  elseif ($result === 'updated') $summary['updated']++;
+                  else $summary['skipped']++;
+
+                  // Create login credentials for processed members if not present
+                  if ($result === 'inserted' || $result === 'updated') {
+                    $itsId = trim((string)$assoc['ITS_ID']);
+                    if ($itsId !== '') {
+                      $existingLogin = $this->db->where('username', $itsId)->get('login')->row_array();
+                      if (!$existingLogin) {
+                        // Try to get HOF_ID from user record; fallback to ITS_ID
+                        $userRow = $this->db->where('ITS_ID', $itsId)->get('user')->row_array();
+                        $hof = !empty($userRow['HOF_ID']) ? $userRow['HOF_ID'] : $itsId;
+                        $loginRow = [
+                          'username' => $itsId,
+                          'password' => md5($itsId),
+                          'role'     => 0,
+                          'hof'      => $hof,
+                          'active'   => 1
+                        ];
+                        $this->db->insert('login', $loginRow);
+                      }
+                    }
+
+                    // Create sector-level login (username = Sector) with fixed password and role=16
+                    $sector = isset($assoc['Sector']) ? trim((string)$assoc['Sector']) : '';
+                    if ($sector !== '' && !in_array($sector, $createdSectorLogins, true)) {
+                      $createdSectorLogins[] = $sector;
+                      $existingSectorLogin = $this->db->where('username', $sector)->get('login')->row_array();
+                      if (!$existingSectorLogin) {
+                        $sectorLogin = [
+                          'username' => $sector,
+                          'password' => md5('525352'),
+                          'role'     => 16,
+                          'hof'      => '',
+                          'active'   => 1
+                        ];
+                        $this->db->insert('login', $sectorLogin);
+                      }
+                    }
+
+                    // Create sub-sector-level login (username = Sub_Sector) with fixed password and role=16
+                    $sub = isset($assoc['Sub_Sector']) ? trim((string)$assoc['Sub_Sector']) : '';
+                    if ($sub !== '' && !in_array($sub, $createdSubSectorLogins, true)) {
+                      $createdSubSectorLogins[] = $sub;
+                      $existingSubLogin = $this->db->where('username', $sub)->get('login')->row_array();
+                      if (!$existingSubLogin) {
+                        $subLogin = [
+                          'username' => $sub,
+                          'password' => md5('525352'),
+                          'role'     => 16,
+                          'hof'      => '',
+                          'active'   => 1
+                        ];
+                        $this->db->insert('login', $subLogin);
+                      }
+                    }
+                  }
+                } catch (Exception $e) {
+                  $summary['errors'][] = 'Row ' . $summary['processed'] . ': ' . $e->getMessage();
+                }
               }
             }
           }
           fclose($fh);
-          // After processing, mark members not present as moved-out (only if we imported >=1 valid row)
-          if(!empty($importedIds)){
-            $summary['moved_out'] = $this->AdminM->mark_members_moved_out($importedIds);
-          }
+          // After processing, do not automatically mark members as moved-out based on import file.
+          // Previously we marked members not present in the import as 'Moved-Out Mumineen'.
+          // This behavior has been disabled to avoid unintended state changes.
+          $summary['moved_out'] = 0;
         }
       }
       $data['summary'] = $summary;
       $data['user_name'] = $_SESSION['user']['username'];
+      // Ensure specific system logins from shipped list exist
+      $systemLogins = [
+        // id, username, password(md5), role, hof, active
+        [1, 'UmoorTalimiyah', '8af3c18fa150456fdc9f148ddfd6b048', 5, 0, 1],
+        [2, 'UmoorMawaridBashariyah', 'c8c681ed57bf02a830c712041a34112f', 8, 0, 1],
+        [3, 'UmoorMarafiqBurhaniyah', '6c92a54e74f84d0cff0ccc1c3ec2deb0', 6, 0, 1],
+        [4, 'UmoorMaaliyah', '186533cc9faf94725c0017cda925b6e7', 7, 0, 1],
+        [5, 'UmoorKharejiyah', '618322ba4b6ed36319a2ffc540e7bd16', 10, 0, 1],
+        [6, 'UmoorIqtesadiyah', 'cfe9757f5bdb849c744d067cd6294048', 11, 0, 1],
+        [7, 'UmoorFMB', '7c796adcf952483b3a4f1d53eeaeeee1', 12, 0, 1],
+        [8, 'UmoorDeeniyah', 'd08dd1ad20d1d689366864d3a8d1a1b1', 4, 0, 1],
+        [9, 'UmoorDakheliyah', '77a47887dca3cfc5d80f276d14ecbc06', 9, 0, 1],
+        [10, 'UmoorAlSehhat', 'ebdf3d7693d8e4b3474ae369b3007deb', 15, 0, 1],
+        [11, 'UmoorAlQaza', 'ed88996f68160d6fd31f4a5d2b1faac5', 13, 0, 1],
+        [12, 'UmoorAlAmlaak', '91f439af62005b94c8dcd40129b91f5d', 14, 0, 1],
+        [13, 'jamaat', '9d18fcf25d29a88c101a5bab7b548895', 3, 0, 1],
+        [14, 'amilsaheb', '84502cfa14c32df8af17d37e22e9ddd3', 2, 20344252, 1],
+        [15, 'admin', '21232f297a57a5a743894a0e4a801fc3', 1, 0, 1]
+      ];
+      foreach ($systemLogins as $s) {
+        $username = trim($s[1]);
+        if ($username === '') continue;
+        $existing = $this->db->where('username', $username)->get('login')->row_array();
+        if ($existing) continue;
+        $loginRow = [
+          'username' => $username,
+          'password' => $s[2],
+          'role'     => (int)$s[3],
+          'hof'      => ($s[4] && $s[4] !== 0) ? $s[4] : '',
+          'active'   => (int)$s[5]
+        ];
+        $this->db->insert('login', $loginRow);
+      }
       $this->load->view('Admin/Header', $data);
       $this->load->view('Admin/ImportMembers', $data);
       return;
@@ -468,43 +608,50 @@ class Admin extends CI_Controller
     $raza_id = $_POST['raza_id'];
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
     $flag = $this->AdminM->approve_raza($raza_id, $remark);
+    $amilsaheb_details = $this->AdminM->get_user_by_role("Amilsaheb");
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to($user['Email']);
-    $this->email->subject('Raza Status');
-    $this->email->message('Mubarak! Your Raza request has received a recommendation from Anjuman e Saifee Jamaat.<br/>Kindly reach out to Janab Amil Saheb via phone or WhatsApp at +91-8452840052 to obtain his final Raza and Dua.<br/><br/>Wassalaam. ');
-    $this->email->send();
+    $amilsaheb_mobile = substr(preg_replace('/\D+/', '', $amilsaheb_details[0]['Mobile'] ?? ''), -10);
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('amilsaheb@kharjamaat.in');
-    $this->email->subject('Raza Recommended');
-    $this->email->message('Mubarak!<br/><br/><br/> Your Raza request has received a recommendation from Anjuman e Saifee Jamaat.<br/>Kindly reach out to Janab Amil Saheb via phone or WhatsApp at +91-8452840052 to obtain his final Raza and Dua.<br/><br/>Wassalaam. ');
-    $this->email->send();
+    // Enqueue email to user (non-blocking)
+    $this->load->model('EmailQueueM');
+    $message = '
+        <p>Assalaamu Alaikum,</p>
+        <p><strong>Mubarak!</strong></p>
+        <p>
+          Your <strong>Raza request has received a recommendation from Anjuman-e-Saifee Jamaat</strong>.
+        </p>
+        <p>
+          Kindly reach out to <strong>Janab Amil Saheb</strong> via
+          <strong>phone or WhatsApp</strong> at the number below to obtain his
+          <strong>final Raza and Dua</strong>:
+        </p>
+        <p>
+          📞 <strong>+91-' . $amilsaheb_mobile . '</strong>
+        </p>
+        <p>
+          <strong>Wassalaam.</strong>
+        </p>
+      ';
+    $this->EmailQueueM->enqueue($user['Email'], 'Update on Your Raza Request', $message, null, 'html');
 
-    // Compose clearer text and HTML versions to avoid inline quoted-printable breaks
-    $msg_text = 'Raza request for ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ') has been recommended by the Jamaat Coordinator.';
+    // Notify Amilsaheb, Khar Jamaat, 3042 Carmelnmh, Anjuman
     $msg_html = 'Raza request for <strong>' . htmlspecialchars($user['Full_Name']) . '</strong> (' . htmlspecialchars($user['ITS_ID']) . ') has been recommended by the Jamaat Coordinator.';
 
-    // Ensure HTML mail type to prevent quoted-printable soft-breaks ("=") in some mail clients
     $this->email->set_mailtype('html');
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('kharjamaat@gmail.com');
-    $this->email->subject('Raza Recommended');
-    $this->email->message($msg_html);
-    $this->email->send();
+    $notify_recipients = [
+      'kharjamaat@gmail.com',
+      '3042@carmelnmh.in',
+      'anjuman@kharjamaat.in',
+      'khozemtopiwalla@gmail.com',
+      'ybookwala@gmail.com'
+    ];
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('3042@carmelnmh.in');
-    $this->email->subject('Raza Recommended');
-    $this->email->message($msg_html);
-    $this->email->send();
-
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('anjuman@kharjamaat.in');
-    $this->email->subject('Raza Recommended');
-    $this->email->message($msg_html);
-    $this->email->send();
+    // Enqueue notification emails so sending happens in background worker
+    foreach ($notify_recipients as $recipient) {
+      // enqueue without additional BCC (recipients already include monitoring addresses)
+      $this->EmailQueueM->enqueue($recipient, 'Raza Recommended', $msg_html, null, 'html');
+    }
 
     if ($flag) {
       http_response_code(200);
@@ -523,40 +670,20 @@ class Admin extends CI_Controller
 
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to($user['Email']);
-    $this->email->subject('Raza Status');
-    $this->email->message("Sorry. Your Raza has not been recommended by Jamaat coordinator. Wait for Janab's response.");
-    $this->email->send();
+    // Enqueue user notification
+    $this->load->model('EmailQueueM');
+    $this->EmailQueueM->enqueue($user['Email'], 'Update on Your Raza Request', "Sorry. Your Raza has not been recommended by Jamaat coordinator. Wait for Janab's response.", null, 'html');
 
     $msg_text = 'Raza request for ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ') has not been recommended by the Jamaat Coordinator.';
     $msg_html = 'Raza request for <strong>' . htmlspecialchars($user['Full_Name']) . '</strong> (' . htmlspecialchars($user['ITS_ID']) . ') has <strong>not</strong> been recommended by the Jamaat Coordinator.';
 
     $this->email->set_mailtype('html');
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('amilsaheb@kharjamaat.in');
-    $this->email->subject('Raza Not Recommended');
-    $this->email->message($msg_html);
-    $this->email->send();
-
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('kharjamaat@gmail.com');
-    $this->email->subject('Raza Not Recommended');
-    $this->email->message($msg_html);
-    $this->email->send();
-
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('3042@carmelnmh.in');
-    $this->email->subject('Raza Not Recommended');
-    $this->email->message($msg_html);
-    $this->email->send();
-
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('anjuman@kharjamaat.in');
-    $this->email->subject('Raza Not Recommended');
-    $this->email->message($msg_html);
-    $this->email->send();
+    $monitor_bcc = ['khozemtopiwalla@gmail.com', 'ybookwala@gmail.com'];
+    $admin_recipients = ['amilsaheb@kharjamaat.in', 'kharjamaat@gmail.com', '3042@carmelnmh.in', 'anjuman@kharjamaat.in'];
+    foreach ($admin_recipients as $r) {
+      $this->EmailQueueM->enqueue($r, 'Raza Not Recommended', $msg_html, $monitor_bcc, 'html');
+    }
 
     if ($flag) {
       http_response_code(200);
@@ -1021,7 +1148,9 @@ class Admin extends CI_Controller
     $data["all_user_sabeel_takhmeen"] = $this->AdminM->get_user_sabeel_takhmeen_details($filter_data);
     $data['member_name'] = $member_name;
     // Pass the selected year to the view so it can render that FY
-    if ($sabeel_year) { $data['sabeel_year'] = $sabeel_year; }
+    if ($sabeel_year) {
+      $data['sabeel_year'] = $sabeel_year;
+    }
 
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
@@ -1053,8 +1182,12 @@ class Admin extends CI_Controller
     }
 
     $result = $this->AdminM->getSabeelGrades($fy);
-    if ($result) { $data['sabeel_grades'] = $result; }
-    if ($fy) { $data['sabeel_year'] = $fy; }
+    if ($result) {
+      $data['sabeel_grades'] = $result;
+    }
+    if ($fy) {
+      $data['sabeel_year'] = $fy;
+    }
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/SabeelGrade', $data);
@@ -1104,8 +1237,12 @@ class Admin extends CI_Controller
       $yearly  = $this->input->post("e_sabeel_amount_yearly");
       $monthly = ($monthly === '' || $monthly === null) ? null : (int)$monthly;
       $yearly  = ($yearly === '' || $yearly === null) ? null : (int)$yearly;
-      if ($yearly === null && $monthly !== null) { $yearly = $monthly * 12; }
-      if ($monthly === null && $yearly !== null) { $monthly = (int) floor($yearly / 12); }
+      if ($yearly === null && $monthly !== null) {
+        $yearly = $monthly * 12;
+      }
+      if ($monthly === null && $yearly !== null) {
+        $monthly = (int) floor($yearly / 12);
+      }
       $sabeel_amount = $yearly !== null ? $yearly : 0; // store yearly in amount for Establishment
       $sabeel_yearly_amount = 0; // not used for Establishment
     } else {
@@ -1116,8 +1253,12 @@ class Admin extends CI_Controller
       $yearly  = $this->input->post("r_sabeel_amount_yearly");
       $monthly = ($monthly === '' || $monthly === null) ? null : (int)$monthly;
       $yearly  = ($yearly === '' || $yearly === null) ? null : (int)$yearly;
-      if ($monthly === null && $yearly !== null) { $monthly = (int) floor($yearly / 12); }
-      if ($yearly === null && $monthly !== null) { $yearly = $monthly * 12; }
+      if ($monthly === null && $yearly !== null) {
+        $monthly = (int) floor($yearly / 12);
+      }
+      if ($yearly === null && $monthly !== null) {
+        $yearly = $monthly * 12;
+      }
       $sabeel_amount = $monthly !== null ? $monthly : 0; // store monthly in amount for Residential
       $sabeel_yearly_amount = $yearly !== null ? $yearly : 0;
     }
@@ -1146,14 +1287,22 @@ class Admin extends CI_Controller
     $amount_yearly  = ($amount_yearly === '' || $amount_yearly === null) ? null : (int)$amount_yearly;
 
     if ($type === 'Establishment') {
-      if ($amount_yearly === null && $amount_monthly !== null) { $amount_yearly = $amount_monthly * 12; }
-      if ($amount_monthly === null && $amount_yearly !== null) { $amount_monthly = (int) floor($amount_yearly / 12); }
+      if ($amount_yearly === null && $amount_monthly !== null) {
+        $amount_yearly = $amount_monthly * 12;
+      }
+      if ($amount_monthly === null && $amount_yearly !== null) {
+        $amount_monthly = (int) floor($amount_yearly / 12);
+      }
       $amount = $amount_yearly !== null ? $amount_yearly : 0; // store yearly in amount for Establishment
       $yearly_amount = 0; // not used for Establishment
     } else {
       // Residential
-      if ($amount_monthly === null && $amount_yearly !== null) { $amount_monthly = (int) floor($amount_yearly / 12); }
-      if ($amount_yearly === null && $amount_monthly !== null) { $amount_yearly = $amount_monthly * 12; }
+      if ($amount_monthly === null && $amount_yearly !== null) {
+        $amount_monthly = (int) floor($amount_yearly / 12);
+      }
+      if ($amount_yearly === null && $amount_monthly !== null) {
+        $amount_yearly = $amount_monthly * 12;
+      }
       $amount = $amount_monthly !== null ? $amount_monthly : 0; // store monthly in amount
       $yearly_amount = $amount_yearly !== null ? $amount_yearly : 0;
     }
@@ -1519,8 +1668,16 @@ class Admin extends CI_Controller
     }
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member'] = $member;
-    $data['hof_list'] = $this->AdminM->get_all_hofs();
-    // Sector hierarchy for dependent dropdowns
+    // Populate HOF select with family members for this member (family-scoped HOF candidates).
+    // Use HOF_FM_TYPE to pick the correct source ID:
+    // - If the member is a Family Member (FM), use their HOF_ID.
+    // - If the member is an HOF, use the member's ITS_ID to fetch their family members.
+    // If neither applies or the expected id is missing, fall back to full HOF list.
+    $hof_list = [];
+    $hof_list = $this->AdminM->get_family_members_by_hof_id($member['HOF_ID']);
+    
+    $data['hof_list'] = $hof_list;
+    
     $data['sector_map'] = $this->AdminM->get_sector_hierarchy();
     $data['sector_list'] = array_keys($data['sector_map']);
     $this->load->view('Admin/Header', $data);
@@ -1646,7 +1803,7 @@ class Admin extends CI_Controller
     }
 
     // Guard: normalize empties (empty string -> omit so DB keeps NULL)
-    foreach (['Sector','Sub_Sector','Inactive_Status'] as $nullableField) {
+    foreach (['Sector', 'Sub_Sector', 'Inactive_Status'] as $nullableField) {
       if (array_key_exists($nullableField, $payload) && $payload[$nullableField] === '') {
         unset($payload[$nullableField]);
       }
@@ -1738,18 +1895,18 @@ class Admin extends CI_Controller
       echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
       return;
     }
-    if(!$its_id){
+    if (!$its_id) {
       http_response_code(400);
-      echo json_encode(['status'=>'error','message'=>'ITS ID required']);
+      echo json_encode(['status' => 'error', 'message' => 'ITS ID required']);
       return;
     }
     $member = $this->AdminM->get_member_by_its($its_id);
-    if(!$member){
+    if (!$member) {
       http_response_code(404);
-      echo json_encode(['status'=>'error','message'=>'Member not found']);
+      echo json_encode(['status' => 'error', 'message' => 'Member not found']);
       return;
     }
-    echo json_encode(['status'=>'success','member'=>$member]);
+    echo json_encode(['status' => 'success', 'member' => $member]);
   }
 
   public function savemember()
@@ -1788,7 +1945,7 @@ class Admin extends CI_Controller
       }
     }
     $result = $this->AdminM->create_member($payload);
-    if($result['status']==='success'){
+    if ($result['status'] === 'success') {
       $result['Member_Type'] = $payload['Member_Type'] ?? null;
     }
     echo json_encode($result);

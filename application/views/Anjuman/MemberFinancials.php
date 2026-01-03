@@ -1,6 +1,6 @@
 <div class="container-fluid margintopcontainer pt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <a href="<?= base_url('anjuman'); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i></a>
+    <a href="<?= base_url('anjuman/financials'); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     <div></div>
   </div>
   <h4 class="m-2 text-center">Individual Details</h4>
@@ -11,10 +11,8 @@
       <form method="get" action="<?= base_url('anjuman/member_financials'); ?>" class="form-inline mb-2">
         <div class="form-row w-100">
           <div class="col-auto mb-2">
-            <input type="text" name="its_id" value="<?= htmlspecialchars($user_its ?? ''); ?>" class="form-control form-control-sm" placeholder="Enter ITS ID" />
-          </div>
-          <div class="col-auto mb-2">
-            <input type="text" name="hof_id" value="<?= htmlspecialchars($user_hof ?? ''); ?>" class="form-control form-control-sm" placeholder="Or HOF ID" />
+            <?php $search_val = htmlspecialchars($user_its ?? $user_hof ?? ($_GET['q'] ?? '')); ?>
+            <input type="text" name="q" value="<?= $search_val; ?>" class="form-control form-control-sm" placeholder="Enter ITS ID or member name" />
           </div>
           <div class="col-auto mb-2">
             <button type="submit" class="btn btn-primary btn-sm">Search</button>
@@ -42,30 +40,66 @@
   <div class="card mb-3">
     <div class="card-body">
       <?php
-        // Compute overall totals across sections
+        // Compute overall totals and aggregate dues across sections
         $overall_total = 0.0;
         $overall_paid = 0.0;
-        $overall_due = 0.0;
+        // Prefer summing per-category due values to avoid cross-category double-counting of payments
+        $overall_due_sum = 0.0;
 
-        // Sabeel totals (if computed above)
-        if (!empty($sabeel) && !empty($sabeel['takhmeens'])) {
-          foreach ($sabeel['takhmeens'] as $t) {
-            $est_y = (float)($t['establishment']['yearly'] ?? 0);
-            $est_paid = (float)($t['establishment']['paid'] ?? 0);
-            $res_y = (float)($t['residential']['yearly'] ?? 0);
-            $res_paid = (float)($t['residential']['paid'] ?? 0);
-            $overall_total += ($est_y + $res_y);
-            $overall_paid += ($est_paid + $res_paid);
+        // Determine current takhmeen (financial) start year to exclude upcoming years from totals
+        $CI = &get_instance();
+        $CI->load->model('HijriCalendar');
+        $cur_hijri = $CI->HijriCalendar->get_hijri_date(date('Y-m-d'));
+        $current_takhmeen_start = null;
+        if (!empty($cur_hijri) && !empty($cur_hijri['hijri_date'])) {
+          $parts = explode('-', $cur_hijri['hijri_date']);
+          $cur_month = $parts[1] ?? null;
+          $cur_year = isset($parts[2]) ? (int)$parts[2] : null;
+          if ($cur_month !== null && $cur_year !== null) {
+            if ($cur_month >= '01' && $cur_month <= '08') {
+              $current_takhmeen_start = $cur_year - 1;
+            } else {
+              $current_takhmeen_start = $cur_year;
+            }
           }
         }
 
-        // FMB takhmeen
+        // helper to determine takhmeen start part from a year string like '1445-46'
+        $get_start_year = function ($y) {
+          if (empty($y)) return null;
+          $p = explode('-', (string)$y);
+          return is_numeric($p[0]) ? (int)$p[0] : null;
+        };
+
+        // Sabeel totals (if computed above) - exclude upcoming years from totals
+        if (!empty($sabeel) && !empty($sabeel['takhmeens'])) {
+          foreach ($sabeel['takhmeens'] as $t) {
+            // skip upcoming takhmeen years
+            $t_start = $get_start_year($t['year'] ?? null);
+            if ($current_takhmeen_start !== null && $t_start !== null && $t_start > $current_takhmeen_start) continue;
+            $est_y = (float)($t['establishment']['yearly'] ?? 0);
+            $est_paid = (float)($t['establishment']['paid'] ?? 0);
+            $est_due = (float)($t['establishment']['due'] ?? 0);
+            $res_y = (float)($t['residential']['yearly'] ?? 0);
+            $res_paid = (float)($t['residential']['paid'] ?? 0);
+            $res_due = (float)($t['residential']['due'] ?? 0);
+            $overall_total += ($est_y + $res_y);
+            $overall_paid += ($est_paid + $res_paid);
+            $overall_due_sum += ($est_due + $res_due);
+          }
+        }
+
+        // FMB takhmeen - exclude upcoming years
         if (!empty($fmb_takhmeen)) {
           foreach ($fmb_takhmeen as $f) {
+            $f_start = $get_start_year($f['year'] ?? null);
+            if ($current_takhmeen_start !== null && $f_start !== null && $f_start > $current_takhmeen_start) continue;
             $amt = (float)($f['total_amount'] ?? 0);
             $paid = (float)($f['amount_paid'] ?? 0);
+            $due = (float)($f['due'] ?? max(0, $amt - $paid));
             $overall_total += $amt;
             $overall_paid += $paid;
+            $overall_due_sum += $due;
           }
         }
 
@@ -74,8 +108,10 @@
           foreach ($corpus as $c) {
             $assigned = (float)($c['amount_assigned'] ?? 0);
             $paid = (float)($c['amount_paid'] ?? 0);
+            $c_due = max(0, $assigned - $paid);
             $overall_total += $assigned;
             $overall_paid += $paid;
+            $overall_due_sum += $c_due;
           }
         }
 
@@ -84,8 +120,10 @@
           foreach ($general_contribs as $g) {
             $amt = (float)($g['amount'] ?? 0);
             $paid = (float)($g['amount_paid'] ?? 0);
+            $g_due = (float)($g['amount_due'] ?? max(0, $amt - $paid));
             $overall_total += $amt;
             $overall_paid += $paid;
+            $overall_due_sum += $g_due;
           }
         }
 
@@ -94,12 +132,15 @@
           foreach ($miqaat_invoices as $m) {
             $amt = (float)($m['amount'] ?? 0);
             $paid = (float)($m['paid_amount'] ?? 0);
+            $m_due = (float)($m['due_amount'] ?? max(0, $amt - $paid));
             $overall_total += $amt;
             $overall_paid += $paid;
+            $overall_due_sum += $m_due;
           }
         }
 
-        $overall_due = max(0, $overall_total - $overall_paid);
+        // Final overall due is the sum of per-category dues (more reliable when payments may overlap)
+        $overall_due = max(0, $overall_due_sum);
       ?>
       <div class="mb-2">
         <strong>Overall Summary:</strong>
@@ -117,11 +158,35 @@
         <div class="card-body small">
           <?php if (!empty($sabeel) && !empty($sabeel['takhmeens'])): ?>
             <?php
-              // compute totals (establishment + residential)
+              // compute totals (establishment + residential) - exclude upcoming takhmeen years
               $s_total_amount = 0.0;
               $s_total_paid = 0.0;
               $s_total_due = 0.0;
+              // compute current takhmeen start year locally
+              $CI = &get_instance();
+              $CI->load->model('HijriCalendar');
+              $cur_hijri = $CI->HijriCalendar->get_hijri_date(date('Y-m-d'));
+              $current_takhmeen_start = null;
+              if (!empty($cur_hijri) && !empty($cur_hijri['hijri_date'])) {
+                $parts = explode('-', $cur_hijri['hijri_date']);
+                $cur_month = $parts[1] ?? null;
+                $cur_year = isset($parts[2]) ? (int)$parts[2] : null;
+                if ($cur_month !== null && $cur_year !== null) {
+                  if ($cur_month >= '01' && $cur_month <= '08') {
+                    $current_takhmeen_start = $cur_year - 1;
+                  } else {
+                    $current_takhmeen_start = $cur_year;
+                  }
+                }
+              }
+              $get_start_year = function ($y) {
+                if (empty($y)) return null;
+                $p = explode('-', (string)$y);
+                return is_numeric($p[0]) ? (int)$p[0] : null;
+              };
               foreach ($sabeel['takhmeens'] as $t) {
+                $t_start = $get_start_year($t['year'] ?? null);
+                if ($current_takhmeen_start !== null && $t_start !== null && $t_start > $current_takhmeen_start) continue;
                 $est_y = (float)($t['establishment']['yearly'] ?? 0);
                 $est_paid = (float)($t['establishment']['paid'] ?? 0);
                 $est_due = (float)($t['establishment']['due'] ?? 0);

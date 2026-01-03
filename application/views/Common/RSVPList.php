@@ -197,7 +197,12 @@
           <div class="col-md-4 col-sm-6 mb-4 miqaat-card" data-date="<?php echo htmlspecialchars($cardDate); ?>" data-name="<?php echo htmlspecialchars($cardName); ?>">
             <div class="card shadow-sm">
               <div class="card-body">
-                <h5 class="card-title"><?php echo htmlspecialchars($miqaat['miqaat_name']); ?></h5>
+                <h5 class="card-title">
+                  <?php echo htmlspecialchars($miqaat['miqaat_name']); ?>
+                  <?php if (!empty($miqaat['miqaat_type']) || !empty($miqaat['type'])): ?>
+                    <small class="text-muted ms-2">(<?php echo htmlspecialchars(!empty($miqaat['miqaat_type']) ? $miqaat['miqaat_type'] : $miqaat['type']); ?>)</small>
+                  <?php endif; ?>
+                </h5>
                 <p class="card-text mb-2">
                   <strong>Date:</strong> <?php echo date('d M Y', strtotime($miqaat['miqaat_date'])); ?>
                 </p>

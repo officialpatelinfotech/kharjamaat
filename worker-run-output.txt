@@ -1,0 +1,26 @@
+PHP Deprecated:  Constant E_STRICT is deprecated in /Applications/MAMP/htdocs/kharjamaat/system/core/Exceptions.php on line 76
+
+Deprecated: Constant E_STRICT is deprecated in /Applications/MAMP/htdocs/kharjamaat/system/core/Exceptions.php on line 76
+
+A PHP Error was encountered
+
+Severity:    8192
+Message:     json_decode(): Passing null to parameter #1 ($json) of type string is deprecated
+Filename:    /Applications/MAMP/htdocs/kharjamaat/application/controllers/Emailworker.php
+Line Number: 77
+
+Backtrace:
+	File: /Applications/MAMP/htdocs/kharjamaat/application/controllers/Emailworker.php
+	Line: 77
+	Function: json_decode
+
+	File: /Applications/MAMP/htdocs/kharjamaat/application/controllers/Emailworker.php
+	Line: 39
+	Function: is_json
+
+	File: /Applications/MAMP/htdocs/kharjamaat/index.php
+	Line: 155
+	Function: require_once
+
+
+Sent job 60
