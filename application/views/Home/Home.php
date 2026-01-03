@@ -71,7 +71,7 @@
         <div class="col-12">
           <div class="title-base text-left">
             <hr />
-            <h2>Anjuman-e-Saifee Khar</h2>
+            <h2>Anjuman-e-Saifee Khar (Local)</h2>
             <p>Welcome to</p>
           </div>
           <p class="welcome-text">
