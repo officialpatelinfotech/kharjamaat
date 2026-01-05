@@ -2025,7 +2025,7 @@ class AccountM extends CI_Model
 
   public function RazaTypesDetails()
   {
-    $sql = 'SELECT id, name, umoor from `raza_type` where `active`=1';
+    $sql = 'SELECT id, name, umoor from `raza_type` where `active`=1 and umoor like "%Umoor%"';
     $query = $this->db->query($sql);
     return $query->result_array();
   }

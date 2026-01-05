@@ -1069,7 +1069,7 @@ class Accounts extends CI_Controller
       redirect('/accounts');
     }
 
-    // Load the model
+  // Load the model
     $this->load->model('AccountM');
 
     // Get the data from model

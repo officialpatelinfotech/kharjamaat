@@ -577,6 +577,14 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
         // push state with clicked href (clean, without ajax param)
         try {
           var pushUrl = href;
+          // re-bind row click handlers for the newly injected table
+          if (typeof initThaaliRowLinks === 'function') {
+            try {
+              initThaaliRowLinks();
+            } catch (e) {
+              console.error('Failed to init row links after AJAX replace', e);
+            }
+          }
           history.pushState({}, '', pushUrl);
         } catch (e) {}
       }).catch(function(err) {
@@ -592,17 +600,16 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
       window.location.reload();
     });
   })();
-  (function() {
+  function initThaaliRowLinks() {
     const rows = document.querySelectorAll('tr.table-row-click[data-date]');
-
-    if (!rows.length) return;
+    if (!rows || !rows.length) return;
 
     const base = '<?= site_url('common/thaali_signup_report') ?>';
     const fromQ = '<?= !empty($from) ? ('?from=' . urlencode($from)) : '' ?>';
 
-
     function goto(url, evt) {
-      console.log('[TSB] Navigating to:', url);
+      // keep a small log for debugging
+      // console.log('[TSB] Navigating to:', url);
       if (evt && (evt.metaKey || evt.ctrlKey)) {
         window.open(url, '_blank');
       } else {
@@ -612,31 +619,37 @@ $totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_si
 
     rows.forEach(tr => {
       const d = tr.getAttribute('data-date');
-
-      if (!d) {
-        return;
-      }
-
+      if (!d) return;
       const url = base + '/' + encodeURIComponent(d) + fromQ;
+      tr.title = 'View details for ' + d;
 
+      // remove any existing handlers to avoid duplicate bindings
+      tr.replaceWith(tr.cloneNode(true));
+    });
+
+    // re-select after cloning
+    const freshRows = document.querySelectorAll('tr.table-row-click[data-date]');
+    freshRows.forEach(tr => {
+      const d = tr.getAttribute('data-date');
+      if (!d) return;
+      const url = base + '/' + encodeURIComponent(d) + fromQ;
       tr.title = 'View details for ' + d;
 
       tr.addEventListener('click', (e) => {
-        if (e.target && e.target.tagName === 'A') {
-          return;
-        }
+        if (e.target && e.target.tagName === 'A') return;
         goto(url, e);
       });
 
       tr.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          goto(url, e);
-        }
+        if (e.key === 'Enter' || e.key === ' ') goto(url, e);
       });
 
-      tr.tabIndex = 0; // make row focusable for keyboard activation
+      tr.tabIndex = 0;
     });
-  })();
+  }
+
+  // initialize on first load
+  initThaaliRowLinks();
 
   // Auto-scroll to today's date within the table (if present)
   (function() {

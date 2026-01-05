@@ -229,6 +229,19 @@ class Amilsaheb extends CI_Controller
     // Member type distribution for dashboard
     $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
 
+    // Marital status distribution (active members only)
+    $ms_rows = $this->db->select("COALESCE(NULLIF(TRIM(Marital_Status),''),'Unknown') AS ms, COUNT(*) AS cnt")
+      ->from('user')
+      ->where('inactive_status IS NULL')
+      ->group_by('ms')
+      ->get()
+      ->result_array();
+    $marital_status_counts = [];
+    foreach ($ms_rows as $r) {
+      $marital_status_counts[$r['ms']] = (int)($r['cnt'] ?? 0);
+    }
+    $data['marital_status_counts'] = $marital_status_counts;
+
     // Corpus funds overview (parity with Anjuman)
     $this->load->model('CorpusFundM');
     $funds = $this->CorpusFundM->get_funds();
@@ -765,12 +778,23 @@ class Amilsaheb extends CI_Controller
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
-    if ($this->input->post('search')) {
+    // If GET filters are present, use server-side filtering so initial payload is filtered
+    $get = $this->input->get();
+    if (!empty($get)) {
+      $data['users'] = $this->AmilsahebM->get_users_filtered($get);
+    } elseif ($this->input->post('search')) {
       $keyword = $this->input->post('search');
-      $data['users'] = $this->AmilsahebM->search_users($keyword);
+      // fallback: if model has search_users use it, otherwise do simple name search
+      if (method_exists($this->AmilsahebM, 'search_users')) {
+        $data['users'] = $this->AmilsahebM->search_users($keyword);
+      } else {
+        $data['users'] = $this->AmilsahebM->get_users_filtered(['name' => $keyword]);
+      }
     } else {
       $data['users'] = $this->AmilsahebM->get_all_users();
     }
+    // Always provide full user list for lookups (HOF name resolution, filters)
+    $data['all_users'] = $this->AmilsahebM->get_all_users();
     $data['user_name'] = $_SESSION['user']['username'];
 
     $this->load->view('Amilsaheb/Header', $data);

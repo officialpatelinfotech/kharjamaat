@@ -1137,6 +1137,56 @@
           </div>
         </div>
 
+        <!-- Marital Status Distribution -->
+        <div class="chart-container member-types-block" style="padding-top: 0px; padding: 0px;">
+          <h4 class="section-title text-center">Marital Status</h4>
+          <?php $ms = isset($marital_status_counts) ? $marital_status_counts : []; ?>
+          <div class="row">
+            <?php if (empty($ms)) { ?>
+              <div class="col-12 text-center text-muted">No data available</div>
+            <?php } else {
+              foreach ($ms as $label => $count) {
+                $safeLabel = htmlspecialchars($label);
+                $lbl_l = strtolower(trim($label));
+                $iconClass = 'fa fa-info-circle';
+                $iconBg = '#f5f5f7';
+                $iconColor = '#6b7280';
+                if (strpos($lbl_l, 'single') !== false) {
+                  $iconClass = 'fa fa-user';
+                  $iconBg = '#eef2ff';
+                  $iconColor = '#4f46e5';
+                } elseif (strpos($lbl_l, 'married') !== false) {
+                  $iconClass = 'fa fa-user';
+                  $iconBg = '#fff0f6';
+                  $iconColor = '#db2777';
+                } elseif (strpos($lbl_l, 'engag') !== false) {
+                  $iconClass = 'fa fa-star';
+                  $iconBg = '#fff7ed';
+                  $iconColor = '#ea580c';
+                } elseif (strpos($lbl_l, 'divorc') !== false) {
+                  $iconClass = 'fa fa-user';
+                  $iconBg = '#fff1f2';
+                  $iconColor = '#dc2626';
+                } elseif (strpos($lbl_l, 'widow') !== false) {
+                  $iconClass = 'fa fa-user-secret';
+                  $iconBg = '#ecfeff';
+                  $iconColor = '#0891b2';
+                }
+            ?>
+                <div class="col-6 col-md-3 mb-3">
+                  <div class="overview-card">
+                    <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
+                    <div class="overview-body">
+                      <span class="overview-title"><?php echo $safeLabel; ?></span>
+                      <span class="overview-value"><?php echo (int)$count; ?></span>
+                    </div>
+                  </div>
+                </div>
+            <?php }
+            } ?>
+          </div>
+        </div>
+
         <?php
         // Always show this section; if no signups, display a friendly empty state
         $sw = isset($dashboard_data['this_week_sector_signup_avg']) ? $dashboard_data['this_week_sector_signup_avg'] : null;

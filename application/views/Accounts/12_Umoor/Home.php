@@ -23,10 +23,37 @@
 	}
 
 	.card {
-		height: auto;
+		height: 100%;
 		background-color: #FEF7E6;
 		transition: transform 0.5s ease-in-out;
 		border-radius: 10px;
+	}
+
+	/* Make all cards in the grid equal height */
+	#razaCardsContainer>a {
+		display: flex;
+	}
+
+	#razaCardsContainer>a .card {
+		width: 100%;
+	}
+
+	.card-body {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.25rem;
+	}
+
+	.title {
+		min-height: 52px;
+		/* reserves space for 1–2 lines */
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		line-height: 1.2;
 	}
 
 	.card:hover {
@@ -40,11 +67,9 @@
 
 	.img-fluid {
 		height: 140px;
-		width: auto;
-	}
-
-	.card-body {
-		padding: 0.25rem;
+		width: 100%;
+		object-fit: contain;
+		display: block;
 	}
 
 	/* Search Bar Styles */
@@ -154,8 +179,8 @@
 </style>
 
 <div class="container margintopcontainer pt-5">
-	<div class="text-start mb-3 pt-5">
-		<a href="<?= base_url('accounts') ?>" class="btn btn-sm btn-outline-secondary"><i class="fa fa-arrow-left"></i></a>
+	<div class="text-start mb-3">
+		<a href="<?= base_url('accounts') ?>" class="btn btn-outline-secondary"><i class="fa fa-arrow-left"></i></a>
 	</div>
 	<h1 class="text-center heading mb-4">Welcome to Anjuman-e-Saifee Khar Jamaat</h1>
 
@@ -352,8 +377,8 @@
 				filteredResults.forEach(item => {
 					suggestions.append(`
                         <div class="suggestion-item" 
-                             data-umoor="${item.umoor}" 
-                             data-id="${item.id || ''}">
+														data-umoor="${item.umoor}" 
+														data-id="${item.id || ''}">
                             <span class="suggestion-name">${item.name}</span>
                             <span class="suggestion-umoor">${item.umoor}</span>
                         </div>

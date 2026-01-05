@@ -81,10 +81,54 @@
           <div class="card-body py-3">
             <h6 class="text-muted mb-2">All Year Sabeel Due</h6>
             <div class="h4 text-danger mb-0">&#8377;<?php echo format_inr(round($ov_total_due), 0); ?></div>
+            <div class="mt-3">
+              <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#sabeelPayModal">
+                <i class="fa fa-credit-card me-1"></i> Pay Now
+              </button>
+            </div>
           </div>
         </div>
       </div>
+    </div>
 
+    <?php
+    $ov_est_due = (float)($overall['establishment_due'] ?? 0);
+    $ov_res_due = (float)($overall['residential_due'] ?? 0);
+    $default_type = ($ov_est_due > 0) ? 'establishment' : 'residential';
+    $its_id_for_pay = $_SESSION['user_data']['ITS_ID'] ?? '';
+    ?>
+
+    <div class="modal fade" id="sabeelPayModal" tabindex="-1" aria-labelledby="sabeelPayModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="sabeelPayModalLabel">Pay Sabeel Takhmeen</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <form method="post" action="<?= base_url('payment/ccavenue_sabeel'); ?>">
+            <div class="modal-body">
+              <div class="form-group mb-2">
+                <label for="sabeel_pay_type">Payment For</label>
+                <select id="sabeel_pay_type" name="payment_type" class="form-control" required>
+                  <option value="establishment" <?= $default_type === 'establishment' ? 'selected' : '' ?>>Establishment (Due: ₹<?= htmlspecialchars(format_inr(round($ov_est_due), 0)); ?>)</option>
+                  <option value="residential" <?= $default_type === 'residential' ? 'selected' : '' ?>>Residential (Due: ₹<?= htmlspecialchars(format_inr(round($ov_res_due), 0)); ?>)</option>
+                </select>
+              </div>
+              <div class="form-group mb-2">
+                <label for="sabeel_pay_amount">Amount (₹)</label>
+                <input type="number" step="0.01" min="0.01" id="sabeel_pay_amount" name="amount" class="form-control" required />
+              </div>
+              <input type="hidden" name="its_id" value="<?= htmlspecialchars((string)$its_id_for_pay); ?>" />
+              <input type="hidden" name="order_id" value="SABEEL-TAKHMEEN-<?= date('YmdHis'); ?>" />
+              <div class="form-text text-muted">Payment will be recorded against the selected category.</div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Proceed to Pay</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
 
     <?php
@@ -308,7 +352,7 @@
       type: "POST",
       data: {
         id: paymentId,
-        for: 2,
+        for: 4,
       },
       xhrFields: {
         responseType: 'blob'
@@ -325,4 +369,5 @@
       }
     });
   });
+
 </script>

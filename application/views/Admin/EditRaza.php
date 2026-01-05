@@ -108,9 +108,25 @@
         margin-bottom: 2rem;
         box-sizing: none;
     }
+
+    .table-container .drag-handle {
+        cursor: grab;
+        color: #6c757d;
+        user-select: none;
+        font-size: 18px;
+        line-height: 1;
+    }
+    .table-container tr.dragging {
+        opacity: .6;
+    }
 </style>
 <div class="margintopcontainer">
     <div class="container pt-5">
+        <div class="d-flex justify-content-start mt-5">
+            <a href="<?php echo base_url('admin/razalist'); ?>" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+        </div>
         <p class="h1 text-center mt-5">Raza Fields</p>
         <p class="h4 text-center mt-5" style="color:brown;">
             <?php echo $raza['name'] ?>
@@ -124,17 +140,21 @@
         <div class="table-responsive mt-5 mb-5">
             <div class="table-container mb-5">
                 <table class="table table-bordered text-center mb-5">
-                    <thead id="display_table">
+                    <thead>
                         <tr>
+                            <th style="width:44px"></th>
                             <th class="sno">Name</th>
                             <th class="created">Type</th>
                             <th class="raza">Required</th>
                             <th class="date">Options</th>
                             <th class="action">Action</th>
                         </tr>
+                    </thead>
+                    <tbody id="fields_tbody">
                         <?php $i = 0;
                         foreach ($raza['fields']['fields'] as $key => $r) { ?>
-                            <tr>
+                            <tr draggable="true" data-index="<?php echo $i ?>" data-fieldname="<?php echo htmlspecialchars($r['name'], ENT_QUOTES); ?>">
+                                <td><span class="drag-handle" title="Drag to reorder">☰</span></td>
                                 <td>
                                     <?php echo $r['name'] ?>
                                 </td>
@@ -150,7 +170,7 @@
                                 </td>
                                 <td>
                                     <?php if (!empty($r['options'])) { ?>
-                                        <a class="fields_btn" data-toggle="tooltip" data-placement="bottom" title="View Options" onclick="handlviewoptions(<?php echo $i ?>);">Options</a>
+                                        <a class="fields_btn" data-toggle="tooltip" data-placement="bottom" title="View Options" onclick="handlviewoptionsFromRow(this);">Options</a>
                                     <?php } ?>
                                 </td>
                                 <td>
@@ -162,8 +182,7 @@
                             </tr>
                             <?php $i++;
                         } ?>
-                    </thead>
-                    <tbody></tbody>
+                    </tbody>
                     <tfoot></tfoot>
                 </table>
             </div>
@@ -197,6 +216,13 @@
 <script>
     let raza = <?php echo json_encode($raza); ?>;
     let current_option_index;
+
+    function handlviewoptionsFromRow(el) {
+        const tr = el.closest('tr');
+        if (!tr) return;
+        const idx = Number(tr.dataset.index || 0);
+        handlviewoptions(idx);
+    }
 
     function handlviewoptions(index) {
         current_option_index = index;
@@ -287,9 +313,10 @@
 
 <script>
     function AddField() {
-        let dtable = document.getElementById('display_table');
+        let dtable = document.getElementById('fields_tbody');
         let tr = document.createElement('tr');
         tr.innerHTML = `
+        <td></td>
         <td><input type="text" class="form-control" name="field-name" id="field-name"></td>
         <td>
             <select class="form-control" name="field-type" id="field-type">
@@ -368,6 +395,111 @@
             });
     }
 
+</script>
+
+<script>
+    // --- Drag & drop sorting for fields table ---
+    (function () {
+        const tbody = document.getElementById('fields_tbody');
+        if (!tbody) return;
+
+        let draggingRow = null;
+
+        function updateRowIndexesAndRaza() {
+            const rows = Array.from(tbody.querySelectorAll('tr[data-fieldname]'));
+            // update indexes in DOM
+            rows.forEach((r, i) => { r.dataset.index = String(i); });
+
+            // update raza.fields.fields order in memory to keep option indexes aligned
+            if (raza && raza.fields && raza.fields.fields && Array.isArray(raza.fields.fields)) {
+                const map = {};
+                raza.fields.fields.forEach(f => { if (f && f.name) map[f.name] = f; });
+                const reordered = [];
+                rows.forEach(r => {
+                    const nm = r.dataset.fieldname;
+                    if (nm && map[nm]) reordered.push(map[nm]);
+                });
+                // keep any missing at end
+                raza.fields.fields.forEach(f => { if (f && f.name && !reordered.find(x => x.name === f.name)) reordered.push(f); });
+                raza.fields.fields = reordered;
+            }
+        }
+
+        function showToast(msg) {
+            const el = document.getElementById('toast-message');
+            if (!el) return;
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 2000);
+        }
+
+        function saveOrder() {
+            const rows = Array.from(tbody.querySelectorAll('tr[data-fieldname]'));
+            const order = rows.map(r => r.dataset.fieldname);
+            const formData = new FormData();
+            formData.append('order', JSON.stringify(order));
+
+            fetch('<?php echo base_url('admin/reorderRazaFields/') . $raza['id']; ?>', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.status) {
+                        showToast('Order Saved');
+                    } else {
+                        alert('Failed to save order');
+                    }
+                })
+                .catch(() => alert('Failed to save order'));
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('tr[draggable="true"]:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        tbody.addEventListener('dragstart', (e) => {
+            const tr = e.target.closest('tr[draggable="true"]');
+            if (!tr) return;
+            draggingRow = tr;
+            tr.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        tbody.addEventListener('dragend', () => {
+            if (draggingRow) draggingRow.classList.remove('dragging');
+            draggingRow = null;
+        });
+
+        tbody.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(tbody, e.clientY);
+            if (!draggingRow) return;
+            if (afterElement == null) {
+                tbody.appendChild(draggingRow);
+            } else {
+                tbody.insertBefore(draggingRow, afterElement);
+            }
+        });
+
+        tbody.addEventListener('drop', (e) => {
+            e.preventDefault();
+            updateRowIndexesAndRaza();
+            saveOrder();
+        });
+
+        // initial index alignment
+        updateRowIndexesAndRaza();
+    })();
 </script>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

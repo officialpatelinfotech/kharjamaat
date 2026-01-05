@@ -219,37 +219,37 @@
       </a>
     </div> -->
     <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/assigned_miqaats') ?>" aria-label="Miqaat Raza: <?php echo $assigned_miqaats_count; ?>" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
+      <a href="<?php echo base_url('accounts/assigned_miqaats') ?>" aria-label="Miqaat Public Event Raza: <?php echo $assigned_miqaats_count; ?>" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-calendar-check-o"></i>
           <?php if (isset($assigned_miqaats_count) && (int)$assigned_miqaats_count > 0): ?>
             <span class="count-badge"><?php echo $assigned_miqaats_count; ?></span>
           <?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Miqaat Raza</span>
+        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Miqaat Public Event Raza</span>
         <?php if (!isset($assigned_miqaats_count) || (int)$assigned_miqaats_count === 0): ?>
           <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">None yet</span>
         <?php endif; ?>
       </a>
     </div>
     <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?= base_url('Umoor12/MyRazaRequest?value=Private-Event') ?>" aria-label="Kaaraj Raza" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
+      <a href="<?= base_url('Umoor12/MyRazaRequest?value=Private-Event') ?>" aria-label="Kaaraj Private Event Raza" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-calendar-plus"></i>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Kaaraj Raza</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Create</span>
+        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Kaaraj Private Event Raza</span>
+        <!-- <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Create</span> -->
       </a>
     </div>
-    <!-- <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/Umoor') ?>" aria-label="12 Umoor Raza" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
+    <div class="col-6 mt-3 col-md-3 col-xl-2">
+      <a href="<?php echo base_url('accounts/Umoor') ?>" aria-label="Other Non Event Raza" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-edit"></i>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">12 Umoor Raza</span>
+        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Other Non Event Raza</span>
         <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Create</span>
       </a>
-    </div> -->
+    </div>
     <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/MyRazaRequest') ?>" aria-label="My Applications" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">

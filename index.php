@@ -25,7 +25,24 @@ date_default_timezone_set('Asia/Kolkata');
 
 // Handle CLI (php index.php ...)
 if (php_sapi_name() === 'cli' || defined('STDIN')) {
-  define('ENVIRONMENT', 'development'); // Always dev for CLI
+  // Allow overriding env for cron/CLI runs (e.g. CI_ENV=production)
+  $envFrom = function ($key) {
+    $v = getenv($key);
+    if ($v !== false && $v !== null && $v !== '') return $v;
+    if (isset($_ENV[$key]) && $_ENV[$key] !== '') return $_ENV[$key];
+    if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') return $_SERVER[$key];
+    return '';
+  };
+
+  $cliEnv = $envFrom('CI_ENV');
+  if ($cliEnv === '') $cliEnv = $envFrom('ENVIRONMENT');
+  if ($cliEnv === '') $cliEnv = $envFrom('APP_ENV');
+  $cliEnv = is_string($cliEnv) ? strtolower(trim($cliEnv)) : '';
+  if (in_array($cliEnv, ['development', 'testing', 'production'], true)) {
+    define('ENVIRONMENT', $cliEnv);
+  } else {
+    define('ENVIRONMENT', 'development');
+  }
 } else {
   $host = $_SERVER['HTTP_HOST'] ?? 'production';
 

@@ -164,6 +164,20 @@ class Common extends CI_Controller
     $this->load->view('Common/FMBCalendar', $data);
   }
 
+  // New simple page to host the Takhmeen Pay button and modal
+  public function takhmeen_pay()
+  {
+    $this->validateUser(isset($_SESSION['user']) ? $_SESSION['user'] : null);
+    $data = [];
+    $data['user_name'] = isset($_SESSION['user']) ? $_SESSION['user']['username'] : '';
+    $data['active_controller'] = base_url('common/takhmeen_pay');
+    // Provide hijri_year for the payment form
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $data['hijri_year'] = isset($today_hijri['hijri_date']) ? explode('-', $today_hijri['hijri_date'])[2] : '';
+    $this->load->view('Common/Header', $data);
+    $this->load->view('Common/PayTakhmeen', $data);
+  }
+
   public function generate_pdf()
   {
     $this->load->library('dompdf_lib');

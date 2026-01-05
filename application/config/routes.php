@@ -67,6 +67,9 @@ $route['accounts/corpusfunds'] = 'accounts/corpusfunds_details';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
+// CLI/Cron routes (important on case-sensitive servers)
+$route['emailworker'] = 'EmailWorker';
+
 // Legal & Policy Pages
 $route['terms']   = 'legal/terms';
 $route['privacy'] = 'legal/privacy';

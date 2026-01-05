@@ -275,6 +275,7 @@ class Admin extends CI_Controller
     redirect($ref);
   }
 
+
   public function corpusfunds_update_fund()
   {
     // AJAX endpoint to update a corpus fund's amount (and optionally propagate to all assignments)
@@ -817,6 +818,60 @@ class Admin extends CI_Controller
       echo json_encode(['status' => false, 'error' => 'Failed to submit']);
     }
   }
+
+  function reorderRazaFields($id)
+  {
+    $orderJson = $this->input->post('order');
+    $order = json_decode($orderJson, true);
+    if (!is_array($order)) {
+      http_response_code(400);
+      echo json_encode(['status' => false, 'error' => 'Invalid order payload']);
+      return;
+    }
+
+    $raza = $this->AdminM->get_razatype_byid($id);
+    if (empty($raza) || empty($raza[0])) {
+      http_response_code(404);
+      echo json_encode(['status' => false, 'error' => 'Raza type not found']);
+      return;
+    }
+    $raza = $raza[0];
+    $raza['fields'] = json_decode($raza['fields'], true);
+    if (empty($raza['fields']['fields']) || !is_array($raza['fields']['fields'])) {
+      http_response_code(400);
+      echo json_encode(['status' => false, 'error' => 'No fields found']);
+      return;
+    }
+
+    $fieldsByName = [];
+    foreach ($raza['fields']['fields'] as $field) {
+      if (!empty($field['name'])) {
+        $fieldsByName[$field['name']] = $field;
+      }
+    }
+
+    $reordered = [];
+    foreach ($order as $name) {
+      if (isset($fieldsByName[$name])) {
+        $reordered[] = $fieldsByName[$name];
+        unset($fieldsByName[$name]);
+      }
+    }
+    foreach ($fieldsByName as $remaining) {
+      $reordered[] = $remaining;
+    }
+
+    $raza['fields']['fields'] = $reordered;
+    $flag = $this->AdminM->update_raza_type($id, json_encode($raza['fields']));
+    if ($flag) {
+      http_response_code(200);
+      echo json_encode(['status' => true]);
+    } else {
+      http_response_code(500);
+      echo json_encode(['status' => false, 'error' => 'Failed to save order']);
+    }
+  }
+
   function addRaza()
   {
     $raza_name = $_POST['raza-name'];

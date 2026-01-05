@@ -114,6 +114,78 @@ class AmilsahebM extends CI_Model
   {
     return $this->db->get('user')->result();
   }
+
+  /**
+   * Get users filtered by a set of criteria.
+   * Accepts array of GET params. Supports legacy `filter`/`value` pair
+   * and explicit params: name, sector, sub, status, hof, min, max.
+   */
+  public function get_users_filtered($params = [])
+  {
+    $this->db->select('*')->from('user');
+
+    // Legacy single filter (case-insensitive match to actual DB columns)
+    if (!empty($params['filter']) && isset($params['value'])) {
+      $filterRaw = $params['filter'];
+      $value = $params['value'];
+      $matchedField = null;
+      // list_fields returns actual column names; match ignoring case
+      $fields = $this->db->list_fields('user');
+      foreach ($fields as $f) {
+        if (strtolower($f) === strtolower($filterRaw)) {
+          $matchedField = $f;
+          break;
+        }
+      }
+      if ($matchedField) {
+        $this->db->where($matchedField, $value);
+      } else {
+        // common alias fallback
+        if (strtolower($filterRaw) === 'hof_fm_type') {
+          $this->db->where('HOF_FM_TYPE', $value);
+        } elseif (strtolower($filterRaw) === 'gender') {
+          $this->db->where('Gender', $value);
+        }
+      }
+    }
+
+    // Explicit params
+    if (!empty($params['name'])) {
+      $name = trim($params['name']);
+      $this->db->group_start();
+      $this->db->like('Full_Name', $name);
+      $this->db->or_like('ITS_ID', $name);
+      $this->db->or_like('Mobile', $name);
+      $this->db->group_end();
+    }
+    if (!empty($params['sector'])) {
+      $this->db->where('Sector', $params['sector']);
+    }
+    if (!empty($params['sub'])) {
+      $this->db->where('Sub_Sector', $params['sub']);
+    }
+    if (!empty($params['status'])) {
+      $status = strtolower(trim($params['status']));
+      if ($status === 'active') {
+        $this->db->where('inactive_status IS NULL', null, false);
+      } elseif ($status === 'inactive') {
+        $this->db->where('inactive_status IS NOT NULL', null, false);
+      }
+    }
+    if (!empty($params['hof'])) {
+      // hof can be ITS_ID of hof
+      $this->db->where('HOF_ID', $params['hof']);
+    }
+    // Age range
+    if (isset($params['min']) && is_numeric($params['min'])) {
+      $this->db->where('Age >=', (int)$params['min']);
+    }
+    if (isset($params['max']) && is_numeric($params['max'])) {
+      $this->db->where('Age <=', (int)$params['max']);
+    }
+
+    return $this->db->get()->result();
+  }
   public function update_user_by_its_id($its_id, $data)
   {
     // Ensure ITS_ID is set

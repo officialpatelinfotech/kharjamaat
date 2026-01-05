@@ -17,7 +17,8 @@ class Home extends CI_Controller
       $data['user_name'] = $_SESSION['user']['username'];
       $data["from"] = $from ? strtoupper($from) : strtoupper($data['user_name']);
       if (isset($from)) {
-        $this->load->view(strtoupper($from) . '/Header', $data);
+        // $this->load->view(strtoupper($from) . '/Header', $data);
+        $this->load->view('Accounts/Header', $data);
       } else {
         $this->load->view('Accounts/Header', $data);
       }

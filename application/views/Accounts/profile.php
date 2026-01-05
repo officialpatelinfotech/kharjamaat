@@ -236,6 +236,73 @@
         </div>
     </div>
 
+    <?php
+    // Show only the user-table fields that are NOT already displayed above.
+    $shown_user_keys = [
+        // Personal Details
+        'ITS_ID',
+        'Full_Name',
+        'Full_Name_Arabic',
+        'Vatan',
+        'Mobile',
+        'Registered_Family_Mobile',
+        'Email',
+        'Age',
+        'Gender',
+        'Misaq',
+        'Marital_Status',
+        'Blood_Group',
+        'Organisation',
+        'TanzeemFile_No',
+        // Address
+        'Address',
+        'City',
+        'Pincode',
+        // Jamaat
+        'Jamaat',
+        'Jamiaat',
+        // Incharge section fields shown from user_data
+        'Sector',
+        'Sub_Sector',
+    ];
+    $other_fields = [];
+    if (!empty($user_data) && is_array($user_data)) {
+        foreach ($user_data as $k => $v) {
+            if (in_array($k, $shown_user_keys, true)) continue;
+            if (strtolower((string)$k) === 'id') continue;
+            $other_fields[$k] = $v;
+        }
+    }
+    ?>
+
+    <?php if (!empty($other_fields)): ?>
+        <div class="profile-container mt-3 mb-5">
+            <div class="row">
+                <div class="col-12">
+                    <div class="profile-card user-details">
+                        <h2>OTHER DETAILS</h2>
+                        <?php foreach ($other_fields as $key => $value): ?>
+                            <?php
+                            $label = ucwords(str_replace('_', ' ', (string)$key));
+                            if ($value === null || $value === '') {
+                                $display = '---';
+                            } elseif (is_scalar($value)) {
+                                $display = (string)$value;
+                            } else {
+                                $display = json_encode($value);
+                            }
+                            ?>
+                            <div class="detail-box">
+                                <strong><?php echo htmlspecialchars($label); ?>:</strong>
+                                <?php echo nl2br(htmlspecialchars($display)); ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
