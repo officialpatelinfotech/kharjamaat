@@ -30,21 +30,21 @@ if (isset($miqaats) && is_array($miqaats)) {
     top: -4px;
   }
 </style>
-<div class="container margintopcontainer py-5">
+<div class="container margintopcontainer pt-5">
   <?php if ($this->session->flashdata('error')): ?>
-    <div class="alert alert-danger pt-5">
+    <div class="alert alert-danger">
       <?= $this->session->flashdata('error'); ?>
     </div>
   <?php endif; ?>
 
   <?php if ($this->session->flashdata('success')): ?>
-    <div class="alert alert-success pt-5">
+    <div class="alert alert-success">
       <?= $this->session->flashdata('success'); ?>
     </div>
   <?php endif; ?>
 
   <?php if ($this->session->flashdata('warning')): ?>
-    <div class="alert alert-warning pt-5">
+    <div class="alert alert-warning">
       <?= $this->session->flashdata('warning'); ?>
     </div>
   <?php endif; ?>

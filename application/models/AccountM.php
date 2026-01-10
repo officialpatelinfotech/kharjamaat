@@ -1516,7 +1516,8 @@ class AccountM extends CI_Model
 
     if (!empty($data)) {
       $this->db->insert('raza', $data);
-      return $this->db->affected_rows() > 0;
+      $insert_id = $this->db->insert_id();
+      return $insert_id ? $insert_id : false;
     } else {
       return false;
     }

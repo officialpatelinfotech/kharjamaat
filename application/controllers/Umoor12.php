@@ -200,7 +200,16 @@ class Umoor12 extends CI_Controller
     $this->EmailQueueM->enqueue($_SESSION['user_data']['Email'], 'New Raza', $msg, $razacc, 'html');
 
     // Enqueue admin notifications (they'll also get monitored via the BCC list above if desired)
-    $adminRecipients = ['anjuman@kharjamaat.in', 'amilsaheb@kharjamaat.in', 'kharjamaat@gmail.com'];
+    $adminRecipients = [
+      'anjuman@kharjamaat.in',
+      'amilsaheb@kharjamaat.in',
+      '3042@carmelnmh.in',
+      'kharjamaat@gmail.com',
+      'kharamilsaheb@gmail.com',
+      'kharjamaat786@gmail.com',
+      'khozemtopiwalla@gmail.com',
+      'ybookwala@gmail.com'
+    ];
     foreach ($adminRecipients as $r) {
       $this->EmailQueueM->enqueue($r, 'New Raza', $msg, $razacc, 'html');
     }

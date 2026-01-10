@@ -59,6 +59,17 @@ class Accounts extends CI_Controller
       } else {
         $_SESSION['user_data'] = "";
       }
+      // If a redirect target was saved before login, validate and use it
+      $savedRedirect = isset($_SESSION['redirect_to_url']) ? $_SESSION['redirect_to_url'] : null;
+      if (!empty($savedRedirect)) {
+        unset($_SESSION['redirect_to_url']);
+        // only allow internal paths (no scheme/host)
+        $parts = parse_url($savedRedirect);
+        if (empty($parts['host']) && empty($parts['scheme'])) {
+          $path = ltrim($savedRedirect, '/');
+          redirect(base_url($path));
+        }
+      }
       // echo print_r($check);
       // die();
       if ($check[0]['role'] == 1) {
@@ -88,6 +99,12 @@ class Accounts extends CI_Controller
   public function logout()
   {
     $_SESSION['user'] = null;
+    $_SESSION['user_data'] = null;
+    $_SESSION['login_status'] = null;
+
+    if (isset($this->session)) {
+      $this->session->sess_destroy();
+    }
     redirect('/accounts');
   }
 
@@ -426,6 +443,68 @@ class Accounts extends CI_Controller
 
     if ($result > 0) {
       $this->session->set_flashdata('success', "Miqaat Raza submitted successfully.");
+      // enqueue notifications for admins about this miqaat raza submission
+      $this->load->model('NotificationM');
+      $user_row = $this->AccountM->getUserData($user_id);
+      $user_full = !empty($user_row['Full_Name']) ? $user_row['Full_Name'] : $user_id;
+
+      // prepare miqaat details for inclusion in emails
+      $miqaatInfo = '';
+      if (!empty($miqaat_id)) {
+        $miqaatRow = $this->AccountM->get_miqaat_by_id($miqaat_id);
+        if (!empty($miqaatRow)) {
+          $miqaatName = htmlspecialchars($miqaatRow['name']);
+          $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+          $miqaatInfo = $miqaatName . ' (' . $miqaatDate . ')';
+        }
+      }
+
+      $admins = [
+        'anjuman@kharjamaat.in',
+        'amilsaheb@kharjamaat.in',
+        '3042@carmelnmh.in',
+        'kharjamaat@gmail.com',
+        'kharamilsaheb@gmail.com',
+        'kharjamaat786@gmail.com',
+        'khozemtopiwalla@gmail.com',
+        'ybookwala@gmail.com'
+      ];
+
+      // Admin notification: include submitter, raza id and miqaat details
+      $adminSubject = 'New Miqaat Raza submitted by ' . $user_full;
+      $adminBody = 'A new Miqaat Raza has been submitted by ' . htmlspecialchars($user_full) . '.<br/>';
+      $adminBody .= '<strong>Raza ID:</strong> ' . htmlspecialchars($raza_id) . '<br/>';
+      if (!empty($miqaatInfo)) $adminBody .= '<strong>Miqaat:</strong> ' . $miqaatInfo . '<br/>';
+      $adminBody .= 'View submissions in the admin panel.';
+      foreach ($admins as $a) {
+        $this->NotificationM->insert_notification([
+          'channel' => 'email',
+          'recipient' => $a,
+          'recipient_type' => 'admin',
+          'subject' => $adminSubject,
+          'body' => $adminBody,
+          'scheduled_at' => null
+        ]);
+      }
+
+      // Member notification: acknowledgement with miqaat details and raza id
+      $userEmail = isset($user_row['Email']) ? $user_row['Email'] : null;
+      if (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+        $memberSubject = 'Your Miqaat Raza has been submitted';
+        $memberBody = 'Baad Afzalus Salaam,<br/> ' . htmlspecialchars($user_full) . ',<br/><br/>';
+        $memberBody .= 'Your Miqaat Raza has been received successfully.' . '<br/>';
+        $memberBody .= '<br/><strong>Raza ID:</strong> ' . htmlspecialchars($raza_id) . '<br/>';
+        if (!empty($miqaatInfo)) $memberBody .= '<strong>Miqaat:</strong> ' . $miqaatInfo . '<br/>';
+        $memberBody .= '<br/>You can view your submission in the Assigned Miqaats page.';
+        $this->NotificationM->insert_notification([
+          'channel' => 'email',
+          'recipient' => $userEmail,
+          'recipient_type' => 'user',
+          'subject' => $memberSubject,
+          'body' => $memberBody,
+          'scheduled_at' => null
+        ]);
+      }
     } else if ($result < 0) {
       $this->session->set_flashdata('warning', "Miqaat Raza already submitted.");
     } else {
@@ -437,6 +516,8 @@ class Accounts extends CI_Controller
   public function rsvp_list()
   {
     if (empty($_SESSION['user'])) {
+      $qs = isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '';
+      $_SESSION['redirect_to_url'] = 'accounts/rsvp_list' . $qs;
       redirect('/accounts');
     }
 
@@ -562,6 +643,8 @@ class Accounts extends CI_Controller
   public function general_rsvp($miqaat_id)
   {
     if (empty($_SESSION['user'])) {
+      $qs = isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '';
+      $_SESSION['redirect_to_url'] = 'accounts/general_rsvp/' . $miqaat_id . $qs;
       redirect('/accounts');
     }
 
@@ -646,6 +729,9 @@ class Accounts extends CI_Controller
   public function fmbweeklysignup()
   {
     if (empty($_SESSION['user'])) {
+      // Save intended URL and send to login
+      $qs = isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '';
+      $_SESSION['redirect_to_url'] = 'accounts/fmbweeklysignup' . $qs;
       redirect('/accounts');
     }
 
@@ -786,6 +872,8 @@ class Accounts extends CI_Controller
   public function FMBFeedback()
   {
     if (empty($_SESSION['user'])) {
+      $qs = isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '';
+      $_SESSION['redirect_to_url'] = 'accounts/FMBFeedback' . $qs;
       redirect('/accounts');
     }
 
@@ -873,6 +961,7 @@ class Accounts extends CI_Controller
   public function getFMBFeedbackData()
   {
     if (empty($_SESSION['user'])) {
+      $_SESSION['redirect_to_url'] = 'accounts/FMBFeedback';
       redirect('/accounts');
     }
 
@@ -884,6 +973,7 @@ class Accounts extends CI_Controller
   public function UpdateFMBFeedback()
   {
     if (empty($_SESSION['user'])) {
+      $_SESSION['redirect_to_url'] = 'accounts/FMBFeedback';
       redirect('/accounts');
     }
 
@@ -1069,7 +1159,7 @@ class Accounts extends CI_Controller
       redirect('/accounts');
     }
 
-  // Load the model
+    // Load the model
     $this->load->model('AccountM');
 
     // Get the data from model
@@ -1102,38 +1192,45 @@ class Accounts extends CI_Controller
     if (empty($_SESSION['user'])) {
       return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
     }
-    $user_id = $_SESSION['user']['username'];
     $this->load->model('AccountM');
     $this->load->model('CorpusFundM');
 
-    // FMB takhmeen due
-    $fmb = $this->AccountM->get_member_total_fmb_due($user_id);
-    $fmb_due = is_array($fmb) && isset($fmb['total_due']) ? (float)$fmb['total_due'] : 0.0;
+    // current user identifier (ITS_ID stored in session username)
+    $user_id = $_SESSION['user']['username'];
 
-    // Sabeel due
-    $sabeel = $this->AccountM->get_member_total_sabeel_due($user_id);
-    $sabeel_due = is_array($sabeel) && isset($sabeel['total_due']) ? (float)$sabeel['total_due'] : 0.0;
-
-    // General contributions (GC): sum of amount - paid
-    $gcRow = $this->db->query("SELECT COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due FROM fmb_general_contribution gc LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id WHERE gc.user_id = ?", [$user_id])->row_array();
-    $gc_due = isset($gcRow['total_due']) ? (float)$gcRow['total_due'] : 0.0;
-
-    // Miqaat invoices due
-    // Miqaat invoices due and details (include family members if HOF present)
-    $miq_due = 0.0;
-    $miq_list = [];
+    // Build family member list (self + HOF family members)
     $memberIds = [$user_id];
-    // if session user_data has HOF_ID, include family invoices
     if (!empty($_SESSION['user_data']['HOF_ID'])) {
       $hof = $_SESSION['user_data']['HOF_ID'];
       $rows = $this->db->query("SELECT ITS_ID FROM user WHERE HOF_ID = ?", [$hof])->result_array();
       foreach ($rows as $r) {
         if (!empty($r['ITS_ID'])) $memberIds[] = (string)$r['ITS_ID'];
       }
-      // ensure hof itself included
       if (!in_array((string)$hof, $memberIds, true)) $memberIds[] = (string)$hof;
     }
     $memberIds = array_values(array_unique($memberIds));
+
+    // Family-level FMB and Sabeel dues
+    $family_fmb = 0.0;
+    $family_sabeel = 0.0;
+    foreach ($memberIds as $m) {
+      $f = $this->AccountM->get_member_total_fmb_due($m);
+      $family_fmb += is_array($f) && isset($f['total_due']) ? (float)$f['total_due'] : 0.0;
+      $s = $this->AccountM->get_member_total_sabeel_due($m);
+      $family_sabeel += is_array($s) && isset($s['total_due']) ? (float)$s['total_due'] : 0.0;
+    }
+
+    // General contributions (GC) for family
+    $gc_due = 0.0;
+    if (!empty($memberIds)) {
+      $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
+      $gcRow = $this->db->query("SELECT COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due FROM fmb_general_contribution gc LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id WHERE gc.user_id IN ($placeholders)", $memberIds)->row_array();
+      $gc_due = isset($gcRow['total_due']) ? (float)$gcRow['total_due'] : 0.0;
+    }
+
+    // Miqaat invoices due for family
+    $miq_due = 0.0;
+    $miq_list = [];
     if (!empty($memberIds)) {
       $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
       $sql = "SELECT i.id, i.miqaat_id, m.name AS miqaat_name, i.date AS invoice_date, i.amount, i.description, i.user_id, u.Full_Name as owner_name, COALESCE(SUM(p.amount),0) AS paid_amount, (i.amount - COALESCE(SUM(p.amount),0)) AS due_amount
@@ -1166,13 +1263,13 @@ class Accounts extends CI_Controller
       }
     }
 
-    $total_due = $fmb_due + $sabeel_due + $gc_due + $miq_due + $corpus_due;
+    $total_due = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due;
 
     $payload = [
       'success' => true,
       'dues' => [
-        'fmb_due' => round($fmb_due, 2),
-        'sabeel_due' => round($sabeel_due, 2),
+        'fmb_due' => round($family_fmb, 2),
+        'sabeel_due' => round($family_sabeel, 2),
         'gc_due' => round($gc_due, 2),
         'miqaat_due' => round($miq_due, 2),
         'corpus_due' => round($corpus_due, 2),
@@ -1321,11 +1418,11 @@ class Accounts extends CI_Controller
       .cta{display:inline-block;margin-top:14px;padding:10px 14px;background:#0b5;color:#fff;text-decoration:none;border-radius:4px}
       @media (max-width:520px){ .header h1{font-size:16px} .details th,.details td{font-size:12px} }
       </style></head><body>';
-    $body .= '<div style="padding:12px;text-align:center"><img src="' . $logoUrl . '" alt="' . $orgName . '" style="max-height:48px"></div>';
+    // logo removed from email per request
     $body .= '<div class="container">';
     $body .= '<div class="header"><h1>' . $title . '</h1></div>';
     $body .= '<div class="content">';
-    $body .= '<p class="muted">Assalamu alaikum ' . $submitter . ',</p>';
+    $body .= '<p class="muted">Baad Afzalus Salaam,<br> ' . $submitter . ',</p>';
     $body .= '<p class="muted">Below is the summary of pending dues for your family (HOF: ' . $hofLabel . ').</p>';
 
     // summary totals
@@ -1342,7 +1439,7 @@ class Accounts extends CI_Controller
     $body .= '<tr><td>General Contributions</td><td class="amount ' . ($gc_due > 0 ? 'positive' : '') . '">₹ ' . $gc_fmt . '</td></tr>';
     $body .= '<tr><td>Corpus Fund</td><td class="amount ' . ($corpus_due > 0 ? 'positive' : '') . '">₹ ' . $corpus_fmt . '</td></tr>';
     $body .= '<tr><td>Miqaat Invoices</td><td class="amount ' . ($miq_due > 0 ? 'positive' : '') . '">₹ ' . $miq_fmt . '</td></tr>';
-    $body .= '<tr class="total"><td>Total</td><td class="amount">₹ ' . $total_fmt . '</td></tr>';
+    $body .= '<tr class="total"><td>Total</td><td class="amount ' . ($total_fmt > 0 ? 'positive' : '') . '">₹ ' . $total_fmt . '</td></tr>';
     $body .= '</table>';
 
     // details table
@@ -1386,47 +1483,78 @@ class Accounts extends CI_Controller
     $body = preg_replace('/>\s+</', '><', $body);
     $body = trim($body);
 
-    // Send to submitter and HOF (if present)
+    // Send to submitter and HOF (if present) — enqueue for background worker
     $recipients = [];
     if (!empty($submitterEmail)) $recipients[] = $submitterEmail;
     if (!empty($hofEmail) && $hofEmail !== $submitterEmail) $recipients[] = $hofEmail;
 
-    $sent = 0;
+    // release PHP session lock early so other requests aren't blocked
+    if (session_status() === PHP_SESSION_ACTIVE) {
+      session_write_close();
+    }
+
+    $this->load->model('EmailQueueM');
+    $enqueued = 0;
     if (!empty($recipients)) {
-      $this->email->clear(true);
-      // initialize email settings to ensure UTF-8 charset and HTML mailtype
-      $this->email->initialize(['mailtype' => 'html', 'charset' => 'utf-8']);
-      $this->email->from('admin@kharjamaat.in', 'Khar Jamaat');
-      $this->email->to($recipients);
-      $this->email->subject($subject);
-      $this->email->message($body);
-      try {
-        $ok = $this->email->send();
-        if ($ok) $sent = count($recipients);
-      } catch (Exception $e) {
-        // ignore
+      foreach ($recipients as $rcp) {
+        $this->EmailQueueM->enqueue($rcp, $subject, $body, null, 'html');
+        $enqueued++;
       }
     }
 
-    return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'sent' => $sent]));
+    return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'enqueued' => $enqueued]));
   }
+
   public function updateraza($id)
   {
-    $this->email->from('admin@kharjamaat.in', 'Raza Update');
-    $this->email->to($_SESSION['user_data']['Email']);
-    $this->email->subject('Raza Status');
-    $this->email->message('Your Raza has been updated');
-    $this->email->send();
-
     unset($_POST['raza-type']);
     $data = json_encode($_POST);
     $flag = $this->AccountM->update_raza($id, $data);
     if ($flag) {
+      // enqueue notification for user and admins that raza was updated
+      $this->load->model('NotificationM');
+      $userEmail = isset($_SESSION['user_data']['Email']) ? $_SESSION['user_data']['Email'] : null;
+      $userName = isset($_SESSION['user_data']['Full_Name']) ? $_SESSION['user_data']['Full_Name'] : '';
+
+      // Member notification
+      if (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+        $this->NotificationM->insert_notification([
+          'channel' => 'email',
+          'recipient' => $userEmail,
+          'recipient_type' => 'user',
+          'subject' => 'Your Raza has been updated',
+          'body' => 'Baad Afzalus Salaam, <br /><br /> ' . $userName . ',<br /><br />Your Raza has been updated. Please login to view details.',
+          'scheduled_at' => null
+        ]);
+      }
+
+      // Admin notifications (enqueue to full admin list)
+      $admins = [
+        'anjuman@kharjamaat.in',
+        'amilsaheb@kharjamaat.in',
+        '3042@carmelnmh.in',
+        'kharjamaat@gmail.com',
+        'kharamilsaheb@gmail.com',
+        'kharjamaat786@gmail.com',
+        'khozemtopiwalla@gmail.com',
+        'ybookwala@gmail.com'
+      ];
+      foreach ($admins as $a) {
+        $this->NotificationM->insert_notification([
+          'channel' => 'email',
+          'recipient' => $a,
+          'recipient_type' => 'admin',
+          'subject' => 'Raza updated by ' . $userName,
+          'body' => htmlspecialchars($userName) . ' updated a Raza. View in admin panel.',
+          'scheduled_at' => null
+        ]);
+      }
       redirect('/accounts/success/MyRazaRequest');
     } else {
       redirect('/accounts/error/MyRazaRequest');
     }
   }
+  
   public function updateVasanReq($id)
   {
     $data['vasan'] = $this->AccountM->get_vasanreq_byid($id)[0];
@@ -1527,8 +1655,7 @@ class Accounts extends CI_Controller
   public function rsvp($id)
   {
     if (empty($_SESSION['user'])) {
-      $_SESSION['redirect_to_url'] = 'accounts/rsvp/' . $id;
-      redirect('/accounts/loggin');
+      redirect('/accounts');
     }
     $data['rsvp'] = $this->AccountM->get_rsvp_byid($id)[0];
     $userId = $_SESSION['user_data']['HOF_ID'];
@@ -1548,6 +1675,11 @@ class Accounts extends CI_Controller
 
   public function submit_rsvp($id)
   {
+    if (empty($_SESSION['user'])) {
+      $_SESSION['redirect_to_url'] = 'accounts/rsvp/' . $id;
+      redirect('/accounts');
+    }
+
     try {
       $hofid = $_SESSION['user_data']['HOF_ID'];
       $family = $this->AccountM->get_all_family_member($hofid);
@@ -1677,6 +1809,7 @@ class Accounts extends CI_Controller
       redirect('/accounts/error/logout');
     }
   }
+
   public function submit_raza()
   {
     foreach ($_POST as $key => $value) {
@@ -1734,11 +1867,23 @@ class Accounts extends CI_Controller
       $email_template = str_replace($placeholder, $value, $email_template);
     }
 
-    // Send single email with BCC to all admin recipients to reduce SMTP handshakes
-    // Enqueue the notification so sending occurs in background
     $this->load->model('EmailQueueM');
-    $to = $_SESSION['user_data']['Email'];
-    $bcc = [
+    // determine member email (validate, fallback to DB lookup if missing)
+    $memberEmail = isset($user_data['Email']) && !empty($user_data['Email']) ? trim($user_data['Email']) : null;
+    if (empty($memberEmail) || !filter_var($memberEmail, FILTER_VALIDATE_EMAIL)) {
+      $row = $this->db->query('SELECT Email FROM user WHERE ITS_ID = ? LIMIT 1', [$_SESSION['user_data']['ITS_ID']])->row_array();
+      if (!empty($row['Email']) && filter_var($row['Email'], FILTER_VALIDATE_EMAIL)) {
+        $memberEmail = $row['Email'];
+      } else {
+        $memberEmail = null;
+      }
+    }
+    // Enqueue personal copy to member only if we have a valid email
+    if (!empty($memberEmail)) {
+      $this->EmailQueueM->enqueue($memberEmail, 'Raza Submission Successful', $email_template, null, 'html');
+    }
+
+    $admins = [
       'anjuman@kharjamaat.in',
       'amilsaheb@kharjamaat.in',
       '3042@carmelnmh.in',
@@ -1748,7 +1893,6 @@ class Accounts extends CI_Controller
       'khozemtopiwalla@gmail.com',
       'ybookwala@gmail.com'
     ];
-    $this->EmailQueueM->enqueue($to, 'New Raza', $email_template, $bcc, 'html');
 
     $userId = $_SESSION['user_data']['ITS_ID'];
     unset($_POST['raza-type']);
@@ -1760,6 +1904,32 @@ class Accounts extends CI_Controller
     }
     $check = $this->AccountM->insert_raza($userId, $razatypeid, $data, $miqaat_id, $sabil, $fmb);
     if ($check) {
+      // $check is the inserted row id (int). Generate raza_id and update row so admins can see it.
+      $hijri_year = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"])[2];
+      $generated_raza_id = $this->AccountM->generate_raza_id($hijri_year);
+      $this->AccountM->update_raza_by_id($check, array("raza_id" => $generated_raza_id));
+
+      // Prepare miqaat details if present
+      $miqaatInfoHtml = '';
+      if (!empty($miqaat_id)) {
+        $miqaatRow = $this->AccountM->get_miqaat_by_id($miqaat_id);
+        if (!empty($miqaatRow)) {
+          $miqaatName = htmlspecialchars($miqaatRow['name']);
+          $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+          $miqaatInfoHtml = '<p><strong>Miqaat:</strong> ' . $miqaatName . ' (' . $miqaatDate . ')</p>';
+        }
+      }
+
+      // Notify admins with raza id and miqaat details
+      foreach ($admins as $adminEmail) {
+        $adminSubject = htmlspecialchars($user_data['Full_Name']) . ' has submitted a new Kaaraj Raza';
+        $adminBody = '<p><strong>' . htmlspecialchars($user_data['Full_Name']) . ' (' . htmlspecialchars($user_data['ITS_ID']) . ')</strong> has submitted a new Raza.</p>';
+        $adminBody .= '<p><strong>Raza ID:</strong> ' . htmlspecialchars($generated_raza_id) . '</p>';
+        $adminBody .= $miqaatInfoHtml;
+        $adminBody .= $email_template; // full submission details below
+        $this->EmailQueueM->enqueue($adminEmail, $adminSubject, $adminBody, null, 'html');
+      }
+
       redirect('/accounts/success/myrazarequest');
     } else {
       redirect('/accounts/error/myrazarequest');
@@ -1985,28 +2155,59 @@ class Accounts extends CI_Controller
         if (!empty($details)) $msg .= " Details: " . htmlspecialchars($details) . "<br/>";
         $msg .= "<br/>Thank you,<br/>Khar Jamaat";
 
-        if ($user_email) {
-          $this->email->from('admin@kharjamaat.in', 'Khar Jamaat - Appointment');
-          $this->email->to($user_email);
-          $this->email->subject('Appointment Confirmation');
-          $this->email->message($msg);
-          $this->email->send();
-        }
-
-        // Notify amilsaheb as well
-        $this->email->from('admin@kharjamaat.in', 'Khar Jamaat - Appointment');
-        $this->email->to('amilsaheb@kharjamaat.in');
-        $this->email->to('kharamilsaheb@gmail.com');
-        $this->email->subject('New Appointment Booked');
         $adminMsg = "Hello, <br/><br/>A new appointment has been booked by <b>" . htmlspecialchars($user_name) . "</b> for <b>" . htmlspecialchars($time) . "</b> on <b>" . htmlspecialchars(date("d-m-Y", strtotime($slot_date))) . "</b>.<br/>";
         if (!empty($purpose)) $adminMsg .= "<b>Purpose:</b> " . htmlspecialchars($purpose) . "<br/>";
         if (!empty($details)) $adminMsg .= "<b>Details:</b> " . htmlspecialchars($details) . "<br/>";
-        $this->email->message($adminMsg);
-        $this->email->send();
+
+        $this->load->model('NotificationM');
+        // Member notification (email)
+        if (!empty($user_email)) {
+          $this->NotificationM->insert_notification([
+            'channel' => 'email',
+            'recipient' => $user_email,
+            'recipient_type' => 'user',
+            'subject' => 'Appointment Confirmation',
+            'body' => $msg,
+            'scheduled_at' => null
+          ]);
+          // also record a whatsapp-friendly copy
+          $this->NotificationM->insert_notification([
+            'channel' => 'whatsapp',
+            'recipient' => $user_email,
+            'recipient_type' => 'user',
+            'subject' => null,
+            'body' => strip_tags($msg),
+            'scheduled_at' => null
+          ]);
+        }
+
+        // Admin notifications
+        $admins = [
+          'anjuman@kharjamaat.in',
+          'amilsaheb@kharjamaat.in',
+          'kharamilsaheb@gmail.com',
+        ];
+        foreach ($admins as $a) {
+          $this->NotificationM->insert_notification([
+            'channel' => 'email',
+            'recipient' => $a,
+            'recipient_type' => 'admin',
+            'subject' => 'New Appointment Booked',
+            'body' => $adminMsg,
+            'scheduled_at' => null
+          ]);
+          $this->NotificationM->insert_notification([
+            'channel' => 'whatsapp',
+            'recipient' => $a,
+            'recipient_type' => 'admin',
+            'subject' => null,
+            'body' => strip_tags($adminMsg),
+            'scheduled_at' => null
+          ]);
+        }
       } catch (Exception $e) {
         log_message('error', 'Error sending appointment email: ' . $e->getMessage());
       }
-
       redirect('accounts/appointment');
     } else {
       // Handle the case where user info is not found

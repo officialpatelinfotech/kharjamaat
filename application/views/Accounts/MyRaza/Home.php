@@ -150,7 +150,7 @@
 </div>
 <script>
   function redirecttodelete(location) {
-    let check = confirm('Do you want to Delete this Raza')
+    let check = confirm('Do you want to delete this Raza?')
     if (check) {
       window.location.href = '<?php echo base_url() ?>' + location;
     }

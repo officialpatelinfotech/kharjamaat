@@ -532,37 +532,126 @@ class Amilsaheb extends CI_Controller
     $flag = $this->AmilsahebM->approve_raza($raza_id, $remark);
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
 
-    $this->email->from('info@kharjamaat.in', 'Admin');
-    $this->email->to($user['Email']);
-    $this->email->subject('Raza Status');
-    $this->email->message('Mubarak. Your Raza has been Approved by Amil Saheb');
-    $this->email->send();
+    // enqueue notifications instead of sending immediately
+    $this->load->model('NotificationM');
+    $userEmail = isset($user['Email']) ? $user['Email'] : null;
+    $userName = isset($user['Full_Name']) ? $user['Full_Name'] : '';
+    $msg = $userName . ' (' . ($user['ITS_ID'] ?? '') . ') - Raza has been Approved by Amil Saheb';
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('amilsaheb@kharjamaat.in');
-    $this->email->subject('Raza Approved');
-    $this->email->message('Mubarak. Your Raza has been Approved by Amil Saheb');
-    $this->email->send();
+    // Notify member (formalized)
+    if (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+      $memberBody = "Baad Afzalus Salaam,<br><br>" . $userName . ",<br><br>" .
+        "Your Raza request (Raza ID: " . ($raza_id ?? '') . ") has been approved by Amil Saheb.<br><br>" .
+        "If you require further assistance, please contact the Jamaat office.<br><br>" .
+        "Regards,<br>Anjuman E Saifee Dawoodi Bohra Jamaat Khar<br>Amil Saheb Office";
 
-    $msg = $user['Full_Name'] . ' (' . $user['ITS_ID'] . ').Raza has been Approved by Amil Saheb';
+      $this->NotificationM->insert_notification([
+        'channel' => 'email',
+        'recipient' => $userEmail,
+        'recipient_type' => 'user',
+        'subject' => 'Raza Status',
+        'body' => $memberBody,
+        'scheduled_at' => null
+      ]);
+    }
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('kharjamaat@gmail.com');
-    $this->email->subject('Raza Approved');
-    $this->email->message($msg);
-    $this->email->send();
+    // Notify admins
+    $admins = [
+      'anjuman@kharjamaat.in',
+      'amilsaheb@kharjamaat.in',
+      '3042@carmelnmh.in',
+      'kharjamaat@gmail.com',
+      'kharamilsaheb@gmail.com',
+      'kharjamaat786@gmail.com',
+      'khozemtopiwalla@gmail.com',
+      'ybookwala@gmail.com'
+    ];
+    foreach ($admins as $a) {
+      $adminBody = "Please be informed that the following Raza has been approved by Amil Saheb.<br><br>" .
+        "Member: " . $userName . " (" . ($user['ITS_ID'] ?? '') . ")<br>" .
+        "Raza ID: " . ($raza_id ?? '') . "<br><br>" .
+        "Regards,<br>Amil Saheb Office";
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('3042@carmelnmh.in');
-    $this->email->subject('Raza Approved');
-    $this->email->message($msg);
-    $this->email->send();
+      $this->NotificationM->insert_notification([
+        'channel' => 'email',
+        'recipient' => $a,
+        'recipient_type' => 'admin',
+        'subject' => 'Raza Approved',
+        'body' => $adminBody,
+        'scheduled_at' => null
+      ]);
+    }
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('anjuman@kharjamaat.in');
-    $this->email->subject('Raza Approved');
-    $this->email->message($msg);
-    $this->email->send();
+
+    // RSVP notifications: only for Miqaat Raza approvals
+    if ($flag) {
+      $razaRow = $this->db->select('id, razaType, miqaat_id')
+        ->from('raza')
+        ->where('id', $raza_id)
+        ->get()
+        ->row_array();
+
+      $miqaatId = isset($razaRow['miqaat_id']) ? (int)$razaRow['miqaat_id'] : 0;
+      $razaTypeId = isset($razaRow['razaType']) ? (int)$razaRow['razaType'] : 0;
+
+      $rt = null;
+      if ($razaTypeId > 0) {
+        $rt = $this->db->select('id, name, umoor')
+          ->from('raza_type')
+          ->where('id', $razaTypeId)
+          ->get()
+          ->row_array();
+      }
+
+      $isMiqaatRaza = false;
+      $umoor = isset($rt['umoor']) ? (string)$rt['umoor'] : '';
+      $rtName = isset($rt['name']) ? (string)$rt['name'] : '';
+      if ($umoor === 'Public-Event' || stripos($rtName, 'miqaat') !== false) {
+        $isMiqaatRaza = true;
+      }
+
+      if ($isMiqaatRaza && $miqaatId > 0) {
+        $miqaat = $this->AnjumanM->get_miqaat_by_id($miqaatId);
+        $miqName = is_array($miqaat) ? ($miqaat['name'] ?? '') : '';
+        $miqDate = is_array($miqaat) ? (date("d-m-Y", strtotime($miqaat['date'])) ?? '') : '';
+        $miqTime = is_array($miqaat) ? ($miqaat['time'] ?? '') : '';
+        $miqHijri = is_array($miqaat) ? ($miqaat['hijri_date'] ?? '') : '';
+        $miqDesc = is_array($miqaat) ? ($miqaat['description'] ?? '') : '';
+        $rsvpLink = base_url('accounts/general_rsvp/' . $miqaatId);
+
+        $subject = 'RSVP Open: ' . ($miqName !== '' ? $miqName : ('Miqaat #' . $miqaatId));
+        $body = "Baad Afzalus Salaam,<br /><br />" .
+          "A Miqaat has been approved and is now open for RSVP.<br /><br />" .
+          "Miqaat Details:<br />" .
+          "Miqaat ID: " . $miqaatId . "<br />" .
+          ($miqName !== '' ? ("Name: " . $miqName . "<br />") : "") .
+          ($miqDate !== '' ? ("Date: " . $miqDate . "<br />") : "") .
+          ($miqTime !== '' ? ("Time: " . $miqTime . "<br />") : "") .
+          ($miqHijri !== '' ? ("Hijri Date: " . $miqHijri . "<br />") : "") .
+          ($miqDesc !== '' ? ("Description: " . $miqDesc . "<br />") : "") .
+          "<br />Please submit your RSVP here:<br />" . $rsvpLink . "<br /><br />" .
+          "Regards,<br />Anjuman E Saifee Dawoodi Bohra Jamaat Khar";
+
+        $members = $this->db->select('Email')
+          ->from('user')
+          ->where('inactive_status IS NULL', null, false)
+          ->where('Email IS NOT NULL', null, false)
+          ->get()
+          ->result_array();
+        foreach ($members as $m) {
+          $email = isset($m['Email']) ? trim($m['Email']) : '';
+          if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
+          $this->NotificationM->insert_notification([
+            'channel' => 'email',
+            'recipient' => $email,
+            'recipient_type' => 'member',
+            'subject' => $subject,
+            'body' => $body,
+            'scheduled_at' => null
+          ]);
+        }
+      }
+    }
 
     if ($flag) {
       http_response_code(200);
@@ -835,7 +924,8 @@ class Amilsaheb extends CI_Controller
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Appointment/Home', $data);
   }
-  public function slots_calendar() {
+  public function slots_calendar()
+  {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
       redirect('/accounts');
     }
@@ -865,7 +955,7 @@ class Amilsaheb extends CI_Controller
     $hijri_days = $this->HijriCalendar->get_hijri_days_for_month_year($data['hijri_month'], $data['hijri_year']);
     if (!empty($hijri_days)) {
       $start = $hijri_days[0]['greg_date'];
-      $end = $hijri_days[count($hijri_days)-1]['greg_date'];
+      $end = $hijri_days[count($hijri_days) - 1]['greg_date'];
       $data['slot_statuses'] = $this->AmilsahebM->get_slot_summary_for_range($start, $end);
       // also provide hijri_days to view so the calendar renders hijri dates mapped to gregorian
       $data['hijri_days'] = $hijri_days;
@@ -958,7 +1048,9 @@ class Amilsaheb extends CI_Controller
         }
         // refresh existing slots and add missing ones
         $existing = $this->AmilsahebM->getExistingTimeSlots($d);
-        $existingTimes = array_map(function($r){ return $r['time']; }, $existing);
+        $existingTimes = array_map(function ($r) {
+          return $r['time'];
+        }, $existing);
         foreach ($selectedTimeSlots as $sel) {
           if (!in_array($sel, $existingTimes)) {
             $this->AmilsahebM->addSlot($d, $sel);

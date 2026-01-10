@@ -615,19 +615,15 @@ class Admin extends CI_Controller
 
     // Enqueue email to user (non-blocking)
     $this->load->model('EmailQueueM');
-    $message = '
-        <p>Assalaamu Alaikum,</p>
+    $message = '<p>Baad Afzalus Salaam,</p>
         <p><strong>Mubarak!</strong></p>
         <p>
-          Your <strong>Raza request has received a recommendation from Anjuman-e-Saifee Jamaat</strong>.
+          Your <strong>Raza request has received a recommendation from Anjuman E Saifee Jamaat</strong>.
         </p>
         <p>
           Kindly reach out to <strong>Janab Amil Saheb</strong> via
-          <strong>phone or WhatsApp</strong> at the number below to obtain his
-          <strong>final Raza and Dua</strong>:
-        </p>
-        <p>
-          📞 <strong>+91-' . $amilsaheb_mobile . '</strong>
+          <strong>Phone or WhatsApp</strong> at the number below to obtain his
+          <strong>final Raza and Dua</strong>: <strong>+91-' . $amilsaheb_mobile . '</strong>
         </p>
         <p>
           <strong>Wassalaam.</strong>
@@ -681,7 +677,16 @@ class Admin extends CI_Controller
     $this->email->set_mailtype('html');
 
     $monitor_bcc = ['khozemtopiwalla@gmail.com', 'ybookwala@gmail.com'];
-    $admin_recipients = ['amilsaheb@kharjamaat.in', 'kharjamaat@gmail.com', '3042@carmelnmh.in', 'anjuman@kharjamaat.in'];
+    $admin_recipients = [
+      'anjuman@kharjamaat.in',
+      'amilsaheb@kharjamaat.in',
+      '3042@carmelnmh.in',
+      'kharjamaat@gmail.com',
+      'kharamilsaheb@gmail.com',
+      'kharjamaat786@gmail.com',
+      'khozemtopiwalla@gmail.com',
+      'ybookwala@gmail.com'
+    ];
     foreach ($admin_recipients as $r) {
       $this->EmailQueueM->enqueue($r, 'Raza Not Recommended', $msg_html, $monitor_bcc, 'html');
     }

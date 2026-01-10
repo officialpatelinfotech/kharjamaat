@@ -76,7 +76,6 @@
         <div class="card-body">
           <form id="raza-form" class="main-form" action="<?= base_url("accounts/submit_raza") ?>" method="post">
             <?php if ($value === 'Private-Event' || $value === 'Public-Event'): ?>
-              <!-- Removed Sabil/FMB dues fields as requested -->
             <?php endif; ?>
 
             <div class="form-group">
@@ -115,7 +114,6 @@
   </div>
 </div>
 
-<!-- Dues confirmation modal -->
 <div id="dues-modal" class="modal" tabindex="-1" role="dialog" style="display:none; position:fixed; left:50%; top:10%; transform:translateX(-50%); z-index:1050;">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -154,7 +152,6 @@
     container.innerHTML = '';
 
     if (selectedRazaType == 2) {
-      // Handle specific case for Raza Type 2
       $.ajax({
         url: "<?php echo base_url("umoor12/get_miqaat_by_its_id"); ?>",
         dataType: 'json',
@@ -253,7 +250,6 @@
 
         let label = document.createElement('label');
         label.className = 'col-form-label' + (field.required ? ' requiredField' : '');
-        // label.setAttribute('for', 'id_' + fieldName);
         label.setAttribute('for', fieldName);
         label.innerHTML = field.name + (field.required ? '<span class="asteriskField">*</span>' : '');
         group.appendChild(label);
@@ -316,78 +312,99 @@
     n = Math.round(Number(n) || 0);
     return '₹' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
+
   function coloredAmount(n) {
     var amt = formatINR(n);
     if (Number(n) > 0) return '<span style="color:red">' + amt + '</span>';
     return amt;
   }
+
   function showDuesModal(html) {
     document.getElementById('dues-content').innerHTML = html;
     document.getElementById('dues-modal').style.display = 'block';
-    var bd = document.getElementById('dues-backdrop'); if (bd) bd.style.display = 'block';
-  }
-  function hideDuesModal() {
-    document.getElementById('dues-modal').style.display = 'none';
-    var bd = document.getElementById('dues-backdrop'); if (bd) bd.style.display = 'none';
+    var bd = document.getElementById('dues-backdrop');
+    if (bd) bd.style.display = 'block';
   }
 
-  document.getElementById('raza-form').addEventListener('submit', function (e) {
+  function hideDuesModal() {
+    document.getElementById('dues-modal').style.display = 'none';
+    var bd = document.getElementById('dues-backdrop');
+    if (bd) bd.style.display = 'none';
+  }
+
+  document.getElementById('raza-form').addEventListener('submit', function(e) {
     e.preventDefault();
     var submitBtn = document.getElementById('raza-submit-btn');
     if (submitBtn) submitBtn.disabled = true;
-    fetch('<?= base_url('accounts/get_member_dues') ?>', { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
+    fetch('<?= base_url('accounts/get_member_dues') ?>', {
+        credentials: 'same-origin'
+      })
+      .then(function(r) {
+        return r.json();
+      })
+      .then(function(data) {
         if (submitBtn) submitBtn.disabled = false;
         if (!data || !data.success) {
           document.getElementById('raza-form').submit();
           return;
         }
         var d = data.dues;
-        var html = '<table class="table table-sm">'
-          + '<tr><th>Category</th><th class="text-right">Due</th></tr>'
-          + '<tr><td>FMB Takhmeen</td><td class="text-right">' + coloredAmount(d.fmb_due) + '</td></tr>'
-          + '<tr><td>Sabeel Takhmeen</td><td class="text-right">' + coloredAmount(d.sabeel_due) + '</td></tr>'
-          + '<tr><td>General Contributions</td><td class="text-right">' + coloredAmount(d.gc_due) + '</td></tr>'
-          + '<tr><td>Miqaat Invoices</td><td class="text-right">' + coloredAmount(d.miqaat_due) + '</td></tr>'
-          + '<tr><td>Corpus Fund</td><td class="text-right">' + coloredAmount(d.corpus_due) + '</td></tr>'
-          + '<tr><th>Total</th><th class="text-right">' + coloredAmount(d.total_due) + '</th></tr>'
-          + '</table>';
+        var html = '<table class="table table-sm">' +
+          '<tr><th>Category</th><th class="text-right">Due</th></tr>' +
+          '<tr><td>FMB Takhmeen</td><td class="text-right">' + coloredAmount(d.fmb_due) + '</td></tr>' +
+          '<tr><td>Sabeel Takhmeen</td><td class="text-right">' + coloredAmount(d.sabeel_due) + '</td></tr>' +
+          '<tr><td>General Contributions</td><td class="text-right">' + coloredAmount(d.gc_due) + '</td></tr>' +
+          '<tr><td>Miqaat Invoices</td><td class="text-right">' + coloredAmount(d.miqaat_due) + '</td></tr>' +
+          '<tr><td>Corpus Fund</td><td class="text-right">' + coloredAmount(d.corpus_due) + '</td></tr>' +
+          '<tr><th>Total</th><th class="text-right">' + coloredAmount(d.total_due) + '</th></tr>' +
+          '</table>';
         if (d.total_due <= 0) {
           html = '<div class="alert alert-success">No pending dues. You may proceed to submit.</div>' + html;
         } else {
           html = '<div class="alert alert-warning">You have pending dues. Please review before submitting.</div>' + html;
         }
         if (data.miqaat_invoices && Array.isArray(data.miqaat_invoices) && data.miqaat_invoices.length > 0) {
-          var invHtml = '<hr><h6>Miqaat / Member Invoices</h6>'
-            + '<table class="table table-sm table-bordered"><thead><tr><th>Assigned to</th><th>Invoice</th><th class="text-right">Amount</th><th class="text-right">Paid</th><th class="text-right">Due</th></tr></thead><tbody>';
+          var invHtml = '<hr><h6>Miqaat / Member Invoices</h6>' +
+            '<table class="table table-sm table-bordered"><thead><tr><th>Assigned to</th><th>Invoice</th><th class="text-right">Amount</th><th class="text-right">Paid</th><th class="text-right">Due</th></tr></thead><tbody>';
           data.miqaat_invoices.forEach(function(inv) {
             var owner = inv.owner_name || inv.user_id || '';
-            var miqName = inv.miqaat_name || ('#'+inv.miqaat_id);
-            invHtml += '<tr>'
-              + '<td>' + owner + '</td>'
-              + '<td>' + miqName + '</td>'
-              + '<td class="text-right">' + formatINR(inv.amount || 0) + '</td>'
-              + '<td class="text-right">' + formatINR(inv.paid_amount || 0) + '</td>'
-              + '<td class="text-right">' + coloredAmount(inv.due_amount || 0) + '</td>'
-              + '</tr>';
+            var miqName = inv.miqaat_name || ('#' + inv.miqaat_id);
+            invHtml += '<tr>' +
+              '<td>' + owner + '</td>' +
+              '<td>' + miqName + '</td>' +
+              '<td class="text-right">' + formatINR(inv.amount || 0) + '</td>' +
+              '<td class="text-right">' + formatINR(inv.paid_amount || 0) + '</td>' +
+              '<td class="text-right">' + coloredAmount(inv.due_amount || 0) + '</td>' +
+              '</tr>';
           });
           invHtml += '</tbody></table>';
           html += invHtml;
         }
         showDuesModal(html);
       })
-      .catch(function (err) {
+      .catch(function(err) {
         if (submitBtn) submitBtn.disabled = false;
         document.getElementById('raza-form').submit();
       });
   });
 
-  document.getElementById('dues-confirm').addEventListener('click', function () {
-    var submitForm = function() { hideDuesModal(); document.getElementById('raza-form').submit(); };
-    fetch('<?= base_url('accounts/send_dues_email') ?>', { method: 'POST', credentials: 'same-origin' })
-      .then(function(r){ return r.json(); })
-      .then(function(resp){ submitForm(); })
-      .catch(function(){ submitForm(); });
+  document.getElementById('dues-confirm').addEventListener('click', function() {
+    var submitForm = function() {
+      hideDuesModal();
+      document.getElementById('raza-form').submit();
+    };
+    fetch('<?= base_url('accounts/send_dues_email') ?>', {
+        method: 'POST',
+        credentials: 'same-origin'
+      })
+      .then(function(r) {
+        return r.json();
+      })
+      .then(function(resp) {
+        submitForm();
+      })
+      .catch(function() {
+        submitForm();
+      });
   });
 </script>
