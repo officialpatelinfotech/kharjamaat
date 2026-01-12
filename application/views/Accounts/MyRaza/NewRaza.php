@@ -834,20 +834,6 @@
                                     </label></div>
                             </div>
                         </div>
-                        <div id="div_id_raza-fields-qardan_purpose" class="form-group"><label
-                                for="id_raza-fields-qardan_purpose" class="col-form-label  requiredField">
-                                Qardan Purpose<span class="asteriskField">*</span></label>
-                            <div class=""><select name="raza-fields-qardan_purpose" required=""
-                                    class="choicefield required select form-control" id="qardan_purpose">
-                                    <option value=""></option>
-                                    <option value="Automobile">Automobile</option>
-                                    <option value="Business" selected="">Business</option>
-                                    <option value="Deeni">Deeni</option>
-                                    <option value="Education">Education</option>
-                                    <option value="Home">Home</option>
-                                    <option value="Other">Other</option>
-                                </select></div>
-                        </div>
                         <div class="row px-3 gy-1">
 
                             <div class="">
@@ -1050,7 +1036,6 @@
                                     <option value="Hajj">Hajj</option>
                                     <option value="Misaaq">Misaaq</option>
                                     <option value="Nikah">Nikah</option>
-                                    <option value="Qardan Hasanah">Qardan Hasanah</option>
                                     <option value="Renewal">Renewal</option>
                                     <option value="Umrah">Umrah</option>
                                     <option value="Ziyarat">Ziyarat</option>
@@ -1713,50 +1698,6 @@
                     var nextForm = document.getElementById(`${next}`)
                     nextForm.style.display = "block";
                     break;
-                case '16':
-                    var razaDate = document.getElementById('raza-date').value;
-                    var razaTime = document.getElementById('id_raza-time').value;
-                    var areYouInRiba = document.querySelector('input[name="raza-fields-are_you_in_riba_16"]:checked').value;
-                    var qardan_purpose = document.getElementById('qardan_purpose').value;
-                    var otherDetails = document.getElementById('id_raza-other-details').value;
-                    var table = document.getElementById('details-table');
-                    table.innerHTML = `
-                            <thead>
-                                <tr>
-                                    <th scope="col"></th>
-                                    <th scope="col">Review</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <th scope="row">Raza For</th>
-                                    <td>${razaTypeText}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Date</th>
-                                    <td>${razaDate}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Time</th>
-                                    <td>${razaTime}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Are You In Riba</th>
-                                    <td>${areYouInRiba}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Qardan Hasanah Purpose</th>
-                                    <td>${qardan_purpose}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Other Details</th>
-                                    <td>${otherDetails}</td>
-                                </tr>
-                            </tbody>
-                        `;
-                    var nextForm = document.getElementById(`${next}`)
-                    nextForm.style.display = "block";
-                    break;
                 case '08':
                     var razaDate = document.getElementById('raza-date').value;
                     var razaTime = document.getElementById('id_raza-time').value;
@@ -2090,10 +2031,6 @@
                 data['other_information']['personal_menu'] = document.getElementById('personal_event_menu_if_available').value;
                 data['other_information']['personal_thaal_count'] = document.getElementById('personal_event_thaal_count').value;
                 break;
-            case '16':
-                data['other_information']['areYouInRiba'] = document.querySelector('input[name="raza-fields-are_you_in_riba_16"]:checked').value;
-                data['other_information']['qardan_purpose'] = document.getElementById('qardan_purpose').value;
-                break;
             case '08':
                 data['other_information']['areYouInRiba'] = document.querySelector('input[name="raza-fields-are_you_in_riba_08"]:checked').value;
                 break;
@@ -2122,25 +2059,53 @@
                 break;
         }
 
-        $.ajax({
-            type: "POST",
-            url: "<?php echo base_url('accounts/raza_submit') ?>",
-            dataType: "json",
-            success: function (msg) {
-                if (msg) {
-                    window.location.href = '<?php echo base_url('accounts/success/MyRazaRequest') ?>';
-                } else {
-                    window.location.href = '<?php echo base_url('accounts/error/MyRazaRequest') ?>';
+                // Fetch dues first and show confirmation with wajebaat
+                fetch('<?php echo base_url('accounts/get_member_dues') ?>', { credentials: 'same-origin' })
+                    .then(function(r){ return r.json(); })
+                    .then(function(resp){
+                        if (!resp || !resp.success) { doRazaSubmit(data); return; }
+                        var d = resp.dues;
+                        var html = '<table class="table table-sm">'
+                            + '<tr><th>Category</th><th class="text-right">Due</th></tr>'
+                            + '<tr><td>FMB Takhmeen</td><td class="text-right">' + formatINR(d.fmb_due) + '</td></tr>'
+                            + '<tr><td>Sabeel Takhmeen</td><td class="text-right">' + formatINR(d.sabeel_due) + '</td></tr>'
+                            + '<tr><td>General Contributions</td><td class="text-right">' + formatINR(d.gc_due) + '</td></tr>'
+                            + '<tr><td>Miqaat Invoices</td><td class="text-right">' + formatINR(d.miqaat_due) + '</td></tr>'
+                            + '<tr><td>Corpus Fund</td><td class="text-right">' + formatINR(d.corpus_due) + '</td></tr>'
+                            + '<tr><td>Wajebaat</td><td class="text-right">' + formatINR(d.wajebaat_due || 0) + '</td></tr>'
+                            + '<tr><td>Qardan Hasana</td><td class="text-right">' + formatINR(d.qardan_hasana_due || 0) + '</td></tr>'
+                            + '<tr><th>Total</th><th class="text-right">' + formatINR(d.total_due) + '</th></tr>'
+                            + '</table>';
+                        if (d.total_due <= 0) html = '<div class="alert alert-success">No pending dues. You may proceed to submit.</div>' + html;
+                        else html = '<div class="alert alert-warning">You have pending dues. Please review before submitting.</div>' + html;
+                        showDuesModal(html);
+                        document.getElementById('dues-confirm').onclick = function() {
+                            fetch('<?php echo base_url('accounts/send_dues_email') ?>', { method: 'POST', credentials: 'same-origin' })
+                                .finally(function(){ hideDuesModal(); doRazaSubmit(data); });
+                        };
+                    }).catch(function(){ doRazaSubmit(data); });
+
+                function doRazaSubmit(payload) {
+                    $.ajax({
+                        type: "POST",
+                        url: "<?php echo base_url('accounts/raza_submit') ?>",
+                        dataType: "json",
+                        success: function (msg) {
+                                if (msg) {
+                                        window.location.href = '<?php echo base_url('accounts/success/MyRazaRequest') ?>';
+                                } else {
+                                        window.location.href = '<?php echo base_url('accounts/error/MyRazaRequest') ?>';
+                                }
+                        },
+                        error: function (xhr, status, error) {
+                                console.log("AJAX Error: " + status + " - " + error);
+                                setTimeout(function () {
+                                        window.location.href = '<?php echo base_url('accounts/error/MyRazaRequest') ?>';
+                                        }, 1000);
+                        },
+                        data: payload
+                    });
                 }
-            },
-            error: function (xhr, status, error) {
-                console.log("AJAX Error: " + status + " - " + error);
-                setTimeout(function () {
-                    window.location.href = '<?php echo base_url('accounts/error/MyRazaRequest') ?>';
-                    }, 1000);
-            },
-            data: data
-        });
     }
 
 </script>

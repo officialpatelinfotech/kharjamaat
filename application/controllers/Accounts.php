@@ -260,6 +260,24 @@ class Accounts extends CI_Controller
       'funds_count' => $fundsCount,
     ];
 
+    // Wajebaat summary for the logged in member (used on Home page)
+    $this->load->model('WajebaatM');
+    $username_for_waj = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
+    $waj = $this->WajebaatM->get_by_its($username_for_waj);
+    if (empty($waj) && !empty($_SESSION['user_data']['ITS_ID'])) {
+      $waj = $this->WajebaatM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    }
+    $data['wajebaat'] = $waj;
+
+    // Qardan Hasana summary for the logged in member (used on Home page)
+    $this->load->model('QardanHasanaM');
+    $username_for_qh = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
+    $qh = $this->QardanHasanaM->get_by_its($username_for_qh);
+    if (empty($qh) && !empty($_SESSION['user_data']['ITS_ID'])) {
+      $qh = $this->QardanHasanaM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    }
+    $data['qardan_hasana'] = $qh;
+
     // Monthly signup overview using current Hijri month
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
@@ -363,7 +381,45 @@ class Accounts extends CI_Controller
     $data["feedback_data"] = $this->AccountM->get_fmb_feedback_data($user_id);
 
     $this->load->view('Accounts/Header', $data);
-    $this->load->view('Accounts/Home');
+    $this->load->view('Accounts/Home', $data);
+  }
+
+  public function wajebaat()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+    $this->load->model('WajebaatM');
+    $username = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
+    $data['user_name'] = $username;
+    // Attempt to fetch by ITS (username usually stores ITS)
+    $row = $this->WajebaatM->get_by_its($username);
+    // If not found, try ITS from session user_data
+    if (empty($row) && !empty($_SESSION['user_data']['ITS_ID'])) {
+      $row = $this->WajebaatM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    }
+    $data['wajebaat'] = $row;
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/Wajebaat', $data);
+  }
+
+  public function qardan_hasana()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+    $this->load->model('QardanHasanaM');
+    $username = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
+    $data['user_name'] = $username;
+    // Attempt to fetch by ITS (username usually stores ITS)
+    $row = $this->QardanHasanaM->get_by_its($username);
+    // If not found, try ITS from session user_data
+    if (empty($row) && !empty($_SESSION['user_data']['ITS_ID'])) {
+      $row = $this->QardanHasanaM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    }
+    $data['qardan_hasana'] = $row;
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/QardanHasana', $data);
   }
 
   public function assigned_miqaats()
@@ -554,10 +610,10 @@ class Accounts extends CI_Controller
       'tot_paid' => $tot_paid,
       'tot_due' => $tot_due,
     ];
-
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/CorpusFundsDetails', $data);
   }
+  // wajebaat dashboard logic removed
 
   public function general_rsvp($miqaat_id)
   {
@@ -1166,7 +1222,30 @@ class Accounts extends CI_Controller
       }
     }
 
-    $total_due = $fmb_due + $sabeel_due + $gc_due + $miq_due + $corpus_due;
+
+    // Wajebaat outstanding for this user (single-member dues)
+    $wajebaat_due = 0.0;
+    $this->load->model('WajebaatM');
+    $waj_row = $this->WajebaatM->get_by_its($user_id);
+    if (empty($waj_row) && !empty($_SESSION['user_data']['ITS_ID'])) {
+      $waj_row = $this->WajebaatM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    }
+    if (!empty($waj_row) && is_array($waj_row)) {
+      $wajebaat_due = (float)($waj_row['due'] ?? 0);
+    }
+
+    // Qardan Hasana outstanding for this user (single-member dues)
+    $qardan_hasana_due = 0.0;
+    $this->load->model('QardanHasanaM');
+    $qh_row = $this->QardanHasanaM->get_by_its($user_id);
+    if (empty($qh_row) && !empty($_SESSION['user_data']['ITS_ID'])) {
+      $qh_row = $this->QardanHasanaM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    }
+    if (!empty($qh_row) && is_array($qh_row)) {
+      $qardan_hasana_due = (float)($qh_row['due'] ?? 0);
+    }
+
+    $total_due = $fmb_due + $sabeel_due + $gc_due + $miq_due + $corpus_due + $wajebaat_due + $qardan_hasana_due;
 
     $payload = [
       'success' => true,
@@ -1176,6 +1255,8 @@ class Accounts extends CI_Controller
         'gc_due' => round($gc_due, 2),
         'miqaat_due' => round($miq_due, 2),
         'corpus_due' => round($corpus_due, 2),
+        'wajebaat_due' => round($wajebaat_due, 2),
+        'qardan_hasana_due' => round($qardan_hasana_due, 2),
         'total_due' => round($total_due, 2)
       ],
       'miqaat_invoices' => isset($miq_list) ? $miq_list : []

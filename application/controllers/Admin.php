@@ -98,6 +98,38 @@ class Admin extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $data['hofs'] = $this->CorpusFundM->get_active_hofs_with_totals();
     $data['hof_fund_details'] = $this->CorpusFundM->get_all_hof_fund_details();
+    // Compute total paid and pending due per HOF
+    if (!empty($data['hofs']) && is_array($data['hofs'])) {
+      foreach ($data['hofs'] as $k => $h) {
+        $hid = isset($h['HOF_ID']) ? (int)$h['HOF_ID'] : 0;
+        $paidRow = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
+          ->from('corpus_fund_payment')
+          ->where('hof_id', $hid)
+          ->get()->row_array();
+        $paid = isset($paidRow['total_paid']) ? (float)$paidRow['total_paid'] : 0.0;
+        $assigned = isset($h['corpus_total']) ? (float)$h['corpus_total'] : 0.0;
+        $data['hofs'][$k]['total_paid'] = $paid;
+        $data['hofs'][$k]['pending_due'] = max(0, $assigned - $paid);
+        // determine last updated timestamp for this HOF (assignments or payments)
+        $assignLastRow = $this->db->select('MAX(a.created_at) AS assign_last')
+          ->from('corpus_fund_assignment a')
+          ->where('a.hof_id', $hid)
+          ->get()->row_array();
+        $paymentLastRow = $this->db->select('MAX(p.created_at) AS payment_last')
+          ->from('corpus_fund_payment p')
+          ->where('p.hof_id', $hid)
+          ->get()->row_array();
+        $assign_last = isset($assignLastRow['assign_last']) ? $assignLastRow['assign_last'] : null;
+        $payment_last = isset($paymentLastRow['payment_last']) ? $paymentLastRow['payment_last'] : null;
+        $last_updated = null;
+        if ($assign_last && $payment_last) {
+          $last_updated = ($assign_last > $payment_last) ? $assign_last : $payment_last;
+        } else {
+          $last_updated = $assign_last ?: $payment_last ?: null;
+        }
+        $data['hofs'][$k]['last_updated'] = $last_updated;
+      }
+    }
     // Compute hijri years per HOF for filtering
     $hof_hijri_years = [];
     $all_years = [];
@@ -155,6 +187,100 @@ class Admin extends CI_Controller
     $data['sector_sub_map'] = $subSectorMapOut; // used in view JS
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/CorpusHofs', $data);
+  }
+
+  public function corpusfunds_hofs_import()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      if (empty($_FILES['csv_file']['tmp_name'])) {
+        $this->session->set_flashdata('error', 'No file uploaded');
+        redirect('admin/corpusfunds_hofs_import');
+        return;
+      }
+      $fh = fopen($_FILES['csv_file']['tmp_name'], 'r');
+      if (!$fh) {
+        $this->session->set_flashdata('error', 'Unable to open uploaded file');
+        redirect('admin/corpusfunds_hofs_import');
+        return;
+      }
+      $processed = 0; $inserted = 0; $updated = 0;
+      $first = fgetcsv($fh);
+      $hasHeader = false;
+      if ($first !== false) {
+        $lower = array_map('strtolower', $first);
+        if (in_array('hof_id', $lower) || in_array('hof id', $lower)) {
+          $hasHeader = true;
+        } else {
+          // treat as data row
+          $row = $first;
+          if (!empty($row)) {
+            $processed++;
+            $hof_id = isset($row[0]) ? (int)trim($row[0]) : 0;
+            $fund_id = isset($row[1]) ? (int)trim($row[1]) : 0;
+            $amount = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
+            if ($hof_id > 0 && $fund_id > 0) {
+              $exists = $this->db->get_where('corpus_fund_assignment', ['hof_id'=>$hof_id, 'fund_id'=>$fund_id])->row_array();
+              if ($exists) {
+                $this->db->where('id', $exists['id'])->update('corpus_fund_assignment', ['amount_assigned'=>$amount]);
+                $updated++;
+              } else {
+                $this->db->insert('corpus_fund_assignment', ['hof_id'=>$hof_id, 'fund_id'=>$fund_id, 'amount_assigned'=>$amount, 'created_at'=>date('Y-m-d H:i:s')]);
+                $inserted++;
+              }
+            }
+          }
+        }
+      }
+      while (($row = fgetcsv($fh)) !== false) {
+        $processed++;
+        $hof_id = isset($row[0]) ? (int)trim($row[0]) : 0;
+        $fund_id = isset($row[1]) ? (int)trim($row[1]) : 0;
+        $amount = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
+        if ($hof_id > 0 && $fund_id > 0) {
+          $exists = $this->db->get_where('corpus_fund_assignment', ['hof_id'=>$hof_id, 'fund_id'=>$fund_id])->row_array();
+          if ($exists) {
+            $this->db->where('id', $exists['id'])->update('corpus_fund_assignment', ['amount_assigned'=>$amount]);
+            $updated++;
+          } else {
+            $this->db->insert('corpus_fund_assignment', ['hof_id'=>$hof_id, 'fund_id'=>$fund_id, 'amount_assigned'=>$amount, 'created_at'=>date('Y-m-d H:i:s')]);
+            $inserted++;
+          }
+        }
+      }
+      fclose($fh);
+      $this->session->set_flashdata('message', "Import completed: $inserted inserted, $updated updated from $processed rows");
+      redirect('admin/corpusfunds_hofs');
+      return;
+    }
+
+    $data['message'] = $this->session->flashdata('message');
+    $data['error'] = $this->session->flashdata('error');
+    // Load existing assignments for display
+    $rows = $this->db->select('a.*, f.title AS fund_title, u.Full_Name, u.ITS_ID')
+      ->from('corpus_fund_assignment a')
+      ->join('corpus_fund f', 'f.id = a.fund_id', 'left')
+      ->join('user u', 'u.HOF_ID = a.hof_id', 'left')
+      ->order_by('a.hof_id, a.fund_id')
+      ->get()->result_array();
+    $data['assignments'] = $rows;
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/CorpusHofsImport', $data);
+  }
+
+  public function corpusfunds_hofs_template()
+  {
+    $this->validateUser($_SESSION['user']);
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename=corpusfunds_hofs_template.csv');
+    echo "\xEF\xBB\xBF";
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['hof_id', 'fund_id', 'amount_assigned']);
+    for ($i=0;$i<5;$i++) fputcsv($out, ['', '', '']);
+    fclose($out);
+    exit;
   }
 
   public function corpusfunds_update_assignments()
@@ -601,6 +727,312 @@ class Admin extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Miqaat', $data);
+  }
+
+  public function wajebaat()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('WajebaatM');
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['wajebaat'] = $this->WajebaatM->get_all();
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/Wajebaat', $data);
+  }
+
+  public function wajebaat_import()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('WajebaatM');
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $normalizeHeader = function ($h) {
+      $h = is_string($h) ? $h : '';
+      // Strip UTF-8 BOM if present
+      $h = preg_replace('/^\xEF\xBB\xBF/', '', $h);
+      $h = trim(strtolower($h));
+      // Normalize spaces/underscores
+      $h = str_replace([' ', '-'], '_', $h);
+      return $h;
+    };
+
+    $isValidIts = function ($its) {
+      $its = is_string($its) ? trim($its) : '';
+      // ITS should be numeric; reject header-like values
+      return ($its !== '' && preg_match('/^\d+$/', $its));
+    };
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      if (empty($_FILES['csv_file']['tmp_name'])) {
+        $this->session->set_flashdata('error', 'No file uploaded');
+        redirect('admin/wajebaat_import');
+        return;
+      }
+      $fh = fopen($_FILES['csv_file']['tmp_name'], 'r');
+      if (!$fh) {
+        $this->session->set_flashdata('error', 'Unable to open uploaded file');
+        redirect('admin/wajebaat_import');
+        return;
+      }
+      $processed = 0;
+      $inserted = 0;
+      $updated = 0;
+      $skipped = 0;
+      // Optional header row detection: peek first line
+      $first = fgetcsv($fh);
+      $hasHeader = false;
+      if ($first !== false) {
+        $headers = array_map($normalizeHeader, $first);
+        if (in_array('its_id', $headers, true)) {
+          $hasHeader = true;
+        } else {
+          // not header, process as data row
+          $row = $first;
+          if (!empty($row)) {
+            $processed++;
+            $its = isset($row[0]) ? trim($row[0]) : '';
+            $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
+            $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
+            if ($isValidIts($its)) {
+              $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
+              if ($res['action'] === 'inserted') $inserted++;
+              elseif ($res['action'] === 'updated') $updated++;
+            } else {
+              $skipped++;
+            }
+          }
+        }
+      }
+
+      while (($row = fgetcsv($fh)) !== false) {
+        $processed++;
+        $its = isset($row[0]) ? trim($row[0]) : '';
+        $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
+        $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
+        if ($isValidIts($its)) {
+          $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
+          if ($res['action'] === 'inserted') $inserted++;
+          elseif ($res['action'] === 'updated') $updated++;
+        } else {
+          $skipped++;
+        }
+      }
+      fclose($fh);
+      $this->session->set_flashdata('message', "Import completed: $inserted inserted, $updated updated, $skipped skipped from $processed rows");
+      redirect('admin/wajebaat');
+      return;
+    }
+
+    $data['message'] = $this->session->flashdata('message');
+    $data['error'] = $this->session->flashdata('error');
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/WajebaatImport', $data);
+  }
+
+  public function wajebaat_export()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('WajebaatM');
+    $rows = $this->WajebaatM->get_all();
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename=wajebaat_export_' . date('Ymd_His') . '.csv');
+    echo "\xEF\xBB\xBF"; // BOM
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['id', 'ITS_ID', 'amount', 'due', 'created_at']);
+    foreach ($rows as $r) {
+      fputcsv($out, [$r['id'], $r['ITS_ID'], $r['amount'], $r['due'], $r['created_at']]);
+    }
+    fclose($out);
+    exit;
+  }
+
+  public function wajebaat_template()
+  {
+    $this->validateUser($_SESSION['user']);
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename=wajebaat_template_5row.csv');
+    echo "\xEF\xBB\xBF"; // BOM
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['ITS_ID', 'amount', 'due']);
+    for ($i = 0; $i < 5; $i++) {
+      fputcsv($out, ['', '', '']);
+    }
+    fclose($out);
+    exit;
+  }
+
+  public function wajebaat_delete()
+  {
+    $this->validateUser($_SESSION['user']);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      redirect('admin/wajebaat');
+      return;
+    }
+    // optional confirmation flag
+    $confirm = $this->input->post('confirm');
+    if ($confirm !== '1' && $confirm !== 1) {
+      $this->session->set_flashdata('error', 'Delete not confirmed');
+      redirect('admin/wajebaat_import');
+      return;
+    }
+    // Truncate table (remove all rows)
+    $this->db->query('TRUNCATE TABLE `wajebaat`');
+    $this->session->set_flashdata('message', 'All Wajebaat records deleted');
+    redirect('admin/wajebaat');
+  }
+
+  public function qardan_hasana()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('QardanHasanaM');
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['qardan_hasana'] = $this->QardanHasanaM->get_all();
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/QardanHasana', $data);
+  }
+
+  public function qardan_hasana_import()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('QardanHasanaM');
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $normalizeHeader = function ($h) {
+      $h = is_string($h) ? $h : '';
+      // Strip UTF-8 BOM if present
+      $h = preg_replace('/^\xEF\xBB\xBF/', '', $h);
+      $h = trim(strtolower($h));
+      // Normalize spaces/underscores
+      $h = str_replace([' ', '-'], '_', $h);
+      return $h;
+    };
+
+    $isValidIts = function ($its) {
+      $its = is_string($its) ? trim($its) : '';
+      // ITS should be numeric; reject header-like values
+      return ($its !== '' && preg_match('/^\d+$/', $its));
+    };
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      if (empty($_FILES['csv_file']['tmp_name'])) {
+        $this->session->set_flashdata('error', 'No file uploaded');
+        redirect('admin/qardan_hasana_import');
+        return;
+      }
+      $fh = fopen($_FILES['csv_file']['tmp_name'], 'r');
+      if (!$fh) {
+        $this->session->set_flashdata('error', 'Unable to open uploaded file');
+        redirect('admin/qardan_hasana_import');
+        return;
+      }
+      $processed = 0;
+      $inserted = 0;
+      $updated = 0;
+      $skipped = 0;
+      // Optional header row detection: peek first line
+      $first = fgetcsv($fh);
+      $hasHeader = false;
+      if ($first !== false) {
+        $headers = array_map($normalizeHeader, $first);
+        if (in_array('its_id', $headers, true)) {
+          $hasHeader = true;
+        } else {
+          // not header, process as data row
+          $row = $first;
+          if (!empty($row)) {
+            $processed++;
+            $its = isset($row[0]) ? trim($row[0]) : '';
+            $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
+            $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
+            if ($isValidIts($its)) {
+              $res = $this->QardanHasanaM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
+              if ($res['action'] === 'inserted') $inserted++;
+              elseif ($res['action'] === 'updated') $updated++;
+            }
+            else {
+              $skipped++;
+            }
+          }
+        }
+      }
+
+      while (($row = fgetcsv($fh)) !== false) {
+        $processed++;
+        $its = isset($row[0]) ? trim($row[0]) : '';
+        $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
+        $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
+        if ($isValidIts($its)) {
+          $res = $this->QardanHasanaM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
+          if ($res['action'] === 'inserted') $inserted++;
+          elseif ($res['action'] === 'updated') $updated++;
+        }
+        else {
+          $skipped++;
+        }
+      }
+      fclose($fh);
+      $this->session->set_flashdata('message', "Import completed: $inserted inserted, $updated updated, $skipped skipped from $processed rows");
+      redirect('admin/qardan_hasana');
+      return;
+    }
+
+    $data['message'] = $this->session->flashdata('message');
+    $data['error'] = $this->session->flashdata('error');
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/QardanHasanaImport', $data);
+  }
+
+  public function qardan_hasana_export()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('QardanHasanaM');
+    $rows = $this->QardanHasanaM->get_all();
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename=qardan_hasana_export_' . date('Ymd_His') . '.csv');
+    echo "\xEF\xBB\xBF"; // BOM
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['id', 'ITS_ID', 'amount', 'due', 'created_at']);
+    foreach ($rows as $r) {
+      fputcsv($out, [$r['id'], $r['ITS_ID'], $r['amount'], $r['due'], $r['created_at']]);
+    }
+    fclose($out);
+    exit;
+  }
+
+  public function qardan_hasana_template()
+  {
+    $this->validateUser($_SESSION['user']);
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename=qardan_hasana_template_5row.csv');
+    echo "\xEF\xBB\xBF"; // BOM
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['ITS_ID', 'amount', 'due']);
+    for ($i = 0; $i < 5; $i++) {
+      fputcsv($out, ['', '', '']);
+    }
+    fclose($out);
+    exit;
+  }
+
+  public function qardan_hasana_delete()
+  {
+    $this->validateUser($_SESSION['user']);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      redirect('admin/qardan_hasana');
+      return;
+    }
+    // optional confirmation flag
+    $confirm = $this->input->post('confirm');
+    if ($confirm !== '1' && $confirm !== 1) {
+      $this->session->set_flashdata('error', 'Delete not confirmed');
+      redirect('admin/qardan_hasana_import');
+      return;
+    }
+    // Truncate table (remove all rows)
+    $this->db->query('TRUNCATE TABLE `qardan_hasana`');
+    $this->session->set_flashdata('message', 'All Qardan Hasana records deleted');
+    redirect('admin/qardan_hasana');
   }
 
   public function approveRaza()

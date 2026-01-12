@@ -29,7 +29,9 @@
   }
 </style>
 <div class="container margintopcontainer pt-5">
-  <a href="<?php echo site_url('admin/corpusfunds'); ?>" class="btn btn-outline-secondary mb-3"><i class="fa fa-arrow-left"></i></a>
+  <div class="d-flex justify-content-between mb-3">
+    <a href="<?php echo site_url('admin/corpusfunds'); ?>" class="btn btn-outline-secondary"><i class="fa fa-arrow-left"></i></a>
+  </div>
   <h4 class="heading text-center mb-3">Corpus Funds Assigned</h4>
   <form id="hofFilters" class="mb-3 p-3 border rounded bg-light">
     <div class="row">
@@ -82,6 +84,8 @@
               <th data-sort="string">Sub-Sector</th>
               <th data-sort="number">Funds Count</th>
               <th data-sort="number">Corpus Total (₹)</th>
+              <th data-sort="number">Total Paid (₹)</th>
+              <th data-sort="number">Pending Due (₹)</th>
               <th data-sort="none">Actions</th>
             </tr>
           </thead>
@@ -94,7 +98,8 @@
                   data-name="<?php echo strtolower(htmlspecialchars($h['Full_Name'])); ?>"
                   data-sector="<?php echo strtolower(htmlspecialchars($h['Sector'])); ?>"
                   data-subsector="<?php echo strtolower(htmlspecialchars($h['Sub_Sector'])); ?>"
-                  data-hijri-years="<?php echo htmlspecialchars($years); ?>">
+                  data-hijri-years="<?php echo htmlspecialchars($years); ?>"
+                  data-last-updated="<?php echo htmlspecialchars(isset($h['last_updated']) ? $h['last_updated'] : ''); ?>">
                   <td><?php echo $i++; ?></td>
                   <td><?php echo htmlspecialchars($h['ITS_ID']); ?></td>
                   <td><?php echo htmlspecialchars($h['Full_Name']); ?></td>
@@ -102,8 +107,11 @@
                   <td><?php echo htmlspecialchars($h['Sub_Sector']); ?></td>
                   <td><?php echo isset($h['corpus_count']) ? (int)$h['corpus_count'] : (isset($hof_fund_details[$hid]) ? count($hof_fund_details[$hid]) : 0); ?></td>
                   <td>₹<?php echo format_inr_no_decimals($total); ?></td>
+                  <td>₹<?php echo format_inr_no_decimals(isset($h['total_paid']) ? $h['total_paid'] : 0); ?></td>
+                  <td>₹<?php echo format_inr_no_decimals(isset($h['pending_due']) ? $h['pending_due'] : 0); ?></td>
                   <td>
                     <?php if ($total > 0 && isset($hof_fund_details[$hid])): ?>
+                      <button type="button" class="btn btn-sm btn-info me-1 view-details-btn" data-hof="<?php echo $hid; ?>">View Details</button>
                       <button type="button" class="btn btn-sm btn-primary view-funds-btn" data-hof="<?php echo $hid; ?>">View Funds</button>
                     <?php else: ?>
                       <button type="button" class="btn btn-sm btn-secondary" disabled>None</button>
@@ -434,6 +442,42 @@
         } [s]);
       });
     }
+  })();
+  // HOF Details modal logic
+  (function() {
+    // create details modal markup
+    var detailsModal = document.createElement('div');
+    detailsModal.className = 'modal';
+    detailsModal.id = 'hofDetailsModal';
+    detailsModal.setAttribute('tabindex', '-1');
+    detailsModal.style.cssText = 'display:none; background:rgba(0,0,0,0.5); position:fixed; top:0; left:0; right:0; bottom:0;';
+    detailsModal.innerHTML = '\n      <div class="modal-dialog" role="document" style="max-width:420px; margin:80px auto; width:95%;">\n        <div class="modal-content">\n          <div class="modal-header">\n            <h5 class="modal-title">Corpus Fund Details</h5>\n            <button type="button" class="close" data-close-details aria-label="Close" style="border:none; background:transparent; font-size:24px; line-height:1;">&times;</button>\n          </div>\n          <div class="modal-body">\n            <div class="small text-muted">Name</div><div id="hofDetailsName" class="mb-2"></div>\n            <div class="small text-muted">ITS ID</div><div id="hofDetailsITS" class="mb-2"></div>\n            <div class="small text-muted">Amount</div><div id="hofDetailsAmount" class="mb-2"></div>\n            <div class="small text-muted">Due</div><div id="hofDetailsDue" class="mb-2"></div>\n            <div class="small text-muted">Last Updated</div><div id="hofDetailsLast" class="mb-2"></div>\n          </div>\n          <div class="modal-footer">\n            <button type="button" class="btn btn-secondary" data-close-details>Close</button>\n          </div>\n        </div>\n      </div>';
+    document.body.appendChild(detailsModal);
+
+    function open() { detailsModal.style.display = 'block'; }
+    function close() { detailsModal.style.display = 'none'; }
+    detailsModal.addEventListener('click', function(e) { if (e.target === detailsModal) close(); });
+    [].forEach.call(detailsModal.querySelectorAll('[data-close-details]'), function(b){ b.addEventListener('click', close); });
+
+    function formatVal(v) { return v ? v : '—'; }
+
+    [].forEach.call(document.querySelectorAll('.view-details-btn'), function(btn) {
+      btn.addEventListener('click', function() {
+        var hid = this.getAttribute('data-hof');
+        var tr = this.closest('tr');
+        var name = tr ? tr.children[2].textContent.trim() : '';
+        var its = tr ? tr.children[1].textContent.trim() : '';
+        var amount = tr ? tr.children[6].textContent.trim() : '';
+        var due = tr ? tr.children[8].textContent.trim() : '';
+        var last = tr ? tr.getAttribute('data-last-updated') : '';
+        document.getElementById('hofDetailsName').textContent = formatVal(name);
+        document.getElementById('hofDetailsITS').textContent = formatVal(its);
+        document.getElementById('hofDetailsAmount').textContent = formatVal(amount);
+        document.getElementById('hofDetailsDue').textContent = formatVal(due);
+        document.getElementById('hofDetailsLast').textContent = formatVal(last ? last : '—');
+        open();
+      });
+    });
   })();
   // Filtering logic
   (function() {

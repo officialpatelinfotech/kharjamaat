@@ -6,12 +6,12 @@
     <a href="<?php echo base_url('accounts/home'); ?>" class="btn btn-outline-secondary me-2"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
   <h4 class="text-center mb-3">Corpus Funds Details</h4>
-
   <?php
   $tot_assigned = isset($corpus_details['tot_assigned']) ? (float)$corpus_details['tot_assigned'] : 0;
   $tot_paid     = isset($corpus_details['tot_paid']) ? (float)$corpus_details['tot_paid'] : 0;
   $tot_due      = isset($corpus_details['tot_due']) ? (float)$corpus_details['tot_due'] : 0;
   ?>
+
   <div class="dashboard-card">
     <div class="card-header">
       <span>Summary</span>

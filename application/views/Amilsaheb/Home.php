@@ -817,6 +817,8 @@
           <li><a class="menu-item" href="<?php echo base_url('common/fmbtakhmeen?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-hand-holding-heart"></i></span><span class="menu-label">FMB Thaali Takhmeen</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/fmb_general_contributions?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-inr"></i></span><span class="menu-label">FMB General Contributions</span></a></li>
           <li><a class="menu-item" href="<?= base_url('amilsaheb/corpusfunds_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('amilsaheb/wajebaat_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('amilsaheb/qardan_hasana_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-handshake"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
         </ul>
 
         <div class="menu-section">Reports</div>
@@ -2172,6 +2174,17 @@
               .corpus-summary .stats-value::after {
                 content: none !important;
               }
+
+              /* Wajebaat/Qardan cards: show full values and no forced decimals */
+              .wq-summary-card .stats-value::after {
+                content: none !important;
+              }
+              .wq-summary-card .stats-value {
+                white-space: normal;
+                overflow: visible;
+                text-overflow: unset;
+                word-break: break-word;
+              }
             </style>
             <a href="<?= base_url('amilsaheb/corpusfunds_details'); ?>" class="text-decoration-none d-block">
               <div class="chart-container compact h-100 corpus-summary clickable"
@@ -2209,6 +2222,83 @@
                 </div>
               </div>
             </a>
+          </div>
+
+          <?php
+          $wa = isset($dashboard_data['wajebaat_summary']) && is_array($dashboard_data['wajebaat_summary'])
+            ? $dashboard_data['wajebaat_summary']
+            : ['count' => 0, 'total' => 0, 'received' => 0, 'due' => 0];
+          $qh = isset($dashboard_data['qardan_hasana_summary']) && is_array($dashboard_data['qardan_hasana_summary'])
+            ? $dashboard_data['qardan_hasana_summary']
+            : ['count' => 0, 'total' => 0, 'received' => 0, 'due' => 0];
+          ?>
+          <div class="col-12 mb-4">
+            <div class="row g-2">
+              <div class="col-12 mb-3">
+                <a href="<?= base_url('amilsaheb/wajebaat_details'); ?>" class="text-decoration-none d-block">
+                  <div class="chart-container compact h-100 clickable wq-summary-card">
+                    <div class="d-flex align-items-center mb-2">
+                      <h5 class="chart-title m-0">Wajebaat</h5>
+                    </div>
+                    <div class="row text-center g-2">
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-primary">₹<?= format_inr_no_decimals((int)($wa['total'] ?? 0)); ?></div>
+                          <div class="stats-label">Total</div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-success">₹<?= format_inr_no_decimals((int)($wa['received'] ?? 0)); ?></div>
+                          <div class="stats-label">Received</div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-danger">₹<?= format_inr_no_decimals((int)($wa['due'] ?? 0)); ?></div>
+                          <div class="stats-label">Pending</div>
+                        </div>
+                      </div>
+                      <div class="col-12 mt-2">
+                        <span class="btn btn-sm btn-outline-secondary">View All</span>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </div>
+              <div class="col-12">
+                <a href="<?= base_url('amilsaheb/qardan_hasana_details'); ?>" class="text-decoration-none d-block">
+                  <div class="chart-container compact h-100 clickable wq-summary-card">
+                    <div class="d-flex align-items-center mb-2">
+                      <h5 class="chart-title m-0">Qardan Hasana</h5>
+                    </div>
+                    <div class="row text-center g-2">
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-primary">₹<?= format_inr_no_decimals((int)($qh['total'] ?? 0)); ?></div>
+                          <div class="stats-label">Total</div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-success">₹<?= format_inr_no_decimals((int)($qh['received'] ?? 0)); ?></div>
+                          <div class="stats-label">Received</div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-danger">₹<?= format_inr_no_decimals((int)($qh['due'] ?? 0)); ?></div>
+                          <div class="stats-label">Pending</div>
+                        </div>
+                      </div>
+                      <div class="col-12 mt-2">
+                        <span class="btn btn-sm btn-outline-secondary">View All</span>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </div>
+            </div>
           </div>
 
           <div class="col-12">

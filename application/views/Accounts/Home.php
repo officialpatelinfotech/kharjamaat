@@ -347,6 +347,22 @@
       </a>
     </div>
     <div class="col-6 mt-3 col-md-3 col-xl-2">
+      <a href="<?php echo base_url('accounts/wajebaat') ?>" aria-label="Wajebaat" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
+        <div class="stat-icon-wrap mb-1">
+          <i class="fa fa-coins"></i>
+        </div>
+        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Wajebaat</span>
+      </a>
+    </div>
+    <div class="col-6 mt-3 col-md-3 col-xl-2">
+      <a href="<?php echo base_url('accounts/qardan_hasana') ?>" aria-label="Qardan Hasana" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
+        <div class="stat-icon-wrap mb-1">
+          <i class="fa fa-handshake-o"></i>
+        </div>
+        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Qardan Hasana</span>
+      </a>
+    </div>
+    <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/appointment') ?>" aria-label="Appointments" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-calendar"></i>
@@ -730,13 +746,77 @@
       </div>
 
 
-      <!-- <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1">
-          <div class="card-header">My Appointments</div>
-          <div class="card-body">
-          </div>
-        </div>
-      </div> -->
+      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
+            <div class="dashboard-card mx-1">
+              <div class="card-header">
+                <span>Wajebaat</span>
+              </div>
+              <?php
+              $w = isset($wajebaat) ? $wajebaat : null;
+              $wa_fmt = function ($n) { return format_inr_no_decimals($n ?? 0); };
+              ?>
+              <div class="card-body no-scroll" style="height:auto;">
+                <div class="row mb-2 text-center">
+                  <div class="col-6 mb-2">
+                    <div class="mini-card">
+                      <div class="stats-value text-success">₹<?php echo $wa_fmt($w['amount'] ?? 0); ?></div>
+                      <div class="stats-label">Total Assigned</div>
+                    </div>
+                  </div>
+                  <div class="col-6 mb-2">
+                    <div class="mini-card">
+                      <div class="stats-value text-danger">₹<?php echo $wa_fmt($w['due'] ?? 0); ?></div>
+                      <div class="stats-label">Outstanding</div>
+                    </div>
+                  </div>
+                </div>
+                <p class="text-center text-muted mb-2" style="font-size:0.8rem;">Last updated: <?php
+                    $last = '';
+                    if (!empty($w['updated_at'])) $last = $w['updated_at'];
+                    elseif (!empty($w['created_at'])) $last = $w['created_at'];
+                    echo $last ? date('d-m-Y', strtotime($last)) : 'Not available';
+                  ?></p>
+                <div class="text-center"><a href="<?php echo base_url('accounts/wajebaat'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
+              </div>
+            </div>
+
+      </div>
+
+      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
+            <div class="dashboard-card mx-1">
+              <div class="card-header">
+                <span>Qardan Hasana</span>
+              </div>
+              <?php
+              $qh = isset($qardan_hasana) ? $qardan_hasana : null;
+              $qh_fmt = function ($n) { return format_inr_no_decimals($n ?? 0); };
+              ?>
+              <div class="card-body no-scroll" style="height:auto;">
+                <div class="row mb-2 text-center">
+                  <div class="col-6 mb-2">
+                    <div class="mini-card">
+                      <div class="stats-value text-success">₹<?php echo $qh_fmt($qh['amount'] ?? 0); ?></div>
+                      <div class="stats-label">Total Assigned</div>
+                    </div>
+                  </div>
+                  <div class="col-6 mb-2">
+                    <div class="mini-card">
+                      <div class="stats-value text-danger">₹<?php echo $qh_fmt($qh['due'] ?? 0); ?></div>
+                      <div class="stats-label">Outstanding</div>
+                    </div>
+                  </div>
+                </div>
+                <p class="text-center text-muted mb-2" style="font-size:0.8rem;">Last updated: <?php
+                    $last = '';
+                    if (!empty($qh['updated_at'])) $last = $qh['updated_at'];
+                    elseif (!empty($qh['created_at'])) $last = $qh['created_at'];
+                    echo $last ? date('d-m-Y', strtotime($last)) : 'Not available';
+                  ?></p>
+                <div class="text-center"><a href="<?php echo base_url('accounts/qardan_hasana'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
+              </div>
+            </div>
+
+      </div>
     </div>
   </div>
   <div class="continer d-flex justify-content-center">

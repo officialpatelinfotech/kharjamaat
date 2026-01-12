@@ -207,6 +207,22 @@
     font-weight: 700;
   }
 
+  /* Corpus: ensure no forced decimal suffix */
+  .corpus-summary .stats-value::after {
+    content: none !important;
+  }
+
+  /* Wajebaat/Qardan cards: show full values and no forced decimals */
+  .wq-summary-card .stats-value::after {
+    content: none !important;
+  }
+  .wq-summary-card .stats-value {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: break-word;
+  }
+
   /* Modal corpus amounts */
   #corpusFundsModal .modal-body strong {
     font-size: 1.15rem;
@@ -1067,6 +1083,8 @@
           <li><a class="menu-item" href="<?php echo base_url('anjuman/sabeeltakhmeendashboard') ?>"><span class="menu-icon"><i class="fa-solid fa-hand-holding-heart"></i></span><span class="menu-label">Sabeel Module</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/corpusfunds_receive'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/financials'); ?>"><span class="menu-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span><span class="menu-label">Individual Financial Details</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('anjuman/wajebaat'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('anjuman/qardan_hasana'); ?>"><span class="menu-icon"><i class="fa-solid fa-handshake"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
         </ul>
       </div>
     </div>
@@ -2931,6 +2949,84 @@
                 </div>
               </div>
             </div>
+
+          </div>
+
+          <?php
+          $wa = isset($dashboard_data['wajebaat_summary']) && is_array($dashboard_data['wajebaat_summary'])
+            ? $dashboard_data['wajebaat_summary']
+            : ['count' => 0, 'total' => 0, 'received' => 0, 'due' => 0];
+          $qh = isset($dashboard_data['qardan_hasana_summary']) && is_array($dashboard_data['qardan_hasana_summary'])
+            ? $dashboard_data['qardan_hasana_summary']
+            : ['count' => 0, 'total' => 0, 'received' => 0, 'due' => 0];
+          ?>
+          <div class="col-md-12 mb-3 mb-md-3">
+            <div class="row g-2">
+              <div class="col-12 mb-3">
+                <a href="<?= base_url('anjuman/wajebaat'); ?>" class="text-decoration-none d-block">
+                  <div class="chart-container compact h-100 clickable wq-summary-card">
+                    <div class="d-flex align-items-center mb-2">
+                      <h5 class="chart-title m-0">Wajebaat</h5>
+                    </div>
+                    <div class="row text-center g-2">
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-primary">₹<?= format_inr((int)($wa['total'] ?? 0)); ?></div>
+                          <div class="stats-label">Total</div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-success">₹<?= format_inr((int)($wa['received'] ?? 0)); ?></div>
+                          <div class="stats-label">Received</div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-danger">₹<?= format_inr((int)($wa['due'] ?? 0)); ?></div>
+                          <div class="stats-label">Pending</div>
+                        </div>
+                      </div>
+                      <div class="col-12 mt-2">
+                        <span class="btn btn-sm btn-outline-secondary">View All</span>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </div>
+              <div class="col-12">
+                <a href="<?= base_url('anjuman/qardan_hasana'); ?>" class="text-decoration-none d-block">
+                  <div class="chart-container compact h-100 clickable wq-summary-card">
+                    <div class="d-flex align-items-center mb-2">
+                      <h5 class="chart-title m-0">Qardan Hasana</h5>
+                    </div>
+                    <div class="row text-center g-2">
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-primary">₹<?= format_inr((int)($qh['total'] ?? 0)); ?></div>
+                          <div class="stats-label">Total</div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-success">₹<?= format_inr((int)($qh['received'] ?? 0)); ?></div>
+                          <div class="stats-label">Received</div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-4">
+                        <div class="mini-card" style="margin-bottom:8px;">
+                          <div class="stats-value text-danger">₹<?= format_inr((int)($qh['due'] ?? 0)); ?></div>
+                          <div class="stats-label">Pending</div>
+                        </div>
+                      </div>
+                      <div class="col-12 mt-2">
+                        <span class="btn btn-sm btn-outline-secondary">View All</span>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </div>
+            </div>
           </div>
           <div class="col-md-12">
             <div class="chart-container h-100">
@@ -3367,9 +3463,9 @@
     })();
   </script>
   <script>
-    // Remove decimal points from corpus summary amounts on Anjuman dashboard
+    // Remove decimal points from currency summary amounts on Anjuman dashboard
     (function() {
-      $('.corpus-summary .stats-value').each(function() {
+      $('.corpus-summary .stats-value, .wq-summary-card .stats-value').each(function() {
         var txt = $(this).text();
         var m = txt.match(/^(₹?)([0-9,]+)(?:\.[0-9]+)?$/);
         if (m) {
