@@ -67,6 +67,14 @@ $route['accounts/corpusfunds'] = 'accounts/corpusfunds_details';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
+// Expense module routes
+$route['admin/expense'] = 'Admin/expense';
+$route['admin/expense/source-of-funds'] = 'Admin/expense_source_of_funds';
+$route['admin/expense/source-create'] = 'Admin/expense_source_create';
+$route['admin/expense/source-update'] = 'Admin/expense_source_update';
+$route['admin/expense/source-delete'] = 'Admin/expense_source_delete';
+
+
 // CLI/Cron routes (important on case-sensitive servers)
 $route['emailworker'] = 'EmailWorker';
 

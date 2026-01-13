@@ -114,6 +114,49 @@ class Anjuman extends CI_Controller
       'dashboard_data' => $dashboard_data
     ];
 
+    // Expense dashboard: status breakdown for Source of Funds and Area of Spend
+    $expense_dashboard = [
+      'sources' => ['active' => 0, 'inactive' => 0],
+      'areas_available' => false,
+      'areas' => ['active' => 0, 'inactive' => 0],
+    ];
+
+    // Source of Funds (expense_sources)
+    if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_sources')) {
+      $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_sources')->group_by('status')->get()->result_array();
+      foreach ($rows as $r) {
+        $st = $r['status'] ?? '';
+        $cnt = (int)($r['cnt'] ?? 0);
+        $isActive = false;
+        if (is_numeric($st)) {
+          $isActive = ((int)$st) === 1;
+        } else {
+          $isActive = strtolower(trim((string)$st)) === 'active';
+        }
+        if ($isActive) $expense_dashboard['sources']['active'] += $cnt;
+        else $expense_dashboard['sources']['inactive'] += $cnt;
+      }
+    }
+
+    // Area of Spend (optional table: expense_areas)
+    if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_areas')) {
+      $expense_dashboard['areas_available'] = true;
+      $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_areas')->group_by('status')->get()->result_array();
+      foreach ($rows as $r) {
+        $st = $r['status'] ?? '';
+        $cnt = (int)($r['cnt'] ?? 0);
+        $isActive = false;
+        if (is_numeric($st)) {
+          $isActive = ((int)$st) === 1;
+        } else {
+          $isActive = strtolower(trim((string)$st)) === 'active';
+        }
+        if ($isActive) $expense_dashboard['areas']['active'] += $cnt;
+        else $expense_dashboard['areas']['inactive'] += $cnt;
+      }
+    }
+    $data['expense_dashboard'] = $expense_dashboard;
+
     // Member types distribution for dashboard (reusing AmilsahebM helper)
     $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
 
@@ -200,6 +243,46 @@ class Anjuman extends CI_Controller
     $this->load->view('Anjuman/Header', $data);
     // Reuse the same directory view used by Amilsaheb
     $this->load->view('Amilsaheb/Mumineendirectory', $data);
+  }
+
+  public function wajebaat()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('WajebaatM');
+    $data['wajebaat_rows'] = $this->WajebaatM->get_all();
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/WajebaatDetails', $data);
+  }
+
+  public function qardan_hasana()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('QardanHasanaM');
+    $data['qardan_hasana_rows'] = $this->QardanHasanaM->get_all();
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/QardanHasanaDetails', $data);
+  }
+
+  public function expense()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    // Read-only expense landing for Jamaat users (initially shows Source of Funds)
+    $this->load->model('ExpenseSourceM');
+    $data['sources'] = $this->ExpenseSourceM->get_all();
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/Expense', $data);
   }
 
   public function update_user_details()
@@ -311,6 +394,10 @@ class Anjuman extends CI_Controller
       }
     }
 
+    // Wajebaat & Qardan Hasana (simple aggregates)
+    $wajebaat_summary = $this->get_wajebaat_summary();
+    $qardan_hasana_summary = $this->get_qardan_hasana_summary();
+
     return [
       'sabeel_summary' => $sabeel_summary,
       'thaali_summary' => $thaali_summary,
@@ -337,6 +424,46 @@ class Anjuman extends CI_Controller
       'no_thaali_families_month' => $no_thaali_month_list,
       'upcoming_miqaats' => $upcoming_miqaats,
       'miqaat_rsvp' => $this->CommonM->get_next_miqaat_rsvp_stats(),
+      'wajebaat_summary' => $wajebaat_summary,
+      'qardan_hasana_summary' => $qardan_hasana_summary,
+    ];
+  }
+
+  private function get_wajebaat_summary()
+  {
+    $row = $this->db->query(
+      "SELECT COUNT(*) AS cnt, SUM(amount) AS total_amount, SUM(due) AS total_due, SUM(CASE WHEN amount > due THEN (amount - due) ELSE 0 END) AS total_received FROM wajebaat"
+    )->row_array();
+
+    $cnt = (int)($row['cnt'] ?? 0);
+    $total = (float)($row['total_amount'] ?? 0);
+    $due = (float)($row['total_due'] ?? 0);
+    $received = (float)($row['total_received'] ?? max(0, $total - $due));
+
+    return [
+      'count' => $cnt,
+      'total' => (int)round($total),
+      'received' => (int)round($received),
+      'due' => (int)round($due),
+    ];
+  }
+
+  private function get_qardan_hasana_summary()
+  {
+    $row = $this->db->query(
+      "SELECT COUNT(*) AS cnt, SUM(amount) AS total_amount, SUM(due) AS total_due, SUM(CASE WHEN amount > due THEN (amount - due) ELSE 0 END) AS total_received FROM qardan_hasana"
+    )->row_array();
+
+    $cnt = (int)($row['cnt'] ?? 0);
+    $total = (float)($row['total_amount'] ?? 0);
+    $due = (float)($row['total_due'] ?? 0);
+    $received = (float)($row['total_received'] ?? max(0, $total - $due));
+
+    return [
+      'count' => $cnt,
+      'total' => (int)round($total),
+      'received' => (int)round($received),
+      'due' => (int)round($due),
     ];
   }
 

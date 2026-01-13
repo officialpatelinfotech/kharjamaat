@@ -188,6 +188,10 @@ class Amilsaheb extends CI_Controller
       'this_month_families_signed_up' => 0,
       'no_thaali_families_month' => [],
     ];
+
+    // Wajebaat & Qardan Hasana (simple aggregates for dashboard cards)
+    $dd['wajebaat_summary'] = $this->get_wajebaat_summary();
+    $dd['qardan_hasana_summary'] = $this->get_qardan_hasana_summary();
     $data['dashboard_data'] = $dd;
 
     // Populate Hijri-month monthly stats (families signed up this month, and no-thaali list)
@@ -280,6 +284,7 @@ class Amilsaheb extends CI_Controller
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Home', $data);
   }
+
   /**
    * Compute sector-wise aggregate total and average daily thaali signups (HOF) for current Mon-Sun week.
    * Mirrors Anjuman::get_this_week_sector_signup_avg to keep dashboard parity.
@@ -511,6 +516,30 @@ class Amilsaheb extends CI_Controller
     $data['corpus_details'] = $details;
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/CorpusFundsDetails', $data);
+  }
+
+  public function wajebaat_details()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('WajebaatM');
+    $data['wajebaat_rows'] = $this->WajebaatM->get_all();
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Amilsaheb/WajebaatDetails', $data);
+  }
+
+  public function qardan_hasana_details()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('QardanHasanaM');
+    $data['qardan_hasana_rows'] = $this->QardanHasanaM->get_all();
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Amilsaheb/QardanHasanaDetails', $data);
   }
   public function miqaat()
   {
@@ -764,6 +793,44 @@ class Amilsaheb extends CI_Controller
       http_response_code(500);
       echo json_encode(['status' => false, 'error' => 'Failed to submit']);
     }
+  }
+
+  private function get_wajebaat_summary()
+  {
+    $row = $this->db->query(
+      "SELECT COUNT(*) AS cnt, SUM(amount) AS total_amount, SUM(due) AS total_due, SUM(CASE WHEN amount > due THEN (amount - due) ELSE 0 END) AS total_received FROM wajebaat"
+    )->row_array();
+
+    $cnt = (int)($row['cnt'] ?? 0);
+    $total = (float)($row['total_amount'] ?? 0);
+    $due = (float)($row['total_due'] ?? 0);
+    $received = (float)($row['total_received'] ?? max(0, $total - $due));
+
+    return [
+      'count' => $cnt,
+      'total' => (int)round($total),
+      'received' => (int)round($received),
+      'due' => (int)round($due),
+    ];
+  }
+
+  private function get_qardan_hasana_summary()
+  {
+    $row = $this->db->query(
+      "SELECT COUNT(*) AS cnt, SUM(amount) AS total_amount, SUM(due) AS total_due, SUM(CASE WHEN amount > due THEN (amount - due) ELSE 0 END) AS total_received FROM qardan_hasana"
+    )->row_array();
+
+    $cnt = (int)($row['cnt'] ?? 0);
+    $total = (float)($row['total_amount'] ?? 0);
+    $due = (float)($row['total_due'] ?? 0);
+    $received = (float)($row['total_received'] ?? max(0, $total - $due));
+
+    return [
+      'count' => $cnt,
+      'total' => (int)round($total),
+      'received' => (int)round($received),
+      'due' => (int)round($due),
+    ];
   }
   public function DeleteRaza($id)
   {

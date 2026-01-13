@@ -349,15 +349,17 @@
           return;
         }
         var d = data.dues;
-        var html = '<table class="table table-sm">' +
-          '<tr><th>Category</th><th class="text-right">Due</th></tr>' +
-          '<tr><td>FMB Takhmeen</td><td class="text-right">' + coloredAmount(d.fmb_due) + '</td></tr>' +
-          '<tr><td>Sabeel Takhmeen</td><td class="text-right">' + coloredAmount(d.sabeel_due) + '</td></tr>' +
-          '<tr><td>General Contributions</td><td class="text-right">' + coloredAmount(d.gc_due) + '</td></tr>' +
-          '<tr><td>Miqaat Invoices</td><td class="text-right">' + coloredAmount(d.miqaat_due) + '</td></tr>' +
-          '<tr><td>Corpus Fund</td><td class="text-right">' + coloredAmount(d.corpus_due) + '</td></tr>' +
-          '<tr><th>Total</th><th class="text-right">' + coloredAmount(d.total_due) + '</th></tr>' +
-          '</table>';
+        var html = '<table class="table table-sm">'
+          + '<tr><th>Category</th><th class="text-right">Due</th></tr>'
+          + '<tr><td>FMB Takhmeen</td><td class="text-right">' + coloredAmount(d.fmb_due) + '</td></tr>'
+          + '<tr><td>Sabeel Takhmeen</td><td class="text-right">' + coloredAmount(d.sabeel_due) + '</td></tr>'
+          + '<tr><td>General Contributions</td><td class="text-right">' + coloredAmount(d.gc_due) + '</td></tr>'
+          + '<tr><td>Miqaat Invoices</td><td class="text-right">' + coloredAmount(d.miqaat_due) + '</td></tr>'
+          + '<tr><td>Corpus Fund</td><td class="text-right">' + coloredAmount(d.corpus_due) + '</td></tr>'
+          + '<tr><td>Wajebaat</td><td class="text-right">' + coloredAmount(d.wajebaat_due || 0) + '</td></tr>'
+          + '<tr><td>Qardan Hasana</td><td class="text-right">' + coloredAmount(d.qardan_hasana_due || 0) + '</td></tr>'
+          + '<tr><th>Total</th><th class="text-right">' + coloredAmount(d.total_due) + '</th></tr>'
+          + '</table>';
         if (d.total_due <= 0) {
           html = '<div class="alert alert-success">No pending dues. You may proceed to submit.</div>' + html;
         } else {
