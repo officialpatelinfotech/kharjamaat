@@ -445,22 +445,47 @@ class Accounts extends CI_Controller
       $this->session->set_flashdata('success', "Miqaat Raza submitted successfully.");
       // enqueue notifications for admins about this miqaat raza submission
       $this->load->model('NotificationM');
+      $this->load->helper('email_template');
       $user_row = $this->AccountM->getUserData($user_id);
       $user_full = !empty($user_row['Full_Name']) ? $user_row['Full_Name'] : $user_id;
 
       // prepare miqaat details for inclusion in emails
-      $miqaatInfo = '';
+      $miqaatNameRaw = '';
+      $miqaatPublicId = '';
+      $miqaatType = '';
+      $miqaatDate = '';
+      $assignmentLabel = '';
+      $assignmentGroupName = '';
       if (!empty($miqaat_id)) {
         $miqaatRow = $this->AccountM->get_miqaat_by_id($miqaat_id);
         if (!empty($miqaatRow)) {
-          $miqaatName = htmlspecialchars($miqaatRow['name']);
+          $miqaatNameRaw = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
+          $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$miqaat_id;
+          $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
           $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
-          $miqaatInfo = $miqaatName . ' (' . $miqaatDate . ')';
+        }
+
+        $ass = $this->AccountM->get_miqaat_assignment_for_member($miqaat_id, $user_id);
+        if (!empty($ass)) {
+          $assignmentLabel = isset($ass['assign_type']) ? (string)$ass['assign_type'] : '';
+          $assignmentGroupName = isset($ass['group_name']) ? (string)$ass['group_name'] : '';
+
+          $al = strtolower(trim($assignmentLabel));
+          if ($al === 'group') {
+            $assignmentLabel = 'Group';
+          } elseif ($al === 'individual') {
+            $assignmentLabel = 'Individual';
+          }
         }
       }
 
+      $miqaatNameEsc = htmlspecialchars($miqaatNameRaw);
+      $miqaatInfo = '';
+      if ($miqaatNameRaw !== '') {
+        $miqaatInfo = $miqaatNameEsc . ($miqaatDate !== '' ? (' (' . htmlspecialchars($miqaatDate) . ')') : '');
+      }
+
       $admins = [
-        'anjuman@kharjamaat.in',
         'amilsaheb@kharjamaat.in',
         '3042@carmelnmh.in',
         'kharjamaat@gmail.com',
@@ -472,10 +497,27 @@ class Accounts extends CI_Controller
 
       // Admin notification: include submitter, raza id and miqaat details
       $adminSubject = 'New Miqaat Raza submitted by ' . $user_full;
-      $adminBody = 'A new Miqaat Raza has been submitted by ' . htmlspecialchars($user_full) . '.<br/>';
-      $adminBody .= '<strong>Raza ID:</strong> ' . htmlspecialchars($raza_id) . '<br/>';
-      if (!empty($miqaatInfo)) $adminBody .= '<strong>Miqaat:</strong> ' . $miqaatInfo . '<br/>';
-      $adminBody .= 'View submissions in the admin panel.';
+      $adminDetails = [
+        'Submitted By' => $user_full,
+        'Raza ID' => (string)$raza_id,
+      ];
+      if ($miqaatNameRaw !== '') $adminDetails['Miqaat'] = $miqaatNameRaw;
+      if ($miqaatPublicId !== '') $adminDetails['Miqaat ID'] = $miqaatPublicId;
+      if ($miqaatType !== '') $adminDetails['Type'] = $miqaatType;
+      if ($miqaatDate !== '') $adminDetails['Date'] = $miqaatDate;
+      if ($assignmentLabel !== '') $adminDetails['Assignment'] = $assignmentLabel;
+      if ($assignmentGroupName !== '') $adminDetails['Group'] = $assignmentGroupName;
+
+      $adminBody = render_generic_email_html([
+        'title' => $adminSubject,
+        'todayDate' => date('l, j M Y, h:i:s A'),
+        'greeting' => 'Baad Afzalus Salaam,',
+        'cardTitle' => '',
+        'details' => $adminDetails,
+        'body' => 'View submissions in the admin panel.',
+        'ctaUrl' => base_url('admin'),
+        'ctaText' => 'Login to your account',
+      ]);
       foreach ($admins as $a) {
         $this->NotificationM->insert_notification([
           'channel' => 'email',
@@ -490,12 +532,31 @@ class Accounts extends CI_Controller
       // Member notification: acknowledgement with miqaat details and raza id
       $userEmail = isset($user_row['Email']) ? $user_row['Email'] : null;
       if (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
-        $memberSubject = 'Your Miqaat Raza has been submitted';
-        $memberBody = 'Baad Afzalus Salaam,<br/> ' . htmlspecialchars($user_full) . ',<br/><br/>';
-        $memberBody .= 'Your Miqaat Raza has been received successfully.' . '<br/>';
-        $memberBody .= '<br/><strong>Raza ID:</strong> ' . htmlspecialchars($raza_id) . '<br/>';
-        if (!empty($miqaatInfo)) $memberBody .= '<strong>Miqaat:</strong> ' . $miqaatInfo . '<br/>';
-        $memberBody .= '<br/>You can view your submission in the Assigned Miqaats page.';
+        $memberSubject = 'Your Miqaat Raza has been submitted' . ($miqaatNameRaw !== '' ? (' - ' . $miqaatNameRaw) : '');
+        $assigned_link = base_url('accounts/assigned_miqaats');
+
+        $memberDetails = [
+          'Raza ID' => (string)$raza_id,
+        ];
+        if ($miqaatNameRaw !== '') $memberDetails['Miqaat'] = $miqaatNameRaw;
+        if ($miqaatPublicId !== '') $memberDetails['Miqaat ID'] = $miqaatPublicId;
+        if ($miqaatType !== '') $memberDetails['Type'] = $miqaatType;
+        if ($miqaatDate !== '') $memberDetails['Date'] = $miqaatDate;
+        if ($assignmentLabel !== '') $memberDetails['Assignment'] = $assignmentLabel;
+        if ($assignmentGroupName !== '') $memberDetails['Group'] = $assignmentGroupName;
+
+        $memberBody = render_generic_email_html([
+          'title' => $memberSubject,
+          'todayDate' => date('l, j M Y, h:i:s A'),
+          'greeting' => 'Baad Afzalus Salaam,',
+          'name' => $user_full,
+          'its' => (string)$user_id,
+          'cardTitle' => '',
+          'details' => $memberDetails,
+          'body' => 'You can view your submission in the Assigned Miqaats page. To view your assigned miqaats and submit a Raza, please visit: <a href="' . $assigned_link . '">Assigned Miqaats</a>.',
+          'ctaUrl' => $assigned_link,
+          'ctaText' => 'Assigned Miqaats',
+        ]);
         $this->NotificationM->insert_notification([
           'channel' => 'email',
           'recipient' => $userEmail,
@@ -1530,7 +1591,6 @@ class Accounts extends CI_Controller
 
       // Admin notifications (enqueue to full admin list)
       $admins = [
-        'anjuman@kharjamaat.in',
         'amilsaheb@kharjamaat.in',
         '3042@carmelnmh.in',
         'kharjamaat@gmail.com',
@@ -1554,7 +1614,7 @@ class Accounts extends CI_Controller
       redirect('/accounts/error/MyRazaRequest');
     }
   }
-  
+
   public function updateVasanReq($id)
   {
     $data['vasan'] = $this->AccountM->get_vasanreq_byid($id)[0];
@@ -1831,11 +1891,22 @@ class Accounts extends CI_Controller
         ['-', '_', '-'],
         strtolower($value['name'])
       );
+
+      // PHP converts dots in form field names to underscores in $_POST keys.
+      // Example: input name "mobile-no." becomes $_POST['mobile-no_'].
+      $postKey = $result;
+      if (!isset($_POST[$postKey]) && strpos($postKey, '.') !== false) {
+        $postKey = str_replace('.', '_', $postKey);
+      }
+
       $v = "";
-      if ($value['type'] == "select" && isset($_POST[$result])) {
-        $v = htmlspecialchars($value['options'][$_POST[$result]]['name']);
+      if ($value['type'] == "select" && isset($_POST[$postKey])) {
+        $selectedIndex = $_POST[$postKey];
+        if (isset($value['options'][$selectedIndex]['name'])) {
+          $v = htmlspecialchars($value['options'][$selectedIndex]['name']);
+        }
       } else {
-        $v = isset($_POST[$result]) ? htmlspecialchars($_POST[$result]) : '';
+        $v = isset($_POST[$postKey]) ? htmlspecialchars($_POST[$postKey]) : '';
       }
       $table .= '<tr>
                   <td align="center" style="border: 1px solid black;width: 50%;">
@@ -1884,7 +1955,6 @@ class Accounts extends CI_Controller
     }
 
     $admins = [
-      'anjuman@kharjamaat.in',
       'amilsaheb@kharjamaat.in',
       '3042@carmelnmh.in',
       'kharjamaat@gmail.com',
@@ -1920,13 +1990,66 @@ class Accounts extends CI_Controller
         }
       }
 
-      // Notify admins with raza id and miqaat details
+      // Notify admins with raza id and miqaat details (use branded template)
+      $this->load->helper('email_template');
+      $adminSubject = htmlspecialchars($user_data['Full_Name']) . ' has submitted a new Kaaraj Raza';
+
+      // prepare details array for the branded email
+      $adminDetails = [
+        'Submitted By' => isset($user_data['Full_Name']) ? (string)$user_data['Full_Name'] : (string)$userId,
+        'ITS' => isset($user_data['ITS_ID']) ? (string)$user_data['ITS_ID'] : (string)$userId,
+        'Raza ID' => (string)$generated_raza_id,
+      ];
+
+      if (!empty($miqaatRow)) {
+        if (!empty($miqaatRow['name'])) $adminDetails['Miqaat'] = (string)$miqaatRow['name'];
+        if (!empty($miqaatRow['miqaat_id'])) $adminDetails['Miqaat ID'] = (string)$miqaatRow['miqaat_id'];
+        if (!empty($miqaatRow['type'])) $adminDetails['Type'] = (string)$miqaatRow['type'];
+        if (!empty($miqaatRow['date'])) $adminDetails['Date'] = date('d-m-Y', strtotime($miqaatRow['date']));
+      }
+
+      // Try to fetch assignment info for the submitting member
+      $assignmentLabel = '';
+      $assignmentGroupName = '';
+      if (!empty($miqaat_id)) {
+        $ass = $this->AccountM->get_miqaat_assignment_for_member($miqaat_id, $userId);
+        if (!empty($ass)) {
+          $assignmentLabel = isset($ass['assign_type']) ? (string)$ass['assign_type'] : '';
+          $assignmentGroupName = isset($ass['group_name']) ? (string)$ass['group_name'] : '';
+          $al = strtolower(trim($assignmentLabel));
+          if ($al === 'group') $assignmentLabel = 'Group';
+          elseif ($al === 'individual') $assignmentLabel = 'Individual';
+        }
+      }
+      if ($assignmentLabel !== '') $adminDetails['Assignment'] = $assignmentLabel;
+      if ($assignmentGroupName !== '') $adminDetails['Group'] = $assignmentGroupName;
+
+      // Build admin details table HTML and full raza details table
+      $this->load->helper('raza_details');
+      // Prepare key/value rows for admin summary
+      $adminRows = [];
+      foreach ($adminDetails as $k => $v) {
+        $adminRows[] = ['label' => (string)$k, 'value' => (string)$v];
+      }
+      $adminSummaryTable = function_exists('email_kv_details_table_html') ? email_kv_details_table_html($adminRows) : '';
+
+      // Build raza details table using the raza helper (matches screenshot style)
+      $razadataDecoded = json_decode($data, true);
+      $razaDetailsTable = function_exists('render_raza_details_table_html') ? render_raza_details_table_html($razatype['name'], $razafields, $razadataDecoded) : '';
+
+      $bodyHtml = $adminSummaryTable . ($razaDetailsTable !== '' ? '<div style="margin-top:12px">' . $razaDetailsTable . '</div>' : '');
+
+      $adminBody = render_generic_email_html([
+        'title' => $adminSubject,
+        'todayDate' => date('l, j M Y, h:i:s A'),
+        'greeting' => 'Baad Afzalus Salaam,',
+        'cardTitle' => 'All Details',
+        'body' => $bodyHtml,
+        'ctaUrl' => base_url('admin'),
+        'ctaText' => 'Login to Admin',
+      ]);
+
       foreach ($admins as $adminEmail) {
-        $adminSubject = htmlspecialchars($user_data['Full_Name']) . ' has submitted a new Kaaraj Raza';
-        $adminBody = '<p><strong>' . htmlspecialchars($user_data['Full_Name']) . ' (' . htmlspecialchars($user_data['ITS_ID']) . ')</strong> has submitted a new Raza.</p>';
-        $adminBody .= '<p><strong>Raza ID:</strong> ' . htmlspecialchars($generated_raza_id) . '</p>';
-        $adminBody .= $miqaatInfoHtml;
-        $adminBody .= $email_template; // full submission details below
         $this->EmailQueueM->enqueue($adminEmail, $adminSubject, $adminBody, null, 'html');
       }
 
@@ -2123,97 +2246,206 @@ class Accounts extends CI_Controller
   {
     // Retrieve data from the URL parameters
     $slot_id = $this->input->get('slot_id');
-    $time = $this->input->get('time');
+    $time    = $this->input->get('time');
     $purpose = $this->input->get('purpose');
     $details = $this->input->get('details');
 
     // Retrieve user_id from the session
-    $user_id = $_SESSION['user']['username'];
-
-    // Load the model
-
-    // Retrieve ITS_ID and Full_Name from the user table based on user_id
-    $user_info = $this->AccountM->get_user_info($user_id);
-
-    if ($user_info) {
-      // Store the appointment in the appointments table (include purpose and other details)
-      $this->AccountM->book_slot($slot_id, $user_info->ITS_ID, $user_info->Full_Name, $purpose, $details);
-
-      // Add any additional logic or redirects as needed
-      // Send confirmation email to the user and notify amilsaheb
-      try {
-        $this->load->library('email');
-        $user_data = $this->AccountM->getUserData($user_id);
-        // Fetch slot date for inclusion in emails
-        $slot_info = $this->AccountM->get_slot_info($slot_id);
-        $slot_date = isset($slot_info->date) ? $slot_info->date : '';
-        $user_email = isset($user_data['Email']) ? $user_data['Email'] : null;
-        $user_name = $user_info->Full_Name;
-        $msg = "Dear " . $user_name . ",<br/><br/>Your appointment has been booked for <b>" . htmlspecialchars($time) . "</b> on <b>" . htmlspecialchars(date("d-m-Y", strtotime($slot_date))) . "</b>.<br/>";
-        if (!empty($purpose)) $msg .= "Purpose: " . htmlspecialchars($purpose) . "<br/>";
-        $msg .= "<br/>";
-        if (!empty($details)) $msg .= " Details: " . htmlspecialchars($details) . "<br/>";
-        $msg .= "<br/>Thank you,<br/>Khar Jamaat";
-
-        $adminMsg = "Hello, <br/><br/>A new appointment has been booked by <b>" . htmlspecialchars($user_name) . "</b> for <b>" . htmlspecialchars($time) . "</b> on <b>" . htmlspecialchars(date("d-m-Y", strtotime($slot_date))) . "</b>.<br/>";
-        if (!empty($purpose)) $adminMsg .= "<b>Purpose:</b> " . htmlspecialchars($purpose) . "<br/>";
-        if (!empty($details)) $adminMsg .= "<b>Details:</b> " . htmlspecialchars($details) . "<br/>";
-
-        $this->load->model('NotificationM');
-        // Member notification (email)
-        if (!empty($user_email)) {
-          $this->NotificationM->insert_notification([
-            'channel' => 'email',
-            'recipient' => $user_email,
-            'recipient_type' => 'user',
-            'subject' => 'Appointment Confirmation',
-            'body' => $msg,
-            'scheduled_at' => null
-          ]);
-          // also record a whatsapp-friendly copy
-          $this->NotificationM->insert_notification([
-            'channel' => 'whatsapp',
-            'recipient' => $user_email,
-            'recipient_type' => 'user',
-            'subject' => null,
-            'body' => strip_tags($msg),
-            'scheduled_at' => null
-          ]);
-        }
-
-        // Admin notifications
-        $admins = [
-          'anjuman@kharjamaat.in',
-          'amilsaheb@kharjamaat.in',
-          'kharamilsaheb@gmail.com',
-        ];
-        foreach ($admins as $a) {
-          $this->NotificationM->insert_notification([
-            'channel' => 'email',
-            'recipient' => $a,
-            'recipient_type' => 'admin',
-            'subject' => 'New Appointment Booked',
-            'body' => $adminMsg,
-            'scheduled_at' => null
-          ]);
-          $this->NotificationM->insert_notification([
-            'channel' => 'whatsapp',
-            'recipient' => $a,
-            'recipient_type' => 'admin',
-            'subject' => null,
-            'body' => strip_tags($adminMsg),
-            'scheduled_at' => null
-          ]);
-        }
-      } catch (Exception $e) {
-        log_message('error', 'Error sending appointment email: ' . $e->getMessage());
-      }
-      redirect('accounts/appointment');
-    } else {
-      // Handle the case where user info is not found
-      echo 'User information not found.';
+    $user_id = $_SESSION['user']['username'] ?? null;
+    if (empty($user_id)) {
+      redirect('login');
+      return;
     }
+
+    // Load required models/helpers
+    $this->load->model('AccountM');
+    $this->load->model('NotificationM');
+    $this->load->helper('email_template');
+
+    // Retrieve ITS_ID and Full_Name
+    $user_info = $this->AccountM->get_user_info($user_id);
+    if (!$user_info) {
+      echo 'User information not found.';
+      return;
+    }
+
+    // Book the appointment
+    $this->AccountM->book_slot(
+      $slot_id,
+      $user_info->ITS_ID,
+      $user_info->Full_Name,
+      $purpose,
+      $details
+    );
+
+    try {
+
+      // Fetch additional data
+      $user_data = $this->AccountM->getUserData($user_id);
+      $slot_info = $this->AccountM->get_slot_info($slot_id);
+
+      $slot_date = isset($slot_info->date) ? $slot_info->date : '';
+      $user_email = $user_data['Email'] ?? null;
+      $user_name  = $user_info->Full_Name;
+
+      /* ==========================================================
+       MEMBER EMAIL (HTML BODY)
+       ========================================================== */
+
+      $memberBody = '
+    <p>Your appointment has been successfully booked with the following details:</p>
+
+    <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+      <tr>
+        <td><strong>Date</strong></td>
+        <td>' . htmlspecialchars(date('d M Y', strtotime($slot_date))) . '</td>
+      </tr>
+      <tr>
+        <td><strong>Time</strong></td>
+        <td>' . htmlspecialchars($time) . '</td>
+      </tr>';
+
+      if (!empty($purpose)) {
+        $memberBody .= '
+      <tr>
+        <td><strong>Purpose</strong></td>
+        <td>' . htmlspecialchars($purpose) . '</td>
+      </tr>';
+      }
+
+      if (!empty($details)) {
+        $memberBody .= '
+      <tr>
+        <td><strong>Details</strong></td>
+        <td>' . nl2br(htmlspecialchars($details)) . '</td>
+      </tr>';
+      }
+
+      $memberBody .= '</table>';
+
+      $memberEmailHtml = render_generic_email_html([
+        'title'       => 'Appointment Confirmation',
+        'todayDate'   => date('l, j M Y, h:i A'),
+        'greeting'    => 'Dear ' . htmlspecialchars($user_name) . ',',
+        'cardTitle'   => 'Appointment Booked',
+        'body'        => $memberBody,
+        'auto_table'  => false,
+        'ctaUrl'      => base_url('accounts/appointment'),
+        'ctaText'     => 'View Appointment',
+      ]);
+
+      /* ==========================================================
+       ADMIN EMAIL (HTML BODY)
+       ========================================================== */
+
+      $adminBody = '
+    <p>A new appointment has been booked with the following details:</p>
+
+    <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
+      <tr>
+        <td><strong>Member</strong></td>
+        <td>' . htmlspecialchars($user_name) . ' (' . htmlspecialchars($user_info->ITS_ID) . ')</td>
+      </tr>
+      <tr>
+        <td><strong>Date</strong></td>
+        <td>' . htmlspecialchars(date('d M Y', strtotime($slot_date))) . '</td>
+      </tr>
+      <tr>
+        <td><strong>Time</strong></td>
+        <td>' . htmlspecialchars($time) . '</td>
+      </tr>';
+
+      if (!empty($purpose)) {
+        $adminBody .= '
+      <tr>
+        <td><strong>Purpose</strong></td>
+        <td>' . htmlspecialchars($purpose) . '</td>
+      </tr>';
+      }
+
+      if (!empty($details)) {
+        $adminBody .= '
+      <tr>
+        <td><strong>Details</strong></td>
+        <td>' . nl2br(htmlspecialchars($details)) . '</td>
+      </tr>';
+      }
+
+      $adminBody .= '</table>';
+
+      $adminEmailHtml = render_generic_email_html([
+        'title'       => 'New Appointment Booked',
+        'todayDate'   => date('l, j M Y, h:i A'),
+        'greeting'    => 'Baad Afzalus Salaam,',
+        'cardTitle'   => 'Appointment Notification',
+        'body'        => $adminBody,
+        'auto_table'  => false,
+        'ctaUrl'      => base_url('amilsaheb/manage_appointment'),
+        'ctaText'     => 'Manage Appointments',
+      ]);
+
+      /* ==========================================================
+       QUEUE NOTIFICATIONS
+       ========================================================== */
+
+      // Member email
+      if (!empty($user_email)) {
+        $this->NotificationM->insert_notification([
+          'channel'        => 'email',
+          'recipient'      => $user_email,
+          'recipient_type' => 'user',
+          'subject'        => 'Appointment Confirmation',
+          'body'           => $memberEmailHtml,
+          'scheduled_at'   => null
+        ]);
+      }
+
+      // Member WhatsApp (plain text)
+      $user_mobile = $user_data['Registered_Family_Mobile']
+        ?? $user_data['Mobile']
+        ?? '';
+      $user_mobile = preg_replace('/[^0-9+]/', '', (string)$user_mobile);
+
+      if ($user_mobile !== '') {
+        $plainText = "Your appointment has been booked.\n"
+          . "Date: " . date('d M Y', strtotime($slot_date)) . "\n"
+          . "Time: {$time}\n"
+          . (!empty($purpose) ? "Purpose: {$purpose}\n" : '')
+          . (!empty($details) ? "Details: {$details}\n" : '');
+
+        $this->NotificationM->insert_notification([
+          'channel'        => 'whatsapp',
+          'recipient'      => $user_mobile,
+          'recipient_type' => 'user',
+          'subject'        => null,
+          'body'           => $plainText,
+          'scheduled_at'   => null
+        ]);
+      }
+
+      // Admin emails
+      $admins = [
+        'amilsaheb@kharjamaat.in',
+        'kharamilsaheb@gmail.com',
+      ];
+
+      foreach ($admins as $adminEmail) {
+        $this->NotificationM->insert_notification([
+          'channel'        => 'email',
+          'recipient'      => $adminEmail,
+          'recipient_type' => 'admin',
+          'subject'        => 'New Appointment Booked',
+          'body'           => $adminEmailHtml,
+          'scheduled_at'   => null
+        ]);
+      }
+    } catch (Exception $e) {
+      log_message('error', 'Appointment booking notification error: ' . $e->getMessage());
+    }
+
+    redirect('accounts/appointment');
   }
+
   public function delete_appointment($appointment_id)
   {
     // Load the model

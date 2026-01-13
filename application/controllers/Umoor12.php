@@ -201,7 +201,6 @@ class Umoor12 extends CI_Controller
 
     // Enqueue admin notifications (they'll also get monitored via the BCC list above if desired)
     $adminRecipients = [
-      'anjuman@kharjamaat.in',
       'amilsaheb@kharjamaat.in',
       '3042@carmelnmh.in',
       'kharjamaat@gmail.com',

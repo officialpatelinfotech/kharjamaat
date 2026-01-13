@@ -21,6 +21,36 @@ class Notification_lib
     if (!empty($body) && is_string($body)) {
       $body = $this->absolutize_account_links($body);
     }
+
+    // Apply unified email template (same look as Raza emails) unless disabled.
+    $disableTemplate = !empty($opts['disable_template']);
+    if (!$disableTemplate) {
+      $this->CI->load->helper('email_template');
+      if (!email_body_is_full_document($body)) {
+        $title = $subject !== '' ? $subject : 'Notification';
+        $ctaUrl = isset($opts['cta_url']) ? (string)$opts['cta_url'] : '';
+        if ($ctaUrl === '') {
+          $ctaUrl = base_url('accounts');
+        }
+        $ctaText = isset($opts['cta_text']) ? (string)$opts['cta_text'] : '';
+        if ($ctaText === '') {
+          $ctaText = 'Login to your account';
+        }
+
+        $body = render_generic_email_html([
+          'title' => $title,
+          'todayDate' => date('l, j M Y, h:i:s A'),
+          'greeting' => isset($opts['greeting']) ? (string)$opts['greeting'] : 'Baad Afzalus Salaam,',
+          'name' => isset($opts['recipient_name']) ? (string)$opts['recipient_name'] : '',
+          'its' => isset($opts['recipient_its']) ? (string)$opts['recipient_its'] : '',
+          'cardTitle' => isset($opts['card_title']) ? (string)$opts['card_title'] : '',
+          'body' => $body,
+          'auto_table' => true,
+          'ctaUrl' => $ctaUrl,
+          'ctaText' => $ctaText,
+        ]);
+      }
+    }
     $scheduled = isset($opts['scheduled_at']) ? $opts['scheduled_at'] : null;
 
     $id = $this->CI->NotificationM->insert_notification([

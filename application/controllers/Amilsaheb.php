@@ -534,16 +534,87 @@ class Amilsaheb extends CI_Controller
 
     // enqueue notifications instead of sending immediately
     $this->load->model('NotificationM');
+    $this->load->helper('email_template');
+    $this->load->helper('url');
     $userEmail = isset($user['Email']) ? $user['Email'] : null;
     $userName = isset($user['Full_Name']) ? $user['Full_Name'] : '';
     $msg = $userName . ' (' . ($user['ITS_ID'] ?? '') . ') - Raza has been Approved by Amil Saheb';
 
-    // Notify member (formalized)
+    // Notify member (include full details)
     if (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
-      $memberBody = "Baad Afzalus Salaam,<br><br>" . $userName . ",<br><br>" .
-        "Your Raza request (Raza ID: " . ($raza_id ?? '') . ") has been approved by Amil Saheb.<br><br>" .
-        "If you require further assistance, please contact the Jamaat office.<br><br>" .
-        "Regards,<br>Anjuman E Saifee Dawoodi Bohra Jamaat Khar<br>Amil Saheb Office";
+      $this->load->helper('raza_details');
+      $razaRow = $this->db->select('id, raza_id, user_id, razaType, razadata, miqaat_id')
+        ->from('raza')
+        ->where('id', $raza_id)
+        ->get()->row_array();
+      $rtRow = null;
+      if (!empty($razaRow['razaType'])) {
+        $rtRow = $this->db->select('id, name, fields')
+          ->from('raza_type')
+          ->where('id', (int)$razaRow['razaType'])
+          ->get()->row_array();
+      }
+
+      $razadataDecoded = [];
+      if (!empty($razaRow['razadata'])) {
+        $tmp = json_decode($razaRow['razadata'], true);
+        if (is_array($tmp)) $razadataDecoded = $tmp;
+      }
+      $rtFieldsDecoded = [];
+      if (!empty($rtRow['fields'])) {
+        $tmp = json_decode($rtRow['fields'], true);
+        if (is_array($tmp)) $rtFieldsDecoded = $tmp;
+      }
+
+      $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
+      $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+      $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
+      $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
+
+      $memberDetails = [
+        'Raza ID' => (string)$razaPublicId,
+      ];
+      // If this is a Miqaat Raza, include miqaat details in the email.
+      if (!empty($razaRow['miqaat_id'])) {
+        $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRow['miqaat_id']);
+        $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
+        $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRow['miqaat_id'];
+        $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
+        $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+
+        if ($miqaatName !== '') $memberDetails['Miqaat'] = $miqaatName;
+        if ($miqaatPublicId !== '') $memberDetails['Miqaat ID'] = $miqaatPublicId;
+        if ($miqaatType !== '') $memberDetails['Type'] = $miqaatType;
+        if ($miqaatDate !== '') $memberDetails['Date'] = $miqaatDate;
+
+        $ass = $this->AccountM->get_miqaat_assignment_for_member((int)$razaRow['miqaat_id'], $razaRow['user_id']);
+        if (!empty($ass)) {
+          $assignmentLabel = isset($ass['assign_type']) ? (string)$ass['assign_type'] : '';
+          $assignmentGroupName = isset($ass['group_name']) ? (string)$ass['group_name'] : '';
+          $al = strtolower(trim($assignmentLabel));
+          if ($al === 'group') $assignmentLabel = 'Group';
+          if ($al === 'individual') $assignmentLabel = 'Individual';
+          if ($assignmentLabel !== '') $memberDetails['Assignment'] = $assignmentLabel;
+          if ($assignmentGroupName !== '') $memberDetails['Group'] = $assignmentGroupName;
+        }
+      }
+
+      $memberBody = render_generic_email_html([
+        'title' => 'Raza Status',
+        'todayDate' => date('l, j M Y, h:i:s A'),
+        'greeting' => 'Baad Afzalus Salaam,',
+        'name' => (string)$userName,
+        'its' => (string)($user['ITS_ID'] ?? ''),
+        // Place the Mubarak line as the card title so it appears above the details table
+        'cardTitle' => 'Mubarak! Your Raza has been approved by Janab Amil Saheb.',
+        'details' => $memberDetails,
+        'body' => $remarkHtml
+          . (empty($razaRow['miqaat_id']) ? $detailsHtml : '')
+          . '<p>If you require further assistance, please contact the Jamaat office.</p>'
+          . '<p>Wasalaam,<br/>Amil Saheb Office</p>',
+        'ctaUrl' => base_url('accounts'),
+        'ctaText' => 'Login to your account',
+      ]);
 
       $this->NotificationM->insert_notification([
         'channel' => 'email',
@@ -557,7 +628,6 @@ class Amilsaheb extends CI_Controller
 
     // Notify admins
     $admins = [
-      'anjuman@kharjamaat.in',
       'amilsaheb@kharjamaat.in',
       '3042@carmelnmh.in',
       'kharjamaat@gmail.com',
@@ -567,10 +637,34 @@ class Amilsaheb extends CI_Controller
       'ybookwala@gmail.com'
     ];
     foreach ($admins as $a) {
-      $adminBody = "Please be informed that the following Raza has been approved by Amil Saheb.<br><br>" .
-        "Member: " . $userName . " (" . ($user['ITS_ID'] ?? '') . ")<br>" .
-        "Raza ID: " . ($raza_id ?? '') . "<br><br>" .
-        "Regards,<br>Amil Saheb Office";
+      $adminDetails = [
+        'Member' => (string)$userName,
+        'ITS' => (string)($user['ITS_ID'] ?? ''),
+        'Raza ID' => (string)($raza_id ?? ''),
+      ];
+      // If this is a Miqaat Raza, include miqaat details.
+      if (!empty($razaRow) && !empty($razaRow['miqaat_id'])) {
+        $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRow['miqaat_id']);
+        $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
+        $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRow['miqaat_id'];
+        $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
+        $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+        if ($miqaatName !== '') $adminDetails['Miqaat'] = $miqaatName;
+        if ($miqaatPublicId !== '') $adminDetails['Miqaat ID'] = $miqaatPublicId;
+        if ($miqaatType !== '') $adminDetails['Type'] = $miqaatType;
+        if ($miqaatDate !== '') $adminDetails['Date'] = $miqaatDate;
+      }
+
+      $adminBody = render_generic_email_html([
+        'title' => 'Raza Approved',
+        'todayDate' => date('l, j M Y, h:i:s A'),
+        'greeting' => 'Baad Afzalus Salaam,',
+        'cardTitle' => 'Please be informed that the following Raza has been approved by Amil Saheb.',
+        'details' => $adminDetails,
+        'body' => 'Regards,<br/>Amil Saheb Office',
+        'ctaUrl' => base_url('accounts'),
+        'ctaText' => 'Login to your account',
+      ]);
 
       $this->NotificationM->insert_notification([
         'channel' => 'email',
@@ -620,22 +714,32 @@ class Amilsaheb extends CI_Controller
         $rsvpLink = base_url('accounts/general_rsvp/' . $miqaatId);
 
         $subject = 'RSVP Open: ' . ($miqName !== '' ? $miqName : ('Miqaat #' . $miqaatId));
-        $body = "Baad Afzalus Salaam,<br /><br />" .
-          "A Miqaat has been approved and is now open for RSVP.<br /><br />" .
-          "Miqaat Details:<br />" .
-          "Miqaat ID: " . $miqaatId . "<br />" .
-          ($miqName !== '' ? ("Name: " . $miqName . "<br />") : "") .
-          ($miqDate !== '' ? ("Date: " . $miqDate . "<br />") : "") .
-          ($miqTime !== '' ? ("Time: " . $miqTime . "<br />") : "") .
-          ($miqHijri !== '' ? ("Hijri Date: " . $miqHijri . "<br />") : "") .
-          ($miqDesc !== '' ? ("Description: " . $miqDesc . "<br />") : "") .
-          "<br />Please submit your RSVP here:<br />" . $rsvpLink . "<br /><br />" .
-          "Regards,<br />Anjuman E Saifee Dawoodi Bohra Jamaat Khar";
+        $rsvpDetails = [
+          'Miqaat ID' => (string)$miqaatId,
+        ];
+        if ($miqName !== '') $rsvpDetails['Miqaat'] = $miqName;
+        if ($miqDate !== '') $rsvpDetails['Date'] = $miqDate;
+        if ($miqTime !== '') $rsvpDetails['Time'] = $miqTime;
+        if ($miqHijri !== '') $rsvpDetails['Hijri Date'] = $miqHijri;
+        if ($miqDesc !== '') $rsvpDetails['Description'] = $miqDesc;
 
-        $members = $this->db->select('Email')
+        $body = render_generic_email_html([
+          'title' => $subject,
+          'todayDate' => date('l, j M Y, h:i:s A'),
+          'greeting' => 'Baad Afzalus Salaam,',
+          'cardTitle' => '',
+          'details' => $rsvpDetails,
+          'body' => 'A Miqaat has been approved and is now open for RSVP. Please submit your RSVP using the button below.<br/><br/>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar',
+          'ctaUrl' => $rsvpLink,
+          'ctaText' => 'Submit RSVP',
+        ]);
+
+        // Select distinct, trimmed emails and exclude empty/null values so each address is contacted once
+        $members = $this->db->select("DISTINCT(TRIM(Email)) AS Email", false)
           ->from('user')
           ->where('inactive_status IS NULL', null, false)
           ->where('Email IS NOT NULL', null, false)
+          ->where("TRIM(Email) != ''", null, false)
           ->get()
           ->result_array();
         foreach ($members as $m) {
@@ -708,37 +812,141 @@ class Amilsaheb extends CI_Controller
     $flag = $this->AmilsahebM->reject_raza($raza_id, $remark);
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
 
-    $this->email->from('info@kharjamaat.in', 'Admin');
-    $this->email->to($user['Email']);
-    $this->email->subject('Raza Status');
-    $this->email->message('Sorry. Your Raza has been Rejected by Amil Saheb. Contact jamaat office for further assistance');
-    $this->email->send();
+    // Enqueue notifications (templated by Notifications worker)
+    $this->load->model('NotificationM');
+    $this->load->helper('raza_details');
+    $this->load->helper('email_template');
+    $this->load->helper('url');
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('amilsaheb@kharjamaat.in');
-    $this->email->subject('Raza Recommended');
-    $this->email->message('Sorry. Your Raza has been Rejected by Amil Saheb. Contact jamaat office for further assistance');
-    $this->email->send();
+    $razaRow = $this->db->select('id, raza_id, user_id, razaType, razadata, miqaat_id')
+      ->from('raza')
+      ->where('id', $raza_id)
+      ->get()->row_array();
+    $rtRow = null;
+    if (!empty($razaRow['razaType'])) {
+      $rtRow = $this->db->select('id, name, fields')
+        ->from('raza_type')
+        ->where('id', (int)$razaRow['razaType'])
+        ->get()->row_array();
+    }
 
-    $msg = $user['Full_Name'] . ' (' . $user['ITS_ID'] . ').Raza has been Rejected by Amil Saheb';
+    $razadataDecoded = [];
+    if (!empty($razaRow['razadata'])) {
+      $tmp = json_decode($razaRow['razadata'], true);
+      if (is_array($tmp)) $razadataDecoded = $tmp;
+    }
+    $rtFieldsDecoded = [];
+    if (!empty($rtRow['fields'])) {
+      $tmp = json_decode($rtRow['fields'], true);
+      if (is_array($tmp)) $rtFieldsDecoded = $tmp;
+    }
+    $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
+    $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+    $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
+    $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('kharjamaat@gmail.com');
-    $this->email->subject('Raza Rejected');
-    $this->email->message($msg);
-    $this->email->send();
+    $memberEmail = isset($user['Email']) ? trim((string)$user['Email']) : '';
+    if ($memberEmail !== '' && filter_var($memberEmail, FILTER_VALIDATE_EMAIL)) {
+      $memberDetails = [
+        'Raza ID' => (string)$razaPublicId,
+      ];
+      if (!empty($razaRow['miqaat_id'])) {
+        $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRow['miqaat_id']);
+        $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
+        $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRow['miqaat_id'];
+        $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
+        $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+        if ($miqaatName !== '') $memberDetails['Miqaat'] = $miqaatName;
+        if ($miqaatPublicId !== '') $memberDetails['Miqaat ID'] = $miqaatPublicId;
+        if ($miqaatType !== '') $memberDetails['Type'] = $miqaatType;
+        if ($miqaatDate !== '') $memberDetails['Date'] = $miqaatDate;
+        $ass = $this->AccountM->get_miqaat_assignment_for_member((int)$razaRow['miqaat_id'], $razaRow['user_id']);
+        if (!empty($ass)) {
+          $assignmentLabel = isset($ass['assign_type']) ? (string)$ass['assign_type'] : '';
+          $assignmentGroupName = isset($ass['group_name']) ? (string)$ass['group_name'] : '';
+          $al = strtolower(trim($assignmentLabel));
+          if ($al === 'group') $assignmentLabel = 'Group';
+          if ($al === 'individual') $assignmentLabel = 'Individual';
+          if ($assignmentLabel !== '') $memberDetails['Assignment'] = $assignmentLabel;
+          if ($assignmentGroupName !== '') $memberDetails['Group'] = $assignmentGroupName;
+        }
+      }
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('3042@carmelnmh.in');
-    $this->email->subject('Raza Rejected');
-    $this->email->message($msg);
-    $this->email->send();
+      $memberBody = render_generic_email_html([
+        'title' => 'Raza Status',
+        'todayDate' => date('l, j M Y, h:i:s A'),
+        'greeting' => 'Baad Afzalus Salaam,',
+        'name' => (string)($user['Full_Name'] ?? ''),
+        'its' => (string)($user['ITS_ID'] ?? ''),
+        'cardTitle' => '',
+        'details' => $memberDetails,
+        'body' => '<p>Your Raza has been <strong>rejected</strong> by Janab Amil Saheb.</p>'
+          . $remarkHtml
+          . (empty($razaRow['miqaat_id']) ? $detailsHtml : '')
+          . '<p>If you require further assistance, please contact the Jamaat office.</p>'
+          . '<p>Wasalaam,<br/>Amil Saheb Office</p>',
+        'ctaUrl' => base_url('accounts'),
+        'ctaText' => 'Login to your account',
+      ]);
+      $this->NotificationM->insert_notification([
+        'channel' => 'email',
+        'recipient' => $memberEmail,
+        'recipient_type' => 'user',
+        'subject' => 'Raza Status',
+        'body' => $memberBody,
+        'scheduled_at' => null
+      ]);
+    }
 
-    $this->email->from('admin@kharjamaat.in', 'Admin');
-    $this->email->to('anjuman@kharjamaat.in');
-    $this->email->subject('Raza Rejected');
-    $this->email->message($msg);
-    $this->email->send();
+    $admins = [
+      'amilsaheb@kharjamaat.in',
+      '3042@carmelnmh.in',
+      'kharjamaat@gmail.com',
+      'kharamilsaheb@gmail.com',
+      'kharjamaat786@gmail.com',
+      'khozemtopiwalla@gmail.com',
+      'ybookwala@gmail.com'
+    ];
+    $adminDetails = [
+      'Member' => (string)($user['Full_Name'] ?? ''),
+      'ITS' => (string)($user['ITS_ID'] ?? ''),
+      'Raza ID' => (string)$razaPublicId,
+    ];
+    if (!empty($razaRow['miqaat_id'])) {
+      $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRow['miqaat_id']);
+      $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
+      $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRow['miqaat_id'];
+      $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
+      $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+      if ($miqaatName !== '') $adminDetails['Miqaat'] = $miqaatName;
+      if ($miqaatPublicId !== '') $adminDetails['Miqaat ID'] = $miqaatPublicId;
+      if ($miqaatType !== '') $adminDetails['Type'] = $miqaatType;
+      if ($miqaatDate !== '') $adminDetails['Date'] = $miqaatDate;
+    }
+
+    $adminBody = render_generic_email_html([
+      'title' => 'Raza Rejected',
+      'todayDate' => date('l, j M Y, h:i:s A'),
+      'greeting' => 'Baad Afzalus Salaam,',
+      'cardTitle' => '',
+      'details' => $adminDetails,
+      'body' => '<p>Raza has been <strong>rejected</strong> by Janab Amil Saheb.</p>'
+        . $remarkHtml
+        . (empty($razaRow['miqaat_id']) ? $detailsHtml : '')
+        . '<p>Regards,<br/>Amil Saheb Office</p>',
+      'ctaUrl' => base_url('accounts'),
+      'ctaText' => 'Login to your account',
+    ]);
+    foreach ($admins as $a) {
+      $this->NotificationM->insert_notification([
+        'channel' => 'email',
+        'recipient' => $a,
+        'recipient_type' => 'admin',
+        'subject' => 'Raza Rejected',
+        'body' => $adminBody,
+        'scheduled_at' => null
+      ]);
+    }
 
     if ($flag) {
       http_response_code(200);
