@@ -2437,4 +2437,165 @@ class Admin extends CI_Controller
     }
     echo json_encode($result);
   }
+
+  public function expense()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/Expense');
+  }
+
+  public function expense_source_of_funds()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('ExpenseSourceM');
+    $data['sources'] = $this->ExpenseSourceM->get_all();
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/ExpenseSourceOfFunds', $data);
+  }
+
+  // AJAX: create new source
+  public function expense_source_create()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $resp = ['status' => 'error', 'message' => 'Unauthorized'];
+      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+        $resp['debug'] = [
+          'session_user_present' => isset($_SESSION['user']),
+          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
+          'cookies' => isset($_SERVER['HTTP_COOKIE']) ? $_SERVER['HTTP_COOKIE'] : null,
+        ];
+      }
+      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
+      return;
+    }
+    $name = trim($this->input->post('name'));
+    $status = trim($this->input->post('status')) ?: 'Active';
+    if ($name === '') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Name required']));
+      return;
+    }
+    $this->load->model('ExpenseSourceM');
+    $id = $this->ExpenseSourceM->create(['name' => $name, 'status' => $status]);
+    if ($id) {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'success',
+        'id' => $id,
+        'name' => $name,
+        'source_status' => $status
+      ]));
+    } else {
+      $dberr = $this->db->error();
+      $msg = 'Create failed';
+      if (!empty($dberr['message'])) {
+        $msg .= ': ' . $dberr['message'];
+      }
+      $resp = ['status' => 'error', 'message' => $msg];
+      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+        $resp['debug'] = [
+          'db_error' => $dberr,
+          'session_user_present' => isset($_SESSION['user']),
+          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
+          'cookies' => isset($_SERVER['HTTP_COOKIE']) ? $_SERVER['HTTP_COOKIE'] : null,
+          'post' => $_POST,
+        ];
+      }
+      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
+    }
+    return;
+  }
+
+  // AJAX: update existing source
+  public function expense_source_update()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $resp = ['status' => 'error', 'message' => 'Unauthorized'];
+      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+        $resp['debug'] = [
+          'session_user_present' => isset($_SESSION['user']),
+          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
+          'cookies' => isset($_SERVER['HTTP_COOKIE']) ? $_SERVER['HTTP_COOKIE'] : null,
+        ];
+      }
+      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
+      return;
+    }
+    $id = (int)$this->input->post('id');
+    $name = trim($this->input->post('name'));
+    $status = trim($this->input->post('status')) ?: 'Active';
+    if ($id <= 0 || $name === '') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid input']));
+      return;
+    }
+    $this->load->model('ExpenseSourceM');
+    $ok = $this->ExpenseSourceM->update($id, ['name' => $name, 'status' => $status]);
+    if ($ok) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'success']));
+    } else {
+      $resp = ['status' => 'error', 'message' => 'Update failed'];
+      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+        $resp['debug'] = [
+          'db_error' => $this->db->error(),
+          'session_user_present' => isset($_SESSION['user']),
+          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
+          'post' => $_POST,
+        ];
+      }
+      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
+    }
+    return;
+  }
+
+  // AJAX: delete source
+  public function expense_source_delete()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $resp = ['status' => 'error', 'message' => 'Unauthorized'];
+      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+        $resp['debug'] = [
+          'session_user_present' => isset($_SESSION['user']),
+          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
+          'cookies' => isset($_SERVER['HTTP_COOKIE']) ? $_SERVER['HTTP_COOKIE'] : null,
+        ];
+      }
+      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
+      return;
+    }
+    $id = (int)$this->input->post('id');
+    if ($id <= 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid id']));
+      return;
+    }
+    $this->load->model('ExpenseSourceM');
+    $ok = $this->ExpenseSourceM->delete($id);
+    if ($ok) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'success']));
+    } else {
+      $resp = ['status' => 'error', 'message' => 'Delete failed'];
+      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+        $resp['debug'] = [
+          'db_error' => $this->db->error(),
+          'session_user_present' => isset($_SESSION['user']),
+          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
+          'post' => $_POST,
+        ];
+      }
+      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
+    }
+    return;
+  }
 }

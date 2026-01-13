@@ -69,6 +69,8 @@
       <ul class="navbar-nav mr-auto">
         <li class="nav-item"><a href="<?php echo base_url("/admin") ?>" class="nav-link"><i
               class="fa fa-home px-1"></i>Home</a></li>
+          <li class="nav-item"><a href="<?php echo base_url('admin/expense'); ?>" class="nav-link"><i
+            class="fa fa-money px-1"></i>Expense Module</a></li>
         <!-- <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
             class="nav-link dropdown-toggle" aria-expanded="false"><i
               class="fa fa-life-ring px-1"></i>Help</a>

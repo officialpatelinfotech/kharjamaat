@@ -1083,6 +1083,7 @@
           <li><a class="menu-item" href="<?php echo base_url('anjuman/sabeeltakhmeendashboard') ?>"><span class="menu-icon"><i class="fa-solid fa-hand-holding-heart"></i></span><span class="menu-label">Sabeel Module</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/corpusfunds_receive'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/financials'); ?>"><span class="menu-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span><span class="menu-label">Individual Financial Details</span></a></li>
+          <li><a class="menu-item" href="<?= base_url('anjuman/expense'); ?>"><span class="menu-icon"><i class="fa-solid fa-receipt"></i></span><span class="menu-label">Expense Module</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/wajebaat'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/qardan_hasana'); ?>"><span class="menu-icon"><i class="fa-solid fa-handshake"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
         </ul>
@@ -3028,6 +3029,38 @@
               </div>
             </div>
           </div>
+
+          <?php
+          $expense_dashboard = isset($expense_dashboard) && is_array($expense_dashboard) ? $expense_dashboard : [];
+          $sof = isset($expense_dashboard['sources']) && is_array($expense_dashboard['sources']) ? $expense_dashboard['sources'] : ['active' => 0, 'inactive' => 0];
+          $aos_available = !empty($expense_dashboard['areas_available']);
+          $aos = isset($expense_dashboard['areas']) && is_array($expense_dashboard['areas']) ? $expense_dashboard['areas'] : ['active' => 0, 'inactive' => 0];
+          ?>
+          <div class="col-md-12 mb-3 mb-md-3">
+            <div class="chart-container compact h-100">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="chart-title m-0">Expenses</h5>
+                <a href="<?= base_url('anjuman/expense'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
+              </div>
+              <div class="row g-2">
+                <div class="col-12 col-md-6">
+                  <div class="sub-chart-title mb-1">Source of Funds</div>
+                  <canvas id="expenseSofChart" height="180"></canvas>
+                  <div class="text-center text-muted small mt-1">Active: <?= (int)($sof['active'] ?? 0); ?> | Inactive: <?= (int)($sof['inactive'] ?? 0); ?></div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="sub-chart-title mb-1">Area of Spend</div>
+                  <?php if ($aos_available) : ?>
+                    <canvas id="expenseAosChart" height="180"></canvas>
+                    <div class="text-center text-muted small mt-1">Active: <?= (int)($aos['active'] ?? 0); ?> | Inactive: <?= (int)($aos['inactive'] ?? 0); ?></div>
+                  <?php else : ?>
+                    <div class="text-muted small">Area of Spend is not set up yet (table <code>expense_areas</code> not found).</div>
+                  <?php endif; ?>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="col-md-12">
             <div class="chart-container h-100">
               <h5 class="chart-title">Raza Summary</h5>
@@ -3207,6 +3240,47 @@
 
     renderDoughnut('gradeChartEst', gradeDataEst);
     renderDoughnut('gradeChartRes', gradeDataRes);
+
+    // Expenses (Source of Funds / Area of Spend) doughnut charts
+    const expenseSofStatus = <?php echo json_encode(isset($expense_dashboard['sources']) ? $expense_dashboard['sources'] : ['active' => 0, 'inactive' => 0]); ?>;
+    const expenseAosStatus = <?php echo json_encode(isset($expense_dashboard['areas']) ? $expense_dashboard['areas'] : ['active' => 0, 'inactive' => 0]); ?>;
+
+    function renderStatusDoughnut(ctxId, counts) {
+      const el = document.getElementById(ctxId);
+      if (!el) return null;
+      const active = Number((counts && counts.active) || 0);
+      const inactive = Number((counts && counts.inactive) || 0);
+      const ctx = el.getContext('2d');
+      return new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Active', 'Inactive'],
+          datasets: [{
+            data: [active, inactive],
+            backgroundColor: ['#22c55e', '#9ca3af'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed;
+                  return `${label}: ${value}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    renderStatusDoughnut('expenseSofChart', expenseSofStatus);
+    renderStatusDoughnut('expenseAosChart', expenseAosStatus);
 
     // Weekly Signups Line Chart
     const weeklyData = <?php echo json_encode(isset($dashboard_data['weekly_signups']) ? $dashboard_data['weekly_signups'] : [
