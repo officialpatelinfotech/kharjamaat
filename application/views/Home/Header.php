@@ -103,3 +103,36 @@
   </nav>
 </div>
 <script src="<?php echo base_url('assets/js/table-sort.js'); ?>?v=1"></script>
+
+<?php if (empty($_COOKIE['km_cookie_consent'])): ?>
+  <div id="cookie-consent-banner" class="alert alert-dark mb-0" role="alert" style="position:fixed;left:0;right:0;bottom:0;z-index:1050;border-radius:0;">
+    <div class="container d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+      <div class="me-md-3">
+        We use essential cookies to keep this site working. <a href="<?php echo base_url('privacy'); ?>" class="alert-link">Learn more</a>.
+      </div>
+      <div class="mt-2 mt-md-0">
+        <button type="button" id="cookie-consent-accept" class="btn btn-warning btn-sm">Accept</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var btn = document.getElementById('cookie-consent-accept');
+      var banner = document.getElementById('cookie-consent-banner');
+      if (!btn || !banner) return;
+      btn.addEventListener('click', function() {
+        btn.disabled = true;
+        fetch('<?php echo base_url('cookies/accept'); ?>', {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        }).then(function() {
+          banner.style.display = 'none';
+        }).catch(function() {
+          btn.disabled = false;
+        });
+      });
+    })();
+  </script>
+<?php endif; ?>

@@ -1389,6 +1389,53 @@ class Common extends CI_Controller
           ]);
 
           $this->CommonM->delete_fala_ni_niyaz_by_user_id($id, $miqaat_type, $hijri_year);
+          $this->load->model('EmailQueueM');
+          $this->load->model('AccountM');
+          $member = $this->AccountM->getUserData($id);
+          $miqaatRow = $this->CommonM->get_miqaat_by_id($new_miqaat_id);
+          $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
+          $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? $miqaatRow['miqaat_id'] : $new_miqaat_id;
+          $miqaatType = isset($miqaatRow['type']) ? $miqaatRow['type'] : $miqaat_type;
+          $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+          if (!empty($member) && !empty($member['Email'])) {
+            $subject = 'Miqaat Assignment: ' . $miqaatName;
+            $body = '<p>Baad Afzalus Salaam,</p>';
+            $body .= '<p>' . htmlspecialchars($member['Full_Name'] ?? $id) . ' (' . htmlspecialchars($id) . ')</p>';
+            $body .= '<p>You have been assigned to the miqaat below:</p>';
+            $body .= '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+              . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+              . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
+              . '<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>'
+              . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars((string)$miqaatDate) . '</td></tr>'
+              . '<tr><td><strong>Assignment</strong></td><td>Individual</td></tr>'
+              . '</table>';
+            $body .= '<p>Please login to your account for next steps.</p>';
+            $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+            $this->EmailQueueM->enqueue($member['Email'], $subject, $body, null, 'html');
+          }
+          // Admin notification
+          $admins = [
+            'amilsaheb@kharjamaat.in',
+            '3042@carmelnmh.in',
+            'kharjamaat@gmail.com',
+            'kharamilsaheb@gmail.com',
+            'kharjamaat786@gmail.com',
+            'khozemtopiwalla@gmail.com',
+            'ybookwala@gmail.com'
+          ];
+          foreach ($admins as $a) {
+            $asub = 'Miqaat Assigned: ' . $miqaatName;
+            $abody = '<p>Miqaat assignment recorded.</p>'
+              . '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+              . '<tr><td><strong>Member</strong></td><td>' . htmlspecialchars($member['Full_Name'] ?? $id) . ' (' . htmlspecialchars($id) . ')</td></tr>'
+              . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+              . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
+              . '<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>'
+              . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>'
+              . '<tr><td><strong>Assignment</strong></td><td>Individual</td></tr>'
+              . '</table>';
+            $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
+          }
         }
       } elseif ($assign_type == 'Group') {
         $group_name = $this->input->post('group_name');
@@ -1403,6 +1450,77 @@ class Common extends CI_Controller
             'group_leader_id' => $leader_id,
             'member_id' => $member_id
           ]);
+        }
+        // Notify group leader and admins about group assignment
+        $this->load->model('EmailQueueM');
+        $this->load->model('AccountM');
+        $leader = $this->AccountM->getUserData($leader_id);
+        $miqaatRow = $this->CommonM->get_miqaat_by_id($new_miqaat_id);
+        $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
+        $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? $miqaatRow['miqaat_id'] : $new_miqaat_id;
+        $miqaatType = isset($miqaatRow['type']) ? $miqaatRow['type'] : $miqaat_type;
+        $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+
+        $memberLines = [];
+        $memberCount = 0;
+        foreach ($members as $mid) {
+          $mid = trim((string)$mid);
+          if ($mid === '') continue;
+          $m = $this->AccountM->getUserData($mid);
+          $memberLines[] = htmlspecialchars(($m['Full_Name'] ?? $mid)) . ' (' . htmlspecialchars($mid) . ')';
+          $memberCount++;
+          if ($memberCount >= 50) break;
+        }
+        $membersHtml = '';
+        if (!empty($memberLines)) {
+          $membersHtml .= '<p><strong>Group Members (' . count($members) . '):</strong></p><ul><li>' . implode('</li><li>', $memberLines) . '</li></ul>';
+          if (count($members) > 50) {
+            $membersHtml .= '<p><em>List truncated; showing first 50 members.</em></p>';
+          }
+        }
+
+        if (!empty($leader) && !empty($leader['Email'])) {
+          $subject = 'You have been appointed group leader for miqaat: ' . $miqaatName;
+          $body = '<p>Baad Afzalus Salaam,</p>';
+          $body .= '<p>You have been appointed as the group leader (<strong>' . htmlspecialchars($group_name) . '</strong>) for the miqaat below:</p>';
+          $body .= '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+            . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+            . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
+            . '<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>'
+            . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars((string)$miqaatDate) . '</td></tr>'
+            . '<tr><td><strong>Assignment</strong></td><td>Group</td></tr>'
+            . '<tr><td><strong>Group</strong></td><td>' . htmlspecialchars((string)$group_name) . '</td></tr>'
+            . '</table>';
+          $body .= $membersHtml;
+          $body .= '<p>Please login to your account for next steps.</p>';
+          $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+          $this->EmailQueueM->enqueue($leader['Email'], $subject, $body, null, 'html');
+        }
+        // Admin notification
+        $admins = [
+          'amilsaheb@kharjamaat.in',
+          '3042@carmelnmh.in',
+          'kharjamaat@gmail.com',
+          'kharamilsaheb@gmail.com',
+          'kharjamaat786@gmail.com',
+          'khozemtopiwalla@gmail.com',
+          'ybookwala@gmail.com'
+        ];
+        foreach ($admins as $a) {
+          $asub = 'Group Assigned for Miqaat: ' . $miqaatName;
+          $abody = '<p>Miqaat group assignment recorded.</p>'
+            . '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+            . '<tr><td><strong>Group</strong></td><td>' . htmlspecialchars($group_name) . '</td></tr>'
+            . '<tr><td><strong>Leader</strong></td><td>' . htmlspecialchars($leader['Full_Name'] ?? $leader_id) . ' (' . htmlspecialchars($leader_id) . ')</td></tr>'
+            . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+            . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
+            . '<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>'
+            . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>'
+            . '<tr><td><strong>Assignment</strong></td><td>Group</td></tr>'
+            . '<tr><td><strong>Member Count</strong></td><td>' . htmlspecialchars((string)count($members)) . '</td></tr>'
+            . '</table>'
+            . $membersHtml;
+          $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
         }
       } elseif ($assign_type == 'Fala ni Niyaz') {
         $fmb_users = $this->CommonM->get_umoor_fmb_users();
@@ -1456,6 +1574,13 @@ class Common extends CI_Controller
         'date' => date("Y-m-d", strtotime($date)),
       ];
 
+      // If miqaat is currently active, deactivate it on update
+      $this->load->model('CommonM');
+      $current = $this->CommonM->get_miqaat_by_id($miqaat_id);
+      if (!empty($current) && isset($current['status']) && (int)$current['status'] === 1) {
+        $this->CommonM->set_miqaat_status($miqaat_id, 0); // deactivate before applying updates
+      }
+
       $hijri_date = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($date)))["hijri_date"]);
 
       $hijri_year = $hijri_date[2];
@@ -1508,6 +1633,34 @@ class Common extends CI_Controller
             ]);
 
             $this->CommonM->delete_fala_ni_niyaz_by_user_id($id, $miqaat_type, $hijri_year);
+            // Notify individual and admins about assignment (update)
+            $this->load->model('EmailQueueM');
+            $this->load->model('AccountM');
+            $member = $this->AccountM->getUserData($id);
+            $miqaatRow = $this->CommonM->get_miqaat_by_id($miqaat_id);
+            $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
+            $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+            if (!empty($member) && !empty($member['Email'])) {
+              $subject = 'Miqaat Assignment: ' . $miqaatName;
+              $body = '<p>Baad Afzalus Salaam,</p>';
+              $body .= '<p>You have been assigned to the miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on <strong>' . htmlspecialchars($miqaatDate) . '</strong>.</p>';
+              $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+              $this->EmailQueueM->enqueue($member['Email'], $subject, $body, null, 'html');
+            }
+            $admins = [
+              'amilsaheb@kharjamaat.in',
+              '3042@carmelnmh.in',
+              'kharjamaat@gmail.com',
+              'kharamilsaheb@gmail.com',
+              'kharjamaat786@gmail.com',
+              'khozemtopiwalla@gmail.com',
+              'ybookwala@gmail.com'
+            ];
+            foreach ($admins as $a) {
+              $asub = 'Miqaat Assigned: ' . $miqaatName;
+              $abody = '<p>Member <strong>' . htmlspecialchars($member['Full_Name'] ?? $id) . ' (' . htmlspecialchars($id) . ')</strong> has been assigned to miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on ' . htmlspecialchars($miqaatDate) . '.</p>';
+              $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
+            }
           }
         } elseif ($assign_type == 'Group') {
           $miqaat_data['status'] = 0;
@@ -1525,6 +1678,34 @@ class Common extends CI_Controller
               'group_leader_id' => $leader_id,
               'member_id' => $member_id
             ]);
+          }
+          // Notify group leader and admins about group assignment (update)
+          $this->load->model('EmailQueueM');
+          $this->load->model('AccountM');
+          $leader = $this->AccountM->getUserData($leader_id);
+          $miqaatRow = $this->CommonM->get_miqaat_by_id($miqaat_id);
+          $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
+          $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+          if (!empty($leader) && !empty($leader['Email'])) {
+            $subject = 'You have been appointed group leader for miqaat: ' . $miqaatName;
+            $body = '<p>Baad Afzalus Salaam,</p>';
+            $body .= '<p>You have been appointed as the group leader (<strong>' . htmlspecialchars($group_name) . '</strong>) for the miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on <strong>' . htmlspecialchars($miqaatDate) . '</strong>.</p>';
+            $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+            $this->EmailQueueM->enqueue($leader['Email'], $subject, $body, null, 'html');
+          }
+          $admins = [
+            'amilsaheb@kharjamaat.in',
+            '3042@carmelnmh.in',
+            'kharjamaat@gmail.com',
+            'kharamilsaheb@gmail.com',
+            'kharjamaat786@gmail.com',
+            'khozemtopiwalla@gmail.com',
+            'ybookwala@gmail.com'
+          ];
+          foreach ($admins as $a) {
+            $asub = 'Group Assigned for Miqaat: ' . $miqaatName;
+            $abody = '<p>Group <strong>' . htmlspecialchars($group_name) . '</strong> led by <strong>' . htmlspecialchars($leader['Full_Name'] ?? $leader_id) . ' (' . htmlspecialchars($leader_id) . ')</strong> has been assigned to miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on ' . htmlspecialchars($miqaatDate) . '.</p>';
+            $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
           }
         } elseif ($assign_type == 'Fala ni Niyaz') {
           $miqaat_data['status'] = 1;
@@ -1605,7 +1786,85 @@ class Common extends CI_Controller
     if ($miqaat_id) {
       $this->load->model('CommonM');
       $this->CommonM->set_miqaat_status($miqaat_id, 1); // Set miqaat active
-      $this->session->set_flashdata('success', 'Miqaat activated.');
+      // Notify admins and assigned members/group leaders about activation
+      $this->load->model('EmailQueueM');
+      $this->load->model('AccountM');
+      $miqaat = $this->CommonM->get_miqaat_by_id($miqaat_id);
+      $miqaatName = isset($miqaat['name']) ? $miqaat['name'] : '';
+      $miqaatPublicId = isset($miqaat['miqaat_id']) ? $miqaat['miqaat_id'] : $miqaat_id;
+      $miqaatType = isset($miqaat['type']) ? $miqaat['type'] : '';
+      $miqaatDate = isset($miqaat['date']) ? date('d-m-Y', strtotime($miqaat['date'])) : '';
+
+      // Admin recipients
+      $admins = [
+        'amilsaheb@kharjamaat.in',
+        '3042@carmelnmh.in',
+        'kharjamaat@gmail.com',
+        'kharamilsaheb@gmail.com',
+        'kharjamaat786@gmail.com',
+        'khozemtopiwalla@gmail.com',
+        'ybookwala@gmail.com'
+      ];
+      $adminSub = 'Miqaat Activated: ' . $miqaatName;
+      $adminBody = '<p>A miqaat has been activated.</p>'
+        . '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+        . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
+        . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>') : '')
+        . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>'
+        . '</table>';
+      foreach ($admins as $a) {
+        $this->EmailQueueM->enqueue($a, $adminSub, $adminBody, null, 'html');
+      }
+
+      // Notify assigned members and group leaders
+      if (!empty($miqaat['assignments']) && is_array($miqaat['assignments'])) {
+        $assigned_link = base_url('accounts/assigned_miqaats');
+        foreach ($miqaat['assignments'] as $ass) {
+          if (isset($ass['assign_type']) && $ass['assign_type'] === 'Individual') {
+            $memberId = $ass['member_id'];
+            $member = $this->AccountM->getUserData($memberId);
+            if (!empty($member) && !empty($member['Email'])) {
+              $sub = 'Miqaat Activated: submit your Raza for ' . $miqaatName;
+              $body = '<p>Baad Afzalus Salaam,</p>';
+              $body .= '<p>The miqaat below which you were assigned to has now been <strong>activated</strong>:</p>';
+              $body .= '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+                . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+                . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
+                . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>') : '')
+                . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>'
+                . '<tr><td><strong>Assignment</strong></td><td>Individual</td></tr>'
+                . '</table>';
+              $body .= '<p>You can now submit a Raza for this miqaat. To view your assigned miqaats and submit a Raza, please visit: <a href="' . $assigned_link . '">Assigned Miqaats</a>.</p>';
+              $body .= '<p>Click the link above to go to your assigned miqaat and submit the Raza.</p>';
+              $body .= '<p>Wasalaam,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+              $this->EmailQueueM->enqueue($member['Email'], $sub, $body, null, 'html');
+            }
+          } elseif (isset($ass['assign_type']) && $ass['assign_type'] === 'Group') {
+            $leaderId = $ass['group_leader_id'];
+            $leader = $this->AccountM->getUserData($leaderId);
+            if (!empty($leader) && !empty($leader['Email'])) {
+              $sub = 'Miqaat: ' . $miqaatName . ' activated - Submit Raza for your group';
+              $body = '<p>Baad Afzalus Salaam,</p>';
+              $body .= '<p>The miqaat below which your group is assigned to has now been <strong>activated</strong>. You can now submit a Raza for this miqaat.</p>';
+              $body .= '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+                . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+                . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
+                . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>') : '')
+                . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>'
+                . '<tr><td><strong>Assignment</strong></td><td>Group</td></tr>'
+                . '<tr><td><strong>Group</strong></td><td>' . htmlspecialchars((string)($ass['group_name'] ?? '')) . '</td></tr>'
+                . '</table>';
+              $body .= '<p>To view your assigned miqaats and submit Raza, please visit: <a href="' . $assigned_link . '">Assigned Miqaats</a>.</p>';
+              $body .= '<p>Click the link above to go to the assigned miqaat and submit the Raza.</p>';
+              $body .= '<p>Wasalaam,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+              $this->EmailQueueM->enqueue($leader['Email'], $sub, $body, null, 'html');
+            }
+          }
+        }
+      }
+
+      $this->session->set_flashdata('success', 'Miqaat activated. Notifications queued.');
     } else {
       $this->session->set_flashdata('error', 'Invalid Miqaat.');
     }
@@ -1887,11 +2146,11 @@ class Common extends CI_Controller
 
     // Sort miqaats by date ascending (earliest first). Do not filter out past miqaats
     if (!empty($miqaats) && is_array($miqaats)) {
-      usort($miqaats, function($a, $b) {
+      usort($miqaats, function ($a, $b) {
         $da = isset($a['miqaat_date']) ? $a['miqaat_date'] : (isset($a['date']) ? $a['date'] : '');
         $db = isset($b['miqaat_date']) ? $b['miqaat_date'] : (isset($b['date']) ? $b['date'] : '');
-        $ta = $da ? strtotime(substr($da,0,10)) : 0;
-        $tb = $db ? strtotime(substr($db,0,10)) : 0;
+        $ta = $da ? strtotime(substr($da, 0, 10)) : 0;
+        $tb = $db ? strtotime(substr($db, 0, 10)) : 0;
         return $ta <=> $tb;
       });
       $miqaats = array_values($miqaats);

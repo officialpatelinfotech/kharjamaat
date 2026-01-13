@@ -86,3 +86,6 @@ $route['contact'] = 'legal/contact';
 
 // Public menu page (no login required)
 $route['menu'] = 'publicmenu';
+
+// Cookie consent
+$route['cookies/accept'] = 'cookies/accept';

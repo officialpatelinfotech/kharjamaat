@@ -683,9 +683,6 @@
   <div id="financials-modal-content" style="padding:8px 12px;"></div>
 </div>
 <script>
-  // Build as proper JSON to preserve nested structures (razadata, razafields, miqaat_details)
-
-  // Build razas array with hijri_parts for each entry
   let razas = [
     <?php
     foreach ($raza as $r) {
@@ -779,6 +776,9 @@
   function closeFinancialsModal() {
     document.getElementById('financials-modal').style.display = 'none';
     document.getElementById('financials-modal-content').innerHTML = '';
+    // restore overlay z-index if present
+    var overlay = document.getElementById('product-overlay');
+    if (overlay) overlay.style.zIndex = 10;
   }
 
   function formatINR(n) {
@@ -831,7 +831,15 @@
     html += '</div>';
 
     c.innerHTML = html;
-    document.getElementById('financials-modal').style.display = 'block';
+    var fin = document.getElementById('financials-modal');
+    // ensure financials modal appears above other query-form modals
+    if (fin) {
+      fin.style.zIndex = 30;
+      fin.style.display = 'block';
+    }
+    // push overlay behind the modal but above page
+    var overlay = document.getElementById('product-overlay');
+    if (overlay) overlay.style.zIndex = 20;
   }
 
   function proceedFromFinancials(raza_id) {

@@ -1,298 +1,157 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 
 <head>
-	<meta name="viewport" content="width=device-width" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<style>
+		/* Basic reset for email clients */
+		body {
+			margin: 0;
+			padding: 0;
+			background: #f4f6f8;
+			font-family: Arial, Helvetica, sans-serif;
+		}
+
+		.container {
+			max-width: 700px;
+			margin: 18px auto;
+			background: #ffffff;
+			border-radius: 8px;
+			overflow: hidden;
+			box-shadow: 0 6px 18px rgba(18, 38, 63, 0.06);
+		}
+
+		.header {
+			background: #0b815a;
+			color: #fff;
+			padding: 16px 20px;
+			text-align: left;
+		}
+
+		.header h1 {
+			margin: 0;
+			font-size: 18px;
+			font-weight: 700;
+		}
+
+		.meta {
+			color: rgba(255, 255, 255, 0.9);
+			font-size: 13px;
+			margin-top: 4px;
+		}
+
+		.content {
+			padding: 20px;
+			color: #111;
+			font-size: 14px;
+			line-height: 1.5;
+		}
+
+		.intro {
+			margin-bottom: 14px;
+		}
+
+		.card {
+			background: #fafafa;
+			border: 1px solid #eee;
+			padding: 14px;
+			border-radius: 6px;
+		}
+
+		.table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-top: 12px;
+		}
+
+		.table th,
+		.table td {
+			padding: 10px 12px;
+			border: 1px solid #e9e9e9;
+			text-align: left;
+			font-size: 14px;
+		}
+
+		.table th {
+			background: #f2f6f4;
+			color: #0b815a;
+			font-weight: 600;
+		}
+
+		.cta {
+			display: inline-block;
+			margin-top: 14px;
+			padding: 10px 14px;
+			background: #0b815a;
+			color: #fff;
+			text-decoration: none;
+			border-radius: 4px;
+		}
+
+		.footer {
+			background: #f7faf8;
+			padding: 16px 20px;
+			color: #67747a;
+			font-size: 13px;
+			text-align: center;
+		}
+
+		@media (max-width:520px) {
+			.container {
+				margin: 12px
+			}
+
+			.header h1 {
+				font-size: 16px
+			}
+		}
+	</style>
 </head>
 
-<body class>
-	<div style="
-				padding: 0 !important;
-				margin: 0 !important;
-				display: block !important;
-				width: 100% !important;
-				background: #ffffff;
-			" bgcolor="#ffffff">
-		<table style="width: 100%; table-layout: fixed" align="center" cellspacing="0" border="0">
-			<tbody>
-				<tr>
-					<td bgcolor="#ebe7e7" align="center">
-						<table class="m_455932988559829971its-mailer-container" style="max-width: 1000px" width="100%"
-							align="center" cellpadding="0" cellspacing="0" border="0">
-							<tbody>
-								<tr>
-									<td>
-										<table style="max-width: 1000px" width="100%" align="center" cellpadding="0"
-											cellspacing="0" border="0">
-											<tbody>
-												<tr>
-													<td align="center">
-														<p style="
-																	color: #555555;
-																	font-weight: normal;
-																	margin: 0px;
-																	padding: 5px;
-																	font-size: 12px;
-																	font-family: Roboto, arial, sans-serif;
-																">
-															To ensure delivery to your inbox, <br />kindly
-															add
-															<a style="
-																		color: #555555;
-																		text-decoration: underline;
-																	" href="mailto:info@kharjamaat.in" target="_blank">info@kharjamaat.in</a>
-															and
-															<a style="
-																		color: #555555;
-																		text-decoration: underline;
-																	" href="mailto:admin@kharjamaat.in" target="_blank">admin@kharjamaat.in</a>
-															to your address book.
-														</p>
-													</td>
-												</tr>
-												<tr>
-													<td align="center" valign="top" bgcolor="#d94235"
-														class="m_455932988559829971two-column">
-														<div class="m_455932988559829971column" style="
-																	width: 100%;
-																	max-width: 285px;
-																	display: inline-block;
-																	padding: 5px;
-																	vertical-align: middle;
-																	text-align: left;
-																">
-															<table width="100%" border="0" cellspacing="0"
-																cellpadding="0" style="width: 100% !important">
-																<tbody>
-																	<tr>
-																		<td align="center">
-																			<a href="https://www.kharjamaat.in" style="
-																						color: #ffffff !important;
-																						text-decoration: none;
-																						margin: 0px;
-																						padding: 10px;
-																						font-size: 22px;
-																						font-weight: normal;
-																						font-style: italic;
-																						font-family: Georgia, arial,
-																							sans-serif;
-																					" target="_blank">www.kharjamaat.in</a>
-																		</td>
-																	</tr>
-																</tbody>
-															</table>
-														</div>
-														<div class="m_455932988559829971column" style="
-																	width: 100%;
-																	max-width: 285px;
-																	display: inline-block;
-																	padding: 5px;
-																	vertical-align: middle;
-																	text-align: left;
-																">
-															<table width="100%" border="0" cellspacing="0"
-																cellpadding="0" style="width: 100% !important">
-																<tbody>
-																	<tr>
-																		<td align="center">
-																			<p style="
-																						color: #ffffff;
-																						margin: 0px;
-																						padding: 10px;
-																						font-size: 12px;
-																						font-weight: normal;
-																						font-family: Roboto, arial,
-																							sans-serif;
-																					">
-																				{%todayDate%}
-																			</p>
-																		</td>
-																	</tr>
-																</tbody>
-															</table>
-														</div>
-													</td>
-												</tr>
-												<tr>
-													<td valign="top" align="center">
-														<a href="https://www.kharjamaat.in" target="_blank"><img
-																src="https://kharjamaat.in/assets/home_banner.png"
-																width="100%" height="170px" style="
-																		display: block;
-																		max-width: 1000px;
-																		width: 100%;
-																		object-fit: cover;
-																	" border="0" class="CToWUd" data-bit="iit" /></a>
-													</td>
-												</tr>
-												<tr>
-													<td align="center" valign="top" bgcolor="#f8dcda">
-														<h1 style="
-																	color: #d94235;
-																	margin: 0px;
-																	padding: 30px 10px 30px 10px;
-																	font-size: 22px;
-																	font-weight: normal;
-																	font-style: italic;
-																	font-family: Georgia, arial, sans-serif;
-																">
-															New Raza Application
-														</h1>
-													</td>
-												</tr>
-												<tr>
-													<td align="left" bgcolor="#ffffff">
-														<h2 style="
-																	color: #000;
-																	margin: 0px;
-																	padding: 20px 20px 0px 20px;
-																	font-style: italic;
-																	font-weight: normal;
-																	line-height: 24px;
-																	font-size: 16px;
-																	font-family: Georgia, serif;
-																">
-															<b>Baad Afzalus Salaam,</b><br />{%name%} -
-															{%its%}<br />
-														</h2>
-													</td>
-												</tr>
-												<tr>
-													<td bgcolor="#ffffff">
-														<div style="
-																	color: #000;
-																	margin: 0px;
-																	padding: 20px;
-																	line-height: 24px;
-																	font-size: 14px;
-																	font-weight: normal;
-																	font-family: Roboto, arial, sans-serif;
-																">
-															Your Raza form has been submitted successfully
-															as mentioned below.<br /><br />
+<body>
+	<div style="padding:10px;">
+		<div class="container">
+			<div class="header">
+				<h1>New Raza Application</h1>
+				<div class="meta">{%todayDate%}</div>
+			</div>
+			<div class="content">
+				<div class="intro">
+					<strong>Baad Afzalus Salaam,</strong><br />
+					<span style="font-weight:600">{%name%}</span> — <span style="color:#5b6b6b">{%its%}</span>
+				</div>
 
-															<table border="1" style="
-																		border: 2px solid black;
-																		border-collapse: collapse;
-																		border-radius: 20px;
-																	" cellspacing="0" cellpadding="0">
-																<tbody>
-																	<tr>
-																		<td align="center"
-																			style="border: 1px solid black; width: 50%;">
-																			<p style="
-																						color: #000000;
-																						margin: 0px;
-																						padding: 10px;
-																						font-size: 15px;
-																						font-weight: bold;
-																						font-family: Roboto, arial,
-																							sans-serif;
-																					">
-																				Raza For
-																			</p>
-																		</td>
-																		<td align="center"
-																			style="border: 1px solid black;width: 50%;">
-																			<p style="
-																						color: #000000;
-																						margin: 0px;
-																						padding: 10px;
-																						font-size: 15px;
-																						font-weight: normal;
-																						font-family: Roboto, arial,
-																							sans-serif;
-																					">
-																				{%razaname%}
-																			</p>
-																		</td>
-																	</tr>
-																	{%table%}
-																</tbody>
-															</table>
+				<div class="card">
+					<p style="margin:0 0 8px 0; font-weight:600;">Your Raza request has been submitted successfully.</p>
 
-															<br /><br />If you have not Applied for this
-															Raza, inform us by email on
-															<a href="mailto:admin@kharjamaat.in"
-																target="_blank">admin@kharjamaat.in</a>
-														</div>
-													</td>
-												</tr>
-												<tr>
-													<td align="left" bgcolor="#ffffff">
-														<h2 style="
-																	color: #000;
-																	margin: 0px;
-																	padding: 0px 20px 0px 20px;
-																	font-style: italic;
-																	font-weight: normal;
-																	line-height: 24px;
-																	font-size: 16px;
-																	font-family: Georgia, serif;
-																">
-															<b>Wasalaam,</b><br />Anjuman-e-Saifee
-														</h2>
-														<br />
-													</td>
-												</tr>
-												<tr>
-													<td align="center" valign="top" bgcolor="#d94235"
-														class="m_455932988559829971two-column">
-														<p style="
-																	color: #ffffff;
-																	margin: 0px;
-																	padding: 20px;
-																	line-height: 24px;
-																	font-size: 14px;
-																	font-weight: normal;
-																	font-family: Roboto, arial, sans-serif;
-																">
-															Powered by:Anjuman-e-Saifee,<br /><span
-																style="font-size: 18px">Khar
-																(Khar),</span><br />Bohra Masjid,<br />
-															Khar - 400052, Mumbai ,			Maharashtra India.<br /><a href="tel:+918452840052" style="
-																		color: #ffffff !important;
-																		text-decoration: none;
-																		font-size: 14px;
-																		font-weight: normal;
-																		font-family: Roboto, arial, sans-serif;
-																	" target="_blank">+91 8452840052</a>
-															|
-															<a href="mailto:admin@kharjamaat.in" style="
-																		color: #ffffff !important;
-																		text-decoration: none;
-																		font-size: 14px;
-																		font-weight: normal;
-																		font-family: Roboto, arial, sans-serif;
-																	" target="_blank">admin@kharjamaat.in</a><br />
-														</p>
-														<p style="
-																	border-top: dashed 1px #fff;
-																	color: #ffffff;
-																	margin: 0px;
-																	padding: 10px;
-																	line-height: 24px;
-																	font-size: 12px;
-																	font-weight: normal;
-																	font-family: Roboto, arial, sans-serif;
-																">
-															You received this mandatory email service
-															announcement to update you about important
-															changes to your account.
-														</p>
-													</td>
-												</tr>
-											</tbody>
-										</table>
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</td>
-				</tr>
-			</tbody>
-		</table>
+					<table class="table" role="presentation">
+						<thead>
+							<tr>
+								<th align="center" style="border: 1px solid black;width: 50%;" colspan="2" style="width:40%">Raza Details</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td align="center" style="border: 1px solid black;width: 50%;">
+									<p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: bold; font-family: Roboto, arial, sans-serif;">Raza For</p>
+								</td>
+								<td style="border-right: #000000 1px solid; border-bottom: #000000 1px solid;">
+									<p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: normal; font-family: Roboto, arial, sans-serif;">{%razaname%}</p>
+								</td>
+							</tr>
+							{%table%}
+						</tbody>
+					</table>
+
+					<p style="margin-top:12px;">If you did not submit this request, please contact us at <a href="mailto:kharjamaat786@gmail.com">kharjamaat786@gmail.com</a>.</p>
+					<a class="cta" style="color: white;" href="https://www.kharjamaat.in/accounts">Login to your account</a>
+				</div>
+			</div>
+			<div class="footer">
+				Anjuman-e-Saifee — Khar Jamaat • Bohra Masjid, Khar • <a href="tel:+919372415351">+919372415351</a> • <a href="mailto:kharjamaat786@gmail.com">kharjamaat786@gmail.com</a>
+			</div>
+		</div>
 	</div>
 </body>
 

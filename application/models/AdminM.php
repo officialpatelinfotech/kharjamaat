@@ -15,6 +15,7 @@ class AdminM extends CI_Model
     $query = $this->db->query($sql);
     return $query->result_array();
   }
+
   function get_user_by_role($role)
   {
     $this->db->select('u.*');
@@ -27,6 +28,7 @@ class AdminM extends CI_Model
     $query = $this->db->get();
     return $query->result_array();
   }
+
   function get_raza()
   {
     $sql = " SELECT * FROM `raza` where active=1 ORDER BY `raza`.`time-stamp` DESC";
