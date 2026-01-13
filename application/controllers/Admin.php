@@ -608,6 +608,60 @@ class Admin extends CI_Controller
     $remark = trim($_POST['remark']);
     $raza_id = $_POST['raza_id'];
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
+    $this->load->helper('raza_details');
+    $razaRow = $this->db->select('id, raza_id, user_id, razaType, razadata, miqaat_id')
+      ->from('raza')
+      ->where('id', $raza_id)
+      ->get()->row_array();
+    $rtRow = null;
+    if (!empty($razaRow['razaType'])) {
+      $rtRow = $this->db->select('id, name, fields')
+        ->from('raza_type')
+        ->where('id', (int)$razaRow['razaType'])
+        ->get()->row_array();
+    }
+    $razadataDecoded = [];
+    if (!empty($razaRow['razadata'])) {
+      $tmp = json_decode($razaRow['razadata'], true);
+      if (is_array($tmp)) $razadataDecoded = $tmp;
+    }
+    $rtFieldsDecoded = [];
+    if (!empty($rtRow['fields'])) {
+      $tmp = json_decode($rtRow['fields'], true);
+      if (is_array($tmp)) $rtFieldsDecoded = $tmp;
+    }
+    $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
+    $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+    $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
+    // If this is a Miqaat Raza, show Miqaat details in the email instead of generic razatype fields.
+    if (!empty($razaRow['miqaat_id'])) {
+      $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRow['miqaat_id']);
+      $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
+      $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRow['miqaat_id'];
+      $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
+      $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+
+      $assignmentLabel = '';
+      $assignmentGroupName = '';
+      $ass = $this->AccountM->get_miqaat_assignment_for_member((int)$razaRow['miqaat_id'], $razaRow['user_id']);
+      if (!empty($ass)) {
+        $assignmentLabel = isset($ass['assign_type']) ? (string)$ass['assign_type'] : '';
+        $assignmentGroupName = isset($ass['group_name']) ? (string)$ass['group_name'] : '';
+        $al = strtolower(trim($assignmentLabel));
+        if ($al === 'group') $assignmentLabel = 'Group';
+        if ($al === 'individual') $assignmentLabel = 'Individual';
+      }
+
+      $detailsHtml = '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+        . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars($miqaatPublicId) . '</td></tr>'
+        . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars($miqaatType) . '</td></tr>') : '')
+        . ($miqaatDate !== '' ? ('<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>') : '')
+        . ($assignmentLabel !== '' ? ('<tr><td><strong>Assignment</strong></td><td>' . htmlspecialchars($assignmentLabel) . '</td></tr>') : '')
+        . ($assignmentGroupName !== '' ? ('<tr><td><strong>Group</strong></td><td>' . htmlspecialchars($assignmentGroupName) . '</td></tr>') : '')
+        . '</table>';
+    }
+    $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
     $flag = $this->AdminM->approve_raza($raza_id, $remark);
     $amilsaheb_details = $this->AdminM->get_user_by_role("Amilsaheb");
 
@@ -615,31 +669,29 @@ class Admin extends CI_Controller
 
     // Enqueue email to user (non-blocking)
     $this->load->model('EmailQueueM');
-    $message = '<p>Baad Afzalus Salaam,</p>
-        <p><strong>Mubarak!</strong></p>
-        <p>
-          Your <strong>Raza request has received a recommendation from Anjuman E Saifee Jamaat</strong>.
-        </p>
-        <p>
-          Kindly reach out to <strong>Janab Amil Saheb</strong> via
-          <strong>Phone or WhatsApp</strong> at the number below to obtain his
-          <strong>final Raza and Dua</strong>: <strong>+91-' . $amilsaheb_mobile . '</strong>
-        </p>
-        <p>
-          <strong>Wassalaam.</strong>
-        </p>
-      ';
+    $message = '<p>Baad Afzalus Salaam,</p>'
+      . '<p><strong>Mubarak!</strong> Your Raza request has received a recommendation from Anjuman-e-Saifee Jamaat.</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . $remarkHtml
+      . $detailsHtml
+      . '<p>Kindly reach out to <strong>Janab Amil Saheb</strong> via <strong>Phone/WhatsApp</strong> to obtain his <strong>final Raza and Dua</strong>: <strong>+91-' . $amilsaheb_mobile . '</strong></p>'
+      . '<p><strong>Wassalaam.</strong></p>';
     $this->EmailQueueM->enqueue($user['Email'], 'Update on Your Raza Request', $message, null, 'html');
 
     // Notify Amilsaheb, Khar Jamaat, 3042 Carmelnmh, Anjuman
-    $msg_html = 'Raza request for <strong>' . htmlspecialchars($user['Full_Name']) . '</strong> (' . htmlspecialchars($user['ITS_ID']) . ') has been recommended by the Jamaat Coordinator.';
+    $msg_html = '<p>Raza request has been recommended by the Jamaat Coordinator.</p>'
+      . '<p><strong>Member:</strong> ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ')</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . $remarkHtml
+      . $detailsHtml;
 
     $this->email->set_mailtype('html');
 
     $notify_recipients = [
       'kharjamaat@gmail.com',
+      'kharjamaat786@gmail.com',
+      'kharamilsaheb@gmail.com',
       '3042@carmelnmh.in',
-      'anjuman@kharjamaat.in',
       'khozemtopiwalla@gmail.com',
       'ybookwala@gmail.com'
     ];
@@ -667,18 +719,84 @@ class Admin extends CI_Controller
 
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
 
+    $this->load->helper('raza_details');
+    $razaRow = $this->db->select('id, raza_id, user_id, razaType, razadata, miqaat_id')
+      ->from('raza')
+      ->where('id', $raza_id)
+      ->get()->row_array();
+    $rtRow = null;
+    if (!empty($razaRow['razaType'])) {
+      $rtRow = $this->db->select('id, name, fields')
+        ->from('raza_type')
+        ->where('id', (int)$razaRow['razaType'])
+        ->get()->row_array();
+    }
+    $razadataDecoded = [];
+    if (!empty($razaRow['razadata'])) {
+      $tmp = json_decode($razaRow['razadata'], true);
+      if (is_array($tmp)) $razadataDecoded = $tmp;
+    }
+    $rtFieldsDecoded = [];
+    if (!empty($rtRow['fields'])) {
+      $tmp = json_decode($rtRow['fields'], true);
+      if (is_array($tmp)) $rtFieldsDecoded = $tmp;
+    }
+    $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
+    $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+    $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
+    // If this is a Miqaat Raza, show Miqaat details in the email instead of generic razatype fields.
+    if (!empty($razaRow['miqaat_id'])) {
+      $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRow['miqaat_id']);
+      $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
+      $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRow['miqaat_id'];
+      $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
+      $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+
+      $assignmentLabel = '';
+      $assignmentGroupName = '';
+      $ass = $this->AccountM->get_miqaat_assignment_for_member((int)$razaRow['miqaat_id'], $razaRow['user_id']);
+      if (!empty($ass)) {
+        $assignmentLabel = isset($ass['assign_type']) ? (string)$ass['assign_type'] : '';
+        $assignmentGroupName = isset($ass['group_name']) ? (string)$ass['group_name'] : '';
+        $al = strtolower(trim($assignmentLabel));
+        if ($al === 'group') $assignmentLabel = 'Group';
+        if ($al === 'individual') $assignmentLabel = 'Individual';
+      }
+
+      $detailsHtml = '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+        . '<tr><td><strong>Raza ID</strong></td><td>' . htmlspecialchars($razaPublicId) . '</td></tr>'
+        . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+        . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars($miqaatPublicId) . '</td></tr>'
+        . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars($miqaatType) . '</td></tr>') : '')
+        . ($miqaatDate !== '' ? ('<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>') : '')
+        . ($assignmentLabel !== '' ? ('<tr><td><strong>Assignment</strong></td><td>' . htmlspecialchars($assignmentLabel) . '</td></tr>') : '')
+        . ($assignmentGroupName !== '' ? ('<tr><td><strong>Group</strong></td><td>' . htmlspecialchars($assignmentGroupName) . '</td></tr>') : '')
+        . '</table>';
+    }
+    $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
+
     // Enqueue user notification
     $this->load->model('EmailQueueM');
-    $this->EmailQueueM->enqueue($user['Email'], 'Update on Your Raza Request', "Sorry. Your Raza has not been recommended by Jamaat coordinator. Wait for Janab's response.", null, 'html');
+    $memberBody = '<p>Baad Afzalus Salaam,</p>'
+      . '<p>Your Raza has <strong>not</strong> been recommended by the Jamaat coordinator.</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . $remarkHtml
+      . $detailsHtml
+      . '<p>Please wait for Janab\'s response or contact Jamaat office for guidance.</p>'
+      . '<p><strong>Wassalaam.</strong></p>';
+    $this->EmailQueueM->enqueue($user['Email'], 'Update on Your Raza Request', $memberBody, null, 'html');
 
-    $msg_text = 'Raza request for ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ') has not been recommended by the Jamaat Coordinator.';
-    $msg_html = 'Raza request for <strong>' . htmlspecialchars($user['Full_Name']) . '</strong> (' . htmlspecialchars($user['ITS_ID']) . ') has <strong>not</strong> been recommended by the Jamaat Coordinator.';
+    $msg_text = 'Raza request for ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ') has not been recommended by the Jamaat Coordinator. Raza ID: ' . htmlspecialchars($razaPublicId);
+    $msg_html = '<p>Raza request has <strong>not</strong> been recommended by the Jamaat Coordinator.</p>'
+      . '<p><strong>Member:</strong> ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ')</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . $remarkHtml
+      . $detailsHtml;
 
     $this->email->set_mailtype('html');
 
     $monitor_bcc = ['khozemtopiwalla@gmail.com', 'ybookwala@gmail.com'];
     $admin_recipients = [
-      'anjuman@kharjamaat.in',
       'amilsaheb@kharjamaat.in',
       '3042@carmelnmh.in',
       'kharjamaat@gmail.com',

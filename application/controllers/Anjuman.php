@@ -1287,6 +1287,33 @@ class Anjuman extends CI_Controller
     $remark = $_POST['remark'];
     $raza_id = $_POST['raza_id'];
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
+
+    $this->load->helper('raza_details');
+    $razaRow = $this->db->select('id, raza_id, user_id, razaType, razadata, miqaat_id')
+      ->from('raza')
+      ->where('id', $raza_id)
+      ->get()->row_array();
+    $rtRow = null;
+    if (!empty($razaRow['razaType'])) {
+      $rtRow = $this->db->select('id, name, fields')
+        ->from('raza_type')
+        ->where('id', (int)$razaRow['razaType'])
+        ->get()->row_array();
+    }
+    $razadataDecoded = [];
+    if (!empty($razaRow['razadata'])) {
+      $tmp = json_decode($razaRow['razadata'], true);
+      if (is_array($tmp)) $razadataDecoded = $tmp;
+    }
+    $rtFieldsDecoded = [];
+    if (!empty($rtRow['fields'])) {
+      $tmp = json_decode($rtRow['fields'], true);
+      if (is_array($tmp)) $rtFieldsDecoded = $tmp;
+    }
+    $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
+    $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+    $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
+    $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
     $flag = $this->AdminM->approve_raza($raza_id, $remark);
 
     // Enqueue email to user (non-blocking)
@@ -1294,23 +1321,29 @@ class Anjuman extends CI_Controller
     $amilsaheb_details = $this->AdminM->get_user_by_role("Amilsaheb");
     $amilsaheb_mobile = substr(preg_replace('/\D+/', '', $amilsaheb_details[0]['Mobile'] ?? ''), -10);
 
-    $message = '<p>Assalaamu Alaikum,</p>' .
-      '<p><strong>Mubarak!</strong></p>' .
-      '<p>Your <strong>Raza request has received a recommendation from Anjuman-e-Saifee Jamaat</strong>.</p>' .
-      '<p>Kindly reach out to <strong>Janab Amil Saheb</strong> via <strong>phone or WhatsApp</strong> at the number below to obtain his <strong>final Raza and Dua</strong>:</p>' .
-      '<p>📞 <strong>+91-' . $amilsaheb_mobile . '</strong></p>' .
-      '<p><strong>Wassalaam.</strong></p>';
+    $message = '<p>Baad Afzalus Salaam,</p>'
+      . '<p><strong>Mubarak!</strong> Your Raza request has received a recommendation from Anjuman-e-Saifee Jamaat.</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . $remarkHtml
+      . $detailsHtml
+      . '<p>Kindly reach out to <strong>Janab Amil Saheb</strong> via <strong>phone or WhatsApp</strong> at: <strong>+91-' . $amilsaheb_mobile . '</strong> to obtain his <strong>final Raza and Dua</strong>.</p>'
+      . '<p><strong>Wassalaam.</strong></p>';
 
     if (!empty($user['Email'])) {
       $this->EmailQueueM->enqueue($user['Email'], 'Update on Your Raza Request', $message, null, 'html');
     }
 
     // Notify monitoring/admin recipients
-    $msg_html = 'Raza request for <strong>' . htmlspecialchars($user['Full_Name']) . '</strong> (' . htmlspecialchars($user['ITS_ID']) . ') has been recommended by the Jamaat Coordinator.';
+    $msg_html = '<p>Raza request has been recommended by the Jamaat Coordinator.</p>'
+      . '<p><strong>Member:</strong> ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ')</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . $remarkHtml
+      . $detailsHtml;
     $notify_recipients = [
       'kharjamaat@gmail.com',
       '3042@carmelnmh.in',
-      'anjuman@kharjamaat.in',
+      'kharamilsaheb@gmail.com',
+      'kharjamaat786@gmail.com',
       'khozemtopiwalla@gmail.com',
       'ybookwala@gmail.com'
     ];
@@ -1337,11 +1370,46 @@ class Anjuman extends CI_Controller
 
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
 
-    $this->email->from('raza@kharjamaat.in', 'Admin');
-    $this->email->to($user['Email']);
-    $this->email->subject('Raza Status');
-    $this->email->message('Sorry. Your Raza has not recommended by jamaat coordinator. wait for janab response');
-    $this->email->send();
+    // Queue rejection email via EmailQueue so it is branded consistently.
+    $this->load->model('EmailQueueM');
+    $this->load->helper('raza_details');
+    $razaRow = $this->db->select('id, raza_id, user_id, razaType, razadata, miqaat_id')
+      ->from('raza')
+      ->where('id', $raza_id)
+      ->get()->row_array();
+    $rtRow = null;
+    if (!empty($razaRow['razaType'])) {
+      $rtRow = $this->db->select('id, name, fields')
+        ->from('raza_type')
+        ->where('id', (int)$razaRow['razaType'])
+        ->get()->row_array();
+    }
+    $razadataDecoded = [];
+    if (!empty($razaRow['razadata'])) {
+      $tmp = json_decode($razaRow['razadata'], true);
+      if (is_array($tmp)) $razadataDecoded = $tmp;
+    }
+    $rtFieldsDecoded = [];
+    if (!empty($rtRow['fields'])) {
+      $tmp = json_decode($rtRow['fields'], true);
+      if (is_array($tmp)) $rtFieldsDecoded = $tmp;
+    }
+    $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
+    $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+    $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
+    $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
+
+    $memberEmail = isset($user['Email']) ? trim((string)$user['Email']) : '';
+    if ($memberEmail !== '' && filter_var($memberEmail, FILTER_VALIDATE_EMAIL)) {
+      $body = '<p>Baad Afzalus Salaam,</p>'
+        . '<p>Your Raza has <strong>not</strong> been recommended by the Jamaat coordinator.</p>'
+        . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+        . $remarkHtml
+        . $detailsHtml
+        . '<p>Please wait for Janab\'s response or contact Jamaat office for guidance.</p>'
+        . '<p><strong>Wassalaam.</strong></p>';
+      $this->EmailQueueM->enqueue($memberEmail, 'Update on Your Raza Request', $body, null, 'html');
+    }
     if ($flag) {
       http_response_code(200);
       echo json_encode(['status' => true]);

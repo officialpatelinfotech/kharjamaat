@@ -9,6 +9,33 @@ class EmailQueueM extends CI_Model
 
   public function enqueue($recipient, $subject, $message, $bcc = null, $mailtype = 'html', $send_after = null)
   {
+    // Ensure queued HTML emails use the shared branded template (same look as Raza submission)
+    // unless the caller already provided a full HTML document.
+    if ($mailtype === 'html' && is_string($message) && trim($message) !== '') {
+      $CI = &get_instance();
+      if ($CI) {
+        $CI->load->helper('email_template');
+        $CI->load->helper('url');
+        if (function_exists('email_body_is_full_document') && !email_body_is_full_document($message)) {
+          // Avoid repeating greeting if the message already starts with it.
+          $plainStart = strtolower(trim(preg_replace('/\s+/', ' ', strip_tags(substr($message, 0, 250)))));
+          $hasGreeting = (strpos($plainStart, 'baad afzalus salaam') === 0) || (strpos($plainStart, 'baad afzalus salam') === 0);
+
+          $message = render_generic_email_html([
+            'title' => (string)$subject,
+            'todayDate' => date('l, j M Y, h:i:s A'),
+            'greeting' => $hasGreeting ? '' : 'Baad Afzalus Salaam,',
+            // Title already shows in the header; avoid duplicating it inside the card.
+            'cardTitle' => '',
+            'body' => $message,
+            'auto_table' => true,
+            'ctaUrl' => function_exists('base_url') ? base_url('accounts') : '',
+            'ctaText' => 'Login to your account',
+          ]);
+        }
+      }
+    }
+
     $data = [
       'recipient' => is_array($recipient) ? json_encode($recipient) : $recipient,
       'bcc' => is_array($bcc) ? json_encode($bcc) : $bcc,

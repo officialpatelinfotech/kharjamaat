@@ -128,25 +128,28 @@
 					<table class="table" role="presentation">
 						<thead>
 							<tr>
-								<th style="width:40%">Field</th>
-								<th>Value</th>
+								<th align="center" style="border: 1px solid black;width: 50%;" colspan="2" style="width:40%">Raza Details</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr>
-								<td>Raza For</td>
-								<td>{%razaname%}</td>
+								<td align="center" style="border: 1px solid black;width: 50%;">
+									<p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: bold; font-family: Roboto, arial, sans-serif;">Raza For</p>
+								</td>
+								<td style="border-right: #000000 1px solid; border-bottom: #000000 1px solid;">
+									<p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: normal; font-family: Roboto, arial, sans-serif;">{%razaname%}</p>
+								</td>
 							</tr>
 							{%table%}
 						</tbody>
 					</table>
 
-					<p style="margin-top:12px;">If you did not submit this request, please contact us at <a href="mailto:admin@kharjamaat.in">admin@kharjamaat.in</a>.</p>
+					<p style="margin-top:12px;">If you did not submit this request, please contact us at <a href="mailto:kharjamaat786@gmail.com">kharjamaat786@gmail.com</a>.</p>
 					<a class="cta" style="color: white;" href="https://www.kharjamaat.in/accounts">Login to your account</a>
 				</div>
 			</div>
 			<div class="footer">
-				Anjuman-e-Saifee — Khar Jamaat • Bohra Masjid, Khar • <a href="tel:+918452840052">+91 84528 40052</a> • <a href="mailto:admin@kharjamaat.in">admin@kharjamaat.in</a>
+				Anjuman-e-Saifee — Khar Jamaat • Bohra Masjid, Khar • <a href="tel:+919372415351">+919372415351</a> • <a href="mailto:kharjamaat786@gmail.com">kharjamaat786@gmail.com</a>
 			</div>
 		</div>
 	</div>

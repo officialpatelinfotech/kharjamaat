@@ -35,6 +35,7 @@ class Notifications extends CI_Controller
     $this->load->library('Notification_lib');
     $this->load->library('email');
     $this->load->model('CommonM');
+    $this->load->helper('email_template');
     $this->config->load('notifications', TRUE);
 
     // Initialize email transport like EmailWorker so SMTP settings, newline/crlf, and mailtype are respected
@@ -84,6 +85,25 @@ class Notifications extends CI_Controller
 
       try {
         if ($channel === 'email') {
+          // Standardize all notification emails to the branded template (same look as Raza submission)
+          // unless a full HTML document was already stored.
+          if (is_string($body) && trim($body) !== '' && function_exists('email_body_is_full_document') && !email_body_is_full_document($body)) {
+            $plainStart = strtolower(trim(preg_replace('/\s+/', ' ', strip_tags(substr($body, 0, 250)))));
+            $hasGreeting = (strpos($plainStart, 'baad afzalus salaam') === 0) || (strpos($plainStart, 'baad afzalus salam') === 0);
+
+            $body = render_generic_email_html([
+              'title' => (string)($subject ?: 'Notification'),
+              'todayDate' => date('l, j M Y, h:i:s A'),
+              'greeting' => $hasGreeting ? '' : 'Baad Afzalus Salaam,',
+              // Title already shows in the header; avoid duplicating it inside the card.
+              'cardTitle' => '',
+              'body' => $body,
+              'auto_table' => true,
+              'ctaUrl' => base_url('accounts'),
+              'ctaText' => 'Login to your account',
+            ]);
+          }
+
           $this->email->clear(true);
           $from = $this->config->item('smtp_user') ?: 'no-reply@localhost';
           $this->email->from($from);
@@ -281,7 +301,8 @@ class Notifications extends CI_Controller
         'recipient' => $email,
         'recipient_type' => 'member',
         'subject' => 'Thaali signup reminder',
-        'body' => $tpl
+        'body' => $tpl,
+        'card_title' => 'Thaali signup reminder'
       ]);
       $count++;
       // Send WhatsApp to each member in the group
@@ -342,7 +363,8 @@ class Notifications extends CI_Controller
         'recipient' => $email,
         'recipient_type' => 'member',
         'subject' => 'Thaali feedback reminder',
-        'body' => $tpl
+        'body' => $tpl,
+        'card_title' => 'Thaali feedback reminder'
       ]);
       $count++;
 
@@ -403,28 +425,60 @@ class Notifications extends CI_Controller
       if ($rcpt !== '') $already[strtolower($rcpt)] = true;
     }
 
-    $sql = "SELECT ITS_ID, Full_Name, COALESCE(NULLIF(Email,''), NULLIF(email,''), '') AS email
+    // Build family-wise recipient list, preferring HOF email (or any valid family email).
+    $sql = "SELECT ITS_ID, HOF_ID, HOF_FM_TYPE, Full_Name,
+              COALESCE(NULLIF(Email,''), NULLIF(email,''), '') AS email
             FROM user
             WHERE Inactive_Status IS NULL AND COALESCE(Sector,'') <> ''";
     $rows = $this->db->query($sql)->result_array();
-    $count = 0;
 
+    $families = []; // familyId => ['its'=>familyId,'name'=>...,'email'=>...]
     foreach ($rows as $r) {
       $its = (int)($r['ITS_ID'] ?? 0);
       if ($its <= 0) continue;
+      $hof = (int)($r['HOF_ID'] ?? 0);
+      $familyId = ($hof > 0) ? $hof : $its;
 
       $email = trim((string)($r['email'] ?? ''));
-      if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
-      if (isset($already[strtolower($email)])) continue;
+      $emailOk = (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL));
+      $name = trim((string)($r['Full_Name'] ?? ''));
+      $isHofRow = ((string)($r['HOF_FM_TYPE'] ?? '') === 'HOF') || ($its === $familyId);
 
-      // Compute dues
-      $fmb = $this->AccountM->get_member_total_fmb_due($its);
+      if (!isset($families[$familyId])) {
+        $families[$familyId] = ['its' => $familyId, 'name' => $name, 'email' => ($emailOk ? $email : '')];
+      }
+
+      // Prefer HOF email/name when available; otherwise fill missing email.
+      if ($isHofRow) {
+        if ($name !== '') $families[$familyId]['name'] = $name;
+        if ($emailOk) $families[$familyId]['email'] = $email;
+      } else {
+        if ($families[$familyId]['email'] === '' && $emailOk) $families[$familyId]['email'] = $email;
+      }
+    }
+
+    $count = 0;
+    $sentEmails = [];
+
+    foreach ($families as $familyId => $fam) {
+      $familyId = (int)$familyId;
+      if ($familyId <= 0) continue;
+
+      $email = trim((string)($fam['email'] ?? ''));
+      if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
+
+      $emailKey = strtolower($email);
+      if (isset($already[$emailKey])) continue;
+      if (isset($sentEmails[$emailKey])) continue;
+
+      // Compute dues (family-wise for FMB & Sabeel; other dues remain HOF/family anchor based)
+      $fmb = $this->AccountM->get_family_total_fmb_due_upto_current_year($familyId);
       $fmbDue = is_array($fmb) ? (float)($fmb['total_due'] ?? 0) : 0.0;
 
-      $sabeel = $this->AccountM->get_member_total_sabeel_due($its);
+      $sabeel = $this->AccountM->get_family_total_sabeel_due_upto_current_year($familyId);
       $sabeelDue = is_array($sabeel) ? (float)($sabeel['total_due'] ?? 0) : 0.0;
 
-      $miqInvoices = $this->AccountM->get_user_miqaat_invoices($its);
+      $miqInvoices = $this->AccountM->get_user_miqaat_invoices($familyId);
       $miqDue = 0.0;
       if (is_array($miqInvoices)) {
         foreach ($miqInvoices as $inv) {
@@ -432,7 +486,7 @@ class Notifications extends CI_Controller
         }
       }
 
-      $gcDue = (float)$this->AccountM->get_member_total_general_contrib_due($its);
+      $gcDue = (float)$this->AccountM->get_member_total_general_contrib_due($familyId);
 
       $total = $fmbDue + $sabeelDue + $miqDue + $gcDue;
 
@@ -440,26 +494,21 @@ class Notifications extends CI_Controller
         return number_format((float)$n, 2);
       };
 
-      $name = trim((string)($r['Full_Name'] ?? ''));
+      $name = trim((string)($fam['name'] ?? ''));
       $lines = [];
-      $lines[] = 'Assalamu Alaikum' . ($name !== '' ? (' ' . $name) : '') . ',';
-      $lines[] = '';
       $lines[] = ($intro !== '' ? $intro : 'This is a consolidated reminder of your current outstanding dues:');
       $lines[] = '';
-      $lines[] = 'FMB Takhmeen Due: ₹ ' . $fmt($fmbDue);
-      $lines[] = 'Sabeel Takhmeen Due: ₹ ' . $fmt($sabeelDue);
-      $lines[] = 'Miqaat Invoice Due: ₹ ' . $fmt($miqDue);
-      $lines[] = 'Extra Contribution Due: ₹ ' . $fmt($gcDue);
+      $lines[] = 'FMB Takhmeen Due: ₹' . $fmt($fmbDue);
+      $lines[] = 'Sabeel Takhmeen Due: ₹' . $fmt($sabeelDue);
+      $lines[] = 'Miqaat Invoice Due: ₹' . $fmt($miqDue);
+      $lines[] = 'Extra Contribution Due: ₹' . $fmt($gcDue);
       $lines[] = '----------------------------------------';
-      $lines[] = 'Total Due: ₹ ' . $fmt($total);
+      $lines[] = 'Total Due: ₹' . $fmt($total);
       $lines[] = '';
       $lines[] = ($footer !== '' ? $footer : 'You may review details and make payments using the links below.');
       $lines[] = 'FMB & Extra Contributions: accounts/viewfmbtakhmeen';
       $lines[] = 'Sabeel: accounts/ViewSabeelTakhmeen';
       $lines[] = 'Miqaat Invoices: accounts/assigned_miqaats';
-      $lines[] = '';
-      $lines[] = 'Regards,';
-      $lines[] = 'Kharjamaat Administration';
 
       $body = implode("\n", $lines);
 
@@ -467,12 +516,16 @@ class Notifications extends CI_Controller
         'recipient' => $email,
         'recipient_type' => 'member',
         'subject' => $subject,
-        'body' => $body
+        'body' => $body,
+        'recipient_name' => $name,
+        'recipient_its' => (string)$familyId,
+        'card_title' => 'Finance Dues Summary'
       ]);
       $count++;
+      $sentEmails[$emailKey] = true;
     }
 
-    echo "Finances monthly reminders queued for {$count} members\n";
+    echo "Finances monthly reminders queued for {$count} families\n";
   }
 
   protected function schedule_weekly_corpus()
@@ -481,30 +534,83 @@ class Notifications extends CI_Controller
     $sql = "SELECT DISTINCT HOF_ID, COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') AS mobile, COALESCE(NULLIF(Email,''), NULLIF(email,''), '') AS email FROM user WHERE HOF_FM_TYPE = 'HOF' AND Inactive_Status IS NULL AND COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') <> ''";
     $rows = $this->db->query($sql)->result_array();
     $count = 0;
+    $sentEmails = [];
     foreach ($rows as $r) {
       $hofId = isset($r['HOF_ID']) ? (int)$r['HOF_ID'] : 0;
       if ($hofId <= 0) continue;
 
-      // Compute outstanding corpus due for this HOF
-      $assignedRow = $this->db->select('COALESCE(SUM(amount_assigned),0) AS assigned_total', false)
-        ->from('corpus_fund_assignment')
-        ->where('hof_id', $hofId)
-        ->get()->row_array();
-      $paidRow = $this->db->select('COALESCE(SUM(amount_paid),0) AS paid_total', false)
+      // Compute outstanding corpus details for this family (HOF)
+      $assignments = $this->db->select('a.fund_id, f.title, COALESCE(SUM(a.amount_assigned),0) AS assigned_total', false)
+        ->from('corpus_fund_assignment a')
+        ->join('corpus_fund f', 'f.id = a.fund_id', 'inner')
+        ->where('a.hof_id', $hofId)
+        ->group_by(['a.fund_id', 'f.title'])
+        ->order_by('a.fund_id', 'ASC')
+        ->get()->result_array();
+
+      $payments = $this->db->select('fund_id, COALESCE(SUM(amount_paid),0) AS paid_total', false)
         ->from('corpus_fund_payment')
         ->where('hof_id', $hofId)
-        ->get()->row_array();
-      $assignedTotal = (float)($assignedRow['assigned_total'] ?? 0);
-      $paidTotal = (float)($paidRow['paid_total'] ?? 0);
-      $due = max(0, $assignedTotal - $paidTotal);
+        ->group_by('fund_id')
+        ->get()->result_array();
 
-      $dueLine = "Corpus Fund Due: ₹ " . number_format($due, 2);
-      $linkLine = "View details: common/corpusfunds";
-      $body = $tpl;
-      if ($due > 0) {
-        $body .= "\n" . $dueLine;
+      $paidByFund = [];
+      foreach ($payments as $p) {
+        $fundId = isset($p['fund_id']) ? (int)$p['fund_id'] : 0;
+        if ($fundId <= 0) continue;
+        $paidByFund[$fundId] = (float)($p['paid_total'] ?? 0);
       }
-      $body .= "\n" . $linkLine;
+
+      $fmt = function ($n) {
+        return number_format((float)$n, 2);
+      };
+
+      $totalAssigned = 0.0;
+      $totalPaid = 0.0;
+      $totalDue = 0.0;
+      $fundLines = [];
+
+      foreach ($assignments as $a) {
+        $fundId = isset($a['fund_id']) ? (int)$a['fund_id'] : 0;
+        if ($fundId <= 0) continue;
+
+        $title = trim((string)($a['title'] ?? ''));
+        $assigned = (float)($a['assigned_total'] ?? 0);
+        $paid = (float)($paidByFund[$fundId] ?? 0);
+        $due = max(0.0, $assigned - $paid);
+
+        $totalAssigned += $assigned;
+        $totalPaid += $paid;
+        $totalDue += $due;
+
+        if ($due > 0) {
+          $label = ($title !== '' ? $title : ('Fund #' . $fundId));
+          $fundLines[] = $label . ': Due ₹' . $fmt($due) . ' (Assigned ₹' . $fmt($assigned) . ', Paid ₹' . $fmt($paid) . ')';
+        }
+      }
+
+      $lines = [];
+      $lines[] = trim((string)$tpl);
+      $lines[] = '';
+      if ($totalDue > 0) {
+        $lines[] = 'Total Corpus Fund Due: ₹' . $fmt($totalDue);
+        if (!empty($fundLines)) {
+          $lines[] = '';
+          $lines[] = 'Fund-wise details:';
+          foreach ($fundLines as $l) {
+            $lines[] = '- ' . $l;
+          }
+        }
+      } else {
+        $lines[] = 'No pending Corpus Fund dues.';
+      }
+
+      $lines[] = '';
+      $lines[] = 'View details: accounts/corpusfunds';
+
+      $body = implode("\n", array_filter($lines, function ($v) {
+        return $v !== null;
+      }));
 
       $phone = preg_replace('/[^0-9+]/', '', $r['mobile']);
       if (empty($phone)) continue;
@@ -514,13 +620,20 @@ class Notifications extends CI_Controller
         'body' => $body
       ]);
       $email = trim((string)($r['email'] ?? ''));
-      if (!empty($email)) {
+      if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $emailKey = strtolower($email);
+        if (isset($sentEmails[$emailKey])) {
+          $count++;
+          continue;
+        }
         $this->notification_lib->send_email([
           'recipient' => $email,
           'recipient_type' => 'hof',
           'subject' => 'Corpus fund reminder',
-          'body' => $body
+          'body' => $body,
+          'card_title' => 'Corpus fund reminder'
         ]);
+        $sentEmails[$emailKey] = true;
       }
       $count++;
     }
@@ -557,41 +670,71 @@ class Notifications extends CI_Controller
       ->result_array();
 
     $countAppointments = count($rows);
+    $tomorrow = date('d M Y', strtotime('+1 day'));
 
-    $lines = [];
-    $lines[] = 'Baad Afzalus Salaam,<br />';
-    $lines[] = '';
-    $lines[] = 'Below is the list of scheduled appointments for tomorrow (' . date('d M Y', strtotime('+1 day')) . '): <br />';
-    $lines[] = '';
+    $body = '<p style="font-family:Arial,Helvetica,sans-serif;">
+Below is the list of scheduled appointments for tomorrow (' . $tomorrow . '):
+</p>';
 
     if ($countAppointments === 0) {
-      $lines[] = 'No upcoming pending appointments found. <br />';
-    } else {
-      foreach ($rows as $r) {
-        $date = isset($r['date']) ? $r['date'] : '';
-        $time = isset($r['time']) ? $r['time'] : '';
-        $its = isset($r['its']) ? $r['its'] : '';
-        $name = isset($r['Full_Name']) ? trim((string)$r['Full_Name']) : '';
-        $mobile = isset($r['Mobile']) ? trim((string)$r['Mobile']) : '';
-        $purpose = isset($r['purpose']) ? trim((string)$r['purpose']) : '';
-        $details = isset($r['other_details']) ? trim((string)$r['other_details']) : '';
 
-        $line = ($date ? date('D, d M Y', strtotime($date)) : '') . ($time ? (' ' . $time) : '') . ' - ';
-        $line .= ($name !== '' ? $name : 'Member') . ($its !== '' ? (' (' . $its . ')') : '');
-        if ($mobile !== '') $line .= ' | ' . $mobile;
-        if ($purpose !== '') $line .= ' | Purpose: ' . $purpose;
-        if ($details !== '') $line .= ' | Details: ' . preg_replace('/\s+/', ' ', $details);
-        $lines[] = $line;
+      $body .= '<p><strong>No upcoming pending appointments found.</strong></p>';
+    } else {
+
+      $body .= '
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:14px;">
+    <thead>
+      <tr style="background:#f2f2f2;">
+        <th align="left" style="padding:8px;border:1px solid #ddd;">Date</th>
+        <th align="left" style="padding:8px;border:1px solid #ddd;">Time</th>
+        <th align="left" style="padding:8px;border:1px solid #ddd;">Member</th>
+        <th align="left" style="padding:8px;border:1px solid #ddd;">ITS</th>
+        <th align="left" style="padding:8px;border:1px solid #ddd;">Mobile</th>
+        <th align="left" style="padding:8px;border:1px solid #ddd;">Purpose</th>
+        <th align="left" style="padding:8px;border:1px solid #ddd;">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+  ';
+
+      foreach ($rows as $r) {
+
+        $date    = !empty($r['date']) ? date('D, d M Y', strtotime($r['date'])) : '';
+        $time    = $r['time'] ?? '';
+        $its     = $r['its'] ?? '';
+        $name    = trim((string)($r['Full_Name'] ?? 'Member'));
+        $mobile  = trim((string)($r['Mobile'] ?? ''));
+        $purpose = trim((string)($r['purpose'] ?? ''));
+        $details = trim((string)($r['other_details'] ?? ''));
+
+        $body .= '
+    <tr>
+      <td style="padding:8px;border:1px solid #ddd;" data-label="Date"><strong>' . htmlspecialchars($date) . '</strong></td>
+      <td style="padding:8px;border:1px solid #ddd;" data-label="Time">' . htmlspecialchars($time) . '</td>
+      <td style="padding:8px;border:1px solid #ddd;" data-label="Member">' . htmlspecialchars($name) . '</td>
+      <td style="padding:8px;border:1px solid #ddd;" data-label="ITS">' . htmlspecialchars($its) . '</td>
+      <td style="padding:8px;border:1px solid #ddd;" data-label="Mobile">' . htmlspecialchars($mobile) . '</td>
+      <td style="padding:8px;border:1px solid #ddd;" data-label="Purpose">' . htmlspecialchars($purpose) . '</td>
+      <td style="padding:8px;border:1px solid #ddd;" data-label="Details">' . htmlspecialchars($details) . '</td>
+    </tr>
+    ';
       }
+
+      $body .= '
+          </tbody>
+        </table>
+        ';
     }
 
-    $lines[] = '';
-    $lines[] = '<br />Manage appointments: ' . base_url('amilsaheb/manage_appointment');
-    $lines[] = '';
-    $lines[] = '<br />Regards,<br />';
-    $lines[] = 'Khar Jamaat System';
-
-    $body = implode("\n", $lines);
+    $body .= '
+      <br>
+      <p>
+        <a href="' . base_url('amilsaheb/manage_appointment') . '" 
+          style="display:inline-block;padding:10px 16px;background:#0d6efd;color:#ffffff;text-decoration:none;border-radius:4px;">
+          Manage appointments
+        </a>
+      </p>
+    ';
 
     // Duplicate protection: one digest per recipient per day
     foreach ($recipients as $to) {
@@ -612,7 +755,9 @@ class Notifications extends CI_Controller
         'recipient' => $to,
         'recipient_type' => 'amil',
         'subject' => $subject,
-        'body' => $body
+        'body' => $body,
+        'card_title' => 'Scheduled Appointments Summary',
+        'disable_template' => false
       ]);
     }
 
