@@ -142,7 +142,6 @@ if (isset($miqaats) && is_array($miqaats)) {
 </div>
 <script>
   $(".alert").delay(3000).fadeOut(500);
-
 </script>
 
 <!-- Dues confirmation modal -->
@@ -171,6 +170,7 @@ if (isset($miqaats) && is_array($miqaats)) {
     n = Math.round(Number(n) || 0);
     return '₹' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
+
   function coloredAmount(n) {
     var amt = formatINR(n);
     if (Number(n) > 0) return '<span style="color:red">' + amt + '</span>';
@@ -180,39 +180,55 @@ if (isset($miqaats) && is_array($miqaats)) {
   function showDuesModal(html) {
     document.getElementById('dues-content').innerHTML = html;
     document.getElementById('dues-modal').style.display = 'block';
-    var bd = document.getElementById('dues-backdrop'); if (bd) bd.style.display = 'block';
+    var bd = document.getElementById('dues-backdrop');
+    if (bd) bd.style.display = 'block';
   }
+
   function hideDuesModal() {
     document.getElementById('dues-modal').style.display = 'none';
-    var bd = document.getElementById('dues-backdrop'); if (bd) bd.style.display = 'none';
+    var bd = document.getElementById('dues-backdrop');
+    if (bd) bd.style.display = 'none';
   }
 
   // Intercept the submit links and show dues modal
-  $(document).on('click', '.raza-submit-btn', function (e) {
+  $(document).on('click', '.raza-submit-btn', function(e) {
     e.preventDefault();
     var href = $(this).attr('href');
-    var btn = this;
+    // Show modal immediately so user gets feedback even if fetch fails
+    showDuesModal('<div class="text-muted">Loading dues...</div>');
+
     // fetch dues
-    fetch('<?= base_url('accounts/get_member_dues') ?>', { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
+    fetch('<?= base_url('accounts/get_member_dues') ?>', {
+        credentials: 'same-origin'
+      })
+      .then(function(r) {
+        if (!r.ok) {
+          throw new Error('HTTP ' + r.status);
+        }
+        return r.json();
+      })
+      .then(function(data) {
         if (!data || !data.success) {
-          // fallback to confirmation if endpoint unavailable
-          if (confirm('Unable to fetch dues. Proceed to submit Raza?')) window.location.href = href;
+          showDuesModal('<div class="alert alert-warning">Unable to fetch dues right now. You may still proceed.</div>');
+          var proceed = document.getElementById('dues-confirm');
+          proceed.onclick = function() {
+            hideDuesModal();
+            window.location.href = href;
+          };
           return;
         }
         var d = data.dues;
-        var html = '<table class="table table-sm">'
-          + '<tr><th>Category</th><th class="text-right">Due</th></tr>'
-          + '<tr><td>FMB Takhmeen</td><td class="text-right">' + coloredAmount(d.fmb_due) + '</td></tr>'
-          + '<tr><td>Sabeel Takhmeen</td><td class="text-right">' + coloredAmount(d.sabeel_due) + '</td></tr>'
-          + '<tr><td>General Contributions</td><td class="text-right">' + coloredAmount(d.gc_due) + '</td></tr>'
-          + '<tr><td>Miqaat Invoices</td><td class="text-right">' + coloredAmount(d.miqaat_due) + '</td></tr>'
-          + '<tr><td>Corpus Fund</td><td class="text-right">' + coloredAmount(d.corpus_due) + '</td></tr>'
-          + '<tr><td>Wajebaat</td><td class="text-right">' + coloredAmount(d.wajebaat_due || 0) + '</td></tr>'
-          + '<tr><td>Qardan Hasana</td><td class="text-right">' + coloredAmount(d.qardan_hasana_due || 0) + '</td></tr>'
-          + '<tr><th>Total</th><th class="text-right">' + coloredAmount(d.total_due) + '</th></tr>'
-          + '</table>';
+        var html = '<table class="table table-sm">' +
+          '<tr><th>Category</th><th class="text-right">Due</th></tr>' +
+          '<tr><td>FMB Takhmeen</td><td class="text-right">' + coloredAmount(d.fmb_due) + '</td></tr>' +
+          '<tr><td>Sabeel Takhmeen</td><td class="text-right">' + coloredAmount(d.sabeel_due) + '</td></tr>' +
+          '<tr><td>General Contributions</td><td class="text-right">' + coloredAmount(d.gc_due) + '</td></tr>' +
+          '<tr><td>Miqaat Invoices</td><td class="text-right">' + coloredAmount(d.miqaat_due) + '</td></tr>' +
+          '<tr><td>Corpus Fund</td><td class="text-right">' + coloredAmount(d.corpus_due) + '</td></tr>' +
+          '<tr><td>Wajebaat</td><td class="text-right">' + coloredAmount(d.wajebaat_due || 0) + '</td></tr>' +
+          '<tr><td>Qardan Hasana</td><td class="text-right">' + coloredAmount(d.qardan_hasana_due || 0) + '</td></tr>' +
+          '<tr><th>Total</th><th class="text-right">' + coloredAmount(d.total_due) + '</th></tr>' +
+          '</table>';
         if (d.total_due <= 0) {
           html = '<div class="alert alert-success">No pending dues. You may proceed.</div>' + html;
         } else {
@@ -221,18 +237,18 @@ if (isset($miqaats) && is_array($miqaats)) {
 
         // Miqaat invoices
         if (data.miqaat_invoices && Array.isArray(data.miqaat_invoices) && data.miqaat_invoices.length > 0) {
-          var invHtml = '<hr><h6>Miqaat / Member Invoices</h6>'
-            + '<table class="table table-sm table-bordered"><thead><tr><th>Assigned to</th><th>Invoice</th><th class="text-right">Amount</th><th class="text-right">Paid</th><th class="text-right">Due</th></tr></thead><tbody>';
+          var invHtml = '<hr><h6>Miqaat / Member Invoices</h6>' +
+            '<table class="table table-sm table-bordered"><thead><tr><th>Assigned to</th><th>Invoice</th><th class="text-right">Amount</th><th class="text-right">Paid</th><th class="text-right">Due</th></tr></thead><tbody>';
           data.miqaat_invoices.forEach(function(inv) {
             var owner = inv.owner_name || inv.user_id || '';
-            var miqName = inv.miqaat_name || ('#'+inv.miqaat_id);
-            invHtml += '<tr>'
-              + '<td>' + owner + '</td>'
-              + '<td>' + miqName + '</td>'
-              + '<td class="text-right">' + formatINR(inv.amount || 0) + '</td>'
-              + '<td class="text-right">' + formatINR(inv.paid_amount || 0) + '</td>'
-              + '<td class="text-right">' + coloredAmount(inv.due_amount || 0) + '</td>'
-              + '</tr>';
+            var miqName = inv.miqaat_name || ('#' + inv.miqaat_id);
+            invHtml += '<tr>' +
+              '<td>' + owner + '</td>' +
+              '<td>' + miqName + '</td>' +
+              '<td class="text-right">' + formatINR(inv.amount || 0) + '</td>' +
+              '<td class="text-right">' + formatINR(inv.paid_amount || 0) + '</td>' +
+              '<td class="text-right">' + coloredAmount(inv.due_amount || 0) + '</td>' +
+              '</tr>';
           });
           invHtml += '</tbody></table>';
           html += invHtml;
@@ -244,18 +260,33 @@ if (isset($miqaats) && is_array($miqaats)) {
         var proceed = document.getElementById('dues-confirm');
         proceed.onclick = function() {
           // call backend to send dues emails, then navigate
-          fetch('<?= base_url('accounts/send_dues_email') ?>', { method: 'POST', credentials: 'same-origin' })
-            .then(function(r){ return r.json(); })
-            .then(function(resp){
+          fetch('<?= base_url('accounts/send_dues_email') ?>', {
+              method: 'POST',
+              credentials: 'same-origin'
+            })
+            .then(function(r) {
+              // don't block navigation if response isn't JSON
+              return r.json().catch(function() {
+                return {};
+              });
+            })
+            .then(function(resp) {
               hideDuesModal();
               window.location.href = href;
             })
-            .catch(function(){ hideDuesModal(); window.location.href = href; });
+            .catch(function() {
+              hideDuesModal();
+              window.location.href = href;
+            });
         };
       })
-      .catch(function () {
-        if (confirm('Unable to fetch dues. Proceed to submit Raza?')) window.location.href = href;
+      .catch(function() {
+        showDuesModal('<div class="alert alert-warning">Unable to fetch dues right now (network/server issue). You may still proceed.</div>');
+        var proceed = document.getElementById('dues-confirm');
+        proceed.onclick = function() {
+          hideDuesModal();
+          window.location.href = href;
+        };
       });
   });
-</script>
 </script>
