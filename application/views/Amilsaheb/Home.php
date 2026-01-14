@@ -819,6 +819,7 @@
           <li><a class="menu-item" href="<?= base_url('amilsaheb/corpusfunds_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('amilsaheb/wajebaat_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('amilsaheb/qardan_hasana_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-handshake"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
+          <li><a class="menu-item" href="<?= base_url('amilsaheb/expense'); ?>"><span class="menu-icon"><i class="fa-solid fa-receipt"></i></span><span class="menu-label">Expense Module</span></a></li>
         </ul>
 
         <div class="menu-section">Reports</div>
@@ -2297,6 +2298,34 @@
                     </div>
                   </div>
                 </a>
+              </div>
+            </div>
+          </div>
+
+          <?php
+          $dashboard_expenses = isset($dashboard_expenses) && is_array($dashboard_expenses) ? $dashboard_expenses : [];
+          $dashboard_expense_total = isset($dashboard_expense_total) ? (float)$dashboard_expense_total : 0.0;
+          $dashboard_expense_hijri_year = isset($dashboard_expense_hijri_year) ? (int)$dashboard_expense_hijri_year : null;
+          ?>
+          <div class="col-12 mb-3 mb-md-3">
+            <div class="chart-container compact h-100">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="chart-title m-0">Expenses</h5>
+                <a href="<?= base_url('amilsaheb/expense'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
+              </div>
+              <div class="text-center py-3">
+                <div class="row justify-content-center">
+                  <div class="col-12 col-md-4">
+                    <div class="mini-card">
+                      <div class="stats-value">
+                        ₹<?= number_format($dashboard_expense_total, 0); ?>
+                      </div>
+                      <div class="stats-label">
+                        Expense<?= $dashboard_expense_hijri_year ? ' for ' . $dashboard_expense_hijri_year : ''; ?>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
