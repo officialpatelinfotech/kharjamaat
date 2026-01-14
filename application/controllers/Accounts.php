@@ -1403,7 +1403,7 @@ class Accounts extends CI_Controller
       $qardan_hasana_due = (float)($qh_row['due'] ?? 0);
     }
 
-    $total_due = $fmb_due + $sabeel_due + $gc_due + $miq_due + $corpus_due + $wajebaat_due + $qardan_hasana_due;
+    $total_due = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $wajebaat_due + $qardan_hasana_due;
 
     $payload = [
       'success' => true,
@@ -1432,6 +1432,7 @@ class Accounts extends CI_Controller
     if (empty($_SESSION['user'])) {
       return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
     }
+    $this->load->model('AccountM');
     $this->load->model('CorpusFundM');
 
     $user_id = $_SESSION['user']['username'];
@@ -1500,7 +1501,29 @@ class Accounts extends CI_Controller
       }
     }
 
-    $family_total = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due;
+    // Wajebaat outstanding for this user (single-member dues)
+    $wajebaat_due = 0.0;
+    $this->load->model('WajebaatM');
+    $waj_row = $this->WajebaatM->get_by_its($user_id);
+    if (empty($waj_row) && !empty($_SESSION['user_data']['ITS_ID'])) {
+      $waj_row = $this->WajebaatM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    }
+    if (!empty($waj_row) && is_array($waj_row)) {
+      $wajebaat_due = (float)($waj_row['due'] ?? 0);
+    }
+
+    // Qardan Hasana outstanding for this user (single-member dues)
+    $qardan_hasana_due = 0.0;
+    $this->load->model('QardanHasanaM');
+    $qh_row = $this->QardanHasanaM->get_by_its($user_id);
+    if (empty($qh_row) && !empty($_SESSION['user_data']['ITS_ID'])) {
+      $qh_row = $this->QardanHasanaM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    }
+    if (!empty($qh_row) && is_array($qh_row)) {
+      $qardan_hasana_due = (float)($qh_row['due'] ?? 0);
+    }
+
+    $family_total = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $wajebaat_due + $qardan_hasana_due;
 
     // prepare recipients: submitter and HOF (if email present)
     $submitterEmail = $_SESSION['user_data']['Email'] ?? null;
@@ -1574,6 +1597,8 @@ class Accounts extends CI_Controller
     $gc_fmt = htmlspecialchars($clean(number_format($gc_due)));
     $corpus_fmt = htmlspecialchars($clean(number_format($corpus_due)));
     $miq_fmt = htmlspecialchars($clean(number_format($miq_due)));
+    $waj_fmt = htmlspecialchars($clean(number_format($wajebaat_due)));
+    $qh_fmt = htmlspecialchars($clean(number_format($qardan_hasana_due)));
     $total_fmt = htmlspecialchars($clean(number_format($family_total)));
 
     $body .= '<tr><td>FMB Takhmeen</td><td class="amount ' . ($family_fmb > 0 ? 'positive' : '') . '">₹ ' . $fmb_fmt . '</td></tr>';
@@ -1581,7 +1606,9 @@ class Accounts extends CI_Controller
     $body .= '<tr><td>General Contributions</td><td class="amount ' . ($gc_due > 0 ? 'positive' : '') . '">₹ ' . $gc_fmt . '</td></tr>';
     $body .= '<tr><td>Corpus Fund</td><td class="amount ' . ($corpus_due > 0 ? 'positive' : '') . '">₹ ' . $corpus_fmt . '</td></tr>';
     $body .= '<tr><td>Miqaat Invoices</td><td class="amount ' . ($miq_due > 0 ? 'positive' : '') . '">₹ ' . $miq_fmt . '</td></tr>';
-    $body .= '<tr class="total"><td>Total</td><td class="amount ' . ($total_fmt > 0 ? 'positive' : '') . '">₹ ' . $total_fmt . '</td></tr>';
+    $body .= '<tr><td>Wajebaat</td><td class="amount ' . ($wajebaat_due > 0 ? 'positive' : '') . '">₹ ' . $waj_fmt . '</td></tr>';
+    $body .= '<tr><td>Qardan Hasana</td><td class="amount ' . ($qardan_hasana_due > 0 ? 'positive' : '') . '">₹ ' . $qh_fmt . '</td></tr>';
+    $body .= '<tr class="total"><td>Total</td><td class="amount ' . ($family_total > 0 ? 'positive' : '') . '">₹ ' . $total_fmt . '</td></tr>';
     $body .= '</table>';
 
     // details table

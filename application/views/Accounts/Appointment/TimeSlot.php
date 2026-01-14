@@ -182,6 +182,7 @@
                 <option>Transfer In (New Sabeel Registration)</option>
                 <option>Nikah Raza</option>
                 <option>Misaaq Raza</option>
+                <option>Qardan Hasana</option>
                 <option>Taweez</option>
                 <option>Talaq Qaziyah</option>
                 <option>Wirasat Qaziyah</option>
