@@ -245,13 +245,15 @@ class Payment extends CI_Controller
       $cookieDomain = (string)(config_item('cookie_domain') ?: '');
       $cookieSecure = (bool)(config_item('cookie_secure') ?: FALSE);
       $cookieSameSite = (string)(config_item('cookie_samesite') ?: 'Lax');
+      $sessExpiration = (int)(config_item('sess_expiration') ?? 0);
+      $cookieExpires = ($sessExpiration > 0) ? (time() + $sessExpiration) : 0;
       // Ensure browser keeps the original session after redirect
       if (is_php('7.3')) {
         setcookie(
           $cookieName,
           $origSid,
           [
-            'expires' => 0,
+            'expires' => $cookieExpires,
             'path' => $cookiePath,
             'domain' => $cookieDomain,
             'secure' => $cookieSecure,
@@ -261,6 +263,10 @@ class Payment extends CI_Controller
         );
       } else {
         $header = 'Set-Cookie: ' . $cookieName . '=' . $origSid;
+        if ($cookieExpires > 0) {
+          $header .= '; Expires=' . gmdate('D, d M Y H:i:s', $cookieExpires) . ' GMT';
+          $header .= '; Max-Age=' . $sessExpiration;
+        }
         $header .= '; Path=' . $cookiePath;
         $header .= ($cookieDomain !== '' ? '; Domain=' . $cookieDomain : '');
         $header .= ($cookieSecure ? '; Secure' : '') . '; HttpOnly; SameSite=' . $cookieSameSite;

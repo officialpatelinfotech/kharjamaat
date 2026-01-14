@@ -233,6 +233,228 @@ class AccountM extends CI_Model
   }
 
   /**
+   * Resolve a family (HOF) id for a given ITS.
+   * If HOF_ID is empty/0, falls back to the same ITS.
+   */
+  private function resolve_family_id($its_id)
+  {
+    $its_id = (int)$its_id;
+    if ($its_id <= 0) return 0;
+
+    $row = $this->db->select('HOF_ID')
+      ->from('user')
+      ->where('ITS_ID', $its_id)
+      ->limit(1)
+      ->get()
+      ->row_array();
+
+    $hofId = (int)($row['HOF_ID'] ?? 0);
+    return ($hofId > 0) ? $hofId : $its_id;
+  }
+
+  /**
+   * Get family member ITS IDs (includes the HOF itself).
+   */
+  private function get_family_member_ids($family_id)
+  {
+    $family_id = (int)$family_id;
+    if ($family_id <= 0) return [];
+
+    $rows = $this->db->select('ITS_ID')
+      ->from('user')
+      ->where('Inactive_Status IS NULL', null, false)
+      ->group_start()
+      ->where('ITS_ID', $family_id)
+      ->or_where('HOF_ID', $family_id)
+      ->group_end()
+      ->get()
+      ->result_array();
+
+    $ids = [];
+    foreach ($rows as $r) {
+      $id = (int)($r['ITS_ID'] ?? 0);
+      if ($id > 0) $ids[] = $id;
+    }
+    $ids = array_values(array_unique($ids));
+    sort($ids);
+    return $ids;
+  }
+
+  /**
+   * Current FMB takhmeen cycle year (Hijri mapped):
+   * Hijri months 01–08 belong to previous takhmeen year.
+   */
+  private function get_current_fmb_takhmeen_year()
+  {
+    $today = date('Y-m-d');
+    $row = $this->db->select('hijri_date')
+      ->from('hijri_calendar')
+      ->where('greg_date', $today)
+      ->limit(1)
+      ->get()
+      ->row_array();
+    if (empty($row) || empty($row['hijri_date'])) return null;
+
+    $parts = explode('-', (string)$row['hijri_date']); // d-m-Y
+    if (count($parts) !== 3) return null;
+    $hm = (int)$parts[1];
+    $hy = (int)$parts[2];
+    if ($hy <= 0) return null;
+
+    return ($hm >= 1 && $hm <= 8) ? ($hy - 1) : $hy;
+  }
+
+  /**
+   * Family-wise FMB due excluding upcoming years' takhmeen.
+   * Returns: [year, total_amount, total_paid, total_due, excess_paid?]
+   */
+  public function get_family_total_fmb_due_upto_current_year($its_id)
+  {
+    $familyId = $this->resolve_family_id($its_id);
+    if ($familyId <= 0) return null;
+
+    $memberIds = $this->get_family_member_ids($familyId);
+    if (empty($memberIds)) return null;
+
+    $currentYear = $this->get_current_fmb_takhmeen_year();
+    if ($currentYear === null) {
+      // Fallback: do not exclude any years if Hijri calendar row is missing.
+      $currentYear = PHP_INT_MAX;
+    }
+
+    $takhmeen = $this->db->select('COALESCE(SUM(total_amount),0) AS total_amount', false)
+      ->from('fmb_takhmeen')
+      ->where_in('user_id', $memberIds)
+      ->where('year <=', (int)$currentYear)
+      ->get()
+      ->row_array();
+
+    $payments = $this->db->select('COALESCE(SUM(amount),0) AS total_paid', false)
+      ->from('fmb_takhmeen_payments')
+      ->where_in('user_id', $memberIds)
+      ->get()
+      ->row_array();
+
+    $totalAmount = (float)($takhmeen['total_amount'] ?? 0);
+    $totalPaidRaw = (float)($payments['total_paid'] ?? 0);
+    $excess = 0.0;
+    if ($totalPaidRaw > $totalAmount) {
+      $excess = $totalPaidRaw - $totalAmount;
+    }
+    $totalPaid = min($totalPaidRaw, $totalAmount);
+
+    $result = [
+      'year' => ($currentYear === PHP_INT_MAX ? null : (int)$currentYear),
+      'total_amount' => $totalAmount,
+      'total_paid' => $totalPaid,
+      'total_due' => $totalAmount - $totalPaid,
+    ];
+    if ($excess > 0) {
+      $result['excess_paid'] = $excess;
+    }
+    return $result;
+  }
+
+  /**
+   * Current Sabeel composite year label and numeric start-year.
+   * Example: start=1447, label=1447-48
+   */
+  private function get_current_sabeel_composite_year()
+  {
+    $today = date('Y-m-d');
+    $row = $this->db->select('hijri_date')
+      ->from('hijri_calendar')
+      ->where('greg_date', $today)
+      ->limit(1)
+      ->get()
+      ->row_array();
+    if (empty($row) || empty($row['hijri_date'])) return ['start' => null, 'label' => ''];
+
+    $parts = explode('-', (string)$row['hijri_date']); // d-m-Y
+    if (count($parts) !== 3) return ['start' => null, 'label' => ''];
+    $hm = (int)$parts[1];
+    $hy = (int)$parts[2];
+    if ($hy <= 0) return ['start' => null, 'label' => ''];
+
+    if ($hm >= 9) {
+      $sy = $hy;
+      $ey = $hy + 1;
+    } else {
+      $sy = $hy - 1;
+      $ey = $hy;
+    }
+
+    return ['start' => $sy, 'label' => $sy . '-' . substr((string)$ey, -2)];
+  }
+
+  /**
+   * Family-wise Sabeel due excluding upcoming years' takhmeen.
+   * Returns: [current_year, total_takhmeen, total_paid, total_due]
+   */
+  public function get_family_total_sabeel_due_upto_current_year($its_id)
+  {
+    $familyId = $this->resolve_family_id($its_id);
+    if ($familyId <= 0) return null;
+
+    $memberIds = $this->get_family_member_ids($familyId);
+    if (empty($memberIds)) return null;
+
+    $cy = $this->get_current_sabeel_composite_year();
+    $currentStart = $cy['start'];
+    $currentLabel = $cy['label'];
+
+    // If Hijri calendar row is missing, do not exclude any years.
+    $yearFilterSql = '';
+    $yearFilterParams = [];
+    if ($currentStart !== null) {
+      $yearFilterSql = ' AND CAST(SUBSTRING_INDEX(st.year,\'-\',1) AS UNSIGNED) <= ?';
+      $yearFilterParams[] = (int)$currentStart;
+    }
+
+    // Build IN clause safely
+    $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
+    $paramsBase = $memberIds;
+
+    $sqlTakhmeen = "SELECT
+        COALESCE(SUM(eg.amount),0) AS establishment_total,
+        COALESCE(SUM(rg.yearly_amount),0) AS residential_total
+      FROM sabeel_takhmeen st
+      LEFT JOIN sabeel_takhmeen_grade eg ON eg.id = st.establishment_grade AND eg.type = 'establishment'
+      LEFT JOIN sabeel_takhmeen_grade rg ON rg.id = st.residential_grade AND rg.type = 'residential'
+      WHERE st.user_id IN ({$placeholders}){$yearFilterSql}";
+    $takhmeenRow = $this->db->query($sqlTakhmeen, array_merge($paramsBase, $yearFilterParams))->row_array();
+
+    $sqlPayments = "SELECT
+        COALESCE(SUM(CASE WHEN type = 'establishment' THEN amount ELSE 0 END),0) AS establishment_paid,
+        COALESCE(SUM(CASE WHEN type = 'residential' THEN amount ELSE 0 END),0) AS residential_paid
+      FROM sabeel_takhmeen_payments
+      WHERE user_id IN ({$placeholders})";
+    $payRow = $this->db->query($sqlPayments, $paramsBase)->row_array();
+
+    $estTotal = (float)($takhmeenRow['establishment_total'] ?? 0);
+    $resTotal = (float)($takhmeenRow['residential_total'] ?? 0);
+    $estPaidRaw = (float)($payRow['establishment_paid'] ?? 0);
+    $resPaidRaw = (float)($payRow['residential_paid'] ?? 0);
+
+    // FIFO assumption across years: payments cover oldest years first.
+    // By capping, we ensure prepayments for future years do not create negative due.
+    $estPaid = min($estPaidRaw, $estTotal);
+    $resPaid = min($resPaidRaw, $resTotal);
+
+    $totalTakhmeen = $estTotal + $resTotal;
+    $totalPaid = $estPaid + $resPaid;
+    $totalDue = $totalTakhmeen - $totalPaid;
+    if ($totalDue < 0) $totalDue = 0.0;
+
+    return [
+      'current_year' => $currentLabel,
+      'total_takhmeen' => $totalTakhmeen,
+      'total_paid' => $totalPaid,
+      'total_due' => $totalDue,
+    ];
+  }
+
+  /**
    * Get total outstanding amount for FMB General Contribution invoices for a user
    * Returns a float representing total due (>= 0)
    */
@@ -1413,6 +1635,25 @@ class AccountM extends CI_Model
     return $query->row_array();
   }
 
+  /**
+   * Return the assignment row for a specific member for a miqaat.
+   * Checks both individual member assignment and group leader assignment.
+   */
+  public function get_miqaat_assignment_for_member($miqaat_id, $member_id)
+  {
+    if (empty($miqaat_id) || empty($member_id)) return null;
+
+    $this->db->from('miqaat_assignments');
+    $this->db->where('miqaat_id', (int)$miqaat_id);
+    $this->db->group_start();
+    $this->db->where('member_id', (int)$member_id);
+    $this->db->or_where('group_leader_id', (int)$member_id);
+    $this->db->group_end();
+    $this->db->order_by('id', 'DESC');
+    $row = $this->db->get()->row_array();
+    return !empty($row) ? $row : null;
+  }
+
   public function clear_existing_rsvps($hof_id, $miqaat_id)
   {
     $this->db->where("hof_id", $hof_id);
@@ -1516,7 +1757,8 @@ class AccountM extends CI_Model
 
     if (!empty($data)) {
       $this->db->insert('raza', $data);
-      return $this->db->affected_rows() > 0;
+      $insert_id = $this->db->insert_id();
+      return $insert_id ? $insert_id : false;
     } else {
       return false;
     }

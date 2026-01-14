@@ -41,7 +41,15 @@ if (php_sapi_name() === 'cli' || defined('STDIN')) {
   if (in_array($cliEnv, ['development', 'testing', 'production'], true)) {
     define('ENVIRONMENT', $cliEnv);
   } else {
-    define('ENVIRONMENT', 'development');
+    // Sensible default for CLI runs:
+    // - local dev machines (macOS/Windows) => development
+    // - servers (typically Linux) => production
+    $osFamily = defined('PHP_OS_FAMILY') ? PHP_OS_FAMILY : '';
+    if ($osFamily === 'Darwin' || $osFamily === 'Windows') {
+      define('ENVIRONMENT', 'development');
+    } else {
+      define('ENVIRONMENT', 'production');
+    }
   }
 } else {
   $host = $_SERVER['HTTP_HOST'] ?? 'production';
