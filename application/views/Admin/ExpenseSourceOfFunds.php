@@ -211,11 +211,11 @@
                 renumberRows();
                 applyFilters();
               } else {
-                if (<?php echo (defined('ENVIRONMENT') && ENVIRONMENT === 'development') ? 'true' : 'false'; ?>) {
-                  alert(text || JSON.stringify(resp) || 'Delete failed');
-                } else {
-                  alert((resp && resp.message) ? resp.message : 'Delete failed');
-                }
+                var msg = (resp && resp.message) ? resp.message : 'Delete failed';
+                <?php if (defined('ENVIRONMENT') && ENVIRONMENT === 'development'): ?>
+                try { console.error('SOF delete error raw response:', text); } catch(e) {}
+                <?php endif; ?>
+                alert(msg);
               }
             }).catch(function(){ alert('Network error'); });
             return;
@@ -255,11 +255,11 @@
                 if(window.jQuery){ window.jQuery('#sofAddModal').modal('hide'); }
                 applyFilters();
               } else {
-                if (<?php echo (defined('ENVIRONMENT') && ENVIRONMENT === 'development') ? 'true' : 'false'; ?>) {
-                  alert(text || JSON.stringify(resp) || 'Update failed');
-                } else {
-                  alert((resp && resp.message) ? resp.message : 'Update failed');
-                }
+                var msgUp = (resp && resp.message) ? resp.message : 'Update failed';
+                <?php if (defined('ENVIRONMENT') && ENVIRONMENT === 'development'): ?>
+                try { console.error('SOF update error raw response:', text); } catch(e) {}
+                <?php endif; ?>
+                alert(msgUp);
               }
             }).catch(function(){ alert('Network error'); });
           } else {
@@ -278,11 +278,11 @@
                 renumberRows();
                 applyFilters();
               } else {
-                if (<?php echo (defined('ENVIRONMENT') && ENVIRONMENT === 'development') ? 'true' : 'false'; ?>) {
-                  alert(text || JSON.stringify(resp) || 'Create failed');
-                } else {
-                  alert((resp && resp.message) ? resp.message : 'Create failed');
-                }
+                var msgCr = (resp && resp.message) ? resp.message : 'Create failed';
+                <?php if (defined('ENVIRONMENT') && ENVIRONMENT === 'development'): ?>
+                try { console.error('SOF create error raw response:', text); } catch(e) {}
+                <?php endif; ?>
+                alert(msgCr);
               }
             }).catch(function(){ alert('Network error'); });
           }

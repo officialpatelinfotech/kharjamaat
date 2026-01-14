@@ -2581,7 +2581,8 @@ class Admin extends CI_Controller
       return;
     }
     $this->load->model('ExpenseSourceM');
-    $ok = $this->ExpenseSourceM->delete($id);
+    // Delete all related expenses first, then the source itself
+    $ok = $this->ExpenseSourceM->delete_with_expenses($id);
     if ($ok) {
       $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'success']));
     } else {

@@ -18,6 +18,231 @@ class Amilsaheb extends CI_Controller
     $this->load->model('AnjumanM');
     $this->load->library('email', $this->config->item('email'));
   }
+
+  /**
+   * Expense listing for Amilsaheb (role 2), mirroring Jamaat module.
+   */
+  public function expense()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->model('ExpenseM');
+    $this->load->model('ExpenseSourceM');
+    $this->load->model('ExpenseAreaM');
+
+    $filters = [
+      'aos'        => trim((string)$this->input->get('aos')),
+      'sof'        => trim((string)$this->input->get('sof')),
+      'hijri_year' => trim((string)$this->input->get('hijri_year')),
+      'date_from'  => trim((string)$this->input->get('date_from')),
+      'date_to'    => trim((string)$this->input->get('date_to')),
+    ];
+
+    foreach ($filters as $k => $v) {
+      if ($v === '') {
+        $filters[$k] = null;
+      }
+    }
+
+    $current_hijri_year = null;
+    if (empty($filters['hijri_year'])) {
+      $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+      if ($today_parts && isset($today_parts['hijri_year'])) {
+        $current_hijri_year = (int)$today_parts['hijri_year'];
+        $filters['hijri_year'] = $current_hijri_year;
+      }
+    } else {
+      $current_hijri_year = (int)$filters['hijri_year'];
+    }
+
+    $expenses = $this->ExpenseM->get_list($filters);
+    $total_amount = 0.0;
+    foreach ($expenses as $row) {
+      $total_amount += (float)($row['amount'] ?? 0);
+    }
+
+    $data['filters'] = $filters;
+    $data['expenses'] = $expenses;
+    $data['expense_total'] = $total_amount;
+    $data['current_hijri_year_for_expense'] = $current_hijri_year;
+
+    $data['sof_options'] = $this->ExpenseSourceM->get_all();
+    $data['aos_options'] = $this->ExpenseAreaM->get_all_active();
+    $data['hijri_year_options'] = $this->ExpenseM->get_distinct_hijri_years();
+
+    if ($current_hijri_year && !in_array($current_hijri_year, $data['hijri_year_options'], true)) {
+      array_unshift($data['hijri_year_options'], $current_hijri_year);
+      $data['hijri_year_options'] = array_values(array_unique($data['hijri_year_options']));
+      rsort($data['hijri_year_options']);
+    }
+
+    $data['sources'] = $data['sof_options'];
+
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Amilsaheb/Expense', $data);
+  }
+
+  /**
+   * Add expense (Amilsaheb), same behavior as Jamaat.
+   */
+  public function expense_add()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+
+    $this->load->model('ExpenseM');
+    $this->load->model('ExpenseSourceM');
+    $this->load->model('ExpenseAreaM');
+
+    $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+    $current_hijri_year = ($today_parts && isset($today_parts['hijri_year'])) ? (int)$today_parts['hijri_year'] : null;
+
+    if ($this->input->method() === 'post') {
+      $aos_name = trim((string)$this->input->post('aos_name'));
+      $area_id = null;
+      if ($aos_name !== '') {
+        $area_id = $this->ExpenseAreaM->get_or_create_by_name($aos_name);
+      }
+
+      $payload = [
+        'expense_date' => $this->input->post('expense_date'),
+        'area_id'      => $area_id,
+        'amount'       => $this->input->post('amount'),
+        'source_id'    => $this->input->post('source_id'),
+        'hijri_year'   => $this->input->post('hijri_year'),
+        'notes'        => $this->input->post('notes'),
+      ];
+
+      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['source_id']) && !empty($payload['hijri_year'])) {
+        $id = $this->ExpenseM->create($payload);
+        if ($id) {
+          $this->session->set_flashdata('success', 'Expense added successfully.');
+          redirect('amilsaheb/expense');
+          return;
+        }
+      }
+
+      $this->session->set_flashdata('error', 'Failed to add expense. Please check the form.');
+    }
+
+    $data = [];
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['sof_options'] = $this->ExpenseSourceM->get_all();
+    $data['aos_options'] = $this->ExpenseAreaM->get_all_active();
+    $data['hijri_year_options'] = $this->ExpenseM->get_distinct_hijri_years();
+    if ($current_hijri_year && !in_array($current_hijri_year, $data['hijri_year_options'], true)) {
+      array_unshift($data['hijri_year_options'], $current_hijri_year);
+      $data['hijri_year_options'] = array_values(array_unique($data['hijri_year_options']));
+      rsort($data['hijri_year_options']);
+    }
+    $data['current_hijri_year_for_expense'] = $current_hijri_year;
+
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Amilsaheb/ExpenseForm', $data);
+  }
+
+  /**
+   * Edit expense (Amilsaheb).
+   */
+  public function expense_edit($id = null)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+
+    $id = (int)$id;
+    if ($id <= 0) {
+      redirect('amilsaheb/expense');
+    }
+
+    $this->load->model('ExpenseM');
+    $this->load->model('ExpenseSourceM');
+    $this->load->model('ExpenseAreaM');
+
+    $expense = $this->ExpenseM->get($id);
+    if (!$expense) {
+      $this->session->set_flashdata('error', 'Expense not found.');
+      redirect('amilsaheb/expense');
+      return;
+    }
+
+    $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+    $current_hijri_year = ($today_parts && isset($today_parts['hijri_year'])) ? (int)$today_parts['hijri_year'] : null;
+
+    if ($this->input->method() === 'post') {
+      $aos_name = trim((string)$this->input->post('aos_name'));
+      $area_id = null;
+      if ($aos_name !== '') {
+        $area_id = $this->ExpenseAreaM->get_or_create_by_name($aos_name);
+      }
+
+      $payload = [
+        'expense_date' => $this->input->post('expense_date'),
+        'area_id'      => $area_id,
+        'amount'       => $this->input->post('amount'),
+        'source_id'    => $this->input->post('source_id'),
+        'hijri_year'   => $this->input->post('hijri_year'),
+        'notes'        => $this->input->post('notes'),
+      ];
+
+      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['source_id']) && !empty($payload['hijri_year'])) {
+        $ok = $this->ExpenseM->update($id, $payload);
+        if ($ok) {
+          $this->session->set_flashdata('success', 'Expense updated successfully.');
+          redirect('amilsaheb/expense');
+          return;
+        }
+      }
+
+      $this->session->set_flashdata('error', 'Failed to update expense. Please check the form.');
+      $expense = array_merge($expense, $payload);
+    }
+
+    $data = [];
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['expense'] = $expense;
+    $data['sof_options'] = $this->ExpenseSourceM->get_all();
+    $data['aos_options'] = $this->ExpenseAreaM->get_all_active();
+    $data['hijri_year_options'] = $this->ExpenseM->get_distinct_hijri_years();
+    if ($current_hijri_year && !in_array($current_hijri_year, $data['hijri_year_options'], true)) {
+      array_unshift($data['hijri_year_options'], $current_hijri_year);
+      $data['hijri_year_options'] = array_values(array_unique($data['hijri_year_options']));
+      rsort($data['hijri_year_options']);
+    }
+    $data['current_hijri_year_for_expense'] = $current_hijri_year;
+
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Amilsaheb/ExpenseForm', $data);
+  }
+
+  /**
+   * Delete expense (Amilsaheb).
+   */
+  public function expense_delete($id = null)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+
+    $id = (int)$id;
+    if ($id <= 0) {
+      redirect('amilsaheb/expense');
+    }
+
+    $this->load->model('ExpenseM');
+    $ok = $this->ExpenseM->delete($id);
+    if ($ok) {
+      $this->session->set_flashdata('success', 'Expense deleted successfully.');
+    } else {
+      $this->session->set_flashdata('error', 'Failed to delete expense.');
+    }
+    redirect('amilsaheb/expense');
+  }
   public function index()
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
@@ -280,6 +505,34 @@ class Amilsaheb extends CI_Controller
       $corpus_funds[] = $f;
     }
     $data['corpus_funds'] = $corpus_funds;
+
+    // Recent expenses and total for dashboard card (current Hijri year)
+    $this->load->model('ExpenseM');
+    $expense_filters = [];
+    $today_parts_for_expense = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+    if ($today_parts_for_expense && isset($today_parts_for_expense['hijri_year'])) {
+      $expense_filters['hijri_year'] = (int)$today_parts_for_expense['hijri_year'];
+    }
+
+    // Keep a small list (up to 5) if needed elsewhere
+    $list_filters = $expense_filters;
+    if (!empty($list_filters)) {
+      $list_filters['limit'] = 5;
+      $data['dashboard_expenses'] = $this->ExpenseM->get_list($list_filters);
+    } else {
+      $data['dashboard_expenses'] = [];
+    }
+
+    // Compute total expense amount for the selected Hijri year for dashboard display
+    $dashboard_expense_total = 0.0;
+    if (!empty($expense_filters['hijri_year'])) {
+      $all_year_expenses = $this->ExpenseM->get_list(['hijri_year' => $expense_filters['hijri_year']]);
+      foreach ($all_year_expenses as $erow) {
+        $dashboard_expense_total += (float)($erow['amount'] ?? 0);
+      }
+    }
+    $data['dashboard_expense_total'] = $dashboard_expense_total;
+    $data['dashboard_expense_hijri_year'] = isset($expense_filters['hijri_year']) ? (int)$expense_filters['hijri_year'] : null;
 
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Home', $data);

@@ -3031,10 +3031,9 @@
           </div>
 
           <?php
-          $expense_dashboard = isset($expense_dashboard) && is_array($expense_dashboard) ? $expense_dashboard : [];
-          $sof = isset($expense_dashboard['sources']) && is_array($expense_dashboard['sources']) ? $expense_dashboard['sources'] : ['active' => 0, 'inactive' => 0];
-          $aos_available = !empty($expense_dashboard['areas_available']);
-          $aos = isset($expense_dashboard['areas']) && is_array($expense_dashboard['areas']) ? $expense_dashboard['areas'] : ['active' => 0, 'inactive' => 0];
+          $dashboard_expenses = isset($dashboard_expenses) && is_array($dashboard_expenses) ? $dashboard_expenses : [];
+          $dashboard_expense_total = isset($dashboard_expense_total) ? (float)$dashboard_expense_total : 0.0;
+          $dashboard_expense_hijri_year = isset($dashboard_expense_hijri_year) ? (int)$dashboard_expense_hijri_year : null;
           ?>
           <div class="col-md-12 mb-3 mb-md-3">
             <div class="chart-container compact h-100">
@@ -3042,20 +3041,18 @@
                 <h5 class="chart-title m-0">Expenses</h5>
                 <a href="<?= base_url('anjuman/expense'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
               </div>
-              <div class="row g-2">
-                <div class="col-12 col-md-6">
-                  <div class="sub-chart-title mb-1">Source of Funds</div>
-                  <canvas id="expenseSofChart" height="180"></canvas>
-                  <div class="text-center text-muted small mt-1">Active: <?= (int)($sof['active'] ?? 0); ?> | Inactive: <?= (int)($sof['inactive'] ?? 0); ?></div>
-                </div>
-                <div class="col-12 col-md-6">
-                  <div class="sub-chart-title mb-1">Area of Spend</div>
-                  <?php if ($aos_available) : ?>
-                    <canvas id="expenseAosChart" height="180"></canvas>
-                    <div class="text-center text-muted small mt-1">Active: <?= (int)($aos['active'] ?? 0); ?> | Inactive: <?= (int)($aos['inactive'] ?? 0); ?></div>
-                  <?php else : ?>
-                    <div class="text-muted small">Area of Spend is not set up yet (table <code>expense_areas</code> not found).</div>
-                  <?php endif; ?>
+              <div class="text-center py-3">
+                <div class="row justify-content-center">
+                  <div class="col-12 col-md-4">
+                    <div class="mini-card">
+                      <div class="stats-value">
+                        ₹<?= number_format($dashboard_expense_total, 0); ?>
+                      </div>
+                      <div class="stats-label">
+                        Expense<?= $dashboard_expense_hijri_year ? ' for ' . $dashboard_expense_hijri_year : ''; ?>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3240,47 +3237,6 @@
 
     renderDoughnut('gradeChartEst', gradeDataEst);
     renderDoughnut('gradeChartRes', gradeDataRes);
-
-    // Expenses (Source of Funds / Area of Spend) doughnut charts
-    const expenseSofStatus = <?php echo json_encode(isset($expense_dashboard['sources']) ? $expense_dashboard['sources'] : ['active' => 0, 'inactive' => 0]); ?>;
-    const expenseAosStatus = <?php echo json_encode(isset($expense_dashboard['areas']) ? $expense_dashboard['areas'] : ['active' => 0, 'inactive' => 0]); ?>;
-
-    function renderStatusDoughnut(ctxId, counts) {
-      const el = document.getElementById(ctxId);
-      if (!el) return null;
-      const active = Number((counts && counts.active) || 0);
-      const inactive = Number((counts && counts.inactive) || 0);
-      const ctx = el.getContext('2d');
-      return new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Active', 'Inactive'],
-          datasets: [{
-            data: [active, inactive],
-            backgroundColor: ['#22c55e', '#9ca3af'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { position: 'bottom' },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.parsed;
-                  return `${label}: ${value}`;
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-
-    renderStatusDoughnut('expenseSofChart', expenseSofStatus);
-    renderStatusDoughnut('expenseAosChart', expenseAosStatus);
 
     // Weekly Signups Line Chart
     const weeklyData = <?php echo json_encode(isset($dashboard_data['weekly_signups']) ? $dashboard_data['weekly_signups'] : [

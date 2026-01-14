@@ -66,4 +66,39 @@ class ExpenseSourceM extends CI_Model
         $this->db->where('id', (int)$id)->delete($this->table);
         return ($this->db->affected_rows() > 0);
     }
+
+    /**
+     * Check if any expenses are linked to this source id.
+     */
+    public function has_expenses($id)
+    {
+        $id = (int)$id;
+        if ($id <= 0) {
+            return false;
+        }
+        return $this->db
+            ->where('source_id', $id)
+            ->from('expenses')
+            ->count_all_results() > 0;
+    }
+
+    /**
+     * Delete a source and all related expenses in a transaction.
+     */
+    public function delete_with_expenses($id)
+    {
+        $id = (int)$id;
+        if ($id <= 0) {
+            return false;
+        }
+
+        $this->db->trans_start();
+        // First remove expenses that reference this source to satisfy FK constraint
+        $this->db->where('source_id', $id)->delete('expenses');
+        // Then delete the source itself
+        $this->db->where('id', $id)->delete($this->table);
+        $this->db->trans_complete();
+
+        return $this->db->trans_status();
+    }
 }
