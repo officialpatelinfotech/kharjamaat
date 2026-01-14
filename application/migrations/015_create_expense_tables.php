@@ -1,0 +1,65 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Migration_Create_expense_tables extends CI_Migration
+{
+    public function up()
+    {
+        // Create table for Expense Source of Funds
+        if (!$this->db->table_exists('expense_sources')) {
+            $this->db->query("CREATE TABLE IF NOT EXISTS `expense_sources` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL,
+  `status` VARCHAR(50) NOT NULL DEFAULT 'Active',
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        }
+
+        // Create table for Expense Area of Spend
+        if (!$this->db->table_exists('expense_areas')) {
+            $this->db->query("CREATE TABLE IF NOT EXISTS `expense_areas` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL,
+  `status` VARCHAR(50) NOT NULL DEFAULT 'Active',
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        }
+
+        // Create table for Expense records
+        if (!$this->db->table_exists('expenses')) {
+            $this->db->query("CREATE TABLE IF NOT EXISTS `expenses` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `expense_date` DATE NOT NULL,
+  `area_id` INT UNSIGNED DEFAULT NULL,
+  `amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `source_id` INT UNSIGNED NOT NULL,
+  `hijri_year` INT NOT NULL,
+  `notes` TEXT NULL,
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_expense_date` (`expense_date`),
+  KEY `idx_hijri_year` (`hijri_year`),
+  CONSTRAINT `fk_expenses_source` FOREIGN KEY (`source_id`) REFERENCES `expense_sources` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_expenses_area` FOREIGN KEY (`area_id`) REFERENCES `expense_areas` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        }
+    }
+
+    public function down()
+    {
+        // Drop expenses table first because it depends on the other two
+        if ($this->db->table_exists('expenses')) {
+            $this->db->query("DROP TABLE `expenses`");
+        }
+
+        if ($this->db->table_exists('expense_areas')) {
+            $this->db->query("DROP TABLE `expense_areas`");
+        }
+
+        if ($this->db->table_exists('expense_sources')) {
+            $this->db->query("DROP TABLE `expense_sources`");
+        }
+    }
+}
