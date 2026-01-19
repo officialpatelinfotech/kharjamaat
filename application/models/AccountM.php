@@ -37,17 +37,29 @@ class AccountM extends CI_Model
   }
   public function get_all_family_member($user_id)
   {
-    $sql = "SELECT * FROM user WHERE HOF_ID = $user_id";
-    $query = $this->db->query($sql);
+    $sql = "SELECT * FROM user WHERE HOF_ID = ?";
+    $query = $this->db->query($sql, array($user_id));
     return $query->result_array();
+  }
+
+  // Resolve family HOF id for any member ITS
+  public function get_hof_id_for_member($its_id)
+  {
+    $row = $this->db->select('HOF_ID')->from('user')->where('ITS_ID', $its_id)->get()->row_array();
+    $hof_id = isset($row['HOF_ID']) ? (int)$row['HOF_ID'] : 0;
+    if ($hof_id <= 0) {
+      $hof_id = (int)$its_id;
+    }
+    return $hof_id;
   }
 
   // Updated by Patel Infotech Services
   public function get_assigned_miqaats_count($user_id)
   {
-    // include family members (HOF children) along with the user
-    $memberIds = [$user_id];
-    $family = $this->get_all_family_member($user_id);
+    // include family members (HOF children) along with the HOF
+    $hof_id = $this->get_hof_id_for_member($user_id);
+    $memberIds = [$hof_id];
+    $family = $this->get_all_family_member($hof_id);
     if (!empty($family)) {
       foreach ($family as $f) {
         if (!empty($f['ITS_ID'])) $memberIds[] = $f['ITS_ID'];
@@ -55,7 +67,6 @@ class AccountM extends CI_Model
     }
     $memberIds = array_values(array_unique($memberIds));
 
-    $escaped_user = $this->db->escape($user_id);
     $escaped_list = array_map(array($this->db, 'escape'), $memberIds);
     $in_list = implode(',', $escaped_list);
 
@@ -65,19 +76,70 @@ class AccountM extends CI_Model
     // only count upcoming miqaats (miqaat date on or after today)
     $this->db->join('miqaat m', 'm.id = ma.miqaat_id', 'inner');
     $this->db->where('m.date >=', $today);
-    // keep raza check for current user only (r.user_id = current user)
-    $this->db->join('raza r', 'r.miqaat_id = ma.miqaat_id AND r.user_id = ' . $escaped_user, 'left');
+    // family-wide: consider submitted if ANY family member has submitted for this miqaat
+    $this->db->join('raza r', 'r.miqaat_id = ma.miqaat_id AND r.user_id IN (' . $in_list . ')', 'left');
     $this->db->where('((ma.assign_type = "Individual" AND ma.member_id IN (' . $in_list . ')) OR (ma.assign_type = "Group" AND ma.group_leader_id IN (' . $in_list . ')))', NULL, FALSE);
     $this->db->where('r.id IS NULL', NULL, FALSE);
     $row = $this->db->get()->row();
     return $row ? (int)$row->pending_cnt : 0;
   }
 
+  // Per-family-member pending assigned miqaats (upcoming + not submitted by that member)
+  public function get_family_members_miqaat_counts($user_id)
+  {
+    $members = [];
+
+    // Resolve HOF and fetch full family
+    $hof_id = $this->get_hof_id_for_member($user_id);
+
+    // HOF
+    $hof = $this->db->select('ITS_ID, Full_Name')->from('user')->where('ITS_ID', $hof_id)->get()->row_array();
+    if (!empty($hof)) {
+      $members[] = $hof;
+    }
+
+    // Children under this HOF
+    $family = $this->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) {
+          $members[] = [
+            'ITS_ID' => $f['ITS_ID'],
+            'Full_Name' => isset($f['Full_Name']) ? $f['Full_Name'] : ''
+          ];
+        }
+      }
+    }
+
+    // Unique by ITS_ID
+    $members = array_values(array_column($members, null, 'ITS_ID'));
+
+    $today = date('Y-m-d');
+    foreach ($members as &$m) {
+      $mid = $m['ITS_ID'];
+      $escaped_mid = $this->db->escape($mid);
+
+      $this->db->select('COUNT(DISTINCT ma.miqaat_id) as pending_cnt', FALSE);
+      $this->db->from('miqaat_assignments ma');
+      $this->db->join('miqaat m', 'm.id = ma.miqaat_id', 'inner');
+      $this->db->where('m.date >=', $today);
+      $this->db->join('raza r', 'r.miqaat_id = ma.miqaat_id AND r.user_id = ' . $escaped_mid, 'left');
+      $this->db->where('((ma.assign_type = "Individual" AND ma.member_id = ' . $escaped_mid . ') OR (ma.assign_type = "Group" AND ma.group_leader_id = ' . $escaped_mid . '))', NULL, FALSE);
+      $this->db->where('r.id IS NULL', NULL, FALSE);
+      $row = $this->db->get()->row();
+      $m['assigned_count'] = $row ? (int)$row->pending_cnt : 0;
+    }
+    unset($m);
+
+    return $members;
+  }
+
   public function get_assigned_miqaats($user_id)
   {
-    // Include assignments for the user and their family (HOF children)
-    $memberIds = [$user_id];
-    $family = $this->get_all_family_member($user_id);
+    // Include assignments for the whole family (HOF + children), even when a child is logged in
+    $hof_id = $this->get_hof_id_for_member($user_id);
+    $memberIds = [$hof_id];
+    $family = $this->get_all_family_member($hof_id);
     if (!empty($family)) {
       foreach ($family as $f) {
         if (!empty($f['ITS_ID'])) $memberIds[] = $f['ITS_ID'];
@@ -137,6 +199,98 @@ class AccountM extends CI_Model
       return $result->row_array();
     }
     return null;
+  }
+
+  // Family-wide: return any submitted raza for this miqaat within the member's family
+  public function get_family_raza_by_miqaat($miqaat_id, $member_its_id)
+  {
+    $hof_id = $this->get_hof_id_for_member($member_its_id);
+    $memberIds = [$hof_id];
+    $family = $this->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) {
+          $memberIds[] = $f['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+    if (empty($memberIds)) {
+      return null;
+    }
+
+    $this->db->select('r.*, u.Full_Name as submitter_name');
+    $this->db->from('raza r');
+    $this->db->join('user u', 'u.ITS_ID = r.user_id', 'left');
+    $this->db->where('r.miqaat_id', $miqaat_id);
+    $this->db->where_in('r.user_id', $memberIds);
+    $this->db->order_by('r.id', 'DESC');
+    $row = $this->db->get()->row_array();
+    return !empty($row) ? $row : null;
+  }
+
+  // Determine the assignee ITS for a miqaat within this member's family.
+  // Preference: if current member is an assignee (Individual or Group leader) return them;
+  // otherwise return the first assignee found within the family.
+  public function get_assignee_its_for_miqaat_in_family($miqaat_id, $member_its_id)
+  {
+    $hof_id = $this->get_hof_id_for_member($member_its_id);
+    $memberIds = [$hof_id];
+    $family = $this->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) {
+          $memberIds[] = $f['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+    if (empty($memberIds)) {
+      return (string)$member_its_id;
+    }
+
+    // If current member is directly assigned (individual)
+    $row = $this->db->select('member_id as its')->from('miqaat_assignments')
+      ->where('miqaat_id', $miqaat_id)
+      ->where('assign_type', 'Individual')
+      ->where('member_id', $member_its_id)
+      ->limit(1)->get()->row_array();
+    if (!empty($row['its'])) {
+      return (string)$row['its'];
+    }
+
+    // If current member is group leader
+    $row = $this->db->select('group_leader_id as its')->from('miqaat_assignments')
+      ->where('miqaat_id', $miqaat_id)
+      ->where('assign_type', 'Group')
+      ->where('group_leader_id', $member_its_id)
+      ->limit(1)->get()->row_array();
+    if (!empty($row['its'])) {
+      return (string)$row['its'];
+    }
+
+    // Otherwise pick the first assignee in the family (individual first, then group leader)
+    $row = $this->db->select('member_id as its')->from('miqaat_assignments')
+      ->where('miqaat_id', $miqaat_id)
+      ->where('assign_type', 'Individual')
+      ->where_in('member_id', $memberIds)
+      ->order_by('id', 'ASC')
+      ->limit(1)->get()->row_array();
+    if (!empty($row['its'])) {
+      return (string)$row['its'];
+    }
+
+    $row = $this->db->select('group_leader_id as its')->from('miqaat_assignments')
+      ->where('miqaat_id', $miqaat_id)
+      ->where('assign_type', 'Group')
+      ->where_in('group_leader_id', $memberIds)
+      ->order_by('id', 'ASC')
+      ->limit(1)->get()->row_array();
+    if (!empty($row['its'])) {
+      return (string)$row['its'];
+    }
+
+    return (string)$member_its_id;
   }
 
   public function submit_miqaat_raza($data)
@@ -280,34 +434,24 @@ class AccountM extends CI_Model
     return $ids;
   }
 
-  /**
-   * Current FMB takhmeen cycle year (Hijri mapped):
-   * Hijri months 01–08 belong to previous takhmeen year.
-   */
   private function get_current_fmb_takhmeen_year()
-  {
-    $today = date('Y-m-d');
-    $row = $this->db->select('hijri_date')
-      ->from('hijri_calendar')
-      ->where('greg_date', $today)
-      ->limit(1)
-      ->get()
-      ->row_array();
-    if (empty($row) || empty($row['hijri_date'])) return null;
+{
+  $today = date('Y-m-d');
+  $row = $this->db->select('hijri_date')
+    ->from('hijri_calendar')
+    ->where('greg_date', $today)
+    ->limit(1)
+    ->get()
+    ->row_array();
+  if (empty($row) || empty($row['hijri_date'])) return null;
+  $parts = explode('-', (string)$row['hijri_date']); // d-m-Y
+  if (count($parts) !== 3) return null;
+  $hm = (int)$parts[1];
+  $hy = (int)$parts[2];
+  if ($hy <= 0) return null;
+  return ($hm >= 1 && $hm <= 8) ? ($hy - 1) : $hy;
+}
 
-    $parts = explode('-', (string)$row['hijri_date']); // d-m-Y
-    if (count($parts) !== 3) return null;
-    $hm = (int)$parts[1];
-    $hy = (int)$parts[2];
-    if ($hy <= 0) return null;
-
-    return ($hm >= 1 && $hm <= 8) ? ($hy - 1) : $hy;
-  }
-
-  /**
-   * Family-wise FMB due excluding upcoming years' takhmeen.
-   * Returns: [year, total_amount, total_paid, total_due, excess_paid?]
-   */
   public function get_family_total_fmb_due_upto_current_year($its_id)
   {
     $familyId = $this->resolve_family_id($its_id);
@@ -1328,6 +1472,66 @@ class AccountM extends CI_Model
     $sql = "SELECT * FROM fmb_weekly_signup WHERE user_id = ? AND signup_date BETWEEN ? AND ? ORDER BY signup_date ASC";
     $query = $this->db->query($sql, array($userId, $startDate, $endDate));
     return $query->result_array();
+  }
+
+  /**
+   * Family-wise signup data (shared across family):
+   * - Prefer HOF's signup rows (new behavior)
+   * - If HOF has no rows yet for the range, fall back to any family member rows (legacy)
+   * Returns at most one row per signup_date.
+   */
+  public function get_fmb_family_signup_data_between($memberItsId, $startDate, $endDate)
+  {
+    if (empty($memberItsId) || empty($startDate) || empty($endDate)) {
+      return [];
+    }
+
+    $hof_id = $this->get_hof_id_for_member($memberItsId);
+    $hofRows = $this->get_fmb_signup_data_between($hof_id, $startDate, $endDate);
+    if (!empty($hofRows)) {
+      return $hofRows;
+    }
+
+    // Legacy fallback: pick latest row per date from any family member.
+    $memberIds = [(int)$hof_id];
+    $family = $this->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) {
+          $memberIds[] = (int)$f['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+    if (empty($memberIds)) {
+      return [];
+    }
+
+    $rows = $this->db
+      ->from('fmb_weekly_signup')
+      ->where_in('user_id', $memberIds)
+      ->where('signup_date >=', $startDate)
+      ->where('signup_date <=', $endDate)
+      ->order_by('signup_date', 'ASC')
+      ->order_by('id', 'DESC')
+      ->get()
+      ->result_array();
+
+    if (empty($rows)) {
+      return [];
+    }
+
+    $byDate = [];
+    foreach ($rows as $r) {
+      $d = $r['signup_date'] ?? null;
+      if (!$d) continue;
+      if (!isset($byDate[$d])) {
+        $byDate[$d] = $r;
+      }
+    }
+
+    ksort($byDate);
+    return array_values($byDate);
   }
 
   public function save_fmb_signup($data)

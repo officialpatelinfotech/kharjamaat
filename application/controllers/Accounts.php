@@ -216,14 +216,27 @@ class Accounts extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
     $data['sector'] = $_SESSION['user_data']['Sector'];
-    $user_id = $_SESSION['user']['username'];
+    $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
 
     $data['user_data'] = $this->AccountM->getUserData($user_id);
-    $hof_id = $data['user_data']['HOF_ID'];
-    $data['hof_data'] = $data['user_data']['HOF_ID'];
+    // Resolve HOF ITS for this login (HOF or child)
+    $hof_id = $this->AccountM->get_hof_id_for_member($user_id);
+    $data['hof_data'] = $hof_id;
 
-    $assigned_miqaats_count = $this->AccountM->get_assigned_miqaats_count($user_id);
-    $data['assigned_miqaats_count'] = $assigned_miqaats_count;
+    // Build family member list (HOF + children)
+    $memberIds = [(string)$hof_id];
+    $familyRows = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($familyRows)) {
+      foreach ($familyRows as $r) {
+        if (!empty($r['ITS_ID'])) {
+          $memberIds[] = (string)$r['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    // Pending assigned miqaats count is tracked against HOF submission (family-wide)
+    $data['assigned_miqaats_count'] = $this->AccountM->get_assigned_miqaats_count($user_id);
 
     $miqaats = $this->AccountM->get_all_upcoming_miqaat();
     $data["miqaats"] = $miqaats;
@@ -237,8 +250,39 @@ class Accounts extends CI_Controller
       $data["rsvp_overview"] = [];
     }
 
-    $data["fmb_takhmeen_details"] = $this->AccountM->get_member_total_fmb_due($user_id);
-    $data["sabeel_takhmeen_details"] = $this->AccountM->get_member_total_sabeel_due($user_id);
+    // Family-wise dues for dashboard cards
+    $family_fmb_due = 0.0;
+    $family_sabeel_due = 0.0;
+    $family_sabeel_cy_total = 0.0;
+    $family_sabeel_cy_paid = 0.0;
+    $family_sabeel_cy_due = 0.0;
+    $family_sabeel_current_year = '';
+    foreach ($memberIds as $mid) {
+      $f = $this->AccountM->get_member_total_fmb_due($mid);
+      $family_fmb_due += is_array($f) && isset($f['total_due']) ? (float)$f['total_due'] : 0.0;
+
+      $s = $this->AccountM->get_member_total_sabeel_due($mid);
+      if (is_array($s)) {
+        $family_sabeel_due += (float)($s['total_due'] ?? 0);
+        if ($family_sabeel_current_year === '' && !empty($s['current_year'])) {
+          $family_sabeel_current_year = (string)$s['current_year'];
+        }
+        $family_sabeel_cy_total += (float)($s['current_year_total'] ?? 0);
+        $family_sabeel_cy_paid  += (float)($s['current_year_paid'] ?? 0);
+        $family_sabeel_cy_due   += (float)($s['current_year_due'] ?? max(0, (float)($s['current_year_total'] ?? 0) - (float)($s['current_year_paid'] ?? 0)));
+      }
+    }
+
+    $data["fmb_takhmeen_details"] = [
+      'total_due' => $family_fmb_due,
+    ];
+    $data["sabeel_takhmeen_details"] = [
+      'total_due' => $family_sabeel_due,
+      'current_year' => $family_sabeel_current_year,
+      'current_year_total' => $family_sabeel_cy_total,
+      'current_year_paid' => $family_sabeel_cy_paid,
+      'current_year_due' => $family_sabeel_cy_due,
+    ];
 
     // Corpus funds summary for this family (HOF): total per family, assigned, paid, outstanding
     $this->load->model('CorpusFundM');
@@ -277,23 +321,53 @@ class Accounts extends CI_Controller
       'funds_count' => $fundsCount,
     ];
 
-    // Wajebaat summary for the logged in member (used on Home page)
+    // Wajebaat summary for family (used on Home page)
     $this->load->model('WajebaatM');
-    $username_for_waj = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
-    $waj = $this->WajebaatM->get_by_its($username_for_waj);
-    if (empty($waj) && !empty($_SESSION['user_data']['ITS_ID'])) {
-      $waj = $this->WajebaatM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    $waj_total_amount = 0.0;
+    $waj_total_due = 0.0;
+    $waj_last = '';
+    foreach ($memberIds as $mid) {
+      $row = $this->WajebaatM->get_by_its($mid);
+      if (!empty($row) && is_array($row)) {
+        $waj_total_amount += (float)($row['amount'] ?? 0);
+        $waj_total_due += (float)($row['due'] ?? 0);
+        $dt = '';
+        if (!empty($row['updated_at'])) $dt = $row['updated_at'];
+        elseif (!empty($row['created_at'])) $dt = $row['created_at'];
+        if ($dt && ($waj_last === '' || strtotime($dt) > strtotime($waj_last))) {
+          $waj_last = $dt;
+        }
+      }
     }
-    $data['wajebaat'] = $waj;
+    $data['wajebaat'] = [
+      'amount' => $waj_total_amount,
+      'due' => $waj_total_due,
+      'updated_at' => $waj_last,
+    ];
 
-    // Qardan Hasana summary for the logged in member (used on Home page)
+    // Qardan Hasana summary for family (used on Home page)
     $this->load->model('QardanHasanaM');
-    $username_for_qh = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
-    $qh = $this->QardanHasanaM->get_by_its($username_for_qh);
-    if (empty($qh) && !empty($_SESSION['user_data']['ITS_ID'])) {
-      $qh = $this->QardanHasanaM->get_by_its($_SESSION['user_data']['ITS_ID']);
+    $qh_total_amount = 0.0;
+    $qh_total_due = 0.0;
+    $qh_last = '';
+    foreach ($memberIds as $mid) {
+      $row = $this->QardanHasanaM->get_by_its($mid);
+      if (!empty($row) && is_array($row)) {
+        $qh_total_amount += (float)($row['amount'] ?? 0);
+        $qh_total_due += (float)($row['due'] ?? 0);
+        $dt = '';
+        if (!empty($row['updated_at'])) $dt = $row['updated_at'];
+        elseif (!empty($row['created_at'])) $dt = $row['created_at'];
+        if ($dt && ($qh_last === '' || strtotime($dt) > strtotime($qh_last))) {
+          $qh_last = $dt;
+        }
+      }
     }
-    $data['qardan_hasana'] = $qh;
+    $data['qardan_hasana'] = [
+      'amount' => $qh_total_amount,
+      'due' => $qh_total_due,
+      'updated_at' => $qh_last,
+    ];
 
     // Monthly signup overview using current Hijri month
     $today = date('Y-m-d');
@@ -307,7 +381,7 @@ class Accounts extends CI_Controller
         $firstDay = $days[0]['greg_date'];
         $lastDay  = $days[count($days) - 1]['greg_date'];
         $data["signup_days"] = $this->AccountM->get_fmb_signup_days_between($firstDay, $lastDay);
-        $data["signup_data"] = $this->AccountM->get_fmb_signup_data_between($user_id, $firstDay, $lastDay);
+        $data["signup_data"] = $this->AccountM->get_fmb_family_signup_data_between($user_id, $firstDay, $lastDay);
         // Month feedback summary (range + counts)
         $month_feedback_signed = 0;
         $month_feedback_given = 0;
@@ -406,16 +480,49 @@ class Accounts extends CI_Controller
     if (empty($_SESSION['user'])) {
       redirect('/accounts');
     }
+    $this->load->model('AccountM');
     $this->load->model('WajebaatM');
     $username = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
     $data['user_name'] = $username;
-    // Attempt to fetch by ITS (username usually stores ITS)
-    $row = $this->WajebaatM->get_by_its($username);
-    // If not found, try ITS from session user_data
-    if (empty($row) && !empty($_SESSION['user_data']['ITS_ID'])) {
-      $row = $this->WajebaatM->get_by_its($_SESSION['user_data']['ITS_ID']);
+
+    $member_its = $_SESSION['user_data']['ITS_ID'] ?? $username;
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_its);
+    $memberIds = [(string)$hof_id];
+    $family = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) {
+          $memberIds[] = (string)$f['ITS_ID'];
+        }
+      }
     }
-    $data['wajebaat'] = $row;
+    $memberIds = array_values(array_unique($memberIds));
+
+    $total_amount = 0.0;
+    $total_due = 0.0;
+    $lastUpdated = '';
+    foreach ($memberIds as $mid) {
+      $row = $this->WajebaatM->get_by_its($mid);
+      if (!empty($row) && is_array($row)) {
+        $total_amount += (float)($row['amount'] ?? 0);
+        $total_due += (float)($row['due'] ?? 0);
+        foreach (['updated_at', 'updated_on', 'last_updated', 'modified_at', 'modified_on', 'created_at', 'created_on', 'created_date', 'date', 'created'] as $k) {
+          if (!empty($row[$k])) {
+            $dt = (string)$row[$k];
+            if ($lastUpdated === '' || strtotime($dt) > strtotime($lastUpdated)) {
+              $lastUpdated = $dt;
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    $data['wajebaat'] = [
+      'amount' => $total_amount,
+      'due' => $total_due,
+      'updated_at' => $lastUpdated,
+    ];
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Wajebaat', $data);
   }
@@ -425,16 +532,49 @@ class Accounts extends CI_Controller
     if (empty($_SESSION['user'])) {
       redirect('/accounts');
     }
+    $this->load->model('AccountM');
     $this->load->model('QardanHasanaM');
     $username = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
     $data['user_name'] = $username;
-    // Attempt to fetch by ITS (username usually stores ITS)
-    $row = $this->QardanHasanaM->get_by_its($username);
-    // If not found, try ITS from session user_data
-    if (empty($row) && !empty($_SESSION['user_data']['ITS_ID'])) {
-      $row = $this->QardanHasanaM->get_by_its($_SESSION['user_data']['ITS_ID']);
+
+    $member_its = $_SESSION['user_data']['ITS_ID'] ?? $username;
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_its);
+    $memberIds = [(string)$hof_id];
+    $family = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) {
+          $memberIds[] = (string)$f['ITS_ID'];
+        }
+      }
     }
-    $data['qardan_hasana'] = $row;
+    $memberIds = array_values(array_unique($memberIds));
+
+    $total_amount = 0.0;
+    $total_due = 0.0;
+    $lastUpdated = '';
+    foreach ($memberIds as $mid) {
+      $row = $this->QardanHasanaM->get_by_its($mid);
+      if (!empty($row) && is_array($row)) {
+        $total_amount += (float)($row['amount'] ?? 0);
+        $total_due += (float)($row['due'] ?? 0);
+        foreach (['updated_at', 'updated_on', 'last_updated', 'modified_at', 'modified_on', 'created_at', 'created_on', 'created_date', 'date', 'created'] as $k) {
+          if (!empty($row[$k])) {
+            $dt = (string)$row[$k];
+            if ($lastUpdated === '' || strtotime($dt) > strtotime($lastUpdated)) {
+              $lastUpdated = $dt;
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    $data['qardan_hasana'] = [
+      'amount' => $total_amount,
+      'due' => $total_due,
+      'updated_at' => $lastUpdated,
+    ];
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/QardanHasana', $data);
   }
@@ -462,7 +602,8 @@ class Accounts extends CI_Controller
 
       $data["miqaats"][$key]["hijri_date"] = $hijri_date[0] . " " . $hijri_month . " " . $hijri_date[2];
 
-      $data["miqaats"][$key]["raza"] = $this->AccountM->get_raza_by_miqaat($miqaat["id"], $user_id);
+      // family-wide raza (so button/status is same for all family members)
+      $data["miqaats"][$key]["raza"] = $this->AccountM->get_family_raza_by_miqaat($miqaat["id"], $user_id);
 
       $data["miqaats"][$key]["invoice_status"] = $this->AccountM->get_miqaat_invoice_status($miqaat["id"]);
     }
@@ -477,7 +618,19 @@ class Accounts extends CI_Controller
       redirect('/accounts');
     }
 
-    $user_id = $_SESSION['user_data']['ITS_ID'];
+  $member_id = $_SESSION['user_data']['ITS_ID'];
+  // Submit under the ITS of the assignee (within this member's family)
+  $user_id = $this->AccountM->get_assignee_its_for_miqaat_in_family($miqaat_id, $member_id);
+
+    // If any family member already submitted for this miqaat, block further submissions
+    $existing_family_raza = $this->AccountM->get_family_raza_by_miqaat($miqaat_id, $member_id);
+    if (!empty($existing_family_raza)) {
+      $msg = 'Miqaat Raza is already submitted';
+      $msg .= '.';
+      $this->session->set_flashdata('warning', $msg);
+      redirect('accounts/assigned_miqaats');
+      return;
+    }
 
     $raza_data = '{"miqaat_id":"' . $miqaat_id . '"}';
 
@@ -882,7 +1035,7 @@ class Accounts extends CI_Controller
       $lastDay  = $days[count($days) - 1]['greg_date'];
       $data["menu"] = $this->AccountM->get_menus_between($firstDay, $lastDay);
       $data["signup_days"] = $this->AccountM->get_fmb_signup_days_between($firstDay, $lastDay);
-      $data["signup_data"] = $this->AccountM->get_fmb_signup_data_between($user_id, $firstDay, $lastDay);
+      $data["signup_data"] = $this->AccountM->get_fmb_family_signup_data_between($user_id, $firstDay, $lastDay);
     } else {
       $data["menu"] = [];
       $data["signup_days"] = [];
@@ -952,7 +1105,9 @@ class Accounts extends CI_Controller
       redirect('/accounts');
     }
 
-    $user_id = $_SESSION['user_data']['ITS_ID'];
+    // Shared signup across family: always save against HOF ITS.
+    $member_id = $_SESSION['user_data']['ITS_ID'];
+    $user_id = $this->AccountM->get_hof_id_for_member($member_id);
     $signup_dates = $this->input->post('date');
     $want_thali = $this->input->post('want-thali');
     $thali_size = $this->input->post('thali_size');
@@ -1037,8 +1192,8 @@ class Accounts extends CI_Controller
       $first_greg = $days[0]['greg_date'];
       $last_greg  = $days[count($days) - 1]['greg_date'];
       $menus_between = $this->AccountM->get_menus_between($first_greg, $last_greg);
-      // Fetch user signup entries for the period
-      $data['signup_data'] = $this->AccountM->get_fmb_signup_data_between($user_id, $first_greg, $last_greg);
+      // Fetch family-shared signup entries for the period
+      $data['signup_data'] = $this->AccountM->get_fmb_family_signup_data_between($user_id, $first_greg, $last_greg);
       // Map signup by greg date for quick lookup
       $signupByDate = [];
       foreach ($data['signup_data'] as $sd) {
@@ -1179,10 +1334,158 @@ class Accounts extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
     $data['sector'] = $_SESSION['user_data']['Sector'];
-    $user_id = $_SESSION['user_data']['ITS_ID'];
-    $data["fmb_takhmeen_details"] = $this->AccountM->viewfmbtakhmeen($user_id);
-    // Add Miqaat invoices listing for user with paid/due breakdown
-    $data['miqaat_invoices'] = $this->AccountM->get_user_miqaat_invoices($user_id);
+    $member_id = $_SESSION['user_data']['ITS_ID'];
+
+    // Family-wise: HOF + all members linked to HOF
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_id);
+    $memberIds = [$hof_id];
+    $family = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) {
+          $memberIds[] = (int)$f['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    // Aggregate per-member FMB takhmeen details into a family-wide structure matching the view contract.
+    $overall_amount = 0.0;
+    $overall_paid = 0.0;
+    $overall_excess = 0.0;
+    $current_year_amount = 0.0;
+    $current_year_paid = 0.0;
+    $current_year_excess = 0.0;
+    $current_year_label = null;
+    $current_hijri_year = null;
+    $all_takhmeen_by_year = [];
+    $all_payments = [];
+    $general_contributions = [];
+
+    foreach ($memberIds as $mid) {
+      $details = $this->AccountM->viewfmbtakhmeen($mid);
+      if (!is_array($details) || empty($details)) {
+        continue;
+      }
+
+      $oa = (float)($details['overall']['total_amount'] ?? 0);
+      $op = (float)($details['overall']['total_paid'] ?? 0);
+      $overall_amount += $oa;
+      $overall_paid += min($op, $oa);
+      $overall_excess += (float)($details['overall']['excess_paid'] ?? 0);
+
+      if (isset($details['current_hijri_year']) && $current_hijri_year === null) {
+        $current_hijri_year = $details['current_hijri_year'];
+      }
+
+      if (isset($details['current_year']) && is_array($details['current_year']) && !empty($details['current_year']['year'])) {
+        if ($current_year_label === null) {
+          $current_year_label = $details['current_year']['year'];
+        }
+        $cya = (float)($details['current_year']['total_amount'] ?? 0);
+        $cyp = (float)($details['current_year']['total_paid'] ?? 0);
+        $current_year_amount += $cya;
+        $current_year_paid += min($cyp, $cya);
+        $current_year_excess += (float)($details['current_year']['excess_paid'] ?? 0);
+      }
+
+      if (!empty($details['all_takhmeen']) && is_array($details['all_takhmeen'])) {
+        foreach ($details['all_takhmeen'] as $tr) {
+          $y = $tr['year'] ?? null;
+          if ($y === null || $y === '') {
+            continue;
+          }
+          if (!isset($all_takhmeen_by_year[$y])) {
+            $all_takhmeen_by_year[$y] = 0.0;
+          }
+          $all_takhmeen_by_year[$y] += (float)($tr['total_amount'] ?? 0);
+        }
+      }
+
+      if (!empty($details['all_payments']) && is_array($details['all_payments'])) {
+        foreach ($details['all_payments'] as $pr) {
+          $pr['user_id'] = $mid;
+          $all_payments[] = $pr;
+        }
+      }
+
+      if (!empty($details['general_contributions']) && is_array($details['general_contributions'])) {
+        foreach ($details['general_contributions'] as $gcr) {
+          $gcr['user_id'] = $mid;
+          $general_contributions[] = $gcr;
+        }
+      }
+    }
+
+    // Build all_takhmeen list in DESC year order
+    $all_takhmeen = [];
+    if (!empty($all_takhmeen_by_year)) {
+      krsort($all_takhmeen_by_year);
+      foreach ($all_takhmeen_by_year as $y => $amt) {
+        $all_takhmeen[] = ['year' => $y, 'total_amount' => $amt];
+      }
+    }
+    $latest = !empty($all_takhmeen) ? $all_takhmeen[0] : null;
+
+    // Normalize overall & current-year dues (avoid negative)
+    $overall_due = $overall_amount - $overall_paid;
+    if ($overall_due < 0) $overall_due = 0.0;
+    $overall = [
+      'total_amount' => $overall_amount,
+      'total_paid' => $overall_paid,
+      'total_due' => $overall_due,
+    ];
+    if ($overall_excess > 0) {
+      $overall['excess_paid'] = $overall_excess;
+    }
+
+    $current_year = null;
+    if ($current_year_label !== null) {
+      $cy_due = $current_year_amount - $current_year_paid;
+      if ($cy_due < 0) $cy_due = 0.0;
+      $current_year = [
+        'year' => $current_year_label,
+        'total_amount' => $current_year_amount,
+        'total_paid' => $current_year_paid,
+        'total_due' => $cy_due,
+      ];
+      if ($current_year_excess > 0) {
+        $current_year['excess_paid'] = $current_year_excess;
+      }
+    }
+
+    $data['fmb_takhmeen_details'] = [
+      'all_takhmeen' => $all_takhmeen,
+      'all_payments' => $all_payments,
+      'latest' => $latest,
+      'overall' => $overall,
+      'current_year' => $current_year,
+      'current_hijri_year' => $current_hijri_year,
+      'general_contributions' => $general_contributions,
+    ];
+
+    // Family-wise Miqaat invoices listing
+    $miqaat_invoices = [];
+    foreach ($memberIds as $mid) {
+      $inv = $this->AccountM->get_user_miqaat_invoices($mid);
+      if (!empty($inv)) {
+        foreach ($inv as $r) {
+          $r['user_id'] = $mid;
+          $miqaat_invoices[] = $r;
+        }
+      }
+    }
+    if (!empty($miqaat_invoices)) {
+      usort($miqaat_invoices, function ($a, $b) {
+        $ad = $a['invoice_date'] ?? '';
+        $bd = $b['invoice_date'] ?? '';
+        if ($ad === $bd) {
+          return ((int)($b['id'] ?? 0)) <=> ((int)($a['id'] ?? 0));
+        }
+        return strcmp((string)$bd, (string)$ad);
+      });
+    }
+    $data['miqaat_invoices'] = $miqaat_invoices;
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/FMB/ViewTakhmeen', $data);
@@ -1204,9 +1507,27 @@ class Accounts extends CI_Controller
       $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Missing invoice id']));
       return;
     }
-    $user_id = $_SESSION['user_data']['ITS_ID'];
-    $res = $this->AccountM->get_user_miqaat_invoice_history($user_id, $invoice_id);
-    if (!$res['invoice']) {
+    $member_id = $_SESSION['user_data']['ITS_ID'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_id);
+    $memberIds = [$hof_id];
+    $family = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) $memberIds[] = (int)$f['ITS_ID'];
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    $res = ['invoice' => null, 'payments' => []];
+    foreach ($memberIds as $mid) {
+      $try = $this->AccountM->get_user_miqaat_invoice_history($mid, $invoice_id);
+      if (!empty($try['invoice'])) {
+        $res = $try;
+        break;
+      }
+    }
+
+    if (empty($res['invoice'])) {
       $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Invoice not found']));
       return;
     }
@@ -1233,8 +1554,28 @@ class Accounts extends CI_Controller
       $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Missing invoice id']));
       return;
     }
-    $user_id = $_SESSION['user_data']['ITS_ID'];
-    $res = $this->AccountM->get_user_gc_payment_history($user_id, $fmbgc_id);
+    $member_id = $_SESSION['user_data']['ITS_ID'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_id);
+    $memberIds = [$hof_id];
+    $family = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) $memberIds[] = (int)$f['ITS_ID'];
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    $res = null;
+    foreach ($memberIds as $mid) {
+      $try = $this->AccountM->get_user_gc_payment_history($mid, $fmbgc_id);
+      if (!empty($try['success'])) {
+        $res = $try;
+        break;
+      }
+    }
+    if ($res === null) {
+      $res = ['success' => false, 'message' => 'Invoice not found'];
+    }
     $this->output->set_content_type('application/json')->set_output(json_encode($res));
   }
 
@@ -1246,8 +1587,108 @@ class Accounts extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
     $data['sector'] = $_SESSION['user_data']['Sector'];
-    $user_id = $_SESSION['user_data']['ITS_ID'];
-    $data["sabeel_takhmeen_details"] = $this->AccountM->viewSabeelTakhmeen($user_id);
+    $member_id = $_SESSION['user_data']['ITS_ID'];
+
+    // Family-wise: HOF + all members linked to HOF
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_id);
+    $memberIds = [$hof_id];
+    $family = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) $memberIds[] = (int)$f['ITS_ID'];
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    // Aggregate Sabeel details per year to preserve existing view calculations (current-year card expects one row per year).
+    $e_by_year = [];
+    $r_by_year = [];
+    $all_payments = [];
+    $est_total = 0.0;
+    $res_total = 0.0;
+    $est_paid = 0.0;
+    $res_paid = 0.0;
+
+    foreach ($memberIds as $mid) {
+      $details = $this->AccountM->viewSabeelTakhmeen($mid);
+      if (!is_array($details) || empty($details)) {
+        continue;
+      }
+
+      $ov = isset($details['overall']) && is_array($details['overall']) ? $details['overall'] : [];
+      $est_total += (float)($ov['establishment_total'] ?? 0);
+      $res_total += (float)($ov['residential_total'] ?? 0);
+      $est_paid  += (float)($ov['establishment_paid'] ?? 0);
+      $res_paid  += (float)($ov['residential_paid'] ?? 0);
+
+      if (!empty($details['e_takhmeen']) && is_array($details['e_takhmeen'])) {
+        foreach ($details['e_takhmeen'] as $row) {
+          $y = $row['year'] ?? null;
+          if ($y === null || $y === '') continue;
+          if (!isset($e_by_year[$y])) {
+            $e_by_year[$y] = ['year' => $y, 'grade' => '—', 'total' => 0.0, 'paid' => 0.0, 'due' => 0.0];
+          }
+          $e_by_year[$y]['total'] += (float)($row['total'] ?? 0);
+          $e_by_year[$y]['paid']  += (float)($row['paid'] ?? 0);
+          $e_by_year[$y]['due']   += (float)($row['due'] ?? max(0, ((float)($row['total'] ?? 0)) - (float)($row['paid'] ?? 0)));
+        }
+      }
+
+      if (!empty($details['r_takhmeen']) && is_array($details['r_takhmeen'])) {
+        foreach ($details['r_takhmeen'] as $row) {
+          $y = $row['year'] ?? null;
+          if ($y === null || $y === '') continue;
+          if (!isset($r_by_year[$y])) {
+            $r_by_year[$y] = ['year' => $y, 'grade' => '—', 'total' => 0.0, 'paid' => 0.0, 'due' => 0.0];
+          }
+          $r_by_year[$y]['total'] += (float)($row['total'] ?? 0);
+          $r_by_year[$y]['paid']  += (float)($row['paid'] ?? 0);
+          $r_by_year[$y]['due']   += (float)($row['due'] ?? max(0, ((float)($row['total'] ?? 0)) - (float)($row['paid'] ?? 0)));
+        }
+      }
+
+      if (!empty($details['all_payments']) && is_array($details['all_payments'])) {
+        foreach ($details['all_payments'] as $pr) {
+          $pr['user_id'] = $mid;
+          $all_payments[] = $pr;
+        }
+      }
+    }
+
+    $est_paid_capped = min($est_paid, $est_total);
+    $res_paid_capped = min($res_paid, $res_total);
+    $overall = [
+      'establishment_total' => $est_total,
+      'residential_total' => $res_total,
+      'total_amount' => $est_total + $res_total,
+      'establishment_paid' => $est_paid_capped,
+      'residential_paid' => $res_paid_capped,
+      'total_paid' => $est_paid_capped + $res_paid_capped,
+    ];
+    $overall['establishment_due'] = max(0, $overall['establishment_total'] - $overall['establishment_paid']);
+    $overall['residential_due'] = max(0, $overall['residential_total'] - $overall['residential_paid']);
+    $overall['total_due'] = max(0, $overall['total_amount'] - $overall['total_paid']);
+
+    // Convert year maps to latest-first arrays
+    if (!empty($e_by_year)) {
+      uksort($e_by_year, function ($a, $b) {
+        return strcmp((string)$b, (string)$a);
+      });
+    }
+    if (!empty($r_by_year)) {
+      uksort($r_by_year, function ($a, $b) {
+        return strcmp((string)$b, (string)$a);
+      });
+    }
+
+    $data['sabeel_takhmeen_details'] = [
+      'all_takhmeen' => [],
+      'e_takhmeen' => array_values($e_by_year),
+      'r_takhmeen' => array_values($r_by_year),
+      'all_payments' => $all_payments,
+      'latest' => null,
+      'overall' => $overall,
+    ];
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Sabeel/ViewTakhmeen', $data);
@@ -1312,8 +1753,8 @@ class Accounts extends CI_Controller
     $this->load->model('AccountM');
     $this->load->model('CorpusFundM');
 
-    // current user identifier (ITS_ID stored in session username)
-    $user_id = $_SESSION['user']['username'];
+    // current user identifier (prefer ITS_ID from session user_data)
+    $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
 
     // Build family member list (self + HOF family members)
     $memberIds = [$user_id];
@@ -1381,26 +1822,24 @@ class Accounts extends CI_Controller
     }
 
 
-    // Wajebaat outstanding for this user (single-member dues)
+    // Wajebaat outstanding for family
     $wajebaat_due = 0.0;
     $this->load->model('WajebaatM');
-    $waj_row = $this->WajebaatM->get_by_its($user_id);
-    if (empty($waj_row) && !empty($_SESSION['user_data']['ITS_ID'])) {
-      $waj_row = $this->WajebaatM->get_by_its($_SESSION['user_data']['ITS_ID']);
-    }
-    if (!empty($waj_row) && is_array($waj_row)) {
-      $wajebaat_due = (float)($waj_row['due'] ?? 0);
+    foreach ($memberIds as $m) {
+      $waj_row = $this->WajebaatM->get_by_its($m);
+      if (!empty($waj_row) && is_array($waj_row)) {
+        $wajebaat_due += (float)($waj_row['due'] ?? 0);
+      }
     }
 
-    // Qardan Hasana outstanding for this user (single-member dues)
+    // Qardan Hasana outstanding for family
     $qardan_hasana_due = 0.0;
     $this->load->model('QardanHasanaM');
-    $qh_row = $this->QardanHasanaM->get_by_its($user_id);
-    if (empty($qh_row) && !empty($_SESSION['user_data']['ITS_ID'])) {
-      $qh_row = $this->QardanHasanaM->get_by_its($_SESSION['user_data']['ITS_ID']);
-    }
-    if (!empty($qh_row) && is_array($qh_row)) {
-      $qardan_hasana_due = (float)($qh_row['due'] ?? 0);
+    foreach ($memberIds as $m) {
+      $qh_row = $this->QardanHasanaM->get_by_its($m);
+      if (!empty($qh_row) && is_array($qh_row)) {
+        $qardan_hasana_due += (float)($qh_row['due'] ?? 0);
+      }
     }
 
     $total_due = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $wajebaat_due + $qardan_hasana_due;
@@ -1435,7 +1874,7 @@ class Accounts extends CI_Controller
     $this->load->model('AccountM');
     $this->load->model('CorpusFundM');
 
-    $user_id = $_SESSION['user']['username'];
+    $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
 
     // Build member list (self + family by HOF)
     $memberIds = [$user_id];
@@ -1501,26 +1940,24 @@ class Accounts extends CI_Controller
       }
     }
 
-    // Wajebaat outstanding for this user (single-member dues)
+    // Wajebaat outstanding for family
     $wajebaat_due = 0.0;
     $this->load->model('WajebaatM');
-    $waj_row = $this->WajebaatM->get_by_its($user_id);
-    if (empty($waj_row) && !empty($_SESSION['user_data']['ITS_ID'])) {
-      $waj_row = $this->WajebaatM->get_by_its($_SESSION['user_data']['ITS_ID']);
-    }
-    if (!empty($waj_row) && is_array($waj_row)) {
-      $wajebaat_due = (float)($waj_row['due'] ?? 0);
+    foreach ($memberIds as $m) {
+      $waj_row = $this->WajebaatM->get_by_its($m);
+      if (!empty($waj_row) && is_array($waj_row)) {
+        $wajebaat_due += (float)($waj_row['due'] ?? 0);
+      }
     }
 
-    // Qardan Hasana outstanding for this user (single-member dues)
+    // Qardan Hasana outstanding for family
     $qardan_hasana_due = 0.0;
     $this->load->model('QardanHasanaM');
-    $qh_row = $this->QardanHasanaM->get_by_its($user_id);
-    if (empty($qh_row) && !empty($_SESSION['user_data']['ITS_ID'])) {
-      $qh_row = $this->QardanHasanaM->get_by_its($_SESSION['user_data']['ITS_ID']);
-    }
-    if (!empty($qh_row) && is_array($qh_row)) {
-      $qardan_hasana_due = (float)($qh_row['due'] ?? 0);
+    foreach ($memberIds as $m) {
+      $qh_row = $this->QardanHasanaM->get_by_its($m);
+      if (!empty($qh_row) && is_array($qh_row)) {
+        $qardan_hasana_due += (float)($qh_row['due'] ?? 0);
+      }
     }
 
     $family_total = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $wajebaat_due + $qardan_hasana_due;

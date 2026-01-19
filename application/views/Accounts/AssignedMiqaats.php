@@ -110,10 +110,10 @@ if (isset($miqaats) && is_array($miqaats)) {
           <?php endif; ?>
 
           <p class="text-sm text-gray-500"><strong>Raza Status:</strong>
-            <?php if (isset($miqaat['raza'])) {
-              if ($miqaat["raza"]["Janab-status"] == 1) {
+            <?php if (!empty($miqaat['raza'])) {
+              if (($miqaat["raza"]["Janab-status"] ?? 0) == 1) {
                 echo '<span class="badge badge-success">Approved</span>';
-              } else if ($miqaat["raza"]["coordinator-status"] == 1) {
+              } else if (($miqaat["raza"]["coordinator-status"] ?? 0) == 1) {
                 echo '<span class="badge badge-warning">Recommended</span>';
               } else {
                 echo '<span class="badge badge-primary">Submitted</span>';
@@ -123,7 +123,7 @@ if (isset($miqaats) && is_array($miqaats)) {
             } ?>
           </p>
 
-          <?php if ($miqaat['status'] == 1 && !isset($miqaat['raza'])): ?>
+          <?php if ($miqaat['status'] == 1 && empty($miqaat['raza'])): ?>
             <a href="<?php echo base_url('accounts/submit_miqaat_raza/' . $miqaat['id']) ?>" class="raza-submit-btn btn btn-sm btn-success">Submit Raza</a>
           <?php else: ?>
             <a class="btn btn-sm btn-secondary disabled" style="pointer-events: none; opacity: 0.6;">Submit Raza</a>
