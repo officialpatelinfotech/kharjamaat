@@ -341,6 +341,14 @@
       <a href="<?php echo base_url('accounts/corpusfunds') ?>" aria-label="Corpus Funds" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-donate"></i>
+          <?php
+          $cf_due_badge = 0;
+          if (isset($corpus_summary) && is_array($corpus_summary)) {
+            $cf_due_badge = (float)($corpus_summary['outstanding'] ?? 0);
+          }
+          if ($cf_due_badge > 0): ?>
+            <span class="count-badge">Due</span>
+          <?php endif; ?>
         </div>
         <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Corpus Funds</span>
         <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
@@ -350,6 +358,9 @@
       <a href="<?php echo base_url('accounts/wajebaat') ?>" aria-label="Wajebaat" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-coins"></i>
+          <?php if (isset($wajebaat['due']) && (float)$wajebaat['due'] > 0): ?>
+            <span class="count-badge">Due</span>
+          <?php endif; ?>
         </div>
         <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Wajebaat</span>
       </a>
@@ -358,6 +369,9 @@
       <a href="<?php echo base_url('accounts/qardan_hasana') ?>" aria-label="Qardan Hasana" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-handshake-o"></i>
+          <?php if (isset($qardan_hasana['due']) && (float)$qardan_hasana['due'] > 0): ?>
+            <span class="count-badge">Due</span>
+          <?php endif; ?>
         </div>
         <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Qardan Hasana</span>
       </a>
