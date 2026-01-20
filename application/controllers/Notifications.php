@@ -531,13 +531,15 @@ class Notifications extends CI_Controller
   protected function schedule_weekly_corpus()
   {
     $tpl = $this->config->item('tpl_corpus_fund', 'notifications');
-    $sql = "SELECT DISTINCT HOF_ID, COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') AS mobile, COALESCE(NULLIF(Email,''), NULLIF(email,''), '') AS email FROM user WHERE HOF_FM_TYPE = 'HOF' AND Inactive_Status IS NULL AND COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') <> ''";
+    $sql = "SELECT DISTINCT HOF_ID, COALESCE(Full_Name,'') AS full_name, COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') AS mobile, COALESCE(NULLIF(Email,''), NULLIF(email,''), '') AS email FROM user WHERE HOF_FM_TYPE = 'HOF' AND Inactive_Status IS NULL AND COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') <> ''";
     $rows = $this->db->query($sql)->result_array();
     $count = 0;
     $sentEmails = [];
     foreach ($rows as $r) {
       $hofId = isset($r['HOF_ID']) ? (int)$r['HOF_ID'] : 0;
       if ($hofId <= 0) continue;
+
+      $hofName = trim((string)($r['full_name'] ?? ''));
 
       // Compute outstanding corpus details for this family (HOF)
       $assignments = $this->db->select('a.fund_id, f.title, COALESCE(SUM(a.amount_assigned),0) AS assigned_total', false)
@@ -626,11 +628,19 @@ class Notifications extends CI_Controller
           $count++;
           continue;
         }
+
+        $subject = 'Corpus fund reminder';
+        if ($hofName !== '') {
+          $subject = $hofName . ' - ' . $subject;
+        }
+
         $this->notification_lib->send_email([
           'recipient' => $email,
           'recipient_type' => 'hof',
-          'subject' => 'Corpus fund reminder',
+          'subject' => $subject,
           'body' => $body,
+          'recipient_name' => $hofName,
+          'recipient_its' => (string)$hofId,
           'card_title' => 'Corpus fund reminder'
         ]);
         $sentEmails[$emailKey] = true;
