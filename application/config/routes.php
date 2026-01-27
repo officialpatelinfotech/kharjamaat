@@ -89,3 +89,35 @@ $route['menu'] = 'publicmenu';
 
 // Cookie consent
 $route['cookies/accept'] = 'cookies/accept';
+
+// Member Madresa pages
+$route['accounts/madresa/payment-history/(:num)'] = 'accounts/madresa_payment_history/$1';
+
+// Madresa module
+$route['madresa'] = 'madresa/index';
+$route['madresa/classes'] = 'madresa/classes';
+$route['madresa/classes/new'] = 'madresa/classes_new';
+$route['madresa/classes/create'] = 'madresa/classes_create';
+$route['madresa/classes/view/(:num)'] = 'madresa/classes_view/$1';
+$route['madresa/classes/receive-payment/(:num)/(:num)'] = 'madresa/classes_receive_payment/$1/$2';
+$route['madresa/classes/payment-history/(:num)'] = 'madresa/classes_payment_history/$1';
+$route['madresa/classes/payment-receipt/(:num)'] = 'madresa/classes_payment_receipt/$1';
+$route['madresa/classes/edit/(:num)'] = 'madresa/classes_edit/$1';
+$route['madresa/classes/update/(:num)'] = 'madresa/classes_update/$1';
+$route['madresa/classes/delete/(:num)'] = 'madresa/classes_delete/$1';
+$route['madresa/student-details'] = 'madresa/student_details';
+
+// Admin alias for Madresa module
+$route['admin/madresa'] = 'madresa/index';
+
+// Admin aliases for Madresa sub-routes (keep admin URL space)
+$route['admin/madresa/classes'] = 'madresa/classes';
+$route['admin/madresa/classes/new'] = 'madresa/classes_new';
+$route['admin/madresa/classes/create'] = 'madresa/classes_create';
+$route['admin/madresa/classes/view/(:num)'] = 'madresa/classes_view/$1';
+$route['admin/madresa/classes/payment-history/(:num)'] = 'madresa/classes_payment_history/$1';
+$route['admin/madresa/classes/payment-receipt/(:num)'] = 'madresa/classes_payment_receipt/$1';
+$route['admin/madresa/classes/edit/(:num)'] = 'madresa/classes_edit/$1';
+$route['admin/madresa/classes/update/(:num)'] = 'madresa/classes_update/$1';
+$route['admin/madresa/classes/delete/(:num)'] = 'madresa/classes_delete/$1';
+$route['admin/madresa/student-details'] = 'madresa/student_details';

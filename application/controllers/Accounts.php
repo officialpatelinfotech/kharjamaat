@@ -235,6 +235,20 @@ class Accounts extends CI_Controller
     }
     $memberIds = array_values(array_unique($memberIds));
 
+    // Madresa fees/dues summary (students age <= 15 from family)
+    $this->load->model('MadresaM');
+    $studentRows = $this->MadresaM->get_students_details($memberIds);
+    $studentItsIds = [];
+    if (!empty($studentRows)) {
+      foreach ($studentRows as $sr) {
+        if (!empty($sr['ITS_ID'])) {
+          $studentItsIds[] = (string)$sr['ITS_ID'];
+        }
+      }
+    }
+    $studentItsIds = array_values(array_unique($studentItsIds));
+    $data['madresa_summary'] = $this->MadresaM->get_students_financials_summary($studentItsIds);
+
     // Pending assigned miqaats count is tracked against HOF submission (family-wide)
     $data['assigned_miqaats_count'] = $this->AccountM->get_assigned_miqaats_count($user_id);
 
@@ -381,7 +395,7 @@ class Accounts extends CI_Controller
         $firstDay = $days[0]['greg_date'];
         $lastDay  = $days[count($days) - 1]['greg_date'];
         $data["signup_days"] = $this->AccountM->get_fmb_signup_days_between($firstDay, $lastDay);
-        $data["signup_data"] = $this->AccountM->get_fmb_family_signup_data_between($user_id, $firstDay, $lastDay);
+        $data["signup_data"] = $this->AccountM->get_fmb_signup_data_between($user_id, $firstDay, $lastDay);
         // Month feedback summary (range + counts)
         $month_feedback_signed = 0;
         $month_feedback_given = 0;
@@ -473,6 +487,98 @@ class Accounts extends CI_Controller
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Home', $data);
+  }
+
+  public function madresa()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+
+    $member_its = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_its);
+
+    // Build family member list (HOF + children)
+    $memberIds = [(string)$hof_id];
+    $familyRows = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($familyRows)) {
+      foreach ($familyRows as $r) {
+        if (!empty($r['ITS_ID'])) {
+          $memberIds[] = (string)$r['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    // Fetch overall fees/dues from admin-created Madresa classes (same as Madresa Classes screen)
+    $this->load->model('MadresaM');
+    $this->load->model('HijriCalendar');
+    $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = $todayHijri && isset($todayHijri['hijri_date']) ? explode('-', (string)$todayHijri['hijri_date']) : [];
+    $currentHy = !empty($parts) && !empty($parts[2]) ? (int)$parts[2] : (int)date('Y');
+
+    $data['selected_hijri_year'] = $currentHy;
+    $data['madresa_classes'] = $this->MadresaM->list_classes_by_year($currentHy, false);
+
+    $totalFees = 0.0;
+    $totalDues = 0.0;
+    if (!empty($data['madresa_classes'])) {
+      foreach ($data['madresa_classes'] as $c) {
+        $totalFees += (float)($c['amount_to_collect'] ?? 0);
+        $totalDues += (float)($c['amount_due'] ?? 0);
+      }
+    }
+    $data['madresa_totals'] = [
+      'total_fees' => $totalFees,
+      'total_dues' => $totalDues,
+    ];
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/Madresa/Home', $data);
+  }
+
+  public function madresa_payment_history($classId = null)
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+
+    $classId = (int)$classId;
+    if ($classId <= 0) {
+      redirect('/accounts/madresa');
+    }
+
+    $this->load->model('MadresaM');
+    $class = $this->MadresaM->get_class($classId);
+    if (empty($class)) {
+      show_404();
+    }
+
+    $financials = $this->MadresaM->get_class_financials($classId);
+    $payments = $this->MadresaM->list_class_payments($classId);
+
+    $totalPaid = 0.0;
+    if (!empty($payments)) {
+      foreach ($payments as $p) {
+        $totalPaid += (float)($p['amount'] ?? 0);
+      }
+    }
+
+    $data['madresa_class'] = $class;
+    $data['madresa_financials'] = $financials;
+    $data['madresa_payments'] = $payments;
+    $data['madresa_total_paid'] = $totalPaid;
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/Madresa/PaymentHistory', $data);
   }
 
   public function wajebaat()
@@ -1035,7 +1141,7 @@ class Accounts extends CI_Controller
       $lastDay  = $days[count($days) - 1]['greg_date'];
       $data["menu"] = $this->AccountM->get_menus_between($firstDay, $lastDay);
       $data["signup_days"] = $this->AccountM->get_fmb_signup_days_between($firstDay, $lastDay);
-      $data["signup_data"] = $this->AccountM->get_fmb_family_signup_data_between($user_id, $firstDay, $lastDay);
+      $data["signup_data"] = $this->AccountM->get_fmb_signup_data_between($user_id, $firstDay, $lastDay);
     } else {
       $data["menu"] = [];
       $data["signup_days"] = [];
@@ -1105,9 +1211,7 @@ class Accounts extends CI_Controller
       redirect('/accounts');
     }
 
-    // Shared signup across family: always save against HOF ITS.
-    $member_id = $_SESSION['user_data']['ITS_ID'];
-    $user_id = $this->AccountM->get_hof_id_for_member($member_id);
+    $user_id = $_SESSION['user_data']['ITS_ID'];
     $signup_dates = $this->input->post('date');
     $want_thali = $this->input->post('want-thali');
     $thali_size = $this->input->post('thali_size');
@@ -1192,8 +1296,8 @@ class Accounts extends CI_Controller
       $first_greg = $days[0]['greg_date'];
       $last_greg  = $days[count($days) - 1]['greg_date'];
       $menus_between = $this->AccountM->get_menus_between($first_greg, $last_greg);
-      // Fetch family-shared signup entries for the period
-      $data['signup_data'] = $this->AccountM->get_fmb_family_signup_data_between($user_id, $first_greg, $last_greg);
+      // Fetch user signup entries for the period
+      $data['signup_data'] = $this->AccountM->get_fmb_signup_data_between($user_id, $first_greg, $last_greg);
       // Map signup by greg date for quick lookup
       $signupByDate = [];
       foreach ($data['signup_data'] as $sd) {

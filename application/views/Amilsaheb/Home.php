@@ -841,6 +841,7 @@
           <li><a class="menu-item" href="<?php echo base_url('Amilsaheb/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat <?php $hijri_year = isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : '1446H';
                                                                                                                                                                                               echo $hijri_year . 'H'; ?></span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('Amilsaheb/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('madresa'); ?>"><span class="menu-icon"><i class="fa fa-graduation-cap"></i></span><span class="menu-label">Madresa</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>
         </ul>
       </div>

@@ -1076,6 +1076,7 @@
           <li><a class="menu-item" href="<?php echo base_url('common/managemiqaat?from=common/managemiqaat'); ?>"><span class="menu-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="menu-label">Create Miqaat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=anjuman'); ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/miqaatattendance?from=anjuman'); ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Miqaat Attendance Report</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('madresa'); ?>"><span class="menu-icon"><i class="fa-solid fa-school"></i></span><span class="menu-label">Madresa Module</span></a></li>
         </ul>
         <div class="menu-section">Finance</div>
         <ul class="menu-list">
@@ -3035,6 +3036,33 @@
           $dashboard_expense_total = isset($dashboard_expense_total) ? (float)$dashboard_expense_total : 0.0;
           $dashboard_expense_hijri_year = isset($dashboard_expense_hijri_year) ? (int)$dashboard_expense_hijri_year : null;
           ?>
+
+          <?php
+          $dashboard_madresa_hijri_year = isset($year_daytype_stats['hijri_year']) ? (int)$year_daytype_stats['hijri_year'] : null;
+          ?>
+          <div class="col-md-12 mb-3 mb-md-3">
+            <div class="chart-container compact h-100">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="chart-title m-0">Madresa</h5>
+                <a href="<?= base_url('madresa'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
+              </div>
+              <div class="text-center py-3">
+                <div class="row justify-content-center">
+                  <div class="col-12 col-md-4">
+                    <div class="mini-card">
+                      <div class="stats-value">
+                        <?= $dashboard_madresa_hijri_year ? ((int)$dashboard_madresa_hijri_year . 'H') : 'Classes'; ?>
+                      </div>
+                      <div class="stats-label">
+                        Madresa Classes<?= $dashboard_madresa_hijri_year ? ' (Current Year)' : ''; ?>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="col-md-12 mb-3 mb-md-3">
             <div class="chart-container compact h-100">
               <div class="d-flex align-items-center justify-content-between mb-2">

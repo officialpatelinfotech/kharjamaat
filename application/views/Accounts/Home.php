@@ -282,6 +282,19 @@
         <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
       </a>
     </div>
+
+    <div class="col-6 mt-3 col-md-3 col-xl-2">
+      <a href="<?php echo base_url('accounts/madresa') ?>" aria-label="Madresa Fees & Dues" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
+        <div class="stat-icon-wrap mb-1">
+          <i class="fa fa-graduation-cap"></i>
+          <?php if (isset($madresa_summary['total_due']) && (float)$madresa_summary['total_due'] > 0): ?>
+            <span class="count-badge">Due</span>
+          <?php endif; ?>
+        </div>
+        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Madresa</span>
+        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Fees &amp; Dues</span>
+      </a>
+    </div>
     <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/rsvp_list') ?>" aria-label="Event RSVP" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
