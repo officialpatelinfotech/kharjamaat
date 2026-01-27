@@ -121,6 +121,15 @@
           </div>
         </div>
       </a>
+
+      <a href="<?php echo base_url('admin/madresa'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Madresa Module</div>
+            <i class="icon fa-solid fa-school"></i>
+          </div>
+        </div>
+      </a>
     </div>
   </div>
 </div>

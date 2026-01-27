@@ -55,6 +55,15 @@
   .container img {
     border: 4px solid white;
   }
+
+  .home-module-card {
+    transition: transform 0.12s ease-in-out, box-shadow 0.12s ease-in-out;
+  }
+
+  .home-module-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  }
 </style>
 
 
@@ -100,6 +109,25 @@
             affairs of the Dawoodi Bohra community in Khar, Mumbai, Maharashtra, India.
           </p>
         </div>
+
+        <?php if (!empty($_SESSION['user'])) { ?>
+          <div class="col-12 mt-5">
+            <div class="title-base title-left">
+              <hr />
+              <h2>Modules</h2>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <a href="<?php echo base_url('madresa'); ?>" class="text-decoration-none">
+              <div class="card shadow-sm border-0 home-module-card h-100">
+                <div class="card-body">
+                  <h5 class="card-title mb-2">Madresa Module</h5>
+                  <p class="card-text text-muted mb-0">Create classes and manage classes.</p>
+                </div>
+              </div>
+            </a>
+          </div>
+        <?php } ?>
 
         <div class="col-12 mt-5">
           <div class="title-base title-left">
