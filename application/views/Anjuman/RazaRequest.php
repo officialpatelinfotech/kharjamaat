@@ -802,6 +802,7 @@
     html += `<tr><td>General Contributions</td><td style="text-align:right;color:${data.gc_due>0?'#dc3545':'#6c757d'}">${formatINR(data.gc_due)}</td></tr>`;
     html += `<tr><td>Miqaat Invoices</td><td style="text-align:right;color:${data.miqaat_due>0?'#dc3545':'#6c757d'}">${formatINR(data.miqaat_due)}</td></tr>`;
     html += `<tr><td>Corpus Fund</td><td style="text-align:right;color:${data.corpus_due>0?'#dc3545':'#6c757d'}">${formatINR(data.corpus_due)}</td></tr>`;
+    html += `<tr><td>Ekram Fund</td><td style="text-align:right;color:${(data.ekram_due||0)>0?'#dc3545':'#6c757d'}">${formatINR(data.ekram_due||0)}</td></tr>`;
     html += `<tr><th style="text-align:left">Total</th><th style="text-align:right;color:#dc3545">${formatINR(data.total_due)}</th></tr>`;
     html += '</tbody></table>';
 

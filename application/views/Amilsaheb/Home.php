@@ -817,6 +817,7 @@
           <li><a class="menu-item" href="<?php echo base_url('common/fmbtakhmeen?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-hand-holding-heart"></i></span><span class="menu-label">FMB Thaali Takhmeen</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/fmb_general_contributions?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-inr"></i></span><span class="menu-label">FMB General Contributions</span></a></li>
           <li><a class="menu-item" href="<?= base_url('amilsaheb/corpusfunds_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
+          <li><a class="menu-item" href="<?= base_url('amilsaheb/ekramfunds_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Ekram Funds</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('amilsaheb/wajebaat_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('amilsaheb/qardan_hasana_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-handshake"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
           <li><a class="menu-item" href="<?= base_url('amilsaheb/expense'); ?>"><span class="menu-icon"><i class="fa-solid fa-receipt"></i></span><span class="menu-label">Expense Module</span></a></li>
@@ -2225,6 +2226,65 @@
               </div>
             </a>
           </div>
+
+          <?php
+        // Ekram Funds summary (mirror Corpus Funds layout)
+        $ekramFundsCount = 0;
+        $ekram_sumAmount = 0;
+        $ekram_sumAssigned = 0;
+        $ekram_sumPaid = 0;
+        $ekram_sumOutstanding = 0;
+        if (isset($ekram_funds) && is_array($ekram_funds)) {
+          $ekramFundsCount = count($ekram_funds);
+          foreach ($ekram_funds as $f) {
+            $amt = isset($f['amount']) ? (float)$f['amount'] : 0;
+            $assigned = isset($f['assigned_total']) ? (float)$f['assigned_total'] : 0;
+            $paid = isset($f['paid_total']) ? (float)$f['paid_total'] : 0;
+            $out = isset($f['outstanding']) ? (float)$f['outstanding'] : 0;
+            $ekram_sumAmount += $amt;
+            $ekram_sumAssigned += $assigned;
+            $ekram_sumPaid += $paid;
+            $ekram_sumOutstanding += $out;
+          }
+        }
+        $ekram_sumAmount = (int)round($ekram_sumAmount);
+        $ekram_sumAssigned = (int)round($ekram_sumAssigned);
+        $ekram_sumPaid = (int)round($ekram_sumPaid);
+        $ekram_sumOutstanding = (int)round($ekram_sumOutstanding);
+        ?>
+
+        <div id="ekram-funds-block" class="chart-container grouped-block mt-3">
+          <h4 class="section-title">Ekram Funds</h4>
+          <div class="row text-center">
+            <div class="col-md-4 mb-3">
+              <div class="mini-card">
+                <div class="stats-value">₹<?php echo format_inr($ekram_sumAssigned); ?></div>
+                <div class="stats-label">Total assigned</div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="mini-card">
+                <div class="stats-value text-success">₹<?php echo format_inr($ekram_sumPaid); ?></div>
+                <div class="stats-label">Total Received</div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="mini-card">
+                <div class="stats-value text-danger">₹<?php echo format_inr($ekram_sumOutstanding); ?></div>
+                <div class="stats-label">Total Pending</div>
+              </div>
+            </div>
+          </div>
+            <div class="text-center mt-2">
+            <small>Funds: <?php echo $ekramFundsCount; ?></small>
+            <div style="margin-top:8px; margin-bottom:12px;"><a class="btn btn-sm btn-outline-secondary" href="<?php echo base_url('amilsaheb/ekramfunds_details'); ?>">View All</a></div>
+          </div>
+        <style>
+          /* Ensure Ekram card uses available width and matches appearance of other summary cards */
+          #ekram-funds-block { width: 100%; max-width: 100%; }
+          #ekram-funds-block .mini-card { min-width: 140px; }
+        </style>
+        </div>
 
           <?php
           $wa = isset($dashboard_data['wajebaat_summary']) && is_array($dashboard_data['wajebaat_summary'])

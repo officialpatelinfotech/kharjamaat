@@ -28,9 +28,11 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
 		<div class="alert alert-danger"><?= htmlspecialchars($this->session->flashdata('error'), ENT_QUOTES, 'UTF-8'); ?></div>
 	<?php endif; ?>
 
-	<div class="card shadow-sm" style="margin-left:500px;margin-right:500px;margin-top:20px;">
-		<div class="card-body">
-			<form method="post" action="<?= current_url(); ?>">
+	<div class="row justify-content-center">
+		<div class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
+			<div class="card shadow-sm mt-3">
+				<div class="card-body">
+					<form method="post" action="<?= current_url(); ?>">
 				<div class="form-group">
 					<label for="expenseDate">Date</label>
 					<input type="date" id="expenseDate" name="expense_date" class="form-control form-control-sm" value="<?= htmlspecialchars($val_date, ENT_QUOTES, 'UTF-8'); ?>" required>
@@ -87,10 +89,12 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
 					<input type="text" id="expenseNotes" name="notes" class="form-control form-control-sm" maxlength="255" value="<?= htmlspecialchars($val_notes, ENT_QUOTES, 'UTF-8'); ?>">
 				</div>
 
-				<div class="text-right">
-					<button type="submit" class="btn btn-sm btn-primary"><?= $is_edit ? 'Update Expense' : 'Save Expense'; ?></button>
+						<div class="text-right">
+							<button type="submit" class="btn btn-sm btn-primary"><?= $is_edit ? 'Update Expense' : 'Save Expense'; ?></button>
+						</div>
+					</form>
 				</div>
-			</form>
+			</div>
 		</div>
 	</div>
 </div>

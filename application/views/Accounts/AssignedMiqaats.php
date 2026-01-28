@@ -225,6 +225,7 @@ if (isset($miqaats) && is_array($miqaats)) {
           '<tr><td>General Contributions</td><td class="text-right">' + coloredAmount(d.gc_due) + '</td></tr>' +
           '<tr><td>Miqaat Invoices</td><td class="text-right">' + coloredAmount(d.miqaat_due) + '</td></tr>' +
           '<tr><td>Corpus Fund</td><td class="text-right">' + coloredAmount(d.corpus_due) + '</td></tr>' +
+          '<tr><td>Ekram Fund</td><td class="text-right">' + coloredAmount(d.ekram_due || 0) + '</td></tr>' +
           '<tr><td>Wajebaat</td><td class="text-right">' + coloredAmount(d.wajebaat_due || 0) + '</td></tr>' +
           '<tr><td>Qardan Hasana</td><td class="text-right">' + coloredAmount(d.qardan_hasana_due || 0) + '</td></tr>' +
           '<tr><th>Total</th><th class="text-right">' + coloredAmount(d.total_due) + '</th></tr>' +
