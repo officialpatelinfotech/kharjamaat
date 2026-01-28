@@ -48,8 +48,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |
 | Examples:	my-controller/index	-> my_controller/index
 |		my-controller/my-method	-> my_controller/my_method
-// Corpus Funds feature routes
 $route['admin/corpusfunds'] = 'Admin/corpusfunds';
+$route['admin/ekramfunds'] = 'Admin/ekramfunds';
 $route['admin/corpusfunds/new'] = 'Admin/corpusfunds_new';
 $route['admin/corpusfunds/list'] = 'Admin/corpusfunds_list';
 $route['admin/corpusfunds/create'] = 'Admin/corpusfunds_create';
@@ -60,6 +60,9 @@ $route['admin/corpusfunds/update_fund'] = 'Admin/corpusfunds_update_fund';
 $route['admin/corpusfunds/delete_fund'] = 'Admin/corpusfunds_delete_fund';
 */
 $route['default_controller'] = 'Home';
+// Ekram fund routes
+$route['admin/ekramfunds/new'] = 'Admin/ekramfunds_new';
+$route['admin/ekramfunds/create'] = 'Admin/ekramfunds_create';
 $route['payment/ccavenue/checkout'] = 'PaymentCCAvenue/checkout';
 $route['payment/ccavenue/initiate'] = 'PaymentCCAvenue/initiate';
 $route['payment/ccavenue/callback'] = 'PaymentCCAvenue/callback';
@@ -73,6 +76,8 @@ $route['admin/expense/source-of-funds'] = 'Admin/expense_source_of_funds';
 $route['admin/expense/source-create'] = 'Admin/expense_source_create';
 $route['admin/expense/source-update'] = 'Admin/expense_source_update';
 $route['admin/expense/source-delete'] = 'Admin/expense_source_delete';
+
+
 
 
 // CLI/Cron routes (important on case-sensitive servers)

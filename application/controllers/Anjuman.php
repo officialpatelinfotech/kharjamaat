@@ -206,6 +206,35 @@ class Anjuman extends CI_Controller
     }
     $data['corpus_funds'] = $corpus_funds;
 
+    // Ekram funds overview: assigned, paid, outstanding
+    $this->load->model('EkramFundM');
+    $efunds = $this->EkramFundM->get_funds();
+    $ekram_funds = [];
+    foreach ($efunds as $ef) {
+      $efid = (int)($ef['id'] ?? 0);
+      $assignedTotal = 0.0;
+      $paidTotal = 0.0;
+      $assignments = [];
+      if ($efid > 0) {
+        $assignments = $this->EkramFundM->get_assignments($efid);
+        foreach ($assignments as $a) {
+          $assignedTotal += (float)($a['amount_assigned'] ?? 0);
+        }
+        $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
+          ->from('ekram_fund_payment')
+          ->where('fund_id', $efid)
+          ->get()->row_array();
+        $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : 0.0;
+      }
+      $outstanding = max(0, $assignedTotal - $paidTotal);
+      $ef['assigned_total'] = $assignedTotal;
+      $ef['paid_total'] = $paidTotal;
+      $ef['outstanding'] = $outstanding;
+      $ef['assignments'] = $assignments;
+      $ekram_funds[] = $ef;
+    }
+    $data['ekram_funds'] = $ekram_funds;
+
     // If frontend requested a specific hijri month/year (AJAX or direct), compute representative parts
     $selected_hijri_parts = null;
     if ($sel_hijri_year && $sel_hijri_month) {
@@ -3556,6 +3585,7 @@ class Anjuman extends CI_Controller
     $filters['sector'] = ($this->input->get('sector') !== null) ? trim((string)$this->input->get('sector')) : null;
     $filters['sub_sector'] = ($this->input->get('sub_sector') !== null) ? trim((string)$this->input->get('sub_sector')) : null;
     $filters['fund_id'] = $this->input->get('fund_id') ? (int)$this->input->get('fund_id') : null;
+    $filters['hijri_year'] = $this->input->get('hijri_year') ? (int)$this->input->get('hijri_year') : null;
 
     // Fetch all assignments with payment aggregates (apply filters if any)
     $data['assignments'] = $this->CorpusFundM->get_all_assignments_with_payments($filters);
@@ -3564,6 +3594,7 @@ class Anjuman extends CI_Controller
     $data['filter_sector'] = $filters['sector'];
     $data['filter_sub_sector'] = $filters['sub_sector'];
     $data['filter_fund'] = $filters['fund_id'];
+    $data['filter_hijri_year'] = $filters['hijri_year'];
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/CorpusFundsReceive', $data);
   }
@@ -3695,6 +3726,145 @@ class Anjuman extends CI_Controller
     $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'funds' => $rows]));
   }
 
+  /* ================= Ekram Funds (Receive) - Class level endpoints ================= */
+  public function ekramfunds_receive()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $this->load->model('EkramFundM');
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['message'] = $this->session->flashdata('ekram_payment_message');
+    $data['error'] = $this->session->flashdata('ekram_payment_error');
+    // Read optional filters from GET
+    $filters = [];
+    $filters['its_id'] = ($this->input->get('its_id') !== null) ? trim((string)$this->input->get('its_id')) : null;
+    $filters['sector'] = ($this->input->get('sector') !== null) ? trim((string)$this->input->get('sector')) : null;
+    $filters['sub_sector'] = ($this->input->get('sub_sector') !== null) ? trim((string)$this->input->get('sub_sector')) : null;
+    $filters['fund_id'] = $this->input->get('fund_id') ? (int)$this->input->get('fund_id') : null;
+
+    $data['assignments'] = $this->EkramFundM->get_all_assignments_with_payments($filters);
+    $data['filter_its'] = $filters['its_id'];
+    $data['filter_sector'] = $filters['sector'];
+    $data['filter_sub_sector'] = $filters['sub_sector'];
+    $data['filter_fund'] = $filters['fund_id'];
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/EkramFundsReceive', $data);
+  }
+
+  /**
+   * JSON endpoint: return assignments with payment aggregates for Ekram funds
+   */
+  public function ekramfunds_receive_data()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+      return;
+    }
+    $this->load->model('EkramFundM');
+    $filters = [];
+    $filters['its_id'] = ($this->input->get('its_id') !== null) ? trim((string)$this->input->get('its_id')) : null;
+    $filters['sector'] = ($this->input->get('sector') !== null) ? trim((string)$this->input->get('sector')) : null;
+    $filters['sub_sector'] = ($this->input->get('sub_sector') !== null) ? trim((string)$this->input->get('sub_sector')) : null;
+    $filters['fund_id'] = $this->input->get('fund_id') ? (int)$this->input->get('fund_id') : null;
+    $filters['hijri_year'] = $this->input->get('hijri_year') ? (int)$this->input->get('hijri_year') : null;
+    $rows = $this->EkramFundM->get_all_assignments_with_payments($filters);
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'assignments' => $rows]));
+  }
+
+  /**
+   * Return Ekram fund assignments for a specific HOF (Ekram-only, per-HOF)
+   */
+  public function ekramfunds_hof_funds()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+      return;
+    }
+    $hof_id = (int)$this->input->get('hof_id');
+    if ($hof_id <= 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid hof_id']));
+      return;
+    }
+    $this->load->model('EkramFundM');
+    $rows = $this->EkramFundM->get_assignments_with_payments_by_hof($hof_id);
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'funds' => $rows]));
+  }
+
+  public function ekramfunds_receive_payment()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      redirect('anjuman/ekramfunds_receive');
+    }
+    $fund_id = (int)$this->input->post('fund_id');
+    $hof_id = (int)$this->input->post('hof_id');
+    $amount = (float)$this->input->post('amount');
+    $notes = trim($this->input->post('notes'));
+    $payment_date = trim($this->input->post('payment_date'));
+    $payment_method = trim($this->input->post('payment_method'));
+    if ($fund_id <= 0 || $hof_id <= 0 || $amount <= 0) {
+      $this->session->set_flashdata('ekram_payment_error', 'Invalid data (positive amount required).');
+      redirect('anjuman/ekramfunds_receive');
+    }
+    $this->load->model('EkramFundM');
+    $received_by = isset($_SESSION['user']['ITS_ID']) ? $_SESSION['user']['ITS_ID'] : null;
+    $current_due = $this->EkramFundM->get_due_for_assignment($fund_id, $hof_id);
+    if ($amount > $current_due + 0.0001) {
+      $this->session->set_flashdata('ekram_payment_error', 'Amount exceeds due (Due: ₹' . number_format((float)$current_due, 2) . ').');
+      redirect('anjuman/ekramfunds_receive');
+    }
+    $paid_at = null;
+    if (!empty($payment_date)) {
+      $ts = strtotime($payment_date);
+      $paid_at = $ts ? date('Y-m-d H:i:s', $ts) : null;
+    }
+    $result = $this->EkramFundM->record_payment($fund_id, $hof_id, $amount, $received_by, $notes, $paid_at, $payment_method);
+    if (isset($result['success']) && $result['success']) {
+      $this->session->set_flashdata('ekram_payment_message', 'Payment recorded.');
+    } else {
+      $err = isset($result['error']) ? $result['error'] : 'Failed to record payment';
+      $this->session->set_flashdata('ekram_payment_error', $err);
+    }
+    redirect('anjuman/ekramfunds_receive');
+  }
+
+  public function ekramfunds_payment_history()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+      return;
+    }
+    $fund_id = (int)$this->input->get_post('fund_id');
+    $hof_id = (int)$this->input->get_post('hof_id');
+    if ($fund_id <= 0 || $hof_id <= 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid identifiers']));
+      return;
+    }
+    $this->load->model('EkramFundM');
+    $rows = $this->EkramFundM->get_payments_for_assignment($fund_id, $hof_id);
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'payments' => $rows]));
+  }
+
+  public function ekramfunds_payment_receipt()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo 'Unauthorized';
+      return;
+    }
+    $payment_id = (int)$this->input->get('id');
+    if ($payment_id <= 0) {
+      echo 'Invalid receipt id';
+      return;
+    }
+    $this->load->model('EkramFundM');
+    $data = $this->EkramFundM->get_payment_detail($payment_id);
+    if (empty($data)) { echo 'Not found'; return; }
+    $this->load->view('Anjuman/EkramPaymentReceipt', $data);
+  }
+
   /**
    * Member financials: show Sabeel, FMB, Corpus and General/Miqaat items for a member
    * Accepts GET: its_id OR hof_id
@@ -3725,6 +3895,8 @@ class Anjuman extends CI_Controller
             $reqHof = (int)$q;
           }
         }
+
+ 
       } else {
         // name search: first matching user by name (used only to pre-select if desired)
         $like = "%{$q}%";

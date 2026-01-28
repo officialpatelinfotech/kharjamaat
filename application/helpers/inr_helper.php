@@ -10,7 +10,7 @@ if (!function_exists('format_inr')) {
    * @param int $decimals
    * @return string
    */
-  function format_inr($number, $decimals = 2) {
+  function format_inr($number, $decimals = 0) {
     $number = round((float)$number, $decimals);
     $sign = '';
     if ($number < 0) { $sign = '-'; $number = abs($number); }

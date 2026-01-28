@@ -506,6 +506,42 @@ class Amilsaheb extends CI_Controller
     }
     $data['corpus_funds'] = $corpus_funds;
 
+    // Ekram funds overview (parity with Corpus handling)
+    $this->load->model('EkramFundM');
+    $efunds = $this->EkramFundM->get_funds();
+    $ekram_funds = [];
+    foreach ($efunds as $ef) {
+      $efid = (int)($ef['id'] ?? 0);
+      $assignedTotal = 0.0;
+      $paidTotal = 0.0;
+      $assignments = [];
+      if ($efid > 0) {
+        if (method_exists($this->EkramFundM, 'get_assignments')) {
+          $assignments = $this->EkramFundM->get_assignments($efid);
+          foreach ($assignments as $a) {
+            $assignedTotal += (float)($a['amount_assigned'] ?? 0);
+            if (method_exists($this->EkramFundM, 'get_payments_for_assignment')) {
+              $plist = $this->EkramFundM->get_payments_for_assignment($efid, (int)($a['hof_id'] ?? 0));
+              foreach ($plist as $p) { $paidTotal += (float)($p['amount_paid'] ?? 0); }
+            } else {
+              // fallback: sum from ekram_fund_payment table
+              $rp = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')->from('ekram_fund_payment')->where('fund_id', $efid)->where('hof_id', (int)($a['hof_id'] ?? 0))->get()->row_array();
+              $paidTotal += isset($rp['total_paid']) ? (float)$rp['total_paid'] : 0.0;
+            }
+          }
+        }
+        $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')->from('ekram_fund_payment')->where('fund_id', $efid)->get()->row_array();
+        $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : $paidTotal;
+      }
+      $outstanding = max(0, $assignedTotal - $paidTotal);
+      $ef['assigned_total'] = $assignedTotal;
+      $ef['paid_total'] = $paidTotal;
+      $ef['outstanding'] = $outstanding;
+      $ef['assignments'] = $assignments;
+      $ekram_funds[] = $ef;
+    }
+    $data['ekram_funds'] = $ekram_funds;
+
     // Recent expenses and total for dashboard card (current Hijri year)
     $this->load->model('ExpenseM');
     $expense_filters = [];
@@ -536,6 +572,69 @@ class Amilsaheb extends CI_Controller
 
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Home', $data);
+  }
+
+  /**
+   * Ekram funds details page for Amilsaheb role (simple overview)
+   */
+  public function ekramfunds_details()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+    $this->load->model('EkramFundM');
+    $data = [];
+    $data['user_name'] = $_SESSION['user']['username'];
+    $funds = $this->EkramFundM->get_funds();
+    $ekram_details = [];
+    foreach ($funds as $f) {
+      $fid = (int)($f['id'] ?? 0);
+      if ($fid <= 0) continue;
+      $assignments = $this->EkramFundM->get_assignments($fid);
+      $rows = [];
+      $assignedTotal = 0.0;
+      $paidTotal = 0.0;
+      $outstandingTotal = 0.0;
+      foreach ($assignments as $a) {
+        $hof = (int)($a['hof_id'] ?? $a['HOF_ID'] ?? 0);
+        $ud = $hof > 0 ? $this->db->query("SELECT Full_Name, Sector, Sub_Sector FROM user WHERE HOF_ID = ? LIMIT 1", [$hof])->row_array() : null;
+        $name = ($ud['Full_Name'] ?? '') ?: ($a['Full_Name'] ?? ($a['member_name'] ?? ''));
+        $sector = ($ud['Sector'] ?? '') ?: ($a['Sector'] ?? '');
+        $subsector = ($ud['Sub_Sector'] ?? '') ?: ($a['Sub_Sector'] ?? '');
+        $assigned = (float)($a['amount_assigned'] ?? ($a['amount'] ?? 0));
+        $paid = 0.0;
+        if (method_exists($this->EkramFundM, 'get_payments_for_assignment')) {
+          $plist = $this->EkramFundM->get_payments_for_assignment($fid, $hof);
+          foreach ($plist as $p) { $paid += (float)($p['amount_paid'] ?? 0); }
+        } else {
+          $rp = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')->from('ekram_fund_payment')->where('fund_id', $fid)->where('hof_id', $hof)->get()->row_array();
+          $paid += isset($rp['total_paid']) ? (float)$rp['total_paid'] : 0.0;
+        }
+        $due = max(0, $assigned - $paid);
+        $assignedTotal += $assigned;
+        $paidTotal += $paid;
+        $outstandingTotal += $due;
+        $rows[] = [
+          'hof_id' => $hof,
+          'name' => $name,
+          'sector' => $sector,
+          'subsector' => $subsector,
+          'assigned' => $assigned,
+          'paid' => $paid,
+          'due' => $due
+        ];
+      }
+      $ekram_details[] = [
+        'fund' => $f,
+        'rows' => $rows,
+        'assigned_total' => $assignedTotal,
+        'paid_total' => $paidTotal,
+        'outstanding_total' => $outstandingTotal
+      ];
+    }
+    $data['ekram_details'] = $ekram_details;
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Amilsaheb/EkramFundsDetails', $data);
   }
 
   /**

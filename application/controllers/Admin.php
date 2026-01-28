@@ -22,15 +22,468 @@ class Admin extends CI_Controller
     }
   }
 
-
+  // Admin dashboard
   public function index()
   {
     $this->validateUser($_SESSION['user']);
-
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/Home');
+    $this->load->view('Admin/Home', $data);
   }
+
+  // Ekram Fund card page
+  public function ekramfunds()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/EkramFunds');
+  }
+
+  // Show full-page form to create a new ekram fund
+  public function ekramfunds_new()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['message'] = $this->session->flashdata('ekram_message');
+    $data['error'] = $this->session->flashdata('ekram_error');
+    $data['old'] = $this->session->flashdata('ekram_old');
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/EkramFundsCreate', $data);
+  }
+
+  // AJAX: check whether an ekram fund exists for the current Hijri year
+  public function ekramfunds_check_duplicate()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+      return;
+    }
+    // allow optional hijri_year parameter to check any year; otherwise use current date
+    $input_year = null;
+    if ($this->input->get_post('hijri_year') !== null && $this->input->get_post('hijri_year') !== '') {
+      $input_year = (int)$this->input->get_post('hijri_year');
+    }
+    if ($input_year !== null && $input_year > 0) {
+      $check_year = $input_year;
+    } else {
+      $h = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+      $check_year = null;
+      if ($h && isset($h['hijri_date'])) {
+        $parts = explode('-', $h['hijri_date']);
+        if (count($parts) === 3) $check_year = (int)$parts[2];
+      }
+      if ($check_year === null) {
+        $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Could not determine Hijri year']));
+        return;
+      }
+    }
+    $exists = $this->db->get_where('ekram_fund', ['hijri_year' => $check_year])->row_array();
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'exists' => !empty($exists), 'hijri_year' => $check_year]));
+  }
+
+  // Handle POST to create ekram fund and assign to HOFs
+  public function ekramfunds_create()
+  {
+    $this->validateUser($_SESSION['user']);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      redirect('admin/ekramfunds');
+      return;
+    }
+    $title = trim((string)$this->input->post('title'));
+    $hijri_year_raw = $this->input->post('hijri_year');
+    $hijri_year = ($hijri_year_raw !== null && $hijri_year_raw !== '') ? (int)$hijri_year_raw : null;
+    $amount = (float)$this->input->post('amount');
+    $description = trim((string)$this->input->post('description'));
+    $old = ['title'=>$title,'hijri_year'=>$hijri_year,'amount'=>$amount,'description'=>$description];
+    // If title not supplied (form removed), auto-generate using Hijri year
+    if ($title === '') {
+      $title = $hijri_year ? ('Ekram Fund ' . $hijri_year) : 'Ekram Fund';
+    }
+
+    if ($amount <= 0 || $hijri_year === null) {
+      $this->session->set_flashdata('ekram_error', 'Hijri year and positive amount are required');
+      $this->session->set_flashdata('ekram_old', $old);
+      redirect('admin/ekramfunds/new');
+      return;
+    }
+    $this->load->model('EkramFundM');
+    $result = $this->EkramFundM->create_fund($title, $amount, $description, isset($_SESSION['user']['ITS_ID']) ? $_SESSION['user']['ITS_ID'] : null, $hijri_year);
+    if (is_array($result) && isset($result['success']) && $result['success'] === true) {
+      $fund_id = $result['id'];
+      // assign to all HOFs (simple batch insert)
+      $hofs = $this->db->query(
+        "SELECT DISTINCT HOF_ID FROM user 
+          WHERE HOF_ID IS NOT NULL AND HOF_ID <> 0
+            AND (Inactive_Status IS NULL OR Inactive_Status = 0)
+            AND (Sector IS NOT NULL AND TRIM(Sector) <> '')
+            AND (Sub_Sector IS NOT NULL AND TRIM(Sub_Sector) <> '')
+            AND HOF_FM_TYPE = 'HOF'"
+      )->result_array();
+      $batch = [];
+      foreach ($hofs as $h) {
+        $hof_id = (int)$h['HOF_ID'];
+        if ($hof_id <= 0) continue;
+        $exists = $this->db->get_where('ekram_fund_assignment', ['fund_id'=>$fund_id,'hof_id'=>$hof_id])->row_array();
+        if (!$exists) {
+          $batch[] = ['fund_id'=>$fund_id, 'hof_id'=>$hof_id, 'amount_assigned'=>$amount, 'created_at'=>date('Y-m-d H:i:s')];
+        }
+      }
+      if (!empty($batch)) $this->db->insert_batch('ekram_fund_assignment', $batch);
+      $assigned = count($batch);
+      $this->session->set_flashdata('ekram_message', 'Ekram fund created (ID '.$fund_id.') and assigned to '.$assigned.' HOFs.');
+      redirect('admin/ekramfunds');
+      return;
+    } else {
+      $errMsg = 'Failed to create ekram fund.';
+      if (is_array($result) && isset($result['error']['message'])) {
+        $errMsg .= ' DB Error: '.$result['error']['message'];
+      }
+      $this->session->set_flashdata('ekram_error', $errMsg);
+      $this->session->set_flashdata('ekram_old', $old);
+      redirect('admin/ekramfunds/new');
+      return;
+    }
+  }
+
+  // List Ekram funds
+  public function ekramfunds_list()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('EkramFundM');
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['funds'] = $this->EkramFundM->get_funds();
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/EkramFundsList', $data);
+  }
+
+  // Assigned HOFs view for Ekram funds
+  public function ekramfunds_hofs()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('EkramFundM');
+    $data['user_name'] = $_SESSION['user']['username'];
+    // Get HOF assignments and totals from ekram tables
+    $rows = $this->db->select('a.*, f.title AS fund_title, f.hijri_year AS fund_year, u.Full_Name, u.ITS_ID')
+      ->from('ekram_fund_assignment a')
+      ->join('ekram_fund f', 'f.id = a.fund_id', 'left')
+      ->join('user u', 'u.HOF_ID = a.hof_id', 'left')
+      ->order_by('a.hof_id, a.fund_id')
+      ->get()->result_array();
+    $hof_fund_details = [];
+    foreach ($rows as $r) {
+      $hid = isset($r['hof_id']) ? (int)$r['hof_id'] : 0;
+      if (!isset($hof_fund_details[$hid])) $hof_fund_details[$hid] = [];
+      $hof_fund_details[$hid][] = [
+        'fund_id' => (int)$r['fund_id'],
+        'title' => $r['fund_title'],
+        'hijri_year' => isset($r['fund_year']) && $r['fund_year'] ? (int)$r['fund_year'] : null,
+        'amount' => (float)$r['amount_assigned'],
+        'created_at' => $r['created_at'] ?? null
+      ];
+    }
+    // Active HOF list with totals
+    $hofs = $this->db->select('u.HOF_ID, u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, COALESCE(SUM(a.amount_assigned),0) AS ekram_total, COUNT(a.id) AS ekram_count')
+      ->from('user u')
+      ->join('ekram_fund_assignment a', 'a.hof_id = u.HOF_ID', 'left')
+      ->where("(u.Inactive_Status IS NULL OR u.Inactive_Status = 0)")
+      ->where("(u.Sector IS NOT NULL AND TRIM(u.Sector) <> '')")
+      ->where("(u.Sub_Sector IS NOT NULL AND TRIM(u.Sub_Sector) <> '')")
+      ->where("u.HOF_FM_TYPE = 'HOF'")
+      ->group_by('u.HOF_ID')
+      ->get()->result_array();
+
+    // Compute paid and pending per HOF
+    foreach ($hofs as $k => $h) {
+      $hid = isset($h['HOF_ID']) ? (int)$h['HOF_ID'] : 0;
+      $paidRow = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
+        ->from('ekram_fund_payment')
+        ->where('hof_id', $hid)
+        ->get()->row_array();
+      $paid = isset($paidRow['total_paid']) ? (float)$paidRow['total_paid'] : 0.0;
+      $assigned = isset($h['ekram_total']) ? (float)$h['ekram_total'] : 0.0;
+      $hofs[$k]['total_paid'] = $paid;
+      $hofs[$k]['pending_due'] = max(0, $assigned - $paid);
+      // last updated
+      $assignLastRow = $this->db->select('MAX(a.created_at) AS assign_last')
+        ->from('ekram_fund_assignment a')
+        ->where('a.hof_id', $hid)
+        ->get()->row_array();
+      $paymentLastRow = $this->db->select('MAX(p.paid_at) AS payment_last')
+        ->from('ekram_fund_payment p')
+        ->where('p.hof_id', $hid)
+        ->get()->row_array();
+      $assign_last = isset($assignLastRow['assign_last']) ? $assignLastRow['assign_last'] : null;
+      $payment_last = isset($paymentLastRow['payment_last']) ? $paymentLastRow['payment_last'] : null;
+      $last_updated = null;
+      if ($assign_last && $payment_last) {
+        $last_updated = ($assign_last > $payment_last) ? $assign_last : $payment_last;
+      } else {
+        $last_updated = $assign_last ?: $payment_last ?: null;
+      }
+      $hofs[$k]['last_updated'] = $last_updated;
+    }
+
+    // Hijri years mapping
+    $hof_hijri_years = [];
+    $all_years = [];
+    if (!empty($hof_fund_details)) {
+      foreach ($hof_fund_details as $hid => $funds) {
+        foreach ($funds as $f) {
+          $greg = substr($f['created_at'] ?? '', 0, 10);
+          if (!$greg) continue;
+          $parts = $this->HijriCalendar->get_hijri_parts_by_greg_date($greg);
+          if ($parts && isset($parts['hijri_year'])) {
+            $yr = $parts['hijri_year'];
+            if (!isset($hof_hijri_years[$hid])) $hof_hijri_years[$hid] = [];
+            if (!in_array($yr, $hof_hijri_years[$hid])) $hof_hijri_years[$hid][] = $yr;
+            if (!in_array($yr, $all_years)) $all_years[] = $yr;
+          }
+        }
+      }
+    }
+    rsort($all_years);
+
+    $data['hofs'] = $hofs;
+    $data['hof_fund_details'] = $hof_fund_details;
+    $data['hof_hijri_years'] = $hof_hijri_years;
+    $data['hijri_years'] = $all_years;
+    // sector/subsector lists
+    $sectorSet = [];
+    $subSectorMap = [];
+    foreach ($hofs as $row) {
+      $sector = trim($row['Sector']);
+      $sub = trim($row['Sub_Sector']);
+      if ($sector !== '') $sectorSet[$sector] = true;
+      if ($sector !== '') {
+        if (!isset($subSectorMap[$sector])) $subSectorMap[$sector] = [];
+        if ($sub !== '' && !isset($subSectorMap[$sector][$sub])) $subSectorMap[$sector][$sub] = true;
+      }
+    }
+    $sectors = array_keys($sectorSet);
+    sort($sectors, SORT_NATURAL | SORT_FLAG_CASE);
+    $subSectorMapOut = [];
+    foreach ($subSectorMap as $sec => $subs) {
+      $subList = array_keys($subs);
+      sort($subList, SORT_NATURAL | SORT_FLAG_CASE);
+      $subSectorMapOut[$sec] = $subList;
+    }
+    $data['sectors'] = $sectors;
+    $data['sector_sub_map'] = $subSectorMapOut;
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/EkramFundsHofs', $data);
+  }
+
+  public function ekramfunds_update_assignments()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid method']));
+      return;
+    }
+    $hof_id = (int)$this->input->post('hof_id');
+    $raw = $this->input->post('assignments');
+    $assignments = [];
+    if (is_string($raw)) {
+      $decoded = json_decode($raw, true);
+      if (is_array($decoded)) $assignments = $decoded;
+    } elseif (is_array($raw)) {
+      $assignments = $raw;
+    }
+    if ($hof_id <= 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid hof_id']));
+      return;
+    }
+    $errors = [];
+    $updated = 0;
+    foreach ($assignments as $fund_id => $amt) {
+      $fid = (int)$fund_id;
+      $amount = (float)$amt;
+      if ($fid <= 0) continue;
+      $exists = $this->db->get_where('ekram_fund_assignment', ['hof_id' => $hof_id, 'fund_id' => $fid])->row_array();
+      if ($exists) {
+        $ok = $this->db->where('id', $exists['id'])->update('ekram_fund_assignment', ['amount_assigned' => $amount]);
+        if ($ok) $updated++;
+        else $errors[] = "Failed update fund $fid";
+      } else {
+        $ok = $this->db->insert('ekram_fund_assignment', ['hof_id' => $hof_id, 'fund_id' => $fid, 'amount_assigned' => $amount, 'created_at' => date('Y-m-d H:i:s')]);
+        if ($ok) $updated++;
+        else $errors[] = "Failed insert fund $fid";
+      }
+    }
+    $new_total_row = $this->db->select('COALESCE(SUM(amount_assigned),0) AS tot')->from('ekram_fund_assignment')->where('hof_id', $hof_id)->get()->row_array();
+    $new_total = isset($new_total_row['tot']) ? (float)$new_total_row['tot'] : 0.0;
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => empty($errors), 'updated' => $updated, 'errors' => $errors, 'new_total' => $new_total]));
+  }
+
+  public function ekramfunds_delete_assignment()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid method']));
+      return;
+    }
+    $hof_id = (int)$this->input->post('hof_id');
+    $fund_id = (int)$this->input->post('fund_id');
+    if ($hof_id <= 0 || $fund_id <= 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid hof_id or fund_id']));
+      return;
+    }
+    $this->db->where(['hof_id' => $hof_id, 'fund_id' => $fund_id])->delete('ekram_fund_assignment');
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true]));
+  }
+
+  public function ekramfunds_update_fund()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid method']));
+      return;
+    }
+    $fund_id = (int)$this->input->post('fund_id');
+    $amount_raw = $this->input->post('amount');
+    $title = $this->input->post('title');
+    $description = $this->input->post('description');
+    $propagate = $this->input->post('propagate');
+    $propagate_flag = ($propagate === '0' || $propagate === 0) ? false : true;
+    if ($fund_id <= 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid fund_id']));
+      return;
+    }
+    if ($amount_raw === null || $amount_raw === '') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Amount required']));
+      return;
+    }
+    $new_amount = (float)$amount_raw;
+    if (!is_numeric($amount_raw) || $new_amount < 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid amount']));
+      return;
+    }
+    $upd = ['amount' => $new_amount];
+    if ($title !== null) $upd['title'] = $title;
+    if ($description !== null) $upd['description'] = $description;
+    $this->db->where('id', $fund_id)->update('ekram_fund', $upd);
+    $fund_updated = $this->db->affected_rows();
+    $assignments_updated = 0;
+    if ($propagate_flag) {
+      $this->db->where('fund_id', $fund_id)->update('ekram_fund_assignment', ['amount_assigned' => $new_amount]);
+      $assignments_updated = $this->db->affected_rows();
+    }
+    $resp = ['success' => true, 'fund_updated' => $fund_updated, 'assignments_updated' => $assignments_updated, 'amount' => $new_amount, 'title' => $title];
+    $this->output->set_content_type('application/json')->set_output(json_encode($resp));
+  }
+
+  public function ekramfunds_delete_fund()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid method']));
+      return;
+    }
+    $fund_id = (int)$this->input->post('fund_id');
+    if ($fund_id <= 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Invalid fund_id']));
+      return;
+    }
+    // Delete assignments first
+    $this->db->where('fund_id', $fund_id)->delete('ekram_fund_assignment');
+    $assignments_deleted = $this->db->affected_rows();
+    // Delete payments
+    $this->db->where('fund_id', $fund_id)->delete('ekram_fund_payment');
+    // Delete fund
+    $this->db->where('id', $fund_id)->delete('ekram_fund');
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'assignments_deleted' => $assignments_deleted]));
+  }
+
+  // AJAX: return HOF rows and fund details optionally filtered by hijri_year
+  public function ekramfunds_hofs_data()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unauthorized']));
+      return;
+    }
+    $year = $this->input->get('hijri_year');
+    $this->load->model('EkramFundM');
+    $q = $this->db->select('a.*, f.title AS fund_title, f.hijri_year AS fund_year, u.Full_Name, u.ITS_ID, u.Sector, u.Sub_Sector')
+      ->from('ekram_fund_assignment a')
+      ->join('ekram_fund f', 'f.id = a.fund_id', 'left')
+      ->join('user u', 'u.HOF_ID = a.hof_id', 'left');
+    if ($year !== null && $year !== '') {
+      $q->where('f.hijri_year', (int)$year);
+    }
+    $q->order_by('a.hof_id, a.fund_id');
+    $rows = $q->get()->result_array();
+
+    $hof_fund_details = [];
+    foreach ($rows as $r) {
+      $hid = isset($r['hof_id']) ? (int)$r['hof_id'] : 0;
+      if ($hid <= 0) continue;
+      if (!isset($hof_fund_details[$hid])) $hof_fund_details[$hid] = [];
+      $hof_fund_details[$hid][] = [
+        'fund_id' => (int)$r['fund_id'],
+        'title' => $r['fund_title'],
+        'hijri_year' => isset($r['fund_year']) && $r['fund_year'] ? (int)$r['fund_year'] : null,
+        'amount' => (float)$r['amount_assigned'],
+        'created_at' => $r['created_at'] ?? null
+      ];
+    }
+
+    // Build HOF summary from fetched rows (only HOFs that have assignments for the selected year)
+    $hofs = [];
+    foreach ($rows as $r) {
+      $hid = isset($r['hof_id']) ? (int)$r['hof_id'] : 0;
+      if ($hid <= 0) continue;
+      if (!isset($hofs[$hid])) {
+        $hofs[$hid] = [
+          'HOF_ID' => $hid,
+          'ITS_ID' => $r['ITS_ID'] ?? '',
+          'Full_Name' => $r['Full_Name'] ?? '',
+          'Sector' => $r['Sector'] ?? '',
+          'Sub_Sector' => $r['Sub_Sector'] ?? '',
+          'ekram_total' => 0.0,
+          'ekram_count' => 0,
+          'last_updated' => null
+        ];
+      }
+      $hofs[$hid]['ekram_total'] += isset($r['amount_assigned']) ? (float)$r['amount_assigned'] : 0.0;
+      $hofs[$hid]['ekram_count']++;
+      // Track last_updated as the max of assignment created_at and payments
+      $assign_ts = isset($r['created_at']) ? $r['created_at'] : null;
+      if ($assign_ts && (!$hofs[$hid]['last_updated'] || $assign_ts > $hofs[$hid]['last_updated'])) $hofs[$hid]['last_updated'] = $assign_ts;
+    }
+
+    // Add total_paid/pending_due by querying payments per HOF
+    foreach ($hofs as $hid => &$hh) {
+      $paidRow = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')->from('ekram_fund_payment')->where('hof_id', $hid)->get()->row_array();
+      $paid = isset($paidRow['total_paid']) ? (float)$paidRow['total_paid'] : 0.0;
+      $hh['total_paid'] = $paid;
+      $hh['pending_due'] = max(0, $hh['ekram_total'] - $paid);
+      // check payments last
+      $paymentLastRow = $this->db->select('MAX(paid_at) AS payment_last')->from('ekram_fund_payment')->where('hof_id', $hid)->get()->row_array();
+      $payment_last = isset($paymentLastRow['payment_last']) ? $paymentLastRow['payment_last'] : null;
+      if ($payment_last && (!$hh['last_updated'] || $payment_last > $hh['last_updated'])) $hh['last_updated'] = $payment_last;
+    }
+    unset($hh);
+
+    // Reindex hof list as array
+    $hofs_out = array_values($hofs);
+
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'hofs' => $hofs_out, 'hof_fund_details' => $hof_fund_details]));
+  }
+
+
 
   public function corpusfunds()
   {
@@ -47,9 +500,9 @@ class Admin extends CI_Controller
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
       redirect('admin/corpusfunds');
     }
-    $title = trim($this->input->post('title'));
+    $title = trim((string)$this->input->post('title'));
     $amount = (float)$this->input->post('amount');
-    $description = trim($this->input->post('description'));
+    $description = trim((string)$this->input->post('description'));
     if ($title === '' || $amount <= 0) {
       $this->session->set_flashdata('corpus_fund_error', 'Title and positive amount are required');
       redirect('admin/corpusfunds_new');
@@ -350,7 +803,7 @@ class Admin extends CI_Controller
       redirect('admin/managemembers');
       return;
     }
-    $its_id = trim($this->input->post('its_id'));
+    $its_id = trim((string)$this->input->post('its_id'));
     if ($its_id === '') {
       $this->session->set_flashdata('error', 'Invalid ITS ID for password reset');
       redirect('admin/managemembers');
@@ -1366,8 +1819,8 @@ class Admin extends CI_Controller
     $flag = $this->AdminM->update_raza_type($id, json_encode($raza['fields']));
 
     if ($flag) {
-      http_response_code(200);
-      echo json_encode(['status' => true]);
+            $title = trim((string)$this->input->post('title'));
+            $description = trim((string)$this->input->post('description'));
     } else {
       http_response_code(500);
       echo json_encode(['status' => false, 'error' => 'Failed to submit']);
@@ -2598,8 +3051,8 @@ class Admin extends CI_Controller
       $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
       return;
     }
-    $name = trim($this->input->post('name'));
-    $status = trim($this->input->post('status')) ?: 'Active';
+    $name = trim((string)$this->input->post('name'));
+    $status = trim((string)$this->input->post('status')) ?: 'Active';
     if ($name === '') {
       $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Name required']));
       return;
@@ -2654,8 +3107,8 @@ class Admin extends CI_Controller
       return;
     }
     $id = (int)$this->input->post('id');
-    $name = trim($this->input->post('name'));
-    $status = trim($this->input->post('status')) ?: 'Active';
+    $name = trim((string)$this->input->post('name'));
+    $status = trim((string)$this->input->post('status')) ?: 'Active';
     if ($id <= 0 || $name === '') {
       $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid input']));
       return;

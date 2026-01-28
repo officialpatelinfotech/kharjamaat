@@ -368,6 +368,23 @@
       </a>
     </div>
     <div class="col-6 mt-3 col-md-3 col-xl-2">
+      <a href="<?php echo base_url('accounts/ekramfunds') ?>" aria-label="Ekram Funds" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
+        <div class="stat-icon-wrap mb-1">
+          <i class="fa fa-gift"></i>
+          <?php
+          $ef_due_badge = 0;
+          if (isset($ekram_summary) && is_array($ekram_summary)) {
+            $ef_due_badge = (float)($ekram_summary['outstanding'] ?? 0);
+          }
+          if ($ef_due_badge > 0): ?>
+            <span class="count-badge">Due</span>
+          <?php endif; ?>
+        </div>
+        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Ekram Funds</span>
+        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
+      </a>
+    </div>
+    <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/wajebaat') ?>" aria-label="Wajebaat" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-coins"></i>
@@ -738,7 +755,7 @@
       </div>
 
       <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1">
+        <div class="dashboard-card mx-1 mb-3">
           <div class="card-header">
             <span>Corpus Funds</span>
           </div>
@@ -747,9 +764,7 @@
           $cf_assgn   = isset($corpus_summary['assigned_total']) ? (float)$corpus_summary['assigned_total'] : 0;
           $cf_out     = isset($corpus_summary['outstanding']) ? (float)$corpus_summary['outstanding'] : 0;
           $fundsCnt   = isset($corpus_summary['funds_count']) ? (int)$corpus_summary['funds_count'] : 0;
-          $fmt = function ($n) {
-            return format_inr_no_decimals($n);
-          };
+          $fmt = function ($n) { return format_inr_no_decimals($n); };
           ?>
           <div class="card-body no-scroll" style="height:auto;">
             <div class="row mb-2 text-center">
@@ -770,6 +785,43 @@
             <div class="text-center"><a href="<?php echo base_url('accounts/corpusfunds'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
           </div>
         </div>
+                </div>
+
+                <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
+
+        <?php
+        // Ekram Funds summary for Accounts dashboard (mirrors Corpus Funds display)
+        $ef_total   = isset($ekram_summary['total_per_family']) ? (float)$ekram_summary['total_per_family'] : 0;
+        $ef_assgn   = isset($ekram_summary['assigned_total']) ? (float)$ekram_summary['assigned_total'] : 0;
+        $ef_out     = isset($ekram_summary['outstanding']) ? (float)$ekram_summary['outstanding'] : 0;
+        $ef_count   = isset($ekram_summary['funds_count']) ? (int)$ekram_summary['funds_count'] : 0;
+        $ef_fmt = function ($n) { return format_inr_no_decimals($n); };
+        ?>
+        <!-- <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6"> -->
+          <div class="dashboard-card mx-1 mb-3">
+            <div class="card-header">
+              <span>Ekram Funds</span>
+            </div>
+            <div class="card-body no-scroll" style="height:auto;">
+              <div class="row mb-2 text-center">
+                <div class="col-4 mb-2">
+                  <div class="mini-card">
+                    <div class="stats-value text-success">₹<?php echo $ef_fmt($ef_assgn); ?></div>
+                    <div class="stats-label">Total Assigned</div>
+                  </div>
+                </div>
+                <div class="col-4 mb-2">
+                  <div class="mini-card">
+                    <div class="stats-value text-danger">₹<?php echo $ef_fmt($ef_out); ?></div>
+                    <div class="stats-label">Outstanding</div>
+                  </div>
+                </div>
+              </div>
+              <p class="text-center text-muted mb-2" style="font-size:0.8rem;">Funds: <?php echo $ef_count; ?></p>
+              <div class="text-center"><a href="<?php echo base_url('accounts/ekramfunds'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
+            </div>
+          </div>
+        <!-- </div> -->
       </div>
 
 

@@ -19,6 +19,7 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
     max-height: 520px;
     overflow-y: auto;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .table thead th {
@@ -73,6 +74,35 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
     content: " \25B4\25BE";
     font-size: 0.7rem;
     opacity: 0.5;
+  }
+
+  /* Mobile: don't squeeze columns; allow horizontal scroll */
+  @media (max-width: 575.98px) {
+    #expensesTable {
+      table-layout: auto;
+      width: max-content;
+      min-width: 100%;
+    }
+
+    #expensesTable th,
+    #expensesTable td {
+      width: auto;
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    #expensesTable th:nth-child(1),
+    #expensesTable td:nth-child(1) { min-width: 92px; }
+    #expensesTable th:nth-child(2),
+    #expensesTable td:nth-child(2) { min-width: 160px; }
+    #expensesTable th:nth-child(3),
+    #expensesTable td:nth-child(3) { min-width: 110px; }
+    #expensesTable th:nth-child(4),
+    #expensesTable td:nth-child(4) { min-width: 150px; }
+    #expensesTable th:nth-child(5),
+    #expensesTable td:nth-child(5) { min-width: 90px; }
+    #expensesTable th:nth-child(6),
+    #expensesTable td:nth-child(6) { min-width: 150px; }
   }
 </style>
 

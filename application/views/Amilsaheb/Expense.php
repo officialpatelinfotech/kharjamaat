@@ -19,6 +19,7 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
 		max-height: 520px;
 		overflow-y: auto;
 		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
 	}
 
 	.table thead th {
@@ -72,6 +73,34 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
 		content: " \25B4\25BE";
 		font-size: 0.7rem;
 		opacity: 0.5;
+	}
+
+	/* Mobile: don't squeeze columns; allow horizontal scroll */
+	@media (max-width: 575.98px) {
+		#amilExpensesTable {
+			table-layout: auto;
+			width: max-content;
+			min-width: 100%;
+		}
+
+		#amilExpensesTable th,
+		#amilExpensesTable td {
+			overflow: visible;
+			text-overflow: clip;
+		}
+
+		#amilExpensesTable th:nth-child(1),
+		#amilExpensesTable td:nth-child(1) { min-width: 70px; }
+		#amilExpensesTable th:nth-child(2),
+		#amilExpensesTable td:nth-child(2) { min-width: 92px; }
+		#amilExpensesTable th:nth-child(3),
+		#amilExpensesTable td:nth-child(3) { min-width: 160px; }
+		#amilExpensesTable th:nth-child(4),
+		#amilExpensesTable td:nth-child(4) { min-width: 110px; }
+		#amilExpensesTable th:nth-child(5),
+		#amilExpensesTable td:nth-child(5) { min-width: 150px; }
+		#amilExpensesTable th:nth-child(6),
+		#amilExpensesTable td:nth-child(6) { min-width: 90px; }
 	}
 </style>
 

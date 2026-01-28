@@ -222,12 +222,14 @@ class MadresaM extends CI_Model
   {
     $classId = (int)$classId;
     if ($classId <= 0) return null;
+    $hasStatus = $this->db->field_exists('status', $this->tableClass);
+    $statusSelect = $hasStatus ? 'c.status AS status,' : 'NULL AS status,';
     $sql = "SELECT
       c.id,
       c.name AS class_name,
       c.year AS hijri_year,
       c.fees AS fees,
-      c.status AS status,
+      {$statusSelect}
       c.created_at,
       NULL AS updated_at
     FROM {$this->tableClass} c
@@ -420,6 +422,9 @@ class MadresaM extends CI_Model
     $hijriYear = (int)$hijriYear;
     $includeNullYear = (bool)$includeNullYear;
 
+    $hasStatus = $this->db->field_exists('status', $this->tableClass);
+    $statusSelect = $hasStatus ? 'c.status AS status,' : 'NULL AS status,';
+
     $paymentTable = 'madresa_fee_payment';
     $hasPaymentTable = $this->db->table_exists($paymentTable);
 
@@ -435,7 +440,7 @@ class MadresaM extends CI_Model
       c.name AS class_name,
       c.year AS hijri_year,
       c.fees AS fees,
-      c.status AS status,
+      {$statusSelect}
       c.created_at,
       NULL AS updated_at,
       {$studentCountSql} AS student_count,
@@ -454,6 +459,9 @@ class MadresaM extends CI_Model
     $paymentTable = $this->tablePayments;
     $hasPaymentTable = $this->db->table_exists($paymentTable);
 
+    $hasStatus = $this->db->field_exists('status', $this->tableClass);
+    $statusSelect = $hasStatus ? 'c.status AS status,' : 'NULL AS status,';
+
     $studentCountSql = "(SELECT COUNT(*) FROM {$this->tableAdmission} a WHERE a.m_class_id = c.id)";
     $amountToCollectSql = "(COALESCE(c.fees, 0) * {$studentCountSql})";
     $amountCollectedSql = $hasPaymentTable
@@ -466,7 +474,7 @@ class MadresaM extends CI_Model
       c.name AS class_name,
       c.year AS hijri_year,
       c.fees AS fees,
-      c.status AS status,
+      {$statusSelect}
       c.created_at,
       NULL AS updated_at,
       {$studentCountSql} AS student_count,

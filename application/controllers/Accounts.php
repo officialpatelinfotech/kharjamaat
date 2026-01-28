@@ -335,6 +335,41 @@ class Accounts extends CI_Controller
       'funds_count' => $fundsCount,
     ];
 
+    // Ekram summary for this family (HOF): total per family, assigned, paid, outstanding
+    $this->load->model('EkramFundM');
+    $ekramFunds = $this->EkramFundM->get_funds();
+    $ef_total_per_family = 0.0;
+    $ef_assigned_total = 0.0;
+    $ef_paid_total = 0.0;
+    $ef_funds_count = is_array($ekramFunds) ? count($ekramFunds) : 0;
+    if (!empty($ekramFunds)) {
+      foreach ($ekramFunds as $f) {
+        $fid = (int)($f['id'] ?? 0);
+        $ef_total_per_family += (float)($f['amount'] ?? 0);
+        if ($fid > 0 && !empty($hof_id)) {
+          $rowA = $this->db->select('COALESCE(SUM(amount_assigned),0) AS total_assigned')
+            ->from('ekram_fund_assignment')
+            ->where('fund_id', $fid)
+            ->where('hof_id', $hof_id)
+            ->get()->row_array();
+          $ef_assigned_total += isset($rowA['total_assigned']) ? (float)$rowA['total_assigned'] : 0.0;
+          $rowP = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
+            ->from('ekram_fund_payment')
+            ->where('fund_id', $fid)
+            ->where('hof_id', $hof_id)
+            ->get()->row_array();
+          $ef_paid_total += isset($rowP['total_paid']) ? (float)$rowP['total_paid'] : 0.0;
+        }
+      }
+    }
+    $data['ekram_summary'] = [
+      'total_per_family' => $ef_total_per_family,
+      'assigned_total' => $ef_assigned_total,
+      'paid_total' => $ef_paid_total,
+      'outstanding' => max(0, $ef_assigned_total - $ef_paid_total),
+      'funds_count' => $ef_funds_count,
+    ];
+
     // Wajebaat summary for family (used on Home page)
     $this->load->model('WajebaatM');
     $waj_total_amount = 0.0;
@@ -1013,6 +1048,63 @@ class Accounts extends CI_Controller
     ];
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/CorpusFundsDetails', $data);
+  }
+  public function ekramfunds()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+    $user_id = $_SESSION['user']['username'];
+    $data['user_data'] = $this->AccountM->getUserData($user_id);
+    $hof_id = $data['user_data']['HOF_ID'];
+
+    $this->load->model('EkramFundM');
+    $rows = $this->EkramFundM->get_assignments_with_payments_by_hof($hof_id);
+
+    // Ensure rows are ordered by year descending for display (prefer numeric hijri_year)
+    if (!empty($rows) && is_array($rows)) {
+      usort($rows, function($a, $b) {
+        $getYear = function($r) {
+          if (!empty($r['hijri_year']) && is_numeric($r['hijri_year'])) return (int)$r['hijri_year'];
+          // try to extract year-like number from title
+          if (!empty($r['title']) && preg_match('/(\d{3,4})/', $r['title'], $m)) return (int)$m[1];
+          return null;
+        };
+        $ya = $getYear($a); $yb = $getYear($b);
+        if ($ya !== null && $yb !== null) return $yb <=> $ya; // both numeric: desc
+        if ($ya !== null) return -1; // numeric should come before non-numeric
+        if ($yb !== null) return 1;
+        // fallback alphabetical desc by title
+        $ta = isset($a['title']) ? (string)$a['title'] : '';
+        $tb = isset($b['title']) ? (string)$b['title'] : '';
+        return strcasecmp($tb, $ta);
+      });
+    }
+
+    // Totals: compute from assignments/payments tables to ensure accurate aggregates
+    $tot_assigned_row = $this->db->select('COALESCE(SUM(amount_assigned),0) AS total_assigned')
+      ->from('ekram_fund_assignment')
+      ->where('hof_id', $hof_id)
+      ->get()->row_array();
+    $tot_paid_row = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
+      ->from('ekram_fund_payment')
+      ->where('hof_id', $hof_id)
+      ->get()->row_array();
+    $tot_assigned = isset($tot_assigned_row['total_assigned']) ? (float)$tot_assigned_row['total_assigned'] : 0.0;
+    $tot_paid = isset($tot_paid_row['total_paid']) ? (float)$tot_paid_row['total_paid'] : 0.0;
+    $tot_due = max(0, $tot_assigned - $tot_paid);
+    $data['ekram_details'] = [
+      'rows' => $rows,
+      'tot_assigned' => $tot_assigned,
+      'tot_paid' => $tot_paid,
+      'tot_due' => $tot_due,
+    ];
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/EkramFundsDetails', $data);
   }
   // wajebaat dashboard logic removed
 
@@ -1856,6 +1948,8 @@ class Accounts extends CI_Controller
     }
     $this->load->model('AccountM');
     $this->load->model('CorpusFundM');
+    $this->load->model('EkramFundM');
+    $this->load->model('EkramFundM');
 
     // current user identifier (prefer ITS_ID from session user_data)
     $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
@@ -1925,6 +2019,19 @@ class Accounts extends CI_Controller
       }
     }
 
+    // Ekram fund outstanding for this HOF
+    $ekram_due = 0.0;
+    if (!empty($hof_id)) {
+      $eassigns = $this->EkramFundM->get_assignments_with_payments_by_hof($hof_id);
+      if (is_array($eassigns)) {
+        foreach ($eassigns as $ea) {
+          $assigned = (float)($ea['amount_assigned'] ?? 0);
+          $paid = (float)($ea['amount_paid'] ?? 0);
+          $ekram_due += max(0, $assigned - $paid);
+        }
+      }
+    }
+
 
     // Wajebaat outstanding for family
     $wajebaat_due = 0.0;
@@ -1946,7 +2053,7 @@ class Accounts extends CI_Controller
       }
     }
 
-    $total_due = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $wajebaat_due + $qardan_hasana_due;
+    $total_due = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $ekram_due + $wajebaat_due + $qardan_hasana_due;
 
     $payload = [
       'success' => true,
@@ -1956,6 +2063,7 @@ class Accounts extends CI_Controller
         'gc_due' => round($gc_due, 2),
         'miqaat_due' => round($miq_due, 2),
         'corpus_due' => round($corpus_due, 2),
+        'ekram_due' => round($ekram_due, 2),
         'wajebaat_due' => round($wajebaat_due, 2),
         'qardan_hasana_due' => round($qardan_hasana_due, 2),
         'total_due' => round($total_due, 2)
@@ -2044,6 +2152,19 @@ class Accounts extends CI_Controller
       }
     }
 
+    // Ekram for HOF
+    $ekram_due = 0.0;
+    if (!empty($hof_id)) {
+      $eassigns = $this->EkramFundM->get_assignments_with_payments_by_hof($hof_id);
+      if (is_array($eassigns)) {
+        foreach ($eassigns as $ea) {
+          $assigned = (float)($ea['amount_assigned'] ?? 0);
+          $paid = (float)($ea['amount_paid'] ?? 0);
+          $ekram_due += max(0, $assigned - $paid);
+        }
+      }
+    }
+
     // Wajebaat outstanding for family
     $wajebaat_due = 0.0;
     $this->load->model('WajebaatM');
@@ -2064,7 +2185,7 @@ class Accounts extends CI_Controller
       }
     }
 
-    $family_total = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $wajebaat_due + $qardan_hasana_due;
+    $family_total = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $ekram_due + $wajebaat_due + $qardan_hasana_due;
 
     // prepare recipients: submitter and HOF (if email present)
     $submitterEmail = $_SESSION['user_data']['Email'] ?? null;
@@ -2146,6 +2267,8 @@ class Accounts extends CI_Controller
     $body .= '<tr><td>Sabeel Takhmeen</td><td class="amount ' . ($family_sabeel > 0 ? 'positive' : '') . '">₹ ' . $sabeel_fmt . '</td></tr>';
     $body .= '<tr><td>General Contributions</td><td class="amount ' . ($gc_due > 0 ? 'positive' : '') . '">₹ ' . $gc_fmt . '</td></tr>';
     $body .= '<tr><td>Corpus Fund</td><td class="amount ' . ($corpus_due > 0 ? 'positive' : '') . '">₹ ' . $corpus_fmt . '</td></tr>';
+    $ekram_fmt = htmlspecialchars($clean(number_format($ekram_due)));
+    $body .= '<tr><td>Ekram Fund</td><td class="amount ' . ($ekram_due > 0 ? 'positive' : '') . '">₹ ' . $ekram_fmt . '</td></tr>';
     $body .= '<tr><td>Miqaat Invoices</td><td class="amount ' . ($miq_due > 0 ? 'positive' : '') . '">₹ ' . $miq_fmt . '</td></tr>';
     $body .= '<tr><td>Wajebaat</td><td class="amount ' . ($wajebaat_due > 0 ? 'positive' : '') . '">₹ ' . $waj_fmt . '</td></tr>';
     $body .= '<tr><td>Qardan Hasana</td><td class="amount ' . ($qardan_hasana_due > 0 ? 'positive' : '') . '">₹ ' . $qh_fmt . '</td></tr>';
