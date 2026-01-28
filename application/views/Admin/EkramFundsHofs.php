@@ -99,7 +99,7 @@
                   <td>₹<?php echo format_inr_no_decimals($total); ?></td>
                   <td>
                     <?php if ($total > 0 && isset($hof_fund_details[$hid])): ?>
-                      <button type="button" class="btn btn-sm btn-info me-1 view-details-btn" data-hof="<?php echo $hid; ?>">View Details</button>
+                      <button type="button" class="btn btn-sm btn-info me-1 view-details-btn mb-0 mb-md-2" data-hof="<?php echo $hid; ?>">View Details</button>
                       <button type="button" class="btn btn-sm btn-primary view-funds-btn" data-hof="<?php echo $hid; ?>">View Funds</button>
                     <?php else: ?>
                       <button type="button" class="btn btn-sm btn-secondary" disabled>None</button>
@@ -108,9 +108,9 @@
                 </tr>
               <?php endforeach;
             else: ?>
-                <tr>
-                  <td colspan="8" class="text-center text-muted">No eligible HOFs found.</td>
-                </tr>
+              <tr>
+                <td colspan="8" class="text-center text-muted">No eligible HOFs found.</td>
+              </tr>
             <?php endif; ?>
           </tbody>
         </table>
@@ -174,11 +174,13 @@
           const f = funds[i];
           if (!uniq[f.fund_id]) uniq[f.fund_id] = f;
         }
-        const fundList = Object.keys(uniq).map(function(k) { return uniq[k]; });
+        const fundList = Object.keys(uniq).map(function(k) {
+          return uniq[k];
+        });
         // Sort funds by hijri_year descending (newest first). If hijri_year missing, try to extract numeric year from title.
-        fundList.sort(function(a,b){
-          var ay = a && a.hijri_year ? parseInt(a.hijri_year) : (a && a.title && (a.title.match(/(1[4-6]\d{2})/)||[])[1] ? parseInt((a.title.match(/(1[4-6]\d{2})/)||[])[1]) : 0);
-          var by = b && b.hijri_year ? parseInt(b.hijri_year) : (b && b.title && (b.title.match(/(1[4-6]\d{2})/)||[])[1] ? parseInt((b.title.match(/(1[4-6]\d{2})/)||[])[1]) : 0);
+        fundList.sort(function(a, b) {
+          var ay = a && a.hijri_year ? parseInt(a.hijri_year) : (a && a.title && (a.title.match(/(1[4-6]\d{2})/) || [])[1] ? parseInt((a.title.match(/(1[4-6]\d{2})/) || [])[1]) : 0);
+          var by = b && b.hijri_year ? parseInt(b.hijri_year) : (b && b.title && (b.title.match(/(1[4-6]\d{2})/) || [])[1] ? parseInt((b.title.match(/(1[4-6]\d{2})/) || [])[1]) : 0);
           return by - ay;
         });
         if (!funds.length) {
@@ -398,17 +400,17 @@
             ro += '<table class="table table-sm table-bordered">';
             ro += '<thead><tr><th>Fund Title</th><th>Amount (₹)</th></tr></thead><tbody>';
             // Render funds sorted by hijri_year descending for read-only view as well
-            var sortedFundsRO = (window.hofFunds[hid] || []).slice().sort(function(a,b){
+            var sortedFundsRO = (window.hofFunds[hid] || []).slice().sort(function(a, b) {
               var ay = a && a.hijri_year ? parseInt(a.hijri_year) : 0;
               var by = b && b.hijri_year ? parseInt(b.hijri_year) : 0;
               return by - ay;
             });
             sortedFundsRO.forEach(function(f) {
-                  ro += '<tr><td>' + escapeHtml(f.title) + '</td><td>₹' + Number(f.amount || 0).toLocaleString('en-IN', {
+              ro += '<tr><td>' + escapeHtml(f.title) + '</td><td>₹' + Number(f.amount || 0).toLocaleString('en-IN', {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
               }) + '</td></tr>';
-                });
+            });
             ro += '</tbody></table>';
             body.innerHTML = ro;
             var statusEl = document.getElementById('fundUpdateStatus');
@@ -462,12 +464,23 @@
     detailsModal.innerHTML = '\n      <div class="modal-dialog" role="document" style="max-width:420px; margin:80px auto; width:95%;">\n        <div class="modal-content">\n          <div class="modal-header">\n            <h5 class="modal-title">Ekram Fund Details</h5>\n            <button type="button" class="close" data-close-details aria-label="Close" style="border:none; background:transparent; font-size:24px; line-height:1;">&times;</button>\n          </div>\n          <div class="modal-body">\n            <div class="small text-muted">Name</div><div id="hofDetailsName" class="mb-2"></div>\n            <div class="small text-muted">ITS ID</div><div id="hofDetailsITS" class="mb-2"></div>\n            <div class="small text-muted">Amount</div><div id="hofDetailsAmount" class="mb-2"></div>\n                       <div class="small text-muted">Last Updated</div><div id="hofDetailsLast" class="mb-2"></div>\n          </div>\n          <div class="modal-footer">\n            <button type="button" class="btn btn-secondary" data-close-details>Close</button>\n          </div>\n        </div>\n      </div>';
     document.body.appendChild(detailsModal);
 
-    function open() { detailsModal.style.display = 'block'; }
-    function close() { detailsModal.style.display = 'none'; }
-    detailsModal.addEventListener('click', function(e) { if (e.target === detailsModal) close(); });
-    [].forEach.call(detailsModal.querySelectorAll('[data-close-details]'), function(b){ b.addEventListener('click', close); });
+    function open() {
+      detailsModal.style.display = 'block';
+    }
 
-    function formatVal(v) { return v ? v : '—'; }
+    function close() {
+      detailsModal.style.display = 'none';
+    }
+    detailsModal.addEventListener('click', function(e) {
+      if (e.target === detailsModal) close();
+    });
+    [].forEach.call(detailsModal.querySelectorAll('[data-close-details]'), function(b) {
+      b.addEventListener('click', close);
+    });
+
+    function formatVal(v) {
+      return v ? v : '—';
+    }
 
     [].forEach.call(document.querySelectorAll('.view-details-btn'), function(btn) {
       btn.addEventListener('click', function() {

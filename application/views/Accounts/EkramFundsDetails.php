@@ -2,7 +2,7 @@
 // Ekram Funds per-HOF view (mirrors CorpusFundsDetails)
 ?>
 <div class="container margintopcontainer pt-5">
-  <div class="d-flex align-items-center mb-3">
+  <div class="d-flex align-items-center mt-5 mt-md-0 mb-3">
     <a href="<?php echo base_url('accounts/home'); ?>" class="btn btn-outline-secondary me-2"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
   <h4 class="text-center mb-3">Ekram Funds Details</h4>
@@ -62,17 +62,17 @@
               <tr>
                 <td><?php echo $i++; ?></td>
                 <?php
-                  $year = '';
-                  if (!empty($r['hijri_year'])) {
-                    $year = (string)$r['hijri_year'];
+                $year = '';
+                if (!empty($r['hijri_year'])) {
+                  $year = (string)$r['hijri_year'];
+                } else {
+                  $title = $r['title'] ?? '';
+                  if (preg_match('/(\d{3,4})/', $title, $m)) {
+                    $year = $m[1];
                   } else {
-                    $title = $r['title'] ?? '';
-                    if (preg_match('/(\d{3,4})/', $title, $m)) {
-                      $year = $m[1];
-                    } else {
-                      $year = $title;
-                    }
+                    $year = $title;
                   }
+                }
                 ?>
                 <td><?php echo htmlspecialchars($year); ?></td>
                 <td class="text-end">₹<?php echo format_inr_no_decimals((float)($r['amount_assigned'] ?? 0)); ?></td>

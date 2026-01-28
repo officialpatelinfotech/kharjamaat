@@ -759,9 +759,9 @@ class Accounts extends CI_Controller
       redirect('/accounts');
     }
 
-  $member_id = $_SESSION['user_data']['ITS_ID'];
-  // Submit under the ITS of the assignee (within this member's family)
-  $user_id = $this->AccountM->get_assignee_its_for_miqaat_in_family($miqaat_id, $member_id);
+    $member_id = $_SESSION['user_data']['ITS_ID'];
+    // Submit under the ITS of the assignee (within this member's family)
+    $user_id = $this->AccountM->get_assignee_its_for_miqaat_in_family($miqaat_id, $member_id);
 
     // If any family member already submitted for this miqaat, block further submissions
     $existing_family_raza = $this->AccountM->get_family_raza_by_miqaat($miqaat_id, $member_id);
@@ -1066,14 +1066,15 @@ class Accounts extends CI_Controller
 
     // Ensure rows are ordered by year descending for display (prefer numeric hijri_year)
     if (!empty($rows) && is_array($rows)) {
-      usort($rows, function($a, $b) {
-        $getYear = function($r) {
+      usort($rows, function ($a, $b) {
+        $getYear = function ($r) {
           if (!empty($r['hijri_year']) && is_numeric($r['hijri_year'])) return (int)$r['hijri_year'];
           // try to extract year-like number from title
           if (!empty($r['title']) && preg_match('/(\d{3,4})/', $r['title'], $m)) return (int)$m[1];
           return null;
         };
-        $ya = $getYear($a); $yb = $getYear($b);
+        $ya = $getYear($a);
+        $yb = $getYear($b);
         if ($ya !== null && $yb !== null) return $yb <=> $ya; // both numeric: desc
         if ($ya !== null) return -1; // numeric should come before non-numeric
         if ($yb !== null) return 1;
@@ -1949,7 +1950,6 @@ class Accounts extends CI_Controller
     $this->load->model('AccountM');
     $this->load->model('CorpusFundM');
     $this->load->model('EkramFundM');
-    $this->load->model('EkramFundM');
 
     // current user identifier (prefer ITS_ID from session user_data)
     $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
@@ -2085,6 +2085,7 @@ class Accounts extends CI_Controller
     }
     $this->load->model('AccountM');
     $this->load->model('CorpusFundM');
+    $this->load->model('EkramFundM');
 
     $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
 
@@ -2258,6 +2259,7 @@ class Accounts extends CI_Controller
     $sabeel_fmt = htmlspecialchars($clean(number_format($family_sabeel)));
     $gc_fmt = htmlspecialchars($clean(number_format($gc_due)));
     $corpus_fmt = htmlspecialchars($clean(number_format($corpus_due)));
+    $ekram_fmt = htmlspecialchars($clean(number_format($ekram_due)));
     $miq_fmt = htmlspecialchars($clean(number_format($miq_due)));
     $waj_fmt = htmlspecialchars($clean(number_format($wajebaat_due)));
     $qh_fmt = htmlspecialchars($clean(number_format($qardan_hasana_due)));
@@ -2267,7 +2269,6 @@ class Accounts extends CI_Controller
     $body .= '<tr><td>Sabeel Takhmeen</td><td class="amount ' . ($family_sabeel > 0 ? 'positive' : '') . '">₹ ' . $sabeel_fmt . '</td></tr>';
     $body .= '<tr><td>General Contributions</td><td class="amount ' . ($gc_due > 0 ? 'positive' : '') . '">₹ ' . $gc_fmt . '</td></tr>';
     $body .= '<tr><td>Corpus Fund</td><td class="amount ' . ($corpus_due > 0 ? 'positive' : '') . '">₹ ' . $corpus_fmt . '</td></tr>';
-    $ekram_fmt = htmlspecialchars($clean(number_format($ekram_due)));
     $body .= '<tr><td>Ekram Fund</td><td class="amount ' . ($ekram_due > 0 ? 'positive' : '') . '">₹ ' . $ekram_fmt . '</td></tr>';
     $body .= '<tr><td>Miqaat Invoices</td><td class="amount ' . ($miq_due > 0 ? 'positive' : '') . '">₹ ' . $miq_fmt . '</td></tr>';
     $body .= '<tr><td>Wajebaat</td><td class="amount ' . ($wajebaat_due > 0 ? 'positive' : '') . '">₹ ' . $waj_fmt . '</td></tr>';

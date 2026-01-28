@@ -36,19 +36,21 @@ if (!empty($ekram_details)) {
 ?>
 <div class="container-fluid margintopcontainer pt-5">
   <div class="d-flex align-items-center">
-    <a href="<?= base_url('amilsaheb'); ?>" class="btn btn-sm btn-outline-secondary mr-2"><i class="fa-solid fa-arrow-left"></i></a>
+    <a href="<?= base_url('amilsaheb'); ?>" class="btn btn-outline-secondary mr-2 mb-3 mb-md-0"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
   <h4 class="text-center mb-3">Ekram Funds Details</h4>
 
   <?php
-    $sumAssigned = 0; $sumPaid = 0; $sumOutstanding = 0;
-    if (!empty($ekram_details)) {
-      foreach ($ekram_details as $group) {
-        $sumAssigned += (float)($group['assigned_total'] ?? 0);
-        $sumPaid += (float)($group['paid_total'] ?? 0);
-        $sumOutstanding += (float)($group['outstanding_total'] ?? 0);
-      }
+  $sumAssigned = 0;
+  $sumPaid = 0;
+  $sumOutstanding = 0;
+  if (!empty($ekram_details)) {
+    foreach ($ekram_details as $group) {
+      $sumAssigned += (float)($group['assigned_total'] ?? 0);
+      $sumPaid += (float)($group['paid_total'] ?? 0);
+      $sumOutstanding += (float)($group['outstanding_total'] ?? 0);
     }
+  }
   ?>
   <div class="card mb-3">
     <div class="card-body py-2">
@@ -224,7 +226,16 @@ if (!empty($ekram_details)) {
       rows.forEach(function(r) {
         var k = r.hof_id + '|' + (r.name || '');
         if (!map[k]) {
-          map[k] = { hof_id: r.hof_id, name: r.name, sector: r.sector, subsector: r.subsector, assigned: 0, paid: 0, due: 0, funds: [] };
+          map[k] = {
+            hof_id: r.hof_id,
+            name: r.name,
+            sector: r.sector,
+            subsector: r.subsector,
+            assigned: 0,
+            paid: 0,
+            due: 0,
+            funds: []
+          };
         }
         map[k].assigned += (r.assigned || 0);
         map[k].paid += (r.paid || 0);
@@ -240,7 +251,7 @@ if (!empty($ekram_details)) {
       $tbody.empty();
       rows.forEach(function(r, idx) {
         var tr = $('<tr></tr>');
-        tr.append('<td>'+ (idx + 1) +'</td>');
+        tr.append('<td>' + (idx + 1) + '</td>');
         var nameCell = $('<td></td>').text(r.name || '');
         var sectorCell = $('<td></td>').text(r.sector || '');
         var subSectorCell = $('<td></td>').text(r.subsector || '');
@@ -254,22 +265,40 @@ if (!empty($ekram_details)) {
 
         var needsFetch = (!r.name) || (!r.sector) || (!r.subsector) || r.sector === 'Unassigned' || r.subsector === 'Unassigned';
         if (needsFetch) {
-          $.get(<?= json_encode(base_url('anjuman/ekramfunds_hof_funds')); ?>, { hof_id: r.hof_id }).done(function(resp){
+          $.get(<?= json_encode(base_url('anjuman/ekramfunds_hof_funds')); ?>, {
+            hof_id: r.hof_id
+          }).done(function(resp) {
             var funds = resp && resp.funds ? resp.funds : [];
             if (funds.length > 0) {
               var f0 = funds[0];
-              if (!r.name && (f0.member_name || f0.hof_name)) { r.name = f0.member_name || f0.hof_name; nameCell.text(r.name); }
+              if (!r.name && (f0.member_name || f0.hof_name)) {
+                r.name = f0.member_name || f0.hof_name;
+                nameCell.text(r.name);
+              }
               var sec = f0.sector || f0.Sector || '';
               var ssec = f0.sub_sector || f0.Sub_Sector || '';
-              if ((!r.sector || r.sector === 'Unassigned') && sec) { r.sector = sec; sectorCell.text(r.sector); }
-              if ((!r.subsector || r.subsector === 'Unassigned') && ssec) { r.subsector = ssec; subSectorCell.text(r.subsector); }
+              if ((!r.sector || r.sector === 'Unassigned') && sec) {
+                r.sector = sec;
+                sectorCell.text(r.sector);
+              }
+              if ((!r.subsector || r.subsector === 'Unassigned') && ssec) {
+                r.subsector = ssec;
+                subSectorCell.text(r.subsector);
+              }
             }
           });
         }
       });
     }
 
-    function formatINR(x) { try { var n = Math.round(Number(x || 0)); return Number(n).toLocaleString('en-IN'); } catch (e) { return x; } }
+    function formatINR(x) {
+      try {
+        var n = Math.round(Number(x || 0));
+        return Number(n).toLocaleString('en-IN');
+      } catch (e) {
+        return x;
+      }
+    }
 
     var nameInput = $('#filterName');
     var fundSelect = $('#filterFund');
@@ -290,22 +319,67 @@ if (!empty($ekram_details)) {
         return ok;
       });
       var agg = aggregateByHof(filtered);
-      agg.sort(function(a,b){ var as=(a.sector||'').toLowerCase(); var bs=(b.sector||'').toLowerCase(); if(as<bs) return -1; if(as>bs) return 1; var ass=(a.subsector||'').toLowerCase(); var bss=(b.subsector||'').toLowerCase(); if(ass<bss) return -1; if(ass>bss) return 1; var an=(a.name||'').toLowerCase(); var bn=(b.name||'').toLowerCase(); if(an<bn) return -1; if(an>bn) return 1; return 0; });
+      agg.sort(function(a, b) {
+        var as = (a.sector || '').toLowerCase();
+        var bs = (b.sector || '').toLowerCase();
+        if (as < bs) return -1;
+        if (as > bs) return 1;
+        var ass = (a.subsector || '').toLowerCase();
+        var bss = (b.subsector || '').toLowerCase();
+        if (ass < bss) return -1;
+        if (ass > bss) return 1;
+        var an = (a.name || '').toLowerCase();
+        var bn = (b.name || '').toLowerCase();
+        if (an < bn) return -1;
+        if (an > bn) return 1;
+        return 0;
+      });
       renderTable(agg);
     }
     nameInput.on('input', applyFilters);
     fundSelect.on('change', applyFilters);
     sectorSelect.on('change', applyFilters);
     subSectorSelect.on('change', applyFilters);
-    $('#btnClearFilters').on('click', function(){ nameInput.val(''); fundSelect.val(''); sectorSelect.val(''); subSectorSelect.val(''); applyFilters(); });
+    $('#btnClearFilters').on('click', function() {
+      nameInput.val('');
+      fundSelect.val('');
+      sectorSelect.val('');
+      subSectorSelect.val('');
+      applyFilters();
+    });
 
     var sortDir = {};
-    $('#hofTable thead th.sortable').on('click', function(){
-      var key = $(this).data('key'); sortDir[key] = sortDir[key] === 'asc' ? 'desc' : 'asc';
+    $('#hofTable thead th.sortable').on('click', function() {
+      var key = $(this).data('key');
+      sortDir[key] = sortDir[key] === 'asc' ? 'desc' : 'asc';
       var rows = [];
-      $('#hofTableBody tr').each(function(){ var $tr = $(this); rows.push({ el:$tr, name:$tr.children().eq(1).text(), sector:$tr.children().eq(2).text(), subsector:$tr.children().eq(3).text(), assigned:parseFloat($tr.children().eq(4).data('val'))||0, paid:parseFloat($tr.children().eq(5).data('val'))||0, due:parseFloat($tr.children().eq(6).data('val'))||0 }); });
-      rows.sort(function(a,b){ var av=a[key], bv=b[key]; if(typeof av==='string'){ av=av.toLowerCase(); bv=bv.toLowerCase(); } if(av < bv) return sortDir[key]==='asc' ? -1:1; if(av > bv) return sortDir[key]==='asc' ? 1:-1; return 0; });
-      $('#hofTableBody').empty(); rows.forEach(function(r){ $('#hofTableBody').append(r.el); });
+      $('#hofTableBody tr').each(function() {
+        var $tr = $(this);
+        rows.push({
+          el: $tr,
+          name: $tr.children().eq(1).text(),
+          sector: $tr.children().eq(2).text(),
+          subsector: $tr.children().eq(3).text(),
+          assigned: parseFloat($tr.children().eq(4).data('val')) || 0,
+          paid: parseFloat($tr.children().eq(5).data('val')) || 0,
+          due: parseFloat($tr.children().eq(6).data('val')) || 0
+        });
+      });
+      rows.sort(function(a, b) {
+        var av = a[key],
+          bv = b[key];
+        if (typeof av === 'string') {
+          av = av.toLowerCase();
+          bv = bv.toLowerCase();
+        }
+        if (av < bv) return sortDir[key] === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir[key] === 'asc' ? 1 : -1;
+        return 0;
+      });
+      $('#hofTableBody').empty();
+      rows.forEach(function(r) {
+        $('#hofTableBody').append(r.el);
+      });
     });
 
     // Initial render

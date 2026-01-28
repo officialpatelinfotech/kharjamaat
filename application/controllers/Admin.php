@@ -182,15 +182,15 @@ class Admin extends CI_Controller
         'created_at' => $r['created_at'] ?? null
       ];
     }
-    // Active HOF list with totals
-    $hofs = $this->db->select('u.HOF_ID, u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, COALESCE(SUM(a.amount_assigned),0) AS ekram_total, COUNT(a.id) AS ekram_count')
+    // Active HOF list with totals (aggregate in subquery to stay compatible with ONLY_FULL_GROUP_BY)
+    $assignAgg = '(SELECT hof_id, COALESCE(SUM(amount_assigned),0) AS ekram_total, COUNT(id) AS ekram_count FROM ekram_fund_assignment GROUP BY hof_id) a';
+    $hofs = $this->db->select('u.HOF_ID, u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, COALESCE(a.ekram_total,0) AS ekram_total, COALESCE(a.ekram_count,0) AS ekram_count')
       ->from('user u')
-      ->join('ekram_fund_assignment a', 'a.hof_id = u.HOF_ID', 'left')
+      ->join($assignAgg, 'a.hof_id = u.HOF_ID', 'left', false)
       ->where("(u.Inactive_Status IS NULL OR u.Inactive_Status = 0)")
       ->where("(u.Sector IS NOT NULL AND TRIM(u.Sector) <> '')")
       ->where("(u.Sub_Sector IS NOT NULL AND TRIM(u.Sub_Sector) <> '')")
       ->where("u.HOF_FM_TYPE = 'HOF'")
-      ->group_by('u.HOF_ID')
       ->get()->result_array();
 
     // Compute paid and pending per HOF

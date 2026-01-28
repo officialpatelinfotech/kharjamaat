@@ -1149,7 +1149,7 @@
           <div class="row">
             <?php if (empty($ms)) { ?>
               <div class="col-12 text-center text-muted">No data available</div>
-            <?php } else {
+              <?php } else {
               foreach ($ms as $label => $count) {
                 $safeLabel = htmlspecialchars($label);
                 $lbl_l = strtolower(trim($label));
@@ -1177,7 +1177,7 @@
                   $iconBg = '#ecfeff';
                   $iconColor = '#0891b2';
                 }
-            ?>
+              ?>
                 <div class="col-6 col-md-3 mb-3">
                   <div class="overview-card">
                     <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
@@ -1566,7 +1566,9 @@
         </div>
         <style>
           /* Hide Mobile column when HOF modal is in miqaat mode */
-          #hofListModal[data-mode="miqaat"] .mobile-col { display: none; }
+          #hofListModal[data-mode="miqaat"] .mobile-col {
+            display: none;
+          }
         </style>
         <script>
           (function() {
@@ -1750,7 +1752,7 @@
                   var modalEl2 = document.getElementById('hofListModal');
                   var mode2 = modalEl2 ? (modalEl2.getAttribute('data-mode') || '') : '';
                   var showMobile2 = (mode2 !== 'miqaat');
-                    if (showMobile2) {
+                  if (showMobile2) {
                     var tdMobile = document.createElement('td');
                     tdMobile.classList.add('mobile-col');
                     if (mobile) {
@@ -2182,6 +2184,7 @@
               .wq-summary-card .stats-value::after {
                 content: none !important;
               }
+
               .wq-summary-card .stats-value {
                 white-space: normal;
                 overflow: visible;
@@ -2228,63 +2231,71 @@
           </div>
 
           <?php
-        // Ekram Funds summary (mirror Corpus Funds layout)
-        $ekramFundsCount = 0;
-        $ekram_sumAmount = 0;
-        $ekram_sumAssigned = 0;
-        $ekram_sumPaid = 0;
-        $ekram_sumOutstanding = 0;
-        if (isset($ekram_funds) && is_array($ekram_funds)) {
-          $ekramFundsCount = count($ekram_funds);
-          foreach ($ekram_funds as $f) {
-            $amt = isset($f['amount']) ? (float)$f['amount'] : 0;
-            $assigned = isset($f['assigned_total']) ? (float)$f['assigned_total'] : 0;
-            $paid = isset($f['paid_total']) ? (float)$f['paid_total'] : 0;
-            $out = isset($f['outstanding']) ? (float)$f['outstanding'] : 0;
-            $ekram_sumAmount += $amt;
-            $ekram_sumAssigned += $assigned;
-            $ekram_sumPaid += $paid;
-            $ekram_sumOutstanding += $out;
+          // Ekram Funds summary (mirror Corpus Funds layout)
+          $ekramFundsCount = 0;
+          $ekram_sumAmount = 0;
+          $ekram_sumAssigned = 0;
+          $ekram_sumPaid = 0;
+          $ekram_sumOutstanding = 0;
+          if (isset($ekram_funds) && is_array($ekram_funds)) {
+            $ekramFundsCount = count($ekram_funds);
+            foreach ($ekram_funds as $f) {
+              $amt = isset($f['amount']) ? (float)$f['amount'] : 0;
+              $assigned = isset($f['assigned_total']) ? (float)$f['assigned_total'] : 0;
+              $paid = isset($f['paid_total']) ? (float)$f['paid_total'] : 0;
+              $out = isset($f['outstanding']) ? (float)$f['outstanding'] : 0;
+              $ekram_sumAmount += $amt;
+              $ekram_sumAssigned += $assigned;
+              $ekram_sumPaid += $paid;
+              $ekram_sumOutstanding += $out;
+            }
           }
-        }
-        $ekram_sumAmount = (int)round($ekram_sumAmount);
-        $ekram_sumAssigned = (int)round($ekram_sumAssigned);
-        $ekram_sumPaid = (int)round($ekram_sumPaid);
-        $ekram_sumOutstanding = (int)round($ekram_sumOutstanding);
-        ?>
+          $ekram_sumAmount = (int)round($ekram_sumAmount);
+          $ekram_sumAssigned = (int)round($ekram_sumAssigned);
+          $ekram_sumPaid = (int)round($ekram_sumPaid);
+          $ekram_sumOutstanding = (int)round($ekram_sumOutstanding);
+          ?>
 
-        <div id="ekram-funds-block" class="chart-container grouped-block mt-3">
-          <h4 class="section-title">Ekram Funds</h4>
-          <div class="row text-center">
-            <div class="col-md-4 mb-3">
-              <div class="mini-card">
-                <div class="stats-value">₹<?php echo format_inr($ekram_sumAssigned); ?></div>
-                <div class="stats-label">Total assigned</div>
+          <div class="col-12">
+            <div id="ekram-funds-block" class="chart-container grouped-block mt-3 pb-3">
+              <h4 class="chart-title">Ekram Funds</h4>
+              <div class="row text-center">
+                <div class="col-md-4 mb-3">
+                  <div class="mini-card">
+                    <div class="stats-value">₹<?php echo format_inr($ekram_sumAssigned); ?></div>
+                    <div class="stats-label">Total assigned</div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="mini-card">
+                    <div class="stats-value text-success">₹<?php echo format_inr($ekram_sumPaid); ?></div>
+                    <div class="stats-label">Total Received</div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="mini-card">
+                    <div class="stats-value text-danger">₹<?php echo format_inr($ekram_sumOutstanding); ?></div>
+                    <div class="stats-label">Total Pending</div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="col-md-4 mb-3">
-              <div class="mini-card">
-                <div class="stats-value text-success">₹<?php echo format_inr($ekram_sumPaid); ?></div>
-                <div class="stats-label">Total Received</div>
+              <div class="text-center mt-2">
+                <small>Funds: <?php echo $ekramFundsCount; ?></small>
+                <div style="margin-top:8px; margin-bottom:12px;"><a class="btn btn-sm btn-outline-secondary" href="<?php echo base_url('amilsaheb/ekramfunds_details'); ?>">View All</a></div>
               </div>
-            </div>
-            <div class="col-md-4 mb-3">
-              <div class="mini-card">
-                <div class="stats-value text-danger">₹<?php echo format_inr($ekram_sumOutstanding); ?></div>
-                <div class="stats-label">Total Pending</div>
-              </div>
+              <style>
+                /* Ensure Ekram card uses available width and matches appearance of other summary cards */
+                #ekram-funds-block {
+                  width: 100%;
+                  max-width: 100%;
+                }
+
+                #ekram-funds-block .mini-card {
+                  min-width: 140px;
+                }
+              </style>
             </div>
           </div>
-            <div class="text-center mt-2">
-            <small>Funds: <?php echo $ekramFundsCount; ?></small>
-            <div style="margin-top:8px; margin-bottom:12px;"><a class="btn btn-sm btn-outline-secondary" href="<?php echo base_url('amilsaheb/ekramfunds_details'); ?>">View All</a></div>
-          </div>
-        <style>
-          /* Ensure Ekram card uses available width and matches appearance of other summary cards */
-          #ekram-funds-block { width: 100%; max-width: 100%; }
-          #ekram-funds-block .mini-card { min-width: 140px; }
-        </style>
-        </div>
 
           <?php
           $wa = isset($dashboard_data['wajebaat_summary']) && is_array($dashboard_data['wajebaat_summary'])
@@ -2372,8 +2383,8 @@
             <div class="chart-container compact h-100">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <h5 class="chart-title m-0">Expenses</h5>
-                <a href="<?= base_url('amilsaheb/expense'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
               </div>
+
               <div class="text-center py-3">
                 <div class="row justify-content-center">
                   <div class="col-12 col-md-4">
@@ -2387,6 +2398,9 @@
                     </div>
                   </div>
                 </div>
+              </div>
+              <div class="d-flex justify-content-center mb-2">
+                <a href="<?= base_url('amilsaheb/expense'); ?>" class="btn btn-sm btn-outline-secondary">View All</a>
               </div>
             </div>
           </div>
@@ -2945,7 +2959,7 @@
                     var sector = r.Sector || r.sector || '';
                     var sub = r.Sub_Sector || r.sub_sector || r.SubSector || '';
                     var html = '<td>' + _escapeHtml(its) + '</td><td>' + _escapeHtml(name) + '</td><td>' + _escapeHtml(sector) + '</td><td>' + _escapeHtml(sub) + '</td>';
-                          if (showMobileTmp2) html += '<td class="mobile-col"></td>';
+                    if (showMobileTmp2) html += '<td class="mobile-col"></td>';
                     tr.innerHTML = html;
                     tbody.appendChild(tr);
                   });

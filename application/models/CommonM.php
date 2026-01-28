@@ -1064,7 +1064,7 @@ class CommonM extends CI_Model
 
   public function get_payment_details($payment_id, $table)
   {
-    if ($table == 'corpus_fund_payment') {
+    if ($table == 'corpus_fund_payment' || $table == 'ekram_fund_payment') {
       $this->db->select('payments.amount_paid as amount, payments.paid_at as payment_date, user.Full_Name, user.Address');
       $this->db->from($table . ' as payments');
       $this->db->join('user', 'user.ITS_ID = payments.hof_id', 'left');

@@ -203,8 +203,10 @@ class Common extends CI_Controller
       case 5:
         $table = "corpus_fund_payment";
         break;
+      case 6:
+        $table = "ekram_fund_payment";
+        break;
       default:
-        // Handle invalid 'for' value
         echo "Invalid request.";
         return;
     }

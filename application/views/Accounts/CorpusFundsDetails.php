@@ -2,7 +2,7 @@
 // Assumes format_inr_no_decimals() helper is available
 ?>
 <div class="container margintopcontainer pt-5">
-  <div class="d-flex align-items-center mb-3">
+  <div class="d-flex align-items-center mt-5 mt-md-0 mb-3">
     <a href="<?php echo base_url('accounts/home'); ?>" class="btn btn-outline-secondary me-2"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
   <h4 class="text-center mb-3">Corpus Funds Details</h4>
