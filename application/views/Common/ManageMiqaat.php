@@ -83,6 +83,33 @@
       grid-template-rows: auto auto !important;
     }
   }
+  /* Print-optimized styles: show only the miqaat list when printing */
+  @media print {
+    /* Hide everything by default */
+    body * { visibility: hidden !important; }
+    /* Make miqaat list and its descendants visible */
+    .miqaat-list-container, .miqaat-list-container * { visibility: visible !important; }
+    /* Place the table at the top-left for printing */
+    .miqaat-list-container { position: absolute; top: 0; left: 0; width: 100%; }
+    /* Remove box-shadows and backgrounds that may not print well */
+    .miqaat-table-wrapper, .miqaat-table-wrapper * { box-shadow: none !important; background: transparent !important; }
+    /* Expand scrollable wrapper so all rows are visible when printing */
+    .miqaat-table-wrapper { max-height: none !important; height: auto !important; overflow: visible !important; }
+    /* Disable sticky headers for print so header appears normally */
+    .miqaat-table-wrapper table thead th { position: static !important; top: auto !important; }
+    /* Ensure table prints fully across pages */
+    .miqaat-list-container table { width: 100% !important; table-layout: auto !important; }
+    .miqaat-list-container table, .miqaat-list-container tbody, .miqaat-list-container tr { page-break-inside: avoid; }
+    /* Hide Status (8) and Actions (9) columns while printing */
+    .miqaat-list-container table th:nth-child(8),
+    .miqaat-list-container table td:nth-child(8),
+    .miqaat-list-container table th:nth-child(9),
+    .miqaat-list-container table td:nth-child(9) {
+      display: none !important;
+    }
+    /* Ensure links are printed as normal text */
+    a[href]:after { content: " (" attr(href) ")"; }
+  }
 </style>
 <div class="margintopcontainer pt-5 px px-3">
   <?php if ($this->session->flashdata('error')): ?>
@@ -125,7 +152,7 @@
       </div>
       <div class="form-group">
         <select id="assignment-filter" name="assignment_filter" class="form-control">
-          <option value="" <?php echo empty($assignment_filter) ? 'selected' : ''; ?>>All Miqaats</option>
+          <option value="" <?php echo empty($assignment_filter) ? 'selected' : ''; ?>>Assigned / Unassigned</option>
           <option value="unassigned" <?php echo (isset($assignment_filter) && $assignment_filter === 'unassigned') ? 'selected' : ''; ?>>Unassigned Only</option>
           <option value="assigned" <?php echo (isset($assignment_filter) && $assignment_filter === 'assigned') ? 'selected' : ''; ?>>Assigned Only</option>
         </select>
@@ -150,7 +177,8 @@
         <a href="<?php echo base_url('common/managemiqaat'); ?>" id="clear-filter" class="btn btn-secondary mx-3"><i class="fa fa-times"></i></a>
       </div> -->
     </form>
-    <div class="ml-auto">
+    <div class="ml-auto d-flex" style="gap:8px; align-items:center;">
+      <button id="print-table-btn" class="btn btn-outline-secondary" title="Print table"><i class="fa fa-print"></i> Print</button>
       <a href="<?php echo base_url('common/createmiqaat?date=' . date('Y-m-d')); ?>" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Miqaat</a>
     </div>
   </div>
@@ -260,6 +288,12 @@
     .stat-card.fnn {
       background: #fef3c7;
     }
+    .stat-card.contributors {
+      background: #e6ffed; /* light green */
+    }
+    .stat-card.noncontrib {
+      background: #fff0f0; /* light red/pink */
+    }
     /* New specific colors for requested cards */
     .stat-card.ladies {
       background: #fff0f6; /* very light pink */
@@ -338,6 +372,73 @@
     }
     ?>
     <div class="stats-cards-grid my-3" aria-label="Miqaat summary">
+      <?php
+      // Compute unique individual contributors (fallback to controller-provided summary if present)
+      // Compute unique individual contributors — mapped to HOFs (heads-of-family)
+      $sum_individual_contributors = isset($calendar_summary['individual_contributors']) ? (int)$calendar_summary['individual_contributors'] : 0;
+      if ($sum_individual_contributors === 0) {
+        $uniq_member_ids = [];
+        if (!empty($miqaats) && is_array($miqaats)) {
+          foreach ($miqaats as $d) {
+            if (empty($d['miqaats'])) continue;
+            foreach ($d['miqaats'] as $m) {
+              if (empty($m['assignments'])) continue;
+              foreach ($m['assignments'] as $as) {
+                $at = strtolower($as['assign_type'] ?? '');
+                if ($at === 'individual') {
+                  $mid = trim((string)($as['member_id'] ?? ''));
+                  if ($mid !== '') $uniq_member_ids[$mid] = true;
+                }
+              }
+            }
+          }
+        }
+
+        // Map those member IDs to their HOF IDs (so Non Contributors is HOF-based)
+        $sum_individual_contributors = 0;
+        if (!empty($uniq_member_ids)) {
+          try {
+            $ci = get_instance();
+            $ids = array_keys($uniq_member_ids);
+            // Escape and chunk safely for IN clause
+            $chunks = array_chunk($ids, 200);
+            $hof_ids = [];
+            foreach ($chunks as $c) {
+              $escaped = array_map(function($v) use ($ci) { return $ci->db->escape($v); }, $c);
+              $in = implode(',', $escaped);
+              // Map member ITS to their HOF ITS_ID and ensure HOF has Sector/Sub_Sector and is active
+              $sql = "SELECT DISTINCT hof.ITS_ID AS hof_id FROM `user` u JOIN `user` hof ON hof.ITS_ID = (CASE WHEN u.HOF_FM_TYPE = 'HOF' THEN u.ITS_ID ELSE u.HOF_ID END) WHERE u.ITS_ID IN (" . $in . ") AND hof.HOF_FM_TYPE = 'HOF' AND hof.Inactive_Status IS NULL AND hof.Sector IS NOT NULL AND hof.Sub_Sector IS NOT NULL";
+              $res = $ci->db->query($sql)->result_array();
+              foreach ($res as $r) {
+                $hid = isset($r['hof_id']) ? trim((string)$r['hof_id']) : '';
+                if ($hid !== '') $hof_ids[$hid] = true;
+              }
+            }
+            $sum_individual_contributors = count($hof_ids);
+          } catch (Exception $e) {
+            // Fallback: count unique member ids if DB mapping fails
+            $sum_individual_contributors = count($uniq_member_ids);
+          }
+        }
+      }
+
+      // Total members: prefer controller-provided value, else fallback to summary variable if available
+      $total_members = isset($calendar_summary['total_members']) ? (int)$calendar_summary['total_members'] : (isset($summary_total_members) ? (int)$summary_total_members : 0);
+      // If still not available, attempt a safe DB fallback to count HOFs (heads-of-family)
+      if (empty($total_members)) {
+        try {
+          $ci = get_instance();
+          // Count only HOF records and ignore inactive rows
+          $q = $ci->db->query("SELECT COUNT(*) AS cnt FROM `user` WHERE HOF_FM_TYPE = 'HOF' AND Inactive_Status IS NULL");
+          $row = $q->row();
+          $total_members = $row ? (int)$row->cnt : 0;
+        } catch (Exception $e) {
+          $total_members = 0;
+        }
+      }
+      // Non contributors = total_members - individual contributors (clamped at 0)
+      $non_contributors = max(0, $total_members - $sum_individual_contributors);
+      ?>
       <div class="stat-card general"><span class="label">Total Miqaat</span><span class="value"><?php echo isset($calendar_summary['total_miqaat_days']) ? (int)$calendar_summary['total_miqaat_days'] : (isset($summary_miqaat_days) ? (int)$summary_miqaat_days : (int)$sum_total_miqaats); ?></span></div>
       <div class="stat-card ashara"><span class="label">Ashara Miqaat</span><span class="value"><?php echo isset($calendar_summary['ashara']) ? (int)$calendar_summary['ashara'] : (int)$sum_ashara; ?></span></div>
       <div class="stat-card shehrullah"><span class="label">Shehrullah Miqaat</span><span class="value"><?php echo isset($calendar_summary['shehrullah']) ? (int)$calendar_summary['shehrullah'] : (int)$sum_shehrullah; ?></span></div>
@@ -346,6 +447,8 @@
       <div class="stat-card individual"><span class="label">Individual Niyaaz</span><span class="value"><?php echo isset($calendar_summary['individual']) ? (int)$calendar_summary['individual'] : (int)$sum_individual; ?></span></div>
       <div class="stat-card group"><span class="label">Group Niyaaz</span><span class="value"><?php echo isset($calendar_summary['group']) ? (int)$calendar_summary['group'] : (int)$sum_group; ?></span></div>
       <div class="stat-card fnn"><span class="label">Fala ni Niyaaz</span><span class="value"><?php echo isset($calendar_summary['fnn']) ? (int)$calendar_summary['fnn'] : (int)$sum_fnn; ?></span></div>
+      <div class="stat-card contributors"><span class="label text-center">Individual Contributors</span><span class="value"><?php echo (int)$sum_individual_contributors; ?></span></div>
+      <div class="stat-card noncontrib"><span class="label text-center">Fala Contributors</span><span class="value"><?php echo (int)$non_contributors; ?></span></div>
     </div>
   </div>
   <div class="miqaat-list-container">
@@ -492,20 +595,32 @@
                       <td data-sort-value="<?php echo htmlspecialchars(strtolower($miqaat['type']), ENT_QUOTES); ?>"><?php echo $miqaat['type']; ?></td>
                       <td>
                         <?php if (!empty($miqaat['assignments'])): ?>
-                          <?php foreach ($miqaat['assignments'] as $assignment): ?>
-                            <?php if (isset($assignment['assign_type']) && $assignment['assign_type'] === "Group"): ?>
-                              <strong>Group: <?php echo $assignment['group_name'] ?></strong><br><br><strong>Leader:</strong> <?php echo $assignment['group_leader_name']; ?> (<?php echo $assignment['group_leader_id']; ?>)
-                              <?php if (!empty($assignment['members'])): ?>
-                                <br><br>
-                                <strong>Co-leader:</strong>
-                                <?php foreach ($assignment['members'] as $member): ?>
-                                  <?php echo $member['name'] ?> (<?php echo $member['id'] ?>)
-                                <?php endforeach; ?>
-                              <?php endif; ?>
-                            <?php elseif (isset($assignment['assign_type']) && $assignment['assign_type'] === "Individual"): ?>
-                              <?php echo $assignment['member_name'] ?> (<?php echo $assignment['member_id'] ?>)<br>
+                          <?php
+                          $groupAssignments = [];
+                          $individualAssignments = [];
+                          foreach ($miqaat['assignments'] as $assignment) {
+                            $atype = isset($assignment['assign_type']) ? strtolower($assignment['assign_type']) : '';
+                            if ($atype === 'group') $groupAssignments[] = $assignment;
+                            elseif ($atype === 'individual') $individualAssignments[] = $assignment;
+                          }
+                          ?>
+                          <?php foreach ($groupAssignments as $assignment): ?>
+                            <strong>Group: <?php echo $assignment['group_name'] ?></strong><br><br><strong>Leader:</strong> <?php echo $assignment['group_leader_name']; ?> (<?php echo $assignment['group_leader_id']; ?>)
+                            <?php if (!empty($assignment['members'])): ?>
+                              <br><br>
+                              <strong>Co-leader:</strong>
+                              <?php foreach ($assignment['members'] as $member): ?>
+                                <?php echo $member['name'] ?> (<?php echo $member['id'] ?>)
+                              <?php endforeach; ?>
                             <?php endif; ?>
                           <?php endforeach; ?>
+
+                          <?php if (!empty($individualAssignments)): ?>
+                            <strong>Individual:</strong><br>
+                            <?php foreach ($individualAssignments as $ass): ?>
+                              <?php echo htmlspecialchars($ass['member_name'] ?? '', ENT_QUOTES) ?> (<?php echo htmlspecialchars($ass['member_id'] ?? '', ENT_QUOTES) ?>)<br>
+                            <?php endforeach; ?>
+                          <?php endif; ?>
                         <?php else: ?>
                           <?php
                           $assignedTo = isset($miqaat['assigned_to']) ? trim($miqaat['assigned_to']) : '';
@@ -746,4 +861,15 @@
     }
   })();
   // End sortable headers
+</script>
+<script>
+  // Print button handler: open native print dialog for the miqaat list
+  (function() {
+    var $btn = document.getElementById('print-table-btn');
+    if (!$btn) return;
+    $btn.addEventListener('click', function() {
+      // Small delay to allow any UI changes to settle (if needed)
+      setTimeout(function() { window.print(); }, 50);
+    });
+  })();
 </script>

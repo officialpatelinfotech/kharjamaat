@@ -1,15 +1,33 @@
 <?php
-// Initial month and year
-$month = isset($_GET['month']) ? intval($_GET['month']) : date('n');
-$year = isset($_GET['year']) ? intval($_GET['year']) : date('Y');
+// Initial Hijri month and year (fallback to today's Hijri date)
+$ci = get_instance();
+$ci->load->model('HijriCalendar');
 
-// Function to generate the calendar HTML
-function generateCalendar($month, $year, $user_appointments)
+$today_greg = date('Y-m-d');
+$today_hijri = $ci->HijriCalendar->get_hijri_parts_by_greg_date($today_greg);
+
+$hijri_month = isset($_GET['hijri_month']) ? intval($_GET['hijri_month']) : (int)($today_hijri['hijri_month'] ?? 0);
+$hijri_year = isset($_GET['hijri_year']) ? intval($_GET['hijri_year']) : (int)($today_hijri['hijri_year'] ?? 0);
+
+// Safety fallback if Hijri lookup missing
+if (empty($hijri_month) || empty($hijri_year)) {
+  $hijri_month = 1;
+  $hijri_year = 1440;
+}
+
+// Function to generate the calendar HTML (Hijri month view)
+function generateCalendar($hijri_month, $hijri_year, $user_appointments)
 {
-  $startDate = new DateTime("$year-$month-01");
-  $endDate = (clone $startDate)->modify('last day of this month');
+  $ci = get_instance();
+  $ci->load->model('HijriCalendar');
+  $hijri_month_padded = str_pad((string)(int)$hijri_month, 2, '0', STR_PAD_LEFT);
 
-  // Get current date for highlighting
+  $days = $ci->HijriCalendar->get_hijri_days_for_month_year($hijri_month_padded, (string)(int)$hijri_year);
+
+  $month_row = $ci->HijriCalendar->hijri_month_name((int)$hijri_month);
+  $hijri_month_name = $month_row ? $month_row['hijri_month'] : $hijri_month_padded;
+
+  // Get current date for highlighting (greg)
   $today = new DateTime();
 
   ob_start(); // Start output buffering
@@ -33,7 +51,13 @@ function generateCalendar($month, $year, $user_appointments)
         <button type="button" onclick="changeMonth(-1)" class="nav-btn" aria-label="Previous month" title="Previous month">
           <i class="fas fa-chevron-left" aria-hidden="true"></i>
         </button>
-        <div id="month-year" class="month-pill" aria-live="polite"><?php echo $startDate->format('F Y'); ?></div>
+        <div
+          id="month-year"
+          class="month-pill"
+          aria-live="polite"
+          data-hijri-month="<?php echo (int)$hijri_month; ?>"
+          data-hijri-year="<?php echo (int)$hijri_year; ?>"
+        ><?php echo htmlspecialchars($hijri_month_name . ' ' . $hijri_year, ENT_QUOTES); ?></div>
         <button type="button" onclick="changeMonth(1)" class="nav-btn" aria-label="Next month" title="Next month">
           <i class="fas fa-chevron-right" aria-hidden="true"></i>
         </button>
@@ -53,24 +77,43 @@ function generateCalendar($month, $year, $user_appointments)
         </thead>
         <tbody>
           <?php
-          $currentDate = clone $startDate;
           echo '<tr>';
-          for ($i = 0; $i < $currentDate->format('w'); $i++) {
-            echo '<td></td>';
-          }
-          while ($currentDate <= $endDate) {
-            $isToday = ($currentDate->format('Y-m-d') == $today->format('Y-m-d')) ? 'today' : '';
-            echo '<td class="' . $isToday . '">';
-            $formattedDate = $currentDate->format('Y-m-d');
-            echo '<a href="' . site_url('accounts/time_slots?date=' . $formattedDate) . '" class="date-link">' . $currentDate->format('j') . '</a>';
-            echo '</td>';
-            if ($currentDate->format('w') == 6) {
-              echo '</tr><tr>';
+          if (empty($days)) {
+            echo '<td colspan="7" class="text-muted">Hijri calendar data not available for this month.</td>';
+          } else {
+            $firstGreg = new DateTime($days[0]['greg_date']);
+            $startWeekday = (int)$firstGreg->format('w');
+            for ($i = 0; $i < $startWeekday; $i++) {
+              echo '<td></td>';
             }
-            $currentDate->modify('+1 day');
-          }
-          for ($i = $currentDate->format('w'); $i < 7; $i++) {
-            echo '<td></td>';
+
+            foreach ($days as $d) {
+              $greg = $d['greg_date'];
+              $isToday = ($greg === $today->format('Y-m-d')) ? 'today' : '';
+              $gregDt = new DateTime($greg);
+              $hijriDay = ltrim((string)($d['day'] ?? ''), '0');
+              if ($hijriDay === '') $hijriDay = (string)($d['day'] ?? '');
+
+              echo '<td class="' . $isToday . '">';
+              echo '<a href="' . site_url('accounts/time_slots?date=' . $greg) . '" class="date-link">'
+                . '<div class="hijri-day">' . htmlspecialchars($hijriDay, ENT_QUOTES) . '</div>'
+                . '<div class="greg-day">' . htmlspecialchars($gregDt->format('j M Y'), ENT_QUOTES) . '</div>'
+                . '</a>';
+              echo '</td>';
+
+              if ((int)$gregDt->format('w') === 6) {
+                echo '</tr><tr>';
+              }
+            }
+
+            // Pad last week
+            $lastGreg = new DateTime(end($days)['greg_date']);
+            $endWeekday = (int)$lastGreg->format('w');
+            if ($endWeekday !== 6) {
+              for ($i = $endWeekday + 1; $i < 7; $i++) {
+                echo '<td></td>';
+              }
+            }
           }
           echo '</tr>';
           ?>
@@ -151,6 +194,16 @@ function generateCalendar($month, $year, $user_appointments)
   return ob_get_clean(); // Return the buffer content and clean the buffer
 }
   ?>
+
+<?php
+// Support month navigation AJAX: return only the calendar HTML when partial=1
+// (Controller should skip rendering the header in this mode.)
+if (isset($_GET['partial']) && $_GET['partial'] == '1') {
+  echo generateCalendar($hijri_month, $hijri_year, $user_appointments);
+  return;
+}
+?>
+
   </div>
 
 
@@ -218,6 +271,19 @@ function generateCalendar($month, $year, $user_appointments)
         padding: 8px;
         border-radius: 4px;
         font-weight: bold;
+        line-height: 1.1;
+      }
+
+      .date-link .hijri-day {
+        font-size: 16px;
+        font-weight: 800;
+      }
+
+      .date-link .greg-day {
+        font-size: 12px;
+        font-weight: 600;
+        opacity: 0.75;
+        margin-top: 2px;
       }
 
       .date-link:hover {
@@ -393,18 +459,19 @@ function generateCalendar($month, $year, $user_appointments)
 
   <body>
 
-    <div id="calendar-content">
-      <?php echo generateCalendar($month, $year, $user_appointments); ?>
+      <div id="calendar-content">
+      <?php echo generateCalendar($hijri_month, $hijri_year, $user_appointments); ?>
     </div>
 
     <script>
       function changeMonth(offset) {
-        const currentMonthYear = document.getElementById('month-year').innerText;
-        const [currentMonth, currentYear] = currentMonthYear.split(' ');
-        let month = new Date(Date.parse(currentMonth + " 1, 2012")).getMonth() + 1; // Get current month number
-        month += offset;
-        let year = parseInt(currentYear);
+        const el = document.getElementById('month-year');
+        if (!el) return;
+        let month = parseInt(el.dataset.hijriMonth || '0', 10);
+        let year = parseInt(el.dataset.hijriYear || '0', 10);
+        if (!month || !year) return;
 
+        month += offset;
         if (month < 1) {
           month = 12;
           year -= 1;
@@ -413,11 +480,11 @@ function generateCalendar($month, $year, $user_appointments)
           year += 1;
         }
 
-        // Fetch new calendar data
-        fetch(`?month=${month}&year=${year}`)
+        // Fetch new calendar HTML (partial)
+        fetch(`?hijri_month=${month}&hijri_year=${year}&partial=1`)
           .then(response => response.text())
-          .then(data => {
-            document.getElementById('calendar-content').innerHTML = data;
+          .then(html => {
+            document.getElementById('calendar-content').innerHTML = html;
           })
           .catch(error => console.error('Error fetching calendar data:', error));
       }

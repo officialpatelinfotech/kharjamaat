@@ -130,8 +130,21 @@
   </div>
   <h4 class="text-center mb-4">Available Time Slots for
   </h4>
-  <h5 class="text-center mb-4 font-italic" style="color: #ad7e05;"><?php echo date('D, d M Y', strtotime($date)); ?>
+  <?php
+  // Resolve Hijri date for the displayed Gregorian date
+  $ci = get_instance();
+  $ci->load->model('HijriCalendar');
+  $hparts = $ci->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d', strtotime($date)));
+  $hijri_label = '';
+  if (!empty($hparts)) {
+    $hijri_label = htmlspecialchars($hparts['hijri_day'] . ' ' . $hparts['hijri_month_name'] . ' ' . $hparts['hijri_year'], ENT_QUOTES);
+  }
+  ?>
+  <h5 class="text-center mb-2 font-italic" style="color: #ad7e05;"><?php echo date('D, d M Y', strtotime($date)); ?>
   </h5>
+  <?php if ($hijri_label !== ''): ?>
+    <h5 class="text-center mb-4 font-italic" style="color:#333;font-weight:700;">Hijri: <?php echo $hijri_label; ?></h5>
+  <?php endif; ?>
 
   <div class="time-slots-container">
     <?php if (is_array($time_slots) && !empty($time_slots['time_slots'])): ?>
@@ -175,6 +188,7 @@
               <label for="appointment_purpose">Select purpose</label>
               <select class="form-control" id="appointment_purpose" name="purpose" required>
                 <option value="">-- Select --</option>
+                <option>Wajebaat Takhmeen</option>
                 <option>Miqaat Raza</option>
                 <option>Kaaraj Raza</option>
                 <option>Safai Chitthi</option>

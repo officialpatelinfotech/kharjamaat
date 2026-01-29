@@ -2595,7 +2595,7 @@ class Common extends CI_Controller
         $parts = explode('-', $hijri_today['hijri_date']);
         $hmon = isset($parts[1]) ? $parts[1] : '';
         $hyr = isset($parts[2]) ? (int) $parts[2] : 0;
-        if ($hmon >= '01' && $hmon <= '08') {
+        if ($hmon >= '01' && $hmon <= '06') {
           $year_start = $hyr - 1;
         } else {
           $year_start = $hyr;
@@ -2608,6 +2608,8 @@ class Common extends CI_Controller
     } else {
       $data['selected_hijri_year'] = '';
     }
+
+    // echo json_encode($data['selected_hijri_year']);exit;
 
     // Years for dropdown
     // Prefer distinct years actually present in `sabeel_takhmeen`; fall back to calendar list
@@ -2648,7 +2650,20 @@ class Common extends CI_Controller
     $amount_zero = $this->input->get_post('amount_zero');
     if (!$year) {
       // Force default Hijri financial year start to 1446 as requested
-      $year = 1446;
+      // $year = 1447;
+    }
+
+    $today = date('Y-m-d');
+    $hijri_today = $this->HijriCalendar->get_hijri_date($today);
+    if ($hijri_today && isset($hijri_today['hijri_date'])) {
+      $parts = explode('-', $hijri_today['hijri_date']);
+      $hmon = isset($parts[1]) ? $parts[1] : '';
+      $hyr = isset($parts[2]) ? (int) $parts[2] : 0;
+      if ($hmon >= '01' && $hmon <= '06') {
+        $year = $hyr - 1;
+      } else {
+        $year = $hyr;
+      }
     }
     $data['users'] = $this->CommonM->get_sabeel_user_details($year, null, $name_filter, $amount_zero);
     $data['hijri_years'] = $this->HijriCalendar->get_distinct_hijri_years();

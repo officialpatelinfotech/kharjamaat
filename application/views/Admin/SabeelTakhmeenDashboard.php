@@ -31,7 +31,7 @@
             }
           }
           if ($hy > 0) {
-            if ($hm >= 9) { $sy = $hy; $ey = $hy + 1; }
+            if ($hm >= 7) { $sy = $hy; $ey = $hy + 1; }
             else { $sy = $hy - 1; $ey = $hy; }
             $hdrComposite = $sy . '-' . substr((string)$ey, -2);
           }
@@ -91,7 +91,7 @@
           }
         }
         if ($hYear > 0) {
-          if ($hMonth >= 9) { $startYear = $hYear; $endYear = $hYear + 1; }
+          if ($hMonth >= 7) { $startYear = $hYear; $endYear = $hYear + 1; }
           else { $startYear = $hYear - 1; $endYear = $hYear; }
           $currentCompositeYear = $startYear . '-' . substr((string)$endYear, -2);
         } else {

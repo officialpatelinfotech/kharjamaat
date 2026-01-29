@@ -290,7 +290,7 @@ class Amilsaheb extends CI_Controller
       if (count($parts) === 3) {
         $m = str_pad($parts[1], 2, '0', STR_PAD_LEFT);
         $y = $parts[2];
-        if ($m >= '01' && $m <= '08') {
+        if ($m >= '01' && $m <= '06') {
           $y1 = intval($y) - 1;
           $y2 = substr($y, -2);
           $takhmeen_year_current = sprintf('%d-%s', $y1, $y2);

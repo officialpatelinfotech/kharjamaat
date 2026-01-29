@@ -2772,7 +2772,7 @@ class Anjuman extends CI_Controller
       $hm = isset($parts[1]) ? str_pad($parts[1], 2, '0', STR_PAD_LEFT) : null;
       $hy = isset($parts[2]) ? (int)$parts[2] : null;
       if ($hy) {
-        if ($hm >= '09' && $hm <= '12') {
+        if ($hm >= '07' && $hm <= '12') {
           $currentCompositeYear = sprintf('%d-%s', $hy, substr($hy + 1, -2));
         } else {
           $currentCompositeYear = sprintf('%d-%s', $hy - 1, substr($hy, -2));

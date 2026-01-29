@@ -14,12 +14,12 @@ $years = isset($hijri_years) ? $hijri_years : [];
 // Default to current financial Hijri year on initial load: pick latest available year
 if ($selectedYear === '' && !empty($years)) {
   // Prefer entries already in financial-year format like "1446-47"
-  $rangeYears = array_filter($years, function($y) {
+  $rangeYears = array_filter($years, function ($y) {
     return is_string($y) && preg_match('/^\d{4}-\d{2}$/', $y);
   });
   if (!empty($rangeYears)) {
     // Sort by the starting year numerically and pick the latest
-    usort($rangeYears, function($a, $b) {
+    usort($rangeYears, function ($a, $b) {
       $sa = (int)substr($a, 0, 4);
       $sb = (int)substr($b, 0, 4);
       return $sa <=> $sb;
@@ -42,15 +42,19 @@ if ($selectedYear === '' && !empty($years)) {
 <?php
 // Small helper to format numbers in Indian (INR) grouping: 1,23,45,678
 if (!function_exists('format_inr')) {
-  function format_inr($number, $decimals = 0) {
+  function format_inr($number, $decimals = 0)
+  {
     $number = round((float)$number, $decimals);
     $sign = '';
-    if ($number < 0) { $sign = '-'; $number = abs($number); }
+    if ($number < 0) {
+      $sign = '-';
+      $number = abs($number);
+    }
     $parts = explode('.', number_format($number, $decimals, '.', ''));
     $int = $parts[0];
     $last3 = substr($int, -3);
     $rest = substr($int, 0, -3);
-    if ($rest !== false && $rest !== '' ) {
+    if ($rest !== false && $rest !== '') {
       $rest = preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', $rest) . ',';
     } else {
       $rest = '';
@@ -64,7 +68,8 @@ if (!function_exists('format_inr')) {
 }
 // Explicit helper to enforce no decimals consistently
 if (!function_exists('format_inr_no_decimals')) {
-  function format_inr_no_decimals($number) {
+  function format_inr_no_decimals($number)
+  {
     return format_inr((int)round((float)$number), 0);
   }
 }
@@ -119,19 +124,19 @@ if (!function_exists('format_inr_no_decimals')) {
       <?php endif; ?>
       <div class="col-12 col-sm-auto">
         <div class="d-flex align-items-center">
-              <label for="hijri_year" class="form-label me-2 mr-2 mb-0" style="white-space: nowrap;">Hijri&nbsp;Year</label>
+          <label for="hijri_year" class="form-label me-2 mr-2 mb-0" style="white-space: nowrap;">Hijri&nbsp;Year</label>
           <select name="hijri_year" id="hijri_year" class="form-control form-select" style="min-width: 160px;" onchange="document.getElementById('yearFilterForm').submit();">
             <?php foreach ($years as $y): ?>
               <?php
-                $isRange = is_string($y) && preg_match('/^\d{4}-\d{2}$/', $y);
-                if ($isRange) {
-                  $optVal = (string)$y;
-                  $optLabel = (string)$y;
-                } else {
-                  $ys = (int)$y;
-                  $optVal = sprintf('%d-%02d', $ys, ($ys + 1) % 100);
-                  $optLabel = $optVal;
-                }
+              $isRange = is_string($y) && preg_match('/^\d{4}-\d{2}$/', $y);
+              if ($isRange) {
+                $optVal = (string)$y;
+                $optLabel = (string)$y;
+              } else {
+                $ys = (int)$y;
+                $optVal = sprintf('%d-%02d', $ys, ($ys + 1) % 100);
+                $optLabel = $optVal;
+              }
               ?>
               <option value="<?php echo htmlspecialchars($optVal); ?>" <?php echo ($selectedYear == $optVal) ? 'selected' : ''; ?>><?php echo htmlspecialchars($optLabel); ?></option>
             <?php endforeach; ?>
@@ -173,13 +178,13 @@ if (!function_exists('format_inr_no_decimals')) {
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($estBreakdown as $row): 
-              $g = isset($row['grade']) ? trim((string)$row['grade']) : '';
-              $amt = isset($row['est_total']) ? (float)$row['est_total'] : (isset($row['est_total']) ? (float)$row['est_total'] : 0.0);
-              $due_amt = isset($row['est_due']) ? (float)$row['est_due'] : 0.0;
-              if ($g === '' || strcasecmp($g,'no grade') === 0 || strcasecmp($g,'unknown') === 0) continue; // skip unknown grade
-              if ($amt <= 0 && $due_amt <= 0) continue; // skip zero amount rows
-            ?>
+          <?php foreach ($estBreakdown as $row):
+            $g = isset($row['grade']) ? trim((string)$row['grade']) : '';
+            $amt = isset($row['est_total']) ? (float)$row['est_total'] : (isset($row['est_total']) ? (float)$row['est_total'] : 0.0);
+            $due_amt = isset($row['est_due']) ? (float)$row['est_due'] : 0.0;
+            if ($g === '' || strcasecmp($g, 'no grade') === 0 || strcasecmp($g, 'unknown') === 0) continue; // skip unknown grade
+            if ($amt <= 0 && $due_amt <= 0) continue; // skip zero amount rows
+          ?>
             <tr>
               <td><?= htmlspecialchars($g) ?></td>
               <td><?= '₹' . format_inr_no_decimals($amt) ?></td>
@@ -203,13 +208,13 @@ if (!function_exists('format_inr_no_decimals')) {
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($resBreakdown as $row): 
-              $g = isset($row['grade']) ? trim((string)$row['grade']) : '';
-              $amt = isset($row['res_total']) ? (float)$row['res_total'] : 0.0;
-              $due_amt = isset($row['res_due']) ? (float)$row['res_due'] : 0.0;
-              if ($g === '' || strcasecmp($g,'no grade') === 0 || strcasecmp($g,'unknown') === 0) continue;
-              if ($amt <= 0 && $due_amt <= 0) continue;
-            ?>
+          <?php foreach ($resBreakdown as $row):
+            $g = isset($row['grade']) ? trim((string)$row['grade']) : '';
+            $amt = isset($row['res_total']) ? (float)$row['res_total'] : 0.0;
+            $due_amt = isset($row['res_due']) ? (float)$row['res_due'] : 0.0;
+            if ($g === '' || strcasecmp($g, 'no grade') === 0 || strcasecmp($g, 'unknown') === 0) continue;
+            if ($amt <= 0 && $due_amt <= 0) continue;
+          ?>
             <tr>
               <td><?= htmlspecialchars($g) ?></td>
               <td><?= '₹' . format_inr_no_decimals($amt) ?></td>
@@ -233,13 +238,13 @@ if (!function_exists('format_inr_no_decimals')) {
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($sectorBreakdown as $row): 
-              $sector = isset($row['sector']) ? trim((string)$row['sector']) : '';
-              $amt = isset($row['sector_total']) ? (float)$row['sector_total'] : 0.0;
-              $due_amt = isset($row['sector_due']) ? (float)$row['sector_due'] : 0.0;
-              if ($sector === '' || strcasecmp($sector,'unknown') === 0) continue;
-              if ($amt <= 0 && $due_amt <= 0) continue;
-            ?>
+          <?php foreach ($sectorBreakdown as $row):
+            $sector = isset($row['sector']) ? trim((string)$row['sector']) : '';
+            $amt = isset($row['sector_total']) ? (float)$row['sector_total'] : 0.0;
+            $due_amt = isset($row['sector_due']) ? (float)$row['sector_due'] : 0.0;
+            if ($sector === '' || strcasecmp($sector, 'unknown') === 0) continue;
+            if ($amt <= 0 && $due_amt <= 0) continue;
+          ?>
             <tr>
               <td><?= htmlspecialchars($sector) ?></td>
               <td><?= '₹' . format_inr_no_decimals($amt) ?></td>

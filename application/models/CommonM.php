@@ -3219,11 +3219,11 @@ class CommonM extends CI_Model
     if (isset($year) && !empty($year)) {
       $takhmeen_year_current = $year . "-" . substr($year + 1, -2);
     } else {
-      if ($current_hijri_month >= "01" && $current_hijri_month <= "08") {
+      if ($current_hijri_month >= "01" && $current_hijri_month <= "06") {
         $y1 = $current_hijri_year - 1;
         $y2 = substr($current_hijri_year, -2);
         $takhmeen_year_current = "$y1-$y2";
-      } else if ($current_hijri_month >= "09" && $current_hijri_month <= "12") {
+      } else if ($current_hijri_month >= "07" && $current_hijri_month <= "12") {
         $y1 = $current_hijri_year;
         $y2 = substr($current_hijri_year + 1, -2);
         $takhmeen_year_current = "$y1-$y2";

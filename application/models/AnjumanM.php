@@ -34,6 +34,164 @@ class AnjumanM extends CI_Model
     }
   }
 
+  // public function get_all_approved_past_miqaats($miqaat_type)
+  // {
+  //   $this->db->select("
+  //     m.id as miqaat_index,
+  //     m.miqaat_id,
+  //     m.name as miqaat_name,
+  //     m.type as miqaat_type,
+  //     m.date as miqaat_date,
+  //     m.assigned_to,
+  //     m.status as miqaat_status,
+
+  //     ma.id as assignment_id,
+  //     ma.assign_type,
+  //     ma.group_name,
+
+  //     u.ITS_ID, u.First_Name, u.Surname, u.Full_Name, u.Sector, u.Sub_Sector,
+
+  //     gl.ITS_ID as leader_ITS_ID, gl.Full_Name as leader_Full_Name,
+
+  //     r.id as raza_index, r.raza_id, r.status as raza_status, r.`Janab-status` as janab_status
+  //   ");
+  //   $this->db->from("miqaat m");
+  //   $this->db->join("miqaat_assignments ma", "ma.miqaat_id = m.id", "inner");
+  //   $this->db->join("user u", "u.ITS_ID = ma.member_id", "left");
+  //   $this->db->join("user gl", "gl.ITS_ID = ma.group_leader_id", "left");
+  //   $this->db->join("raza r", "r.miqaat_id = m.id 
+  //       AND (r.user_id = ma.member_id OR r.user_id = ma.group_leader_id)", "inner");
+  //   $this->db->join("miqaat_invoice inv", "inv.miqaat_id = m.id AND inv.raza_id = r.id", "left");
+
+  //   $this->db->where("inv.id IS NULL");
+  //   $this->db->where("m.date < CURDATE()");
+  //   $this->db->where("m.type", $miqaat_type);
+  //   $this->db->where("m.assigned_to !=", "Fala ni Niyaz");
+  //   $this->db->where("r.`Janab-status`", 1);
+
+  //   $this->db->order_by("m.date ASC, u.Full_Name ASC");
+  //   $normal_miqaats = $this->db->get()->result_array();
+
+  //   foreach ($normal_miqaats as &$row) {
+  //     $hijri = $this->HijriCalendar->get_hijri_date($row['miqaat_date']);
+  //     if ($hijri && isset($hijri['hijri_date'])) {
+  //       $parts = explode("-", $hijri['hijri_date']);
+  //       $day = $parts[0] ?? '';
+  //       $month_id = $parts[1] ?? '';
+  //       $year = $parts[2] ?? '';
+  //       $month_name = $this->HijriCalendar->hijri_month_name($month_id);
+  //       $row['hijri_date'] = trim($day . ' ' . ($month_name['hijri_month'] ?? '') . ' ' . $year);
+  //     } else {
+  //       $row['hijri_date'] = null;
+  //     }
+  //   }
+  //   unset($row);
+
+  //   $this->db->select("
+  //     m.id as miqaat_index,
+  //     m.miqaat_id,
+  //     m.name as miqaat_name,
+  //     m.type as miqaat_type,
+  //     m.date as miqaat_date,
+  //     m.assigned_to,
+  //     m.status as miqaat_status,
+
+  //     ma.id as assignment_id,
+  //     ma.assign_type,
+  //     ma.group_name,
+
+  //     u.ITS_ID, u.First_Name, u.Surname, u.Full_Name, u.Sector, u.Sub_Sector,
+
+  //     gl.ITS_ID as leader_ITS_ID, gl.Full_Name as leader_Full_Name,
+
+  //     r.id as raza_index, r.raza_id, r.status as raza_status, r.`Janab-status` as janab_status
+  //   ");
+  //   $this->db->from("miqaat m");
+  //   $this->db->join("miqaat_assignments ma", "ma.miqaat_id = m.id", "inner");
+  //   $this->db->join("user u", "u.ITS_ID = ma.member_id", "left");
+  //   $this->db->join("user gl", "gl.ITS_ID = ma.group_leader_id", "left");
+  //   $this->db->join("raza r", "r.miqaat_id = m.id 
+  //     AND (r.user_id = ma.member_id OR r.user_id = ma.group_leader_id)", "inner");
+  //   $this->db->join("miqaat_invoice inv", "inv.miqaat_id = m.id AND inv.raza_id = r.id", "left");
+
+  //   $this->db->where("inv.id IS NULL");
+  //   $this->db->where("m.date < CURDATE()");
+  //   $this->db->where("m.type", $miqaat_type);
+  //   $this->db->where("m.assigned_to", "Fala ni Niyaz");
+  //   $this->db->where("r.`Janab-status`", 1);
+  //   $this->db->order_by("m.date ASC, u.Full_Name ASC");
+
+  //   $fala_ni_niyaz = $this->db->get()->result_array();
+
+  //   $fala_grouped_by_year = [];
+
+  //   foreach ($fala_ni_niyaz as &$row) {
+  //     $hijri = $this->HijriCalendar->get_hijri_date($row['miqaat_date']);
+  //     if ($hijri && !empty($hijri['hijri_date'])) {
+  //       $parts = explode("-", $hijri['hijri_date']);
+  //       $day = $parts[0] ?? '';
+  //       $month_id = $parts[1] ?? '';
+  //       $year = $parts[2] ?? '';
+  //       $month_name = $this->HijriCalendar->hijri_month_name($month_id);
+  //       $row['hijri_date'] = trim($day . ' ' . ($month_name['hijri_month'] ?? '') . ' ' . $year);
+  //       $row['hijri_year'] = $year;
+  //     } else {
+  //       $row['hijri_date'] = null;
+  //       $row['hijri_year'] = null;
+  //     }
+
+  //     $miqaat_type = $row['miqaat_type'];
+  //     $hijri_year = $row['hijri_year'];
+
+  //     $result = $this->db->from('miqaat_invoice')
+  //       ->where('miqaat_type', $miqaat_type)
+  //       ->where('year', $hijri_year)
+  //       ->get();
+
+  //     $invoices = $result->result_array();
+
+  //     if (count($invoices) > 0) {
+  //       continue;
+  //     }
+
+  //     if ($row['hijri_year']) {
+  //       if (!isset($fala_grouped_by_year[$row['hijri_year']])) {
+  //         $fala_grouped_by_year[$row['hijri_year']] = [
+  //           'year'        => $row['hijri_year'],
+  //           'assigned_to' => 'Fala ni Niyaz',
+  //           'miqaats'     => [],
+  //           'count'       => 0,
+  //           'earliest_date' => $row['miqaat_date'],
+  //           'latest_date'   => $row['miqaat_date'],
+  //         ];
+  //       }
+
+  //       $fala_grouped_by_year[$row['hijri_year']]['miqaats'][] = $row;
+  //       $fala_grouped_by_year[$row['hijri_year']]['count']++;
+
+  //       if ($row['miqaat_date'] < $fala_grouped_by_year[$row['hijri_year']]['earliest_date']) {
+  //         $fala_grouped_by_year[$row['hijri_year']]['earliest_date'] = $row['miqaat_date'];
+  //       }
+  //       if ($row['miqaat_date'] > $fala_grouped_by_year[$row['hijri_year']]['latest_date']) {
+  //         $fala_grouped_by_year[$row['hijri_year']]['latest_date'] = $row['miqaat_date'];
+  //       }
+  //     }
+  //   }
+  //   unset($row);
+
+  //   if ($miqaat_type === "Shehrullah" || $miqaat_type === "Ashara") {
+  //     return [
+  //       'miqaats'        => $normal_miqaats,
+  //       'Fala_ni_Niyaz'  => array_values($fala_grouped_by_year)
+  //     ];
+  //   }
+
+  //   return [
+  //     'miqaats' => $normal_miqaats,
+  //     'Fala_ni_Niyaz' => $fala_ni_niyaz
+  //   ];
+  // }
+
   public function get_all_approved_past_miqaats($miqaat_type)
   {
     $this->db->select("

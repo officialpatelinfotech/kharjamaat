@@ -1,71 +1,199 @@
 <style>
-  .hidden { display:none; }
-  .all-years-badge { display:inline-block; font-size:12px; font-weight:600; padding:4px 8px; border-radius:14px; margin-top:4px; }
-  .all-years-badge.est { background:linear-gradient(135deg,#ffb347,#ff7b00); color:#222; box-shadow:0 0 0 1px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.15); }
-  .all-years-badge.res { background:linear-gradient(135deg,#7f9cff,#3456d1); color:#fff; box-shadow:0 0 0 1px rgba(255,255,255,0.2),0 1px 2px rgba(0,0,0,0.25); }
-  .all-years-badge.zero { background:#28a745; color:#fff; }
-  .all-years-badge .label { opacity:0.85; font-weight:500; }
-  .all-years-badge .value { font-weight:700; margin-left:2px; }
-  .due-wrapper { line-height:1.15; }
-  .due-wrapper small { display:block; }
-  .glow-pulse { position:relative; }
-  .glow-pulse::after { content:""; position:absolute; inset:0; border-radius:inherit; animation:glowPulse 2.2s ease-in-out infinite; }
-  @keyframes glowPulse { 0% { box-shadow:0 0 0 0 rgba(255,255,255,0.5);} 70% { box-shadow:0 0 0 8px rgba(255,255,255,0); } 100% { box-shadow:0 0 0 0 rgba(255,255,255,0);} }
+  .hidden {
+    display: none;
+  }
+
+  .all-years-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 14px;
+    margin-top: 4px;
+  }
+
+  .all-years-badge.est {
+    background: linear-gradient(135deg, #ffb347, #ff7b00);
+    color: #222;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .all-years-badge.res {
+    background: linear-gradient(135deg, #7f9cff, #3456d1);
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.25);
+  }
+
+  .all-years-badge.zero {
+    background: #28a745;
+    color: #fff;
+  }
+
+  .all-years-badge .label {
+    opacity: 0.85;
+    font-weight: 500;
+  }
+
+  .all-years-badge .value {
+    font-weight: 700;
+    margin-left: 2px;
+  }
+
+  .due-wrapper {
+    line-height: 1.15;
+  }
+
+  .due-wrapper small {
+    display: block;
+  }
+
+  .glow-pulse {
+    position: relative;
+  }
+
+  .glow-pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    animation: glowPulse 2.2s ease-in-out infinite;
+  }
+
+  @keyframes glowPulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5);
+    }
+
+    70% {
+      box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+    }
+
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+  }
+
   /* Sortable headers */
-  th.km-sortable { cursor:pointer; user-select:none; position:relative; }
-  th.km-sortable .sort-indicator { font-size:11px; margin-left:4px; color:#666; }
+  th.km-sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+  }
+
+  th.km-sortable .sort-indicator {
+    font-size: 11px;
+    margin-left: 4px;
+    color: #666;
+  }
+
   th.km-sortable[data-sort-dir="asc"] .sort-indicator,
-  th.km-sortable[data-sort-dir="desc"] .sort-indicator { color:#007bff; }
+  th.km-sortable[data-sort-dir="desc"] .sort-indicator {
+    color: #007bff;
+  }
+
   /* Distinct colors for current-year dues */
-  .est-due { color:#dc3545; font-weight:600; }
-  .res-due { color:#dc3545; font-weight:600; }
-  .due-wrapper .label-prefix { opacity:0.8; font-weight:500; margin-right:2px; }
+  .est-due {
+    color: #dc3545;
+    font-weight: 600;
+  }
+
+  .res-due {
+    color: #dc3545;
+    font-weight: 600;
+  }
+
+  .due-wrapper .label-prefix {
+    opacity: 0.8;
+    font-weight: 500;
+    margin-right: 2px;
+  }
+
   /* Scrollable table with sticky header (Sabeel dashboard) */
   .table-scroll-fixed {
     max-height: calc(100vh - 320px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .table-scroll-fixed table { width:100%; border-collapse: collapse; }
+
+  .table-scroll-fixed table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
   .table-scroll-fixed thead tr:first-child th {
     position: sticky;
     top: 0;
     z-index: 4;
     background: #f8fafc;
   }
+
   /* Prevent small year text from wrapping onto two lines */
-  .table-scroll-fixed td small { white-space: nowrap; }
+  .table-scroll-fixed td small {
+    white-space: nowrap;
+  }
+
   .table-scroll-fixed thead tr:nth-child(2) th {
     position: sticky;
-    top: 38px; /* offset to sit below the first header row */
+    top: 38px;
+    /* offset to sit below the first header row */
     z-index: 3;
     background: #f8fafc;
   }
-    /* Center Grade columns (Establishment and Residential) */
-    .table-scroll-fixed thead tr:nth-child(2) th:nth-child(5),
-    .table-scroll-fixed thead tr:nth-child(2) th:nth-child(9),
-    .table-scroll-fixed tbody td:nth-child(5),
-    .table-scroll-fixed tbody td:nth-child(9) {
-      text-align: center;
-      vertical-align: middle;
-    }
-    /* Center Action column (last column) both horizontally and vertically */
-    .table-scroll-fixed thead th:last-child,
-    .table-scroll-fixed tbody td:last-child {
-      text-align: center;
-      vertical-align: middle;
-    }
+
+  /* Center Grade columns (Establishment and Residential) */
+  .table-scroll-fixed thead tr:nth-child(2) th:nth-child(5),
+  .table-scroll-fixed thead tr:nth-child(2) th:nth-child(9),
+  .table-scroll-fixed tbody td:nth-child(5),
+  .table-scroll-fixed tbody td:nth-child(9) {
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  /* Center Action column (last column) both horizontally and vertically */
+  .table-scroll-fixed thead th:last-child,
+  .table-scroll-fixed tbody td:last-child {
+    text-align: center;
+    vertical-align: middle;
+  }
+
   /* Thick vertical separators around column groups */
-  .table-scroll-fixed table th, .table-scroll-fixed table td { border-color: #dee2e6; }
+  .table-scroll-fixed table th,
+  .table-scroll-fixed table td {
+    border-color: #dee2e6;
+  }
+
   /* Member Info group: cols 1-4 */
-  .table-scroll-fixed table th:first-child, .table-scroll-fixed table td:first-child { border-left: 2px solid #343a40; }
-  .table-scroll-fixed table th:nth-child(4), .table-scroll-fixed table td:nth-child(4) { border-right: 2px solid #343a40; }
+  .table-scroll-fixed table th:first-child,
+  .table-scroll-fixed table td:first-child {
+    border-left: 2px solid #343a40;
+  }
+
+  .table-scroll-fixed table th:nth-child(4),
+  .table-scroll-fixed table td:nth-child(4) {
+    border-right: 2px solid #343a40;
+  }
+
   /* Establishment group: cols 5-8 */
-  .table-scroll-fixed table th:nth-child(5), .table-scroll-fixed table td:nth-child(5) { border-left: 2px solid #343a40; }
-  .table-scroll-fixed table th:nth-child(8), .table-scroll-fixed table td:nth-child(8) { border-right: 2px solid #343a40; }
+  .table-scroll-fixed table th:nth-child(5),
+  .table-scroll-fixed table td:nth-child(5) {
+    border-left: 2px solid #343a40;
+  }
+
+  .table-scroll-fixed table th:nth-child(8),
+  .table-scroll-fixed table td:nth-child(8) {
+    border-right: 2px solid #343a40;
+  }
+
   /* Residential group: cols 9-12 */
-  .table-scroll-fixed table th:nth-child(9), .table-scroll-fixed table td:nth-child(9) { border-left: 2px solid #343a40; }
-  .table-scroll-fixed table th:nth-child(12), .table-scroll-fixed table td:nth-child(12) { border-right: 2px solid #343a40; }
+  .table-scroll-fixed table th:nth-child(9),
+  .table-scroll-fixed table td:nth-child(9) {
+    border-left: 2px solid #343a40;
+  }
+
+  .table-scroll-fixed table th:nth-child(12),
+  .table-scroll-fixed table td:nth-child(12) {
+    border-right: 2px solid #343a40;
+  }
 </style>
 <div class="margintopcontainer mx-2 mx-md-5 pt-5">
   <div class="p-0">
@@ -86,17 +214,17 @@
         <div class="col-12 col-md-3 mb-2">
           <label class="small text-muted m-0">Hijri Financial Year</label>
           <select name="sabeel_year" id="sabeel-year" class="form-control form-control-sm" onchange="this.form.submit()">
-            <?php 
-              $years = isset($hijri_years) && is_array($hijri_years) ? $hijri_years : [];
-              $sel = isset($selected_year) ? $selected_year : (isset($current_year) ? $current_year : '');
-              if (!empty($years)) {
-                foreach ($years as $y) {
-                  $isSel = ($sel === $y) ? 'selected' : '';
-                  echo '<option value=' . htmlspecialchars($y) . ' ' . $isSel . '>' . htmlspecialchars($y) . '</option>';
-                }
-              } else if (!empty($sel)) {
-                echo '<option value=' . htmlspecialchars($sel) . ' selected>' . htmlspecialchars($sel) . '</option>';
+            <?php
+            $years = isset($hijri_years) && is_array($hijri_years) ? $hijri_years : [];
+            $sel = isset($selected_year) ? $selected_year : (isset($current_year) ? $current_year : '');
+            if (!empty($years)) {
+              foreach ($years as $y) {
+                $isSel = ($sel === $y) ? 'selected' : '';
+                echo '<option value=' . htmlspecialchars($y) . ' ' . $isSel . '>' . htmlspecialchars($y) . '</option>';
               }
+            } else if (!empty($sel)) {
+              echo '<option value=' . htmlspecialchars($sel) . ' selected>' . htmlspecialchars($sel) . '</option>';
+            }
             ?>
           </select>
         </div>
@@ -109,35 +237,43 @@
   </div>
   <div class="table-scroll-fixed">
     <table class="table table-bordered table-striped">
-    <?php
+      <?php
       // Helper: Indian Rupee formatting (no decimals, Indian grouping)
-      if(!function_exists('inr_format')){
-        function inr_format($num){
-          if($num === null || $num === '' || !is_numeric($num)) return '';
-          $neg = $num < 0; $num = abs(floor($num));
-          $str = (string)$num; $len = strlen($str);
-          if($len <= 3) return ($neg?'-':'').'&#8377;'.$str;
-          $last3 = substr($str,-3); $rest = substr($str,0,$len-3);
+      if (!function_exists('inr_format')) {
+        function inr_format($num)
+        {
+          if ($num === null || $num === '' || !is_numeric($num)) return '';
+          $neg = $num < 0;
+          $num = abs(floor($num));
+          $str = (string)$num;
+          $len = strlen($str);
+          if ($len <= 3) return ($neg ? '-' : '') . '&#8377;' . $str;
+          $last3 = substr($str, -3);
+          $rest = substr($str, 0, $len - 3);
           $rest_rev = strrev($rest);
-          $rest_groups = str_split($rest_rev,2);
+          $rest_groups = str_split($rest_rev, 2);
           $rest_formatted = strrev(implode(',', $rest_groups));
-          return ($neg?'-':'').'&#8377;'.$rest_formatted.','.$last3;
+          return ($neg ? '-' : '') . '&#8377;' . $rest_formatted . ',' . $last3;
         }
       }
-      if(!function_exists('inr_digits')){
-        function inr_digits($num){
-          if($num === null || $num === '' || !is_numeric($num)) return '';
-          $neg = $num < 0; $num = abs(floor($num));
-          $str = (string)$num; $len = strlen($str);
-          if($len <= 3) return ($neg?'-':'').$str;
-          $last3 = substr($str,-3); $rest = substr($str,0,$len-3);
+      if (!function_exists('inr_digits')) {
+        function inr_digits($num)
+        {
+          if ($num === null || $num === '' || !is_numeric($num)) return '';
+          $neg = $num < 0;
+          $num = abs(floor($num));
+          $str = (string)$num;
+          $len = strlen($str);
+          if ($len <= 3) return ($neg ? '-' : '') . $str;
+          $last3 = substr($str, -3);
+          $rest = substr($str, 0, $len - 3);
           $rest_rev = strrev($rest);
-          $rest_groups = str_split($rest_rev,2);
+          $rest_groups = str_split($rest_rev, 2);
           $rest_formatted = strrev(implode(',', $rest_groups));
-          return ($neg?'-':'').$rest_formatted.','.$last3;
+          return ($neg ? '-' : '') . $rest_formatted . ',' . $last3;
         }
       }
-    ?>
+      ?>
       <thead>
         <tr>
           <th colspan="4" class="text-center">Member Info</th>
@@ -161,32 +297,34 @@
         </tr>
       </thead>
       <tbody>
-      <?php if(!empty($all_user_sabeel_takhmeen)): foreach($all_user_sabeel_takhmeen as $idx => $user):
-        $curr = $user['current_year_takhmeen'] ?? null;
-        $est = $curr['establishment'] ?? null;
-        $res = $curr['residential'] ?? null;
-        $estDue = $est ? max(0, (float)($est['yearly'] ?? 0) - (float)($est['paid'] ?? 0)) : 0;
-        $resDue = $res ? max(0, (float)($res['yearly'] ?? 0) - (float)($res['paid'] ?? 0)) : 0;
-        $yearLabel = $curr['year'] ?? '';
-        // Aggregated totals across all years already provided by model
-        $agg = $curr['aggregate'] ?? null;
-        $allEstDue = $user['total_establishment_due'] ?? null;
-        $allResDue = $user['total_residential_due'] ?? null;
-      ?>
+        <?php if (!empty($all_user_sabeel_takhmeen)): foreach ($all_user_sabeel_takhmeen as $idx => $user):
+            $curr = $user['current_year_takhmeen'] ?? null;
+            $est = $curr['establishment'] ?? null;
+            $res = $curr['residential'] ?? null;
+            $estDue = $est ? max(0, (float)($est['yearly'] ?? 0) - (float)($est['paid'] ?? 0)) : 0;
+            $resDue = $res ? max(0, (float)($res['yearly'] ?? 0) - (float)($res['paid'] ?? 0)) : 0;
+            $yearLabel = $curr['year'] ?? '';
+            // Aggregated totals across all years already provided by model
+            $agg = $curr['aggregate'] ?? null;
+            $allEstDue = $user['total_establishment_due'] ?? null;
+            $allResDue = $user['total_residential_due'] ?? null;
+        ?>
             <tr>
               <td><?php echo $idx + 1; ?></td>
               <td><?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?></td>
-              <td><?php 
-                $fullName = trim((string)($user['Full_Name'] ?? ''));
-                if($fullName === '') { $fullName = trim((string)($user['First_Name'] ?? '') . ' ' . (string)($user['Surname'] ?? '')); }
-                echo htmlspecialchars($fullName); 
-              ?></td>
+              <td><?php
+                  $fullName = trim((string)($user['Full_Name'] ?? ''));
+                  if ($fullName === '') {
+                    $fullName = trim((string)($user['First_Name'] ?? '') . ' ' . (string)($user['Surname'] ?? ''));
+                  }
+                  echo htmlspecialchars($fullName);
+                  ?></td>
               <td><?php echo htmlspecialchars(trim((string)($user['Sector'] ?? '') . ' - ' . (string)($user['Sub_Sector'] ?? ''))); ?></td>
               <td>
-                <?php 
-                  $estGrade = ($est && isset($est['grade'])) ? trim((string)$est['grade']) : '';
-                  $showEstGrade = ($estGrade !== '' && strcasecmp($estGrade,'no grade') !== 0 && strcasecmp($estGrade,'unknown') !== 0);
-                  echo $showEstGrade ? htmlspecialchars($estGrade) : '';
+                <?php
+                $estGrade = ($est && isset($est['grade'])) ? trim((string)$est['grade']) : '';
+                $showEstGrade = ($estGrade !== '' && strcasecmp($estGrade, 'no grade') !== 0 && strcasecmp($estGrade, 'unknown') !== 0);
+                echo $showEstGrade ? htmlspecialchars($estGrade) : '';
                 ?>
                 <br><small class="text-muted"><?php echo $yearLabel ? '(' . htmlspecialchars((string)$yearLabel) . ')' : ''; ?></small>
               </td>
@@ -198,9 +336,9 @@
                 <?php } else { ?>
                   0
                 <?php } ?>
-                <?php 
-                  $allEstVal = is_numeric($allEstDue) ? round($allEstDue) : 0;
-                  if ($allEstVal > 0 && $allEstVal != round($estDue)) { ?>
+                <?php
+                $allEstVal = is_numeric($allEstDue) ? round($allEstDue) : 0;
+                if ($allEstVal > 0 && $allEstVal != round($estDue)) { ?>
                   <span class="all-years-badge est glow-pulse" title="All outstanding across every year for Establishment Sabeel">
                     <span class="label">All Yrs</span>
                     <span class="value">&#8377;<?php echo inr_digits($allEstVal); ?></span>
@@ -208,24 +346,24 @@
                 <?php } ?>
               </td>
               <td>
-                <?php 
-                  $resGrade = ($res && isset($res['grade'])) ? trim((string)$res['grade']) : '';
-                  $showResGrade = ($resGrade !== '' && strcasecmp($resGrade,'no grade') !== 0 && strcasecmp($resGrade,'unknown') !== 0);
-                  echo $showResGrade ? htmlspecialchars($resGrade) : '';
+                <?php
+                $resGrade = ($res && isset($res['grade'])) ? trim((string)$res['grade']) : '';
+                $showResGrade = ($resGrade !== '' && strcasecmp($resGrade, 'no grade') !== 0 && strcasecmp($resGrade, 'unknown') !== 0);
+                echo $showResGrade ? htmlspecialchars($resGrade) : '';
                 ?>
                 <br><small class="text-muted"><?php echo $yearLabel ? '(' . htmlspecialchars((string)$yearLabel) . ')' : ''; ?></small>
               </td>
               <td class="takhmeen-amount"><?php echo ($res && is_numeric($res['monthly']) && $res['monthly'] > 0) ? inr_format(round($res['monthly'])) : ''; ?></td>
-                <td class="takhmeen-amount"><?php echo ($res && is_numeric($res['yearly']) && $res['yearly'] > 0) ? inr_format(round($res['yearly'])) : '0'; ?></td>
+              <td class="takhmeen-amount"><?php echo ($res && is_numeric($res['yearly']) && $res['yearly'] > 0) ? inr_format(round($res['yearly'])) : '0'; ?></td>
               <td class="takhmeen-amount due-wrapper">
                 <?php if ($res && $resDue > 0) { ?>
                   <span class="res-due"><?php echo inr_format(round($resDue)); ?></span>
                 <?php } else { ?>
                   0
                 <?php } ?>
-                <?php 
-                  $allResVal = is_numeric($allResDue) ? round($allResDue) : 0;
-                  if ($allResVal > 0 && $allResVal != round($resDue)) { ?>
+                <?php
+                $allResVal = is_numeric($allResDue) ? round($allResDue) : 0;
+                if ($allResVal > 0 && $allResVal != round($resDue)) { ?>
                   <span class="all-years-badge res glow-pulse" title="All outstanding across every year for Residential Sabeel">
                     <span class="label">All Yrs</span>
                     <span class="value">&#8377;<?php echo inr_digits($allResVal); ?></span>
@@ -245,7 +383,8 @@
                 </div>
               </td>
             </tr>
-          <?php endforeach; endif; ?>
+        <?php endforeach;
+        endif; ?>
       </tbody>
     </table>
   </div>
@@ -321,7 +460,7 @@
             <label class="small text-muted m-0">Min Date</label>
             <input type="date" id="history-filter-from" class="form-control form-control-sm" />
           </div>
-            <div class="mr-3 mb-2">
+          <div class="mr-3 mb-2">
             <label class="small text-muted m-0">Max Date</label>
             <input type="date" id="history-filter-to" class="form-control form-control-sm" />
           </div>
@@ -370,7 +509,7 @@
         </button>
       </div>
       <div class="modal-body">
-  <div id="vtm-summary" class="small mb-2 d-flex flex-column"></div>
+        <div id="vtm-summary" class="small mb-2 d-flex flex-column"></div>
         <div class="table-responsive">
           <table class="table table-sm table-bordered mb-0" id="vtm-table">
             <thead class="thead-light">
@@ -399,15 +538,15 @@
 </div>
 
 <script>
-  function formatAmounts(){
-    $(".takhmeen-amount").each(function(){
+  function formatAmounts() {
+    $(".takhmeen-amount").each(function() {
       const $cell = $(this);
       const $colored = $cell.find('.est-due, .res-due');
-      if($colored.length){
+      if ($colored.length) {
         const rawSpan = $colored.text().trim();
-        if(rawSpan !== '' && !isNaN(rawSpan)){
+        if (rawSpan !== '' && !isNaN(rawSpan)) {
           let n = Number(rawSpan);
-          if(!isNaN(n)){
+          if (!isNaN(n)) {
             n = Math.round(n);
             const formatted = "&#8377;" + new Intl.NumberFormat('en-IN').format(n);
             $colored.html(formatted);
@@ -416,15 +555,15 @@
         return; // preserve other cell content (badges, labels)
       }
       const raw = $cell.text().trim();
-      if(raw === '' || isNaN(raw)) return;
+      if (raw === '' || isNaN(raw)) return;
       let n = Number(raw);
-      if(isNaN(n)) return;
+      if (isNaN(n)) return;
       n = Math.round(n); // remove decimals
       const formatted = "&#8377;" + new Intl.NumberFormat('en-IN').format(n);
       $cell.html(formatted);
     });
   }
-  $(document).ready(function(){
+  $(document).ready(function() {
     formatAmounts();
     enableSabeelSorting();
   });
@@ -444,27 +583,36 @@
     $("#payment-remarks").val("");
     $('#update-payment-container').modal('show');
   }
-  $("#sabeel-type").on("change", function(){
+  $("#sabeel-type").on("change", function() {
     // Use all-years due if available; fallback to current year due
     const eDue = $(this).data("e-due-all") ?? $(this).data("e-due");
     const rDue = $(this).data("r-due-all") ?? $(this).data("r-due");
     const type = $(this).val();
-    if(type === 'establishment') { $("#payment-amount").prop("max", eDue); }
-    else if(type === 'residential') { $("#payment-amount").prop("max", rDue); }
+    if (type === 'establishment') {
+      $("#payment-amount").prop("max", eDue);
+    } else if (type === 'residential') {
+      $("#payment-amount").prop("max", rDue);
+    }
   });
 
-  let __historyCache = { rows: [], user: null };
+  let __historyCache = {
+    rows: [],
+    user: null
+  };
 
-  function formatCurrency(val){
-    if(val === null || val === '' || isNaN(val)) return '';
+  function formatCurrency(val) {
+    if (val === null || val === '' || isNaN(val)) return '';
     let n = Number(val);
-    if(isNaN(n)) return '';
+    if (isNaN(n)) return '';
     n = Math.round(n); // remove decimals universally
     return '&#8377;' + new Intl.NumberFormat('en-IN').format(n);
   }
-  function capType(txt){ return txt ? txt.charAt(0).toUpperCase() + txt.slice(1) : ''; }
 
-  function normalizeHistoryRows(rows){
+  function capType(txt) {
+    return txt ? txt.charAt(0).toUpperCase() + txt.slice(1) : '';
+  }
+
+  function normalizeHistoryRows(rows) {
     return rows.map(r => ({
       id: r.id,
       type: (r.type || '').toLowerCase(),
@@ -475,45 +623,57 @@
     }));
   }
 
-  function renderHistoryTable(){
+  function renderHistoryTable() {
     const typeFilter = ($('#history-filter-type').val() || '').toLowerCase();
     const from = $('#history-filter-from').val();
     const to = $('#history-filter-to').val();
 
     let filtered = __historyCache.rows.slice();
-    if(typeFilter){ filtered = filtered.filter(r => r.type === typeFilter); }
-    if(from){ filtered = filtered.filter(r => r.payment_date && r.payment_date >= from); }
-    if(to){ filtered = filtered.filter(r => r.payment_date && r.payment_date <= to); }
+    if (typeFilter) {
+      filtered = filtered.filter(r => r.type === typeFilter);
+    }
+    if (from) {
+      filtered = filtered.filter(r => r.payment_date && r.payment_date >= from);
+    }
+    if (to) {
+      filtered = filtered.filter(r => r.payment_date && r.payment_date <= to);
+    }
 
     const $tbody = $('#payment-history-rows');
     $tbody.empty();
-    if(!filtered.length){
+    if (!filtered.length) {
       $tbody.append('<tr><td colspan="7" class="text-center text-muted">No payments found for selected filters</td></tr>');
       $('#history-total-amount').html('');
       $('#payment-history-summary').addClass('d-none');
       return;
     }
 
-    let total = 0; let estTotal = 0; let resTotal = 0;
-    function fmtDate(d){
-      if(!d) return '';
+    let total = 0;
+    let estTotal = 0;
+    let resTotal = 0;
+
+    function fmtDate(d) {
+      if (!d) return '';
       // Expecting YYYY-MM-DD or ISO; parse safely
       const parts = d.split('T')[0].split('-');
-      if(parts.length === 3){
-        const yyyy = parts[0], mm = parts[1], dd = parts[2];
+      if (parts.length === 3) {
+        const yyyy = parts[0],
+          mm = parts[1],
+          dd = parts[2];
         return `${('0'+dd).slice(-2)}-${('0'+mm).slice(-2)}-${yyyy}`;
       }
       const dt = new Date(d);
-      if(isNaN(dt.getTime())) return '';
-      const dd = ('0'+dt.getDate()).slice(-2);
-      const mm = ('0'+(dt.getMonth()+1)).slice(-2);
+      if (isNaN(dt.getTime())) return '';
+      const dd = ('0' + dt.getDate()).slice(-2);
+      const mm = ('0' + (dt.getMonth() + 1)).slice(-2);
       const yyyy = dt.getFullYear();
       return `${dd}-${mm}-${yyyy}`;
     }
     filtered.forEach((p, i) => {
       const amt = Number(p.amount) || 0;
       total += amt;
-      if(p.type === 'establishment') estTotal += amt; else if(p.type === 'residential') resTotal += amt;
+      if (p.type === 'establishment') estTotal += amt;
+      else if (p.type === 'residential') resTotal += amt;
       $tbody.append(`<tr data-payment-id="${p.id}">
         <td>${i+1}</td>
         <td>${fmtDate(p.payment_date)}</td>
@@ -534,37 +694,48 @@
   }
 
   // Delegated handler for viewing invoice (PDF)
-  $(document).off('click','.view-invoice').on('click','.view-invoice', function(e){
+  $(document).off('click', '.view-invoice').on('click', '.view-invoice', function(e) {
     e.preventDefault();
     const paymentId = $(this).data('payment-id');
-    if(!paymentId) return;
+    if (!paymentId) return;
     $.ajax({
       url: "<?php echo base_url('common/generate_pdf'); ?>",
       type: 'POST',
-      data: { id: paymentId, for: 4 },
-      xhrFields: { responseType: 'blob' },
-      success: function(response){
-        const blob = new Blob([response], { type: 'application/pdf' });
+      data: {
+        id: paymentId,
+        for: 4
+      },
+      xhrFields: {
+        responseType: 'blob'
+      },
+      success: function(response) {
+        const blob = new Blob([response], {
+          type: 'application/pdf'
+        });
         const url = window.URL.createObjectURL(blob);
         window.open(url, '_blank');
       },
-      error: function(){ alert('Failed to generate invoice PDF'); }
+      error: function() {
+        alert('Failed to generate invoice PDF');
+      }
     });
   });
 
   // Delegated handler for deleting payment
-  $(document).off('click','.delete-payment').on('click','.delete-payment', function(e){
+  $(document).off('click', '.delete-payment').on('click', '.delete-payment', function(e) {
     e.preventDefault();
     const paymentId = $(this).data('payment-id');
-    if(!paymentId) return;
-    if(!confirm('Delete this payment? This cannot be undone.')) return;
+    if (!paymentId) return;
+    if (!confirm('Delete this payment? This cannot be undone.')) return;
     $.ajax({
       url: "<?php echo base_url('anjuman/deleteSabeelPayment'); ?>",
       type: 'POST',
-      data: { payment_id: paymentId },
+      data: {
+        payment_id: paymentId
+      },
       dataType: 'json',
-      success: function(res){
-        if(res && res.success){
+      success: function(res) {
+        if (res && res.success) {
           // Remove from cache
           __historyCache.rows = __historyCache.rows.filter(r => r.id != paymentId);
           renderHistoryTable();
@@ -572,7 +743,9 @@
           alert('Delete failed');
         }
       },
-      error: function(){ alert('Network error'); }
+      error: function() {
+        alert('Network error');
+      }
     });
   });
 
@@ -588,23 +761,27 @@
     $.ajax({
       url: "<?php echo base_url('anjuman/getPaymentHistory/2'); ?>",
       type: "POST",
-      data: { user_id },
+      data: {
+        user_id
+      },
       dataType: "json",
-      success: function(response){
+      success: function(response) {
         const rows = Array.isArray(response) ? response : [];
         __historyCache.rows = normalizeHistoryRows(rows);
         __historyCache.user = user_id;
         renderHistoryTable();
       },
-      error: function(){
+      error: function() {
         $('#payment-history-rows').html('<tr><td colspan="7" class="text-center text-danger">Error loading history</td></tr>');
       }
     });
     $('#payment-history-container').modal('show');
   }
 
-  $('#history-apply-filter').on('click', function(){ renderHistoryTable(); });
-  $('#history-reset-filter').on('click', function(){
+  $('#history-apply-filter').on('click', function() {
+    renderHistoryTable();
+  });
+  $('#history-reset-filter').on('click', function() {
     $('#history-filter-type').val('');
     $('#history-filter-from').val('');
     $('#history-filter-to').val('');
@@ -615,19 +792,23 @@
   window.openPaymentHistoryModal = openPaymentHistoryModal;
 
   // View all takhmeens
-  $(document).on('click', '.view-takhmeen', function(){
+  $(document).on('click', '.view-takhmeen', function() {
     const userId = $(this).data('user-id');
     const userName = $(this).data('user-name');
     let takhmeens = [];
-    try { takhmeens = JSON.parse($(this).attr('data-takhmeens')); } catch(e){ takhmeens = []; }
+    try {
+      takhmeens = JSON.parse($(this).attr('data-takhmeens'));
+    } catch (e) {
+      takhmeens = [];
+    }
     const $tbody = $('#vtm-table tbody');
     $tbody.empty();
-    if(!takhmeens.length){
+    if (!takhmeens.length) {
       $tbody.append('<tr><td colspan="8" class="text-center text-muted">No takhmeen records.</td></tr>');
     } else {
-  // Sort descending (latest year first)
-  takhmeens.sort((a,b) => b.year.localeCompare(a.year));
-      takhmeens.forEach((t,i)=>{
+      // Sort descending (latest year first)
+      takhmeens.sort((a, b) => b.year.localeCompare(a.year));
+      takhmeens.forEach((t, i) => {
         const estY = t.establishment && t.establishment.yearly ? Number(t.establishment.yearly) : 0;
         const estP = t.establishment && t.establishment.paid ? Number(t.establishment.paid) : 0;
         const estD = Math.max(0, Math.round(estY - Math.min(estP, estY)));
@@ -649,34 +830,46 @@
       });
     }
     // Compute totals across all years for dues (yearly - paid). If paid not present, assume unpaid.
-    let estYearlyTotal = 0, estPaidTotal = 0, resYearlyTotal = 0, resPaidTotal = 0;
+    let estYearlyTotal = 0,
+      estPaidTotal = 0,
+      resYearlyTotal = 0,
+      resPaidTotal = 0;
     takhmeens.forEach(t => {
-      if(t.establishment){
-        const y = Number(t.establishment.yearly || 0); const p = Number(t.establishment.paid || 0);
-        estYearlyTotal += y; estPaidTotal += Math.min(p,y);
+      if (t.establishment) {
+        const y = Number(t.establishment.yearly || 0);
+        const p = Number(t.establishment.paid || 0);
+        estYearlyTotal += y;
+        estPaidTotal += Math.min(p, y);
       }
-      if(t.residential){
-        const y = Number(t.residential.yearly || 0); const p = Number(t.residential.paid || 0);
-        resYearlyTotal += y; resPaidTotal += Math.min(p,y);
+      if (t.residential) {
+        const y = Number(t.residential.yearly || 0);
+        const p = Number(t.residential.paid || 0);
+        resYearlyTotal += y;
+        resPaidTotal += Math.min(p, y);
       }
     });
     const estDueTotal = Math.max(0, estYearlyTotal - estPaidTotal);
     const resDueTotal = Math.max(0, resYearlyTotal - resPaidTotal);
     const overallDue = estDueTotal + resDueTotal;
 
-    function f(n){ return new Intl.NumberFormat('en-IN').format(Math.round(n)); }
+    function f(n) {
+      return new Intl.NumberFormat('en-IN').format(Math.round(n));
+    }
     // Try to get current year takhmeen for precise current-year dues
-    let estCurrentDue = 0, resCurrentDue = 0;
+    let estCurrentDue = 0,
+      resCurrentDue = 0;
     if (takhmeens.length) {
       // current year assumed first element in descending list
       const cy = takhmeens[0];
       if (cy.establishment) {
-        const y = Number(cy.establishment.yearly || 0); const p = Number(cy.establishment.paid || 0);
-        estCurrentDue = Math.max(0, y - Math.min(p,y));
+        const y = Number(cy.establishment.yearly || 0);
+        const p = Number(cy.establishment.paid || 0);
+        estCurrentDue = Math.max(0, y - Math.min(p, y));
       }
       if (cy.residential) {
-        const y = Number(cy.residential.yearly || 0); const p = Number(cy.residential.paid || 0);
-        resCurrentDue = Math.max(0, y - Math.min(p,y));
+        const y = Number(cy.residential.yearly || 0);
+        const p = Number(cy.residential.paid || 0);
+        resCurrentDue = Math.max(0, y - Math.min(p, y));
       }
     }
     const btnDisabled = (estDueTotal + resDueTotal) <= 0 ? 'disabled' : '';
@@ -703,7 +896,7 @@
   });
 
   // Receive payment button inside View Takhmeens modal
-  $(document).on('click', '#vtm-receive-btn', function(){
+  $(document).on('click', '#vtm-receive-btn', function() {
     const $b = $(this);
     const userId = $b.data('user-id');
     const userName = $b.data('user-name');
@@ -718,54 +911,66 @@
   });
 
   // --- Sorting logic for main Sabeel Takhmeen table ---
-  function enableSabeelSorting(){
+  function enableSabeelSorting() {
     const table = document.querySelector('.margintopcontainer table.table');
-    if(!table) return;
+    if (!table) return;
     const headerRow = table.querySelectorAll('thead tr')[1]; // second header row
-    if(!headerRow) return;
+    if (!headerRow) return;
     const headers = headerRow.querySelectorAll('th.km-sortable');
     const tbody = table.querySelector('tbody');
-    if(!tbody) return;
-    function extractNumber(cell){
-      if(!cell) return 0;
+    if (!tbody) return;
+
+    function extractNumber(cell) {
+      if (!cell) return 0;
       // Remove label prefixes and currency symbol, keep first numeric sequence only
-      let text = cell.textContent.replace(/Est\.:|Res\.:/gi,'').replace(/₹/g,'').trim();
+      let text = cell.textContent.replace(/Est\.:|Res\.:/gi, '').replace(/₹/g, '').trim();
       // Stop at badge text if present (All Yrs) to avoid picking aggregate second number
       const badgeIndex = text.toLowerCase().indexOf('all yrs');
-      if(badgeIndex !== -1){
+      if (badgeIndex !== -1) {
         text = text.substring(0, badgeIndex).trim();
       }
       // Remove commas (Indian grouping) then extract first number
-      text = text.replace(/,/g,'');
+      text = text.replace(/,/g, '');
       const match = text.match(/[-+]?[0-9]+(?:\.[0-9]+)?/);
-      if(!match) return 0;
+      if (!match) return 0;
       const num = parseFloat(match[0]);
-      return isNaN(num)?0:num;
+      return isNaN(num) ? 0 : num;
     }
-    headers.forEach((th, colIndex)=>{
-      th.addEventListener('click', ()=>{
+    headers.forEach((th, colIndex) => {
+      th.addEventListener('click', () => {
         const currentDir = th.getAttribute('data-sort-dir');
         const newDir = currentDir === 'asc' ? 'desc' : 'asc';
-        headers.forEach(h=>{ if(h!==th){ h.removeAttribute('data-sort-dir'); const si=h.querySelector('.sort-indicator'); if(si) si.textContent=''; }});
-        th.setAttribute('data-sort-dir', newDir);
-        const ind = th.querySelector('.sort-indicator'); if(ind) ind.textContent = newDir==='asc'?'▲':'▼';
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        const sortType = th.getAttribute('data-sort-type') || 'string';
-        rows.sort((a,b)=>{
-          let aVal = a.children[colIndex];
-          let bVal = b.children[colIndex];
-          if(sortType==='number'){
-            aVal = extractNumber(aVal);
-            bVal = extractNumber(bVal);
-            return newDir==='asc'? aVal - bVal : bVal - aVal;
-          } else {
-            aVal = (aVal? aVal.textContent.trim().toLowerCase():'');
-            bVal = (bVal? bVal.textContent.trim().toLowerCase():'');
-            if(aVal===bVal) return 0;
-            return newDir==='asc'? (aVal < bVal ? -1 : 1) : (aVal > bVal ? -1 : 1);
+        headers.forEach(h => {
+          if (h !== th) {
+            h.removeAttribute('data-sort-dir');
+            const si = h.querySelector('.sort-indicator');
+            if (si) si.textContent = '';
           }
         });
-        rows.forEach((r,i)=>{ tbody.appendChild(r); const first=r.children[0]; if(first) first.textContent = i+1; });
+        th.setAttribute('data-sort-dir', newDir);
+        const ind = th.querySelector('.sort-indicator');
+        if (ind) ind.textContent = newDir === 'asc' ? '▲' : '▼';
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const sortType = th.getAttribute('data-sort-type') || 'string';
+        rows.sort((a, b) => {
+          let aVal = a.children[colIndex];
+          let bVal = b.children[colIndex];
+          if (sortType === 'number') {
+            aVal = extractNumber(aVal);
+            bVal = extractNumber(bVal);
+            return newDir === 'asc' ? aVal - bVal : bVal - aVal;
+          } else {
+            aVal = (aVal ? aVal.textContent.trim().toLowerCase() : '');
+            bVal = (bVal ? bVal.textContent.trim().toLowerCase() : '');
+            if (aVal === bVal) return 0;
+            return newDir === 'asc' ? (aVal < bVal ? -1 : 1) : (aVal > bVal ? -1 : 1);
+          }
+        });
+        rows.forEach((r, i) => {
+          tbody.appendChild(r);
+          const first = r.children[0];
+          if (first) first.textContent = i + 1;
+        });
       });
     });
   }

@@ -587,11 +587,11 @@ class AdminM extends CI_Model
         if (isset($filter_data["year"]) && !empty($filter_data["year"])) {
           $takhmeen_year = $filter_data["year"];
         } else {
-          if ($current_hijri_month >= "01" && $current_hijri_month <= "08") {
+          if ($current_hijri_month >= "01" && $current_hijri_month <= "06") {
             $y1 = $current_hijri_year - 1;
             $y2 = substr($current_hijri_year, -2);
             $takhmeen_year = "$y1-$y2";
-          } else if ($current_hijri_month >= "09" && $current_hijri_month <= "12") {
+          } else if ($current_hijri_month >= "07" && $current_hijri_month <= "12") {
             $y1 = $current_hijri_year;
             $y2 = substr($current_hijri_year + 1, -2);
             $takhmeen_year = "$y1-$y2";

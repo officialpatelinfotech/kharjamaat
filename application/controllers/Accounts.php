@@ -2994,6 +2994,11 @@ class Accounts extends CI_Controller
     $data['dates'] = $this->AccountM->get_dates();
     $data['user_appointments'] = $this->AccountM->get_user_appointments($data['user_name']);
 
+    // For month navigation fetches, return only the calendar markup
+    if ($this->input->get('partial') == '1') {
+      $this->load->view('Accounts/Appointment/Home', $data);
+      return;
+    }
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Appointment/Home', $data);
