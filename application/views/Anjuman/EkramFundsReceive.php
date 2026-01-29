@@ -208,6 +208,16 @@
           $('#vfFundsList').html('<div class="text-muted">No funds assigned.</div>');
           return;
         }
+        // Ensure funds are shown with most recent year first (descending)
+        funds.sort(function(a, b) {
+          var ay = a.hijri_year != null ? String(a.hijri_year) : (a.title != null ? String(a.title) : '');
+          var by = b.hijri_year != null ? String(b.hijri_year) : (b.title != null ? String(b.title) : '');
+          var an = parseInt(ay.replace(/[^0-9-]/g, ''), 10);
+          var bn = parseInt(by.replace(/[^0-9-]/g, ''), 10);
+          if (!isNaN(an) && !isNaN(bn)) return bn - an;
+          return String(by).localeCompare(String(ay));
+        });
+
         var html = '<div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Fund</th><th class="text-right">Assigned</th><th class="text-right">Paid</th><th class="text-right">Due</th><th></th></tr></thead><tbody>';
         funds.forEach(function(f) {
           var title = f.hijri_year ? f.hijri_year : (f.title || '-');
@@ -316,7 +326,12 @@
           var dueVal = Math.max(0, Math.round((h.assigned || 0) - (h.paid || 0)));
           var dueFmt = '₹' + dueVal.toLocaleString('en-IN');
           var actionBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-view-funds" data-hof-id="' + hid + '" data-hof-name="' + name + '">View Funds</button>';
-          var yearsArr = Array.from(h.fund_years).filter(Boolean);
+          var yearsArr = Array.from(h.fund_years).filter(Boolean).sort(function(a, b) {
+            var an = parseInt(String(a).replace(/[^0-9-]/g, ''), 10);
+            var bn = parseInt(String(b).replace(/[^0-9-]/g, ''), 10);
+            if (!isNaN(an) && !isNaN(bn)) return bn - an;
+            return String(b).localeCompare(String(a));
+          });
           var tr = '<tr data-fund-years="' + yearsArr.join(',') + '" data-its="' + (h.its_id || '') + '">';
           tr += '<td class="td-idx">' + (idx++) + '</td>';
           tr += '<td class="td-its">' + its + '</td>';
@@ -368,7 +383,12 @@
         var fundSelect = $('#filterFund');
         fundSelect.find('option:not(:first)').remove();
         Object.keys(fundMap).sort(function(a, b) {
-          return String(fundMap[b]).localeCompare(String(fundMap[a]));
+          var la = String(fundMap[a] || '');
+          var lb = String(fundMap[b] || '');
+          var na = parseInt(la.replace(/[^0-9-]/g, ''), 10);
+          var nb = parseInt(lb.replace(/[^0-9-]/g, ''), 10);
+          if (!isNaN(na) && !isNaN(nb)) return nb - na;
+          return String(lb).localeCompare(String(la));
         }).forEach(function(fid) {
           var opt = $('<option>').attr('value', fid).text(fundMap[fid]);
           fundSelect.append(opt);

@@ -88,6 +88,11 @@
 	.money-total { color: #0d6efd; }
 	.money-paid { color: #198754; }
 	.money-due { color: #dc3545; }
+
+	/* Scrollable students table and sortable headers */
+	.table-scroll { -webkit-overflow-scrolling: touch; }
+	.assigned-students-table thead th { cursor: pointer; }
+	.assigned-students-table thead th:after { content: '\25B4\25BE'; font-size:0.7rem; color:#c3c9d6; margin-left:6px; }
 </style>
 
 <div class="container-fluid mt-4 page-container">
@@ -141,7 +146,7 @@
 									<div class="money-label">Total To Be Collected</div>
 									<div class="money-value money-total">₹<?php echo htmlspecialchars($fmtMoney($financials['amount_to_collect'] ?? 0)); ?></div>
 								</div>
-								<div class="col-md-4">
+								<div class="col-md-4 text-center">
 									<div class="money-label">Total Paid</div>
 									<div class="money-value money-paid">₹<?php echo htmlspecialchars($fmtMoney($financials['amount_collected'] ?? 0)); ?></div>
 								</div>
@@ -160,28 +165,60 @@
 				<div class="card-body">
 					<?php if (empty($students)) { ?>
 						<p class="text-muted mb-0">No students assigned.</p>
-					<?php } else { ?>
-						<div class="table-responsive">
-							<table class="table table-striped mb-0">
-								<thead>
-									<tr>
-										<th style="width:140px">ITS ID</th>
-										<th>Name</th>
-									</tr>
-								</thead>
-								<tbody>
-									<?php foreach ($students as $s) { ?>
-										<tr>
-											<td><?php echo (int)$s['ITS_ID']; ?></td>
-											<td><?php echo htmlspecialchars((string)$s['Full_Name']); ?></td>
-										</tr>
-									<?php } ?>
-								</tbody>
-							</table>
-						</div>
-					<?php } ?>
+							<?php } else { ?>
+								<div class="table-scroll" style="max-height:320px; overflow:auto;">
+									<table class="table table-striped mb-0 assigned-students-table">
+										<thead>
+											<tr>
+												<th style="width:140px" data-type="number">ITS ID</th>
+												<th data-type="string">Name</th>
+											</tr>
+										</thead>
+										<tbody>
+											<?php foreach ($students as $s) { ?>
+												<tr>
+													<td><?php echo (int)$s['ITS_ID']; ?></td>
+													<td><?php echo htmlspecialchars((string)$s['Full_Name']); ?></td>
+												</tr>
+											<?php } ?>
+										</tbody>
+									</table>
+								</div>
+							<?php } ?>
 				</div>
 			</div>
 		</div>
 	</div>
 </div>
+<script>
+	(function() {
+		// Simple client-side sorting for Assigned Students table
+		var $table = $('.assigned-students-table');
+		if (!$table.length) return;
+		var $tbody = $table.find('tbody');
+		$table.find('th').each(function(col) {
+			var $th = $(this);
+			$th.on('click', function() {
+				var type = $th.data('type') || 'string';
+				var asc = !$th.data('asc');
+				$th.data('asc', asc);
+				$table.find('th').not($th).removeData('asc');
+				var rows = $tbody.find('tr').get();
+				rows.sort(function(a, b) {
+					var A = $(a).children().eq(col).text().trim();
+					var B = $(b).children().eq(col).text().trim();
+					if (type === 'number') {
+						var an = parseFloat(A.replace(/[^0-9.-]/g, '')) || 0;
+						var bn = parseFloat(B.replace(/[^0-9.-]/g, '')) || 0;
+						return asc ? an - bn : bn - an;
+					}
+					A = A.toLowerCase(); B = B.toLowerCase();
+					if (A < B) return asc ? -1 : 1;
+					if (A > B) return asc ? 1 : -1;
+					return 0;
+				});
+				$.each(rows, function(i, row) { $tbody.append(row); });
+			});
+		});
+	})();
+</script>
