@@ -108,7 +108,10 @@ class Common extends CI_Controller
           if (isset($as['assign_type']) && $as['assign_type'] === 'Group') {
             $leaderName = strtolower($as['group_leader_name'] ?? '');
             $groupName = strtolower($as['group_name'] ?? '');
+            $leaderId = strtolower((string)($as['group_leader_id'] ?? ''));
             if ($leaderName !== '' && strpos($leaderName, $memberFilter) !== false)
+              return true;
+            if ($leaderId !== '' && strpos($leaderId, $memberFilter) !== false)
               return true;
             if ($groupName !== '' && strpos($groupName, $memberFilter) !== false)
               return true;
@@ -117,11 +120,17 @@ class Common extends CI_Controller
                 $mname = strtolower($memb['name'] ?? '');
                 if ($mname !== '' && strpos($mname, $memberFilter) !== false)
                   return true;
+                $mid = strtolower((string)($memb['id'] ?? ''));
+                if ($mid !== '' && strpos($mid, $memberFilter) !== false)
+                  return true;
               }
             }
           } elseif (isset($as['assign_type']) && $as['assign_type'] === 'Individual') {
             $indName = strtolower($as['member_name'] ?? '');
             if ($indName !== '' && strpos($indName, $memberFilter) !== false)
+              return true;
+            $indId = strtolower((string)($as['member_id'] ?? ''));
+            if ($indId !== '' && strpos($indId, $memberFilter) !== false)
               return true;
           }
         }
@@ -844,7 +853,10 @@ class Common extends CI_Controller
           if (isset($as['assign_type']) && $as['assign_type'] === 'Group') {
             $leaderName = strtolower($as['group_leader_name'] ?? '');
             $groupName = strtolower($as['group_name'] ?? '');
+            $leaderId = strtolower((string)($as['group_leader_id'] ?? ''));
             if ($leaderName !== '' && strpos($leaderName, $memberFilter) !== false)
+              return true;
+            if ($leaderId !== '' && strpos($leaderId, $memberFilter) !== false)
               return true;
             if ($groupName !== '' && strpos($groupName, $memberFilter) !== false)
               return true;
@@ -853,11 +865,17 @@ class Common extends CI_Controller
                 $mname = strtolower($memb['name'] ?? '');
                 if ($mname !== '' && strpos($mname, $memberFilter) !== false)
                   return true;
+                $mid = strtolower((string)($memb['id'] ?? ''));
+                if ($mid !== '' && strpos($mid, $memberFilter) !== false)
+                  return true;
               }
             }
           } elseif (isset($as['assign_type']) && $as['assign_type'] === 'Individual') {
             $indName = strtolower($as['member_name'] ?? '');
             if ($indName !== '' && strpos($indName, $memberFilter) !== false)
+              return true;
+            $indId = strtolower((string)($as['member_id'] ?? ''));
+            if ($indId !== '' && strpos($indId, $memberFilter) !== false)
               return true;
           }
         }
@@ -977,19 +995,22 @@ class Common extends CI_Controller
               if (isset($as['assign_type']) && $as['assign_type'] === 'Group') {
                 $leaderName = strtolower($as['group_leader_name'] ?? '');
                 $groupName = strtolower($as['group_name'] ?? '');
-                if (strpos($leaderName, $memberFilter) !== false || strpos($groupName, $memberFilter) !== false) {
+                $leaderId = strtolower((string)($as['group_leader_id'] ?? ''));
+                if (strpos($leaderName, $memberFilter) !== false || strpos($groupName, $memberFilter) !== false || ($leaderId !== '' && strpos($leaderId, $memberFilter) !== false)) {
                   $match = true;
                 }
                 if (!$match && !empty($as['members'])) {
                   foreach ($as['members'] as $memb) {
-                    if (strpos(strtolower($memb['name'] ?? ''), $memberFilter) !== false) {
+                    $mid = strtolower((string)($memb['id'] ?? ''));
+                    if (strpos(strtolower($memb['name'] ?? ''), $memberFilter) !== false || ($mid !== '' && strpos($mid, $memberFilter) !== false)) {
                       $match = true;
                       break;
                     }
                   }
                 }
               } elseif (isset($as['assign_type']) && $as['assign_type'] === 'Individual') {
-                if (strpos(strtolower($as['member_name'] ?? ''), $memberFilter) !== false) {
+                $indId = strtolower((string)($as['member_id'] ?? ''));
+                if (strpos(strtolower($as['member_name'] ?? ''), $memberFilter) !== false || ($indId !== '' && strpos($indId, $memberFilter) !== false)) {
                   $match = true;
                 }
               }
@@ -1310,7 +1331,11 @@ class Common extends CI_Controller
     $this->db->from('user');
     $this->db->where("Inactive_Status IS NULL AND Sector IS NOT NULL");
     if (!empty($term)) {
-      $this->db->like('Full_Name', $term);
+      $q = trim((string)$term);
+      $this->db->group_start();
+      $this->db->like('Full_Name', $q);
+      $this->db->or_like('ITS_ID', $q);
+      $this->db->group_end();
     }
     $this->db->order_by('Full_Name', 'ASC');
 

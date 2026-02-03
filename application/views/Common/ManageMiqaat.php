@@ -83,6 +83,18 @@
       grid-template-rows: auto auto !important;
     }
   }
+
+  /* Print-only month-grouped rendering (month title above table header) */
+  .miqaat-print-only {
+    display: none;
+  }
+
+  .print-month-title {
+    font-weight: bold;
+    text-align: center;
+    margin: 10px 0 6px;
+  }
+
   /* Print-optimized styles: show only the miqaat list when printing */
   @media print {
     /* Hide everything by default */
@@ -92,11 +104,36 @@
     /* Place the table at the top-left for printing */
     .miqaat-list-container { position: absolute; top: 0; left: 0; width: 100%; }
     /* Remove box-shadows and backgrounds that may not print well */
-    .miqaat-table-wrapper, .miqaat-table-wrapper * { box-shadow: none !important; background: transparent !important; }
+    .miqaat-table-wrapper, .miqaat-table-wrapper * { box-shadow: none !important; }
     /* Expand scrollable wrapper so all rows are visible when printing */
     .miqaat-table-wrapper { max-height: none !important; height: auto !important; overflow: visible !important; }
     /* Disable sticky headers for print so header appears normally */
     .miqaat-table-wrapper table thead th { position: static !important; top: auto !important; }
+
+    /* Ensure print colors (darker header backgrounds) are preserved */
+    .miqaat-list-container * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Use print-only month sections; hide on-screen table to avoid duplicate content */
+    .miqaat-screen-only { display: none !important; }
+    .miqaat-print-only { display: block !important; }
+
+    /* Darker header background in print */
+    .miqaat-list-container thead.thead-dark th,
+    .miqaat-list-container thead th {
+      background: #1f2933 !important;
+      color: #ffffff !important;
+    }
+
+    /* Improve header repeat and page breaking */
+    .miqaat-print-only thead { display: table-header-group; }
+    .miqaat-print-only tfoot { display: table-footer-group; }
+    .miqaat-print-only table { page-break-inside: auto !important; }
+    .miqaat-print-only tbody { page-break-inside: auto !important; }
+    .miqaat-print-only tr { page-break-inside: avoid; }
+
     /* Ensure table prints fully across pages */
     .miqaat-list-container table { width: 100% !important; table-layout: auto !important; }
     .miqaat-list-container table, .miqaat-list-container tbody, .miqaat-list-container tr { page-break-inside: avoid; }
@@ -148,7 +185,7 @@
         </select>
       </div>
       <div class="form-group">
-        <input type="text" name="member_name_filter" id="member-name-filter" class="form-control" placeholder="Member / Leader name" value="<?php echo isset($member_name_filter) ? htmlspecialchars($member_name_filter, ENT_QUOTES) : ''; ?>" />
+        <input type="text" name="member_name_filter" id="member-name-filter" class="form-control" placeholder="Member/Leader name or ITS" value="<?php echo isset($member_name_filter) ? htmlspecialchars($member_name_filter, ENT_QUOTES) : ''; ?>" />
       </div>
       <div class="form-group">
         <select id="assignment-filter" name="assignment_filter" class="form-control">
@@ -452,22 +489,23 @@
     </div>
   </div>
   <div class="miqaat-list-container">
-    <div class="border miqaat-table-wrapper">
-      <table class="table table-striped table-bordered mb-0">
-        <thead class="thead-dark">
-          <tr>
-            <th class="sno" data-no-sort>#</th>
-            <th>Eng Date</th>
-            <th>Hijri Date</th>
-            <th>Day</th>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Assigned to</th>
-            <th>Status</th>
-            <th data-no-sort>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div class="miqaat-screen-only">
+      <div class="border miqaat-table-wrapper">
+        <table class="table table-striped table-bordered mb-0">
+          <thead class="thead-dark">
+            <tr>
+              <th class="sno" data-no-sort>#</th>
+              <th>Eng Date</th>
+              <th>Hijri Date</th>
+              <th>Day</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Assigned to</th>
+              <th>Status</th>
+              <th data-no-sort>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
           <?php
           // Group miqaats by hijri month
           $monthWiseMiqaats = [];
@@ -746,8 +784,99 @@
               </td>
             </tr>
           <?php endif; ?>
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="miqaat-print-only">
+      <?php if (!empty($monthWiseMiqaats)): ?>
+        <?php $printSno = 1; $isFirstMonth = true; ?>
+        <?php foreach ($monthWiseMiqaats as $monthName => $days): ?>
+          <div class="print-month-section" style="<?php echo $isFirstMonth ? '' : 'page-break-before: always;'; ?>">
+            <div class="print-month-title">Hijri Month: <?php echo htmlspecialchars($monthName, ENT_QUOTES); ?></div>
+            <table class="table table-bordered mb-3">
+              <thead class="thead-dark">
+                <tr>
+                  <th class="sno">#</th>
+                  <th>Eng Date</th>
+                  <th>Hijri Date</th>
+                  <th>Day</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Assigned to</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($days as $day): ?>
+                  <?php
+                  $dayName = isset($day['date']) ? date('l', strtotime($day['date'])) : '';
+                  $rowStyle = ($dayName === 'Sunday') ? ' style="background:#ffe5e5"' : '';
+                  ?>
+                  <?php if (!empty($day['miqaats'])): ?>
+                    <?php foreach ($day['miqaats'] as $miqaat): ?>
+                      <tr<?php echo $rowStyle; ?>>
+                        <td class="sno"><?php echo $printSno++; ?></td>
+                        <td><?php echo date('d M Y', strtotime($day['date'])); ?></td>
+                        <td><?php echo $day['hijri_date_with_month']; ?></td>
+                        <td><?php echo $dayName; ?></td>
+                        <td><?php echo $miqaat['name']; ?></td>
+                        <td><?php echo $miqaat['type']; ?></td>
+                        <td>
+                          <?php if (!empty($miqaat['assignments'])): ?>
+                            <?php
+                            $groupAssignments = [];
+                            $individualAssignments = [];
+                            foreach ($miqaat['assignments'] as $assignment) {
+                              $atype = isset($assignment['assign_type']) ? strtolower($assignment['assign_type']) : '';
+                              if ($atype === 'group') $groupAssignments[] = $assignment;
+                              elseif ($atype === 'individual') $individualAssignments[] = $assignment;
+                            }
+                            ?>
+                            <?php foreach ($groupAssignments as $assignment): ?>
+                              <strong>Group: <?php echo $assignment['group_name'] ?></strong><br>
+                              <strong>Leader:</strong> <?php echo $assignment['group_leader_name']; ?> (<?php echo $assignment['group_leader_id']; ?>)
+                              <?php if (!empty($assignment['members'])): ?>
+                                <br>
+                                <strong>Co-leader:</strong>
+                                <?php foreach ($assignment['members'] as $member): ?>
+                                  <?php echo $member['name'] ?> (<?php echo $member['id'] ?>)
+                                <?php endforeach; ?>
+                              <?php endif; ?>
+                              <br><br>
+                            <?php endforeach; ?>
+
+                            <?php if (!empty($individualAssignments)): ?>
+                              <strong>Individual:</strong><br>
+                              <?php foreach ($individualAssignments as $ass): ?>
+                                <?php echo htmlspecialchars($ass['member_name'] ?? '', ENT_QUOTES) ?> (<?php echo htmlspecialchars($ass['member_id'] ?? '', ENT_QUOTES) ?>)<br>
+                              <?php endforeach; ?>
+                            <?php endif; ?>
+                          <?php else: ?>
+                            <?php
+                            $assignedTo = isset($miqaat['assigned_to']) ? trim($miqaat['assigned_to']) : '';
+                            if ($assignedTo === '' || strtolower($assignedTo) === 'n/a') {
+                              echo '<span class="badge badge-secondary">Assignment Pending</span>';
+                            } else {
+                              echo '<strong>' . htmlspecialchars($assignedTo, ENT_QUOTES) . '</strong>';
+                            }
+                            ?>
+                          <?php endif; ?>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+          <?php $isFirstMonth = false; ?>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <div class="text-center text-muted" style="padding: 12px;">
+          No Miqaats found for current filters.
+        </div>
+      <?php endif; ?>
     </div>
   </div>
 </div>

@@ -63,6 +63,38 @@
     </div>
   </div>
   <h4 class="text-center"><?php echo isset($miqaat_type) ? $miqaat_type : ""; ?> Miqaat <span class="text-primary">Pending Invoices</span></h4>
+
+  <!-- <div class="col-12 mt-3 text-center">
+    <?php
+    $totalAmt = isset($generated_invoice_total) ? (float)$generated_invoice_total : 0.0;
+    $totalFmt = function_exists('format_inr_no_decimals') ? format_inr_no_decimals($totalAmt) : number_format($totalAmt, 0);
+    ?>
+    <div class="d-inline-block px-3 py-2" style="background:#f8f9fa; border:1px solid #e5e7eb; border-radius:10px;">
+      <b>Total Invoice Amount:</b> ₹<?php echo $totalFmt; ?>
+      <span class="text-muted" style="font-size:12px;">(generated)</span>
+    </div>
+  </div>
+
+  <div class="col-12 mt-3">
+    <form method="get" action="<?php echo base_url('anjuman/generatemiqaatinvoice'); ?>" class="form-inline justify-content-center" style="gap:8px; flex-wrap:wrap;">
+      <input type="hidden" name="miqaat_type" value="<?php echo htmlspecialchars($this->input->get('miqaat_type') ?? '', ENT_QUOTES); ?>">
+      <div class="form-group">
+        <label for="raza-id-filter" class="mr-2"><b>Raza ID:</b></label>
+        <input
+          type="text"
+          class="form-control"
+          id="raza-id-filter"
+          name="raza_id"
+          placeholder="Raza ID (optional)"
+          value="<?php echo isset($raza_id_filter) ? htmlspecialchars($raza_id_filter, ENT_QUOTES) : ''; ?>"
+          style="min-width:220px;"
+        />
+      </div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="<?php echo base_url('anjuman/generatemiqaatinvoice?miqaat_type=' . htmlspecialchars($this->input->get('miqaat_type') ?? '', ENT_QUOTES)); ?>" class="btn btn-outline-secondary">Clear</a>
+    </form>
+  </div> -->
+
   <div class="col-12 mt-4">
     <div class="card-header">
       <!-- <h5 class="mb-0 text-center">Invoice List</h5> -->
@@ -94,7 +126,13 @@
                 <td><?php echo date("d F Y", strtotime($m['miqaat_date'])) ?></td>
                 <td><?php echo htmlspecialchars($m['hijri_date']) ?></td>
                 <td><?php echo "M#" . htmlspecialchars($m['miqaat_id']) ?></td>
-                <td><?php echo "R#" . htmlspecialchars($m['raza_id']) ?></td>
+                <td>
+                  <?php if (!empty($m['raza_id'])): ?>
+                    <?php echo "R#" . htmlspecialchars($m['raza_id']) ?>
+                  <?php else: ?>
+                    -
+                  <?php endif; ?>
+                </td>
                 <td><b><?php echo htmlspecialchars($m['miqaat_name']) ?></b></td>
                 <td><b><?php echo htmlspecialchars($m['assigned_to']) ?></b></td>
                 <td>
@@ -118,8 +156,8 @@
                   <button type="button" class="btn btn-sm btn-primary generate-invoice-btn"
                     data-miqaat_index="<?php echo htmlspecialchars($m['miqaat_index']) ?>"
                     data-miqaat_id="<?php echo htmlspecialchars($m['miqaat_id']) ?>"
-                    data-raza_index="<?php echo htmlspecialchars($m['raza_index']) ?>"
-                    data-raza_id="<?php echo htmlspecialchars($m['raza_id']) ?>"
+                    data-raza_index="<?php echo htmlspecialchars((string)($m['raza_index'] ?? ''), ENT_QUOTES) ?>"
+                    data-raza_id="<?php echo htmlspecialchars((string)($m['raza_id'] ?? ''), ENT_QUOTES) ?>"
                     data-miqaat_name="<?php echo htmlspecialchars($m['miqaat_name']) ?>"
                     data-miqaat_date="<?php echo date("d", strtotime($m['miqaat_date'])) . " " . date("F", strtotime($m['miqaat_date'])) . " " . date("Y", strtotime($m['miqaat_date'])) ?>"
                     data-miqaat_type="<?php echo htmlspecialchars($m['miqaat_type']) ?>"
@@ -257,9 +295,10 @@
         setVal('input_member_id', btn.getAttribute('data-member_id'));
         setVal('input_details', btn.getAttribute('data-details'));
 
+        const razaDisplay = (btn.getAttribute('data-raza_id') || '').trim();
         const detailsLine =
           '<b>Miqaat ID:</b> M#' + btn.getAttribute('data-miqaat_id') + '<br>' +
-          '<b>Raza ID:</b> R#' + btn.getAttribute('data-raza_id') + '<br>' +
+          '<b>Raza ID:</b> ' + (razaDisplay ? ('R#' + razaDisplay) : '-') + '<br>' +
           '<b>Miqaat Name:</b> ' + btn.getAttribute('data-miqaat_name') + '<br>' +
           '<b>Date:</b> ' + btn.getAttribute('data-miqaat_date') + '<br>' +
           '<b>Hijri:</b> ' + btn.getAttribute('data-hijri_date') + '<br>' +

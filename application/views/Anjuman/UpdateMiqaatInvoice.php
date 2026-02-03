@@ -11,9 +11,9 @@
   </div>
   <div class="col-12 mb-3">
     <?php
-      $displayYear = isset($current_hijri_year) && $current_hijri_year !== ''
-        ? $current_hijri_year
-        : (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years) ? $hijri_years[0] : '');
+    $displayYear = isset($current_hijri_year) && $current_hijri_year !== ''
+      ? $current_hijri_year
+      : (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years) ? $hijri_years[0] : '');
     ?>
     <h4 class="heading text-center mb-0">
       <span class="text-primary"><?php echo isset($miqaat_type) ? $miqaat_type : ''; ?></span>
@@ -90,12 +90,38 @@
         font-size: 13px;
       }
     </style>
+    <div class="mb-2">
+      <div class="d-flex justify-content-between align-items-center p-2 col-4 mx-auto" style="background:#f8f9fa; border:1px solid #e5e7eb; border-radius:10px;">
+        <div>
+          <b>Total Invoice Amount:</b>
+          <span id="miqaat-total-amount" class="text-success">₹<?php echo $gtStr; ?></span>
+        </div>
+        <div class="text-muted" style="font-size:12px;">
+          Members shown: <span id="miqaat-members-count"><?php echo isset($members) && is_array($members) ? count($members) : 0; ?></span>
+        </div>
+      </div>
+    </div>
+
     <div class="col-12 table-responsive">
+      <?php
+      // Format INR without decimals for the summary (fallback if helper not loaded)
+      $gt = isset($grand_total) ? (float)$grand_total : 0.0;
+      $gtRounded = round($gt);
+      $gtStr = (string)abs((int)$gtRounded);
+      if (strlen($gtStr) > 3) {
+        $last3 = substr($gtStr, -3);
+        $rest = substr($gtStr, 0, -3);
+        $rest = preg_replace('/\B(?=(?:\d{2})+(?!\d))/', ',', $rest);
+        $gtStr = $rest . ',' . $last3;
+      }
+      $gtStr = ($gtRounded < 0 ? '-' : '') . $gtStr;
+      ?>
+
       <div id="miqaat-filters" class="p-3 bg-light border mb-2">
         <div class="form-row">
           <div class="col-md-3 mb-2">
-            <label for="mf-name" class="mb-1 text-muted">Member Name</label>
-            <input type="text" id="mf-name" class="form-control form-control-sm" placeholder="Search name...">
+            <label for="mf-name" class="mb-1 text-muted">Name or ITS</label>
+            <input type="text" id="mf-name" class="form-control form-control-sm" placeholder="Search name or ITS...">
           </div>
           <div class="col-md-3 mb-2">
             <label for="mf-sector" class="mb-1 text-muted">Sector</label>
@@ -122,11 +148,11 @@
           <div class="col-md-3 mb-2">
             <label for="mf-year" class="mb-1 text-muted">Hijri Year</label>
             <?php
-              $years = isset($hijri_years) && is_array($hijri_years) ? $hijri_years : [];
-              $defaultYear = isset($selected_year) && $selected_year !== ''
-                ? $selected_year
-                : (isset($current_hijri_year) && $current_hijri_year !== '' ? $current_hijri_year : (!empty($years) ? end($years) : ''));
-              if (!empty($years)) reset($years);
+            $years = isset($hijri_years) && is_array($hijri_years) ? $hijri_years : [];
+            $defaultYear = isset($selected_year) && $selected_year !== ''
+              ? $selected_year
+              : (isset($current_hijri_year) && $current_hijri_year !== '' ? $current_hijri_year : (!empty($years) ? end($years) : ''));
+            if (!empty($years)) reset($years);
             ?>
             <select id="mf-year" class="form-control form-control-sm" data-default-year="<?php echo htmlspecialchars($defaultYear, ENT_QUOTES); ?>">
               <option value="">All Years</option>
@@ -157,7 +183,7 @@
           <?php
           // Default ordering: Sector ASC, Sub Sector ASC (case-insensitive)
           if (!empty($members) && is_array($members)) {
-            usort($members, function($a, $b) {
+            usort($members, function ($a, $b) {
               $sa = strtolower(isset($a['Sector']) ? $a['Sector'] : (isset($a['sector']) ? $a['sector'] : ''));
               $sb = strtolower(isset($b['Sector']) ? $b['Sector'] : (isset($b['sector']) ? $b['sector'] : ''));
               if ($sa === $sb) {
@@ -196,7 +222,9 @@
               if ($iid !== '' && isset($seen_ids[$iid])) {
                 continue;
               }
-              if ($iid !== '') { $seen_ids[$iid] = true; }
+              if ($iid !== '') {
+                $seen_ids[$iid] = true;
+              }
               $invoices_normalized[] = $norm;
             }
             // Use deduplicated invoices for accurate count
@@ -225,28 +253,30 @@
               <td><?php echo htmlspecialchars($subSector); ?></td>
               <td><?php echo $count; ?></td>
               <td class="text-right">₹<?php
-                if (!function_exists('format_inr_no_decimals')) {
-                  function format_inr_no_decimals($num) {
-                    if ($num === null || $num === '' || !is_numeric($num)) {
-                      $num = 0;
-                    }
-                    $num = (float)$num;
-                    // Round to nearest rupee (can change to floor if needed)
-                    $num = round($num);
-                    $neg = $num < 0; if ($neg) $num = abs($num);
-                    $int = (string)$num;
-                    if (strlen($int) <= 3) {
-                      $res = $int;
-                    } else {
-                      $last3 = substr($int, -3);
-                      $rest = substr($int, 0, -3);
-                      $rest = preg_replace('/\B(?=(?:\d{2})+(?!\d))/', ',', $rest);
-                      $res = $rest . ',' . $last3;
-                    }
-                    return ($neg ? '-' : '') . $res;
-                  }
-                }
-                echo format_inr_no_decimals($totalAmt); ?></td>
+                                      if (!function_exists('format_inr_no_decimals')) {
+                                        function format_inr_no_decimals($num)
+                                        {
+                                          if ($num === null || $num === '' || !is_numeric($num)) {
+                                            $num = 0;
+                                          }
+                                          $num = (float)$num;
+                                          // Round to nearest rupee (can change to floor if needed)
+                                          $num = round($num);
+                                          $neg = $num < 0;
+                                          if ($neg) $num = abs($num);
+                                          $int = (string)$num;
+                                          if (strlen($int) <= 3) {
+                                            $res = $int;
+                                          } else {
+                                            $last3 = substr($int, -3);
+                                            $rest = substr($int, 0, -3);
+                                            $rest = preg_replace('/\B(?=(?:\d{2})+(?!\d))/', ',', $rest);
+                                            $res = $rest . ',' . $last3;
+                                          }
+                                          return ($neg ? '-' : '') . $res;
+                                        }
+                                      }
+                                      echo format_inr_no_decimals($totalAmt); ?></td>
               <td>
                 <button
                   class="btn btn-sm btn-outline-primary view-invoices-btn"
@@ -334,6 +364,8 @@
           }
           const rows = document.querySelectorAll('#miqaat-member-table tbody tr');
           let index = 1;
+          let visibleMembers = 0;
+          let visibleTotal = 0;
 
           // Local helper for INR grouping (no decimals)
           function formatRupees(n) {
@@ -341,7 +373,8 @@
             let num = parseFloat(n);
             if (isNaN(num)) num = 0;
             num = Math.round(num);
-            const neg = num < 0; if (neg) num = Math.abs(num);
+            const neg = num < 0;
+            if (neg) num = Math.abs(num);
             let s = String(num);
             if (s.length > 3) {
               const last3 = s.slice(-3);
@@ -354,10 +387,11 @@
 
           rows.forEach(r => {
             const rName = (r.querySelector('.member-name-cell')?.textContent || '').trim().toLowerCase();
+            const rIts = ((r.children && r.children[1] ? r.children[1].textContent : '') || '').trim().toLowerCase();
             const rSector = r.getAttribute('data-sector') || '';
             const rSub = r.getAttribute('data-subsector') || '';
             let show = true;
-            if (nameVal && rName.indexOf(nameVal) === -1) show = false;
+            if (nameVal && rName.indexOf(nameVal) === -1 && rIts.indexOf(nameVal) === -1) show = false;
             if (sectorVal && rSector !== sectorVal) show = false;
             if (subVal && rSub !== subVal) show = false;
 
@@ -371,7 +405,11 @@
             const btn = r.querySelector('.view-invoices-btn');
             let allInvoices = [];
             if (btn) {
-              try { allInvoices = JSON.parse(btn.getAttribute('data-invoices') || '[]'); } catch(e) { allInvoices = []; }
+              try {
+                allInvoices = JSON.parse(btn.getAttribute('data-invoices') || '[]');
+              } catch (e) {
+                allInvoices = [];
+              }
             }
             // Do not client-filter by year; server provides year-scoped invoices.
             let working = allInvoices;
@@ -386,10 +424,17 @@
                 return acc + (isNaN(v) ? 0 : v);
               }, 0);
               cells[6].textContent = formatRupees(sum);
+              visibleTotal += (isNaN(sum) ? 0 : sum);
             }
             r.style.display = '';
             r.querySelector('td').textContent = index++;
+            visibleMembers++;
           });
+
+          const totalEl = document.getElementById('miqaat-total-amount');
+          if (totalEl) totalEl.textContent = formatRupees(visibleTotal);
+          const cntEl = document.getElementById('miqaat-members-count');
+          if (cntEl) cntEl.textContent = String(visibleMembers);
         }
         const nameInput = document.getElementById('mf-name');
         const sectorSel = document.getElementById('mf-sector');
@@ -398,10 +443,14 @@
         if (nameInput) nameInput.addEventListener('input', applyFilters);
         if (sectorSel) sectorSel.addEventListener('change', applyFilters);
         if (subSel) subSel.addEventListener('change', applyFilters);
-        if (yearSel) yearSel.addEventListener('change', function(){
-          const y = (yearSel.value||'').trim();
+        if (yearSel) yearSel.addEventListener('change', function() {
+          const y = (yearSel.value || '').trim();
           const params = new URLSearchParams(window.location.search);
-          if (y) { params.set('year', y); } else { params.delete('year'); }
+          if (y) {
+            params.set('year', y);
+          } else {
+            params.delete('year');
+          }
           // Preserve existing miqaat_type param
           const url = window.location.pathname + '?' + params.toString();
           window.location.replace(url);
@@ -434,7 +483,13 @@
               // Reset counts/amounts to full invoice totals
               const btn = r.querySelector('.view-invoices-btn');
               let allInvoices = [];
-              if (btn) { try { allInvoices = JSON.parse(btn.getAttribute('data-invoices') || '[]'); } catch(e) { allInvoices = []; } }
+              if (btn) {
+                try {
+                  allInvoices = JSON.parse(btn.getAttribute('data-invoices') || '[]');
+                } catch (e) {
+                  allInvoices = [];
+                }
+              }
               const cells = r.querySelectorAll('td');
               if (cells[5]) cells[5].textContent = allInvoices.length;
               if (cells[6]) {
@@ -482,7 +537,8 @@
           `;
           document.head.appendChild(tag);
         } catch (e) {
-          /* no-op */ }
+          /* no-op */
+        }
       })();
 
       // Provide miqaats array for Fala Ni Niyaz modal (we will render miqaats, not member invoices)
@@ -505,7 +561,8 @@
           if (isNaN(num)) num = 0;
           // Round to nearest rupee
           num = Math.round(num);
-          const neg = num < 0; if (neg) num = Math.abs(num);
+          const neg = num < 0;
+          if (neg) num = Math.abs(num);
           let intPart = String(num);
           if (intPart.length > 3) {
             const last3 = intPart.slice(-3);
@@ -621,13 +678,14 @@
             invoices = [];
           }
           // Deduplicate by invoice_id to avoid duplicate rows
-          (function dedupe(){
+          (function dedupe() {
             const seen = new Set();
             invoices = invoices.filter(inv => {
-              const id = String(inv.invoice_id||'');
-              if(!id) return true; // keep if no id
-              if(seen.has(id)) return false;
-              seen.add(id); return true;
+              const id = String(inv.invoice_id || '');
+              if (!id) return true; // keep if no id
+              if (seen.has(id)) return false;
+              seen.add(id);
+              return true;
             });
           })();
           // Do not apply the main year filter inside the modal; always show all
@@ -816,11 +874,11 @@
           // Deduplicate groups by group_key to avoid repeated rows
           const unique = [];
           const seenGK = new Set();
-          (Array.isArray(miqaList)?miqaList:[]).forEach(m => {
+          (Array.isArray(miqaList) ? miqaList : []).forEach(m => {
             const gk = m.group_key || '';
             const key = String(gk);
-            if(key && seenGK.has(key)) return;
-            if(key) seenGK.add(key);
+            if (key && seenGK.has(key)) return;
+            if (key) seenGK.add(key);
             unique.push(m);
           });
           const rows = unique.map((m, idx) => {
@@ -1046,46 +1104,65 @@
         })();
       })();
       // --- Sorting for member table ---
-      (function enableMemberTableSorting(){
+      (function enableMemberTableSorting() {
         const table = document.getElementById('miqaat-member-table');
-        if(!table) return;
+        if (!table) return;
         const headers = table.querySelectorAll('thead th.km-sortable');
-        function parseCurrency(text){
-          if(text==null) return 0;
-          const cleaned = String(text).replace(/[^0-9.-]/g,'');
-          const v = parseFloat(cleaned); return isNaN(v)?0:v;
+
+        function parseCurrency(text) {
+          if (text == null) return 0;
+          const cleaned = String(text).replace(/[^0-9.-]/g, '');
+          const v = parseFloat(cleaned);
+          return isNaN(v) ? 0 : v;
         }
-        headers.forEach((th, colIndex)=>{
-          th.addEventListener('click', ()=>{
+        headers.forEach((th, colIndex) => {
+          th.addEventListener('click', () => {
             const sortType = th.getAttribute('data-sort-type') || 'string';
             const currentDir = th.getAttribute('data-sort-dir');
             const newDir = currentDir === 'asc' ? 'desc' : 'asc';
             // reset indicators
-            headers.forEach(h=>{ if(h!==th){ h.removeAttribute('data-sort-dir'); const si=h.querySelector('.sort-indicator'); if(si) si.textContent=''; }});
-            th.setAttribute('data-sort-dir', newDir);
-            const ind = th.querySelector('.sort-indicator'); if(ind) ind.textContent = newDir==='asc'?'▲':'▼';
-            const tbody = table.querySelector('tbody');
-            const allRows = Array.from(tbody.querySelectorAll('tr'));
-            const visible = allRows.filter(r=>r.style.display !== 'none');
-            const hidden = allRows.filter(r=>r.style.display === 'none');
-            visible.sort((a,b)=>{
-              let aVal = a.children[colIndex]?a.children[colIndex].textContent.trim():'';
-              let bVal = b.children[colIndex]?b.children[colIndex].textContent.trim():'';
-              if(sortType==='number'){
-                const toNum = v=>{ const n = parseFloat(v.replace(/[^0-9.-]/g,'')); return isNaN(n)?0:n; };
-                aVal = toNum(aVal); bVal = toNum(bVal);
-                return newDir==='asc'? aVal-bVal : bVal-aVal;
-              } else if(sortType==='currency') {
-                aVal = parseCurrency(aVal); bVal = parseCurrency(bVal);
-                return newDir==='asc'? aVal-bVal : bVal-aVal;
-              } else { // string
-                aVal = aVal.toLowerCase(); bVal = bVal.toLowerCase();
-                if(aVal===bVal) return 0;
-                return newDir==='asc' ? (aVal<bVal?-1:1) : (aVal>bVal?-1:1);
+            headers.forEach(h => {
+              if (h !== th) {
+                h.removeAttribute('data-sort-dir');
+                const si = h.querySelector('.sort-indicator');
+                if (si) si.textContent = '';
               }
             });
-            visible.forEach((r,i)=>{ tbody.appendChild(r); const first=r.children[0]; if(first) first.textContent = i+1; });
-            hidden.forEach(r=>tbody.appendChild(r));
+            th.setAttribute('data-sort-dir', newDir);
+            const ind = th.querySelector('.sort-indicator');
+            if (ind) ind.textContent = newDir === 'asc' ? '▲' : '▼';
+            const tbody = table.querySelector('tbody');
+            const allRows = Array.from(tbody.querySelectorAll('tr'));
+            const visible = allRows.filter(r => r.style.display !== 'none');
+            const hidden = allRows.filter(r => r.style.display === 'none');
+            visible.sort((a, b) => {
+              let aVal = a.children[colIndex] ? a.children[colIndex].textContent.trim() : '';
+              let bVal = b.children[colIndex] ? b.children[colIndex].textContent.trim() : '';
+              if (sortType === 'number') {
+                const toNum = v => {
+                  const n = parseFloat(v.replace(/[^0-9.-]/g, ''));
+                  return isNaN(n) ? 0 : n;
+                };
+                aVal = toNum(aVal);
+                bVal = toNum(bVal);
+                return newDir === 'asc' ? aVal - bVal : bVal - aVal;
+              } else if (sortType === 'currency') {
+                aVal = parseCurrency(aVal);
+                bVal = parseCurrency(bVal);
+                return newDir === 'asc' ? aVal - bVal : bVal - aVal;
+              } else { // string
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+                if (aVal === bVal) return 0;
+                return newDir === 'asc' ? (aVal < bVal ? -1 : 1) : (aVal > bVal ? -1 : 1);
+              }
+            });
+            visible.forEach((r, i) => {
+              tbody.appendChild(r);
+              const first = r.children[0];
+              if (first) first.textContent = i + 1;
+            });
+            hidden.forEach(r => tbody.appendChild(r));
           });
         });
       })();

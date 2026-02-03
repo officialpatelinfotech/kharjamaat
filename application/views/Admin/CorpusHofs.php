@@ -36,8 +36,8 @@
   <form id="hofFilters" class="mb-3 p-3 border rounded bg-light">
     <div class="row">
       <div class="col-md-3 mb-2">
-        <label class="small text-muted mb-1">Name</label>
-        <input type="text" class="form-control form-control-sm" id="filterName" placeholder="Search name" />
+        <label class="small text-muted mb-1">Name or ITS</label>
+        <input type="text" class="form-control form-control-sm" id="filterName" placeholder="Search name or ITS" />
       </div>
       <div class="col-md-2 mb-2">
         <label class="small text-muted mb-1">Sector</label>
@@ -500,11 +500,12 @@
         if (r.querySelector('td') === null) return; // skip placeholder row
         total++;
         const rName = r.getAttribute('data-name') || '';
+        const rIts = ((r.children && r.children[1] ? r.children[1].textContent : '') || '').trim().toLowerCase();
         const rSector = r.getAttribute('data-sector') || '';
         const rSubSector = r.getAttribute('data-subsector') || '';
         const rYears = (r.getAttribute('data-hijri-years') || '').split(',').filter(x => x);
         let ok = true;
-        if (nameVal && rName.indexOf(nameVal) === -1) ok = false;
+        if (nameVal && rName.indexOf(nameVal) === -1 && rIts.indexOf(nameVal) === -1) ok = false;
         if (sectorVal && rSector.indexOf(sectorVal) === -1) ok = false;
         if (subSectorVal && rSubSector.indexOf(subSectorVal) === -1) ok = false;
         if (yearVal && yearVal !== '' && rYears.indexOf(yearVal) === -1) ok = false;

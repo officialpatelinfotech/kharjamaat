@@ -315,7 +315,11 @@ class AdminM extends CI_Model
     $this->db->join("fmb_takhmeen fmb_t", "fmb_t.user_id = u.ITS_ID", "left");
 
     if (!empty($filter_data["member_name"])) {
-      $this->db->like("u.Full_Name", $filter_data["member_name"]);
+      $q = trim((string)$filter_data["member_name"]);
+      $this->db->group_start();
+      $this->db->like("u.Full_Name", $q);
+      $this->db->or_like("u.ITS_ID", $q);
+      $this->db->group_end();
     }
     if (!empty($filter_data["sector"])) {
       $this->db->where('u.Sector', $filter_data['sector']);
@@ -503,7 +507,11 @@ class AdminM extends CI_Model
     );
 
     if (!empty($filter_data["member_name"])) {
-      $this->db->like("u.Full_Name", $filter_data["member_name"]);
+      $q = trim((string)$filter_data["member_name"]);
+      $this->db->group_start();
+      $this->db->like("u.Full_Name", $q);
+      $this->db->or_like("u.ITS_ID", $q);
+      $this->db->group_end();
     }
 
     $this->db->where("u.Inactive_Status IS NULL 
@@ -873,7 +881,11 @@ class AdminM extends CI_Model
 
     // Name filter
     if (!empty($filters['name'])) {
-      $this->db->like('Full_Name', $filters['name']);
+      $q = trim((string)$filters['name']);
+      $this->db->group_start();
+      $this->db->like('Full_Name', $q);
+      $this->db->or_like('ITS_ID', $q);
+      $this->db->group_end();
     }
 
     // Sector filter

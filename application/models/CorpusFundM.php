@@ -310,6 +310,18 @@ class CorpusFundM extends CI_Model
       $params[] = $filters['its_id'];
       $params[] = (int)$filters['its_id'];
     }
+
+    // Name filter: match member name OR ITS (partial match)
+    if (!empty($filters['name'])) {
+      $q = trim((string)$filters['name']);
+      if ($q !== '') {
+        $like = '%' . $q . '%';
+        $sql .= " AND (u.Full_Name LIKE ? OR u.ITS_ID LIKE ? OR CAST(a.hof_id AS CHAR) LIKE ?)";
+        $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
+      }
+    }
     if (!empty($filters['sector'])) {
       $sql .= " AND u.Sector = ?";
       $params[] = $filters['sector'];
@@ -325,6 +337,81 @@ class CorpusFundM extends CI_Model
 
     $sql .= " GROUP BY a.id, a.fund_id, f.title, a.hof_id, u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, a.amount_assigned
             ORDER BY u.Sector, u.Sub_Sector, u.Full_Name, a.hof_id, a.fund_id";
+
+    if (empty($params)) {
+      return $this->db->query($sql)->result_array();
+    }
+    return $this->db->query($sql, $params)->result_array();
+  }
+
+  public function get_hof_totals_with_payments($filters = [])
+  {
+    // Aggregate totals per HOF (faster + fewer rows) with optional filters
+    $this->ensure_payment_table();
+    $params = [];
+    $sql = "SELECT a.hof_id,
+              u.ITS_ID AS its_id,
+              u.Full_Name AS hof_name,
+              u.Sector AS sector,
+              u.Sub_Sector AS sub_sector,
+              COALESCE(SUM(a.amount_assigned),0) AS assigned_total,
+              COALESCE(SUM(paid.amount_paid),0) AS paid_total,
+              (COALESCE(SUM(a.amount_assigned),0) - COALESCE(SUM(paid.amount_paid),0)) AS due_total
+            FROM corpus_fund_assignment a
+            LEFT JOIN (
+              SELECT fund_id, hof_id, SUM(amount_paid) AS amount_paid
+              FROM corpus_fund_payment
+              GROUP BY fund_id, hof_id
+            ) paid ON paid.fund_id = a.fund_id AND paid.hof_id = a.hof_id
+            LEFT JOIN user u ON u.HOF_ID = a.hof_id AND u.HOF_FM_TYPE = 'HOF'
+            WHERE 1=1";
+
+    if (!empty($filters['its_id'])) {
+      $sql .= " AND (u.ITS_ID = ? OR a.hof_id = ? )";
+      $params[] = $filters['its_id'];
+      $params[] = (int)$filters['its_id'];
+    }
+
+    if (!empty($filters['name'])) {
+      $q = trim((string)$filters['name']);
+      if ($q !== '') {
+        $like = '%' . $q . '%';
+        $sql .= " AND (u.Full_Name LIKE ? OR u.ITS_ID LIKE ? OR CAST(a.hof_id AS CHAR) LIKE ?)";
+        $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
+      }
+    }
+
+    if (!empty($filters['sector'])) {
+      $sql .= " AND u.Sector = ?";
+      $params[] = $filters['sector'];
+    }
+    if (!empty($filters['sub_sector'])) {
+      $sql .= " AND u.Sub_Sector = ?";
+      $params[] = $filters['sub_sector'];
+    }
+    if (!empty($filters['fund_id'])) {
+      $sql .= " AND a.fund_id = ?";
+      $params[] = (int)$filters['fund_id'];
+    }
+
+    if (!empty($filters['hof_ids']) && is_array($filters['hof_ids'])) {
+      $hofIds = [];
+      foreach ($filters['hof_ids'] as $v) {
+        $id = (int)$v;
+        if ($id > 0) $hofIds[$id] = true;
+      }
+      $hofIds = array_keys($hofIds);
+      if (!empty($hofIds)) {
+        $placeholders = implode(',', array_fill(0, count($hofIds), '?'));
+        $sql .= " AND a.hof_id IN ($placeholders)";
+        foreach ($hofIds as $id) $params[] = $id;
+      }
+    }
+
+    $sql .= " GROUP BY a.hof_id, u.ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector
+              ORDER BY u.Sector, u.Sub_Sector, u.Full_Name, a.hof_id";
 
     if (empty($params)) {
       return $this->db->query($sql)->result_array();

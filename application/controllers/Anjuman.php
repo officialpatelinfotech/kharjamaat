@@ -2927,8 +2927,9 @@ class Anjuman extends CI_Controller
     }
     $data['current_hijri_year'] = $selected_year;
 
-    // Include FM entries as well so invoices generated for family members appear here; scope by selected year
-    $data["member_miqaat_payments"] = $this->AnjumanM->get_all_member_miqaat_payments($miqaat_type, true, $selected_year);
+    // Include FM entries as well so invoices generated for family members appear here.
+    // Load all years and let the page's client-side filter handle year switching.
+    $data["member_miqaat_payments"] = $this->AnjumanM->get_all_member_miqaat_payments($miqaat_type, true, null);
 
     // Build list of available Hijri years from hijri_calendar table (FMB calendar), newest first
     $yearsList = [];
@@ -2973,7 +2974,32 @@ class Anjuman extends CI_Controller
 
     $data["miqaat_type"] = $miqaat_type;
 
-    $data["miqaats"] = $this->AnjumanM->get_all_approved_past_miqaats($miqaat_type);
+    $razaIdFilter = trim((string)$this->input->get('raza_id'));
+    // Allow users to paste values like "R#123"; store filter as raw raza_id without prefix.
+    if ($razaIdFilter !== '') {
+      $razaIdFilter = preg_replace('/^\s*R\s*#\s*/i', '', $razaIdFilter);
+      $razaIdFilter = trim((string)$razaIdFilter);
+    }
+    $data['raza_id_filter'] = $razaIdFilter;
+
+    // Total amount of already-generated invoices for this miqaat type (useful summary while generating pending ones)
+    $this->db->select('COALESCE(SUM(inv.amount), 0) AS total', false);
+    $this->db->from('miqaat_invoice inv');
+    $this->db->join('miqaat m', 'm.id = inv.miqaat_id', 'left');
+    $this->db->join('raza r', 'r.id = inv.raza_id', 'left');
+    $this->db->group_start();
+    $this->db->where('m.type', $miqaat_type);
+    $this->db->or_where('inv.miqaat_type', $miqaat_type);
+    $this->db->group_end();
+    if ($razaIdFilter !== '') {
+      $this->db->where('r.raza_id', $razaIdFilter);
+    }
+    $totalRow = $this->db->get()->row_array();
+    $data['generated_invoice_total'] = isset($totalRow['total']) ? (float)$totalRow['total'] : 0.0;
+
+    $data["miqaats"] = $this->AnjumanM->get_all_approved_past_miqaats($miqaat_type, [
+      'raza_id' => $razaIdFilter
+    ]);
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/GenerateMiqaatInvoice', $data);
@@ -3138,6 +3164,7 @@ class Anjuman extends CI_Controller
 
     $miqaat_id   = $this->input->post('miqaat_id');
     $raza_id     = $this->input->post('raza_id');
+    $raza_id     = ($raza_id === '' || $raza_id === null) ? null : $raza_id;
     $miqaat_type = $this->input->post('miqaat_type');
     $year        = $this->input->post('year');
     $assigned_to = $this->input->post('assigned_to');
@@ -3279,11 +3306,13 @@ class Anjuman extends CI_Controller
         $data = [
           'date'        => $date,
           'miqaat_id'   => $miqaat_id,
-          'raza_id'     => $raza_id,
           'user_id'     => $mid,
           'amount'      => $amount,
           'description' => $description
         ];
+        if ($raza_id !== null) {
+          $data['raza_id'] = $raza_id;
+        }
         $this->AnjumanM->create_miqaat_invoice($data);
       }
 
@@ -3580,6 +3609,7 @@ class Anjuman extends CI_Controller
     $data['error'] = $this->session->flashdata('corpus_payment_error');
     // Read optional filters from GET (for persistent server-side filtering)
     $filters = [];
+    $filters['name'] = ($this->input->get('name') !== null) ? trim((string)$this->input->get('name')) : null;
     // Avoid trim(null) deprecation by casting to string when input may be null
     $filters['its_id'] = ($this->input->get('its_id') !== null) ? trim((string)$this->input->get('its_id')) : null;
     $filters['sector'] = ($this->input->get('sector') !== null) ? trim((string)$this->input->get('sector')) : null;
@@ -3590,6 +3620,7 @@ class Anjuman extends CI_Controller
     // Fetch all assignments with payment aggregates (apply filters if any)
     $data['assignments'] = $this->CorpusFundM->get_all_assignments_with_payments($filters);
     // Expose filter values back to view for prefill
+    $data['filter_name'] = $filters['name'];
     $data['filter_its'] = $filters['its_id'];
     $data['filter_sector'] = $filters['sector'];
     $data['filter_sub_sector'] = $filters['sub_sector'];
@@ -3597,6 +3628,87 @@ class Anjuman extends CI_Controller
     $data['filter_hijri_year'] = $filters['hijri_year'];
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/CorpusFundsReceive', $data);
+  }
+
+  public function corpusfunds_bulk_receipts_pdf()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      redirect('anjuman/corpusfunds_receive');
+    }
+
+    // Bulk PDF generation can be heavy; allow more time/memory for this request.
+    if (function_exists('set_time_limit')) {
+      @set_time_limit(0);
+    }
+    @ini_set('max_execution_time', '0');
+    @ini_set('memory_limit', '1024M');
+
+    $this->load->model('CorpusFundM');
+    $this->load->library('dompdf_lib');
+    $dompdf = $this->dompdf_lib->load();
+
+    // Filters (optional)
+    $filters = [];
+    $filters['name'] = ($this->input->post('name') !== null) ? trim((string)$this->input->post('name')) : null;
+    $filters['its_id'] = ($this->input->post('its_id') !== null) ? trim((string)$this->input->post('its_id')) : null;
+    $filters['sector'] = ($this->input->post('sector') !== null) ? trim((string)$this->input->post('sector')) : null;
+    $filters['sub_sector'] = ($this->input->post('sub_sector') !== null) ? trim((string)$this->input->post('sub_sector')) : null;
+    $filters['fund_id'] = $this->input->post('fund_id') ? (int)$this->input->post('fund_id') : null;
+
+    // Optional explicit list of HOFs (used to match the currently-visible table rows)
+    $hofIdsRaw = $this->input->post('hof_ids');
+    $hofIds = [];
+    if (is_array($hofIdsRaw)) {
+      foreach ($hofIdsRaw as $v) {
+        $id = (int)$v;
+        if ($id > 0) $hofIds[$id] = true;
+      }
+      $hofIds = array_keys($hofIds);
+    }
+
+    if (!empty($hofIds)) {
+      $filters['hof_ids'] = $hofIds;
+    }
+
+    $rows = $this->CorpusFundM->get_hof_totals_with_payments($filters);
+    $hofs = [];
+    foreach ($rows as $r) {
+      $hofs[] = [
+        'hof_id' => (int)($r['hof_id'] ?? 0),
+        'its_id' => $r['its_id'] ?? '',
+        'name' => $r['hof_name'] ?? '',
+        'assigned' => (float)($r['assigned_total'] ?? 0),
+        'paid' => (float)($r['paid_total'] ?? 0),
+        'due' => (float)($r['due_total'] ?? 0),
+      ];
+    }
+
+    // Determine receipt title
+    $title = 'Masjid Tameer Funds Shehrullah 1447';
+    if (!empty($filters['fund_id'])) {
+      $fid = (int)$filters['fund_id'];
+      $fundRow = $this->db->select('title')->from('corpus_fund')->where('id', $fid)->get()->row_array();
+      if ($fundRow && !empty($fundRow['title'])) {
+        $title = (string)$fundRow['title'];
+      }
+    }
+
+    $data = [
+      'org_title' => 'Anjuman e Saifee Khar',
+      'fund_title' => $title,
+      'receipts' => $hofs,
+      'generated_on' => date('Y-m-d'),
+    ];
+
+    $html = $this->load->view('pdf_corpus_bulk_receipts', $data, true);
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
+    $filename = 'corpus_receipts_' . date('Ymd_His') . '.pdf';
+    $dompdf->stream($filename, array('Attachment' => 0));
   }
 
   public function corpusfunds_receive_payment()
@@ -3900,7 +4012,7 @@ class Anjuman extends CI_Controller
       } else {
         // name search: first matching user by name (used only to pre-select if desired)
         $like = "%{$q}%";
-        $r = $this->db->query("SELECT ITS_ID, HOF_ID FROM user WHERE Full_Name LIKE ? OR Full_Name LIKE ? LIMIT 1", [$like, $like])->row_array();
+        $r = $this->db->query("SELECT ITS_ID, HOF_ID FROM user WHERE Full_Name LIKE ? OR ITS_ID LIKE ? LIMIT 1", [$like, $like])->row_array();
         if (!empty($r)) {
           $reqIts = $r['ITS_ID'];
           $reqHof = isset($r['HOF_ID']) ? $r['HOF_ID'] : $reqHof;
@@ -4202,7 +4314,7 @@ class Anjuman extends CI_Controller
         }
       } else {
         $like = "%{$q}%";
-        $r = $this->db->query("SELECT ITS_ID, HOF_ID FROM user WHERE Full_Name LIKE ? OR Full_Name LIKE ? LIMIT 1", [$like, $like])->row_array();
+        $r = $this->db->query("SELECT ITS_ID, HOF_ID FROM user WHERE Full_Name LIKE ? OR ITS_ID LIKE ? LIMIT 1", [$like, $like])->row_array();
         if (!empty($r)) {
           $reqIts = $r['ITS_ID'];
           if (!empty($r['HOF_ID'])) $reqHof = $r['HOF_ID'];

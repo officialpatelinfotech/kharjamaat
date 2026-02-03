@@ -95,8 +95,8 @@
       <div class="card-body pt-3 pb-2 filter-form" style="border-top:1px solid #f1f1f1;">
         <form method="get" class="row g-3 align-items-end">
           <div class="col-lg-3 col-md-4 col-sm-6">
-            <label class="form-label small mb-1">Member Name</label>
-            <input type="text" name="name" value="<?php echo htmlspecialchars($af['name'] ?? ''); ?>" class="form-control" placeholder="e.g. Burhanuddin">
+            <label class="form-label small mb-1">Name or ITS</label>
+            <input type="text" name="name" value="<?php echo htmlspecialchars($af['name'] ?? ''); ?>" class="form-control" placeholder="e.g. Burhanuddin / 12345678">
           </div>
           <div class="col-lg-2 col-md-3 col-sm-6">
             <label class="form-label small mb-1">Sector</label>

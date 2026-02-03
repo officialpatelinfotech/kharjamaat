@@ -82,7 +82,7 @@ if (!empty($corpus_details)) {
       <div class="form-row align-items-end">
         <div class="col-md-3">
           <label class="small mb-1">Name</label>
-          <input type="text" id="filterName" class="form-control form-control-sm" placeholder="Search member name">
+          <input type="text" id="filterName" class="form-control form-control-sm" placeholder="Search name or ITS">
         </div>
         <div class="col-md-3">
           <label class="small mb-1">Fund</label>
@@ -328,7 +328,7 @@ if (!empty($corpus_details)) {
       var subsector = subSectorSelect.val();
       var filtered = allRows.filter(function(r) {
         var ok = true;
-        if (name) ok = ok && (r.name || '').toLowerCase().indexOf(name) >= 0;
+        if (name) ok = ok && (((r.name || '').toLowerCase().indexOf(name) >= 0) || (String(r.hof_id || '').toLowerCase().indexOf(name) >= 0));
         if (fundId) ok = ok && String(r.fund_id) === String(fundId);
         if (sector) ok = ok && String(r.sector) === String(sector);
         if (subsector) ok = ok && String(r.subsector) === String(subsector);

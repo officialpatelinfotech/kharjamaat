@@ -102,7 +102,7 @@
   ?>
   <div class="row col-12" id="sub-filters">
     <div class="col-12 col-md-4 mb-2">
-      <input type="text" id="filter-member" class="form-control" placeholder="Filter Member Name" autocomplete="off" />
+      <input type="text" id="filter-member" class="form-control" placeholder="Filter name or ITS" autocomplete="off" />
     </div>
     <div class="col-6 col-md-3 mb-2">
       <select id="filter-sector" class="form-control">
@@ -148,7 +148,7 @@
           ?>
               <tr>
                 <td class="row-index" data-original-index="<?php echo $key; ?>"><?php echo $key + 1; ?></td>
-                <td><?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?></td>
+                <td><?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?> <span class="text-muted">(<?php echo htmlspecialchars($user['ITS_ID'] ?? '', ENT_QUOTES); ?>)</span></td>
                 <td><?php echo $user["Sector"]; ?></td>
                 <td><?php echo $user["Sub_Sector"]; ?></td>
                 <td>

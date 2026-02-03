@@ -37,7 +37,7 @@
       if (!function_exists('selopt')) { function selopt($cur, $val){ return ((string)($cur ?? '') === (string)$val) ? 'selected' : ''; } }
     ?>
     <form method="POST" action="<?php echo base_url("admin/filterfmbtakhmeen"); ?>" id="filter-form" class="row m-0">
-      <input type="text" name="member_name" id="member-name" class="apply-filter form-control col-3 mr-3" placeholder="Filter by Member name" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
+      <input type="text" name="member_name" id="member-name" class="apply-filter form-control col-3 mr-3" placeholder="Filter by Name or ITS" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
       <select name="sector" id="sector" class="apply-filter form-control col-3 mr-3">
         <option value="">All Sectors</option>
         <?php foreach($sectors_list as $s): ?>

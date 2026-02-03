@@ -11,6 +11,7 @@ class Notification_lib
     $this->CI = &get_instance();
     $this->CI->load->model('NotificationM');
     $this->CI->load->library('email');
+    $this->CI->load->library('Whatsapp_bot_lib');
   }
 
   public function send_email($opts)
@@ -87,25 +88,93 @@ class Notification_lib
   }
 
   /**
-   * Queue a WhatsApp message — placeholder: records notification for background worker
+   * Queue a WhatsApp notification (template-based preferred).
+   *
+   * Supported formats:
+   * - Template: ['recipient'=>..., 'template_name'=>..., 'template_language'=>'en', 'body_vars'=>[...]]
+   * - Legacy text: ['recipient'=>..., 'body'=>'some text']
    */
   public function send_whatsapp($opts)
   {
+    $recipient = isset($opts['recipient']) ? (string)$opts['recipient'] : '';
+    $recipient = $this->CI->whatsapp_bot_lib->normalize_phone($recipient);
+
+    $templateName = isset($opts['template_name']) ? trim((string)$opts['template_name']) : '';
+    $templateLanguage = isset($opts['template_language']) ? trim((string)$opts['template_language']) : '';
+    $bodyVars = isset($opts['body_vars']) && is_array($opts['body_vars']) ? array_values($opts['body_vars']) : [];
+
     $body = isset($opts['body']) ? $opts['body'] : null;
-    // Convert relative account paths like "accounts/foo" or "/accounts/foo" to absolute links
     if (!empty($body) && is_string($body)) {
       $body = $this->absolutize_account_links($body);
     }
 
+    // Store whatsapp payload as JSON when template-based. Keeps the notifications table schema unchanged.
+    if ($templateName !== '') {
+      $storedBody = json_encode([
+        'type' => 'template',
+        'template_name' => $templateName,
+        'template_language' => $templateLanguage,
+        'body' => $bodyVars
+      ]);
+      if ($storedBody === false) {
+        $storedBody = null;
+      }
+    } else {
+      // Legacy: plain text body
+      $storedBody = $body;
+    }
+
     $id = $this->CI->NotificationM->insert_notification([
       'channel' => 'whatsapp',
-      'recipient' => isset($opts['recipient']) ? $opts['recipient'] : null,
+      'recipient' => $recipient !== '' ? $recipient : null,
       'recipient_type' => isset($opts['recipient_type']) ? $opts['recipient_type'] : null,
       'subject' => null,
-      'body' => $body,
+      'body' => $storedBody,
       'scheduled_at' => isset($opts['scheduled_at']) ? $opts['scheduled_at'] : null
     ]);
     return $id;
+  }
+
+  /**
+   * Deliver a queued WhatsApp notification immediately.
+   * Accepts either JSON template payload (preferred) or plain text body.
+   *
+   * @return array {ok, http_code, response_raw, response_json, error}
+   */
+  public function deliver_whatsapp($notificationRow)
+  {
+    $recipient = isset($notificationRow['recipient']) ? (string)$notificationRow['recipient'] : '';
+    $recipient = $this->CI->whatsapp_bot_lib->normalize_phone($recipient);
+    $body = isset($notificationRow['body']) ? $notificationRow['body'] : null;
+
+    // If stored as JSON, interpret as template payload.
+    if (is_string($body)) {
+      $decoded = json_decode($body, true);
+      if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && ($decoded['type'] ?? '') === 'template') {
+        $templateName = (string)($decoded['template_name'] ?? '');
+        $language = (string)($decoded['template_language'] ?? '');
+        $vars = isset($decoded['body']) && is_array($decoded['body']) ? $decoded['body'] : [];
+        return $this->CI->whatsapp_bot_lib->send_template($recipient, $templateName, $vars, $language !== '' ? $language : null);
+      }
+    }
+
+    // Legacy plain text: attempt to send using configured text template (if provided)
+    $message = is_string($body) ? $body : '';
+    $this->CI->config->load('whatsapp', true);
+    $textTpl = (string)$this->CI->config->item('text_template_name', 'whatsapp');
+    $textLang = (string)$this->CI->config->item('text_template_language', 'whatsapp');
+
+    if ($textTpl !== '') {
+      return $this->CI->whatsapp_bot_lib->send_template($recipient, $textTpl, [$message], $textLang !== '' ? $textLang : null);
+    }
+
+    return [
+      'ok' => false,
+      'http_code' => 0,
+      'response_raw' => '',
+      'response_json' => null,
+      'error' => 'No whatsapp template payload and no EXPREZBOT_WHATSAPP_TEXT_TEMPLATE_NAME configured'
+    ];
   }
 
   /**

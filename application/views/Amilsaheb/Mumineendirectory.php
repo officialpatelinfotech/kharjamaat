@@ -227,8 +227,8 @@
     <form id="filtersForm" class="filters-form" onsubmit="return false;">
       <div class="filters-grid">
         <div>
-          <label class="form-label">Member Name</label>
-          <input type="text" id="filterName" class="form-control" placeholder="e.g. Burhanuddin">
+          <label class="form-label">Name or ITS</label>
+          <input type="text" id="filterName" class="form-control" placeholder="e.g. Burhanuddin / 12345678">
           <div class="filters-actions">
             <button id="applyFiltersBtn" class="btn btn-primary btn-sm">✔ Apply</button>
             <button id="resetFiltersBtn" class="btn btn-outline-secondary btn-sm">↺ Reset</button>

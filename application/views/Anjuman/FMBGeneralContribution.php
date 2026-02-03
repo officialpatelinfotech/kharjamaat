@@ -40,8 +40,8 @@
       <div id="gc-filters" class="p-3 border-bottom bg-light">
         <div class="form-row">
           <div class="col-md-4 mb-2">
-            <label for="gc-filter-name" class="small text-muted mb-1">Member Name</label>
-            <input type="text" id="gc-filter-name" class="form-control form-control-sm" placeholder="Search name...">
+            <label for="gc-filter-name" class="small text-muted mb-1">Name or ITS</label>
+            <input type="text" id="gc-filter-name" class="form-control form-control-sm" placeholder="Search name or ITS...">
           </div>
           <div class="col-md-4 mb-2">
             <label for="gc-filter-ctype" class="small text-muted mb-1">Contribution Type</label>
@@ -145,8 +145,8 @@
               </select>
             </div>
             <div class="mb-3">
-              <label for="member-autocomplete">Member Name</label>
-              <input type="text" id="member-autocomplete" class="form-control" placeholder="Type member name..." autocomplete="off" required>
+              <label for="member-autocomplete">Name or ITS</label>
+              <input type="text" id="member-autocomplete" class="form-control" placeholder="Type name or ITS..." autocomplete="off" required>
               <input type="hidden" name="user_id" id="user-id" required>
               <div id="member-autocomplete-list" class="list-group" style="position:absolute; z-index:1000;"></div>
             </div>
@@ -664,10 +664,11 @@
       const typeVal = $('#gc-filter-ctype').val().trim(); // already lowercased in option values
       $('#gc-invoice-table tbody tr').each(function(){
         const $tr = $(this);
+        const its = $tr.children('td').eq(2).text().trim().toLowerCase();
         const member = $tr.children('td').eq(3).text().trim().toLowerCase();
         const ctype = $tr.children('td').eq(4).text().trim().toLowerCase();
         let show = true;
-        if(nameVal && member.indexOf(nameVal) === -1) show = false;
+        if(nameVal && (member.indexOf(nameVal) === -1) && (its.indexOf(nameVal) === -1)) show = false;
         if(typeVal && ctype !== typeVal) show = false;
         $tr.toggle(show);
       });

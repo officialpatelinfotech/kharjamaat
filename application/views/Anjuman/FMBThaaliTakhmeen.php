@@ -46,7 +46,7 @@
   ?>
   <div class="row mb-3" id="takhmeen-filters">
     <div class="col-12 col-md-2 mb-2">
-      <input type="text" id="filter-member" class="form-control form-control-sm" placeholder="Filter Member Name" autocomplete="off" />
+      <input type="text" id="filter-member" class="form-control form-control-sm" placeholder="Filter name or ITS" autocomplete="off" />
     </div>
     <div class="col-12 col-md-2 mb-2">
       <input type="text" id="filter-its" class="form-control form-control-sm" placeholder="Filter ITS ID" autocomplete="off" value="<?php echo htmlspecialchars(isset($filter_its) ? $filter_its : $this->input->get('its')); ?>" />
@@ -567,11 +567,12 @@
           r.style.display = '';
           return;
         }
+        const itsCell = cells[1].textContent.toLowerCase();
         const nameCell = cells[2].textContent.toLowerCase();
         const sectorCell = cells[3].textContent.trim();
         const subCell = cells[4].textContent.trim();
         let show = true;
-        if (nameVal && !nameCell.includes(nameVal)) show = false;
+        if (nameVal && !(nameCell.includes(nameVal) || itsCell.includes(nameVal))) show = false;
         if (sectorVal && sectorCell !== sectorVal) show = false;
         if (subVal && subCell !== subVal) show = false;
         r.style.display = show ? '' : 'none';

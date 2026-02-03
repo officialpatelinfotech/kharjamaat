@@ -39,9 +39,6 @@ class AnjumanM extends CI_Model
   //   $this->db->select("
   //     m.id as miqaat_index,
   //     m.miqaat_id,
-  //     m.name as miqaat_name,
-  //     m.type as miqaat_type,
-  //     m.date as miqaat_date,
   //     m.assigned_to,
   //     m.status as miqaat_status,
 
@@ -192,8 +189,13 @@ class AnjumanM extends CI_Model
   //   ];
   // }
 
-  public function get_all_approved_past_miqaats($miqaat_type)
+  public function get_all_approved_past_miqaats($miqaat_type, $filters = [])
   {
+    $razaIdFilter = '';
+    if (is_array($filters) && isset($filters['raza_id'])) {
+      $razaIdFilter = trim((string)$filters['raza_id']);
+    }
+
     $this->db->select("
       m.id as miqaat_index,
       m.miqaat_id,
@@ -217,15 +219,26 @@ class AnjumanM extends CI_Model
     $this->db->join("miqaat_assignments ma", "ma.miqaat_id = m.id", "inner");
     $this->db->join("user u", "u.ITS_ID = ma.member_id", "left");
     $this->db->join("user gl", "gl.ITS_ID = ma.group_leader_id", "left");
-    $this->db->join("raza r", "r.miqaat_id = m.id 
-        AND (r.user_id = ma.member_id OR r.user_id = ma.group_leader_id)", "inner");
-    $this->db->join("miqaat_invoice inv", "inv.miqaat_id = m.id AND inv.raza_id = r.id", "left");
+  // Raza can be missing for some miqaats; invoices should still be creatable.
+  $this->db->join("raza r", "r.miqaat_id = m.id 
+    AND (r.user_id = ma.member_id OR r.user_id = ma.group_leader_id)", "left");
+
+  // Pending invoice means: no invoice for this miqaat + invoice user + (raza match OR both have no raza)
+  $invoiceUserExpr = "(CASE WHEN TRIM(LOWER(ma.assign_type)) = 'group' THEN ma.group_leader_id ELSE ma.member_id END)";
+  $razaMatchExpr = "((r.id IS NOT NULL AND inv.raza_id = r.id) OR (r.id IS NULL AND inv.raza_id IS NULL))";
+  $invOn = "inv.miqaat_id = m.id AND inv.user_id = {$invoiceUserExpr} AND {$razaMatchExpr}";
+  $this->db->join("miqaat_invoice inv", $invOn, "left", false);
 
     $this->db->where("inv.id IS NULL");
-    $this->db->where("m.date < CURDATE()");
     $this->db->where("m.type", $miqaat_type);
     $this->db->where("m.assigned_to !=", "Fala ni Niyaz");
-    $this->db->where("r.`Janab-status`", 1);
+    // If raza exists it must be approved; but allow rows with no raza.
+    $this->db->where("(r.id IS NULL OR r.`Janab-status` = 1)", null, false);
+
+    if ($razaIdFilter !== '') {
+      $this->db->where('r.id IS NOT NULL', null, false);
+      $this->db->where('r.raza_id', $razaIdFilter);
+    }
 
     $this->db->order_by("m.date ASC, u.Full_Name ASC");
     $normal_miqaats = $this->db->get()->result_array();
@@ -273,7 +286,6 @@ class AnjumanM extends CI_Model
     $this->db->join("miqaat_invoice inv", "inv.miqaat_id = m.id AND inv.raza_id = r.id", "left");
 
     $this->db->where("inv.id IS NULL");
-    $this->db->where("m.date < CURDATE()");
     $this->db->where("m.type", $miqaat_type);
     $this->db->where("m.assigned_to", "Fala ni Niyaz");
     $this->db->where("r.`Janab-status`", 1);
@@ -849,8 +861,18 @@ class AnjumanM extends CI_Model
     ];
   }
 
-  public function get_all_member_miqaat_payments($miqaat_type, $include_fm = false)
+  public function get_all_member_miqaat_payments($miqaat_type, $include_fm = false, $year = null)
   {
+    $getHijriYear = function ($gregDate) {
+      if (empty($gregDate)) return null;
+      $h = $this->HijriCalendar->get_hijri_date($gregDate);
+      if (!$h || empty($h['hijri_date'])) return null;
+      $parts = explode('-', (string)$h['hijri_date']);
+      $hy = $parts[2] ?? null;
+      $hy = is_string($hy) ? trim($hy) : $hy;
+      return ($hy !== null && $hy !== '') ? $hy : null;
+    };
+
     // 1️⃣ Main query for invoices + totals
     $this->db->select("
       u.ITS_ID,
@@ -943,6 +965,21 @@ class AnjumanM extends CI_Model
         ? ($prow['invoice_description'] ?? '')
         : ($prow['miqaat_name'] ?? '');
 
+      // Derive Hijri year for filtering/display (prefer miqaat_date; fallback invoice_year; fallback invoice_date)
+      $effY = null;
+      if (!empty($prow['miqaat_id']) && !empty($prow['miqaat_date'])) {
+        $effY = $getHijriYear($prow['miqaat_date']);
+      }
+      if ($effY === null && isset($prow['invoice_year']) && (string)$prow['invoice_year'] !== '') {
+        $effY = $prow['invoice_year'];
+      }
+      if ($effY === null && !empty($prow['invoice_date'])) {
+        $effY = $getHijriYear($prow['invoice_date']);
+      }
+      if (!empty($year) && (string)$effY !== (string)$year) {
+        continue;
+      }
+
       $paymentsMap[$uid][] = [
         'payment_id'          => (int)$prow['payment_id'],
         'amount'              => isset($prow['payment_amount']) ? (float)$prow['payment_amount'] : 0.0,
@@ -952,7 +989,7 @@ class AnjumanM extends CI_Model
         'invoice_id'          => $prow['invoice_id'],
         'invoice_amount'      => isset($prow['invoice_amount']) ? (float)$prow['invoice_amount'] : null,
         'invoice_date'        => $prow['invoice_date'],
-        'invoice_year'        => $prow['invoice_year'],
+        'invoice_year'        => $effY,
         'invoice_miqaat_type' => $prow['invoice_miqaat_type'],
         'miqaat_id'           => $prow['miqaat_id'],
         'miqaat_code'         => $prow['miqaat_code'],
@@ -987,14 +1024,29 @@ class AnjumanM extends CI_Model
         !empty($row['invoice_id']) &&
         ($row['miqaat_type'] === $miqaat_type || $row['invoice_miqaat_type'] === $miqaat_type)
       ) {
+        // Derive Hijri year for this invoice (prefer miqaat_date; fallback invoice_year; fallback invoice_date)
+        $effYear = null;
+        if (!empty($row['miqaat_id']) && !empty($row['miqaat_date'])) {
+          $effYear = $getHijriYear($row['miqaat_date']);
+        }
+        if ($effYear === null && isset($row['invoice_year']) && (string)$row['invoice_year'] !== '') {
+          $effYear = $row['invoice_year'];
+        }
+        if ($effYear === null && !empty($row['invoice_date'])) {
+          $effYear = $getHijriYear($row['invoice_date']);
+        }
+        if (!empty($year) && (string)$effYear !== (string)$year) {
+          continue;
+        }
+
         if (!empty($row['miqaat_id'])) {
           $group_key   = "M#" . $row['miqaat_code'];
           $miqaat_id   = $row['miqaat_code'];
           $miqaat_name = $row['miqaat_name'];
         } else {
-          $group_key   = $row['invoice_miqaat_type'] . " " . $row['invoice_year'];
+          $group_key   = $row['invoice_miqaat_type'] . " " . $effYear;
           $miqaat_id   = null;
-          $miqaat_name = "Fala ni Niyaz " . $row['invoice_year'];
+          $miqaat_name = "Fala ni Niyaz " . $effYear;
         }
 
         $invoice_amount = (float)$row['invoice_amount'];
@@ -1014,7 +1066,7 @@ class AnjumanM extends CI_Model
             'miqaat_id'      => $miqaat_id,
             'miqaat_name'    => $miqaat_name,
             'invoice_id'     => $row['invoice_id'],
-            'invoice_year'   => $row['invoice_year'],
+            'invoice_year'   => $effYear,
             'invoice_amount' => $invoice_amount,
             'paid_amount'    => $paid_amount,
             'due_amount'     => $due_amount,
@@ -1445,7 +1497,11 @@ class AnjumanM extends CI_Model
     $this->db->select('ITS_ID, Full_Name');
     $this->db->from('user');
     if (!empty($query)) {
-      $this->db->like('Full_Name', $query);
+      $q = trim((string)$query);
+      $this->db->group_start();
+      $this->db->like('Full_Name', $q);
+      $this->db->or_like('ITS_ID', $q);
+      $this->db->group_end();
     }
     $this->db->where('HOF_FM_TYPE', 'HOF');
     $this->db->where("Inactive_Status IS NULL AND Sector IS NOT NULL");
@@ -1600,7 +1656,11 @@ class AnjumanM extends CI_Model
     // after constructing the takhmeen year rows.
 
     if (!empty($filter_data["member_name"])) {
-      $this->db->like("u.Full_Name", $filter_data["member_name"]);
+      $q = trim((string)$filter_data["member_name"]);
+      $this->db->group_start();
+      $this->db->like("u.Full_Name", $q);
+      $this->db->or_like("u.ITS_ID", $q);
+      $this->db->group_end();
     }
     if (!empty($filter_data["its_id"])) {
       // exact match on ITS
@@ -1899,7 +1959,11 @@ class AnjumanM extends CI_Model
     $this->db->where('HOF_FM_TYPE', 'HOF');
     $this->db->where("Inactive_Status IS NULL AND Sector IS NOT NULL");
     if (!empty($query)) {
-      $this->db->like('Full_Name', $query);
+      $q = trim((string)$query);
+      $this->db->group_start();
+      $this->db->like('Full_Name', $q);
+      $this->db->or_like('ITS_ID', $q);
+      $this->db->group_end();
     }
     return $this->db->get()->result_array();
   }

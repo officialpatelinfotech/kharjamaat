@@ -50,8 +50,10 @@ class CommonM extends CI_Model
     // Optional HAVING filters
     $having = [];
     if (!empty($name_filter)) {
-      $having[] = "LOWER(MAX(COALESCE(u.Full_Name, CAST(b.user_id AS CHAR)))) LIKE ?";
-      $params[] = '%' . strtolower(trim($name_filter)) . '%';
+      $q = strtolower(trim((string)$name_filter));
+      $having[] = "(LOWER(MAX(COALESCE(u.Full_Name, ''))) LIKE ? OR CAST(b.user_id AS CHAR) LIKE ?)";
+      $params[] = '%' . $q . '%';
+      $params[] = '%' . $q . '%';
     }
     if (!empty($amount_zero)) {
       // total_takhmeen alias equals 0
@@ -651,8 +653,10 @@ class CommonM extends CI_Model
     // Optional HAVING filters
     $having = [];
     if (!empty($name_filter)) {
-      $having[] = "LOWER(MAX(COALESCE(u.Full_Name, CAST(b.user_id AS CHAR)))) LIKE ?";
-      $params[] = '%' . strtolower(trim($name_filter)) . '%';
+      $q = strtolower(trim((string)$name_filter));
+      $having[] = "(LOWER(MAX(COALESCE(u.Full_Name, ''))) LIKE ? OR CAST(b.user_id AS CHAR) LIKE ?)";
+      $params[] = '%' . $q . '%';
+      $params[] = '%' . $q . '%';
     }
     if (!empty($amount_zero)) {
       $having[] = "COALESCE(SUM(ft.total_amount), 0) = 0";
@@ -2464,7 +2468,11 @@ class CommonM extends CI_Model
       }
     }
     if (!empty($filters['member_name'])) {
-      $this->db->like('u.Full_Name', $filters['member_name']);
+      $q = trim((string)$filters['member_name']);
+      $this->db->group_start();
+      $this->db->like('u.Full_Name', $q);
+      $this->db->or_like('u.ITS_ID', $q);
+      $this->db->group_end();
     }
     if (!empty($filters['dp_name'])) {
       $this->db->like('dp.name', $filters['dp_name']);

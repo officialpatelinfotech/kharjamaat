@@ -597,6 +597,28 @@
     color: #777;
     margin: 16px 8px 6px;
     text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+
+  .sidebar-menu .menu-section:hover {
+    background: #f7f7fb;
+  }
+
+  .sidebar-menu .menu-section::after {
+    content: '▾';
+    font-size: .75rem;
+    color: #9aa0a6;
+    transform: rotate(0deg);
+    transition: transform .15s ease;
+  }
+
+  .sidebar-menu .menu-section.is-collapsed::after {
+    transform: rotate(-90deg);
   }
 
   .sidebar-menu .menu-list {
@@ -2559,6 +2581,74 @@
                   if (a) closeSidebar();
                 });
               }
+            })();
+
+            // Collapsible Quick Menu sections (Raza/Finance/Reports/Appointments/Activity)
+            (function() {
+              var sidebarMenu = document.querySelector('.sidebar-menu');
+              if (!sidebarMenu) return;
+
+              var sections = Array.prototype.slice.call(sidebarMenu.querySelectorAll('.menu-section'));
+              if (!sections.length) return;
+
+              function safeGet(key) {
+                try {
+                  return window.localStorage ? localStorage.getItem(key) : null;
+                } catch (e) {
+                  return null;
+                }
+              }
+              function safeSet(key, val) {
+                try {
+                  if (window.localStorage) localStorage.setItem(key, val);
+                } catch (e) {}
+              }
+
+              var prefix = 'quickmenu:' + (window.location && window.location.pathname ? window.location.pathname : 'page');
+
+              sections.forEach(function(sec, idx) {
+                var list = sec.nextElementSibling;
+                if (!list || !list.classList || !list.classList.contains('menu-list')) return;
+
+                sec.setAttribute('role', 'button');
+                sec.setAttribute('tabindex', '0');
+
+                if (!list.id) {
+                  list.id = 'qm-' + idx + '-' + Math.random().toString(36).slice(2, 8);
+                }
+                sec.setAttribute('aria-controls', list.id);
+
+                var label = (sec.textContent || '').trim().toLowerCase();
+                var key = prefix + '|' + label;
+                var stored = safeGet(key);
+                // Default: collapsed (unless user previously expanded it)
+                var collapsed = stored === null ? true : (stored === '1');
+
+                function applyState() {
+                  list.style.display = collapsed ? 'none' : '';
+                  sec.classList.toggle('is-collapsed', collapsed);
+                  sec.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                  safeSet(key, collapsed ? '1' : '0');
+                }
+
+                function toggle() {
+                  collapsed = !collapsed;
+                  applyState();
+                }
+
+                sec.addEventListener('click', function(e) {
+                  if (window.getSelection && String(window.getSelection()).length) return;
+                  toggle();
+                });
+                sec.addEventListener('keydown', function(e) {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle();
+                  }
+                });
+
+                applyState();
+              });
             })();
 
             // Disable sector details modal; cards now navigate via links

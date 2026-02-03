@@ -11,7 +11,7 @@
   <div class="row mb-4">
     <div class="col-12 col-md-6 d-flex m-0">
       <form method="POST" action="<?php echo base_url("admin/filteruserinsabeeltakhmeen"); ?>" class="d-flex m-0">
-        <input type="text" name="member_name" id="member-name" class="form-control" placeholder="Member name" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
+        <input type="text" name="member_name" id="member-name" class="form-control" placeholder="Name or ITS" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
         <?php
           // Build Hijri composite year dropdown (1442-43 to 1457-58) and default to current Hijri FY
           $headerYearRanges = [

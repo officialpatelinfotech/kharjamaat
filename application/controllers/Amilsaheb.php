@@ -1086,6 +1086,8 @@ class Amilsaheb extends CI_Controller
       }
 
       if ($isMiqaatRaza && $miqaatId > 0) {
+        $this->load->library('Notification_lib');
+
         $miqaat = $this->AnjumanM->get_miqaat_by_id($miqaatId);
         $miqName = is_array($miqaat) ? ($miqaat['name'] ?? '') : '';
         $miqDate = is_array($miqaat) ? (date("d-m-Y", strtotime($miqaat['date'])) ?? '') : '';
@@ -1133,6 +1135,28 @@ class Amilsaheb extends CI_Controller
             'subject' => $subject,
             'body' => $body,
             'scheduled_at' => null
+          ]);
+        }
+
+        // WhatsApp: send ExprezBot template to members with a valid mobile.
+        // Template variables/order are controlled by the ExprezBot template itself.
+        // Start with no variables (works with templates that have no placeholders).
+        $waMembers = $this->db->select("COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile", false)
+          ->from('user u')
+          ->where('u.inactive_status IS NULL', null, false)
+          ->where("COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') <> ''", null, false)
+          ->get()
+          ->result_array();
+
+        foreach ($waMembers as $wm) {
+          $phone = preg_replace('/[^0-9]/', '', (string)($wm['mobile'] ?? ''));
+          if ($phone === '') continue;
+          $this->notification_lib->send_whatsapp([
+            'recipient' => $phone,
+            'recipient_type' => 'member',
+            'template_name' => 'rsvp_new_khar',
+            'template_language' => 'en',
+            'body_vars' => []
           ]);
         }
       }

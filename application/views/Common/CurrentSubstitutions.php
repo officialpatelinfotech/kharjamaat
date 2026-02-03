@@ -9,8 +9,8 @@
         <form method="get" action="<?php echo base_url('common/currentsubstitutions'); ?>" id="backend-filter-form">
           <div class="form-row">
             <div class="form-group col-sm-3 mb-2">
-              <label class="mb-1">Member Name</label>
-              <input type="text" name="member_name" value="<?php echo htmlspecialchars($filter_values['member_name'] ?? ''); ?>" class="form-control form-control-sm" placeholder="Search member...">
+              <label class="mb-1">Name or ITS</label>
+              <input type="text" name="member_name" value="<?php echo htmlspecialchars($filter_values['member_name'] ?? ''); ?>" class="form-control form-control-sm" placeholder="Search name or ITS...">
             </div>
             <div class="form-group col-sm-3 mb-2">
               <label class="mb-1">Delivery Person</label>

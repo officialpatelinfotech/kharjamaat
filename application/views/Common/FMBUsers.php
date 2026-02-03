@@ -37,7 +37,7 @@ $years = isset($hijri_years) ? $hijri_years : [];
       <div class="col-12 col-sm-auto">
         <div class="d-flex align-items-center">
           <label for="name" class="form-label me-2 mr-2 mb-0" style="white-space: nowrap;">Name</label>
-          <input type="text" name="name" id="name" class="form-control" placeholder="Search name" value="<?php echo htmlspecialchars($name_filter ?? ''); ?>" style="min-width: 200px;" />
+          <input type="text" name="name" id="name" class="form-control" placeholder="Search name or ITS" value="<?php echo htmlspecialchars($name_filter ?? ''); ?>" style="min-width: 200px;" />
         </div>
       </div>
       <div class="col-12 col-sm-auto">

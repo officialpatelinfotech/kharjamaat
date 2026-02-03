@@ -8,40 +8,47 @@ class Whatsapp extends CI_Controller
   {
     parent::__construct();
   }
-  public function send_whatsapp_message()
+  /**
+   * CLI-only quick test for ExprezBot template sending.
+   * Usage:
+   *   php index.php whatsapp send_test_template 919309950513 rsvp_new_khar en "[]"
+   */
+  public function send_test_template($phone = '', $template = '', $lang = 'en', $bodyJson = '[]')
   {
-
-    $apiUrl = "https://multiwhatsapp.admarksolution.com/api/send-message";
-    $apiKey = "3e03ac84-c20a-482e-8884-86378662b2fd";
-
-    // Query parameters
-
-    $params = [
-      "number" => "919309950513",
-      "messageBody" => "*Greetings from Patel Infotech Services!*
-We’re delighted to connect with you and look forward to helping you grow with our innovative web solutions.
-      
-*Explore our services:* https://patelinfotech.online/services",
-    ];
-    $urlWithParams = $apiUrl . '?' . http_build_query($params);
-
-    // Initialize cURL
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $urlWithParams);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-      "Content-Type: application/json",
-      "api-key: $apiKey"
-    ]);
-
-    // Response
-    $response = curl_exec($ch);
-    if (curl_errno($ch)) {
-      echo "cURL Error: " . curl_error($ch);
-    } else {
-      $data = json_decode($response, true);
-      echo "<pre>" . print_r($data, true) . "</pre>";
+    if (!is_cli()) {
+      echo "This endpoint may only be run from CLI." . PHP_EOL;
+      return;
     }
-    curl_close($ch);
+
+    $this->load->library('Whatsapp_bot_lib');
+
+    // Accept either raw JSON or URL-safe base64-encoded JSON to avoid CI URI filtering issues.
+    $raw = (string)$bodyJson;
+    $vars = [];
+    // Heuristic: if looks like base64 (alphanumeric plus -_ and optional =), attempt decode
+    if (preg_match('#^[A-Za-z0-9-_]+={0,2}$#', $raw)) {
+      // Convert URL-safe base64 to standard base64
+      $b64 = strtr($raw, '-_', '+/');
+      // Add padding if missing
+      $mod = strlen($b64) % 4;
+      if ($mod > 0) $b64 .= str_repeat('=', 4 - $mod);
+      $decoded = @base64_decode($b64, true);
+      if ($decoded !== false) {
+        $decodedArr = json_decode($decoded, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decodedArr)) {
+          $vars = $decodedArr;
+        }
+      }
+    }
+    // Fallback: raw JSON string
+    if (empty($vars)) {
+      $try = json_decode($raw, true);
+      if (json_last_error() === JSON_ERROR_NONE && is_array($try)) {
+        $vars = $try;
+      }
+    }
+
+    $result = $this->whatsapp_bot_lib->send_template($phone, $template, $vars, $lang);
+    echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;
   }
 }

@@ -89,6 +89,14 @@
           </div>
         </div>
       </a>
+      <a href="<?php echo base_url('common/managemiqaat?from=admin'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Create & Manage Miqaat</div>
+            <i class="icon fa-solid fa-calendar-days"></i>
+          </div>
+        </div>
+      </a>
       <a href="<?php echo base_url('admin/corpusfunds'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
           <div class="card-body d-flex flex-column justify-content-between">

@@ -127,6 +127,15 @@
     }
   }
 
+  // Prefer full Hijri years list passed from controller (hijri_calendar); fallback to deriving from invoice data.
+  $all_hijri_years = [];
+  if (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years)) {
+    $all_hijri_years = array_values(array_unique(array_filter($hijri_years, function ($y) {
+      return $y !== null && (string)$y !== '';
+    })));
+    rsort($all_hijri_years);
+  }
+
   // Default sorting: Sector -> Sub_Sector -> Full_Name (case-insensitive)
   if (!empty($members) && is_array($members)) {
     usort($members, function($a, $b) {
@@ -151,7 +160,7 @@
     // Build distinct Sectors, Sub Sectors, and Hijri Years from data
     $sectors = [];
     $sub_sectors = [];
-    $hijri_years = [];
+    $years_from_invoices = [];
     foreach ($members as $m) {
       $its = isset($m['ITS_ID']) ? $m['ITS_ID'] : '';
       $name = isset($m['Full_Name']) ? $m['Full_Name'] : '';
@@ -173,16 +182,19 @@
           ];
           $rows[] = $row;
           $grand_total += (float)$row['amount'];
-          if (isset($inv['invoice_year']) && $inv['invoice_year'] !== '' && !in_array($inv['invoice_year'], $hijri_years, true)) {
-            $hijri_years[] = $inv['invoice_year'];
+          if (isset($inv['invoice_year']) && $inv['invoice_year'] !== '' && !in_array($inv['invoice_year'], $years_from_invoices, true)) {
+            $years_from_invoices[] = $inv['invoice_year'];
           }
         }
       }
     }
     sort($sectors);
     sort($sub_sectors);
-    rsort($hijri_years); // show latest first if present
+    rsort($years_from_invoices); // show latest first if present
   }
+
+  // Year dropdown should list all years available; prefer controller list.
+  $hijri_years = !empty($all_hijri_years) ? $all_hijri_years : ($years_from_invoices ?? []);
 
   // Note: Payment view is read-only; Fala ni Niyaz edit/delete logic removed.
   ?>
@@ -211,11 +223,23 @@
       $default_hijri_year = $hijri_years[0];
     }
     ?>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center p-2 bg-white border mb-2 col-4 mx-auto" style="border-radius:10px;">
+      <div>
+        <strong>Total Invoice Amount:</strong>
+        <span id="miqaat-payment-total-amount" class="text-success">₹<?php echo inr_format($grand_total); ?></span>
+      </div>
+      <div class="text-muted small">
+        Members shown:
+        <span id="miqaat-payment-members-count"><?php echo count($members); ?></span>
+      </div>
+    </div>
+
     <div id="miqaat-payment-filters" class="p-3 bg-light border mb-2">
       <div class="form-row">
         <div class="col-md-3 mb-2">
-          <label for="pf-name" class="mb-1 text-muted">Member Name</label>
-          <input type="text" id="pf-name" class="form-control form-control-sm" placeholder="Search name...">
+          <label for="pf-name" class="mb-1 text-muted">Name or ITS</label>
+          <input type="text" id="pf-name" class="form-control form-control-sm" placeholder="Search name or ITS...">
         </div>
         <div class="col-md-3 mb-2">
           <label for="pf-sector" class="mb-1 text-muted">Sector</label>
@@ -475,6 +499,8 @@
           // Only operate on main member rows, not the hidden payment-history rows
           const rows = document.querySelectorAll('#miqaat-payments-table tbody tr:not(.payment-history-row)');
           let index = 1;
+          let visibleMembers = 0;
+          let visibleAmountTotal = 0;
 
           function currency(n) {
             if (n === undefined || n === null) return '₹0';
@@ -491,10 +517,11 @@
           rows.forEach(r => {
             const nameCell = r.querySelector('.member-name-cell');
             const rName = (nameCell ? nameCell.textContent : '').trim().toLowerCase();
+            const rIts = ((r.children && r.children[1] ? r.children[1].textContent : '') || '').trim().toLowerCase();
             const rSector = r.getAttribute('data-sector') || '';
             const rSub = r.getAttribute('data-subsector') || '';
             let show = true;
-            if (nameVal && rName.indexOf(nameVal) === -1) show = false;
+            if (nameVal && rName.indexOf(nameVal) === -1 && rIts.indexOf(nameVal) === -1) show = false;
             if (sectorVal && rSector !== sectorVal) show = false;
             if (subVal && rSub !== subVal) show = false;
 
@@ -541,7 +568,15 @@
             // Set serial number for visible main rows only
             const firstCell = r.querySelector('td');
             if (firstCell) firstCell.textContent = index++;
+
+            visibleMembers += 1;
+            visibleAmountTotal += amountSum;
           });
+
+          const totalEl = document.getElementById('miqaat-payment-total-amount');
+          if (totalEl) totalEl.textContent = currency(visibleAmountTotal);
+          const membersEl = document.getElementById('miqaat-payment-members-count');
+          if (membersEl) membersEl.textContent = String(visibleMembers);
         }
 
         const pfName = document.getElementById('pf-name');
@@ -588,6 +623,9 @@
             }
           }
         }
+
+        // Ensure summary bar is initialized even when default year is empty
+        applyPaymentFilters();
 
         // Ensure proper overlay handling for stacked modals (member invoices -> receive payment)
         if (window.jQuery) {

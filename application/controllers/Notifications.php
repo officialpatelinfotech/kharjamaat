@@ -169,10 +169,21 @@ class Notifications extends CI_Controller
             }
           }
         } elseif ($channel === 'whatsapp') {
-          // Placeholder: enqueue/record or integrate with WhatsApp API here
-          // For now mark as sent (or you may implement proper integration)
-          $this->NotificationM->mark_sent($id);
-          echo "[{$id}] whatsapp marked sent (placeholder)\n";
+          $result = $this->notification_lib->deliver_whatsapp($n);
+          if (!empty($result['ok'])) {
+            $this->NotificationM->mark_sent($id);
+            $http = isset($result['http_code']) ? (int)$result['http_code'] : 0;
+            echo "[{$id}] whatsapp sent http={$http}\n";
+          } else {
+            $http = isset($result['http_code']) ? (int)$result['http_code'] : 0;
+            $err = isset($result['error']) ? (string)$result['error'] : 'unknown error';
+            echo "[{$id}] whatsapp failed http={$http} err={$err}\n";
+            // Persist attempt count like email
+            $this->NotificationM->increment_attempts_and_fail($id);
+            // Lightweight file log for debugging provider issues
+            $line = "[" . date('Y-m-d H:i:s') . "] notifications whatsapp id={$id} recipient=" . (string)($n['recipient'] ?? '') . " http={$http} err={$err}\n";
+            @file_put_contents(APPPATH . 'logs/whatsapp.log', $line, FILE_APPEND | LOCK_EX);
+          }
         } elseif ($channel === 'sms') {
           // Placeholder for SMS provider integration
           $this->NotificationM->mark_sent($id);
