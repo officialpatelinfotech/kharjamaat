@@ -395,27 +395,26 @@ class Accounts extends CI_Controller
     ];
 
     // Qardan Hasana summary for family (used on Home page)
+    // Note: scheme tables store deposits/collections; a separate due table may not exist.
     $this->load->model('QardanHasanaM');
-    $qh_total_amount = 0.0;
-    $qh_total_due = 0.0;
-    $qh_last = '';
-    foreach ($memberIds as $mid) {
-      $row = $this->QardanHasanaM->get_by_its($mid);
-      if (!empty($row) && is_array($row)) {
-        $qh_total_amount += (float)($row['amount'] ?? 0);
-        $qh_total_due += (float)($row['due'] ?? 0);
-        $dt = '';
-        if (!empty($row['updated_at'])) $dt = $row['updated_at'];
-        elseif (!empty($row['created_at'])) $dt = $row['created_at'];
-        if ($dt && ($qh_last === '' || strtotime($dt) > strtotime($qh_last))) {
-          $qh_last = $dt;
-        }
-      }
+    $qh_taher_total = $this->QardanHasanaM->get_scheme_total_amount_for_its('taher', $memberIds);
+    $qh_husain_total = $this->QardanHasanaM->get_scheme_total_amount_for_its('husain', $memberIds);
+    $qh_due_total = 0.0;
+    // Backward-compatible: if legacy table exists (some deployments), show its due.
+    if ($this->db->table_exists('qardan_hasana') && $this->db->field_exists('due', 'qardan_hasana')) {
+      $rowQhDue = $this->db
+        ->select('COALESCE(SUM(due),0) AS total_due', false)
+        ->from('qardan_hasana')
+        ->where_in('ITS_ID', $memberIds)
+        ->get()->row_array();
+      $qh_due_total = isset($rowQhDue['total_due']) ? (float)$rowQhDue['total_due'] : 0.0;
     }
-    $data['qardan_hasana'] = [
-      'amount' => $qh_total_amount,
-      'due' => $qh_total_due,
-      'updated_at' => $qh_last,
+    $data['qardan_summary'] = [
+      'taher' => (float)$qh_taher_total,
+      'husain' => (float)$qh_husain_total,
+      'total' => (float)$qh_taher_total + (float)$qh_husain_total,
+      'due' => (float)$qh_due_total,
+      'schemes_count' => 2,
     ];
 
     // Monthly signup overview using current Hijri month
@@ -576,6 +575,156 @@ class Accounts extends CI_Controller
     $this->load->view('Accounts/Madresa/Home', $data);
   }
 
+  public function qardanhasana($scheme = null)
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+      return;
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = ($_SESSION['user_data']['First_Name'] ?? '') . " " . ($_SESSION['user_data']['Surname'] ?? '');
+    $data['sector'] = $_SESSION['user_data']['Sector'] ?? '';
+
+    $memberIts = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $memberIts = trim((string)$memberIts);
+
+    // Build family ITS list (HOF + family members) so members can view admin-imported records tied to HOF/family.
+    $familyIts = [];
+    $hofId = $this->AccountM->get_hof_id_for_member($memberIts);
+    if (!empty($hofId)) {
+      $familyIts[] = (string)$hofId;
+      $familyRows = $this->AccountM->get_all_family_member($hofId);
+      if (!empty($familyRows) && is_array($familyRows)) {
+        foreach ($familyRows as $r) {
+          if (!empty($r['ITS_ID'])) {
+            $familyIts[] = (string)$r['ITS_ID'];
+          }
+        }
+      }
+    } else {
+      $familyIts[] = $memberIts;
+    }
+    $familyIts = array_values(array_unique(array_filter(array_map('trim', $familyIts))));
+
+    // Optional narrowing: if user selects a specific ITS, use it only if it is within family list.
+    $itsNarrow = trim((string)$this->input->get('its'));
+    if ($itsNarrow !== '' && !in_array($itsNarrow, $familyIts, true)) {
+      $itsNarrow = '';
+    }
+
+    $data['qh_prefix'] = 'accounts';
+    $data['can_manage'] = false;
+    $data['can_import'] = false;
+
+    $allowedSchemes = ['taher', 'husain'];
+
+    if ($scheme === null || trim((string)$scheme) === '') {
+      $data['qh_schemes'] = $allowedSchemes;
+
+      $this->load->model('QardanHasanaM');
+      $data['qh_scheme_totals'] = [
+        'taher' => $this->QardanHasanaM->get_scheme_total_amount_for_its('taher', $familyIts),
+        'husain' => $this->QardanHasanaM->get_scheme_total_amount_for_its('husain', $familyIts),
+      ];
+      $data['qh_total_all'] = (float)($data['qh_scheme_totals']['taher'] ?? 0) + (float)($data['qh_scheme_totals']['husain'] ?? 0);
+
+      $this->load->view('Accounts/Header', $data);
+      $this->load->view('Admin/QardanHasana', $data);
+      return;
+    }
+
+    $scheme = strtolower(trim((string)$scheme));
+    if (!in_array($scheme, $allowedSchemes, true)) {
+      redirect('accounts/qardanhasana');
+      return;
+    }
+
+    $this->load->model('QardanHasanaM');
+
+    // Miqaat list for filters (mirrors Admin)
+    $data['miqaats'] = $this->db
+      ->select('m.id, m.name, m.date, hc.hijri_date')
+      ->from('miqaat m')
+      ->join('hijri_calendar hc', 'hc.greg_date = m.date', 'left')
+      ->order_by('m.date', 'DESC')
+      ->get()->result_array();
+
+    // Resolve miqaat_id -> miqaat_name (scheme tables store miqaat_name as text)
+    $miqaatNameFilter = '';
+    $miqaatId = trim((string)$this->input->get('miqaat_id'));
+    if ($miqaatId !== '') {
+      $row = $this->db->select('name')->from('miqaat')->where('id', (int)$miqaatId)->get()->row_array();
+      $miqaatNameFilter = isset($row['name']) ? (string)$row['name'] : '';
+    }
+
+    $data['scheme_key'] = $scheme;
+    $data['scheme_title'] = ucfirst($scheme) . ' Scheme';
+    $data['filters'] = [
+      'miqaat_id' => $this->input->get('miqaat_id'),
+      'hijri_date' => $this->input->get('hijri_date'),
+      'greg_date' => $this->input->get('greg_date'),
+      'deposit_date' => $this->input->get('deposit_date'),
+      'maturity_date' => $this->input->get('maturity_date'),
+      'duration' => $this->input->get('duration'),
+      'its' => $itsNarrow,
+      'member_name' => ''
+    ];
+
+    $data['records'] = [];
+    $data['total_amount'] = 0.0;
+
+    if ($scheme === 'mohammedi') {
+      $data['records'] = $this->QardanHasanaM->get_mohammedi_records([
+        'miqaat_name' => $miqaatNameFilter,
+        'hijri_date' => trim((string)$this->input->get('hijri_date')),
+        'eng_date' => trim((string)$this->input->get('greg_date')),
+      ]);
+    } elseif ($scheme === 'taher') {
+      $data['records'] = $this->QardanHasanaM->get_taher_records([
+        'miqaat_name' => $miqaatNameFilter,
+        'ITS' => ($itsNarrow !== '' ? $itsNarrow : $familyIts),
+        'member_name' => ''
+      ], 500);
+    } elseif ($scheme === 'husain') {
+      $depositDate = trim((string)$this->input->get('deposit_date'));
+      if ($depositDate === '') {
+        $depositDate = trim((string)$this->input->get('greg_date'));
+      }
+      $data['records'] = $this->QardanHasanaM->get_husain_records([
+        'deposit_date' => $depositDate,
+        'maturity_date' => trim((string)$this->input->get('maturity_date')),
+        'duration' => trim((string)$this->input->get('duration')),
+        'ITS' => ($itsNarrow !== '' ? $itsNarrow : $familyIts),
+        'member_name' => ''
+      ], 500);
+    }
+
+    // Total amount for header display (sum of fetched records)
+    $total = 0.0;
+    if (!empty($data['records']) && is_array($data['records'])) {
+      foreach ($data['records'] as $row) {
+        if ($scheme === 'husain') {
+          $total += (float)($row['amount'] ?? 0);
+        } else {
+          if (isset($row['collection_amount'])) {
+            $total += (float)$row['collection_amount'];
+          } else {
+            $unit = (float)($row['unit'] ?? 0);
+            $units = (int)($row['units'] ?? 0);
+            if ($unit > 0 && $units > 0) {
+              $total += $unit * $units;
+            }
+          }
+        }
+      }
+    }
+    $data['total_amount'] = $total;
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Admin/QardanHasanaScheme', $data);
+  }
+
   public function madresa_payment_history($classId = null)
   {
     if (empty($_SESSION['user'])) {
@@ -666,58 +815,6 @@ class Accounts extends CI_Controller
     ];
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Wajebaat', $data);
-  }
-
-  public function qardan_hasana()
-  {
-    if (empty($_SESSION['user'])) {
-      redirect('/accounts');
-    }
-    $this->load->model('AccountM');
-    $this->load->model('QardanHasanaM');
-    $username = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
-    $data['user_name'] = $username;
-
-    $member_its = $_SESSION['user_data']['ITS_ID'] ?? $username;
-    $hof_id = $this->AccountM->get_hof_id_for_member($member_its);
-    $memberIds = [(string)$hof_id];
-    $family = $this->AccountM->get_all_family_member($hof_id);
-    if (!empty($family)) {
-      foreach ($family as $f) {
-        if (!empty($f['ITS_ID'])) {
-          $memberIds[] = (string)$f['ITS_ID'];
-        }
-      }
-    }
-    $memberIds = array_values(array_unique($memberIds));
-
-    $total_amount = 0.0;
-    $total_due = 0.0;
-    $lastUpdated = '';
-    foreach ($memberIds as $mid) {
-      $row = $this->QardanHasanaM->get_by_its($mid);
-      if (!empty($row) && is_array($row)) {
-        $total_amount += (float)($row['amount'] ?? 0);
-        $total_due += (float)($row['due'] ?? 0);
-        foreach (['updated_at', 'updated_on', 'last_updated', 'modified_at', 'modified_on', 'created_at', 'created_on', 'created_date', 'date', 'created'] as $k) {
-          if (!empty($row[$k])) {
-            $dt = (string)$row[$k];
-            if ($lastUpdated === '' || strtotime($dt) > strtotime($lastUpdated)) {
-              $lastUpdated = $dt;
-            }
-            break;
-          }
-        }
-      }
-    }
-
-    $data['qardan_hasana'] = [
-      'amount' => $total_amount,
-      'due' => $total_due,
-      'updated_at' => $lastUpdated,
-    ];
-    $this->load->view('Accounts/Header', $data);
-    $this->load->view('Accounts/QardanHasana', $data);
   }
 
   public function assigned_miqaats()
@@ -2043,17 +2140,7 @@ class Accounts extends CI_Controller
       }
     }
 
-    // Qardan Hasana outstanding for family
-    $qardan_hasana_due = 0.0;
-    $this->load->model('QardanHasanaM');
-    foreach ($memberIds as $m) {
-      $qh_row = $this->QardanHasanaM->get_by_its($m);
-      if (!empty($qh_row) && is_array($qh_row)) {
-        $qardan_hasana_due += (float)($qh_row['due'] ?? 0);
-      }
-    }
-
-    $total_due = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $ekram_due + $wajebaat_due + $qardan_hasana_due;
+    $total_due = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $ekram_due + $wajebaat_due;
 
     $payload = [
       'success' => true,
@@ -2065,7 +2152,6 @@ class Accounts extends CI_Controller
         'corpus_due' => round($corpus_due, 2),
         'ekram_due' => round($ekram_due, 2),
         'wajebaat_due' => round($wajebaat_due, 2),
-        'qardan_hasana_due' => round($qardan_hasana_due, 2),
         'total_due' => round($total_due, 2)
       ],
       'miqaat_invoices' => isset($miq_list) ? $miq_list : []
@@ -2176,17 +2262,7 @@ class Accounts extends CI_Controller
       }
     }
 
-    // Qardan Hasana outstanding for family
-    $qardan_hasana_due = 0.0;
-    $this->load->model('QardanHasanaM');
-    foreach ($memberIds as $m) {
-      $qh_row = $this->QardanHasanaM->get_by_its($m);
-      if (!empty($qh_row) && is_array($qh_row)) {
-        $qardan_hasana_due += (float)($qh_row['due'] ?? 0);
-      }
-    }
-
-    $family_total = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $ekram_due + $wajebaat_due + $qardan_hasana_due;
+    $family_total = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $ekram_due + $wajebaat_due;
 
     // prepare recipients: submitter and HOF (if email present)
     $submitterEmail = $_SESSION['user_data']['Email'] ?? null;
@@ -2262,7 +2338,6 @@ class Accounts extends CI_Controller
     $ekram_fmt = htmlspecialchars($clean(number_format($ekram_due)));
     $miq_fmt = htmlspecialchars($clean(number_format($miq_due)));
     $waj_fmt = htmlspecialchars($clean(number_format($wajebaat_due)));
-    $qh_fmt = htmlspecialchars($clean(number_format($qardan_hasana_due)));
     $total_fmt = htmlspecialchars($clean(number_format($family_total)));
 
     $body .= '<tr><td>FMB Takhmeen</td><td class="amount ' . ($family_fmb > 0 ? 'positive' : '') . '">₹ ' . $fmb_fmt . '</td></tr>';
@@ -2272,7 +2347,6 @@ class Accounts extends CI_Controller
     $body .= '<tr><td>Ekram Fund</td><td class="amount ' . ($ekram_due > 0 ? 'positive' : '') . '">₹ ' . $ekram_fmt . '</td></tr>';
     $body .= '<tr><td>Miqaat Invoices</td><td class="amount ' . ($miq_due > 0 ? 'positive' : '') . '">₹ ' . $miq_fmt . '</td></tr>';
     $body .= '<tr><td>Wajebaat</td><td class="amount ' . ($wajebaat_due > 0 ? 'positive' : '') . '">₹ ' . $waj_fmt . '</td></tr>';
-    $body .= '<tr><td>Qardan Hasana</td><td class="amount ' . ($qardan_hasana_due > 0 ? 'positive' : '') . '">₹ ' . $qh_fmt . '</td></tr>';
     $body .= '<tr class="total"><td>Total</td><td class="amount ' . ($family_total > 0 ? 'positive' : '') . '">₹ ' . $total_fmt . '</td></tr>';
     $body .= '</table>';
 

@@ -834,11 +834,11 @@
                     </label></div>
                 </div>
               </div>
-              <div id="div_id_raza-fields-qardan_purpose" class="form-group"><label
-                  for="id_raza-fields-qardan_purpose" class="col-form-label  requiredField">
-                  Qardan Purpose<span class="asteriskField">*</span></label>
-                <div class=""><select name="raza-fields-qardan_purpose" required=""
-                    class="choicefield required select form-control" id="qardan_purpose">
+              <div id="div_id_raza-fields-purpose" class="form-group"><label
+                  for="id_raza-fields-purpose" class="col-form-label  requiredField">
+                  Purpose<span class="asteriskField">*</span></label>
+                <div class=""><select name="raza-fields-purpose" required=""
+                    class="choicefield required select form-control" id="purpose_16">
                     <option value=""></option>
                     <option value="Automobile">Automobile</option>
                     <option value="Business" selected="">Business</option>
@@ -1049,7 +1049,6 @@
                     <option value="Hajj">Hajj</option>
                     <option value="Misaaq">Misaaq</option>
                     <option value="Nikah">Nikah</option>
-                    <option value="Qardan Hasanah">Qardan Hasanah</option>
                     <option value="Renewal">Renewal</option>
                     <option value="Umrah">Umrah</option>
                     <option value="Ziyarat">Ziyarat</option>
@@ -1717,7 +1716,7 @@
           var razaDate = document.getElementById('raza-date').value;
           var razaTime = document.getElementById('id_raza-time').value;
           var areYouInRiba = document.querySelector('input[name="raza-fields-are_you_in_riba_16"]:checked').value;
-          var qardan_purpose = document.getElementById('qardan_purpose').value;
+          var purpose = document.getElementById('purpose_16').value;
           var otherDetails = document.getElementById('id_raza-other-details').value;
           var table = document.getElementById('details-table');
           table.innerHTML = `
@@ -1745,8 +1744,8 @@
                                     <td>${areYouInRiba}</td>
                                 </tr>
                                 <tr>
-                                    <th scope="row">Qardan Hasanah Purpose</th>
-                                    <td>${qardan_purpose}</td>
+                                  <th scope="row">Raza Purpose</th>
+                                    <td>${purpose}</td>
                                 </tr>
                                 <tr>
                                     <th scope="row">Other Details</th>
@@ -2094,7 +2093,7 @@
         break;
       case '16':
         data['other_information']['areYouInRiba'] = document.querySelector('input[name="raza-fields-are_you_in_riba_16"]:checked').value;
-        data['other_information']['qardan_purpose'] = document.getElementById('qardan_purpose').value;
+        data['other_information']['purpose'] = document.getElementById('purpose_16').value;
         break;
       case '08':
         data['other_information']['areYouInRiba'] = document.querySelector('input[name="raza-fields-are_you_in_riba_08"]:checked').value;
@@ -2145,7 +2144,6 @@
           '<tr><td>Miqaat Invoices</td><td class="text-right">' + formatINR(d.miqaat_due) + '</td></tr>' +
           '<tr><td>Corpus Fund</td><td class="text-right">' + formatINR(d.corpus_due) + '</td></tr>' +
           '<tr><td>Wajebaat</td><td class="text-right">' + formatINR(d.wajebaat_due || 0) + '</td></tr>' +
-          '<tr><td>Qardan Hasana</td><td class="text-right">' + formatINR(d.qardan_hasana_due || 0) + '</td></tr>' +
           '<tr><th>Total</th><th class="text-right">' + formatINR(d.total_due) + '</th></tr>' +
           '</table>';
         if (d.total_due <= 0) html = '<div class="alert alert-success">No pending dues. You may proceed to submit.</div>' + html;

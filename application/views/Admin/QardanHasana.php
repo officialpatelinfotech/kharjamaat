@@ -1,308 +1,158 @@
-<div class="container margintopcontainer">
-  <style>
-    /* Make the qardan hasana table vertically scrollable and keep header fixed */
-    .qardan-hasana-table-container {
-      max-height: 420px;
-      overflow: auto;
-    }
-    .qardan-hasana-table thead th {
-      position: sticky;
-      top: 0;
-      background: #fff;
-      z-index: 3;
-      box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1);
-    }
-    .qardan-hasana-table thead th[data-sort]:not([data-sort="none"]) {
-      cursor: pointer;
-      user-select: none;
-    }
-    .qardan-hasana-table thead th .sort-indicator {
-      font-size: 0.85em;
-    }
-  </style>
-  <div class="row align-items-center pt-3 mb-2">
-    <div class="col-3 text-left">
-      <a href="<?php echo base_url('admin'); ?>" class="btn btn-sm btn-outline-secondary" title="Back" aria-label="Back"><i class="fa fa-arrow-left"></i></a>
-    </div>
-    <div class="col-6 text-center">
-      <h2 class="m-0">Qardan Hasana</h2>
-    </div>
-    <div class="col-3 text-right">
-      <a href="<?php echo base_url('admin/qardan_hasana_import'); ?>" id="import-data" class="btn btn-sm btn-primary">Import Data</a>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+
+<?php
+  $qh_prefix = isset($qh_prefix) && trim((string)$qh_prefix) !== '' ? trim((string)$qh_prefix) : 'admin';
+  $qh_home_url = base_url($qh_prefix);
+  $qh_scheme_base = $qh_prefix . '/qardanhasana';
+
+  $qh_schemes = isset($qh_schemes) && is_array($qh_schemes) && !empty($qh_schemes)
+    ? array_values(array_map(function($s){ return strtolower(trim((string)$s)); }, $qh_schemes))
+    : ['mohammedi', 'taher', 'husain'];
+
+  $qh_scheme_meta = [
+    'mohammedi' => ['cls' => 'qh-card--mohammedi', 'icon' => 'fa-solid fa-hand-holding-heart', 'title' => 'Mohammedi Scheme'],
+    'taher' => ['cls' => 'qh-card--taher', 'icon' => 'fa-solid fa-sack-dollar', 'title' => 'Taher Scheme'],
+    'husain' => ['cls' => 'qh-card--husain', 'icon' => 'fa-solid fa-handshake', 'title' => 'Husain Scheme'],
+  ];
+
+  $qh_scheme_totals = (isset($qh_scheme_totals) && is_array($qh_scheme_totals)) ? $qh_scheme_totals : [];
+  $qh_total_all = isset($qh_total_all) ? (float)$qh_total_all : null;
+?>
+
+<style>
+  .qh-card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    margin-top: 3rem;
+  }
+
+  .qh-card {
+    flex: 1 1 20%;
+    min-width: 250px;
+    max-width: 300px;
+    --qh-bg-1: #0f766e;
+    --qh-bg-2: #115e59;
+    --qh-ink: #ffffff;
+    --qh-surface: rgba(255, 255, 255, 0.14);
+    background: radial-gradient(120% 120% at 30% 10%, var(--qh-bg-1) 0%, var(--qh-bg-2) 70%);
+    border-radius: 18px;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.12);
+    padding: 2.5rem 1.5rem 2rem 1.5rem;
+    text-align: center;
+    transition: box-shadow 0.2s, transform 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+    color: var(--qh-ink);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    height: 300px;
+  }
+
+  .qh-card.qh-card--mohammedi {
+    --qh-bg-1: #0ea05a;
+    --qh-bg-2: #065f46;
+  }
+
+  .qh-card.qh-card--taher {
+    --qh-bg-1: #2563eb;
+    --qh-bg-2: #1e3a8a;
+  }
+
+  .qh-card.qh-card--husain {
+    --qh-bg-1: #b45309;
+    --qh-bg-2: #7c2d12;
+  }
+
+  .qh-card:hover {
+    box-shadow: 0 16px 46px rgba(0, 0, 0, 0.18);
+    transform: translateY(-4px) scale(1.04);
+    background: radial-gradient(120% 120% at 30% 10%, color-mix(in srgb, var(--qh-bg-1) 90%, #ffffff 10%) 0%, color-mix(in srgb, var(--qh-bg-2) 92%, #000000 8%) 70%);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: var(--qh-ink);
+  }
+
+  .qh-card-icon {
+    font-size: 2.7rem;
+    margin-bottom: 1.1rem;
+    color: var(--qh-ink);
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    padding: 0.7rem;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  .qh-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.1rem;
+    color: var(--qh-ink);
+    letter-spacing: 0.5px;
+    text-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+  }
+
+  .qh-card-link {
+    display: inline-block;
+    margin-top: auto;
+    margin-bottom: 0;
+    padding: 0.35rem 0rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.92);
+    color: rgba(0, 0, 0, 0.78);
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  }
+
+  .qh-card-link:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: var(--qh-ink);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+    border-color: rgba(255, 255, 255, 0.22);
+    text-decoration-line: none;
+  }
+</style>
+
+<div class="container margintopcontainer pt-5">
+  <div class="row mb-4 p-0">
+    <div class="col-12 col-md-6">
+      <a href="<?php echo $qh_home_url; ?>" class="btn btn-outline-secondary" aria-label="Back">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
     </div>
   </div>
-  <hr>
 
-  <div class="card mb-3">
-    <div class="card-body py-2">
-      <div class="form-row align-items-end">
-        <div class="col-md-6 mb-2">
-          <label class="small mb-1">Name / ITS</label>
-          <input type="text" id="qhFilterText" class="form-control form-control-sm" placeholder="Search by name or ITS">
-        </div>
-      </div>
-
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="qhClearFilters">Clear</button>
-      <span class="small text-muted ml-2" id="qhFilterSummary" aria-live="polite"></span>
+  <h4 class="heading text-center mb-2">Qardan Hasana</h4>
+  <?php if ($qh_total_all !== null): ?>
+    <div class="text-center text-muted mb-4" style="font-size: 14px;">
+      Total: ₹<?php echo format_inr($qh_total_all, 0); ?>
     </div>
-  </div>
+  <?php else: ?>
+    <div class="mb-4"></div>
+  <?php endif; ?>
 
-  <div class="card p-3">
-    <div class="qardan-hasana-table-container">
-      <table class="table table-striped table-bordered qardan-hasana-table">
-        <thead>
-          <tr>
-            <th data-sort="number">ID</th>
-            <th data-sort="number">ITS ID</th>
-            <th data-sort="string">Name</th>
-            <th data-sort="number">Amount</th>
-            <th data-sort="number">Due</th>
-            <th data-sort="date">Created At</th>
-            <th data-sort="none">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if (!empty($qardan_hasana) && is_array($qardan_hasana)) : ?>
-            <?php foreach ($qardan_hasana as $row) : ?>
-              <?php
-                $itsAttr = isset($row['ITS_ID']) ? (string)$row['ITS_ID'] : '';
-                $nameAttr = isset($row['Full_Name']) ? (string)$row['Full_Name'] : '';
-              ?>
-              <tr data-its="<?php echo htmlspecialchars($itsAttr); ?>" data-name="<?php echo htmlspecialchars(strtolower($nameAttr)); ?>">
-                <td><?php echo htmlspecialchars($row['id']); ?></td>
-                <td><?php echo htmlspecialchars($row['ITS_ID']); ?></td>
-                <td><?php echo htmlspecialchars($row['Full_Name'] ?? ''); ?></td>
-                <td data-raw="<?php echo htmlspecialchars((float)$row['amount']); ?>">₹<?php echo htmlspecialchars(format_inr($row['amount'], 2)); ?></td>
-                <td class="text-danger" data-raw="<?php echo htmlspecialchars((float)$row['due']); ?>">₹<?php echo htmlspecialchars(format_inr($row['due'], 2)); ?></td>
-                <?php
-                  $createdRaw = isset($row['created_at']) ? (string)$row['created_at'] : '';
-                  $createdTs = $createdRaw !== '' ? strtotime($createdRaw) : false;
-                  $createdDisplay = ($createdTs !== false && $createdTs > 0) ? date('d-m-Y H:i:s', $createdTs) : $createdRaw;
-                  $createdSort = ($createdTs !== false && $createdTs > 0) ? (int)$createdTs : 0;
-                ?>
-                <td data-raw="<?php echo htmlspecialchars($createdSort); ?>"><?php echo htmlspecialchars($createdDisplay); ?></td>
-                <td>
-                  <button type="button" class="btn btn-sm btn-outline-primary view-details"
-                    data-name="<?php echo htmlspecialchars(isset($row['Full_Name']) ? $row['Full_Name'] : ''); ?>"
-                    data-its="<?php echo htmlspecialchars($row['ITS_ID']); ?>"
-                    data-amount="<?php echo htmlspecialchars((float)$row['amount']); ?>"
-                    data-amount-formatted="<?php echo htmlspecialchars('₹'.format_inr($row['amount'],2)); ?>"
-                    data-due="<?php echo htmlspecialchars((float)$row['due']); ?>"
-                    data-due-formatted="<?php echo htmlspecialchars('₹'.format_inr($row['due'],2)); ?>"
-                    data-updated="<?php echo htmlspecialchars(!empty($row['updated_at']) ? $row['updated_at'] : $row['created_at']); ?>"
-                  >View Details</button>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php else : ?>
-            <tr>
-              <td colspan="7" class="text-center">No records found.</td>
-            </tr>
-          <?php endif; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <script>
-  document.addEventListener('DOMContentLoaded', function(){
-    // Client-side sorting for all columns
-    var table = document.querySelector('.qardan-hasana-table');
-    if(!table) return;
-    var thead = table.querySelector('thead');
-    var tbody = table.querySelector('tbody');
-    if(!thead || !tbody) return;
-
-    var headers = Array.prototype.slice.call(thead.querySelectorAll('th'));
-    var dirState = {}; // idx -> 'asc'|'desc'
-
-    function getCellSortValue(cell, type){
-      if(!cell) return type === 'number' || type === 'date' ? 0 : '';
-      var raw = cell.getAttribute('data-raw');
-      if(raw !== null && String(raw).trim() !== ''){
-        if(type === 'number' || type === 'date') return parseFloat(raw) || 0;
-        return String(raw).toLowerCase();
-      }
-      var txt = (cell.textContent || '').trim();
-      if(type === 'number'){
-        return parseFloat(txt.replace(/[₹,\s]/g, '')) || 0;
-      }
-      if(type === 'date'){
-        var m = txt.match(/^(\d{2})-(\d{2})-(\d{4})(?:\s+(\d{2}):(\d{2}):(\d{2}))?$/);
-        if(m){
-          var iso = m[3] + '-' + m[2] + '-' + m[1] + 'T' + (m[4] || '00') + ':' + (m[5] || '00') + ':' + (m[6] || '00');
-          var t = Date.parse(iso);
-          return isNaN(t) ? 0 : t;
-        }
-        var t2 = Date.parse(txt.replace(' ', 'T'));
-        return isNaN(t2) ? 0 : t2;
-      }
-      return txt.toLowerCase();
-    }
-
-    function setIndicator(activeIdx, dir){
-      headers.forEach(function(h, i){
-        var label = h.getAttribute('data-label');
-        if(!label){
-          label = (h.textContent || '').trim();
-          h.setAttribute('data-label', label);
-        }
-        h.innerHTML = label;
-        if(i === activeIdx){
-          var indicator = document.createElement('span');
-          indicator.className = 'sort-indicator';
-          indicator.textContent = dir === 'asc' ? ' ▲' : ' ▼';
-          h.appendChild(indicator);
-        }
-      });
-    }
-
-    headers.forEach(function(th, idx){
-      var type = th.getAttribute('data-sort');
-      if(!type || type === 'none') return;
-      th.addEventListener('click', function(){
-        var current = dirState[idx] === 'asc' ? 'desc' : 'asc';
-        dirState[idx] = current;
-        setIndicator(idx, current);
-        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
-        rows.sort(function(a, b){
-          var av = getCellSortValue(a.children[idx], type);
-          var bv = getCellSortValue(b.children[idx], type);
-          var cmp = 0;
-          if(type === 'number' || type === 'date'){
-            cmp = av === bv ? 0 : (av < bv ? -1 : 1);
-          } else {
-            cmp = String(av).localeCompare(String(bv), undefined, { sensitivity: 'base' });
-          }
-          return current === 'asc' ? cmp : -cmp;
-        });
-        rows.forEach(function(r){ tbody.appendChild(r); });
-      });
-    });
-  });
-  </script>
-
-  <script>
-  document.addEventListener('DOMContentLoaded', function(){
-    var table = document.querySelector('.qardan-hasana-table');
-    if(!table) return;
-    var tbody = table.querySelector('tbody');
-    if(!tbody) return;
-
-    var textInput = document.getElementById('qhFilterText');
-    var clearBtn  = document.getElementById('qhClearFilters');
-    var summaryEl = document.getElementById('qhFilterSummary');
-    if(!textInput || !clearBtn || !summaryEl) return;
-
-    function applyFilters(){
-      var q = (textInput.value || '').trim().toLowerCase();
-      var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
-      var total = 0;
-      var shown = 0;
-
-      rows.forEach(function(tr){
-        // ignore "no records" row
-        if(tr.children.length <= 1){
-          return;
-        }
-        total++;
-
-        var name = (tr.getAttribute('data-name') || '');
-        var its  = (tr.getAttribute('data-its') || '').toLowerCase();
-        var ok = true;
-        if(q){
-          ok = (name.indexOf(q) !== -1) || (its.indexOf(q) !== -1);
-        }
-
-        tr.style.display = ok ? '' : 'none';
-        if(ok) shown++;
-      });
-
-      summaryEl.textContent = total ? ('Showing ' + shown + ' of ' + total) : '';
-    }
-
-    textInput.addEventListener('input', applyFilters);
-
-    clearBtn.addEventListener('click', function(){
-      textInput.value = '';
-      applyFilters();
-    });
-
-    applyFilters();
-  });
-  </script>
-
-</div>
-
-<!-- Detail Modal -->
-<div class="modal fade" id="qardanHasanaDetailModal" tabindex="-1" role="dialog" aria-labelledby="qardanHasanaDetailModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="qardanHasanaDetailModalLabel">Qardan Hasana Details</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
+  <div class="qh-card-container">
+    <?php foreach ($qh_schemes as $sc): ?>
+      <?php if (!isset($qh_scheme_meta[$sc])) continue; ?>
+      <?php $m = $qh_scheme_meta[$sc]; ?>
+      <div class="qh-card <?php echo $m['cls']; ?>">
+        <span class="qh-card-icon"><i class="<?php echo $m['icon']; ?>"></i></span>
+        <div class="qh-card-title"><?php echo htmlspecialchars((string)$m['title']); ?></div>
+        <?php if (array_key_exists($sc, $qh_scheme_totals)): ?>
+          <div style="margin-top: -0.6rem; margin-bottom: 0.9rem; font-size: 14px; opacity: 0.92;">
+            Total: ₹<?php echo format_inr((float)$qh_scheme_totals[$sc], 0); ?>
+          </div>
+        <?php endif; ?>
+        <a href="<?php echo base_url($qh_scheme_base . '/' . $sc); ?>" class="qh-card-link">Go to Scheme</a>
       </div>
-      <div class="modal-body">
-        <p><strong>Name:</strong> <span id="qardan-hasana-name"></span></p>
-        <p><strong>ITS ID:</strong> <span id="qardan-hasana-its"></span></p>
-        <p><strong>Amount:</strong> <span id="qardan-hasana-amount"></span></p>
-        <p><strong>Due:</strong> <span id="qardan-hasana-due" class="text-danger"></span></p>
-        <p><strong>Last updated:</strong> <span id="qardan-hasana-updated"></span></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
-    </div>
+    <?php endforeach; ?>
   </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  function formatDateDMY(raw){
-    if(!raw) return '';
-    var s = String(raw).trim();
-    if(!s) return '';
-    // Support "YYYY-MM-DD HH:MM:SS" and ISO-like "YYYY-MM-DDTHH:MM:SS"
-    s = s.replace('T', ' ');
-    var parts = s.split(' ');
-    var date = parts[0];
-    var time = parts.slice(1).join(' ').trim();
-    var m = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if(m){
-      var dmy = m[3] + '-' + m[2] + '-' + m[1];
-      return time ? (dmy + ' ' + time) : dmy;
-    }
-    return raw;
-  }
-
-  function normalizeRupee(str){
-    if(!str) return '';
-    return String(str).replace(/^₹\s+/, '₹');
-  }
-
-  function showModal(){
-    var modalEl = document.getElementById('qardanHasanaDetailModal');
-    if(window.jQuery && typeof jQuery(modalEl).modal === 'function'){
-      jQuery(modalEl).modal('show');
-    } else if(window.bootstrap && typeof bootstrap.Modal === 'function'){
-      new bootstrap.Modal(modalEl).show();
-    } else {
-      modalEl.style.display = 'block';
-      modalEl.classList.add('show');
-    }
-  }
-
-  document.querySelectorAll('.view-details').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      document.getElementById('qardan-hasana-name').innerText = btn.getAttribute('data-name') || '';
-      document.getElementById('qardan-hasana-its').innerText = btn.getAttribute('data-its') || '';
-      document.getElementById('qardan-hasana-amount').innerText = normalizeRupee(btn.getAttribute('data-amount-formatted') || btn.getAttribute('data-amount') || '');
-      document.getElementById('qardan-hasana-due').innerText = normalizeRupee(btn.getAttribute('data-due-formatted') || btn.getAttribute('data-due') || '');
-      document.getElementById('qardan-hasana-updated').innerText = formatDateDMY(btn.getAttribute('data-updated') || '');
-      showModal();
-    });
-  });
-});
-</script>
