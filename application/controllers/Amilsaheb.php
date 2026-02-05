@@ -414,9 +414,8 @@ class Amilsaheb extends CI_Controller
       'no_thaali_families_month' => [],
     ];
 
-    // Wajebaat & Qardan Hasana (simple aggregates for dashboard cards)
+    // Wajebaat (simple aggregates for dashboard cards)
     $dd['wajebaat_summary'] = $this->get_wajebaat_summary();
-    $dd['qardan_hasana_summary'] = $this->get_qardan_hasana_summary();
     $data['dashboard_data'] = $dd;
 
     // Populate Hijri-month monthly stats (families signed up this month, and no-thaali list)
@@ -569,6 +568,18 @@ class Amilsaheb extends CI_Controller
     }
     $data['dashboard_expense_total'] = $dashboard_expense_total;
     $data['dashboard_expense_hijri_year'] = isset($expense_filters['hijri_year']) ? (int)$expense_filters['hijri_year'] : null;
+
+    // Qardan Hasana scheme totals for dashboard
+    $this->load->model('QardanHasanaM');
+    $qh_moh = (float)$this->QardanHasanaM->get_scheme_total_amount('mohammedi');
+    $qh_tah = (float)$this->QardanHasanaM->get_scheme_total_amount('taher');
+    $qh_hus = (float)$this->QardanHasanaM->get_scheme_total_amount('husain');
+    $data['qh_all_schemes_totals'] = [
+      'mohammedi' => $qh_moh,
+      'taher' => $qh_tah,
+      'husain' => $qh_hus,
+      'total' => $qh_moh + $qh_tah + $qh_hus,
+    ];
 
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Home', $data);
@@ -881,18 +892,6 @@ class Amilsaheb extends CI_Controller
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/WajebaatDetails', $data);
   }
-
-  public function qardan_hasana_details()
-  {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
-      redirect('/accounts');
-    }
-    $data['user_name'] = $_SESSION['user']['username'];
-    $this->load->model('QardanHasanaM');
-    $data['qardan_hasana_rows'] = $this->QardanHasanaM->get_all();
-    $this->load->view('Amilsaheb/Header', $data);
-    $this->load->view('Amilsaheb/QardanHasanaDetails', $data);
-  }
   public function miqaat()
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
@@ -1166,24 +1165,6 @@ class Amilsaheb extends CI_Controller
     ];
   }
 
-  private function get_qardan_hasana_summary()
-  {
-    $row = $this->db->query(
-      "SELECT COUNT(*) AS cnt, SUM(amount) AS total_amount, SUM(due) AS total_due, SUM(CASE WHEN amount > due THEN (amount - due) ELSE 0 END) AS total_received FROM qardan_hasana"
-    )->row_array();
-
-    $cnt = (int)($row['cnt'] ?? 0);
-    $total = (float)($row['total_amount'] ?? 0);
-    $due = (float)($row['total_due'] ?? 0);
-    $received = (float)($row['total_received'] ?? max(0, $total - $due));
-
-    return [
-      'count' => $cnt,
-      'total' => (int)round($total),
-      'received' => (int)round($received),
-      'due' => (int)round($due),
-    ];
-  }
   public function DeleteRaza($id)
   {
     // Retrieve the value of $umoor from the URL parameters
@@ -1961,5 +1942,153 @@ class Amilsaheb extends CI_Controller
     // Load view
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('MasoolMusaid/AsharaAttendance', $data);
+  }
+
+  // Qardan Hasana (Amilsaheb)
+  // - /amilsaheb/qardanhasana
+  // - /amilsaheb/qardanhasana/mohammedi | taher | husain
+  // - /amilsaheb/qardanhasana/{scheme}/import (POST)
+  // - /amilsaheb/qardanhasana/{scheme}/delete/{id} (POST)
+  // - /amilsaheb/qardanhasana/{scheme}/update/{id} (POST)
+  public function qardanhasana($scheme = null, $action = null, $id = null)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+
+    $data = [];
+    $data['user_name'] = $_SESSION['user']['username'] ?? '';
+    $data['qh_prefix'] = 'amilsaheb';
+    $data['can_manage'] = false;
+    $data['can_import'] = false;
+
+    $scheme = $scheme !== null ? strtolower(trim((string)$scheme)) : null;
+    $action = $action !== null ? strtolower(trim((string)$action)) : null;
+
+    $this->load->view('Amilsaheb/Header', $data);
+
+    if ($scheme === null || $scheme === '') {
+      $this->load->view('Admin/QardanHasana', $data);
+      return;
+    }
+
+    if (!in_array($scheme, ['mohammedi', 'taher', 'husain'], true)) {
+      redirect('amilsaheb/qardanhasana');
+      return;
+    }
+
+    $titles = [
+      'mohammedi' => 'Mohammedi Scheme',
+      'taher' => 'Taher Scheme',
+      'husain' => 'Husain Scheme'
+    ];
+    $data['scheme'] = $scheme;
+    $data['scheme_key'] = $scheme;
+    $data['scheme_title'] = $titles[$scheme] ?? ucfirst($scheme) . ' Scheme';
+
+    // Delete disabled (read-only)
+    if ($action === 'delete') {
+      $this->session->set_flashdata('qh_import_error', 'Delete is not allowed.');
+      redirect('amilsaheb/qardanhasana/' . $scheme);
+      return;
+    }
+
+    // Update disabled (read-only)
+    if ($action === 'update') {
+      $this->session->set_flashdata('qh_import_error', 'Update is not allowed.');
+      redirect('amilsaheb/qardanhasana/' . $scheme);
+      return;
+    }
+
+    // Import CSV disabled for Amilsaheb
+    if ($action === 'import') {
+      $this->session->set_flashdata('qh_import_error', 'Import is not allowed.');
+      redirect('amilsaheb/qardanhasana/' . $scheme);
+      return;
+    }
+
+    // Filters (GET) - keep same shape as Admin/Anjuman for shared view
+    $data['filters'] = [
+      'miqaat_id' => $this->input->get('miqaat_id'),
+      'hijri_date' => $this->input->get('hijri_date'),
+      'greg_date' => $this->input->get('greg_date'),
+      'deposit_date' => $this->input->get('deposit_date'),
+      'maturity_date' => $this->input->get('maturity_date'),
+      'duration' => $this->input->get('duration'),
+      'its' => $this->input->get('its'),
+      'member_name' => $this->input->get('member_name')
+    ];
+
+    // Miqaat list for filters
+    $data['miqaats'] = $this->db
+      ->select('m.id, m.name, m.date, hc.hijri_date')
+      ->from('miqaat m')
+      ->join('hijri_calendar hc', 'hc.greg_date = m.date', 'left')
+      ->order_by('m.date', 'DESC')
+      ->get()->result_array();
+
+    // Import messages
+    $data['qh_import_message'] = $this->session->flashdata('qh_import_message');
+    $data['qh_import_error'] = $this->session->flashdata('qh_import_error');
+
+    // Resolve miqaat_id -> miqaat_name for filtering scheme table (which stores miqaat_name as text)
+    $miqaatNameFilter = '';
+    $miqaatId = isset($data['filters']['miqaat_id']) ? trim((string)$data['filters']['miqaat_id']) : '';
+    if ($miqaatId !== '') {
+      $row = $this->db->select('name')->from('miqaat')->where('id', (int)$miqaatId)->get()->row_array();
+      $miqaatNameFilter = isset($row['name']) ? (string)$row['name'] : '';
+    }
+
+    $this->load->model('QardanHasanaM');
+    if ($scheme === 'mohammedi') {
+      $data['records'] = $this->QardanHasanaM->get_mohammedi_records([
+        'miqaat_name' => $miqaatNameFilter,
+        'hijri_date' => isset($data['filters']['hijri_date']) ? trim((string)$data['filters']['hijri_date']) : '',
+        'eng_date' => isset($data['filters']['greg_date']) ? trim((string)$data['filters']['greg_date']) : ''
+      ]);
+    } elseif ($scheme === 'taher') {
+      $data['records'] = $this->QardanHasanaM->get_taher_records([
+        'miqaat_name' => $miqaatNameFilter,
+        'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
+        'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
+      ]);
+    } elseif ($scheme === 'husain') {
+      $depositDate = isset($data['filters']['deposit_date']) ? trim((string)$data['filters']['deposit_date']) : '';
+      if ($depositDate === '') {
+        $depositDate = isset($data['filters']['greg_date']) ? trim((string)$data['filters']['greg_date']) : '';
+      }
+      $maturityDate = isset($data['filters']['maturity_date']) ? trim((string)$data['filters']['maturity_date']) : '';
+      $duration = isset($data['filters']['duration']) ? trim((string)$data['filters']['duration']) : '';
+      $data['records'] = $this->QardanHasanaM->get_husain_records([
+        'deposit_date' => $depositDate,
+        'maturity_date' => $maturityDate,
+        'duration' => $duration,
+        'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
+        'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
+      ]);
+    }
+
+    // Total amount for header display (sum of fetched records)
+    $total = 0.0;
+    if (!empty($data['records']) && is_array($data['records'])) {
+      foreach ($data['records'] as $row) {
+        if ($scheme === 'husain') {
+          $total += (float)($row['amount'] ?? 0);
+        } else {
+          if (isset($row['collection_amount'])) {
+            $total += (float)$row['collection_amount'];
+          } else {
+            $unit = (float)($row['unit'] ?? 0);
+            $units = (int)($row['units'] ?? 0);
+            if ($unit > 0 && $units > 0) {
+              $total += $unit * $units;
+            }
+          }
+        }
+      }
+    }
+    $data['total_amount'] = $total;
+
+    $this->load->view('Admin/QardanHasanaScheme', $data);
   }
 }

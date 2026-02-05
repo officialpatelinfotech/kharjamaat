@@ -106,19 +106,19 @@
           </div>
         </div>
       </a>
+      <a href="<?php echo base_url('admin/qardanhasana'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Qardan Hasana</div>
+            <i class="icon fa-solid fa-hand-holding-dollar"></i>
+          </div>
+        </div>
+      </a>
       <a href="<?php echo base_url('admin/wajebaat'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
           <div class="card-body d-flex flex-column justify-content-between">
             <div class="title">Wajebaat</div>
             <i class="icon fa-solid fa-book"></i>
-          </div>
-        </div>
-      </a>
-      <a href="<?php echo base_url('admin/qardan_hasana'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
-        <div class="card text-center">
-          <div class="card-body d-flex flex-column justify-content-between">
-            <div class="title">Qardan Hasana</div>
-            <i class="icon fa-solid fa-handshake"></i>
           </div>
         </div>
       </a>
