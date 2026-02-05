@@ -284,6 +284,16 @@
     </div>
 
     <div class="col-6 mt-3 col-md-3 col-xl-2">
+      <a href="<?php echo base_url('accounts/qardanhasana') ?>" aria-label="Qardan Hasana" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
+        <div class="stat-icon-wrap mb-1">
+          <i class="fa fa-handshake-o"></i>
+        </div>
+        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Qardan Hasana</span>
+        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
+      </a>
+    </div>
+
+    <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/madresa') ?>" aria-label="Madresa Fees & Dues" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-graduation-cap"></i>
@@ -396,15 +406,7 @@
       </a>
     </div>
     <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/qardan_hasana') ?>" aria-label="Qardan Hasana" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-handshake-o"></i>
-          <?php if (isset($qardan_hasana['due']) && (float)$qardan_hasana['due'] > 0): ?>
-            <span class="count-badge">Due</span>
-          <?php endif; ?>
-        </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Qardan Hasana</span>
-      </a>
+      
     </div>
     <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/appointment') ?>" aria-label="Appointments" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
@@ -862,39 +864,37 @@
       </div>
 
       <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-            <div class="dashboard-card mx-1">
-              <div class="card-header">
-                <span>Qardan Hasana</span>
-              </div>
-              <?php
-              $qh = isset($qardan_hasana) ? $qardan_hasana : null;
-              $qh_fmt = function ($n) { return format_inr_no_decimals($n ?? 0); };
-              ?>
-              <div class="card-body no-scroll" style="height:auto;">
-                <div class="row mb-2 text-center">
-                  <div class="col-6 mb-2">
-                    <div class="mini-card">
-                      <div class="stats-value text-success">₹<?php echo $qh_fmt($qh['amount'] ?? 0); ?></div>
-                      <div class="stats-label">Total Assigned</div>
-                    </div>
-                  </div>
-                  <div class="col-6 mb-2">
-                    <div class="mini-card">
-                      <div class="stats-value text-danger">₹<?php echo $qh_fmt($qh['due'] ?? 0); ?></div>
-                      <div class="stats-label">Outstanding</div>
-                    </div>
-                  </div>
+        <div class="dashboard-card mx-1">
+          <div class="card-header">
+            <span>Qardan Hasana</span>
+          </div>
+          <?php
+          $qh = isset($qardan_summary) && is_array($qardan_summary) ? $qardan_summary : [];
+          $qh_fmt = function ($n) { return format_inr_no_decimals($n ?? 0); };
+          $qh_total = (float)($qh['total'] ?? 0);
+          $qh_due = (float)($qh['due'] ?? 0);
+          $qh_taher = (float)($qh['taher'] ?? 0);
+          $qh_husain = (float)($qh['husain'] ?? 0);
+          ?>
+          <div class="card-body no-scroll" style="height:auto;">
+            <div class="row mb-2 text-center">
+              <div class="col-6 mb-2">
+                <div class="mini-card">
+                  <div class="stats-value text-success">₹<?php echo $qh_fmt($qh_total); ?></div>
+                  <div class="stats-label">Total</div>
                 </div>
-                <p class="text-center text-muted mb-2" style="font-size:0.8rem;">Last updated: <?php
-                    $last = '';
-                    if (!empty($qh['updated_at'])) $last = $qh['updated_at'];
-                    elseif (!empty($qh['created_at'])) $last = $qh['created_at'];
-                    echo $last ? date('d-m-Y', strtotime($last)) : 'Not available';
-                  ?></p>
-                <div class="text-center"><a href="<?php echo base_url('accounts/qardan_hasana'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
+              </div>
+              <div class="col-6 mb-2">
+                <div class="mini-card">
+                  <div class="stats-value text-danger">₹<?php echo $qh_fmt($qh_due); ?></div>
+                  <div class="stats-label">Due</div>
+                </div>
               </div>
             </div>
-
+            <p class="text-center text-muted mb-2" style="font-size:0.8rem;">Taher: ₹<?php echo $qh_fmt($qh_taher); ?> | Husain: ₹<?php echo $qh_fmt($qh_husain); ?></p>
+            <div class="text-center"><a href="<?php echo base_url('accounts/qardanhasana'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

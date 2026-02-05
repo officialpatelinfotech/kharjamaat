@@ -1,9 +1,16 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Migration_Create_qardan_hasana_table extends CI_Migration
+class Migration_Drop_qardan_hasana_table extends CI_Migration
 {
     public function up()
+    {
+        if ($this->db->table_exists('qardan_hasana')) {
+            $this->db->query('DROP TABLE `qardan_hasana`');
+        }
+    }
+
+    public function down()
     {
         if (!$this->db->table_exists('qardan_hasana')) {
             $this->db->query("CREATE TABLE `qardan_hasana` (
@@ -12,16 +19,10 @@ class Migration_Create_qardan_hasana_table extends CI_Migration
                 `amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
                 `due` DECIMAL(10,2) NOT NULL DEFAULT 0,
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (`id`),
                 KEY `idx_its_id` (`ITS_ID`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-        }
-    }
-
-    public function down()
-    {
-        if ($this->db->table_exists('qardan_hasana')) {
-            $this->db->query("DROP TABLE `qardan_hasana`");
         }
     }
 }

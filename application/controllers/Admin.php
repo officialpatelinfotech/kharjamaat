@@ -31,6 +31,440 @@ class Admin extends CI_Controller
     $this->load->view('Admin/Home', $data);
   }
 
+  // Qardan Hasana schemes
+  // - /admin/qardanhasana
+  // - /admin/qardanhasana/mohammedi | taher | husain
+  // - /admin/qardanhasana/mohammedi/import (POST)
+  // - /admin/qardanhasana/mohammedi/delete/{id} (POST)
+  // - /admin/qardanhasana/mohammedi/update/{id} (POST)
+  // - /admin/qardanhasana/taher/import (POST)
+  // - /admin/qardanhasana/taher/delete/{id} (POST)
+  // - /admin/qardanhasana/taher/update/{id} (POST)
+  // - /admin/qardanhasana/husain/import (POST)
+  // - /admin/qardanhasana/husain/delete/{id} (POST)
+  // - /admin/qardanhasana/husain/update/{id} (POST)
+  public function qardanhasana($scheme = null, $action = null, $id = null)
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $scheme = $scheme !== null ? strtolower(trim((string)$scheme)) : null;
+    $action = $action !== null ? strtolower(trim((string)$action)) : null;
+    $allowed = ['mohammedi', 'taher', 'husain'];
+
+    $this->load->view('Admin/Header', $data);
+
+    if ($scheme === null || $scheme === '') {
+      $this->load->view('Admin/QardanHasana', $data);
+      return;
+    }
+
+    if (!in_array($scheme, $allowed, true)) {
+      redirect('admin/qardanhasana');
+      return;
+    }
+
+    $titles = [
+      'mohammedi' => 'Mohammedi Scheme',
+      'taher' => 'Taher Scheme',
+      'husain' => 'Husain Scheme'
+    ];
+    $data['scheme_key'] = $scheme;
+    $data['scheme_title'] = $titles[$scheme] ?? ucfirst($scheme) . ' Scheme';
+
+    // Mohammedi scheme: delete record
+    if ($scheme === 'mohammedi' && $action === 'delete') {
+      if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('admin/qardanhasana/mohammedi');
+        return;
+      }
+      $recordId = (int)$id;
+      if ($recordId <= 0) {
+        $this->session->set_flashdata('qh_import_error', 'Invalid record.');
+        redirect('admin/qardanhasana/mohammedi');
+        return;
+      }
+
+      $this->load->model('QardanHasanaM');
+      $ok = $this->QardanHasanaM->delete_mohammedi_record($recordId);
+      if ($ok) {
+        $this->session->set_flashdata('qh_import_message', 'Record deleted successfully.');
+      } else {
+        $this->session->set_flashdata('qh_import_error', 'Could not delete record.');
+      }
+      redirect('admin/qardanhasana/mohammedi');
+      return;
+    }
+
+    // Mohammedi scheme: update record
+    if ($scheme === 'mohammedi' && $action === 'update') {
+      if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('admin/qardanhasana/mohammedi');
+        return;
+      }
+
+      $recordId = (int)$id;
+      if ($recordId <= 0) {
+        $this->session->set_flashdata('qh_import_error', 'Invalid record.');
+        redirect('admin/qardanhasana/mohammedi');
+        return;
+      }
+
+      $payload = [
+        'miqaat_name' => trim((string)$this->input->post('miqaat_name')),
+        'hijri_date' => trim((string)$this->input->post('hijri_date')),
+        'eng_date' => trim((string)$this->input->post('eng_date')),
+        'collection_amount' => $this->input->post('collection_amount')
+      ];
+
+      $this->load->model('QardanHasanaM');
+      $res = $this->QardanHasanaM->update_mohammedi_record($recordId, $payload);
+      if (!empty($res['success'])) {
+        $this->session->set_flashdata('qh_import_message', 'Record updated successfully.');
+      } else {
+        $err = !empty($res['error']) ? (string)$res['error'] : 'Could not update record.';
+        $this->session->set_flashdata('qh_import_error', $err);
+      }
+
+      redirect('admin/qardanhasana/mohammedi');
+      return;
+    }
+
+    // Mohammedi scheme: import action
+    if ($scheme === 'mohammedi' && $action === 'import') {
+      if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $fileName = isset($_FILES['import_file']['name']) ? (string) $_FILES['import_file']['name'] : '';
+        $fileSize = isset($_FILES['import_file']['size']) ? (int) $_FILES['import_file']['size'] : 0;
+        $tmpPath = isset($_FILES['import_file']['tmp_name']) ? (string) $_FILES['import_file']['tmp_name'] : '';
+        $errCode = isset($_FILES['import_file']['error']) ? (int) $_FILES['import_file']['error'] : 0;
+
+        if ($errCode !== UPLOAD_ERR_OK) {
+          $this->session->set_flashdata('qh_import_error', 'Upload failed. Please try again.');
+        } elseif ($fileName === '' || $fileSize <= 0 || $tmpPath === '') {
+          $this->session->set_flashdata('qh_import_error', 'Please choose a CSV file to upload.');
+        } else {
+          $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+          if ($ext !== 'csv') {
+            $this->session->set_flashdata('qh_import_error', 'Only CSV files are supported.');
+          } else {
+            $this->load->model('QardanHasanaM');
+            $importRes = $this->QardanHasanaM->import_mohammedi_csv($tmpPath);
+            if (!empty($importRes['success'])) {
+              $msg = 'Imported ' . ((int)($importRes['inserted'] ?? 0)) . ' new records.';
+              $updated = (int)($importRes['updated'] ?? 0);
+              if ($updated > 0) {
+                $msg .= ' Updated ' . $updated . ' existing records.';
+              }
+              if (!empty($importRes['skipped'])) {
+                $msg .= ' Skipped ' . ((int)$importRes['skipped']) . ' rows.';
+              }
+              $this->session->set_flashdata('qh_import_message', $msg);
+              if (!empty($importRes['errors'])) {
+                $this->session->set_flashdata('qh_import_error', implode(' | ', array_slice($importRes['errors'], 0, 3)));
+              }
+            } else {
+              $this->session->set_flashdata('qh_import_error', 'Import failed.');
+            }
+          }
+        }
+      }
+      redirect('admin/qardanhasana/mohammedi');
+      return;
+    }
+
+    // Husain scheme: delete record
+    if ($scheme === 'husain' && $action === 'delete') {
+      if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('admin/qardanhasana/husain');
+        return;
+      }
+      $recordId = (int)$id;
+      if ($recordId <= 0) {
+        $this->session->set_flashdata('qh_import_error', 'Invalid record.');
+        redirect('admin/qardanhasana/husain');
+        return;
+      }
+
+      $this->load->model('QardanHasanaM');
+      $ok = $this->QardanHasanaM->delete_husain_record($recordId);
+      if ($ok) {
+        $this->session->set_flashdata('qh_import_message', 'Record deleted successfully.');
+      } else {
+        $this->session->set_flashdata('qh_import_error', 'Could not delete record.');
+      }
+      redirect('admin/qardanhasana/husain');
+      return;
+    }
+
+    // Husain scheme: update record
+    if ($scheme === 'husain' && $action === 'update') {
+      if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('admin/qardanhasana/husain');
+        return;
+      }
+
+      $recordId = (int)$id;
+      if ($recordId <= 0) {
+        $this->session->set_flashdata('qh_import_error', 'Invalid record.');
+        redirect('admin/qardanhasana/husain');
+        return;
+      }
+
+      $payload = [
+        'ITS' => trim((string)$this->input->post('ITS')),
+        'amount' => $this->input->post('amount'),
+        'deposit_date' => trim((string)$this->input->post('deposit_date')),
+        'maturity_date' => trim((string)$this->input->post('maturity_date')),
+        'duration' => trim((string)$this->input->post('duration'))
+      ];
+
+      $this->load->model('QardanHasanaM');
+      $res = $this->QardanHasanaM->update_husain_record($recordId, $payload);
+      if (!empty($res['success'])) {
+        $this->session->set_flashdata('qh_import_message', 'Record updated successfully.');
+      } else {
+        $err = !empty($res['error']) ? (string)$res['error'] : 'Could not update record.';
+        $this->session->set_flashdata('qh_import_error', $err);
+      }
+
+      redirect('admin/qardanhasana/husain');
+      return;
+    }
+
+    // Husain scheme: import action
+    if ($scheme === 'husain' && $action === 'import') {
+      if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $fileName = isset($_FILES['import_file']['name']) ? (string) $_FILES['import_file']['name'] : '';
+        $fileSize = isset($_FILES['import_file']['size']) ? (int) $_FILES['import_file']['size'] : 0;
+        $tmpPath = isset($_FILES['import_file']['tmp_name']) ? (string) $_FILES['import_file']['tmp_name'] : '';
+        $errCode = isset($_FILES['import_file']['error']) ? (int) $_FILES['import_file']['error'] : 0;
+
+        if ($errCode !== UPLOAD_ERR_OK) {
+          $this->session->set_flashdata('qh_import_error', 'Upload failed. Please try again.');
+        } elseif ($fileName === '' || $fileSize <= 0 || $tmpPath === '') {
+          $this->session->set_flashdata('qh_import_error', 'Please choose a CSV file to upload.');
+        } else {
+          $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+          if ($ext !== 'csv') {
+            $this->session->set_flashdata('qh_import_error', 'Only CSV files are supported.');
+          } else {
+            $this->load->model('QardanHasanaM');
+            $importRes = $this->QardanHasanaM->import_husain_csv($tmpPath);
+            if (!empty($importRes['success'])) {
+              $msg = 'Imported ' . ((int)($importRes['inserted'] ?? 0)) . ' new records.';
+              $updated = (int)($importRes['updated'] ?? 0);
+              if ($updated > 0) {
+                $msg .= ' Updated ' . $updated . ' existing records.';
+              }
+              if (!empty($importRes['skipped'])) {
+                $msg .= ' Skipped ' . ((int)$importRes['skipped']) . ' rows.';
+              }
+              $this->session->set_flashdata('qh_import_message', $msg);
+              if (!empty($importRes['errors'])) {
+                $this->session->set_flashdata('qh_import_error', implode(' | ', array_slice($importRes['errors'], 0, 3)));
+              }
+            } else {
+              $this->session->set_flashdata('qh_import_error', 'Import failed.');
+            }
+          }
+        }
+      }
+      redirect('admin/qardanhasana/husain');
+      return;
+    }
+
+    // Taher scheme: delete record
+    if ($scheme === 'taher' && $action === 'delete') {
+      if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('admin/qardanhasana/taher');
+        return;
+      }
+      $recordId = (int)$id;
+      if ($recordId <= 0) {
+        $this->session->set_flashdata('qh_import_error', 'Invalid record.');
+        redirect('admin/qardanhasana/taher');
+        return;
+      }
+
+      $this->load->model('QardanHasanaM');
+      $ok = $this->QardanHasanaM->delete_taher_record($recordId);
+      if ($ok) {
+        $this->session->set_flashdata('qh_import_message', 'Record deleted successfully.');
+      } else {
+        $this->session->set_flashdata('qh_import_error', 'Could not delete record.');
+      }
+      redirect('admin/qardanhasana/taher');
+      return;
+    }
+
+    // Taher scheme: update record
+    if ($scheme === 'taher' && $action === 'update') {
+      if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('admin/qardanhasana/taher');
+        return;
+      }
+
+      $recordId = (int)$id;
+      if ($recordId <= 0) {
+        $this->session->set_flashdata('qh_import_error', 'Invalid record.');
+        redirect('admin/qardanhasana/taher');
+        return;
+      }
+
+      $payload = [
+        'ITS' => trim((string)$this->input->post('ITS')),
+        'unit' => $this->input->post('unit'),
+        'units' => $this->input->post('units'),
+        'miqaat_name' => trim((string)$this->input->post('miqaat_name'))
+      ];
+
+      if ($payload['ITS'] === '' || $payload['miqaat_name'] === '') {
+        $this->session->set_flashdata('qh_import_error', 'Please fill all required fields.');
+        redirect('admin/qardanhasana/taher');
+        return;
+      }
+
+      $this->load->model('QardanHasanaM');
+      $res = $this->QardanHasanaM->update_taher_record($recordId, $payload);
+      if (!empty($res['success'])) {
+        $this->session->set_flashdata('qh_import_message', 'Record updated successfully.');
+      } else {
+        $err = !empty($res['error']) ? (string)$res['error'] : 'Could not update record.';
+        $this->session->set_flashdata('qh_import_error', $err);
+      }
+
+      redirect('admin/qardanhasana/taher');
+      return;
+    }
+
+    // Taher scheme: import action
+    if ($scheme === 'taher' && $action === 'import') {
+      if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $fileName = isset($_FILES['import_file']['name']) ? (string) $_FILES['import_file']['name'] : '';
+        $fileSize = isset($_FILES['import_file']['size']) ? (int) $_FILES['import_file']['size'] : 0;
+        $tmpPath = isset($_FILES['import_file']['tmp_name']) ? (string) $_FILES['import_file']['tmp_name'] : '';
+        $errCode = isset($_FILES['import_file']['error']) ? (int) $_FILES['import_file']['error'] : 0;
+
+        if ($errCode !== UPLOAD_ERR_OK) {
+          $this->session->set_flashdata('qh_import_error', 'Upload failed. Please try again.');
+        } elseif ($fileName === '' || $fileSize <= 0 || $tmpPath === '') {
+          $this->session->set_flashdata('qh_import_error', 'Please choose a CSV file to upload.');
+        } else {
+          $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+          if ($ext !== 'csv') {
+            $this->session->set_flashdata('qh_import_error', 'Only CSV files are supported.');
+          } else {
+            $this->load->model('QardanHasanaM');
+            $importRes = $this->QardanHasanaM->import_taher_csv($tmpPath);
+            if (!empty($importRes['success'])) {
+              $msg = 'Imported ' . ((int)($importRes['inserted'] ?? 0)) . ' new records.';
+              $updated = (int)($importRes['updated'] ?? 0);
+              if ($updated > 0) {
+                $msg .= ' Updated ' . $updated . ' existing records.';
+              }
+              if (!empty($importRes['skipped'])) {
+                $msg .= ' Skipped ' . ((int)$importRes['skipped']) . ' rows.';
+              }
+              $this->session->set_flashdata('qh_import_message', $msg);
+              if (!empty($importRes['errors'])) {
+                $this->session->set_flashdata('qh_import_error', implode(' | ', array_slice($importRes['errors'], 0, 3)));
+              }
+            } else {
+              $this->session->set_flashdata('qh_import_error', 'Import failed.');
+            }
+          }
+        }
+      }
+      redirect('admin/qardanhasana/taher');
+      return;
+    }
+
+    // Filters (GET)
+    $data['filters'] = [
+      'miqaat_id' => $this->input->get('miqaat_id'),
+      'hijri_date' => $this->input->get('hijri_date'),
+      'greg_date' => $this->input->get('greg_date'),
+      'deposit_date' => $this->input->get('deposit_date'),
+      'maturity_date' => $this->input->get('maturity_date'),
+      'duration' => $this->input->get('duration'),
+      'its' => $this->input->get('its'),
+      'member_name' => $this->input->get('member_name')
+    ];
+
+    // Miqaat list for filters
+    if (in_array($scheme, ['mohammedi', 'taher', 'husain'], true)) {
+      // Note: some environments don't have miqaat.hijri_date; fetch it from hijri_calendar instead.
+      $data['miqaats'] = $this->db
+        ->select('m.id, m.name, m.date, hc.hijri_date')
+        ->from('miqaat m')
+        ->join('hijri_calendar hc', 'hc.greg_date = m.date', 'left')
+        ->order_by('m.date', 'DESC')
+        ->get()->result_array();
+      $data['qh_import_message'] = $this->session->flashdata('qh_import_message');
+      $data['qh_import_error'] = $this->session->flashdata('qh_import_error');
+
+      // Resolve miqaat_id -> miqaat_name for filtering scheme table (which stores miqaat_name as text)
+      $miqaatNameFilter = '';
+      $miqaatId = isset($data['filters']['miqaat_id']) ? trim((string)$data['filters']['miqaat_id']) : '';
+      if ($miqaatId !== '') {
+        $row = $this->db->select('name')->from('miqaat')->where('id', (int)$miqaatId)->get()->row_array();
+        $miqaatNameFilter = isset($row['name']) ? (string)$row['name'] : '';
+      }
+
+      $this->load->model('QardanHasanaM');
+      if ($scheme === 'mohammedi') {
+        $data['records'] = $this->QardanHasanaM->get_mohammedi_records([
+          'miqaat_name' => $miqaatNameFilter,
+          'hijri_date' => isset($data['filters']['hijri_date']) ? trim((string)$data['filters']['hijri_date']) : '',
+          'eng_date' => isset($data['filters']['greg_date']) ? trim((string)$data['filters']['greg_date']) : ''
+        ]);
+      } elseif ($scheme === 'taher') {
+        $data['records'] = $this->QardanHasanaM->get_taher_records([
+          'miqaat_name' => $miqaatNameFilter,
+          'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
+          'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
+        ]);
+      } elseif ($scheme === 'husain') {
+        $depositDate = isset($data['filters']['deposit_date']) ? trim((string)$data['filters']['deposit_date']) : '';
+        if ($depositDate === '') {
+          // Backward compatibility: previously greg_date was reused as deposit_date
+          $depositDate = isset($data['filters']['greg_date']) ? trim((string)$data['filters']['greg_date']) : '';
+        }
+        $maturityDate = isset($data['filters']['maturity_date']) ? trim((string)$data['filters']['maturity_date']) : '';
+        $duration = isset($data['filters']['duration']) ? trim((string)$data['filters']['duration']) : '';
+        $data['records'] = $this->QardanHasanaM->get_husain_records([
+          'deposit_date' => $depositDate,
+          'maturity_date' => $maturityDate,
+          'duration' => $duration,
+          'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
+          'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
+        ]);
+      }
+
+      // Total amount for header display (sum of fetched records)
+      $total = 0.0;
+      if (!empty($data['records']) && is_array($data['records'])) {
+        foreach ($data['records'] as $row) {
+          if ($scheme === 'husain') {
+            $total += (float)($row['amount'] ?? 0);
+          } else {
+            // Mohammedi/Taher store amount in collection_amount
+            if (isset($row['collection_amount'])) {
+              $total += (float)$row['collection_amount'];
+            } else {
+              $unit = (float)($row['unit'] ?? 0);
+              $units = (int)($row['units'] ?? 0);
+              if ($unit > 0 && $units > 0) {
+                $total += $unit * $units;
+              }
+            }
+          }
+        }
+      }
+      $data['total_amount'] = $total;
+    }
+    $this->load->view('Admin/QardanHasanaScheme', $data);
+  }
+
   // Ekram Fund card page
   public function ekramfunds()
   {
@@ -1332,160 +1766,6 @@ class Admin extends CI_Controller
     $this->db->query('TRUNCATE TABLE `wajebaat`');
     $this->session->set_flashdata('message', 'All Wajebaat records deleted');
     redirect('admin/wajebaat');
-  }
-
-  public function qardan_hasana()
-  {
-    $this->validateUser($_SESSION['user']);
-    $this->load->model('QardanHasanaM');
-    $data['user_name'] = $_SESSION['user']['username'];
-    $data['qardan_hasana'] = $this->QardanHasanaM->get_all();
-    $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/QardanHasana', $data);
-  }
-
-  public function qardan_hasana_import()
-  {
-    $this->validateUser($_SESSION['user']);
-    $this->load->model('QardanHasanaM');
-    $data['user_name'] = $_SESSION['user']['username'];
-
-    $normalizeHeader = function ($h) {
-      $h = is_string($h) ? $h : '';
-      // Strip UTF-8 BOM if present
-      $h = preg_replace('/^\xEF\xBB\xBF/', '', $h);
-      $h = trim(strtolower($h));
-      // Normalize spaces/underscores
-      $h = str_replace([' ', '-'], '_', $h);
-      return $h;
-    };
-
-    $isValidIts = function ($its) {
-      $its = is_string($its) ? trim($its) : '';
-      // ITS should be numeric; reject header-like values
-      return ($its !== '' && preg_match('/^\d+$/', $its));
-    };
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-      if (empty($_FILES['csv_file']['tmp_name'])) {
-        $this->session->set_flashdata('error', 'No file uploaded');
-        redirect('admin/qardan_hasana_import');
-        return;
-      }
-      $fh = fopen($_FILES['csv_file']['tmp_name'], 'r');
-      if (!$fh) {
-        $this->session->set_flashdata('error', 'Unable to open uploaded file');
-        redirect('admin/qardan_hasana_import');
-        return;
-      }
-      $processed = 0;
-      $inserted = 0;
-      $updated = 0;
-      $skipped = 0;
-      // Optional header row detection: peek first line
-      $first = fgetcsv($fh);
-      $hasHeader = false;
-      if ($first !== false) {
-        $headers = array_map($normalizeHeader, $first);
-        if (in_array('its_id', $headers, true)) {
-          $hasHeader = true;
-        } else {
-          // not header, process as data row
-          $row = $first;
-          if (!empty($row)) {
-            $processed++;
-            $its = isset($row[0]) ? trim($row[0]) : '';
-            $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
-            $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
-            if ($isValidIts($its)) {
-              $res = $this->QardanHasanaM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
-              if ($res['action'] === 'inserted') $inserted++;
-              elseif ($res['action'] === 'updated') $updated++;
-            }
-            else {
-              $skipped++;
-            }
-          }
-        }
-      }
-
-      while (($row = fgetcsv($fh)) !== false) {
-        $processed++;
-        $its = isset($row[0]) ? trim($row[0]) : '';
-        $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
-        $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
-        if ($isValidIts($its)) {
-          $res = $this->QardanHasanaM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
-          if ($res['action'] === 'inserted') $inserted++;
-          elseif ($res['action'] === 'updated') $updated++;
-        }
-        else {
-          $skipped++;
-        }
-      }
-      fclose($fh);
-      $this->session->set_flashdata('message', "Import completed: $inserted inserted, $updated updated, $skipped skipped from $processed rows");
-      redirect('admin/qardan_hasana');
-      return;
-    }
-
-    $data['message'] = $this->session->flashdata('message');
-    $data['error'] = $this->session->flashdata('error');
-    $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/QardanHasanaImport', $data);
-  }
-
-  public function qardan_hasana_export()
-  {
-    $this->validateUser($_SESSION['user']);
-    $this->load->model('QardanHasanaM');
-    $rows = $this->QardanHasanaM->get_all();
-
-    header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename=qardan_hasana_export_' . date('Ymd_His') . '.csv');
-    echo "\xEF\xBB\xBF"; // BOM
-    $out = fopen('php://output', 'w');
-    fputcsv($out, ['id', 'ITS_ID', 'amount', 'due', 'created_at']);
-    foreach ($rows as $r) {
-      fputcsv($out, [$r['id'], $r['ITS_ID'], $r['amount'], $r['due'], $r['created_at']]);
-    }
-    fclose($out);
-    exit;
-  }
-
-  public function qardan_hasana_template()
-  {
-    $this->validateUser($_SESSION['user']);
-    header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename=qardan_hasana_template_5row.csv');
-    echo "\xEF\xBB\xBF"; // BOM
-    $out = fopen('php://output', 'w');
-    fputcsv($out, ['ITS_ID', 'amount', 'due']);
-    for ($i = 0; $i < 5; $i++) {
-      fputcsv($out, ['', '', '']);
-    }
-    fclose($out);
-    exit;
-  }
-
-  public function qardan_hasana_delete()
-  {
-    $this->validateUser($_SESSION['user']);
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      redirect('admin/qardan_hasana');
-      return;
-    }
-    // optional confirmation flag
-    $confirm = $this->input->post('confirm');
-    if ($confirm !== '1' && $confirm !== 1) {
-      $this->session->set_flashdata('error', 'Delete not confirmed');
-      redirect('admin/qardan_hasana_import');
-      return;
-    }
-    // Truncate table (remove all rows)
-    $this->db->query('TRUNCATE TABLE `qardan_hasana`');
-    $this->session->set_flashdata('message', 'All Qardan Hasana records deleted');
-    redirect('admin/qardan_hasana');
   }
 
   public function approveRaza()
