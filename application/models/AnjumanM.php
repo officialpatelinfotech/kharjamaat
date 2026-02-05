@@ -886,6 +886,7 @@ class AnjumanM extends CI_Model
         m.type as miqaat_type,
         m.date as miqaat_date,
         i.id as invoice_id,
+        i.raza_id as raza_id,
         i.amount as invoice_amount,
         i.date as invoice_date,
         i.description,
@@ -913,6 +914,7 @@ class AnjumanM extends CI_Model
       'm.type',
       'm.date',
       'i.id',
+      'i.raza_id',
       'i.amount',
       'i.date',
       'i.description',
@@ -1067,6 +1069,7 @@ class AnjumanM extends CI_Model
             'miqaat_name'    => $miqaat_name,
             'invoice_id'     => $row['invoice_id'],
             'invoice_year'   => $effYear,
+            'raza_id'        => $row['raza_id'] ?? null,
             'invoice_amount' => $invoice_amount,
             'paid_amount'    => $paid_amount,
             'due_amount'     => $due_amount,
@@ -1085,7 +1088,7 @@ class AnjumanM extends CI_Model
     if ($include_fm) {
       // FM invoice rows (only where invoice exists and matches type)
       $this->db->reset_query();
-      $this->db->select("\n        u.ITS_ID,\n        u.Full_Name,\n        u.HOF_ID,\n        u.Sector,\n        u.Sub_Sector,\n        m.id as miqaat_id,\n        m.miqaat_id as miqaat_code,\n        m.name as miqaat_name,\n        m.type as miqaat_type,\n        m.date as miqaat_date,\n        i.id as invoice_id,\n        i.amount as invoice_amount,\n        i.date as invoice_date,\n        i.description,\n        i.year as invoice_year,\n        i.miqaat_type as invoice_miqaat_type,\n        COALESCE(SUM(p.amount), 0) as paid_amount\n      ");
+      $this->db->select("\n        u.ITS_ID,\n        u.Full_Name,\n        u.HOF_ID,\n        u.Sector,\n        u.Sub_Sector,\n        m.id as miqaat_id,\n        m.miqaat_id as miqaat_code,\n        m.name as miqaat_name,\n        m.type as miqaat_type,\n        m.date as miqaat_date,\n        i.id as invoice_id,\n        i.raza_id as raza_id,\n        i.amount as invoice_amount,\n        i.date as invoice_date,\n        i.description,\n        i.year as invoice_year,\n        i.miqaat_type as invoice_miqaat_type,\n        COALESCE(SUM(p.amount), 0) as paid_amount\n      ");
       $this->db->from('user u');
       $this->db->join('miqaat_invoice i', 'u.ITS_ID = i.user_id', 'inner'); // inner to ensure FM has invoice
       $this->db->join('miqaat m', 'm.id = i.miqaat_id', 'left');
@@ -1106,6 +1109,7 @@ class AnjumanM extends CI_Model
         'm.type',
         'm.date',
         'i.id',
+        'i.raza_id',
         'i.amount',
         'i.date',
         'i.description',
@@ -1227,6 +1231,7 @@ class AnjumanM extends CI_Model
           'miqaat_name'    => $miqaat_name,
           'invoice_id'     => $row['invoice_id'],
           'invoice_year'   => $effYear,
+          'raza_id'        => $row['raza_id'] ?? null,
           'invoice_amount' => $invoice_amount,
           'paid_amount'    => $paid_amount,
           'due_amount'     => $due_amount,
@@ -1983,7 +1988,7 @@ class AnjumanM extends CI_Model
   {
     // Fetch invoice to derive user_id
     $invoice = $this->db
-      ->select('id, user_id')
+      ->select('id, user_id, miqaat_id, raza_id')
       ->from('miqaat_invoice')
       ->where('id', $invoice_id)
       ->get()
@@ -1991,6 +1996,25 @@ class AnjumanM extends CI_Model
 
     if (!$invoice || empty($invoice['user_id'])) {
       return false;
+    }
+
+    // Business rule: if invoice is linked to a specific miqaat (miqaat_id present), require a submitted Raza.
+    // (Fala ni Niyaz / non-miqaat-linked invoices may not have a Raza.)
+    $isLinkedToMiqaat = !empty($invoice['miqaat_id']);
+    if ($isLinkedToMiqaat && empty($invoice['raza_id'])) {
+      return false;
+    }
+    if ($isLinkedToMiqaat && !empty($invoice['raza_id'])) {
+      $razaRow = $this->db
+        ->select('id')
+        ->from('raza')
+        ->where('id', (int)$invoice['raza_id'])
+        ->limit(1)
+        ->get()
+        ->row_array();
+      if (!$razaRow) {
+        return false;
+      }
     }
 
     // Build insert data

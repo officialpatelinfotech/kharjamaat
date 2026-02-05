@@ -13,6 +13,15 @@ $config['thaali_feedback_time'] = '22:00';
 $config['amilsaheb_appointments_digest_time'] = '22:00';
 $config['amilsaheb_appointments_digest_recipients'] = ['kharamilsaheb@gmail.com'];
 
+// Amil Saheb event reminders (Miqaat Public Event / Kaaraj Private Event)
+// If empty, code falls back to `amilsaheb_appointments_digest_recipients`.
+$config['amilsaheb_event_reminder_recipients'] = ['kharamilsaheb@gmail.com'];
+
+// Event reminder schedule times (server local time)
+$config['event_reminder_time_d3'] = '13:00'; // 3 days before at 01:00 pm
+$config['event_reminder_time_d1'] = '21:00'; // 1 day before at 09:00 pm
+$config['event_reminder_time_d0'] = '09:00'; // event day at 09:00 am
+
 // Monthly/weekly schedule settings
 $config['sabeel_monthly_day'] = 1;
 $config['fmb_monthly_day'] = 1;

@@ -2,7 +2,7 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 $config['protocol'] = 'smtp';
-$config['smtp_host'] = 'mail.kharjamaat.in';
+$config['smtp_host'] = 'ssl://mail.kharjamaat.in';
 $config['smtp_port'] = '465';
 $config['smtp_user'] = 'admin@kharjamaat.in';
 $config['smtp_pass'] = 'admin@2024';

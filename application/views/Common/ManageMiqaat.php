@@ -681,7 +681,7 @@
                             if ($miqaat['status'] == 1) {
                               echo '<span class="badge badge-success">Active</span>';
                             } elseif ($miqaat['status'] == 2) {
-                              echo '<span class="badge badge-warning">Cancelled</span>';
+                              echo '<span class="badge badge-warning">Inactive</span>';
                             } else {
                               echo '<span class="badge badge-secondary">Inactive</span>';
                             }

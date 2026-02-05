@@ -64,6 +64,12 @@
       user-select: none;
     }
 
+    /* Visually disable buttons but keep them clickable to show reason */
+    .km-disabled-btn {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     th.km-sortable .sort-indicator {
       font-size: 11px;
       margin-left: 4px;
@@ -156,6 +162,8 @@
 
   $rows = [];
   $grand_total = 0.0;
+  $grand_collected_total = 0.0;
+  $grand_due_total = 0.0;
   if (!empty($members)) {
     // Build distinct Sectors, Sub Sectors, and Hijri Years from data
     $sectors = [];
@@ -182,6 +190,12 @@
           ];
           $rows[] = $row;
           $grand_total += (float)$row['amount'];
+
+          $paid = isset($inv['paid_amount']) ? (float)$inv['paid_amount'] : 0.0;
+          $due = isset($inv['due_amount']) ? (float)$inv['due_amount'] : ((float)$row['amount'] - $paid);
+          if ($due < 0) $due = 0.0;
+          $grand_collected_total += $paid;
+          $grand_due_total += $due;
           if (isset($inv['invoice_year']) && $inv['invoice_year'] !== '' && !in_array($inv['invoice_year'], $years_from_invoices, true)) {
             $years_from_invoices[] = $inv['invoice_year'];
           }
@@ -224,10 +238,18 @@
     }
     ?>
 
-    <div class="d-flex flex-wrap justify-content-between align-items-center p-2 bg-white border mb-2 col-4 mx-auto" style="border-radius:10px;">
+    <div class="d-flex flex-wrap justify-content-between align-items-center p-2 bg-white border mb-2 col-10 mx-auto" style="border-radius:10px; gap:10px;">
       <div>
-        <strong>Total Invoice Amount:</strong>
-        <span id="miqaat-payment-total-amount" class="text-success">₹<?php echo inr_format($grand_total); ?></span>
+        <strong>Total Invoiced:</strong>
+        <span id="miqaat-payment-total-amount" class="text-primary">₹<?php echo inr_format($grand_total); ?></span>
+      </div>
+      <div>
+        <strong>Total Collected:</strong>
+        <span id="miqaat-payment-total-collected" class="text-success">₹<?php echo inr_format($grand_collected_total); ?></span>
+      </div>
+      <div>
+        <strong>Total Due:</strong>
+        <span id="miqaat-payment-total-due" class="text-danger">₹<?php echo inr_format($grand_due_total); ?></span>
       </div>
       <div class="text-muted small">
         Members shown:
@@ -335,7 +357,7 @@
               <td class="text-right"><span class="<?php echo $dueClass; ?>">₹<?php echo inr_format($totalDue); ?></span></td>
               <td>
                 <button
-                  class="btn btn-sm btn-primary view-invoices-btn"
+                  class="btn btn-sm btn-primary view-invoices-btn mt-2"
                   data-toggle="modal"
                   data-target="#memberInvoicesModal"
                   data-its="<?php echo htmlspecialchars($its); ?>"
@@ -501,6 +523,8 @@
           let index = 1;
           let visibleMembers = 0;
           let visibleAmountTotal = 0;
+          let visibleCollectedTotal = 0;
+          let visibleDueTotal = 0;
 
           function currency(n) {
             if (n === undefined || n === null) return '₹0';
@@ -571,10 +595,19 @@
 
             visibleMembers += 1;
             visibleAmountTotal += amountSum;
+            visibleCollectedTotal += paidSum;
+            visibleDueTotal += dueSum;
           });
 
           const totalEl = document.getElementById('miqaat-payment-total-amount');
           if (totalEl) totalEl.textContent = currency(visibleAmountTotal);
+
+          const collectedEl = document.getElementById('miqaat-payment-total-collected');
+          if (collectedEl) collectedEl.textContent = currency(visibleCollectedTotal);
+
+          const dueEl = document.getElementById('miqaat-payment-total-due');
+          if (dueEl) dueEl.textContent = currency(visibleDueTotal);
+
           const membersEl = document.getElementById('miqaat-payment-members-count');
           if (membersEl) membersEl.textContent = String(visibleMembers);
         }
@@ -710,7 +743,17 @@
             totalAmount += amount;
             totalPaid += paid;
             totalDue += due;
-            const disabledAttr = (isNaN(due) || due <= 0) ? 'disabled' : '';
+            const isDueDisabled = (isNaN(due) || due <= 0);
+            const requiresRaza = !!(inv.miqaat_id); // miqaat-linked invoices only
+            const hasRaza = !!(inv.raza_id);
+            let blockReason = '';
+            if (isDueDisabled) {
+              blockReason = 'Invoice has no due amount (already fully paid).';
+            } else if (requiresRaza && !hasRaza) {
+              blockReason = 'Raza is not submitted for this Miqaat. Payment cannot be received.';
+            }
+            const btnExtraClass = blockReason ? ' disabled km-disabled-btn' : '';
+            const ariaDisabled = blockReason ? 'true' : 'false';
             rowsHtml += `
               <tr>
                 <td>${inv.invoice_id ? inv.invoice_id : ''}</td>
@@ -723,9 +766,12 @@
                 <td class="text-right">${currency(due).replace('₹','₹')}</td>
                 <td>${inv.description ? inv.description : ''}</td>
                 <td class="text-center">
-                  <button type="button" class="btn btn-sm btn-success receive-payment-btn"
+                  <button type="button" class="btn btn-sm btn-success receive-payment-btn${btnExtraClass}"
                     data-invoice-id="${inv.invoice_id || ''}"
-                    data-amount="${isNaN(due) ? 0 : due}" ${disabledAttr}>Receive Payment</button>
+                    data-amount="${isNaN(due) ? 0 : due}"
+                    data-block-reason="${blockReason}"
+                    aria-disabled="${ariaDisabled}"
+                    title="${blockReason}">Receive Payment</button>
                 </td>
               </tr>`;
           });
@@ -1244,6 +1290,11 @@
         document.addEventListener('click', function(e) {
           const btn = e.target.closest('.receive-payment-btn');
           if (!btn) return;
+          const blockReason = (btn.getAttribute('data-block-reason') || '').trim();
+          if (blockReason) {
+            alert(blockReason);
+            return;
+          }
           lastReceiveBtn = btn;
           const invId = btn.getAttribute('data-invoice-id');
           const amt = parseFloat(btn.getAttribute('data-amount') || '0');
@@ -1354,6 +1405,23 @@
                       dueCell.className = 'text-right ' + (newDue > 0 ? 'text-danger font-weight-bold' : 'text-success font-weight-bold');
                       // Update the button's data-amount (remaining due)
                       lastReceiveBtn.setAttribute('data-amount', String(newDue));
+
+                      // If invoice is now fully paid, block further receives with a clear reason
+                      if (newDue <= 0) {
+                        lastReceiveBtn.setAttribute('data-block-reason', 'Invoice has no due amount (already fully paid).');
+                        lastReceiveBtn.setAttribute('aria-disabled', 'true');
+                        lastReceiveBtn.classList.add('disabled', 'km-disabled-btn');
+                        lastReceiveBtn.title = 'Invoice has no due amount (already fully paid).';
+                      } else {
+                        // Keep any existing block reason (e.g., missing Raza) as-is; otherwise clear
+                        const curReason = (lastReceiveBtn.getAttribute('data-block-reason') || '').trim();
+                        if (!curReason) {
+                          lastReceiveBtn.setAttribute('data-block-reason', '');
+                          lastReceiveBtn.setAttribute('aria-disabled', 'false');
+                          lastReceiveBtn.classList.remove('disabled', 'km-disabled-btn');
+                          lastReceiveBtn.title = '';
+                        }
+                      }
 
                       // Flash highlight the updated invoice row
                       r.classList.remove('flash-highlight');

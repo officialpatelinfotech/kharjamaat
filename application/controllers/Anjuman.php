@@ -3517,6 +3517,37 @@ class Anjuman extends CI_Controller
       return;
     }
 
+    // Business rule: For invoices linked to a specific Miqaat, do not allow receiving payment
+    // until a Raza has been submitted (invoice must be linked to a valid raza row).
+    $inv = $this->db
+      ->select('id, miqaat_id, raza_id')
+      ->from('miqaat_invoice')
+      ->where('id', (int)$invoice_id)
+      ->get()
+      ->row_array();
+    if (!$inv) {
+      echo json_encode(['success' => false, 'error' => 'Invoice not found']);
+      return;
+    }
+    $isLinkedToMiqaat = !empty($inv['miqaat_id']);
+    if ($isLinkedToMiqaat && empty($inv['raza_id'])) {
+      echo json_encode(['success' => false, 'error' => 'Raza is not submitted for this Miqaat. Payment cannot be received until the Raza is submitted.']);
+      return;
+    }
+    if ($isLinkedToMiqaat && !empty($inv['raza_id'])) {
+      $razaExists = $this->db
+        ->select('id')
+        ->from('raza')
+        ->where('id', (int)$inv['raza_id'])
+        ->limit(1)
+        ->get()
+        ->row_array();
+      if (!$razaExists) {
+        echo json_encode(['success' => false, 'error' => 'Raza link is missing/invalid for this invoice. Please submit Raza and regenerate the invoice before receiving payment.']);
+        return;
+      }
+    }
+
     // Server-side guard: do not allow payment beyond due
     $caps = $this->AnjumanM->get_invoice_paid_and_amount((int)$invoice_id);
     $invoice_total = (float)$caps['invoice_amount'];

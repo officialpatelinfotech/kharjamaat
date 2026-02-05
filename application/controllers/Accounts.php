@@ -2658,8 +2658,8 @@ class Accounts extends CI_Controller
     $razafields = json_decode($razatype['fields'], true);
 
     $table = '';
-	$fieldValuesByLabel = [];
-  $razaDetailsLines = [];
+    $fieldValuesByLabel = [];
+    $razaDetailsLines = [];
     foreach ($razafields['fields'] as $value) {
       $result = preg_replace(
         ['/[\s]/', '/[()]/', '/[\/?]/'],
@@ -2684,15 +2684,15 @@ class Accounts extends CI_Controller
         $v = isset($_POST[$postKey]) ? htmlspecialchars($_POST[$postKey]) : '';
       }
 
-	  // Keep a plain string value for template variables.
-	  $label = isset($value['name']) ? (string)$value['name'] : '';
-	  if ($label !== '') {
-		$fieldValuesByLabel[$label] = is_string($v) ? html_entity_decode(strip_tags($v), ENT_QUOTES, 'UTF-8') : '';
-    $lineVal = $fieldValuesByLabel[$label];
-    if (trim($lineVal) !== '') {
-      $razaDetailsLines[] = $label . ': ' . $lineVal;
-    }
-	  }
+      // Keep a plain string value for template variables.
+      $label = isset($value['name']) ? (string)$value['name'] : '';
+      if ($label !== '') {
+        $fieldValuesByLabel[$label] = is_string($v) ? html_entity_decode(strip_tags($v), ENT_QUOTES, 'UTF-8') : '';
+        $lineVal = $fieldValuesByLabel[$label];
+        if (trim($lineVal) !== '') {
+          $razaDetailsLines[] = $label . ': ' . $lineVal;
+        }
+      }
       $table .= '<tr>
                   <td align="center" style="border: 1px solid black;width: 50%;">
                     <p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: bold; font-family: Roboto, arial, sans-serif;">' . htmlspecialchars($value['name']) . '</p>
@@ -2777,88 +2777,90 @@ class Accounts extends CI_Controller
       if (!empty($memberMobile)) {
         $tplCfg = $this->config->item('templates', 'whatsapp');
 
-    $templateCandidates = [
-      'raza_application_submitted_v2',
-      'raza_application_submitted_detailed',
-      'raza_application_submitted_v1',
-    ];
-    $templateName = '';
-    $tpl = [];
-    if (is_array($tplCfg)) {
-      foreach ($templateCandidates as $cand) {
-        if (isset($tplCfg[$cand])) {
-          $templateName = (string)$cand;
-          $tpl = $tplCfg[$cand];
-          break;
+        $templateCandidates = [
+          'raza_application_submitted_v2',
+          'raza_application_submitted_detailed',
+          'raza_application_submitted_v1',
+        ];
+        $templateName = '';
+        $tpl = [];
+        if (is_array($tplCfg)) {
+          foreach ($templateCandidates as $cand) {
+            if (isset($tplCfg[$cand])) {
+              $templateName = (string)$cand;
+              $tpl = $tplCfg[$cand];
+              break;
+            }
+          }
         }
-      }
-    }
-    if ($templateName === '') {
-      $templateName = 'raza_application_submitted_v2';
-    }
+        if ($templateName === '') {
+          $templateName = 'raza_application_submitted_v2';
+        }
         $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
         $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : [];
 
-    $pick = function ($label) use ($fieldValuesByLabel) {
-      return isset($fieldValuesByLabel[$label]) ? (string)$fieldValuesByLabel[$label] : '';
-    };
-    $pickFirst = function (array $labels) use ($pick) {
-      foreach ($labels as $label) {
-        $v = $pick($label);
-        if (trim($v) !== '') return $v;
-      }
-      return '';
-    };
+        $pick = function ($label) use ($fieldValuesByLabel) {
+          return isset($fieldValuesByLabel[$label]) ? (string)$fieldValuesByLabel[$label] : '';
+        };
+        $pickFirst = function (array $labels) use ($pick) {
+          foreach ($labels as $label) {
+            $v = $pick($label);
+            if (trim($v) !== '') return $v;
+          }
+          return '';
+        };
 
-    // Build a compact, single-line Raza Details string (pipe-separated)
-    $razaFor = $pickFirst(['Raza For', 'Raza for', 'Raza for (Applicant)', 'Raza For (Applicant)']);
-    if ($razaFor === '' && !empty($razatype['name'])) {
-      $razaFor = (string)$razatype['name'];
-    }
-    $dateVal = $pickFirst(['Date', 'date']);
-    $timeVal = $pickFirst(['Time', 'time']);
-    $venueVal = $pickFirst(['Venue', 'venue']);
-    $thaalVal = $pickFirst(['Thaal Count', 'Thaal count', 'Approximate Thaal count', 'Approximate Thaal Count']);
+        // Build a compact, single-line Raza Details string (pipe-separated)
+        $razaFor = $pickFirst(['Raza For', 'Raza for', 'Raza for (Applicant)', 'Raza For (Applicant)']);
+        if ($razaFor === '' && !empty($razatype['name'])) {
+          $razaFor = (string)$razatype['name'];
+        }
+        $dateVal = $pickFirst(['Date', 'date']);
+        $timeVal = $pickFirst(['Time', 'time']);
+        $venueVal = $pickFirst(['Venue', 'venue']);
+        $thaalVal = $pickFirst(['Thaal Count', 'Thaal count', 'Approximate Thaal count', 'Approximate Thaal Count']);
 
-    $segments = [];
-    if (trim($razaFor) !== '') $segments[] = 'Raza For: ' . preg_replace('/\s+/', ' ', trim($razaFor));
-    if (trim($dateVal) !== '') $segments[] = 'Date: ' . preg_replace('/\s+/', ' ', trim($dateVal));
-    if (trim($timeVal) !== '') $segments[] = 'Time: ' . preg_replace('/\s+/', ' ', trim($timeVal));
-    if (trim($venueVal) !== '') $segments[] = 'Venue: ' . preg_replace('/\s+/', ' ', trim($venueVal));
-    if (trim($thaalVal) !== '') $segments[] = 'Thaal Count: ' . preg_replace('/\s+/', ' ', trim($thaalVal));
+        $segments = [];
+        if (trim($razaFor) !== '') $segments[] = 'Raza For: ' . preg_replace('/\s+/', ' ', trim($razaFor));
+        if (trim($dateVal) !== '') $segments[] = 'Date: ' . preg_replace('/\s+/', ' ', trim($dateVal));
+        if (trim($timeVal) !== '') $segments[] = 'Time: ' . preg_replace('/\s+/', ' ', trim($timeVal));
+        if (trim($venueVal) !== '') $segments[] = 'Venue: ' . preg_replace('/\s+/', ' ', trim($venueVal));
+        if (trim($thaalVal) !== '') $segments[] = 'Thaal Count: ' . preg_replace('/\s+/', ' ', trim($thaalVal));
 
-    $razaDetailsText = '';
-    if (!empty($segments)) {
-      $razaDetailsText = implode(' | ', $segments);
-    } elseif (!empty($razaDetailsLines)) {
-      // Fallback: multi-line key/value dump
-      $razaDetailsText = implode("\n", $razaDetailsLines);
-    }
+        $razaDetailsText = '';
+        if (!empty($segments)) {
+          $razaDetailsText = implode(' | ', $segments);
+        } elseif (!empty($razaDetailsLines)) {
+          // Fallback: multi-line key/value dump
+          $razaDetailsText = implode("\n", $razaDetailsLines);
+        }
 
-    $dateSubmittedText = date('j M Y, h:i A');
+        $dateSubmittedText = date('j M Y, h:i A');
 
         $varsMap = [
-      // Fields expected in template (from ExprezBot template setup)
-      'raza_details' => (string)$razaDetailsText,
-      'mobile_no' => $pick('Mobile No'),
-      'raza_id' => (string)$generated_raza_id,
-      'date_submitted' => (string)$dateSubmittedText,
+          // Fields expected in template (from ExprezBot template setup)
+          // v2 placeholders:
+          // {{1}} name, {{2}} raza_details, {{3}} mobile_no, {{4}} raza_id, {{5}} date_submitted
+          'name' => (string)($user_data['Full_Name'] ?? ''),
+          'raza_details' => (string)$razaDetailsText,
+          'mobile_no' => $pick('Mobile No'),
+          'raza_id' => 'R#' . (string)$generated_raza_id,
+          'date_submitted' => (string)$dateSubmittedText,
 
-      // Legacy/extra keys (safe to keep; only used if configured in whatsapp.php)
-	  'name' => (string)($user_data['Full_Name'] ?? '') . (!empty($user_data['ITS_ID']) ? ' — ' . (string)$user_data['ITS_ID'] : ''),
-      'its' => (string)($user_data['ITS_ID'] ?? $userId),
-      'razaname' => (string)($razatype['name'] ?? ''),
-      'todayDate' => (string)$weekDateTime,
-      'link' => (string)base_url('accounts/myrazarequest'),
+          // Extra keys (safe to keep; only used if configured in whatsapp.php)
+          'its' => (string)($user_data['ITS_ID'] ?? $userId),
+          'razaname' => (string)($razatype['name'] ?? ''),
+          'todayDate' => (string)$weekDateTime,
+          'link' => (string)base_url('accounts/myrazarequest'),
         ];
 
-    // Fallback: if template expects mobile_no but the form didn't include it, use memberMobile
-    if (empty($varsMap['mobile_no'])) {
-      $varsMap['mobile_no'] = (string)$memberMobile;
-    }
-    if (empty($varsMap['raza_details'])) {
-      $varsMap['raza_details'] = 'Details not provided.';
-    }
+        // Fallback: if template expects mobile_no but the form didn't include it, use memberMobile
+        if (empty($varsMap['mobile_no'])) {
+          $varsMap['mobile_no'] = (string)$memberMobile;
+        }
+        if (empty($varsMap['raza_details'])) {
+          $varsMap['raza_details'] = 'Details not provided.';
+        }
 
         $bodyVars = [];
         foreach ($tplVars as $k) {
@@ -2867,10 +2869,10 @@ class Accounts extends CI_Controller
           $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
         }
 
-    		$this->notification_lib->send_whatsapp([
+        $this->notification_lib->send_whatsapp([
           'recipient' => $memberMobile,
           'recipient_type' => 'user',
-    		  'template_name' => $templateName,
+          'template_name' => $templateName,
           'template_language' => $tplLang,
           'body_vars' => $bodyVars,
         ]);

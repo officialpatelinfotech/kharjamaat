@@ -35,12 +35,6 @@
 			font-weight: 700;
 		}
 
-		.meta {
-			color: rgba(255, 255, 255, 0.9);
-			font-size: 13px;
-			margin-top: 4px;
-		}
-
 		.content {
 			padding: 20px;
 			color: #111;
@@ -94,7 +88,6 @@
 		<div class="container">
 			<div class="header">
 				<h1>{%title%}</h1>
-				<div class="meta">{%todayDate%}</div>
 			</div>
 			<div class="content">
 				<div class="intro">

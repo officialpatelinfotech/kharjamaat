@@ -18,6 +18,182 @@ class Notifications extends CI_Controller
   }
 
   /**
+   * Send a one-off test email (CLI-only) to verify SMTP and delivery.
+   * Usage: php index.php notifications test_mail someone@example.com
+   */
+  public function test_mail($to = '')
+  {
+    if (!is_cli()) {
+      echo "This endpoint may only be run from CLI." . PHP_EOL;
+      return;
+    }
+
+    $to = trim((string)$to);
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+      echo "Usage: php index.php notifications test_mail someone@example.com" . PHP_EOL;
+      return;
+    }
+
+    $this->load->library('email');
+    $this->load->helper('email_template');
+    $this->config->load('email');
+
+    $emailKeys = [
+      'protocol',
+      'smtp_host',
+      'smtp_port',
+      'smtp_user',
+      'smtp_pass',
+      'smtp_timeout',
+      'smtp_keepalive',
+      'smtp_crypto',
+      'mailtype',
+      'charset',
+      'newline',
+      'crlf',
+      'wordwrap',
+      'validate',
+      'mailpath'
+    ];
+    $emailConfig = [];
+    foreach ($emailKeys as $key) {
+      $value = $this->config->item($key);
+      if ($value !== null) $emailConfig[$key] = $value;
+    }
+    if (empty($emailConfig['newline'])) $emailConfig['newline'] = "\r\n";
+    if (empty($emailConfig['crlf'])) $emailConfig['crlf'] = "\r\n";
+    $emailConfig['smtp_keepalive'] = false;
+    $this->email->initialize($emailConfig);
+
+    $subject = 'Test Email - Khar Jamaat Notifications (' . date('Y-m-d H:i') . ')';
+    $body = render_generic_email_html([
+      'title' => $subject,
+      'todayDate' => date('l, j M Y, h:i:s A'),
+      'greeting' => 'Baad Afzalus Salaam,',
+      'cardTitle' => 'Test delivery',
+      'body' => '<p>This is a test email to verify SMTP delivery from the Notifications system.</p>'
+        . '<p>If you received this, reminders will be able to deliver as well.</p>',
+      'auto_table' => false,
+      'ctaUrl' => base_url('accounts'),
+      'ctaText' => 'Open site',
+    ]);
+
+    $from = $this->config->item('smtp_user') ?: 'no-reply@localhost';
+
+    $this->email->clear(true);
+    $this->email->from($from);
+    $this->email->to($to);
+    $this->email->subject($subject);
+    $this->email->message($body);
+
+    $ok = $this->email->send();
+    $debug = $this->email->print_debugger(['headers', 'subject']);
+
+    if (!$ok) {
+      // Retry with alternate SMTP mode (same logic as Notifications::process)
+      $currentPort = (string)($emailConfig['smtp_port'] ?? '');
+      $currentCrypto = (string)($emailConfig['smtp_crypto'] ?? '');
+      $currentHost = (string)($emailConfig['smtp_host'] ?? '');
+      $looksLikeSsl465 = ($currentPort === '465') || (stripos($currentHost, 'ssl://') === 0) || (strtolower($currentCrypto) === 'ssl');
+
+      $retryConfig = $emailConfig;
+      if ($looksLikeSsl465) {
+        // try STARTTLS on 587
+        $retryConfig['smtp_host'] = preg_replace('#^ssl://#i', '', $currentHost);
+        $retryConfig['smtp_port'] = '587';
+        $retryConfig['smtp_crypto'] = 'tls';
+      } else {
+        // try implicit SSL on 465
+        $retryConfig['smtp_host'] = 'ssl://' . preg_replace('#^ssl://#i', '', $currentHost);
+        $retryConfig['smtp_port'] = '465';
+        $retryConfig['smtp_crypto'] = 'ssl';
+      }
+      $retryConfig['smtp_keepalive'] = false;
+
+      $this->email->clear(true);
+      $this->email->initialize($retryConfig);
+      $this->email->from($from);
+      $this->email->to($to);
+      $this->email->subject($subject . ' [retry]');
+      $this->email->message($body);
+      $retryOk = $this->email->send();
+      $retryDebug = $this->email->print_debugger(['headers', 'subject']);
+
+      if ($retryOk) {
+        echo "OK: sent (retry)\n";
+        echo "DEBUG (first):\n" . $debug . "\n";
+        echo "DEBUG (retry):\n" . $retryDebug . "\n";
+        return;
+      }
+
+      // Fallback: php mail()
+      $fallbackOk = $this->php_mail_fallback($to, $subject, $body);
+      if ($fallbackOk) {
+        echo "OK: sent (fallback mail())\n";
+        echo "DEBUG (first):\n" . $debug . "\n";
+        echo "DEBUG (retry):\n" . $retryDebug . "\n";
+        return;
+      }
+
+      echo "FAILED: not sent\n";
+      echo "DEBUG (first):\n" . $debug . "\n";
+      echo "DEBUG (retry):\n" . $retryDebug . "\n";
+      return;
+    }
+
+    echo "OK: sent\n";
+    echo "DEBUG:\n" . $debug . "\n";
+  }
+
+  /**
+   * CLI-safe test email sender that avoids '@' in URI segments.
+   * Usage: php index.php notifications test_mail_parts shubhampatel7654 gmail.com
+   */
+  public function test_mail_parts($user = '', $domain = '')
+  {
+    if (!is_cli()) {
+      echo "This endpoint may only be run from CLI." . PHP_EOL;
+      return;
+    }
+    $user = trim((string)$user);
+    $domain = trim((string)$domain);
+    if ($user === '' || $domain === '') {
+      echo "Usage: php index.php notifications test_mail_parts user domain.com" . PHP_EOL;
+      return;
+    }
+    // Build email and delegate to test_mail implementation
+    $to = $user . '@' . $domain;
+    $this->test_mail($to);
+  }
+
+  /**
+   * CLI-safe test email sender (base64url encoded).
+   * Example encoding (PHP): rtrim(strtr(base64_encode('a@b.com'), '+/', '-_'), '=')
+   * Usage: php index.php notifications test_mail_b64url <encoded>
+   */
+  public function test_mail_b64url($encoded = '')
+  {
+    if (!is_cli()) {
+      echo "This endpoint may only be run from CLI." . PHP_EOL;
+      return;
+    }
+    $encoded = trim((string)$encoded);
+    if ($encoded === '') {
+      echo "Usage: php index.php notifications test_mail_b64url <base64url>" . PHP_EOL;
+      return;
+    }
+    $b64 = strtr($encoded, '-_', '+/');
+    $pad = strlen($b64) % 4;
+    if ($pad) $b64 .= str_repeat('=', 4 - $pad);
+    $decoded = base64_decode($b64, true);
+    if ($decoded === false) {
+      echo "Invalid base64url input" . PHP_EOL;
+      return;
+    }
+    $this->test_mail($decoded);
+  }
+
+  /**
    * Process pending notifications (CLI-only)
    * Usage: php index.php notifications process [limit]
    */
@@ -233,9 +409,9 @@ class Notifications extends CI_Controller
   /**
    * Enqueue scheduled reminders. Run from cron.
    * Usage: php index.php notifications schedule [job]
-   * job: all|thaali_signup|thaali_feedback|sabeel_monthly|fmb_monthly|corpus_weekly
+    * job: all|thaali_signup|thaali_feedback|sabeel_monthly|fmb_monthly|corpus_weekly|appointments_digest|event_reminders|event_reminders_3d|event_reminders_1d|event_reminders_dayof
    */
-  public function schedule($job = 'all')
+  public function schedule($job = 'all', $force = '0')
   {
     if (!is_cli()) {
       echo "This endpoint may only be run from CLI." . PHP_EOL;
@@ -251,6 +427,11 @@ class Notifications extends CI_Controller
     $this->config->load('notifications', TRUE);
 
     $job = strtolower(trim((string)$job));
+    $forceFlag = false;
+    if (is_string($force) || is_numeric($force)) {
+      $forceStr = strtolower(trim((string)$force));
+      $forceFlag = in_array($forceStr, ['1', 'true', 'yes', 'y', 'force'], true);
+    }
     echo "Scheduling job: {$job}\n";
 
     if ($job === 'all' || $job === 'thaali_signup') {
@@ -268,8 +449,335 @@ class Notifications extends CI_Controller
     if ($job === 'all' || $job === 'appointments_digest') {
       $this->schedule_nightly_appointments_digest();
     }
+    if ($job === 'all' || $job === 'event_reminders') {
+      // Intended to be invoked by cron at the configured times.
+      // It will only enqueue the reminders matching the current HH:MM.
+      $nowHm = date('H:i');
+      $t3 = (string)$this->config->item('event_reminder_time_d3', 'notifications');
+      $t1 = (string)$this->config->item('event_reminder_time_d1', 'notifications');
+      $t0 = (string)$this->config->item('event_reminder_time_d0', 'notifications');
+
+      if ($forceFlag) {
+        echo "Event reminders: FORCE enabled; running all offsets now.\n";
+        $this->schedule_event_reminders(3, 'd3_1300');
+        $this->schedule_event_reminders(1, 'd1_2100');
+        $this->schedule_event_reminders(0, 'd0_0900');
+      } else {
+        if ($t3 !== '' && $nowHm === $t3) $this->schedule_event_reminders(3, 'd3_1300');
+        if ($t1 !== '' && $nowHm === $t1) $this->schedule_event_reminders(1, 'd1_2100');
+        if ($t0 !== '' && $nowHm === $t0) $this->schedule_event_reminders(0, 'd0_0900');
+      }
+
+      if ($job === 'event_reminders') {
+        echo "Event reminders (event_reminders): now={$nowHm} configured={d3:$t3,d1:$t1,d0:$t0}\n";
+      }
+    }
+    if ($job === 'event_reminders_3d') {
+      $this->schedule_event_reminders(3, 'd3_1300');
+    }
+    if ($job === 'event_reminders_1d') {
+      $this->schedule_event_reminders(1, 'd1_2100');
+    }
+    if ($job === 'event_reminders_dayof') {
+      $this->schedule_event_reminders(0, 'd0_0900');
+    }
 
     echo "Scheduling finished." . PHP_EOL;
+  }
+
+  /**
+   * CLI helper: list upcoming dates that have approved Public-Event razas (miqaat-backed).
+   * Usage: php index.php notifications event_reminders_find_dates [limit]
+   */
+  public function event_reminders_find_dates($limit = 20)
+  {
+    if (!is_cli()) {
+      echo "This endpoint may only be run from CLI." . PHP_EOL;
+      return;
+    }
+
+    $this->load->database();
+    $limit = (int)$limit;
+    if ($limit <= 0) $limit = 20;
+    if ($limit > 200) $limit = 200;
+
+    $sql = "SELECT DATE(m.date) AS event_date, COUNT(DISTINCT r.id) AS raza_count\n"
+      . "FROM raza r\n"
+      . "JOIN raza_type rt ON rt.id = r.razaType AND rt.umoor = 'Public-Event'\n"
+      . "JOIN miqaat m ON m.id = r.miqaat_id\n"
+      . "WHERE r.active = 1 AND r.status = 2 AND DATE(m.date) >= CURDATE()\n"
+      . "GROUP BY DATE(m.date)\n"
+      . "ORDER BY DATE(m.date) ASC\n"
+      . "LIMIT " . (int)$limit;
+
+    $rows = $this->db->query($sql)->result_array();
+    echo "Upcoming Public-Event dates with approved razas (limit={$limit}):\n";
+    if (empty($rows)) {
+      echo "(none found)\n";
+      return;
+    }
+    foreach ($rows as $r) {
+      echo " - " . (string)$r['event_date'] . " : " . (string)$r['raza_count'] . "\n";
+    }
+  }
+
+  /**
+   * Schedule reminder emails for upcoming Miqaat Public Events and Kaaraj Private Events.
+   *
+   * Source of truth:
+   * - `raza` rows with `raza_type.umoor` IN ('Public-Event','Private-Event') and status=2 (approved)
+   * - event date is taken from miqaat.date when miqaat_id is present; otherwise from razadata JSON field `date` (best-effort)
+   *
+   * @param int $offsetDays 3|1|0
+   * @param string $triggerKey d3_1300|d1_2100|d0_0900
+   */
+  protected function schedule_event_reminders($offsetDays, $triggerKey)
+  {
+    $offsetDays = (int)$offsetDays;
+    $triggerKey = trim((string)$triggerKey);
+    if (!in_array($offsetDays, [0, 1, 3], true)) {
+      echo "Event reminders: invalid offsetDays={$offsetDays}\n";
+      return;
+    }
+    if ($triggerKey === '') {
+      echo "Event reminders: missing triggerKey\n";
+      return;
+    }
+
+    $recipients = $this->config->item('amilsaheb_event_reminder_recipients', 'notifications');
+    if (empty($recipients) || !is_array($recipients)) {
+      $recipients = $this->config->item('amilsaheb_appointments_digest_recipients', 'notifications');
+    }
+    if (empty($recipients) || !is_array($recipients)) {
+      $recipients = ['kharamilsaheb@gmail.com'];
+    }
+
+    // Test/ops overrides
+    $overrideTo = getenv('EVENT_REMINDER_TEST_TO');
+    if (is_string($overrideTo)) {
+      $overrideTo = trim($overrideTo);
+      if ($overrideTo !== '' && filter_var($overrideTo, FILTER_VALIDATE_EMAIL)) {
+        $recipients = [$overrideTo];
+        echo "Event reminders: using EVENT_REMINDER_TEST_TO={$overrideTo}\n";
+      }
+    }
+
+    $dryRun = getenv('EVENT_REMINDER_DRY_RUN');
+    $dryRun = is_string($dryRun) && trim($dryRun) === '1';
+
+    $targetDate = date('Y-m-d', strtotime('+' . $offsetDays . ' day'));
+    $overrideDate = getenv('EVENT_REMINDER_TARGET_DATE');
+    if (is_string($overrideDate)) {
+      $overrideDate = trim($overrideDate);
+      if ($overrideDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $overrideDate)) {
+        $targetDate = $overrideDate;
+        echo "Event reminders: using EVENT_REMINDER_TARGET_DATE={$overrideDate}\n";
+      }
+    }
+    $label = $offsetDays === 0 ? 'Today' : ($offsetDays === 1 ? 'Tomorrow' : ('In ' . $offsetDays . ' days'));
+    echo "Event reminders ({$triggerKey}): targetDate={$targetDate} ({$label})\n";
+
+    if (!$this->db->table_exists('event_reminder_log')) {
+      echo "Event reminders: missing table event_reminder_log. Run migrations first (php index.php migrate).\n";
+      return;
+    }
+
+    $rows = [];
+
+    // 1) Miqaat Public Events: match by miqaat date directly (reliable even for older razas)
+    $sqlPub = "SELECT r.id AS raza_id, r.user_id, r.miqaat_id, r.razadata, r.`time-stamp` AS created_at,
+                rt.umoor, rt.name AS razatype_name,
+                u.Full_Name AS member_name,
+                m.name AS miqaat_name, m.date AS miqaat_date
+              FROM raza r
+              JOIN raza_type rt ON rt.id = r.razaType
+              LEFT JOIN user u ON u.ITS_ID = r.user_id
+              JOIN miqaat m ON m.id = r.miqaat_id
+              WHERE r.active = 1
+                AND r.status = 2
+                AND rt.umoor = 'Public-Event'
+                AND DATE(m.date) = " . $this->db->escape($targetDate) . "
+              ORDER BY r.`time-stamp` DESC";
+    $rowsPub = $this->db->query($sqlPub)->result_array();
+    if (!empty($rowsPub)) $rows = array_merge($rows, $rowsPub);
+
+    // 2) Private Events (and any event without miqaat date): scan approved events from recent history and parse JSON date.
+    // Bound scan window to keep cron fast.
+    $sqlOther = "SELECT r.id AS raza_id, r.user_id, r.miqaat_id, r.razadata, r.`time-stamp` AS created_at,
+                  rt.umoor, rt.name AS razatype_name,
+                  u.Full_Name AS member_name,
+                  m.name AS miqaat_name, m.date AS miqaat_date
+                FROM raza r
+                JOIN raza_type rt ON rt.id = r.razaType
+                LEFT JOIN user u ON u.ITS_ID = r.user_id
+                LEFT JOIN miqaat m ON m.id = r.miqaat_id
+                WHERE r.active = 1
+                  AND r.status = 2
+                  AND rt.umoor IN ('Public-Event','Private-Event')
+                  AND r.`time-stamp` >= DATE_SUB(NOW(), INTERVAL 3 YEAR)
+                ORDER BY r.`time-stamp` DESC
+                LIMIT 3000";
+    $rowsOther = $this->db->query($sqlOther)->result_array();
+    if (!empty($rowsOther)) $rows = array_merge($rows, $rowsOther);
+
+    $matches = [];
+    $seen = [];
+    foreach ($rows as $r) {
+      $rid = (int)($r['raza_id'] ?? 0);
+      if ($rid > 0) {
+        if (isset($seen[$rid])) continue;
+        $seen[$rid] = true;
+      }
+      $eventDate = $this->extract_event_date_ymd($r);
+      if ($eventDate === '' || $eventDate !== $targetDate) continue;
+      $r['event_date'] = $eventDate;
+      $matches[] = $r;
+    }
+
+    if ($dryRun) {
+      echo "Event reminders dry-run: matches=" . count($matches) . " (no emails queued)\n";
+      $i = 0;
+      foreach ($matches as $m) {
+        if ($i++ >= 10) break;
+        $umoor = (string)($m['umoor'] ?? '');
+        $miqaatName = trim((string)($m['miqaat_name'] ?? ''));
+        $memberName = trim((string)($m['member_name'] ?? ''));
+        $rid = (int)($m['raza_id'] ?? 0);
+        echo " - raza_id={$rid} umoor={$umoor} date=" . (string)($m['event_date'] ?? '') . " miqaat=" . $miqaatName . " member=" . $memberName . "\n";
+      }
+      return;
+    }
+
+    $countQueued = 0;
+    foreach ($matches as $ev) {
+      $razaId = (int)($ev['raza_id'] ?? 0);
+      if ($razaId <= 0) continue;
+
+      $umoor = (string)($ev['umoor'] ?? '');
+      $eventTypeLabel = ($umoor === 'Public-Event') ? 'Miqaat Public Event' : (($umoor === 'Private-Event') ? 'Kaaraj Private Event' : 'Event');
+      $eventDateNice = date('D, d M Y', strtotime($ev['event_date']));
+
+      $dTag = ($offsetDays === 0) ? 'D0' : ('D-' . $offsetDays);
+      $subject = "Event Reminder ({$dTag}): {$eventTypeLabel} on {$eventDateNice}";
+
+      $miqaatId = (int)($ev['miqaat_id'] ?? 0);
+      $miqaatName = trim((string)($ev['miqaat_name'] ?? ''));
+      $memberName = trim((string)($ev['member_name'] ?? ''));
+      $requestedBy = $memberName !== '' ? $memberName : ('ITS ' . (string)($ev['user_id'] ?? ''));
+
+      $detailsRows = [];
+      $detailsRows[] = ['Event Type', $eventTypeLabel];
+      $detailsRows[] = ['Event Date', $eventDateNice];
+      $detailsRows[] = ['Raza ID', (string)$razaId];
+      if ($miqaatId > 0) $detailsRows[] = ['Miqaat ID', (string)$miqaatId];
+      if ($miqaatName !== '') $detailsRows[] = ['Miqaat Name', $miqaatName];
+      $detailsRows[] = ['Requested By', $requestedBy];
+
+      $body = '<p style="font-family:Arial,Helvetica,sans-serif;">'
+        . 'Reminder for an upcoming ' . htmlspecialchars($eventTypeLabel) . '.</p>';
+      $body .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:14px;">'
+        . '<tbody>';
+      foreach ($detailsRows as $dr) {
+        $body .= '<tr>'
+          . '<td style="padding:8px;border:1px solid #ddd;background:#f7f7f7;width:180px;"><strong>' . htmlspecialchars((string)$dr[0]) . '</strong></td>'
+          . '<td style="padding:8px;border:1px solid #ddd;">' . htmlspecialchars((string)$dr[1]) . '</td>'
+          . '</tr>';
+      }
+      $body .= '</tbody></table>';
+
+      $ctaUrl = ($umoor === 'Public-Event')
+        ? base_url('amilsaheb/EventRazaRequest?event_type=1')
+        : base_url('amilsaheb/EventRazaRequest?event_type=2');
+      $ctaText = 'View event requests';
+
+      foreach ($recipients as $to) {
+        $to = trim((string)$to);
+        if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) continue;
+
+        // Duplicate protection: only one reminder per event+trigger per recipient.
+        $exists = $this->db->select('id')
+          ->from('event_reminder_log')
+          ->where('event_umoor', $umoor)
+          ->where('raza_id', $razaId)
+          ->where('trigger_key', $triggerKey)
+          ->where('recipient', $to)
+          ->limit(1)
+          ->get()->row_array();
+        if (!empty($exists)) continue;
+
+        $notificationId = $this->notification_lib->send_email([
+          'recipient' => $to,
+          'recipient_type' => 'amil',
+          'subject' => $subject,
+          'body' => $body,
+          'card_title' => 'Event Reminder',
+          'cta_url' => $ctaUrl,
+          'cta_text' => $ctaText,
+        ]);
+
+        if (!empty($notificationId)) {
+          // Record enqueue so repeated cron invocations don't duplicate.
+          $this->db->insert('event_reminder_log', [
+            'event_umoor' => $umoor,
+            'raza_id' => $razaId,
+            'trigger_key' => $triggerKey,
+            'recipient' => $to,
+            'notification_id' => (int)$notificationId,
+          ]);
+          $countQueued++;
+        }
+      }
+    }
+
+    echo "Event reminders queued: {$countQueued} emails (matches=" . count($matches) . ")\n";
+  }
+
+  /**
+   * Extract an event date (YYYY-MM-DD) from a joined event row.
+   * Prefers miqaat.date when available; falls back to razadata JSON `date`.
+   */
+  protected function extract_event_date_ymd($row)
+  {
+    $miqaatDate = trim((string)($row['miqaat_date'] ?? ''));
+    if ($miqaatDate !== '') {
+      $d = substr($miqaatDate, 0, 10);
+      if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) return $d;
+      $ts = strtotime($miqaatDate);
+      if ($ts !== false) return date('Y-m-d', $ts);
+    }
+
+    $razadata = $row['razadata'] ?? null;
+    if (!is_string($razadata) || trim($razadata) === '') return '';
+
+    $decoded = json_decode($razadata, true);
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) return '';
+
+    $candidates = [];
+    if (isset($decoded['date'])) $candidates[] = $decoded['date'];
+    if (isset($decoded['event_date'])) $candidates[] = $decoded['event_date'];
+    if (isset($decoded['Event Date'])) $candidates[] = $decoded['Event Date'];
+    if (isset($decoded['Date'])) $candidates[] = $decoded['Date'];
+
+    foreach ($candidates as $val) {
+      if (!is_string($val)) continue;
+      $val = trim($val);
+      if ($val === '') continue;
+      $raw = $val;
+      // Normalize dd/mm/yyyy -> yyyy-mm-dd when unambiguous
+      if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})$#', $val, $m)) {
+        $d = (int)$m[1];
+        $mo = (int)$m[2];
+        $y = (int)$m[3];
+        if (checkdate($mo, $d, $y)) {
+          return sprintf('%04d-%02d-%02d', $y, $mo, $d);
+        }
+      }
+      if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $val)) return $val;
+      $ts = strtotime($raw);
+      if ($ts !== false) return date('Y-m-d', $ts);
+    }
+
+    return '';
   }
 
   protected function schedule_daily_thaali_signup()

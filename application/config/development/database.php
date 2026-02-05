@@ -95,12 +95,18 @@ $query_builder = TRUE;
 // 	'save_queries' => TRUE
 // );
 
+$dbHost = getenv('DB_HOST');
+$dbPort = getenv('DB_PORT');
+$dbName = getenv('DB_NAME');
+$dbUser = getenv('DB_USER');
+$dbPass = getenv('DB_PASS');
+
 $db['default'] = array(
 	'dsn' => '',
-	'hostname' => 'localhost',
-	'username' => 'root',
-	'password' => '',
-	'database' => 'kharjamaat',
+	'hostname' => ($dbHost !== false && $dbHost !== '') ? $dbHost : 'localhost',
+	'username' => ($dbUser !== false && $dbUser !== '') ? $dbUser : 'root',
+	'password' => ($dbPass !== false) ? $dbPass : '',
+	'database' => ($dbName !== false && $dbName !== '') ? $dbName : 'kharjamaat',
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,
@@ -114,5 +120,6 @@ $db['default'] = array(
 	'compress' => FALSE,
 	'stricton' => FALSE,
 	'failover' => array(),
-	'save_queries' => TRUE
+	'save_queries' => TRUE,
+	'port' => (is_string($dbPort) && $dbPort !== '' && ctype_digit($dbPort)) ? (int)$dbPort : NULL
 );

@@ -2,7 +2,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <a href="<?= base_url('anjuman'); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i></a>
     <h4 class="m-0 flex-grow-1 text-center">Corpus Funds - Receive Payments</h4>
-    <button type="button" id="generateReceiptsBtn" class="btn btn-outline-primary btn-sm">Receipts PDF</button>
+    <button type="button" id="generateReceiptsBtn" class="btn btn-outline-primary btn-sm">Corpus Takhmeen Form PDF</button>
   </div>
   <?php if (!empty($message)): ?>
     <div class="alert alert-success py-2 px-3"><?= htmlspecialchars($message); ?></div>
