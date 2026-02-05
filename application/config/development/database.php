@@ -101,9 +101,19 @@ $dbName = getenv('DB_NAME');
 $dbUser = getenv('DB_USER');
 $dbPass = getenv('DB_PASS');
 
+// In CLI/cron contexts, using 'localhost' can force MySQL socket usage and fail
+// with HY000/2002 depending on PHP/MySQL socket paths. Prefer TCP for CLI.
+$defaultHost = (PHP_SAPI === 'cli') ? '127.0.0.1' : 'localhost';
+
+// MAMP's MySQL commonly listens on 8889 (macOS local dev). If running via CLI
+// and no DB_PORT is set, default to 8889 when a MAMP socket path is present.
+if ((PHP_SAPI === 'cli') && (!is_string($dbPort) || $dbPort === '') && file_exists('/Applications/MAMP/tmp/mysql/mysql.sock')) {
+	$dbPort = '8889';
+}
+
 $db['default'] = array(
 	'dsn' => '',
-	'hostname' => ($dbHost !== false && $dbHost !== '') ? $dbHost : 'localhost',
+	'hostname' => ($dbHost !== false && $dbHost !== '') ? $dbHost : $defaultHost,
 	'username' => ($dbUser !== false && $dbUser !== '') ? $dbUser : 'root',
 	'password' => ($dbPass !== false) ? $dbPass : '',
 	'database' => ($dbName !== false && $dbName !== '') ? $dbName : 'kharjamaat',

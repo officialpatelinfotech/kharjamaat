@@ -22,6 +22,7 @@ class EmailWorker extends CI_Controller
 
   private function is_json($string)
   {
+    if (!is_string($string) || $string === '') return false;
     json_decode($string);
     return (json_last_error() == JSON_ERROR_NONE);
   }
@@ -131,9 +132,56 @@ class EmailWorker extends CI_Controller
 
         // Keep logs useful but avoid writing full HTML bodies into logs.
         $debug = $this->email->print_debugger(['headers', 'subject']);
-        $logLine = "[" . date('Y-m-d H:i:s') . "] Job {$job['id']} To: " . (is_array($to) ? implode(',', $to) : $to) . " Subject: " . str_replace("\n", ' ', $subject) . " Status: " . ($ok ? 'sent' : 'failed') . "\n" . $debug . "\n---\n";
+
+        // If SMTP config was changed (465/ssl vs 587/tls), retry once with alternate mode.
+        $retryOk = false;
+        $retryDebug = '';
+        if (!$ok) {
+          $currentPort = (string)($config['smtp_port'] ?? '');
+          $currentCrypto = (string)($config['smtp_crypto'] ?? '');
+          $currentHost = (string)($config['smtp_host'] ?? '');
+          $looksLikeSsl465 = ($currentPort === '465') || (stripos($currentHost, 'ssl://') === 0) || (strtolower($currentCrypto) === 'ssl');
+
+          $retryConfig = $config;
+          if ($looksLikeSsl465) {
+            // try STARTTLS on 587
+            $retryConfig['smtp_host'] = preg_replace('#^ssl://#i', '', $currentHost);
+            $retryConfig['smtp_port'] = '587';
+            $retryConfig['smtp_crypto'] = 'tls';
+          } else {
+            // try implicit SSL on 465
+            $retryConfig['smtp_host'] = 'ssl://' . preg_replace('#^ssl://#i', '', $currentHost);
+            $retryConfig['smtp_port'] = '465';
+            $retryConfig['smtp_crypto'] = 'ssl';
+          }
+          $retryConfig['smtp_keepalive'] = false;
+          if (empty($retryConfig['newline'])) $retryConfig['newline'] = "\r\n";
+          if (empty($retryConfig['crlf'])) $retryConfig['crlf'] = "\r\n";
+
+          $this->email->clear(true);
+          $this->email->initialize($retryConfig);
+          $this->email->set_mailtype($mailtype);
+          $this->email->set_header('X-Queue-ID', $job['id']);
+          $this->email->set_header('X-Queue-Created', $job['created_at'] ?? '');
+          $fromEmailRetry = $retryConfig['smtp_user'] ?? ($config['smtp_user'] ?? 'admin@kharjamaat.in');
+          $this->email->from($fromEmailRetry, 'Admin');
+          $this->email->to(is_array($to) ? $to : $to);
+          if (!empty($bcc)) $this->email->bcc($bcc);
+          $this->email->subject($subject);
+          $this->email->message($message);
+          $retryOk = $this->email->send();
+          $retryDebug = $this->email->print_debugger(['headers', 'subject']);
+        }
+
+        $finalOk = $ok || $retryOk;
+        $logLine = "[" . date('Y-m-d H:i:s') . "] Job {$job['id']} To: " . (is_array($to) ? implode(',', $to) : $to) . " Subject: " . str_replace("\n", ' ', $subject) . " Status: " . ($finalOk ? 'sent' : 'failed') . "\n" . $debug;
+        if (!$ok && $retryDebug !== '') {
+          $logLine .= "\n[retry]\n" . $retryDebug;
+        }
+        $logLine .= "\n---\n";
         @file_put_contents(APPPATH . 'logs/emailworker.log', $logLine, FILE_APPEND | LOCK_EX);
-        if ($ok) {
+
+        if ($finalOk) {
           $this->EmailQueueM->mark_sent($job['id']);
           if ($echoOutput) echo "Sent job {$job['id']}\n";
           else echo "Sent job {$job['id']}\n";
@@ -146,7 +194,9 @@ class EmailWorker extends CI_Controller
             if ($echoOutput) echo "Fallback sent job {$job['id']}\n";
             else echo "Fallback sent job {$job['id']}\n";
           } else {
-            $this->EmailQueueM->mark_failed($job['id'], $debug);
+            $err = $debug;
+            if ($retryDebug !== '') $err .= "\n[retry]\n" . $retryDebug;
+            $this->EmailQueueM->mark_failed($job['id'], $err);
             if ($echoOutput) echo "Failed job {$job['id']}\n";
             else echo "Failed job {$job['id']}\n";
           }
