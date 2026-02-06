@@ -42,10 +42,17 @@
 </style>
 <footer class="site-footer">
   <div class="container">
+    <?php
+      // Defaults from app settings (can be overridden by view params)
+      if (!isset($address_line)) $address_line = app_setting('address_line', isset($address_line) ? $address_line : '');
+      if (!isset($city_state)) $city_state = app_setting('city_state', isset($city_state) ? $city_state : '');
+      if (!isset($pincode)) $pincode = app_setting('pincode', isset($pincode) ? $pincode : '');
+      if (!isset($support_email)) $support_email = app_setting('support_email', isset($support_email) ? $support_email : '');
+    ?>
     <div class="row">
       <div class="col-md-4 col-sm-6">
         <h5>About</h5>
-        <p><?php echo isset($org_name) ? $org_name : 'Khar Jamaat'; ?> is a community platform facilitating structured participation, contributions, and communication for members.</p>
+        <p><?php echo isset($org_name) ? $org_name : htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?> is a community platform facilitating structured participation, contributions, and communication for members.</p>
       </div>
       <div class="col-md-2 col-sm-6">
         <h5>Legal</h5>
@@ -68,7 +75,7 @@
       </div>
     </div>
     <div class="footer-bottom text-center">
-      <span>&copy; <?php echo date('Y'); ?> <?php echo isset($org_name) ? $org_name : 'Anjuman-e-Saifee Khar'; ?>. All rights reserved.</span>
+      <span>&copy; <?php echo date('Y'); ?> <?php echo isset($org_name) ? $org_name : ('Anjuman-e-Saifee ' . htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8')); ?>. All rights reserved.</span>
     </div>
   </div>
 </footer>

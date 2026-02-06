@@ -10,8 +10,43 @@ class Notification_lib
   {
     $this->CI = &get_instance();
     $this->CI->load->model('NotificationM');
-    $this->CI->load->library('email');
     $this->CI->load->library('Whatsapp_bot_lib');
+  }
+
+  protected function initialize_email_transport()
+  {
+    $this->CI->load->library('email');
+    $this->CI->config->load('email');
+
+    $emailKeys = [
+      'protocol',
+      'smtp_host',
+      'smtp_port',
+      'smtp_user',
+      'smtp_pass',
+      'smtp_timeout',
+      'smtp_keepalive',
+      'smtp_crypto',
+      'mailtype',
+      'charset',
+      'newline',
+      'crlf',
+      'wordwrap',
+      'validate',
+      'mailpath'
+    ];
+
+    $emailConfig = [];
+    foreach ($emailKeys as $key) {
+      $value = $this->CI->config->item($key);
+      if ($value !== null) $emailConfig[$key] = $value;
+    }
+    if (empty($emailConfig['newline'])) $emailConfig['newline'] = "\r\n";
+    if (empty($emailConfig['crlf'])) $emailConfig['crlf'] = "\r\n";
+    $emailConfig['smtp_keepalive'] = false;
+    $this->CI->email->initialize($emailConfig);
+    $this->CI->email->set_mailtype('html');
+    return $emailConfig;
   }
 
   public function send_email($opts)
@@ -54,6 +89,12 @@ class Notification_lib
     }
     $scheduled = isset($opts['scheduled_at']) ? $opts['scheduled_at'] : null;
 
+    // Enqueue-only by default.
+    // Reason: sending synchronously from cron/web without initializing the email transport
+    // can cause false-positive "sent" states (e.g., PHP mail() returns true) and makes
+    // delivery issues untraceable. Use Notifications::process CLI worker to deliver.
+    $sendNow = !empty($opts['send_now']);
+
     $id = $this->CI->NotificationM->insert_notification([
       'channel' => 'email',
       'recipient' => $recipient,
@@ -68,19 +109,21 @@ class Notification_lib
       return $id;
     }
 
-    // Attempt send now
+    if (!$sendNow) {
+      return $id;
+    }
+
+    // Optional: attempt immediate send (used only when explicitly requested)
     try {
+      $this->initialize_email_transport();
       $this->CI->email->clear(true);
       $this->CI->email->from($this->CI->config->item('smtp_user') ?: 'admin@kharjamaat.in');
       $this->CI->email->to($recipient);
       $this->CI->email->subject($subject);
       $this->CI->email->message($body);
       $ok = $this->CI->email->send();
-      if ($ok) {
-        $this->CI->NotificationM->mark_sent($id);
-      } else {
-        $this->CI->NotificationM->increment_attempts_and_fail($id);
-      }
+      if ($ok) $this->CI->NotificationM->mark_sent($id);
+      else $this->CI->NotificationM->increment_attempts_and_fail($id);
     } catch (Exception $e) {
       $this->CI->NotificationM->increment_attempts_and_fail($id);
     }

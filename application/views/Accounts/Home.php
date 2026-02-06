@@ -208,7 +208,7 @@
 // `format_inr()` is provided by the autoloaded `inr_helper`.
 ?>
 <div class="container margintopcontainer pt-5">
-  <h1 class="text-center heading pt-5 mb-3">Welcome to Anjuman-e-Saifee Khar Jamaat</h1>
+  <h1 class="text-center heading pt-5 mb-3">Welcome to Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
   <p class="hirji-date text-center mb-4"><b><?php echo $hijri_date ?></b></p>
   <hr>
   <div class="row justify-content-center">

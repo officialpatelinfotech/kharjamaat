@@ -39,7 +39,7 @@ function generateCalendar($hijri_month, $hijri_year, $user_appointments)
       </a>
     </div>
     <div class="container mt-4 mt-md-0 mb-4 mb-md-0">
-      <h1 class="text-center heading mb-4">Welcome to Anjuman-e-Saifee Khar Jamaat</h1>
+      <h1 class="text-center heading mb-4">Welcome to Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
       <hr>
     </div>
 

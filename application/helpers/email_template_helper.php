@@ -121,6 +121,7 @@ if (!function_exists('render_generic_email_html')) {
       'cardTitleHtml' => $cardTitleHtml,
       'cardBodyHtml' => $cardBodyHtml,
       'ctaHtml' => $ctaHtml,
+      'jamaat_name' => htmlspecialchars(jamaat_name()),
     ];
 
     foreach ($repl as $key => $value) {

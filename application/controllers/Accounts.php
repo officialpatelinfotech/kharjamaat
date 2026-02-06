@@ -2789,7 +2789,8 @@ class Accounts extends CI_Controller
       'name' => $user_data['Full_Name'],
       'its' => $user_data['ITS_ID'],
       'table' => $table,
-      'razaname' => $razatype['name']
+      'razaname' => $razatype['name'],
+      'jamaat_name' => jamaat_name()
     );
 
     foreach ($dynamic_data as $key => $value) {

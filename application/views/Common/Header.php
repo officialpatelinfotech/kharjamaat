@@ -19,7 +19,7 @@
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.jsdelivr.net/npm/jqueryui@1.11.1/jquery-ui.min.js"></script>
 <script src="https://kit.fontawesome.com/e50fe14bb8.js" crossorigin="anonymous"></script>
-<title>Khar Jamaat</title>
+<title><?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></title>
 <link rel="icon" type="image/x-icon" href="<?php echo base_url('assets/header_logo.png'); ?>">
 <style>
   .navbar-brand .logo {
@@ -119,11 +119,12 @@
 // Inject global footer for Common (admin/ops) pages
 (function(){
   if(document.getElementById('global-site-footer')) return;
+  var jamaatName = <?php echo json_encode(jamaat_name()); ?>;
   var footerHtml='\n<footer id="global-site-footer" class="site-footer" style="background:#222;color:#eee;font-size:14px;margin-top:40px;padding:32px 0 16px;">'+
     '<style>.site-footer a{color:#ffc107;text-decoration:none;} .site-footer a:hover{text-decoration:underline;color:#ffda55;} .site-footer h5{font-size:16px;font-weight:600;color:#fff;} .site-footer .footer-bottom{border-top:1px solid #444;margin-top:24px;padding-top:12px;font-size:12px;color:#bbb;} @media (max-width:767px){.site-footer{padding:24px 0;} .site-footer h5{margin-top:24px;} }</style>'+
     '<div class="container">'+
       '<div class="row">'+
-        '<div class="col-md-4 col-sm-6"><h5>About</h5><p>Khar Jamaat operational dashboard.</p></div>'+
+        '<div class="col-md-4 col-sm-6"><h5>About</h5><p>' + jamaatName + ' operational dashboard.</p></div>'+
         '<div class="col-md-2 col-sm-6"><h5>Legal</h5><ul class="list-unstyled mb-0">'+
           '<li><a href="<?php echo base_url('terms'); ?>">Terms & Conditions</a></li>'+
           '<li><a href="<?php echo base_url('privacy'); ?>">Privacy Policy</a></li>'+
@@ -131,7 +132,8 @@
         '</ul></div>'+
         '<div class="col-md-3 col-sm-6"><h5>Contact</h5><p class="mb-1"><strong>Email:</strong> <a href="mailto:support@kharjamaat.in">support@kharjamaat.in</a></p><p class="mb-1"><strong>Phone:</strong> <a href="tel:+919000000000">+91-90000-00000</a></p><p class="mb-0"><strong>Hours:</strong> Mon-Sat 10:00–18:00 IST</p></div>'+
         '<div class="col-md-3 col-sm-6"><h5>Status</h5><p class="mb-2">Last Updated: <?php echo date('d M Y'); ?></p><p class="small mb-2">Internal use only.</p></div>'+
-      '</div>'+\n+      '<div class="footer-bottom text-center"><span>&copy; <?php echo date('Y'); ?> Khar Jamaat. All rights reserved.</span></div>'+
+      '</div>'+
+      '<div class="footer-bottom text-center"><span>&copy; <?php echo date('Y'); ?> ' + jamaatName + '. All rights reserved.</span></div>'+
     '</div></footer>';
   var div=document.createElement('div');div.innerHTML=footerHtml;document.addEventListener('DOMContentLoaded',function(){document.body.appendChild(div.firstChild);});
 })();

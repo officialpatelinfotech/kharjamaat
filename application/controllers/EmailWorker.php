@@ -49,6 +49,11 @@ class EmailWorker extends CI_Controller
   {
     $this->load->library('email');
 
+    $allowPhpMailFallback = getenv('EMAIL_ALLOW_PHP_MAIL_FALLBACK');
+    if ($allowPhpMailFallback === false && isset($_ENV['EMAIL_ALLOW_PHP_MAIL_FALLBACK'])) $allowPhpMailFallback = $_ENV['EMAIL_ALLOW_PHP_MAIL_FALLBACK'];
+    $allowPhpMailFallback = is_string($allowPhpMailFallback) ? trim($allowPhpMailFallback) : '';
+    $allowPhpMailFallback = ($allowPhpMailFallback === '1' || strtolower($allowPhpMailFallback) === 'true');
+
     // Load central email config so production changes apply everywhere.
     // Note: CI config loader doesn't return a whole config array via item('email');
     // it loads keys into the global config namespace (unless using sections).
@@ -121,6 +126,8 @@ class EmailWorker extends CI_Controller
         $this->email->set_mailtype($mailtype);
         $this->email->set_header('X-Queue-ID', $job['id']);
         $this->email->set_header('X-Queue-Created', $job['created_at'] ?? '');
+        $messageId = '<q-' . $job['id'] . '-' . date('YmdHis') . '@kharjamaat.in>';
+        $this->email->set_header('Message-ID', $messageId);
         $fromEmail = $config['smtp_user'] ?? 'admin@kharjamaat.in';
         $this->email->from($fromEmail, 'Admin');
         $this->email->to(is_array($to) ? $to : $to);
@@ -136,6 +143,7 @@ class EmailWorker extends CI_Controller
         // If SMTP config was changed (465/ssl vs 587/tls), retry once with alternate mode.
         $retryOk = false;
         $retryDebug = '';
+        $usedRetry = false;
         if (!$ok) {
           $currentPort = (string)($config['smtp_port'] ?? '');
           $currentCrypto = (string)($config['smtp_crypto'] ?? '');
@@ -150,7 +158,8 @@ class EmailWorker extends CI_Controller
             $retryConfig['smtp_crypto'] = 'tls';
           } else {
             // try implicit SSL on 465
-            $retryConfig['smtp_host'] = 'ssl://' . preg_replace('#^ssl://#i', '', $currentHost);
+            // CI adds the 'ssl://' prefix internally when smtp_crypto === 'ssl'
+            $retryConfig['smtp_host'] = preg_replace('#^ssl://#i', '', $currentHost);
             $retryConfig['smtp_port'] = '465';
             $retryConfig['smtp_crypto'] = 'ssl';
           }
@@ -160,9 +169,11 @@ class EmailWorker extends CI_Controller
 
           $this->email->clear(true);
           $this->email->initialize($retryConfig);
+          $usedRetry = true;
           $this->email->set_mailtype($mailtype);
           $this->email->set_header('X-Queue-ID', $job['id']);
           $this->email->set_header('X-Queue-Created', $job['created_at'] ?? '');
+          $this->email->set_header('Message-ID', $messageId);
           $fromEmailRetry = $retryConfig['smtp_user'] ?? ($config['smtp_user'] ?? 'admin@kharjamaat.in');
           $this->email->from($fromEmailRetry, 'Admin');
           $this->email->to(is_array($to) ? $to : $to);
@@ -174,10 +185,16 @@ class EmailWorker extends CI_Controller
         }
 
         $finalOk = $ok || $retryOk;
+        $transport = ($config['protocol'] ?? 'mail');
+        $transportMeta = $transport;
+        if ($transport === 'smtp') {
+          $transportMeta .= ' host=' . ($config['smtp_host'] ?? '') . ' port=' . ($config['smtp_port'] ?? '') . ' crypto=' . ($config['smtp_crypto'] ?? '');
+        }
         $logLine = "[" . date('Y-m-d H:i:s') . "] Job {$job['id']} To: " . (is_array($to) ? implode(',', $to) : $to) . " Subject: " . str_replace("\n", ' ', $subject) . " Status: " . ($finalOk ? 'sent' : 'failed') . "\n" . $debug;
         if (!$ok && $retryDebug !== '') {
           $logLine .= "\n[retry]\n" . $retryDebug;
         }
+        $logLine .= "\n[meta] message_id=" . $messageId . " transport=" . $transportMeta . " retry=" . ($usedRetry ? '1' : '0') . " php_mail_fallback=" . ($allowPhpMailFallback ? '1' : '0');
         $logLine .= "\n---\n";
         @file_put_contents(APPPATH . 'logs/emailworker.log', $logLine, FILE_APPEND | LOCK_EX);
 
@@ -186,13 +203,23 @@ class EmailWorker extends CI_Controller
           if ($echoOutput) echo "Sent job {$job['id']}\n";
           else echo "Sent job {$job['id']}\n";
         } else {
-          $fallbackOk = $this->php_mail_fallback($to, $subject, $message, $bcc);
-          if ($fallbackOk) {
-            $this->EmailQueueM->mark_sent($job['id']);
-            $fbLog = "[" . date('Y-m-d H:i:s') . "] Job {$job['id']} Fallback: php mail() succeeded\n";
-            @file_put_contents(APPPATH . 'logs/emailworker.log', $fbLog, FILE_APPEND | LOCK_EX);
-            if ($echoOutput) echo "Fallback sent job {$job['id']}\n";
-            else echo "Fallback sent job {$job['id']}\n";
+          if ($allowPhpMailFallback) {
+            $fallbackOk = $this->php_mail_fallback($to, $subject, $message, $bcc);
+            if ($fallbackOk) {
+              // Note: PHP mail() returning TRUE does not guarantee delivery.
+              // Keep it opt-in via EMAIL_ALLOW_PHP_MAIL_FALLBACK.
+              $this->EmailQueueM->mark_sent($job['id']);
+              $fbLog = "[" . date('Y-m-d H:i:s') . "] Job {$job['id']} Fallback: php mail() returned true\n";
+              @file_put_contents(APPPATH . 'logs/emailworker.log', $fbLog, FILE_APPEND | LOCK_EX);
+              if ($echoOutput) echo "Fallback sent job {$job['id']}\n";
+              else echo "Fallback sent job {$job['id']}\n";
+            } else {
+              $err = $debug;
+              if ($retryDebug !== '') $err .= "\n[retry]\n" . $retryDebug;
+              $this->EmailQueueM->mark_failed($job['id'], $err);
+              if ($echoOutput) echo "Failed job {$job['id']}\n";
+              else echo "Failed job {$job['id']}\n";
+            }
           } else {
             $err = $debug;
             if ($retryDebug !== '') $err .= "\n[retry]\n" . $retryDebug;

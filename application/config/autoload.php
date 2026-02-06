@@ -104,6 +104,9 @@ $autoload['drivers'] = array();
 */
 $autoload['helper'] = array('url','inr_helper');
 
+// App settings (e.g. jamaat_name())
+$autoload['helper'][] = 'settings';
+
 /*
 | -------------------------------------------------------------------
 |  Auto-load Config files

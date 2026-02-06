@@ -4,6 +4,23 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Notifications extends CI_Controller
 {
 
+  private function env_bool($key, $default = false)
+  {
+    $val = getenv($key);
+    if (($val === false || $val === null || $val === '') && isset($_ENV[$key])) $val = $_ENV[$key];
+    if (($val === false || $val === null || $val === '') && isset($_SERVER[$key])) $val = $_SERVER[$key];
+    if ($val === false || $val === null || $val === '') return (bool)$default;
+    $val = strtolower(trim((string)$val));
+    return in_array($val, ['1', 'true', 'yes', 'y', 'on'], true);
+  }
+
+  private function allow_php_mail_fallback()
+  {
+    // Default OFF to avoid marking items sent when mail() returns true but delivery fails later.
+    // Enable explicitly via env: EMAIL_ALLOW_PHP_MAIL_FALLBACK=1
+    return $this->env_bool('EMAIL_ALLOW_PHP_MAIL_FALLBACK', false);
+  }
+
   public function __construct()
   {
     parent::__construct();
@@ -65,6 +82,19 @@ class Notifications extends CI_Controller
     $emailConfig['smtp_keepalive'] = false;
     $this->email->initialize($emailConfig);
 
+    $proto = (string)($emailConfig['protocol'] ?? '');
+    $host = (string)($emailConfig['smtp_host'] ?? '');
+    $port = (string)($emailConfig['smtp_port'] ?? '');
+    $crypto = (string)($emailConfig['smtp_crypto'] ?? '');
+    $user = (string)($emailConfig['smtp_user'] ?? '');
+    $fallbackEnabled = $this->allow_php_mail_fallback();
+
+    echo "EMAIL CONFIG: protocol={$proto} host={$host} port={$port} crypto={$crypto} user={$user}" . PHP_EOL;
+    echo "PHP_MAIL_FALLBACK: " . ($fallbackEnabled ? 'enabled' : 'disabled') . PHP_EOL;
+    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production' && ($this->config->item('smtp_pass') === 'admin@2024')) {
+      echo "WARN: SMTP_PASS appears to be the default value; check production .env" . PHP_EOL;
+    }
+
     $subject = 'Test Email - Khar Jamaat Notifications (' . date('Y-m-d H:i') . ')';
     $body = render_generic_email_html([
       'title' => $subject,
@@ -83,6 +113,8 @@ class Notifications extends CI_Controller
     $this->email->clear(true);
     $this->email->from($from);
     $this->email->to($to);
+    $messageId = '<test-' . date('YmdHis') . '-' . substr(md5($to), 0, 8) . '@kharjamaat.in>';
+    $this->email->set_header('Message-ID', $messageId);
     $this->email->subject($subject);
     $this->email->message($body);
 
@@ -104,7 +136,8 @@ class Notifications extends CI_Controller
         $retryConfig['smtp_crypto'] = 'tls';
       } else {
         // try implicit SSL on 465
-        $retryConfig['smtp_host'] = 'ssl://' . preg_replace('#^ssl://#i', '', $currentHost);
+        // CI adds the 'ssl://' prefix internally when smtp_crypto === 'ssl'
+        $retryConfig['smtp_host'] = preg_replace('#^ssl://#i', '', $currentHost);
         $retryConfig['smtp_port'] = '465';
         $retryConfig['smtp_crypto'] = 'ssl';
       }
@@ -114,6 +147,7 @@ class Notifications extends CI_Controller
       $this->email->initialize($retryConfig);
       $this->email->from($from);
       $this->email->to($to);
+      $this->email->set_header('Message-ID', $messageId);
       $this->email->subject($subject . ' [retry]');
       $this->email->message($body);
       $retryOk = $this->email->send();
@@ -121,28 +155,191 @@ class Notifications extends CI_Controller
 
       if ($retryOk) {
         echo "OK: sent (retry)\n";
+        echo "MESSAGE-ID: {$messageId}\n";
         echo "DEBUG (first):\n" . $debug . "\n";
         echo "DEBUG (retry):\n" . $retryDebug . "\n";
         return;
       }
 
       // Fallback: php mail()
-      $fallbackOk = $this->php_mail_fallback($to, $subject, $body);
-      if ($fallbackOk) {
-        echo "OK: sent (fallback mail())\n";
-        echo "DEBUG (first):\n" . $debug . "\n";
-        echo "DEBUG (retry):\n" . $retryDebug . "\n";
-        return;
+      if ($fallbackEnabled) {
+        $fallbackOk = $this->php_mail_fallback($to, $subject, $body);
+        if ($fallbackOk) {
+          echo "OK: sent (fallback mail(); NOT guaranteed delivery)\n";
+          echo "DEBUG (first):\n" . $debug . "\n";
+          echo "DEBUG (retry):\n" . $retryDebug . "\n";
+          return;
+        }
+      } else {
+        echo "NOTE: mail() fallback disabled; not marking sent\n";
       }
 
       echo "FAILED: not sent\n";
+      echo "MESSAGE-ID: {$messageId}\n";
       echo "DEBUG (first):\n" . $debug . "\n";
       echo "DEBUG (retry):\n" . $retryDebug . "\n";
       return;
     }
 
     echo "OK: sent\n";
+    echo "MESSAGE-ID: {$messageId}\n";
     echo "DEBUG:\n" . $debug . "\n";
+  }
+
+  /**
+   * Send a one-off test email using the same Raza submission email template (assets/email.php).
+   * CLI-only.
+   * Usage: php index.php notifications test_raza_mail_parts someone gmail.com
+   */
+  public function test_raza_mail_parts($user = '', $domain = '')
+  {
+    if (!is_cli()) {
+      echo "This endpoint may only be run from CLI." . PHP_EOL;
+      return;
+    }
+
+    $user = trim((string)$user);
+    $domain = trim((string)$domain);
+    if ($user === '' || $domain === '') {
+      echo "Usage: php index.php notifications test_raza_mail_parts someone gmail.com" . PHP_EOL;
+      return;
+    }
+
+    $to = $user . '@' . $domain;
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+      echo "Invalid email." . PHP_EOL;
+      return;
+    }
+
+    $this->load->library('email');
+    $this->config->load('email');
+
+    $emailKeys = [
+      'protocol',
+      'smtp_host',
+      'smtp_port',
+      'smtp_user',
+      'smtp_pass',
+      'smtp_timeout',
+      'smtp_keepalive',
+      'smtp_crypto',
+      'mailtype',
+      'charset',
+      'newline',
+      'crlf',
+      'wordwrap',
+      'validate',
+      'mailpath'
+    ];
+    $emailConfig = [];
+    foreach ($emailKeys as $key) {
+      $value = $this->config->item($key);
+      if ($value !== null) $emailConfig[$key] = $value;
+    }
+    if (empty($emailConfig['newline'])) $emailConfig['newline'] = "\r\n";
+    if (empty($emailConfig['crlf'])) $emailConfig['crlf'] = "\r\n";
+    $emailConfig['smtp_keepalive'] = false;
+    $this->email->initialize($emailConfig);
+    $this->email->set_mailtype('html');
+
+    $proto = (string)($emailConfig['protocol'] ?? '');
+    $host = (string)($emailConfig['smtp_host'] ?? '');
+    $port = (string)($emailConfig['smtp_port'] ?? '');
+    $crypto = (string)($emailConfig['smtp_crypto'] ?? '');
+    $userCfg = (string)($emailConfig['smtp_user'] ?? '');
+
+    echo "EMAIL CONFIG: protocol={$proto} host={$host} port={$port} crypto={$crypto} user={$userCfg}" . PHP_EOL;
+    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production' && ($this->config->item('smtp_pass') === 'admin@2024')) {
+      echo "WARN: SMTP_PASS appears to be the default value; check production .env" . PHP_EOL;
+    }
+
+    $subject = 'Raza Submission Successful (Test) - ' . date('Y-m-d H:i');
+
+    $tplPath = FCPATH . 'assets/email.php';
+    $emailTemplate = @file_get_contents($tplPath);
+    if ($emailTemplate === false || trim($emailTemplate) === '') {
+      echo "Template missing or unreadable: {$tplPath}" . PHP_EOL;
+      return;
+    }
+
+    $weekDateTime = date('l, j M Y, h:i:s A');
+    $table = '<tr>'
+      . '<td align="center" style="border: 1px solid black;width: 50%;"><p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: bold; font-family: Roboto, arial, sans-serif;">Test Field</p></td>'
+      . '<td align="center" style="border: 1px solid black;width: 50%;"><p style="color: #000000; margin: 0px; padding: 10px; font-size: 15px; font-weight: normal; font-family: Roboto, arial, sans-serif;">Test Value</p></td>'
+      . '</tr>';
+
+    $dynamic = [
+      'todayDate' => $weekDateTime,
+      'name' => 'Test Member',
+      'its' => '00000000',
+      'table' => $table,
+      'razaname' => 'Test Raza',
+      'jamaat_name' => jamaat_name()
+    ];
+    foreach ($dynamic as $key => $value) {
+      $emailTemplate = str_replace('{%' . $key . '%}', $value, $emailTemplate);
+    }
+
+    $from = $this->config->item('smtp_user') ?: 'no-reply@localhost';
+    $this->email->clear(true);
+    $this->email->from($from);
+    $this->email->to($to);
+    $messageId = '<raza-test-' . date('YmdHis') . '-' . substr(md5($to), 0, 8) . '@kharjamaat.in>';
+    $this->email->set_header('Message-ID', $messageId);
+    $this->email->subject($subject);
+    $this->email->message($emailTemplate);
+
+    $ok = $this->email->send();
+    $debug = $this->email->print_debugger(['headers', 'subject']);
+
+    if ($ok) {
+      echo "OK: sent\n";
+      echo "MESSAGE-ID: {$messageId}\n";
+      echo "DEBUG:\n" . $debug . "\n";
+      return;
+    }
+
+    // Retry alternate SMTP mode (465/ssl <-> 587/tls)
+    $currentPort = (string)($emailConfig['smtp_port'] ?? '');
+    $currentCrypto = (string)($emailConfig['smtp_crypto'] ?? '');
+    $currentHost = (string)($emailConfig['smtp_host'] ?? '');
+    $looksLikeSsl465 = ($currentPort === '465') || (stripos($currentHost, 'ssl://') === 0) || (strtolower($currentCrypto) === 'ssl');
+
+    $retryConfig = $emailConfig;
+    if ($looksLikeSsl465) {
+      $retryConfig['smtp_host'] = preg_replace('#^ssl://#i', '', $currentHost);
+      $retryConfig['smtp_port'] = '587';
+      $retryConfig['smtp_crypto'] = 'tls';
+    } else {
+      $retryConfig['smtp_host'] = preg_replace('#^ssl://#i', '', $currentHost);
+      $retryConfig['smtp_port'] = '465';
+      $retryConfig['smtp_crypto'] = 'ssl';
+    }
+    $retryConfig['smtp_keepalive'] = false;
+
+    $this->email->clear(true);
+    $this->email->initialize($retryConfig);
+    $this->email->set_mailtype('html');
+    $this->email->from($from);
+    $this->email->to($to);
+    $this->email->set_header('Message-ID', $messageId);
+    $this->email->subject($subject . ' [retry]');
+    $this->email->message($emailTemplate);
+    $retryOk = $this->email->send();
+    $retryDebug = $this->email->print_debugger(['headers', 'subject']);
+
+    if ($retryOk) {
+      echo "OK: sent (retry)\n";
+      echo "MESSAGE-ID: {$messageId}\n";
+      echo "DEBUG (first):\n" . $debug . "\n";
+      echo "DEBUG (retry):\n" . $retryDebug . "\n";
+      return;
+    }
+
+    echo "FAILED: not sent\n";
+    echo "MESSAGE-ID: {$messageId}\n";
+    echo "DEBUG (first):\n" . $debug . "\n";
+    echo "DEBUG (retry):\n" . $retryDebug . "\n";
   }
 
   /**
@@ -244,6 +441,18 @@ class Notifications extends CI_Controller
     $emailConfig['smtp_keepalive'] = false;
     $this->email->initialize($emailConfig);
 
+    $proto = (string)($emailConfig['protocol'] ?? '');
+    $host = (string)($emailConfig['smtp_host'] ?? '');
+    $port = (string)($emailConfig['smtp_port'] ?? '');
+    $crypto = (string)($emailConfig['smtp_crypto'] ?? '');
+    $user = (string)($emailConfig['smtp_user'] ?? '');
+    $fallbackEnabled = $this->allow_php_mail_fallback();
+    echo "EMAIL CONFIG: protocol={$proto} host={$host} port={$port} crypto={$crypto} user={$user}" . PHP_EOL;
+    echo "PHP_MAIL_FALLBACK: " . ($fallbackEnabled ? 'enabled' : 'disabled') . PHP_EOL;
+    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production' && ($this->config->item('smtp_pass') === 'admin@2024')) {
+      echo "WARN: SMTP_PASS appears to be the default value; check production .env" . PHP_EOL;
+    }
+
     $limit = (int)$limit;
     echo "Processing up to {$limit} pending notifications...\n";
     $pending = $this->NotificationM->get_pending($limit);
@@ -284,6 +493,9 @@ class Notifications extends CI_Controller
           $from = $this->config->item('smtp_user') ?: 'no-reply@localhost';
           $this->email->from($from);
           $this->email->to($recipient);
+          $messageId = '<n-' . $id . '-' . date('YmdHis') . '-' . substr(md5((string)$recipient), 0, 8) . '@kharjamaat.in>';
+          $this->email->set_header('Message-ID', $messageId);
+          $this->email->set_header('X-Notification-ID', (string)$id);
           if (!empty($subject)) $this->email->subject($subject);
           $this->email->message($body);
           $ok = $this->email->send();
@@ -291,8 +503,17 @@ class Notifications extends CI_Controller
           $debug = $this->email->print_debugger(array('headers', 'subject'));
           if ($ok) {
             $this->NotificationM->mark_sent($id);
-            echo "[{$id}] email sent\n";
+            echo "[{$id}] email sent (SMTP accepted)\n";
+            echo "MESSAGE-ID: {$messageId}\n";
+            $proto = (string)($emailConfig['protocol'] ?? '');
+            $host = (string)($emailConfig['smtp_host'] ?? '');
+            $port = (string)($emailConfig['smtp_port'] ?? '');
+            $crypto = (string)($emailConfig['smtp_crypto'] ?? '');
+            echo "TRANSPORT: protocol={$proto} host={$host} port={$port} crypto={$crypto}\n";
             echo "DEBUG: " . PHP_EOL . $debug . PHP_EOL;
+
+            $line = "[" . date('Y-m-d H:i:s') . "] notifications email id={$id} recipient=" . (string)$recipient . " message_id={$messageId} transport={$proto} host={$host} port={$port} crypto={$crypto} status=sent\n";
+            @file_put_contents(APPPATH . 'logs/notifications_email.log', $line, FILE_APPEND | LOCK_EX);
           } else {
             // One retry with alternate SMTP mode (some hosts require 587/TLS instead of 465/SSL or vice versa)
             $retryOk = false;
@@ -320,6 +541,8 @@ class Notifications extends CI_Controller
             $this->email->initialize($retryConfig);
             $this->email->from($from);
             $this->email->to($recipient);
+            $this->email->set_header('Message-ID', $messageId);
+            $this->email->set_header('X-Notification-ID', (string)$id);
             if (!empty($subject)) $this->email->subject($subject);
             $this->email->message($body);
             $retryOk = $this->email->send();
@@ -327,17 +550,37 @@ class Notifications extends CI_Controller
 
             if ($retryOk) {
               $this->NotificationM->mark_sent($id);
-              echo "[{$id}] email sent (retry)\n";
+              echo "[{$id}] email sent (retry; SMTP accepted)\n";
+              echo "MESSAGE-ID: {$messageId}\n";
+              $proto = (string)($retryConfig['protocol'] ?? ($emailConfig['protocol'] ?? ''));
+              $host = (string)($retryConfig['smtp_host'] ?? '');
+              $port = (string)($retryConfig['smtp_port'] ?? '');
+              $crypto = (string)($retryConfig['smtp_crypto'] ?? '');
+              echo "TRANSPORT: protocol={$proto} host={$host} port={$port} crypto={$crypto}\n";
               echo "DEBUG (first): " . PHP_EOL . $debug . PHP_EOL;
               echo "DEBUG (retry): " . PHP_EOL . $retryDebug . PHP_EOL;
+
+              $line = "[" . date('Y-m-d H:i:s') . "] notifications email id={$id} recipient=" . (string)$recipient . " message_id={$messageId} transport={$proto} host={$host} port={$port} crypto={$crypto} status=sent retry=1\n";
+              @file_put_contents(APPPATH . 'logs/notifications_email.log', $line, FILE_APPEND | LOCK_EX);
             } else {
-              // Fallback: try PHP mail() (server local MTA) like EmailWorker
-              $fallbackOk = $this->php_mail_fallback($recipient, $subject, $body);
-              if ($fallbackOk) {
-                $this->NotificationM->mark_sent($id);
-                echo "[{$id}] email sent (fallback mail())\n";
+              if ($fallbackEnabled) {
+                // Fallback: try PHP mail() (server local MTA)
+                $fallbackOk = $this->php_mail_fallback($recipient, $subject, $body);
+                if ($fallbackOk) {
+                  $this->NotificationM->mark_sent($id);
+                  echo "[{$id}] email sent (fallback mail(); NOT guaranteed delivery)\n";
+                  echo "MESSAGE-ID: {$messageId}\n";
+
+                  $line = "[" . date('Y-m-d H:i:s') . "] notifications email id={$id} recipient=" . (string)$recipient . " message_id={$messageId} transport=php_mail status=sent\n";
+                  @file_put_contents(APPPATH . 'logs/notifications_email.log', $line, FILE_APPEND | LOCK_EX);
+                } else {
+                  echo "[{$id}] email failed\n";
+                  echo "DEBUG (first): " . PHP_EOL . $debug . PHP_EOL;
+                  echo "DEBUG (retry): " . PHP_EOL . $retryDebug . PHP_EOL;
+                  $this->NotificationM->increment_attempts_and_fail($id);
+                }
               } else {
-                echo "[{$id}] email failed\n";
+                echo "[{$id}] email failed (SMTP failed; mail() fallback disabled)\n";
                 echo "DEBUG (first): " . PHP_EOL . $debug . PHP_EOL;
                 echo "DEBUG (retry): " . PHP_EOL . $retryDebug . PHP_EOL;
                 $this->NotificationM->increment_attempts_and_fail($id);

@@ -135,12 +135,13 @@ if (!function_exists('norm_date_input')) {
               <div class="col-md-4 col-12 mb-2">
                 <label class="form-label small mb-1">Member Type</label>
                 <?php $mt = $member['Member_Type'] ?? ''; ?>
+                <?php $jp = htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>
                 <select name="Member_Type" id="editMemberTypeSelect" class="form-control form-select form-select-sm">
                   <option value="">-- Select Member Type --</option>
-                  <option value="Resident Mumineen" <?php echo $mt == 'Resident Mumineen' ? 'selected' : ''; ?>>Resident Mumineen – Living in Khar, ITS in Khar, regular Sabeel payer</option>
-                  <option value="External Sabeel Payers" <?php echo $mt == 'External Sabeel Payers' ? 'selected' : ''; ?>>External Sabeel Payers – ITS not in Khar, but resident & regular Sabeel payer</option>
-                  <option value="Moved-Out Mumineen" <?php echo $mt == 'Moved-Out Mumineen' ? 'selected' : ''; ?>>Moved-Out Mumineen – ITS in Khar but no longer residing</option>
-                  <option value="Non-Sabeel Residents" <?php echo $mt == 'Non-Sabeel Residents' ? 'selected' : ''; ?>>Non-Sabeel Residents – Living in Khar, ITS not in Khar, not a Sabeel payer</option>
+                  <option value="Resident Mumineen" <?php echo $mt == 'Resident Mumineen' ? 'selected' : ''; ?>>Resident Mumineen – Living in <?php echo $jp; ?>, ITS in <?php echo $jp; ?>, regular Sabeel payer</option>
+                  <option value="External Sabeel Payers" <?php echo $mt == 'External Sabeel Payers' ? 'selected' : ''; ?>>External Sabeel Payers – ITS not in <?php echo $jp; ?>, but resident & regular Sabeel payer</option>
+                  <option value="Moved-Out Mumineen" <?php echo $mt == 'Moved-Out Mumineen' ? 'selected' : ''; ?>>Moved-Out Mumineen – ITS in <?php echo $jp; ?> but no longer residing</option>
+                  <option value="Non-Sabeel Residents" <?php echo $mt == 'Non-Sabeel Residents' ? 'selected' : ''; ?>>Non-Sabeel Residents – Living in <?php echo $jp; ?>, ITS not in <?php echo $jp; ?>, not a Sabeel payer</option>
                   <option value="Temporary Mumineen/Visitors" <?php echo $mt == 'Temporary Mumineen/Visitors' ? 'selected' : ''; ?>>Temporary Mumineen/Visitors – Temporary presence for events</option>
                 </select>
                 <div id="editMemberTypeError" class="text-danger small mt-1" style="display:none;"></div>

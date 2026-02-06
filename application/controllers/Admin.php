@@ -10,6 +10,7 @@ class Admin extends CI_Controller
     parent::__construct();
     $this->load->model('AdminM');
     $this->load->model('AccountM');
+    $this->load->model('SettingsM');
     $this->load->model('HijriCalendar');
     $this->load->library('email', $this->config->item('email'));
     $this->AdminM->updateHijriGregorianDates();
@@ -29,6 +30,58 @@ class Admin extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Home', $data);
+  }
+
+  // Admin preferences (currently: Jamaat name, address, support email)
+  // - /admin/preferences (GET/POST)
+  public function preferences()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $data['jamaat_name'] = $this->SettingsM->get('jamaat_name', 'Khar Jamaat');
+    $data['address_line'] = $this->SettingsM->get('address_line', '');
+    $data['city_state'] = $this->SettingsM->get('city_state', '');
+    $data['pincode'] = $this->SettingsM->get('pincode', '');
+    $data['support_email'] = $this->SettingsM->get('support_email', '');
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      $newName = trim((string)$this->input->post('jamaat_name'));
+      $addressLine = trim((string)$this->input->post('address_line'));
+      $cityState = trim((string)$this->input->post('city_state'));
+      $pincode = trim((string)$this->input->post('pincode'));
+      $supportEmail = trim((string)$this->input->post('support_email'));
+
+      if ($newName === '') {
+        $this->session->set_flashdata('error', 'Please enter a Jamaat name.');
+        redirect('admin/preferences');
+        return;
+      }
+
+      if ($supportEmail !== '' && !filter_var($supportEmail, FILTER_VALIDATE_EMAIL)) {
+        $this->session->set_flashdata('error', 'Please enter a valid support email address.');
+        redirect('admin/preferences');
+        return;
+      }
+
+      $ok = true;
+      $ok = $ok && $this->SettingsM->set('jamaat_name', $newName);
+      $ok = $ok && $this->SettingsM->set('address_line', $addressLine);
+      $ok = $ok && $this->SettingsM->set('city_state', $cityState);
+      $ok = $ok && $this->SettingsM->set('pincode', $pincode);
+      $ok = $ok && $this->SettingsM->set('support_email', $supportEmail);
+
+      if ($ok) {
+        $this->session->set_flashdata('success', 'Preferences updated successfully.');
+      } else {
+        $this->session->set_flashdata('error', 'Could not update preferences.');
+      }
+      redirect('admin/preferences');
+      return;
+    }
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/Preferences', $data);
   }
 
   // Qardan Hasana schemes

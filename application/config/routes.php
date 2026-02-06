@@ -76,6 +76,7 @@ $route['admin/expense/source-of-funds'] = 'Admin/expense_source_of_funds';
 $route['admin/expense/source-create'] = 'Admin/expense_source_create';
 $route['admin/expense/source-update'] = 'Admin/expense_source_update';
 $route['admin/expense/source-delete'] = 'Admin/expense_source_delete';
+$route['admin/preferences'] = 'Admin/preferences';
 
 
 

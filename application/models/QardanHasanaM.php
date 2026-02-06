@@ -81,19 +81,38 @@ class QardanHasanaM extends CI_Model
         $table = $this->scheme_table($scheme);
         if ($table === null) return 0.0;
 
+        // Avoid fatals if tables aren't present in a given environment.
+        if (!$this->db->table_exists($table)) {
+            log_message('error', 'QardanHasanaM: missing table ' . $table . ' for scheme=' . $scheme);
+            return 0.0;
+        }
+
         $col = 'collection_amount';
         if ($scheme === 'husain') {
             $col = 'amount';
         }
 
+        if (!$this->db->field_exists($col, $table)) {
+            log_message('error', 'QardanHasanaM: missing column ' . $col . ' in ' . $table . ' for scheme=' . $scheme);
+            return 0.0;
+        }
+
         $oldDebug = $this->db->db_debug;
         $this->db->db_debug = false;
 
-        $row = $this->db
+        $query = $this->db
             ->select('COALESCE(SUM(' . $col . '),0) AS total', false)
             ->from($table)
-            ->get()
-            ->row_array();
+            ->get();
+
+        if ($query === false) {
+            $err = $this->db->error();
+            log_message('error', 'QardanHasanaM: get_scheme_total_amount query failed scheme=' . $scheme . ' table=' . $table . ' err=' . json_encode($err));
+            $this->db->db_debug = $oldDebug;
+            return 0.0;
+        }
+
+        $row = $query->row_array();
 
         $this->db->db_debug = $oldDebug;
 
@@ -110,6 +129,11 @@ class QardanHasanaM extends CI_Model
         $table = $this->scheme_table($scheme);
         if ($table === null) return 0.0;
 
+        if (!$this->db->table_exists($table)) {
+            log_message('error', 'QardanHasanaM: missing table ' . $table . ' for scheme=' . $scheme);
+            return 0.0;
+        }
+
         if (!is_array($itsList)) {
             $itsList = [$itsList];
         }
@@ -123,15 +147,28 @@ class QardanHasanaM extends CI_Model
 
         $col = ($scheme === 'husain') ? 'amount' : 'collection_amount';
 
+        if (!$this->db->field_exists($col, $table)) {
+            log_message('error', 'QardanHasanaM: missing column ' . $col . ' in ' . $table . ' for scheme=' . $scheme);
+            return 0.0;
+        }
+
         $oldDebug = $this->db->db_debug;
         $this->db->db_debug = false;
 
-        $row = $this->db
+        $query = $this->db
             ->select('COALESCE(SUM(' . $col . '),0) AS total', false)
             ->from($table)
             ->where_in('ITS', $itsList)
-            ->get()
-            ->row_array();
+            ->get();
+
+        if ($query === false) {
+            $err = $this->db->error();
+            log_message('error', 'QardanHasanaM: get_scheme_total_amount_for_its query failed scheme=' . $scheme . ' table=' . $table . ' err=' . json_encode($err));
+            $this->db->db_debug = $oldDebug;
+            return 0.0;
+        }
+
+        $row = $query->row_array();
 
         $this->db->db_debug = $oldDebug;
 

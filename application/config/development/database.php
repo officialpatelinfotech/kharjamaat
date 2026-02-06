@@ -103,12 +103,31 @@ $dbPass = getenv('DB_PASS');
 
 // In CLI/cron contexts, using 'localhost' can force MySQL socket usage and fail
 // with HY000/2002 depending on PHP/MySQL socket paths. Prefer TCP for CLI.
-$defaultHost = (PHP_SAPI === 'cli') ? '127.0.0.1' : 'localhost';
+$isMamp = is_dir('/Applications/MAMP');
 
-// MAMP's MySQL commonly listens on 8889 (macOS local dev). If running via CLI
-// and no DB_PORT is set, default to 8889 when a MAMP socket path is present.
-if ((PHP_SAPI === 'cli') && (!is_string($dbPort) || $dbPort === '') && file_exists('/Applications/MAMP/tmp/mysql/mysql.sock')) {
-	$dbPort = '8889';
+// Prefer TCP to avoid socket issues on macOS/MAMP (HY000/2002 No such file or directory).
+// - In CLI: always use 127.0.0.1 by default.
+// - In web: use 127.0.0.1 by default when MAMP is present.
+$defaultHost = (PHP_SAPI === 'cli' || $isMamp) ? '127.0.0.1' : 'localhost';
+
+// MAMP MySQL port varies (commonly 3306 or 8889).
+// If DB_PORT isn't set, probe localhost quickly and pick the first open port.
+if ((!is_string($dbPort) || $dbPort === '') && $isMamp) {
+	$probeHost = '127.0.0.1';
+	$portsToTry = array(3306, 8889);
+	$chosen = null;
+	foreach ($portsToTry as $p) {
+		$errno = 0;
+		$errstr = '';
+		$fp = @fsockopen($probeHost, $p, $errno, $errstr, 0.2);
+		if ($fp) {
+			fclose($fp);
+			$chosen = (string)$p;
+			break;
+		}
+	}
+	// Default to 3306 if nothing responds (user can still override via DB_PORT).
+	$dbPort = $chosen ?: '3306';
 }
 
 $db['default'] = array(
@@ -129,7 +148,28 @@ $db['default'] = array(
 	'encrypt' => FALSE,
 	'compress' => FALSE,
 	'stricton' => FALSE,
-	'failover' => array(),
+	'failover' => $isMamp ? array(
+		array(
+			'hostname' => '127.0.0.1',
+			'username' => ($dbUser !== false && $dbUser !== '') ? $dbUser : 'root',
+			'password' => ($dbPass !== false) ? $dbPass : '',
+			'database' => ($dbName !== false && $dbName !== '') ? $dbName : 'kharjamaat',
+			'dbdriver' => 'mysqli',
+			'dbprefix' => '',
+			'pconnect' => FALSE,
+			'db_debug' => (ENVIRONMENT !== 'production'),
+			'cache_on' => FALSE,
+			'cachedir' => '',
+			'char_set' => 'utf8',
+			'dbcollat' => 'utf8_general_ci',
+			'swap_pre' => '',
+			'encrypt' => FALSE,
+			'compress' => FALSE,
+			'stricton' => FALSE,
+			'save_queries' => TRUE,
+			'port' => 3306
+		)
+	) : array(),
 	'save_queries' => TRUE,
 	'port' => (is_string($dbPort) && $dbPort !== '' && ctype_digit($dbPort)) ? (int)$dbPort : NULL
 );
