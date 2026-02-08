@@ -15,89 +15,6 @@ class MasoolMusaid extends CI_Controller
     $this->load->model('HijriCalendar');
   }
 
-  // public function index()
-  // {
-  //   // ✅ Restrict access strictly to role 16 (Masool/Musaid)
-  //   if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
-  //     redirect('/accounts');
-  //   }
-
-  //   $username = $_SESSION['user']['username'];
-  //   $data['user_name'] = $username;
-
-  //   // Derive sector/sub-sector scope from username (e.g., BurhaniA -> sector=Burhani, sub=A)
-  //   $user_sector = '';
-  //   $user_sub = '';
-  //   if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $m)) {
-  //     $user_sector = ucfirst(strtolower($m[1] ?? ''));
-  //     $user_sub = strtoupper($m[2] ?? '');
-  //   }
-
-  //   // Build current week Monday–Sunday
-  //   $start_date = date('Y-m-d', strtotime('monday this week'));
-  //   $end_date = date('Y-m-d', strtotime('sunday this week'));
-  //   $days = 7;
-
-  //   // Iterate each day, aggregate signed-up families per sector/sub-sector within scope
-  //   $bySub = [];
-  //   $cursor = strtotime($start_date);
-  //   $endTs = strtotime($end_date);
-  //   while ($cursor !== false && $cursor <= $endTs) {
-  //     $d = date('Y-m-d', $cursor);
-  //     $bd = $this->CommonM->get_thaali_signup_breakdown($d);
-  //     $rows = isset($bd['breakdown']) ? $bd['breakdown'] : [];
-  //     foreach ($rows as $r) {
-  //       $sec = trim($r['sector'] ?? '');
-  //       $sub = trim($r['sub_sector'] ?? '');
-  //       if ($sec === '' || strcasecmp($sec, $user_sector) !== 0) continue; // only within user's sector
-  //       if ($user_sub !== '' && strcasecmp($sub, $user_sub) !== 0) continue; // if user bound to sub-sector, filter it
-  //       $key = $sec . '||' . $sub;
-  //       if (!isset($bySub[$key])) {
-  //         $bySub[$key] = ['sector' => $sec, 'sub_sector' => $sub, 'total' => 0];
-  //       }
-  //       $bySub[$key]['total'] += (int)($r['signed_up'] ?? 0);
-  //     }
-  //     $cursor = strtotime('+1 day', $cursor);
-  //   }
-
-  //   // Ensure zero entries for sub-sectors (when user is sector-wide)
-  //   if ($user_sector !== '' && $user_sub === '') {
-  //     $subs = $this->MasoolMusaidM->get_all_sub_sectors($user_sector);
-  //     foreach ($subs as $row) {
-  //       $sub = trim($row['sub_sector'] ?? '');
-  //       $key = $user_sector . '||' . $sub;
-  //       if (!isset($bySub[$key])) {
-  //         $bySub[$key] = ['sector' => $user_sector, 'sub_sector' => $sub, 'total' => 0];
-  //       }
-  //     }
-  //   }
-
-  //   // Compose display items with avg/day
-  //   $items = [];
-  //   foreach ($bySub as $entry) {
-  //     $items[] = [
-  //       'sector' => $entry['sector'],
-  //       'sub_sector' => $entry['sub_sector'],
-  //       'total' => (int)$entry['total'],
-  //       'avg' => $days > 0 ? round(((int)$entry['total']) / $days, 2) : 0,
-  //     ];
-  //   }
-  //   // Sort by total desc for readability
-  //   usort($items, function($a, $b){ return ($b['total'] ?? 0) <=> ($a['total'] ?? 0); });
-
-  //   $data['weekly_signup_avg'] = [
-  //     'start' => $start_date,
-  //     'end' => $end_date,
-  //     'days' => $days,
-  //     'items' => $items,
-  //     'scope' => [ 'sector' => $user_sector, 'sub_sector' => $user_sub ],
-  //   ];
-
-  //   $this->load->view('MasoolMusaid/Header', $data);
-  //   $this->load->view('MasoolMusaid/Home', $data);
-  // }
-
-
 
   public function index()
   {
@@ -179,6 +96,11 @@ class MasoolMusaid extends CI_Controller
         $data['selected_hijri_parts']['hijri_year']
       );
 
+    $scope = $this->CommonM->getDistinctUserScope();
+
+    $data['allowed_sectors'] = $scope['sectors'];
+    $data['allowed_subs'] = $scope['subs'];
+
     $this->load->view('MasoolMusaid/Header', $data);
     $this->load->view('MasoolMusaid/Home', $data);
   }
@@ -194,10 +116,15 @@ class MasoolMusaid extends CI_Controller
     $subsector = '';
 
     // Extract sector and sub-sector from username
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1]; // Burhani, Mohammedi, etc.
-      $subsector = $matches[2]; // A, B, C or empty
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
+
 
     if ($this->input->post('search')) {
       $keyword = $this->input->post('search');
@@ -249,16 +176,21 @@ class MasoolMusaid extends CI_Controller
     $subsector = '';
 
     // Parse sector and optional sub-sector from username
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1];
-      $subsector = strtoupper($matches[2]); // Normalize to uppercase
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
+
 
     // Determine Hijri year selection (default to current Hijri year)
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $current_hijri_year = (int) explode('-', $h['hijri_date'])[2];
+    $selected_year = (int) ($this->input->get('year') ?: $current_hijri_year);
     // Fetch available Hijri years from calendar (fallback to +/-1 range if empty)
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
@@ -348,11 +280,11 @@ class MasoolMusaid extends CI_Controller
 
     // Fallback to current Hijri year if not provided
     if ($postedYear) {
-      $year = (int)$postedYear;
+      $year = (int) $postedYear;
     } else {
       $today = date('Y-m-d');
       $h = $this->HijriCalendar->get_hijri_date($today);
-      $year = (int)explode('-', $h['hijri_date'])[2];
+      $year = (int) explode('-', $h['hijri_date'])[2];
     }
 
     $updateData = [
@@ -368,7 +300,7 @@ class MasoolMusaid extends CI_Controller
     ];
 
     $this->load->model('MasoolMusaidM');
-  $result = $this->MasoolMusaidM->upsert_ashara_row($ITS, $updateData, $year);
+    $result = $this->MasoolMusaidM->upsert_ashara_row($ITS, $updateData, $year);
 
     // If LeaveStatus is special, also update ashara_attendance
     if (in_array($leaveStatus, ['Not in Town', 'Married Outcaste'])) {
@@ -392,9 +324,16 @@ class MasoolMusaid extends CI_Controller
     $username = $_SESSION['user']['username'];
 
     // Extract sector and sub-sector from username
-    preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $m);
-    $user_sector = ucfirst(strtolower($m[1] ?? ''));
-    $user_sub = strtoupper($m[2] ?? '');
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $user_sector = $result['sector'];
+      $user_sub = $result['sub_sector']; // NULL or A/B/C
+    }
+
+
 
     // Use GET parameters if available, else fallback to user's sector/sub-sector
     $sel_sector = $this->input->get('sector') ?? $user_sector;
@@ -403,8 +342,8 @@ class MasoolMusaid extends CI_Controller
     // Hijri Year selection (UI scope only; attendance table is not year-scoped)
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $current_hijri_year = (int) explode('-', $h['hijri_date'])[2];
+    $selected_year = (int) ($this->input->get('year') ?: $current_hijri_year);
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
     if (empty($year_options)) {
@@ -481,11 +420,11 @@ class MasoolMusaid extends CI_Controller
 
     // Resolve year (default to current Hijri year)
     if ($postedYear) {
-      $year = (int)$postedYear;
+      $year = (int) $postedYear;
     } else {
       $today = date('Y-m-d');
       $h = $this->HijriCalendar->get_hijri_date($today);
-      $year = (int)explode('-', $h['hijri_date'])[2];
+      $year = (int) explode('-', $h['hijri_date'])[2];
     }
 
     if (!$its || !$dayInput || !$status) {
@@ -547,11 +486,11 @@ class MasoolMusaid extends CI_Controller
 
     // Resolve year (default current Hijri)
     if ($postedYear) {
-      $year = (int)$postedYear;
+      $year = (int) $postedYear;
     } else {
       $today = date('Y-m-d');
       $h = $this->HijriCalendar->get_hijri_date($today);
-      $year = (int)explode('-', $h['hijri_date'])[2];
+      $year = (int) explode('-', $h['hijri_date'])[2];
     }
 
     if (!$its_list || !$day || !$status) {
@@ -564,13 +503,13 @@ class MasoolMusaid extends CI_Controller
         $this->db->where('ITS', $its)->where('year', $year);
         $exists = $this->db->get('ashara_attendance')->row();
         if ($exists) {
-          $this->db->where('ITS', $its)->where('year', $year)->update('ashara_attendance', [ $day => $status ]);
+          $this->db->where('ITS', $its)->where('year', $year)->update('ashara_attendance', [$day => $status]);
         } else {
-          $row = [ 'ITS' => $its, 'year' => $year, $day => $status ];
+          $row = ['ITS' => $its, 'year' => $year, $day => $status];
           $this->db->insert('ashara_attendance', $row);
         }
       } else {
-        $this->db->where('ITS', $its)->update('ashara_attendance', [ $day => $status ]);
+        $this->db->where('ITS', $its)->update('ashara_attendance', [$day => $status]);
       }
     }
     echo 'success';
@@ -589,10 +528,15 @@ class MasoolMusaid extends CI_Controller
     $subsector = '';
 
     // Extract sector and sub-sector from username
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1]; // Burhani, Mohammedi, etc.
-      $subsector = $matches[2]; // A, B, C or empty
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
+
 
     $data['user_name'] = $username;
 
@@ -633,13 +577,19 @@ class MasoolMusaid extends CI_Controller
     $username = $_SESSION['user']['username'];
     $sector = '';
     $subsector = '';
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1];
-      $subsector = $matches[2];
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
 
+
     $q = $this->input->get('q', true);
-    if ($q === null) $q = '';
+    if ($q === null)
+      $q = '';
 
     $miqaat_rsvp_counts = $this->MasoolMusaidM->search_rsvp_counts_by_miqaat($q, $sector, $subsector);
 
@@ -675,10 +625,15 @@ class MasoolMusaid extends CI_Controller
     $subsector = '';
 
     // Extract sector and sub-sector from username
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1]; // Burhani, Mohammedi, etc.
-      $subsector = $matches[2]; // A, B, C or empty
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
+
 
     $data['user_name'] = $username;
 
@@ -717,13 +672,19 @@ class MasoolMusaid extends CI_Controller
     $username = $_SESSION['user']['username'];
     $sector = '';
     $subsector = '';
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1];
-      $subsector = $matches[2];
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
 
+
     $q = $this->input->get('q', true);
-    if ($q === null) $q = '';
+    if ($q === null)
+      $q = '';
 
     $miqaats = $this->MasoolMusaidM->search_upcoming_miqaats($q);
     if ($miqaats) {
@@ -775,10 +736,15 @@ class MasoolMusaid extends CI_Controller
     $subsector = '';
 
     // Extract sector and sub-sector from username
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1]; // Burhani, Mohammedi, etc.
-      $subsector = $matches[2]; // A, B, C or empty
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
+
 
     // Fetch members for the sector/sub-sector
     $members = $this->MasoolMusaidM->get_members_by_sector_sub_sector($sector, $subsector);
@@ -833,10 +799,15 @@ class MasoolMusaid extends CI_Controller
     $sector = '';
     $subsector = '';
 
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1];
-      $subsector = $matches[2];
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
+
 
     $data['user_name'] = $username;
 
@@ -884,10 +855,15 @@ class MasoolMusaid extends CI_Controller
     $sector = '';
     $subsector = '';
 
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1];
-      $subsector = $matches[2];
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
+
 
     $data['user_name'] = $username;
 
@@ -948,10 +924,15 @@ class MasoolMusaid extends CI_Controller
     $subsector = '';
 
     // Extract sector and sub-sector from username
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
-      $sector = $matches[1]; // Burhani, Mohammedi, etc.
-      $subsector = $matches[2]; // A, B, C or empty
+    $this->load->model('CommonM');
+
+    $result = $this->CommonM->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
+
 
     // Fetch members for the sector/sub-sector
     $members = $this->MasoolMusaidM->get_members_by_sector_sub_sector($sector, $subsector);

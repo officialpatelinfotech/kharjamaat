@@ -50,7 +50,7 @@ class CommonM extends CI_Model
     // Optional HAVING filters
     $having = [];
     if (!empty($name_filter)) {
-      $q = strtolower(trim((string)$name_filter));
+      $q = strtolower(trim((string) $name_filter));
       $having[] = "(LOWER(MAX(COALESCE(u.Full_Name, ''))) LIKE ? OR CAST(b.user_id AS CHAR) LIKE ?)";
       $params[] = '%' . $q . '%';
       $params[] = '%' . $q . '%';
@@ -483,7 +483,7 @@ class CommonM extends CI_Model
       if (!empty($rsvp_ids)) {
         // prepare hof id list as integers
         $in_hofs = implode(',', array_map(function ($v) {
-          return (int)$v;
+          return (int) $v;
         }, $rsvp_ids));
         // select users left-joined with general_rsvp for this miqaat and pick those with no rsvp (rsvp.id IS NULL)
         $sql_nr = "SELECT u.ITS_ID AS ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, u.HOF_ID, COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile
@@ -522,7 +522,7 @@ class CommonM extends CI_Model
       $base_active = "u.Inactive_Status IS NULL AND COALESCE(u.Sector,'') <> '' AND COALESCE(u.Sub_Sector,'') <> ''";
       if (!empty($rsvp_ids)) {
         $in_hofs = implode(',', array_map(function ($v) {
-          return (int)$v;
+          return (int) $v;
         }, $rsvp_ids));
         $sql_ns = "SELECT u.ITS_ID AS ITS_ID, u.Full_Name, u.Sector, u.Sub_Sector, u.HOF_ID, COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile
                    FROM `user` u
@@ -547,9 +547,9 @@ class CommonM extends CI_Model
       if (!empty($miqaat_pk)) {
         $g = $this->db->query("SELECT COALESCE(SUM(gents),0) AS gents, COALESCE(SUM(ladies),0) AS ladies, COALESCE(SUM(children),0) AS children FROM general_guest_rsvp WHERE miqaat_id = ?", [$miqaat_pk])->row_array();
         if ($g) {
-          $guest_summary['gents'] = isset($g['gents']) ? (int)$g['gents'] : 0;
-          $guest_summary['ladies'] = isset($g['ladies']) ? (int)$g['ladies'] : 0;
-          $guest_summary['children'] = isset($g['children']) ? (int)$g['children'] : 0;
+          $guest_summary['gents'] = isset($g['gents']) ? (int) $g['gents'] : 0;
+          $guest_summary['ladies'] = isset($g['ladies']) ? (int) $g['ladies'] : 0;
+          $guest_summary['children'] = isset($g['children']) ? (int) $g['children'] : 0;
           $guest_summary['total'] = $guest_summary['gents'] + $guest_summary['ladies'] + $guest_summary['children'];
         }
       }
@@ -571,10 +571,10 @@ class CommonM extends CI_Model
           WHERE gr.miqaat_id = ? AND u.Inactive_Status IS NULL AND COALESCE(u.Sector,'') <> '' AND COALESCE(u.Sub_Sector,'') <> ''";
         $mrow = $this->db->query($sql_ms, [$miqaat_pk])->row_array();
         if ($mrow) {
-          $member_summary['gents'] = isset($mrow['gents']) ? (int)$mrow['gents'] : 0;
-          $member_summary['ladies'] = isset($mrow['ladies']) ? (int)$mrow['ladies'] : 0;
-          $member_summary['children'] = isset($mrow['children']) ? (int)$mrow['children'] : 0;
-          $member_summary['total'] = isset($mrow['total']) ? (int)$mrow['total'] : ($member_summary['gents'] + $member_summary['ladies'] + $member_summary['children']);
+          $member_summary['gents'] = isset($mrow['gents']) ? (int) $mrow['gents'] : 0;
+          $member_summary['ladies'] = isset($mrow['ladies']) ? (int) $mrow['ladies'] : 0;
+          $member_summary['children'] = isset($mrow['children']) ? (int) $mrow['children'] : 0;
+          $member_summary['total'] = isset($mrow['total']) ? (int) $mrow['total'] : ($member_summary['gents'] + $member_summary['ladies'] + $member_summary['children']);
         }
       }
     } catch (Exception $e) {
@@ -653,7 +653,7 @@ class CommonM extends CI_Model
     // Optional HAVING filters
     $having = [];
     if (!empty($name_filter)) {
-      $q = strtolower(trim((string)$name_filter));
+      $q = strtolower(trim((string) $name_filter));
       $having[] = "(LOWER(MAX(COALESCE(u.Full_Name, ''))) LIKE ? OR CAST(b.user_id AS CHAR) LIKE ?)";
       $params[] = '%' . $q . '%';
       $params[] = '%' . $q . '%';
@@ -2468,7 +2468,7 @@ class CommonM extends CI_Model
       }
     }
     if (!empty($filters['member_name'])) {
-      $q = trim((string)$filters['member_name']);
+      $q = trim((string) $filters['member_name']);
       $this->db->group_start();
       $this->db->like('u.Full_Name', $q);
       $this->db->or_like('u.ITS_ID', $q);
@@ -3542,10 +3542,15 @@ class CommonM extends CI_Model
     $sector = '';
     $sub = '';
 
-    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $m)) {
-      $sector = ucfirst(strtolower($m[1]));
-      $sub = strtoupper($m[2] ?? '');
+
+
+    $result = $this->getSectorFromUsername($username);
+
+    if ($result) {
+      $sector = $result['sector'];
+      $subsector = $result['sub_sector']; // NULL or A/B/C
     }
+
 
     return [
       'sector' => $sector,
@@ -3671,4 +3676,75 @@ class CommonM extends CI_Model
       'scope' => $scope
     ];
   }
+
+  public function getSectorFromUsername($username)
+  {
+    // 1️⃣ Get distinct sector & sub-sector pairs from users table
+    $rows = $this->db
+      ->distinct()
+      ->select('sector, sub_sector')
+      ->from('user')
+      ->where('sector IS NOT NULL')
+      ->get()
+      ->result_array();
+
+    if (empty($rows)) {
+      return null;
+    }
+
+    $username = strtolower($username);
+
+    // 2️⃣ Match username with sector / sector+sub_sector
+    foreach ($rows as $row) {
+
+      $sector = $row['sector'];
+      $sub = $row['sub_sector']; // NULL or A/B/C
+
+      // Sector alone
+      if ($username === strtolower($sector)) {
+        return [
+          'sector' => $sector,
+          'sub_sector' => null
+        ];
+      }
+
+      // Sector + Sub-sector
+      if (!empty($sub) && $username === strtolower($sector . $sub)) {
+        return [
+          'sector' => $sector,
+          'sub_sector' => $sub
+        ];
+      }
+    }
+
+    return null;
+  }
+
+  public function getDistinctUserScope()
+{
+    // Distinct sectors
+    $sectors = $this->db
+        ->distinct()
+        ->select('UPPER(sector) AS sector')
+        ->from('user')
+        ->where('sector IS NOT NULL')
+        ->get()
+        ->result_array();
+
+    // Distinct sub-sectors
+    $subs = $this->db
+        ->distinct()
+        ->select('UPPER(sub_sector) AS sub_sector')
+        ->from('user')
+        ->where('sub_sector IS NOT NULL')
+        ->get()
+        ->result_array();
+
+    return [
+        'sectors' => array_column($sectors, 'sector'),
+        'subs'    => array_column($subs, 'sub_sector')
+    ];
+}
+
+
 }
