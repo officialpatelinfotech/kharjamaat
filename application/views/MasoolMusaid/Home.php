@@ -104,7 +104,8 @@
   }
 </style>
 <div class="container margintopcontainer">
-  <h1 class="text-center heading pt-5 mb-4">Welcome to Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
+  <h1 class="text-center heading pt-5 mb-4">Welcome to Anjuman-e-Saifee
+    <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
   <hr>
   <div class="chart-container compact weekly-summary">
 
@@ -271,8 +272,8 @@
         /* ======================================================
            USER SCOPE (USED ONLY FOR MODAL FILTERING)
         ====================================================== */
-        const ALLOWED_SECTORS = ['BURHANI', 'MOHAMMEDI', 'NAJMI', 'SAIFEE', 'TAHERI'];
-        const ALLOWED_SUBS = ['A', 'B', 'C'];
+        const ALLOWED_SECTORS = <?= json_encode($allowed_sectors) ?>;
+        const ALLOWED_SUBS = <?= json_encode($allowed_subs) ?>;
 
         function parseUserScope(userName) {
           if (!userName) return null;
@@ -486,7 +487,7 @@
     </script>
 
 
-
+  
 
   </div>
   <div class="continer d-flex justify-content-center">
