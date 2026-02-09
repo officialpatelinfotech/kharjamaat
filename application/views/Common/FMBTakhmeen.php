@@ -116,6 +116,25 @@ if (!function_exists('format_inr')) {
       </div>
     </form>
 
+    <?php
+      $perDayFy = isset($per_day_thaali_cost_fy) ? (string) $per_day_thaali_cost_fy : '';
+      $perDayAmount = isset($per_day_thaali_cost_amount) ? $per_day_thaali_cost_amount : null;
+      if (empty($perDayFy) && !empty($selectedYear) && is_numeric($selectedYear)) {
+        $startYear = (int) $selectedYear;
+        $perDayFy = sprintf('%d-%02d', $startYear, ($startYear + 1) % 100);
+      }
+    ?>
+    <?php if (!empty($selectedYear)): ?>
+      <div class="text-center mb-2">
+        <strong>Per Day Thaali Cost<?= !empty($perDayFy) ? ' (FY - ' . htmlspecialchars($perDayFy) . ')' : '' ?>:</strong>
+        <?php if ($perDayAmount !== null && (float)$perDayAmount > 0): ?>
+          ₹<?= format_inr((float)$perDayAmount) ?>
+        <?php else: ?>
+          -
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
     <?php if (!empty($selectedYear) && !empty($sectorBreakdown)): ?>
         <h4 class="mt-4 mb-2">Sector-wise</h4>
         <div class="table-responsive">

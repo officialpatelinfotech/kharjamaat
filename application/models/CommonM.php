@@ -808,6 +808,23 @@ class CommonM extends CI_Model
     if (empty($user_ids))
       return $details;
 
+    // Assigned Thaali Days per user for this FY (stored as composite FY in assignment.year like 1447-48)
+    $assigned_map = [];
+    if ($this->db->table_exists('fmb_thaali_day_assignment')) {
+      $aRows = $this->db->select('user_id, COUNT(DISTINCT menu_id) AS cnt', false)
+        ->from('fmb_thaali_day_assignment')
+        ->where('year', $takhmeen_year)
+        ->where_in('user_id', $user_ids)
+        ->group_by('user_id')
+        ->get()->result_array();
+      foreach ($aRows as $ar) {
+        $uid = isset($ar['user_id']) ? (string)$ar['user_id'] : '';
+        if ($uid !== '') {
+          $assigned_map[$uid] = (int)($ar['cnt'] ?? 0);
+        }
+      }
+    }
+
     // Per-user per-year totals for these users only
     $in_ids = implode(',', array_map(function ($id) {
       return $this->db->escape($id);
@@ -858,8 +875,21 @@ class CommonM extends CI_Model
     $agg_due = 0.0;
     foreach ($user_ids as $uid) {
       $rows_for = isset($per_by_user[$uid]) ? $per_by_user[$uid] : [];
-      if (empty($rows_for))
-        continue; // No takhmeen any year
+      $assignedDays = isset($assigned_map[(string)$uid]) ? (int)$assigned_map[(string)$uid] : 0;
+      if (empty($rows_for)) {
+        // No takhmeen any year; still show if they have assigned thaali days for this FY
+        if ($assignedDays > 0) {
+          $rows[] = [
+            'user_id' => $uid,
+            'name' => $name_map[$uid] ?? (string) $uid,
+            'total' => 0.0,
+            'paid' => 0.0,
+            'due' => 0.0,
+            'assigned_thaali_days' => $assignedDays,
+          ];
+        }
+        continue;
+      }
       usort($rows_for, function ($a, $b) {
         return $a['yr_start'] <=> $b['yr_start'];
       });
@@ -877,13 +907,14 @@ class CommonM extends CI_Model
         }
         $remain -= $alloc;
       }
-      if ($yr_total > 0) {
+      if ($yr_total > 0 || $assignedDays > 0) {
         $rows[] = [
           'user_id' => $uid,
           'name' => $name_map[$uid] ?? (string) $uid,
           'total' => $yr_total,
           'paid' => $yr_paid,
           'due' => $yr_due,
+          'assigned_thaali_days' => $assignedDays,
         ];
         $agg_total += $yr_total;
         $agg_paid += $yr_paid;
@@ -1362,15 +1393,52 @@ class CommonM extends CI_Model
     $query = $this->db->query($sql, array($startOfMonth, $endOfMonth));
     $results = $query->result_array();
 
+    // Map menu_id => assigned member info (if assignment table exists)
+    $assigned_map = [];
+    if (!empty($results) && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      $menu_ids = [];
+      foreach ($results as $r) {
+        if (!empty($r['id'])) {
+          $menu_ids[] = (int)$r['id'];
+        }
+      }
+      $menu_ids = array_values(array_unique($menu_ids));
+
+      if (!empty($menu_ids)) {
+        $this->db->select('a.menu_id, a.user_id as assigned_user_id, u.Full_Name');
+        $this->db->from('fmb_thaali_day_assignment a');
+        $this->db->join('user u', 'u.ITS_ID = a.user_id', 'left');
+        $this->db->where_in('a.menu_id', $menu_ids);
+        foreach ($this->db->get()->result_array() as $ar) {
+          $mid = isset($ar['menu_id']) ? (int)$ar['menu_id'] : 0;
+          if ($mid > 0) {
+            $assigned_map[$mid] = [
+              'name' => isset($ar['Full_Name']) ? (string)$ar['Full_Name'] : '',
+              'its'  => isset($ar['assigned_user_id']) ? (string)$ar['assigned_user_id'] : '',
+            ];
+          }
+        }
+      }
+    }
+
     // Group menu items by date
     $menu_by_date = [];
     foreach ($results as $row) {
       $date = date('Y-m-d', strtotime($row['date']));
       if (!isset($menu_by_date[$date])) {
+        $menu_id = isset($row['id']) ? (int)$row['id'] : 0;
+        $assignedName = '';
+        $assignedIts = '';
+        if ($menu_id > 0 && isset($assigned_map[$menu_id])) {
+          $assignedName = isset($assigned_map[$menu_id]['name']) ? (string)$assigned_map[$menu_id]['name'] : '';
+          $assignedIts = isset($assigned_map[$menu_id]['its']) ? (string)$assigned_map[$menu_id]['its'] : '';
+        }
         $menu_by_date[$date] = [
           'id' => $row['id'],
           'date' => $date,
           'items' => [],
+          'assigned_to' => $assignedName,
+          'assigned_to_its' => $assignedIts,
         ];
       }
       if (!empty($row['item_id'])) {
@@ -1395,6 +1463,8 @@ class CommonM extends CI_Model
           'id' => null,
           'date' => $date_str,
           'items' => [],
+          'assigned_to' => '',
+          'assigned_to_its' => '',
         ];
       }
     }
@@ -1451,6 +1521,11 @@ class CommonM extends CI_Model
     // Remove related menu items first
     $this->db->where('menu_id', $id);
     $this->db->delete('menu_items_map');
+    // Remove day assignment (if any)
+    if ($this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->db->where('menu_id', $id);
+      $this->db->delete('fmb_thaali_day_assignment');
+    }
     // Now delete the menu itself
     $this->db->where('id', $id);
     $this->db->delete('menu');
@@ -1520,6 +1595,62 @@ class CommonM extends CI_Model
     }
 
     return $this->db->insert_batch('menu_items_map', $insert_data);
+  }
+
+  public function get_menu_assignment($menu_id)
+  {
+    $this->db->select('a.user_id, u.Full_Name');
+    $this->db->from('fmb_thaali_day_assignment a');
+    $this->db->join('user u', 'u.ITS_ID = a.user_id', 'left');
+    $this->db->where('a.menu_id', (int)$menu_id);
+    $row = $this->db->get()->row_array();
+    return $row ?: null;
+  }
+
+  public function upsert_menu_assignment($menu_id, $menu_date, $user_id, $year)
+  {
+    if (!$menu_id) return false;
+
+    // Empty user => delete assignment
+    if (!$user_id) {
+      $this->db->where('menu_id', (int)$menu_id);
+      $this->db->delete('fmb_thaali_day_assignment');
+      return true;
+    }
+
+    $data = [
+      'menu_id' => (int)$menu_id,
+      'menu_date' => date('Y-m-d H:i:s', strtotime($menu_date)),
+      'user_id' => (int)$user_id,
+      'year' => (string)$year,
+    ];
+
+    $this->db->from('fmb_thaali_day_assignment');
+    $this->db->where('menu_id', (int)$menu_id);
+    $existing = $this->db->get()->row_array();
+
+    if ($existing) {
+      $this->db->where('menu_id', (int)$menu_id);
+      return $this->db->update('fmb_thaali_day_assignment', $data);
+    }
+    return $this->db->insert('fmb_thaali_day_assignment', $data);
+  }
+
+  public function delete_menu_assignment_by_menu_id($menu_id)
+  {
+    $this->db->where('menu_id', (int)$menu_id);
+    $this->db->delete('fmb_thaali_day_assignment');
+    return true;
+  }
+
+  public function count_assignments_for_user_year($user_id, $year)
+  {
+    $this->db->select('COUNT(1) AS cnt', false);
+    $this->db->from('fmb_thaali_day_assignment');
+    $this->db->where('user_id', (int)$user_id);
+    $this->db->where('year', (string)$year);
+    $row = $this->db->get()->row_array();
+    return $row && isset($row['cnt']) ? (int)$row['cnt'] : 0;
   }
 
   // public function duplicate_last_month_menu()

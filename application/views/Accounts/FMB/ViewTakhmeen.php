@@ -774,6 +774,8 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
             <thead class="thead-dark">
               <tr>
                 <th>Year</th>
+                <th class="text-end">Thaali Days</th>
+                <th class="text-end">Assigned Thaali Days</th>
                 <th class="text-end">Amount (₹)</th>
                 <th class="text-end">Paid (₹)</th>
                 <th class="text-end">Due (₹)</th>
@@ -817,10 +819,14 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
                   $basePaid = (float) ($row['total_paid'] ?? 0);
                   $paidVal = isset($allocated[$rowYear]) ? (float)$allocated[$rowYear] : $basePaid;
                   $amtVal  = (float) ($row['total_amount'] ?? 0);
+                  $daysVal = $row['thaali_days'] ?? null;
+                  $assignedDaysVal = isset($row['assigned_thaali_days']) ? (int)$row['assigned_thaali_days'] : 0;
                   $dueVal  = max(0, $amtVal - $paidVal);
                   $highlight = ($currentYearLabel && strpos($rowYear, (string)$currentYearLabel) !== false) ? 'table-warning fw-bold' : '';
                   echo '<tr class="' . $highlight . '">';
                   echo '<td>' . htmlspecialchars($rowYear) . '</td>';
+                  echo '<td class="text-end">' . (($daysVal === null || $daysVal === '') ? '-' : (int)$daysVal) . '</td>';
+                  echo '<td class="text-end">' . $assignedDaysVal . '</td>';
                   echo '<td class="text-end">₹' . format_inr_no_decimals($amtVal) . '</td>';
                   echo '<td class="text-end text-success">₹' . format_inr_no_decimals($paidVal) . '</td>';
                   echo '<td class="text-end text-danger">₹' . format_inr_no_decimals($dueVal) . '</td>';
@@ -828,7 +834,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
                 }
               } else { ?>
                 <tr>
-                  <td colspan="4" class="text-center text-muted">Takhmeen not found.</td>
+                  <td colspan="6" class="text-center text-muted">Takhmeen not found.</td>
                 </tr>
               <?php } ?>
             </tbody>

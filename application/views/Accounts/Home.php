@@ -406,9 +406,6 @@
       </a>
     </div>
     <div class="col-6 mt-3 col-md-3 col-xl-2">
-      
-    </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
       <a href="<?php echo base_url('accounts/appointment') ?>" aria-label="Appointments" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-calendar"></i>

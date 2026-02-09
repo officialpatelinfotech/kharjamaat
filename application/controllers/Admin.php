@@ -2229,6 +2229,112 @@ class Admin extends CI_Controller
     $this->load->view('Admin/ManageFMBSettings', $data);
   }
 
+  public function manageperdaythaalicost()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    // Build year ranges like 1442-43 up to current hijri year.
+    $this->load->model('HijriCalendar');
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $current_hijri_year = null;
+    if (isset($today_hijri['hijri_date'])) {
+      $parts = explode('-', (string)$today_hijri['hijri_date']);
+      if (count($parts) === 3 && is_numeric($parts[2])) {
+        $current_hijri_year = (int)$parts[2];
+      }
+    }
+    if (!$current_hijri_year) {
+      $current_hijri_year = 1442;
+    }
+    $start_year = 1442;
+    $end_year = max($start_year, (int)$current_hijri_year);
+    $year_ranges = [];
+    for ($y = $start_year; $y <= $end_year; $y++) {
+      $year_ranges[] = $y . '-' . substr((string)($y + 1), -2);
+    }
+
+    $this->load->model('PerDayThaaliCostM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) === 'POST') {
+      $id = $this->input->post('id');
+      $amount = $this->input->post('amount');
+      $year = $this->input->post('year');
+
+      $valid = true;
+      if ($amount === null || $amount === '' || !is_numeric($amount) || (float)$amount < 0) {
+        $valid = false;
+      }
+      if ($year === null || $year === '' || !in_array((string)$year, $year_ranges, true)) {
+        $valid = false;
+      }
+
+      if ($id !== null && $id !== '' && (!is_numeric($id) || (int)$id <= 0)) {
+        $valid = false;
+      }
+
+      if ($valid) {
+        $save = $this->PerDayThaaliCostM->save($id ? (int)$id : null, (string)$year, (float)$amount);
+        if (!empty($save['success'])) {
+          $_SESSION['per_day_thaali_cost_flash_success'] = 'Cost saved.';
+        } else {
+          $_SESSION['per_day_thaali_cost_flash_error'] = !empty($save['error']) ? (string)$save['error'] : 'Unable to save cost.';
+        }
+      } else {
+        $_SESSION['per_day_thaali_cost_flash_error'] = 'Please enter a valid Amount and Year (e.g. 1442-43).';
+      }
+
+      redirect('admin/manageperdaythaalicost');
+    }
+
+    $data['flash_success'] = isset($_SESSION['per_day_thaali_cost_flash_success']) ? $_SESSION['per_day_thaali_cost_flash_success'] : null;
+    $data['flash_error'] = isset($_SESSION['per_day_thaali_cost_flash_error']) ? $_SESSION['per_day_thaali_cost_flash_error'] : null;
+    unset($_SESSION['per_day_thaali_cost_flash_success'], $_SESSION['per_day_thaali_cost_flash_error']);
+
+    $data['year_ranges'] = $year_ranges;
+    $data['cost_rows'] = $this->PerDayThaaliCostM->get_all();
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/ManagePerDayThaaliCost', $data);
+  }
+
+  public function deleteperdaythaalicost()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    $id = $this->input->post('id');
+    if ($id === null || $id === '' || !is_numeric($id) || (int)$id <= 0) {
+      $_SESSION['per_day_thaali_cost_flash_error'] = 'Invalid request.';
+      redirect('admin/manageperdaythaalicost');
+    }
+
+    $this->load->model('PerDayThaaliCostM');
+    $ok = $this->PerDayThaaliCostM->delete((int)$id);
+
+    if ($ok) {
+      $_SESSION['per_day_thaali_cost_flash_success'] = 'Cost deleted.';
+    } else {
+      $_SESSION['per_day_thaali_cost_flash_error'] = 'Unable to delete cost.';
+    }
+
+    redirect('admin/manageperdaythaalicost');
+  }
+
+  public function createperdaythaalicost()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/CreatePerDayThaaliCost', $data);
+  }
+
   public function managefmbtakhmeen()
   {
     if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
@@ -2238,6 +2344,18 @@ class Admin extends CI_Controller
     $data["all_user_fmb_takhmeen"] = $this->AdminM->get_user_fmb_takhmeen_details();
     // Provide full filter meta so dropdowns don't collapse after filter
     $data['filter_meta'] = $this->AdminM->get_member_filter_meta();
+
+    // Per-day thaali cost for the FY currently shown on this page
+    $fy = null;
+    if (!empty($data['all_user_fmb_takhmeen']) && isset($data['all_user_fmb_takhmeen'][0]['hijri_year'])) {
+      $fy = (string)$data['all_user_fmb_takhmeen'][0]['hijri_year'];
+    }
+    $data['per_day_thaali_cost_amount'] = null;
+    if ($fy) {
+      $this->load->model('PerDayThaaliCostM');
+      $row = $this->PerDayThaaliCostM->get_by_year($fy);
+      $data['per_day_thaali_cost_amount'] = $row && isset($row['amount']) ? (float)$row['amount'] : null;
+    }
 
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
@@ -2353,6 +2471,18 @@ class Admin extends CI_Controller
     $data["all_user_fmb_takhmeen"] = $this->AdminM->get_user_fmb_takhmeen_details($filter_data);
     // Always include full filter meta to keep dropdown options comprehensive
     $data['filter_meta'] = $this->AdminM->get_member_filter_meta();
+
+    // Per-day thaali cost for selected FY (or computed FY)
+    $fy = !empty($year) ? (string)$year : null;
+    if (!$fy && !empty($data['all_user_fmb_takhmeen']) && isset($data['all_user_fmb_takhmeen'][0]['hijri_year'])) {
+      $fy = (string)$data['all_user_fmb_takhmeen'][0]['hijri_year'];
+    }
+    $data['per_day_thaali_cost_amount'] = null;
+    if ($fy) {
+      $this->load->model('PerDayThaaliCostM');
+      $row = $this->PerDayThaaliCostM->get_by_year($fy);
+      $data['per_day_thaali_cost_amount'] = $row && isset($row['amount']) ? (float)$row['amount'] : null;
+    }
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $member_name;
     $data['year'] = $year;

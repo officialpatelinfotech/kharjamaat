@@ -85,7 +85,16 @@
     </div>
   </div>
   <div class="card shadow-sm rounded-3 mt-4">
-    <div class="card-header bg-light"></div>
+    <div class="card-header bg-light text-center">
+      <strong>Per Day Thaali Cost</strong>
+      <small class="text-secondary">(FY - <?php echo htmlspecialchars($selected_year ?? '', ENT_QUOTES); ?>)</small>
+      :
+      <?php if (isset($per_day_thaali_cost_amount) && $per_day_thaali_cost_amount !== null && (float)$per_day_thaali_cost_amount > 0): ?>
+        <span class="takhmeen-amount text-primary" data-raw="<?php echo (float)$per_day_thaali_cost_amount; ?>"><?php echo (float)$per_day_thaali_cost_amount; ?></span>
+      <?php else: ?>
+        <span class="text-secondary">Not set</span>
+      <?php endif; ?>
+    </div>
     <div class="card-body p-0 table-responsive table-scroll-fixed">
       <table id="takhmeen-table" class="table table-bordered table-striped">
         <thead class="thead-dark">
@@ -95,6 +104,8 @@
             <th>Name</th>
             <th>Sector</th>
             <th>Sub-Sector</th>
+            <th>Thaali Days</th>
+            <th>Assigned Thaali Days</th>
             <th>Selected Year Takhmeen</th>
             <th>Total Paid</th>
             <th>Total Due</th>
@@ -112,6 +123,21 @@
                 <td data-sort-value="<?php echo htmlspecialchars($user['Full_Name'], ENT_QUOTES); ?>"><?php echo $user["Full_Name"]; ?></td>
                 <td data-sort-value="<?php echo htmlspecialchars($user['Sector'], ENT_QUOTES); ?>"><?php echo $user["Sector"]; ?></td>
                 <td data-sort-value="<?php echo htmlspecialchars($user['Sub_Sector'], ENT_QUOTES); ?>"><?php echo $user["Sub_Sector"]; ?></td>
+                <?php
+                $thaaliDays = null;
+                if (!empty($user['selected_total_takhmeen']) && isset($per_day_thaali_cost_amount) && $per_day_thaali_cost_amount !== null && (float)$per_day_thaali_cost_amount > 0) {
+                  $thaaliDays = (int) floor(((float) $user['selected_total_takhmeen']) / (float) $per_day_thaali_cost_amount);
+                }
+                ?>
+                <td data-sort-value="<?php echo $thaaliDays !== null ? (int)$thaaliDays : ''; ?>">
+                  <?php echo $thaaliDays !== null ? (int)$thaaliDays : '-'; ?>
+                </td>
+                <?php
+                $assignedDays = isset($user['assigned_thaali_days']) ? $user['assigned_thaali_days'] : null;
+                ?>
+                <td data-sort-value="<?php echo $assignedDays !== null ? (int)$assignedDays : ''; ?>">
+                  <?php echo $assignedDays !== null ? (int)$assignedDays : '-'; ?>
+                </td>
                 <td data-sort-value="<?php echo (int)($user['selected_total_takhmeen'] ?? 0); ?>">
                   <?php if (!empty($user['selected_total_takhmeen'])): ?>
                     <p class="takhmeen-amount text-primary m-0 p-0" data-raw="<?php echo (int)$user['selected_total_takhmeen']; ?>"><?php echo $user['selected_total_takhmeen']; ?></p>

@@ -2518,6 +2518,7 @@ class Anjuman extends CI_Controller
     }
 
     $username = $_SESSION['user']['username'];
+    $this->load->model('PerDayThaaliCostM');
     // Build year options from fmb_takhmeen table distinct years (DESC)
     $yearRows = $this->db->select('DISTINCT year', false)->from('fmb_takhmeen')->order_by('year', 'DESC')->get()->result_array();
     $yearOptions = array_values(array_map(function ($r) {
@@ -2544,6 +2545,15 @@ class Anjuman extends CI_Controller
     // Default strictly to current Hijri FY (no table fallback)
     $selectedYear = $this->input->post('fmb_year') ?: $currentCompositeYear;
 
+    $perDayCostRow = null;
+    $perDayCostAmount = null;
+    if (!empty($selectedYear)) {
+      $perDayCostRow = $this->PerDayThaaliCostM->get_by_year($selectedYear);
+      if ($perDayCostRow && isset($perDayCostRow['amount'])) {
+        $perDayCostAmount = (float) $perDayCostRow['amount'];
+      }
+    }
+
     // Fetch per-user takhmeen details
     $users = $this->AnjumanM->get_user_takhmeen_details();
 
@@ -2560,6 +2570,54 @@ class Anjuman extends CI_Controller
       }
       $users[$idx]['selected_total_takhmeen'] = $selTotal;
       $users[$idx]['selected_takhmeen_year'] = $selectedYear;
+    }
+
+    // Assigned Thaali Days (count of menu days assigned to member) for selected FY
+    // Derive FY using hijri_calendar+menu_date (more reliable than relying on assignment.year)
+    $assignedDaysMap = [];
+    if (!empty($selectedYear) && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      $fyStart = null;
+      $fyEnd = null;
+      if (preg_match('/^(\d{4})-(\d{2})$/', (string)$selectedYear, $m)) {
+        $fyStart = (int)$m[1];
+        $fyEnd = $fyStart + 1;
+      }
+
+      $rows = [];
+      if ($fyStart && $fyEnd) {
+        $sql = "SELECT a.user_id, COUNT(DISTINCT a.menu_id) AS c
+                FROM fmb_thaali_day_assignment a
+                JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
+                WHERE (
+                  (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                    AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12)
+                  OR
+                  (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                    AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 8)
+                )
+                GROUP BY a.user_id";
+        $rows = $this->db->query($sql, [$fyStart, $fyEnd])->result_array();
+      } else {
+        // Fallback to stored year column
+        $rows = $this->db->query(
+          "SELECT user_id, COUNT(DISTINCT menu_id) AS c
+           FROM fmb_thaali_day_assignment
+           WHERE year = ?
+           GROUP BY user_id",
+          [$selectedYear]
+        )->result_array();
+      }
+
+      foreach ($rows as $r) {
+        $uid = isset($r['user_id']) ? (string)$r['user_id'] : '';
+        if ($uid !== '') {
+          $assignedDaysMap[$uid] = (int)($r['c'] ?? 0);
+        }
+      }
+    }
+    foreach ($users as $idx => $u) {
+      $uid = isset($u['ITS_ID']) ? (string)$u['ITS_ID'] : '';
+      $users[$idx]['assigned_thaali_days'] = ($uid !== '' && array_key_exists($uid, $assignedDaysMap)) ? (int)$assignedDaysMap[$uid] : 0;
     }
 
     // Server-side filtering (optional) via GET params: its, sector, sub_sector
@@ -2592,6 +2650,8 @@ class Anjuman extends CI_Controller
     $data['hijri_years'] = $yearOptions;
     $data['current_year'] = $currentCompositeYear;
     $data['selected_year'] = $selectedYear;
+    $data['per_day_thaali_cost_amount'] = $perDayCostAmount;
+    $data['per_day_thaali_cost_year'] = $selectedYear;
     // expose current filters so view can prefill inputs
     $data['filter_its'] = $filter_its;
     $data['filter_sector'] = $filter_sector;

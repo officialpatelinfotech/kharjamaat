@@ -41,8 +41,10 @@
         $greg = $row['date'];
         $isToday = ($greg === $today);
         $hijriDisplay = $row['hijri_date'] ?? (($row['hijri_day'] ?? '') ? ($row['hijri_day'].' (Hijri)') : '');
+        $menuId = isset($row['menu']['menu_id']) ? (int)$row['menu']['menu_id'] : 0;
         $menuItems = isset($row['menu']['items']) && is_array($row['menu']['items']) ? $row['menu']['items'] : [];
-        $hasMenu = !empty($menuItems);
+        $hasMenu = ($menuId > 0);
+        $assignedTo = isset($row['menu']['assigned_to']) ? (string)$row['menu']['assigned_to'] : '';
         $miqaats = isset($row['miqaats']) && is_array($row['miqaats']) ? $row['miqaats'] : [];
         $hasMiqaat = !empty($miqaats);
         $isHoliday = !empty($row['is_holiday']);
@@ -81,10 +83,19 @@
               <div class="weekday mb-2"><i class="fa fa-calendar"></i> <?php echo date('l', strtotime($greg)); ?></div>
               <?php if($hasMenu): ?>
                 <div class="section-heading small text-uppercase fw-bold mb-1 text-success">Menu Items</div>
-                <div class="items-flow mb-2">
-                  <?php foreach($menuItems as $it): ?>
-                    <span class="food-chip"><?php echo htmlspecialchars($it); ?></span>
-                  <?php endforeach; ?>
+                <?php if(!empty($menuItems)): ?>
+                  <div class="items-flow mb-2">
+                    <?php foreach($menuItems as $it): ?>
+                      <span class="food-chip"><?php echo htmlspecialchars($it); ?></span>
+                    <?php endforeach; ?>
+                  </div>
+                <?php else: ?>
+                  <div class="text-muted fst-italic mb-2">Menu will be posted soon</div>
+                <?php endif; ?>
+
+                <div class="section-heading small text-uppercase fw-bold mb-1 text-muted">Assigned To</div>
+                <div class="assigned-to mb-2">
+                  <?php echo htmlspecialchars(!empty($assignedTo) ? $assignedTo : '-', ENT_QUOTES); ?>
                 </div>
               <?php endif; ?>
               <?php if($hasMiqaat): ?>
@@ -179,6 +190,7 @@
   .miqaat-list li { font-size:.65rem; }
   .holiday-text, .miqaat-text { font-size:.7rem; font-weight:600; display:flex; align-items:center; gap:4px; }
   .holiday-text i, .miqaat-text i { font-size:.75rem; }
+  .assigned-to { font-size: 0.95rem; font-weight: 400; line-height: 1.25; }
   .today-card { box-shadow:0 0 0 2px rgba(13,110,253,.35),0 6px 20px -6px rgba(0,0,0,.25); }
   .today-pill { background:linear-gradient(135deg,#0d6efd,#5aa2ff); color:#fff; font-size:.55rem; padding:2px 8px; border-radius:20px; display:inline-flex; gap:4px; align-items:center; font-weight:600; letter-spacing:.5px; position:relative; }
   .today-pill:before { content:''; position:absolute; inset:0; border-radius:inherit; padding:1px; background:linear-gradient(135deg,#fff,#b3d6ff,#fff); -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; }

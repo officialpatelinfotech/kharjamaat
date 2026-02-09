@@ -127,6 +127,11 @@
     </div>
     <div class="fmb-card">
       <span class="fmb-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+      <div class="fmb-card-title">Manage Per Day Thaali Cost</div>
+      <a href="<?php echo base_url('admin/manageperdaythaalicost'); ?>" class="fmb-card-link">Go to Cost</a>
+    </div>
+    <div class="fmb-card">
+      <span class="fmb-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
       <div class="fmb-card-title">Manage Thaali Takhmeen</div>
       <a href="<?php echo base_url('admin/managefmbtakhmeen'); ?>" class="fmb-card-link">Go to Takhmeen</a>
     </div>
