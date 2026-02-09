@@ -17,7 +17,7 @@ $config['protocol'] = $env('SMTP_PROTOCOL', 'smtp');
 $smtpHostRaw = (string)$env('SMTP_HOST', 'mail.kharjamaat.in');
 $smtpPort = (int)$env('SMTP_PORT', 465);
 $smtpUser = (string)$env('SMTP_USER', 'admin@kharjamaat.in');
-$smtpPass = (string)$env('SMTP_PASS', 'admin@2024');
+$smtpPass = (string)$env('SMTP_PASS', '');
 
 // Normalize host: strip ssl:// if someone provided it.
 $smtpHost = $smtpHostRaw;

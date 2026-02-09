@@ -54,6 +54,11 @@ class EmailWorker extends CI_Controller
     $allowPhpMailFallback = is_string($allowPhpMailFallback) ? trim($allowPhpMailFallback) : '';
     $allowPhpMailFallback = ($allowPhpMailFallback === '1' || strtolower($allowPhpMailFallback) === 'true');
 
+    $preferPhpMailPrimary = getenv('EMAIL_PREFER_PHP_MAIL');
+    if ($preferPhpMailPrimary === false && isset($_ENV['EMAIL_PREFER_PHP_MAIL'])) $preferPhpMailPrimary = $_ENV['EMAIL_PREFER_PHP_MAIL'];
+    $preferPhpMailPrimary = is_string($preferPhpMailPrimary) ? trim($preferPhpMailPrimary) : '';
+    $preferPhpMailPrimary = ($preferPhpMailPrimary === '1' || strtolower($preferPhpMailPrimary) === 'true');
+
     // Load central email config so production changes apply everywhere.
     // Note: CI config loader doesn't return a whole config array via item('email');
     // it loads keys into the global config namespace (unless using sections).
@@ -100,6 +105,8 @@ class EmailWorker extends CI_Controller
       $safeCrypto = $config['smtp_crypto'] ?? '';
       $safeProto = $config['protocol'] ?? '';
       echo "EmailWorker config: protocol={$safeProto} host={$safeHost} port={$safePort} crypto={$safeCrypto}\n";
+      echo "PHP_MAIL_PRIMARY: " . ($preferPhpMailPrimary ? 'enabled' : 'disabled') . "\n";
+      echo "PHP_MAIL_FALLBACK: " . ($allowPhpMailFallback ? 'enabled' : 'disabled') . "\n";
     }
 
 
@@ -122,6 +129,22 @@ class EmailWorker extends CI_Controller
       if ($this->is_json($bcc)) $bcc = json_decode($bcc, true);
 
       try {
+        // If configured, try PHP mail() first.
+        if ($preferPhpMailPrimary) {
+          $primaryOk = $this->php_mail_fallback($to, $subject, $message, $bcc);
+          if ($primaryOk) {
+            $this->EmailQueueM->mark_sent($job['id']);
+            $fbLog = "[" . date('Y-m-d H:i:s') . "] Job {$job['id']} Primary: php mail() returned true\n";
+            @file_put_contents(APPPATH . 'logs/emailworker.log', $fbLog, FILE_APPEND | LOCK_EX);
+            if ($echoOutput) echo "Primary sent job {$job['id']}\n";
+            else echo "Primary sent job {$job['id']}\n";
+            usleep(100000);
+            continue;
+          }
+          $fbLog = "[" . date('Y-m-d H:i:s') . "] Job {$job['id']} Primary: php mail() returned false; trying SMTP\n";
+          @file_put_contents(APPPATH . 'logs/emailworker.log', $fbLog, FILE_APPEND | LOCK_EX);
+        }
+
         $this->email->clear(true);
         $this->email->set_mailtype($mailtype);
         $this->email->set_header('X-Queue-ID', $job['id']);

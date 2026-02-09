@@ -11,6 +11,11 @@ application/logs/*
 composer.lock
 tests/mocks/database/ci_test.sqlite
 
+# Environment files (keep secrets out of git)
+.env
+.env.*
+!.env.example
+
 user_guide_src/build/*
 user_guide_src/cilexer/build/*
 user_guide_src/cilexer/dist/*

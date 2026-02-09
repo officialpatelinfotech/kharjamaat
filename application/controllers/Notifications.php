@@ -20,6 +20,13 @@ class Notifications extends CI_Controller
     // Enable explicitly via env: EMAIL_ALLOW_PHP_MAIL_FALLBACK=1
     return $this->env_bool('EMAIL_ALLOW_PHP_MAIL_FALLBACK', false);
   }
+  
+  private function prefer_php_mail_primary()
+  {
+    // When enabled, attempt PHP mail() first, then try SMTP only if mail() fails.
+    // Enable explicitly via env: EMAIL_PREFER_PHP_MAIL=1
+    return $this->env_bool('EMAIL_PREFER_PHP_MAIL', false);
+  }
 
   public function __construct()
   {
@@ -91,8 +98,11 @@ class Notifications extends CI_Controller
 
     echo "EMAIL CONFIG: protocol={$proto} host={$host} port={$port} crypto={$crypto} user={$user}" . PHP_EOL;
     echo "PHP_MAIL_FALLBACK: " . ($fallbackEnabled ? 'enabled' : 'disabled') . PHP_EOL;
-    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production' && ($this->config->item('smtp_pass') === 'admin@2024')) {
-      echo "WARN: SMTP_PASS appears to be the default value; check production .env" . PHP_EOL;
+    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production') {
+      $pass = (string)($this->config->item('smtp_pass') ?? '');
+      if ($pass === '' || $pass === 'admin@2024' || $pass === 'KharJamaat@2026') {
+        echo "WARN: SMTP_PASS is missing or looks like a placeholder; check production .env" . PHP_EOL;
+      }
     }
 
     $subject = 'Test Email - Khar Jamaat Notifications (' . date('Y-m-d H:i') . ')';
@@ -249,8 +259,11 @@ class Notifications extends CI_Controller
     $userCfg = (string)($emailConfig['smtp_user'] ?? '');
 
     echo "EMAIL CONFIG: protocol={$proto} host={$host} port={$port} crypto={$crypto} user={$userCfg}" . PHP_EOL;
-    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production' && ($this->config->item('smtp_pass') === 'admin@2024')) {
-      echo "WARN: SMTP_PASS appears to be the default value; check production .env" . PHP_EOL;
+    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production') {
+      $pass = (string)($this->config->item('smtp_pass') ?? '');
+      if ($pass === '' || $pass === 'admin@2024' || $pass === 'KharJamaat@2026') {
+        echo "WARN: SMTP_PASS is missing or looks like a placeholder; check production .env" . PHP_EOL;
+      }
     }
 
     $subject = 'Raza Submission Successful (Test) - ' . date('Y-m-d H:i');
@@ -340,6 +353,51 @@ class Notifications extends CI_Controller
     echo "MESSAGE-ID: {$messageId}\n";
     echo "DEBUG (first):\n" . $debug . "\n";
     echo "DEBUG (retry):\n" . $retryDebug . "\n";
+  }
+
+  /**
+   * Send a one-off test email via PHP mail() (fallback path).
+   * CLI-only.
+   * Usage: php index.php notifications test_php_mail_parts someone gmail.com
+   */
+  public function test_php_mail_parts($user = '', $domain = '')
+  {
+    if (!is_cli()) {
+      echo "This endpoint may only be run from CLI." . PHP_EOL;
+      return;
+    }
+
+    $user = trim((string)$user);
+    $domain = trim((string)$domain);
+    if ($user === '' || $domain === '') {
+      echo "Usage: php index.php notifications test_php_mail_parts someone gmail.com" . PHP_EOL;
+      return;
+    }
+
+    $to = $user . '@' . $domain;
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+      echo "Invalid email." . PHP_EOL;
+      return;
+    }
+
+    $this->load->helper('email_template');
+    $this->config->load('email');
+
+    $subject = 'Test Email (PHP mail fallback) - ' . date('Y-m-d H:i');
+    $body = render_generic_email_html([
+      'title' => $subject,
+      'todayDate' => date('l, j M Y, h:i:s A'),
+      'greeting' => 'Baad Afzalus Salaam,',
+      'cardTitle' => 'Fallback mail() test',
+      'body' => '<p>This email was sent using PHP <code>mail()</code> (fallback path).</p>'
+        . '<p>If you received this but not the SMTP test, the issue is likely SMTP deliverability.</p>',
+      'auto_table' => false,
+      'ctaUrl' => base_url('accounts'),
+      'ctaText' => 'Open site',
+    ]);
+
+    $ok = $this->php_mail_fallback($to, $subject, $body);
+    echo $ok ? "OK: mail() returned true (NOT guaranteed delivery)\n" : "FAILED: mail() returned false\n";
   }
 
   /**
@@ -447,10 +505,15 @@ class Notifications extends CI_Controller
     $crypto = (string)($emailConfig['smtp_crypto'] ?? '');
     $user = (string)($emailConfig['smtp_user'] ?? '');
     $fallbackEnabled = $this->allow_php_mail_fallback();
+    $preferPhpMailPrimary = $this->prefer_php_mail_primary();
     echo "EMAIL CONFIG: protocol={$proto} host={$host} port={$port} crypto={$crypto} user={$user}" . PHP_EOL;
     echo "PHP_MAIL_FALLBACK: " . ($fallbackEnabled ? 'enabled' : 'disabled') . PHP_EOL;
-    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production' && ($this->config->item('smtp_pass') === 'admin@2024')) {
-      echo "WARN: SMTP_PASS appears to be the default value; check production .env" . PHP_EOL;
+    echo "PHP_MAIL_PRIMARY: " . ($preferPhpMailPrimary ? 'enabled' : 'disabled') . PHP_EOL;
+    if (defined('ENVIRONMENT') && ENVIRONMENT === 'production') {
+      $pass = (string)($this->config->item('smtp_pass') ?? '');
+      if ($pass === '' || $pass === 'admin@2024' || $pass === 'KharJamaat@2026') {
+        echo "WARN: SMTP_PASS is missing or looks like a placeholder; check production .env" . PHP_EOL;
+      }
     }
 
     $limit = (int)$limit;
@@ -498,6 +561,21 @@ class Notifications extends CI_Controller
           $this->email->set_header('X-Notification-ID', (string)$id);
           if (!empty($subject)) $this->email->subject($subject);
           $this->email->message($body);
+  
+          // If configured, try PHP mail() first.
+          if ($preferPhpMailPrimary) {
+            $primaryOk = $this->php_mail_fallback($recipient, $subject, $body);
+            if ($primaryOk) {
+              $this->NotificationM->mark_sent($id);
+              echo "[{$id}] email sent (primary php mail(); NOT guaranteed delivery)\n";
+              echo "MESSAGE-ID: {$messageId}\n";
+              $line = "[" . date('Y-m-d H:i:s') . "] notifications email id={$id} recipient=" . (string)$recipient . " message_id={$messageId} transport=php_mail status=sent primary=1\n";
+              @file_put_contents(APPPATH . 'logs/notifications_email.log', $line, FILE_APPEND | LOCK_EX);
+              continue;
+            }
+            echo "[{$id}] primary php mail() failed; trying SMTP...\n";
+          }
+  
           $ok = $this->email->send();
           // Always capture debugger output so we can inspect SMTP server responses (cron logs)
           $debug = $this->email->print_debugger(array('headers', 'subject'));
@@ -511,7 +589,7 @@ class Notifications extends CI_Controller
             $crypto = (string)($emailConfig['smtp_crypto'] ?? '');
             echo "TRANSPORT: protocol={$proto} host={$host} port={$port} crypto={$crypto}\n";
             echo "DEBUG: " . PHP_EOL . $debug . PHP_EOL;
-
+  
             $line = "[" . date('Y-m-d H:i:s') . "] notifications email id={$id} recipient=" . (string)$recipient . " message_id={$messageId} transport={$proto} host={$host} port={$port} crypto={$crypto} status=sent\n";
             @file_put_contents(APPPATH . 'logs/notifications_email.log', $line, FILE_APPEND | LOCK_EX);
           } else {
