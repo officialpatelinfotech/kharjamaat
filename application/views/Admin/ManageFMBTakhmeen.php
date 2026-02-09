@@ -88,6 +88,7 @@
           <th>Sector</th>
           <th>Sub-Sector</th>
           <th>Takhmeen</th>
+          <th>Thaali Day</th>
           <th data-no-sort>Action</th>
         </tr>
       </thead>
@@ -114,6 +115,19 @@
                   Takhmeen Not Found
                 <?php
                 endif; ?>
+              </td>
+              <td>
+                <?php
+                  $per_day = isset($per_day_thaali_cost_amount) && is_numeric($per_day_thaali_cost_amount) ? (float)$per_day_thaali_cost_amount : 0;
+                  if (isset($user['current_year_takhmeen']) && $per_day > 0) {
+                    $rawAmt = (string)($user['current_year_takhmeen']['amount'] ?? '');
+                    $amt = (float)preg_replace('/[^0-9.]/', '', $rawAmt);
+                    $days = (int)floor($amt / $per_day);
+                    echo htmlspecialchars((string)$days);
+                  } else {
+                    echo '-';
+                  }
+                ?>
               </td>
               <td>
                 <button id="add-takhmeen" class="add-takhmeen mb-2 btn btn-sm btn-success" data-toggle="modal" data-target="#add-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo $user["Full_Name"]; ?>"><i class="fa-solid fa-plus"></i></button>

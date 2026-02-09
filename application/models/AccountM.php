@@ -1304,6 +1304,34 @@ class AccountM extends CI_Model
       }
     }
 
+    // Map menu_id => assigned member info (if assignment table exists)
+    $assigned_map = [];
+    if (!empty($menu_map) && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      $menu_ids = [];
+      foreach ($menu_map as $m) {
+        if (!empty($m['id'])) {
+          $menu_ids[] = (int)$m['id'];
+        }
+      }
+      $menu_ids = array_values(array_unique($menu_ids));
+
+      if (!empty($menu_ids)) {
+        $this->db->select('a.menu_id, a.user_id as assigned_user_id, u.Full_Name');
+        $this->db->from('fmb_thaali_day_assignment a');
+        $this->db->join('user u', 'u.ITS_ID = a.user_id', 'left');
+        $this->db->where_in('a.menu_id', $menu_ids);
+        foreach ($this->db->get()->result_array() as $ar) {
+          $mid = isset($ar['menu_id']) ? (int)$ar['menu_id'] : 0;
+          if ($mid > 0) {
+            $assigned_map[$mid] = [
+              'name' => isset($ar['Full_Name']) ? (string)$ar['Full_Name'] : '',
+              'its'  => isset($ar['assigned_user_id']) ? (string)$ar['assigned_user_id'] : '',
+            ];
+          }
+        }
+      }
+    }
+
     // Miqaats for range
     $miqaat_results = $this->db->select('id, name, date')
       ->from('miqaat')
@@ -1331,7 +1359,13 @@ class AccountM extends CI_Model
         'is_holiday' => true
       ];
       if (isset($menu_map[$greg_date])) {
-        $entry['menu'] = ['menu_id' => $menu_map[$greg_date]['id'], 'items' => $menu_map[$greg_date]['items']];
+        $menu_id = isset($menu_map[$greg_date]['id']) ? (int)$menu_map[$greg_date]['id'] : 0;
+        $assignedName = ($menu_id > 0 && isset($assigned_map[$menu_id]['name'])) ? (string)$assigned_map[$menu_id]['name'] : '';
+        $entry['menu'] = [
+          'menu_id' => $menu_id,
+          'items' => $menu_map[$greg_date]['items'],
+          'assigned_to' => $assignedName,
+        ];
         $entry['is_holiday'] = false;
       }
       if (isset($miqaat_map[$greg_date])) {
@@ -1431,14 +1465,51 @@ class AccountM extends CI_Model
     $query = $this->db->query($sql, array($startDate, $endDate));
     $results = $query->result_array();
 
+    // Map menu_id => assigned member info (if assignment table exists)
+    $assigned_map = [];
+    if (!empty($results) && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      $menu_ids = [];
+      foreach ($results as $r) {
+        if (!empty($r['id'])) {
+          $menu_ids[] = (int)$r['id'];
+        }
+      }
+      $menu_ids = array_values(array_unique($menu_ids));
+
+      if (!empty($menu_ids)) {
+        $this->db->select('a.menu_id, a.user_id as assigned_user_id, u.Full_Name');
+        $this->db->from('fmb_thaali_day_assignment a');
+        $this->db->join('user u', 'u.ITS_ID = a.user_id', 'left');
+        $this->db->where_in('a.menu_id', $menu_ids);
+        foreach ($this->db->get()->result_array() as $ar) {
+          $mid = isset($ar['menu_id']) ? (int)$ar['menu_id'] : 0;
+          if ($mid > 0) {
+            $assigned_map[$mid] = [
+              'name' => isset($ar['Full_Name']) ? (string)$ar['Full_Name'] : '',
+              'its'  => isset($ar['assigned_user_id']) ? (string)$ar['assigned_user_id'] : '',
+            ];
+          }
+        }
+      }
+    }
+
     $grouped = [];
     foreach ($results as $row) {
       $menuId = $row['id'];
       if (!isset($grouped[$menuId])) {
+        $assignedName = '';
+        $assignedIts = '';
+        $mid = (int)$menuId;
+        if ($mid > 0 && isset($assigned_map[$mid])) {
+          $assignedName = isset($assigned_map[$mid]['name']) ? (string)$assigned_map[$mid]['name'] : '';
+          $assignedIts = isset($assigned_map[$mid]['its']) ? (string)$assigned_map[$mid]['its'] : '';
+        }
         $grouped[$menuId] = [
           'id' => $row['id'],
           'date' => $row['date'],
           'items' => [],
+          'assigned_to' => $assignedName,
+          'assigned_to_its' => $assignedIts,
         ];
       }
       if (!empty($row['item_id'])) {

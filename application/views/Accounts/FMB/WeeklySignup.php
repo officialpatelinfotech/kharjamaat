@@ -94,6 +94,13 @@
                           <?php else: ?>
                             <div class="text-danger font-weight-bold">No Thaali Day</div>
                           <?php endif; ?>
+
+                          <?php if (!empty($day['menu_id'])): ?>
+                            <div class="text-muted small mt-2">Assigned To</div>
+                            <div class="assigned-to">
+                              <?php echo htmlspecialchars(!empty($day['assigned_to']) ? $day['assigned_to'] : '-', ENT_QUOTES); ?>
+                            </div>
+                          <?php endif; ?>
                         </div>
                         <div class="form-row mt-1">
                           <div class="col-6">
@@ -173,6 +180,7 @@
   .signup-cards .menu-list { min-height: 26px; }
   /* Menu items size increased slightly but smaller than before */
   .signup-cards .menu-items { font-size: 1.15rem; line-height: 1.25; }
+  .signup-cards .assigned-to { font-size: 1.1rem; font-weight: 400; line-height: 1.25; }
   .signup-cards .day-week { font-size: 1.05rem; }
   /* Label sizing for dropdown captions */
   .signup-cards label.small { font-size: 0.88rem; }

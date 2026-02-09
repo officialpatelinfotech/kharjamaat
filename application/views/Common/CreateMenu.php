@@ -97,6 +97,15 @@
       </div>
     </div>
 
+    <div class="form-group">
+      <h4 class="mb-2">Assign Member to this Day</h4>
+      <input type="hidden" id="assigned-user-id" name="assigned_user_id" value="<?php echo isset($assigned_user_id) ? htmlspecialchars((string)$assigned_user_id, ENT_QUOTES) : ''; ?>">
+      <input type="text" id="assigned-member" class="form-control" placeholder="Enter member name or ITS ID" autocomplete="off"
+             value="<?php echo isset($assigned_user_name) && isset($assigned_user_id) && $assigned_user_name ? htmlspecialchars((string)$assigned_user_name . ' (' . (string)$assigned_user_id . ')', ENT_QUOTES) : ''; ?>">
+      <small id="assigned-member-help" class="form-text text-muted mt-1"></small>
+      <ul id="assigned-member-results" class="list-group mt-2" style="max-height: 220px; overflow: auto;"></ul>
+    </div>
+
     <h4>Select Items to Add to Menu</h4>
     <div class="form-group">
       <input type="text" id="search-input" class="form-control" placeholder="Search items...">
@@ -248,6 +257,94 @@
       return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
     }
 
+    // Assign member autocomplete
+    function clearAssignResults() {
+      $('#assigned-member-results').empty();
+    }
+
+    function setAssignHelp(text, isError) {
+      var el = $('#assigned-member-help');
+      el.text(text || '');
+      el.removeClass('text-danger text-muted');
+      el.addClass(isError ? 'text-danger' : 'text-muted');
+    }
+
+    $('#assigned-member').on('input', function () {
+      const query = $(this).val();
+      $('#assigned-user-id').val('');
+      setAssignHelp('', false);
+
+      if (!query || query.length < 2) {
+        clearAssignResults();
+        return;
+      }
+
+      const iso = toISO($('#menu_date').val());
+
+      $.ajax({
+        url: '<?php echo base_url("common/search_assign_members"); ?>',
+        method: 'POST',
+        data: { keyword: query, menu_date: iso },
+        success: function (resp) {
+          let json;
+          try { json = (typeof resp === 'string') ? JSON.parse(resp) : resp; } catch(e) { json = null; }
+          clearAssignResults();
+
+          if (!json || json.success === false) {
+            setAssignHelp(json && json.message ? json.message : 'Unable to fetch members.', true);
+            return;
+          }
+
+          const items = json.items || [];
+          if (!items.length) {
+            return;
+          }
+
+          items.forEach(function (item) {
+            const pending = Number(item.pending_days || 0);
+            const disabled = pending <= 0;
+            const label = `${item.name} (${item.its_id})`;
+            const sub = `Pending Thaali Days: ${pending}`;
+            const li = $('<li class="list-group-item d-flex justify-content-between align-items-center"></li>');
+            li.toggleClass('disabled', disabled);
+            li.css('cursor', disabled ? 'not-allowed' : 'pointer');
+            li.attr('data-id', item.its_id);
+            li.attr('data-name', item.name);
+            li.attr('data-pending', pending);
+            li.html(`<span>${label}<br><small class="text-muted">${sub}</small></span>`);
+            if (disabled) {
+              li.append('<span class="badge badge-secondary">0</span>');
+            } else {
+              li.append('<span class="badge badge-success">' + pending + '</span>');
+            }
+            $('#assigned-member-results').append(li);
+          });
+        }
+      });
+    });
+
+    $('#assigned-member-results').on('click', 'li', function () {
+      if ($(this).hasClass('disabled')) {
+        setAssignHelp('No pending thaali days available for this member.', true);
+        return;
+      }
+      const id = $(this).data('id');
+      const name = $(this).data('name');
+      const pending = $(this).data('pending');
+      $('#assigned-user-id').val(id);
+      $('#assigned-member').val(`${name} (${id})`);
+      setAssignHelp('Pending Thaali Days: ' + pending, false);
+      clearAssignResults();
+    });
+
+    // Hide results when clicking outside
+    $(document).on('click', function (e) {
+      const $t = $(e.target);
+      if (!$t.closest('#assigned-member').length && !$t.closest('#assigned-member-results').length) {
+        clearAssignResults();
+      }
+    });
+
     async function checkMiqaat(iso) {
       try {
         const fd = new FormData();
@@ -264,6 +361,12 @@
       e.preventDefault();
       if (selectedItems.length === 0) {
         alert("Please select at least one item for the menu.");
+        return;
+      }
+
+      const assignedId = ($('#assigned-user-id').val() || '').toString().trim();
+      if (!assignedId) {
+        alert("You can't create the menu. You have to assign the member first.");
         return;
       }
       if (submitting) return;
@@ -285,6 +388,11 @@
         $("#miqaat-conflict-text").text(text);
         $('#miqaatConflictModal').modal('show');
         $('#miqaat-confirm').off('click').on('click', function() {
+          const assignedId2 = ($('#assigned-user-id').val() || '').toString().trim();
+          if (!assignedId2) {
+            alert("You can't create the menu. You have to assign the member first.");
+            return;
+          }
           $('#miqaatConflictModal').modal('hide');
           submitting = true;
           $("form")[0].submit();

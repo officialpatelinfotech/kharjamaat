@@ -2,6 +2,7 @@
 $year = $selected_hijri_year ?? '';
 $sector = $sector ?? '';
 $details = isset($details) ? $details : ['rows' => [], 'totals' => ['total'=>0,'paid'=>0,'due'=>0], 'takhmeen_year' => ''];
+$perDayAmount = isset($per_day_thaali_cost_amount) ? $per_day_thaali_cost_amount : null;
 ?>
 <?php
 // Local INR formatter (Indian grouping): 1,23,45,678
@@ -58,6 +59,8 @@ if (!function_exists('format_inr')) {
       <thead>
         <tr>
             <th data-type="string">Member</th>
+            <th data-type="number">Thaali Days</th>
+            <th data-type="number">Assigned Thaali Days</th>
             <th data-type="number">Total</th>
             <th data-type="number">Paid (FIFO)</th>
             <th data-type="number">Due</th>
@@ -66,15 +69,24 @@ if (!function_exists('format_inr')) {
       <tbody>
         <?php if (!empty($details['rows'])): ?>
           <?php foreach ($details['rows'] as $r): ?>
+            <?php
+              $thaaliDays = null;
+              if (!empty($r['total']) && $perDayAmount !== null && (float)$perDayAmount > 0) {
+                $thaaliDays = (int) floor(((float)$r['total']) / (float)$perDayAmount);
+              }
+              $assignedDays = isset($r['assigned_thaali_days']) ? (int)$r['assigned_thaali_days'] : 0;
+            ?>
             <tr>
               <td><?php echo htmlspecialchars($r['name']); ?></td>
+              <td data-sort-value="<?php echo $thaaliDays !== null ? (int)$thaaliDays : ''; ?>"><?php echo $thaaliDays !== null ? (int)$thaaliDays : '-'; ?></td>
+              <td data-sort-value="<?php echo (int)$assignedDays; ?>"><?php echo (int)$assignedDays; ?></td>
               <td data-sort-value="<?php echo (float)$r['total']; ?>">₹<?php echo format_inr((float)$r['total']); ?></td>
               <td class="text-success" data-sort-value="<?php echo (float)$r['paid']; ?>">₹<?php echo format_inr((float)$r['paid']); ?></td>
               <td class="text-danger" data-sort-value="<?php echo (float)$r['due']; ?>">₹<?php echo format_inr((float)$r['due']); ?></td>
             </tr>
           <?php endforeach; ?>
         <?php else: ?>
-          <tr><td colspan="4" class="text-center text-muted">No takhmeen data for this sector and year.</td></tr>
+          <tr><td colspan="6" class="text-center text-muted">No takhmeen data for this sector and year.</td></tr>
         <?php endif; ?>
       </tbody>
     </table>

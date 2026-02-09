@@ -1371,6 +1371,7 @@ class Accounts extends CI_Controller
         'weekday'     => $weekday,
         'hijri_date'  => $hijri_full, // format d-m-Y
         'menu_items'  => $menu_items,
+        'assigned_to' => isset($menuByDate[$greg]['assigned_to']) ? $menuByDate[$greg]['assigned_to'] : '',
         'want_thali'  => isset($signup_row['want_thali']) ? $signup_row['want_thali'] : null,
         'thali_size'  => isset($signup_row['thali_size']) ? $signup_row['thali_size'] : null,
         'menu_id'     => isset($menuByDate[$greg]['id']) ? $menuByDate[$greg]['id'] : null
@@ -1712,11 +1713,70 @@ class Accounts extends CI_Controller
     }
 
     // Build all_takhmeen list in DESC year order
+    // Attach Thaali days per year using per-day cost (same source as Anjuman/Admin views).
+    $this->load->model('PerDayThaaliCostM');
+    $perDayCostMap = [];
+    $costRows = $this->PerDayThaaliCostM->get_all();
+    if (!empty($costRows)) {
+      foreach ($costRows as $cr) {
+        if (!empty($cr['year']) && isset($cr['amount'])) {
+          $perDayCostMap[(string)$cr['year']] = (float)$cr['amount'];
+        }
+      }
+    }
+
+    // Assigned Thaali days per year (count of assigned menu days) - derive FY using hijri_calendar+menu_date
+    // (More reliable than relying on assignment.year, which may be blank.)
+    $assignedDaysMap = [];
+    if (!empty($memberIds) && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      $yearsWanted = array_keys($all_takhmeen_by_year);
+      foreach ($yearsWanted as $yLabel) {
+        $fyStart = null;
+        $fyEnd = null;
+        if (preg_match('/^(\d{4})-(\d{2})$/', (string)$yLabel, $m)) {
+          $fyStart = (int)$m[1];
+          $fyEnd = $fyStart + 1;
+        }
+
+        if ($fyStart && $fyEnd) {
+          $sql = "SELECT COUNT(DISTINCT a.menu_id) AS c
+                  FROM fmb_thaali_day_assignment a
+                  JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
+                  WHERE a.user_id IN (" . implode(',', array_fill(0, count($memberIds), '?')) . ")
+                    AND (
+                      (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                        AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12)
+                      OR
+                      (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                        AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 8)
+                    )";
+          $params = array_map('intval', $memberIds);
+          $params[] = $fyStart;
+          $params[] = $fyEnd;
+          $row = $this->db->query($sql, $params)->row_array();
+          $assignedDaysMap[(string)$yLabel] = (int)($row['c'] ?? 0);
+        } else {
+          // Fallback to stored year column
+          $row = $this->db->query(
+            "SELECT COUNT(DISTINCT menu_id) AS c FROM fmb_thaali_day_assignment WHERE user_id IN (" . implode(',', array_fill(0, count($memberIds), '?')) . ") AND year = ?",
+            array_merge(array_map('intval', $memberIds), [(string)$yLabel])
+          )->row_array();
+          $assignedDaysMap[(string)$yLabel] = (int)($row['c'] ?? 0);
+        }
+      }
+    }
+
     $all_takhmeen = [];
     if (!empty($all_takhmeen_by_year)) {
       krsort($all_takhmeen_by_year);
       foreach ($all_takhmeen_by_year as $y => $amt) {
-        $all_takhmeen[] = ['year' => $y, 'total_amount' => $amt];
+        $perDay = isset($perDayCostMap[(string)$y]) ? (float)$perDayCostMap[(string)$y] : null;
+        $thaaliDays = null;
+        if ($perDay !== null && $perDay > 0) {
+          $thaaliDays = (int)floor(((float)$amt) / $perDay);
+        }
+        $assignedDays = isset($assignedDaysMap[(string)$y]) ? (int)$assignedDaysMap[(string)$y] : 0;
+        $all_takhmeen[] = ['year' => $y, 'total_amount' => $amt, 'thaali_days' => $thaaliDays, 'assigned_thaali_days' => $assignedDays];
       }
     }
     $latest = !empty($all_takhmeen) ? $all_takhmeen[0] : null;

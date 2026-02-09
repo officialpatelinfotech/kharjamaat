@@ -343,6 +343,7 @@ class Common extends CI_Controller
   {
     $this->validateUser($_SESSION['user']);
     $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('PerDayThaaliCostM');
 
     // Get current hijri year
     $today = date('Y-m-d');
@@ -447,6 +448,32 @@ class Common extends CI_Controller
 
     $from = $_SESSION["from"];
     $data["from"] = $from;
+
+    // Per day thaali cost (derived FY from first visible menu date)
+    $fyDate = (!empty($data['menu'][0]['date'])) ? $data['menu'][0]['date'] : date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date(date('Y-m-d', strtotime($fyDate)));
+    $fy = null;
+    if (!empty($h) && !empty($h['hijri_date'])) {
+      $parts = explode('-', $h['hijri_date']);
+      $hy = isset($parts[2]) ? (int) $parts[2] : null;
+      $hm = isset($h['hijri_month_id']) ? (int) $h['hijri_month_id'] : (isset($parts[1]) ? (int) $parts[1] : null);
+      if ($hy && $hm) {
+        if ($hm >= 9 && $hm <= 12) {
+          $fy = sprintf('%d-%s', $hy, substr($hy + 1, -2));
+        } else {
+          $fy = sprintf('%d-%s', $hy - 1, substr($hy, -2));
+        }
+      }
+    }
+    $data['per_day_thaali_cost_fy'] = $fy;
+    $data['per_day_thaali_cost_amount'] = null;
+    if (!empty($fy)) {
+      $row = $this->PerDayThaaliCostM->get_by_year($fy);
+      if (!empty($row) && isset($row['amount'])) {
+        $data['per_day_thaali_cost_amount'] = (float) $row['amount'];
+      }
+    }
+
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/FMBThaaliMenu', $data);
   }
@@ -478,7 +505,60 @@ class Common extends CI_Controller
     $edit_mode = $this->input->post('edit_mode') == 'true' ? true : false;
     $menu_date = $this->input->post('menu_date');
 
+    $assigned_user_id_raw = trim((string)$this->input->post('assigned_user_id'));
+    $assigned_user_id = (is_numeric($assigned_user_id_raw) && (int)$assigned_user_id_raw > 0) ? (int)$assigned_user_id_raw : null;
+
     $selected_item_ids = json_decode($this->input->post('selected_item_ids'), true);
+
+    // Must assign a member before creating/updating menu
+    if ($this->db->table_exists('fmb_thaali_day_assignment') && !$assigned_user_id) {
+      $this->session->set_flashdata('error', "You can't create the menu. You have to assign the member first.");
+      $from = isset($_SESSION['from']) ? $_SESSION['from'] : '';
+      if ($edit_mode) {
+        $menu_id_redirect = (int)$this->input->post('menu_id');
+        if ($menu_id_redirect) {
+          redirect('common/edit_menu/' . $menu_id_redirect . '?from=' . $from);
+          return;
+        }
+      }
+      // For create mode, redirect back to create screen (keeps the date in URL when possible)
+      $iso = $menu_date ? date('Y-m-d', strtotime($menu_date)) : '';
+      redirect('common/createmenu' . ($iso ? ('?date=' . $iso) : ''));
+      return;
+    }
+
+    // Server-side enforcement: do not allow assignment when pending thaali days are 0.
+    // (UI blocks selection, but this prevents bypass.)
+    $menu_id_for_validation = null;
+    if ($edit_mode) {
+      $menu_id_for_validation = (int)$this->input->post('menu_id');
+    }
+
+    if ($assigned_user_id && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      // If edit mode and assignment didn't change, allow (even if pending is now 0 due to config change)
+      if ($edit_mode && $menu_id_for_validation) {
+        $existing = $this->CommonM->get_menu_assignment($menu_id_for_validation);
+        if ($existing && isset($existing['user_id']) && (int)$existing['user_id'] === (int)$assigned_user_id) {
+          // no-op
+        } else {
+          $validation = $this->validate_fmb_day_assignment_pending($assigned_user_id, $menu_date, $menu_id_for_validation);
+          if (!$validation['ok']) {
+            $this->session->set_flashdata('error', $validation['message']);
+            $from = $_SESSION["from"];
+            redirect("common/fmbthaalimenu?from=" . $from);
+            return;
+          }
+        }
+      } else {
+        $validation = $this->validate_fmb_day_assignment_pending($assigned_user_id, $menu_date, null);
+        if (!$validation['ok']) {
+          $this->session->set_flashdata('error', $validation['message']);
+          $from = $_SESSION["from"];
+          redirect("common/fmbthaalimenu?from=" . $from);
+          return;
+        }
+      }
+    }
 
     if ($edit_mode) {
       $menu_id = $this->input->post('menu_id');
@@ -489,6 +569,15 @@ class Common extends CI_Controller
           $this->CommonM->add_items_to_menu($menu_id, $selected_item_ids);
           $this->session->set_flashdata('success', 'Menu created successfully!');
         }
+
+        // Save day assignment (optional)
+        $fy = $this->compute_fmb_fy_for_greg_date($menu_date);
+        if ($fy && $this->db->table_exists('fmb_thaali_day_assignment')) {
+          $this->CommonM->upsert_menu_assignment($menu_id, $menu_date, $assigned_user_id, $fy);
+        } elseif ($this->db->table_exists('fmb_thaali_day_assignment')) {
+          // Still allow clearing assignment even if FY can't be determined
+          $this->CommonM->upsert_menu_assignment($menu_id, $menu_date, $assigned_user_id, '');
+        }
       } else {
         $this->session->set_flashdata('error', 'Failed to create menu.');
       }
@@ -498,6 +587,14 @@ class Common extends CI_Controller
         if ($menu_id) {
           $result = $this->CommonM->add_items_to_menu($menu_id, $selected_item_ids);
           $this->session->set_flashdata('success', 'Menu created successfully!');
+
+          // Save day assignment (optional)
+          $fy = $this->compute_fmb_fy_for_greg_date($menu_date);
+          if ($fy && $this->db->table_exists('fmb_thaali_day_assignment')) {
+            $this->CommonM->upsert_menu_assignment($menu_id, $menu_date, $assigned_user_id, $fy);
+          } elseif ($this->db->table_exists('fmb_thaali_day_assignment')) {
+            $this->CommonM->upsert_menu_assignment($menu_id, $menu_date, $assigned_user_id, '');
+          }
         } else {
           $this->session->set_flashdata('error', 'Failed to create menu.');
         }
@@ -525,6 +622,173 @@ class Common extends CI_Controller
     // }
     $from = $_SESSION["from"];
     redirect("common/fmbthaalimenu?from=" . $from);
+  }
+
+  private function compute_fmb_fy_for_greg_date($greg_date)
+  {
+    if (!$greg_date) return null;
+    $iso = date('Y-m-d', strtotime($greg_date));
+    $row = $this->HijriCalendar->get_hijri_date($iso);
+    if (!$row || empty($row['hijri_date'])) return null;
+    $parts = explode('-', (string)$row['hijri_date']);
+    if (count($parts) !== 3) return null;
+    $hm = $parts[1];
+    $hy = (int)$parts[2];
+    if ($hm >= '01' && $hm <= '08') {
+      $y1 = $hy - 1;
+      $y2 = substr((string)$hy, -2);
+      return $y1 . '-' . $y2;
+    }
+    $y1 = $hy;
+    $y2 = substr((string)($hy + 1), -2);
+    return $y1 . '-' . $y2;
+  }
+
+  private function validate_fmb_day_assignment_pending($assigned_user_id, $menu_date, $exclude_menu_id = null)
+  {
+    $assigned_user_id = (int)$assigned_user_id;
+    if ($assigned_user_id <= 0) {
+      return ['ok' => false, 'message' => 'Invalid member selected.'];
+    }
+
+    $fy = $this->compute_fmb_fy_for_greg_date($menu_date ?: date('Y-m-d'));
+    if (!$fy) {
+      return ['ok' => false, 'message' => 'Unable to determine financial year.'];
+    }
+
+    $this->load->model('PerDayThaaliCostM');
+    $cost = $this->PerDayThaaliCostM->get_by_year($fy);
+    $per_day = $cost && isset($cost['amount']) ? (float)$cost['amount'] : 0;
+    if ($per_day <= 0) {
+      return ['ok' => false, 'message' => 'Per day thaali cost is not set for ' . $fy . '.'];
+    }
+
+    // Validate member exists and is active HOF
+    $this->db->select('ITS_ID');
+    $this->db->from('user');
+    $this->db->where('ITS_ID', $assigned_user_id);
+    $this->db->where("Inactive_Status IS NULL", null, false);
+    $this->db->where('HOF_FM_TYPE', 'HOF');
+    $u = $this->db->get()->row_array();
+    if (!$u) {
+      return ['ok' => false, 'message' => 'Invalid member selected.'];
+    }
+
+    // Allowed days from takhmeen
+    $this->db->select('total_amount');
+    $this->db->from('fmb_takhmeen');
+    $this->db->where('year', $fy);
+    $this->db->where('user_id', $assigned_user_id);
+    $t = $this->db->get()->row_array();
+    $amt = $t && isset($t['total_amount']) ? (float)$t['total_amount'] : 0;
+    $allowed = (int)floor($amt / $per_day);
+
+    // Used days for FY excluding current menu (when editing)
+    $used = 0;
+    if ($this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->db->select('COUNT(1) AS cnt', false);
+      $this->db->from('fmb_thaali_day_assignment');
+      $this->db->where('year', $fy);
+      $this->db->where('user_id', $assigned_user_id);
+      if ($exclude_menu_id) {
+        $this->db->where('menu_id !=', (int)$exclude_menu_id);
+      }
+      $row = $this->db->get()->row_array();
+      $used = $row && isset($row['cnt']) ? (int)$row['cnt'] : 0;
+    }
+
+    if ($allowed <= $used) {
+      return ['ok' => false, 'message' => 'This member has no pending thaali days for ' . $fy . '.'];
+    }
+
+    return ['ok' => true, 'message' => ''];
+  }
+
+  public function search_assign_members()
+  {
+    $this->validateUser($_SESSION['user']);
+    $keyword = trim((string)$this->input->post('keyword'));
+    $menu_date = (string)$this->input->post('menu_date');
+
+    $this->output->set_content_type('application/json');
+    if (strlen($keyword) < 2) {
+      $this->output->set_output(json_encode(['success' => true, 'items' => []]));
+      return;
+    }
+
+    $fy = $this->compute_fmb_fy_for_greg_date($menu_date ?: date('Y-m-d'));
+    if (!$fy) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Unable to determine financial year.', 'items' => []]));
+      return;
+    }
+
+    $this->load->model('PerDayThaaliCostM');
+    $cost = $this->PerDayThaaliCostM->get_by_year($fy);
+    $per_day = $cost && isset($cost['amount']) ? (float)$cost['amount'] : 0;
+    if ($per_day <= 0) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Per day thaali cost is not set for ' . $fy . '.', 'items' => []]));
+      return;
+    }
+
+    // Search members (HOF)
+    $this->db->select('ITS_ID, Full_Name');
+    $this->db->from('user');
+    $this->db->where("Inactive_Status IS NULL", null, false);
+    $this->db->where('HOF_FM_TYPE', 'HOF');
+    $this->db->group_start();
+    $this->db->like('Full_Name', $keyword);
+    $this->db->or_like('ITS_ID', $keyword);
+    $this->db->group_end();
+    $this->db->order_by('Full_Name', 'ASC');
+    $this->db->limit(10);
+    $users = $this->db->get()->result_array();
+
+    if (empty($users)) {
+      $this->output->set_output(json_encode(['success' => true, 'items' => []]));
+      return;
+    }
+
+    $ids = array_values(array_map(function ($u) { return (int)$u['ITS_ID']; }, $users));
+
+    // Takhmeen amounts for FY
+    $takhmeen_map = [];
+    $this->db->select('user_id, total_amount');
+    $this->db->from('fmb_takhmeen');
+    $this->db->where('year', $fy);
+    $this->db->where_in('user_id', $ids);
+    foreach ($this->db->get()->result_array() as $r) {
+      $takhmeen_map[(int)$r['user_id']] = (float)$r['total_amount'];
+    }
+
+    // Assigned count for FY
+    $assigned_map = [];
+    if ($this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->db->select('user_id, COUNT(1) AS cnt', false);
+      $this->db->from('fmb_thaali_day_assignment');
+      $this->db->where('year', $fy);
+      $this->db->where_in('user_id', $ids);
+      $this->db->group_by('user_id');
+      foreach ($this->db->get()->result_array() as $r) {
+        $assigned_map[(int)$r['user_id']] = (int)$r['cnt'];
+      }
+    }
+
+    $out = [];
+    foreach ($users as $u) {
+      $uid = (int)$u['ITS_ID'];
+      $amt = isset($takhmeen_map[$uid]) ? (float)$takhmeen_map[$uid] : 0;
+      $allowed = (int)floor($amt / $per_day);
+      $used = isset($assigned_map[$uid]) ? (int)$assigned_map[$uid] : 0;
+      $pending = max(0, $allowed - $used);
+      $out[] = [
+        'its_id' => $uid,
+        'name' => (string)$u['Full_Name'],
+        'fy' => $fy,
+        'pending_days' => $pending,
+      ];
+    }
+
+    $this->output->set_output(json_encode(['success' => true, 'items' => $out]));
   }
 
   public function delete_menu()
@@ -593,6 +857,15 @@ class Common extends CI_Controller
     if ($menu) {
       $data['menu'] = $menu;
       $data["mapped_menu_items"]['items'] = $this->CommonM->get_menu_items_by_menu_id($menu['id']);
+
+      // Existing assignment (if any)
+      if ($this->db->table_exists('fmb_thaali_day_assignment')) {
+        $assign = $this->CommonM->get_menu_assignment($menu['id']);
+        if ($assign) {
+          $data['assigned_user_id'] = $assign['user_id'];
+          $data['assigned_user_name'] = $assign['Full_Name'];
+        }
+      }
     } else {
       $data['menu'] = [];
     }
@@ -611,6 +884,7 @@ class Common extends CI_Controller
   public function filter_menu()
   {
     $this->validateUser($_SESSION['user']);
+    $this->load->model('PerDayThaaliCostM');
     $hijri_month_id = $this->input->post('hijri_month');
     $today_hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"];
     $today_hijri_year = explode("-", $today_hijri_date)[2];
@@ -654,6 +928,32 @@ class Common extends CI_Controller
 
     $from = $_SESSION["from"];
     $data["from"] = $from;
+
+    // Per day thaali cost (derived FY from first visible menu date)
+    $fyDate = (!empty($data['menu'][0]['date'])) ? $data['menu'][0]['date'] : date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date(date('Y-m-d', strtotime($fyDate)));
+    $fy = null;
+    if (!empty($h) && !empty($h['hijri_date'])) {
+      $parts = explode('-', $h['hijri_date']);
+      $hy = isset($parts[2]) ? (int) $parts[2] : null;
+      $hm = isset($h['hijri_month_id']) ? (int) $h['hijri_month_id'] : (isset($parts[1]) ? (int) $parts[1] : null);
+      if ($hy && $hm) {
+        if ($hm >= 9 && $hm <= 12) {
+          $fy = sprintf('%d-%s', $hy, substr($hy + 1, -2));
+        } else {
+          $fy = sprintf('%d-%s', $hy - 1, substr($hy, -2));
+        }
+      }
+    }
+    $data['per_day_thaali_cost_fy'] = $fy;
+    $data['per_day_thaali_cost_amount'] = null;
+    if (!empty($fy)) {
+      $row = $this->PerDayThaaliCostM->get_by_year($fy);
+      if (!empty($row) && isset($row['amount'])) {
+        $data['per_day_thaali_cost_amount'] = (float) $row['amount'];
+      }
+    }
+
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/FMBThaaliMenu', $data);
   }
@@ -2748,6 +3048,24 @@ class Common extends CI_Controller
       $year = 1446;
     }
     $data['selected_hijri_year'] = $year;
+
+    // Per-day thaali cost lookup (stored by FY range like 1446-47)
+    $this->load->model('PerDayThaaliCostM');
+    $fy = '';
+    if (!empty($year) && preg_match('/^(\d{4})-(\d{2})$/', (string) $year)) {
+      $fy = (string) $year;
+    } elseif (is_numeric($year)) {
+      $startYear = (int) $year;
+      $fy = sprintf('%d-%02d', $startYear, ($startYear + 1) % 100);
+    }
+    $data['per_day_thaali_cost_fy'] = $fy;
+    $data['per_day_thaali_cost_amount'] = null;
+    if (!empty($fy)) {
+      $cost = $this->PerDayThaaliCostM->get_by_year($fy);
+      if (!empty($cost) && isset($cost['amount'])) {
+        $data['per_day_thaali_cost_amount'] = (float) $cost['amount'];
+      }
+    }
     $data['hijri_years'] = $this->HijriCalendar->get_distinct_hijri_years();
     $data['summary'] = $this->CommonM->get_fmb_takhmeen_reports($year);
     $this->load->view("Common/Header", $data);
@@ -2775,6 +3093,24 @@ class Common extends CI_Controller
     }
     $data['selected_hijri_year'] = $year;
     $data['sector'] = $sector;
+
+    // Per-day thaali cost lookup (stored by FY range like 1446-47)
+    $this->load->model('PerDayThaaliCostM');
+    $fy = '';
+    if (!empty($year) && preg_match('/^(\d{4})-(\d{2})$/', (string) $year)) {
+      $fy = (string) $year;
+    } elseif (is_numeric($year)) {
+      $startYear = (int) $year;
+      $fy = sprintf('%d-%02d', $startYear, ($startYear + 1) % 100);
+    }
+    $data['per_day_thaali_cost_fy'] = $fy;
+    $data['per_day_thaali_cost_amount'] = null;
+    if (!empty($fy)) {
+      $cost = $this->PerDayThaaliCostM->get_by_year($fy);
+      if (!empty($cost) && isset($cost['amount'])) {
+        $data['per_day_thaali_cost_amount'] = (float) $cost['amount'];
+      }
+    }
 
     $data['details'] = $this->CommonM->get_fmb_sector_year_details($year, $sector);
 

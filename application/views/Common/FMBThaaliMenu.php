@@ -54,6 +54,10 @@
         </select>
       </div>
 
+      <div class="form-group mx-3" style="min-width:240px;">
+        <input type="text" id="filter-assigned" class="form-control" placeholder="Filter Name or ITS" autocomplete="off" />
+      </div>
+
       <!-- <div class="sort-options mr-3">
           <select id="sort-type" name="sort_type" class="form-control">
             <option value="asc" <?php echo isset($sort_type) ? ($sort_type == 'asc' ? 'selected' : '') : "" ?>>Sort by Date &darr;</i></option>
@@ -79,6 +83,21 @@
 
   <h4 class="text-center mb-3">FMB Thaali Menu</h4>
 
+  <div class="mb-2 d-flex justify-content-center">
+    <div class="text-center">
+      <strong>Per Day Thaali Cost</strong>
+      <?php if (!empty($per_day_thaali_cost_fy)): ?>
+        <small class="text-secondary">(FY - <?php echo htmlspecialchars($per_day_thaali_cost_fy, ENT_QUOTES); ?>)</small>
+      <?php endif; ?>
+      :
+      <?php if (isset($per_day_thaali_cost_amount) && $per_day_thaali_cost_amount !== null && (float)$per_day_thaali_cost_amount > 0): ?>
+        <span class="text-primary">₹<?php echo number_format((float)$per_day_thaali_cost_amount, 0, '.', ','); ?></span>
+      <?php else: ?>
+        <span class="text-secondary">Not set</span>
+      <?php endif; ?>
+    </div>
+  </div>
+
   <div class="mb-3 d-flex justify-content-end print-controls" style="gap:8px;">
     <button type="button" id="print-table-btn" class="btn btn-outline-primary"><i class="fa fa-print"></i> Print Table</button>
   </div>
@@ -92,6 +111,7 @@
           <th>Hijri Date</th>
           <th>Day</th>
           <th>Menu</th>
+          <th>Assigned To</th>
           <th data-no-sort>Actions</th>
         </tr>
       </thead>
@@ -101,7 +121,7 @@
             if ($key === 0 || (isset($menu[$key - 1]) && explode(" ", $menu[$key - 1]["hijri_date"], 2)[1] != explode(" ", $menu[$key]["hijri_date"], 2)[1])):
           ?>
               <tr class="month-header" data-hijri-month-name="<?php echo htmlspecialchars(explode(" ", $menu[$key]["hijri_date"], 2)[1], ENT_QUOTES); ?>">
-                <td colspan="6" class="bg-dark text-white text-center">Hijri Month: <?php echo explode(" ", $menu[$key]["hijri_date"], 2)[1]; ?></td>
+                <td colspan="7" class="bg-dark text-white text-center">Hijri Month: <?php echo explode(" ", $menu[$key]["hijri_date"], 2)[1]; ?></td>
               </tr>
             <?php endif;
             $dayName = isset($item['date']) ? date("l", strtotime($item['date'])) : "";
@@ -112,7 +132,7 @@
               $rowClass = 'class="table-secondary"';
             }
             ?>
-            <tr <?php echo $rowClass; ?> data-eng-date="<?php echo isset($item['date']) ? htmlspecialchars($item['date'], ENT_QUOTES) : ''; ?>" data-hijri-date="<?php echo isset($item['hijri_date']) ? htmlspecialchars($item['hijri_date'], ENT_QUOTES) : ''; ?>">
+            <tr <?php echo $rowClass; ?> data-eng-date="<?php echo isset($item['date']) ? htmlspecialchars($item['date'], ENT_QUOTES) : ''; ?>" data-hijri-date="<?php echo isset($item['hijri_date']) ? htmlspecialchars($item['hijri_date'], ENT_QUOTES) : ''; ?>" data-assigned-its="<?php echo !empty($item['assigned_to_its']) ? htmlspecialchars($item['assigned_to_its'], ENT_QUOTES) : ''; ?>">
               <td><?php echo $key + 1; ?></td>
               <td data-sort-value="<?php echo isset($item['date']) ? htmlspecialchars($item['date'], ENT_QUOTES) : ''; ?>">
                 <?php echo isset($item['date']) ? date("d M Y", strtotime($item['date'])) : ""; ?>
@@ -125,6 +145,9 @@
               </td>
               <td>
                 <?php echo implode(", ",  $item["items"]); ?>
+              </td>
+              <td>
+                <?php echo !empty($item['assigned_to']) ? htmlspecialchars($item['assigned_to']) : ''; ?>
               </td>
               <?php
               if (count($item["items"]) > 0) :
@@ -147,7 +170,7 @@
           <?php endforeach; ?>
         <?php else : ?>
           <tr>
-            <td colspan="6" class="text-center">No menu items found.</td>
+            <td colspan="7" class="text-center">No menu items found.</td>
           </tr>
         <?php endif; ?>
       </tbody>
@@ -212,10 +235,47 @@
             let mName = '';
             if(m){ const parts = m.split(' '); parts.shift(); mName = parts.join(' ');} 
             if(mName && !inserted.has(mName)){
-              const hdr = document.createElement('tr'); hdr.className='month-header'; const td=document.createElement('td'); td.colSpan=6; td.className='bg-dark text-white text-center'; td.style.fontWeight='bold'; td.textContent='Hijri Month: '+mName; hdr.appendChild(td); tbody.appendChild(hdr); inserted.add(mName);
+              const hdr = document.createElement('tr'); hdr.className='month-header'; const td=document.createElement('td'); td.colSpan=7; td.className='bg-dark text-white text-center'; td.style.fontWeight='bold'; td.textContent='Hijri Month: '+mName; hdr.appendChild(td); tbody.appendChild(hdr); inserted.add(mName);
             }
             tbody.appendChild(r);
           });
+        }
+
+        // Assigned To filter: search by Name or ITS (client-side)
+        const assignedFilter = document.getElementById('filter-assigned');
+        function applyAssignedFilter(){
+          const q = (assignedFilter && assignedFilter.value ? assignedFilter.value : '').toString().toLowerCase().trim();
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          // First pass: hide/show data rows
+          rows.forEach(r => {
+            if(r.classList.contains('month-header')) return;
+            if(!q){ r.style.display=''; return; }
+            const tds = r.querySelectorAll('td');
+            const assignedName = (tds[5] ? tds[5].textContent : '').toString().toLowerCase();
+            const assignedIts = (r.getAttribute('data-assigned-its') || '').toString().toLowerCase();
+            const show = assignedName.includes(q) || assignedIts.includes(q);
+            r.style.display = show ? '' : 'none';
+          });
+          // Second pass: hide month headers with no visible rows under them
+          let currentHeader = null;
+          let anyVisibleForHeader = false;
+          rows.forEach(r => {
+            if(r.classList.contains('month-header')){
+              if(currentHeader){
+                currentHeader.style.display = anyVisibleForHeader ? '' : 'none';
+              }
+              currentHeader = r;
+              anyVisibleForHeader = false;
+              return;
+            }
+            if(r.style.display !== 'none') anyVisibleForHeader = true;
+          });
+          if(currentHeader){
+            currentHeader.style.display = anyVisibleForHeader ? '' : 'none';
+          }
+        }
+        if(assignedFilter){
+          assignedFilter.addEventListener('input', applyAssignedFilter);
         }
 
         // Eng Date filter (only this column controls filtering)
