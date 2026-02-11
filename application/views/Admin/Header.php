@@ -59,16 +59,19 @@
 </style>
 <div>
   <nav class="fixed-top navbar navbar-expand-lg navbar-light main-navbar">
-    <div class="navbar-brand"><a href="<?php echo base_url("/?from=admin") ?>"><img
-          src="<?php echo base_url('assets/main_logo.png') ?>" class="logo"></a><a
-        href="<?php echo base_url("/admin") ?>" class="user-welcome font-lvl-3-xs"><?php echo $user_name ?></a>
-    </div><button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse"
-      aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation"
-      class="navbar-toggler"><span class="navbar-toggler-icon"></span></button>
+    <div class="navbar-brand"><a href="<?php echo base_url("/?from=admin") ?>">
+        <img src="<?php echo base_url('assets/main_logo.png') ?>" class="logo"></a>
+    </div>
+    <button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse" aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler">
+      <span class="navbar-toggler-icon"></span>
+    </button>
     <div id="sj-navbar-collapse" class="collapse navbar-collapse">
       <ul class="navbar-nav mr-auto">
-        <li class="nav-item"><a href="<?php echo base_url("/admin") ?>" class="nav-link"><i
-              class="fa fa-home px-1"></i>Home</a></li>
+        <li class="nav-item">
+          <a href="<?php echo base_url("/admin") ?>" class="nav-link">
+            <i class="fa fa-home px-1"></i>Home
+          </a>
+        </li>
         <!-- <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
             class="nav-link dropdown-toggle" aria-expanded="false"><i
               class="fa fa-life-ring px-1"></i>Help</a>
@@ -85,6 +88,9 @@
               href="<?php echo base_url('/accounts/changepassword/') ?>" class="dropdown-item"><i
                 class="fa fa-lock px-1"></i>Change Password</a></div>
         </li> -->
+        <li class="nav-item">
+          <span class="nav-link user-welcome font-lvl-3-xs"><?php echo $user_name ?></span>
+        </li>
         <li class="nav-item"><a href="<?php echo base_url('/accounts/logout/') ?>" class="nav-link"><i
               class="fa fa-sign-out-alt px-1"></i>Log Out</a></li>
       </ul>

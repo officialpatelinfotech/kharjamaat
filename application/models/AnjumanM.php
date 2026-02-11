@@ -209,9 +209,16 @@ class AnjumanM extends CI_Model
       ma.assign_type,
       ma.group_name,
 
+      (
+        SELECT COUNT(*)
+        FROM miqaat_assignments ma2
+        WHERE ma2.miqaat_id = m.id
+          AND TRIM(LOWER(ma2.assign_type)) = 'individual'
+      ) as individual_count,
+
       u.ITS_ID, u.First_Name, u.Surname, u.Full_Name, u.Sector, u.Sub_Sector,
 
-      gl.ITS_ID as leader_ITS_ID, gl.Full_Name as leader_Full_Name,
+      gl.ITS_ID as leader_ITS_ID, gl.Full_Name as leader_Full_Name, gl.Sector as leader_Sector, gl.Sub_Sector as leader_Sub_Sector,
 
       r.id as raza_index, r.raza_id, r.status as raza_status, r.`Janab-status` as janab_status
     ");
@@ -270,6 +277,13 @@ class AnjumanM extends CI_Model
       ma.id as assignment_id,
       ma.assign_type,
       ma.group_name,
+
+      (
+        SELECT COUNT(*)
+        FROM miqaat_assignments ma2
+        WHERE ma2.miqaat_id = m.id
+          AND TRIM(LOWER(ma2.assign_type)) = 'individual'
+      ) as individual_count,
 
       u.ITS_ID, u.First_Name, u.Surname, u.Full_Name, u.Sector, u.Sub_Sector,
 
@@ -520,6 +534,12 @@ class AnjumanM extends CI_Model
     m.name as miqaat_name,
     m.type as miqaat_type,
     m.date as miqaat_date,
+    (
+      SELECT COUNT(*)
+      FROM miqaat_assignments ma2
+      WHERE ma2.miqaat_id = m.id
+        AND TRIM(LOWER(ma2.assign_type)) = 'individual'
+    ) as individual_count,
     i.id as invoice_id,
     i.amount,
     i.amount as invoice_amount,
@@ -527,6 +547,8 @@ class AnjumanM extends CI_Model
     i.description,
     i.year as invoice_year,
     i.miqaat_type as invoice_miqaat_type,
+    m.assigned_to as assigned_to,
+    r.raza_id as raza_id,
     COALESCE(r.user_id, iu.ITS_ID) as member_its_id,
     COALESCE(fm.Full_Name, iu.Full_Name) as member_full_name,
     COALESCE(fm.Sector, iu.Sector) as member_sector,
@@ -562,12 +584,13 @@ class AnjumanM extends CI_Model
 
     foreach ($result as $row) {
       // Compute effective hijri year for filtering/display
-      $effectiveYear = null;
-      if (!empty($row['miqaat_id']) && !empty($row['miqaat_date'])) {
+      if (!empty($row['miqaat_date'])) {
         $h = $this->HijriCalendar->get_hijri_date($row['miqaat_date']);
         if ($h && !empty($h['hijri_date'])) {
-          $parts = explode('-', $h['hijri_date']);
+          $parts = explode('-', (string)$h['hijri_date']);
           $effectiveYear = isset($parts[2]) ? $parts[2] : null;
+        } else {
+          $effectiveYear = null;
         }
       } else {
         $effectiveYear = isset($row['invoice_year']) ? $row['invoice_year'] : null;
@@ -626,7 +649,6 @@ class AnjumanM extends CI_Model
           $groupedMembers[$ITS_ID]['Sub_Sector'] = $row['Sub_Sector'];
         }
       }
-
       // Only consider invoices that match type
       if (
         !empty($row['invoice_id']) &&
@@ -672,6 +694,21 @@ class AnjumanM extends CI_Model
 
         // Add to HOF only if the invoice actually belongs to the HOF (i.user_id == HOF ITS_ID)
         $belongsToHOF = isset($row['member_its_id']) && (string)$row['member_its_id'] === (string)$ITS_ID;
+        // Prepare Hijri date string for display (prefer miqaat_date when available)
+        $hijriDateStr = null;
+        $dateForHijri = !empty($row['miqaat_date']) ? $row['miqaat_date'] : $row['invoice_date'];
+        if (!empty($dateForHijri)) {
+          $h = $this->HijriCalendar->get_hijri_date($dateForHijri);
+          if ($h && isset($h['hijri_date'])) {
+            $partsH = explode('-', (string)$h['hijri_date']);
+            $dayH = $partsH[0] ?? '';
+            $monthIdH = $partsH[1] ?? '';
+            $yearH = $partsH[2] ?? '';
+            $monthNameH = $this->HijriCalendar->hijri_month_name($monthIdH);
+            $hijriDateStr = trim($dayH . ' ' . ($monthNameH['hijri_month'] ?? '') . ' ' . $yearH);
+          }
+        }
+
         if ($belongsToHOF) {
           // Ensure we expose an effective Hijri year for the invoice (fallback: derive from invoice_date)
           $finalYear = $effectiveYear;
@@ -691,9 +728,14 @@ class AnjumanM extends CI_Model
             'amount'       => (float)$amt,
             'invoice_amount' => (float)$amt,
             'invoice_date' => $row['invoice_date'],
+            'miqaat_date'  => $row['miqaat_date'],
+            'hijri_date'   => $hijriDateStr,
             'description'  => $row['description'],
             // expose hijri invoice year for front-end filtering
             'invoice_year' => $finalYear,
+            'raza_id'      => isset($row['raza_id']) ? $row['raza_id'] : null,
+            'assigned_to'  => !empty($row['miqaat_id']) ? (isset($row['assigned_to']) ? $row['assigned_to'] : '') : 'Fala ni Niyaz',
+            'individual_count' => !empty($row['miqaat_id']) ? (int)($row['individual_count'] ?? 0) : 0,
             // family member details (if available via raza link)
             'member_its_id' => isset($row['member_its_id']) ? $row['member_its_id'] : null,
             'member_full_name' => isset($row['member_full_name']) ? $row['member_full_name'] : null
@@ -721,6 +763,23 @@ class AnjumanM extends CI_Model
               $finalYearFm = isset($pt[2]) ? $pt[2] : null;
             }
           }
+          // Hijri date for FM entry
+          $hijriDateStrFm = $hijriDateStr;
+          if ($hijriDateStrFm === null) {
+            $dateForHijriFm = !empty($row['miqaat_date']) ? $row['miqaat_date'] : $row['invoice_date'];
+            if (!empty($dateForHijriFm)) {
+              $hfm = $this->HijriCalendar->get_hijri_date($dateForHijriFm);
+              if ($hfm && isset($hfm['hijri_date'])) {
+                $partsHf = explode('-', (string)$hfm['hijri_date']);
+                $dayHf = $partsHf[0] ?? '';
+                $monthIdHf = $partsHf[1] ?? '';
+                $yearHf = $partsHf[2] ?? '';
+                $monthNameHf = $this->HijriCalendar->hijri_month_name($monthIdHf);
+                $hijriDateStrFm = trim($dayHf . ' ' . ($monthNameHf['hijri_month'] ?? '') . ' ' . $yearHf);
+              }
+            }
+          }
+
           $groupedMembers[$fmId]['miqaat_invoices'][] = [
             'miqaat_group' => $group_key,
             'miqaat_id'    => $miqaat_id,
@@ -729,8 +788,13 @@ class AnjumanM extends CI_Model
             'amount'       => (float)$amt,
             'invoice_amount' => (float)$amt,
             'invoice_date' => $row['invoice_date'],
+            'miqaat_date'  => $row['miqaat_date'],
+            'hijri_date'   => $hijriDateStrFm,
             'description'  => $row['description'],
-            'invoice_year' => $finalYearFm
+            'invoice_year' => $finalYearFm,
+            'assigned_to'  => !empty($row['miqaat_id']) ? (isset($row['assigned_to']) ? $row['assigned_to'] : '') : 'Fala ni Niyaz',
+            'raza_id'      => isset($row['raza_id']) ? $row['raza_id'] : null,
+            'individual_count' => !empty($row['miqaat_id']) ? (int)($row['individual_count'] ?? 0) : 0,
           ];
         }
 
@@ -752,7 +816,12 @@ class AnjumanM extends CI_Model
     }
 
     // Supplementary pass: ensure FM invoices are included even if the main join missed them
-    $this->db->select("\n      u.ITS_ID AS HOF_ITS_ID,\n      u.Full_Name AS HOF_Full_Name,\n      u.Sector,\n      u.Sub_Sector,\n      fm.ITS_ID AS member_its_id,\n      fm.Full_Name AS member_full_name,\n      fm.Sector AS member_sector,\n      fm.Sub_Sector AS member_sub_sector,\n      m.id AS miqaat_id,\n      m.miqaat_id AS miqaat_code,\n      m.name AS miqaat_name,\n      m.type AS miqaat_type,\n      m.date AS miqaat_date,\n      i.id AS invoice_id,\n      i.amount AS invoice_amount,\n      i.date AS invoice_date,\n      i.description,\n      i.year AS invoice_year,\n      i.miqaat_type AS invoice_miqaat_type\n    ");
+    $this->db->select("\n      u.ITS_ID AS HOF_ITS_ID,\n      u.Full_Name AS HOF_Full_Name,\n      u.Sector,\n      u.Sub_Sector,\n      fm.ITS_ID AS member_its_id,\n      fm.Full_Name AS member_full_name,\n      fm.Sector AS member_sector,\n      fm.Sub_Sector AS member_sub_sector,\n      m.id AS miqaat_id,\n      m.miqaat_id AS miqaat_code,\n      m.name AS miqaat_name,\n      m.type AS miqaat_type,\n      m.date AS miqaat_date,\n      (
+        SELECT COUNT(*)
+        FROM miqaat_assignments ma2
+        WHERE ma2.miqaat_id = m.id
+          AND TRIM(LOWER(ma2.assign_type)) = 'individual'
+      ) AS individual_count,\n      m.assigned_to AS assigned_to,\n      i.id AS invoice_id,\n      i.amount AS invoice_amount,\n      i.date AS invoice_date,\n      i.description,\n      i.year AS invoice_year,\n      i.miqaat_type AS invoice_miqaat_type\n    ");
     $this->db->from('user u');
     $this->db->join('user fm', 'fm.HOF_ID = u.ITS_ID', 'left');
     $this->db->join('miqaat_invoice i', 'i.user_id = fm.ITS_ID', 'left');
@@ -820,6 +889,21 @@ class AnjumanM extends CI_Model
           $finalYear2 = isset($p2[2]) ? $p2[2] : null;
         }
       }
+      // Hijri date for supplementary FM pass
+      $hijriDateStr3 = null;
+      $dateForHijri3 = !empty($row['miqaat_date']) ? $row['miqaat_date'] : $row['invoice_date'];
+      if (!empty($dateForHijri3)) {
+        $h3 = $this->HijriCalendar->get_hijri_date($dateForHijri3);
+        if ($h3 && isset($h3['hijri_date'])) {
+          $p3 = explode('-', (string)$h3['hijri_date']);
+          $d3 = $p3[0] ?? '';
+          $m3 = $p3[1] ?? '';
+          $y3 = $p3[2] ?? '';
+          $mn3 = $this->HijriCalendar->hijri_month_name($m3);
+          $hijriDateStr3 = trim($d3 . ' ' . ($mn3['hijri_month'] ?? '') . ' ' . $y3);
+        }
+      }
+
       $groupedMembers[$fmId]['miqaat_invoices'][] = [
         'miqaat_group' => $group_key,
         'miqaat_id'    => $miqaat_id,
@@ -828,8 +912,12 @@ class AnjumanM extends CI_Model
         'amount'       => $amount,
         'invoice_amount' => $amount,
         'invoice_date' => $row['invoice_date'],
+        'miqaat_date'  => $row['miqaat_date'],
+        'hijri_date'   => $hijriDateStr3,
         'description'  => $row['description'],
-        'invoice_year' => $finalYear2
+        'invoice_year' => $finalYear2,
+        'assigned_to'  => !empty($row['miqaat_id']) ? (isset($row['assigned_to']) ? $row['assigned_to'] : '') : 'Fala ni Niyaz',
+        'individual_count' => !empty($row['miqaat_id']) ? (int)($row['individual_count'] ?? 0) : 0,
       ];
       if (!isset($addedFmInvoiceIds[$fmId])) $addedFmInvoiceIds[$fmId] = [];
       $addedFmInvoiceIds[$fmId][] = $iid;
@@ -885,8 +973,25 @@ class AnjumanM extends CI_Model
         m.name as miqaat_name,
         m.type as miqaat_type,
         m.date as miqaat_date,
+        m.assigned_to,
+        (
+          SELECT COUNT(*)
+          FROM miqaat_assignments ma2
+          WHERE ma2.miqaat_id = m.id
+            AND TRIM(LOWER(ma2.assign_type)) = 'individual'
+        ) as individual_count,
         i.id as invoice_id,
-        i.raza_id as raza_id,
+        COALESCE(
+          i.raza_id,
+          (
+            SELECT rr.id
+            FROM raza rr
+            WHERE rr.miqaat_id = i.miqaat_id
+              AND rr.user_id = i.user_id
+            ORDER BY rr.id DESC
+            LIMIT 1
+          )
+        ) as raza_id,
         i.amount as invoice_amount,
         i.date as invoice_date,
         i.description,
@@ -1041,6 +1146,19 @@ class AnjumanM extends CI_Model
           continue;
         }
 
+        $hijriLabel = null;
+        if (!empty($row['miqaat_id']) && !empty($row['miqaat_date'])) {
+          $h = $this->HijriCalendar->get_hijri_date($row['miqaat_date']);
+          if ($h && !empty($h['hijri_date'])) {
+            $parts = explode('-', (string)$h['hijri_date']);
+            $day = $parts[0] ?? '';
+            $month_id = $parts[1] ?? '';
+            $hy = $parts[2] ?? '';
+            $month_name = $this->HijriCalendar->hijri_month_name($month_id);
+            $hijriLabel = trim($day . ' ' . ($month_name['hijri_month'] ?? '') . ' ' . $hy);
+          }
+        }
+
         if (!empty($row['miqaat_id'])) {
           $group_key   = "M#" . $row['miqaat_code'];
           $miqaat_id   = $row['miqaat_code'];
@@ -1049,6 +1167,7 @@ class AnjumanM extends CI_Model
           $group_key   = $row['invoice_miqaat_type'] . " " . $effYear;
           $miqaat_id   = null;
           $miqaat_name = "Fala ni Niyaz " . $effYear;
+          $hijriLabel = $hijriLabel ?: null;
         }
 
         $invoice_amount = (float)$row['invoice_amount'];
@@ -1067,6 +1186,10 @@ class AnjumanM extends CI_Model
             'miqaat_group'   => $group_key,
             'miqaat_id'      => $miqaat_id,
             'miqaat_name'    => $miqaat_name,
+            'miqaat_date'    => $row['miqaat_date'] ?? null,
+            'hijri_date'     => $hijriLabel,
+            'assigned_to'    => !empty($row['miqaat_id']) ? ($row['assigned_to'] ?? '') : 'Fala ni Niyaz',
+            'individual_count' => !empty($row['miqaat_id']) ? (int)($row['individual_count'] ?? 0) : 0,
             'invoice_id'     => $row['invoice_id'],
             'invoice_year'   => $effYear,
             'raza_id'        => $row['raza_id'] ?? null,
@@ -1088,7 +1211,7 @@ class AnjumanM extends CI_Model
     if ($include_fm) {
       // FM invoice rows (only where invoice exists and matches type)
       $this->db->reset_query();
-      $this->db->select("\n        u.ITS_ID,\n        u.Full_Name,\n        u.HOF_ID,\n        u.Sector,\n        u.Sub_Sector,\n        m.id as miqaat_id,\n        m.miqaat_id as miqaat_code,\n        m.name as miqaat_name,\n        m.type as miqaat_type,\n        m.date as miqaat_date,\n        i.id as invoice_id,\n        i.raza_id as raza_id,\n        i.amount as invoice_amount,\n        i.date as invoice_date,\n        i.description,\n        i.year as invoice_year,\n        i.miqaat_type as invoice_miqaat_type,\n        COALESCE(SUM(p.amount), 0) as paid_amount\n      ");
+      $this->db->select("\n        u.ITS_ID,\n        u.Full_Name,\n        u.HOF_ID,\n        u.Sector,\n        u.Sub_Sector,\n        m.id as miqaat_id,\n        m.miqaat_id as miqaat_code,\n        m.name as miqaat_name,\n        m.type as miqaat_type,\n        m.date as miqaat_date,\n        m.assigned_to,\n        (\n          SELECT COUNT(*)\n          FROM miqaat_assignments ma2\n          WHERE ma2.miqaat_id = m.id\n            AND TRIM(LOWER(ma2.assign_type)) = 'individual'\n        ) as individual_count,\n        i.id as invoice_id,\n        COALESCE(\n          i.raza_id,\n          (\n            SELECT rr.id\n            FROM raza rr\n            WHERE rr.miqaat_id = i.miqaat_id\n              AND rr.user_id = i.user_id\n            ORDER BY rr.id DESC\n            LIMIT 1\n          )\n        ) as raza_id,\n        i.amount as invoice_amount,\n        i.date as invoice_date,\n        i.description,\n        i.year as invoice_year,\n        i.miqaat_type as invoice_miqaat_type,\n        COALESCE(SUM(p.amount), 0) as paid_amount\n      ");
       $this->db->from('user u');
       $this->db->join('miqaat_invoice i', 'u.ITS_ID = i.user_id', 'inner'); // inner to ensure FM has invoice
       $this->db->join('miqaat m', 'm.id = i.miqaat_id', 'left');
@@ -1211,6 +1334,19 @@ class AnjumanM extends CI_Model
           ];
         }
 
+        $hijriLabel = null;
+        if (!empty($row['miqaat_id']) && !empty($row['miqaat_date'])) {
+          $h = $this->HijriCalendar->get_hijri_date($row['miqaat_date']);
+          if ($h && !empty($h['hijri_date'])) {
+            $parts = explode('-', (string)$h['hijri_date']);
+            $day = $parts[0] ?? '';
+            $month_id = $parts[1] ?? '';
+            $hy = $parts[2] ?? '';
+            $month_name = $this->HijriCalendar->hijri_month_name($month_id);
+            $hijriLabel = trim($day . ' ' . ($month_name['hijri_month'] ?? '') . ' ' . $hy);
+          }
+        }
+
         if (!empty($row['miqaat_id'])) {
           $group_key   = "M#" . $row['miqaat_code'];
           $miqaat_id   = $row['miqaat_code'];
@@ -1229,6 +1365,10 @@ class AnjumanM extends CI_Model
           'miqaat_group'   => $group_key,
           'miqaat_id'      => $miqaat_id,
           'miqaat_name'    => $miqaat_name,
+          'miqaat_date'    => $row['miqaat_date'] ?? null,
+          'hijri_date'     => $hijriLabel,
+          'assigned_to'    => !empty($row['miqaat_id']) ? ($row['assigned_to'] ?? '') : 'Fala ni Niyaz',
+          'individual_count' => !empty($row['miqaat_id']) ? (int)($row['individual_count'] ?? 0) : 0,
           'invoice_id'     => $row['invoice_id'],
           'invoice_year'   => $effYear,
           'raza_id'        => $row['raza_id'] ?? null,
@@ -1932,6 +2072,19 @@ class AnjumanM extends CI_Model
   {
     $this->db->where('id', $invoice_id);
     return $this->db->update('miqaat_invoice', ['amount' => $amount]);
+  }
+
+  // Update invoice fields by invoice_id (amount/description/date etc)
+  public function update_miqaat_invoice_fields($invoice_id, $fields)
+  {
+    if (empty($invoice_id) || !is_numeric($invoice_id)) {
+      return false;
+    }
+    if (empty($fields) || !is_array($fields)) {
+      return false;
+    }
+    $this->db->where('id', (int)$invoice_id);
+    return $this->db->update('miqaat_invoice', $fields);
   }
 
   // Delete invoice by invoice_id

@@ -118,10 +118,10 @@ $its_id = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_
         $navigation_link = base_url("/MasoolMusaid/");
       }
       ?>
-      <a href="<?php echo $navigation_link ?>" class="user-welcome font-lvl-3-xs d-none d-md-inline-block">
+      <span class="user-welcome font-lvl-3-xs d-none d-md-inline-block">
         <?php echo htmlspecialchars(!empty($display_name) ? $display_name : 'Member Name'); ?><?php echo !empty($its_id) ? ', ' . htmlspecialchars($its_id) : ''; ?>
         <small class="text-muted"><?php echo isset($sector) ? '(' . htmlspecialchars($sector) . ')' : ""; ?></small>
-      </a>
+      </span>
     </div>
     <button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse" aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler">
       <span class="navbar-toggler-icon"></span>
@@ -185,35 +185,35 @@ $its_id = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_
 </script>
 <script src="<?php echo base_url('assets/js/table-sort.js'); ?>?v=1"></script>
 
-  <?php if (empty($_COOKIE['km_cookie_consent'])): ?>
-    <div id="cookie-consent-banner" class="alert alert-dark mb-0" role="alert" style="position:fixed;left:0;right:0;bottom:0;z-index:1050;border-radius:0;">
-      <div class="container d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
-        <div class="me-md-3">
-          We use essential cookies to keep this site working. <a href="<?php echo base_url('privacy'); ?>" class="alert-link">Learn more</a>.
-        </div>
-        <div class="mt-2 mt-md-0">
-          <button type="button" id="cookie-consent-accept" class="btn btn-warning btn-sm">Accept</button>
-        </div>
+<?php if (empty($_COOKIE['km_cookie_consent'])): ?>
+  <div id="cookie-consent-banner" class="alert alert-dark mb-0" role="alert" style="position:fixed;left:0;right:0;bottom:0;z-index:1050;border-radius:0;">
+    <div class="container d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+      <div class="me-md-3">
+        We use essential cookies to keep this site working. <a href="<?php echo base_url('privacy'); ?>" class="alert-link">Learn more</a>.
+      </div>
+      <div class="mt-2 mt-md-0">
+        <button type="button" id="cookie-consent-accept" class="btn btn-warning btn-sm">Accept</button>
       </div>
     </div>
-    <script>
-      (function() {
-        var btn = document.getElementById('cookie-consent-accept');
-        var banner = document.getElementById('cookie-consent-banner');
-        if (!btn || !banner) return;
-        btn.addEventListener('click', function() {
-          btn.disabled = true;
-          fetch('<?php echo base_url('cookies/accept'); ?>', {
-            method: 'POST',
-            headers: {
-              'X-Requested-With': 'XMLHttpRequest'
-            }
-          }).then(function() {
-            banner.style.display = 'none';
-          }).catch(function() {
-            btn.disabled = false;
-          });
+  </div>
+  <script>
+    (function() {
+      var btn = document.getElementById('cookie-consent-accept');
+      var banner = document.getElementById('cookie-consent-banner');
+      if (!btn || !banner) return;
+      btn.addEventListener('click', function() {
+        btn.disabled = true;
+        fetch('<?php echo base_url('cookies/accept'); ?>', {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        }).then(function() {
+          banner.style.display = 'none';
+        }).catch(function() {
+          btn.disabled = false;
         });
-      })();
-    </script>
-  <?php endif; ?>
+      });
+    })();
+  </script>
+<?php endif; ?>

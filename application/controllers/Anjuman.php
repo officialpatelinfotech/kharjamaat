@@ -2074,9 +2074,11 @@ class Anjuman extends CI_Controller
   // Update a miqaat invoice amount (AJAX)
   public function updateMiqaatInvoiceAmount()
   {
-    // Expect POST: invoice_id, amount
+    // Expect POST: invoice_id, amount (optional: description, invoice_date)
     $invoice_id = $this->input->post('invoice_id');
     $amount = $this->input->post('amount');
+    $description = $this->input->post('description');
+    $invoice_date = $this->input->post('invoice_date');
 
     if (empty($invoice_id) || !is_numeric($invoice_id)) {
       $this->output
@@ -2094,7 +2096,35 @@ class Anjuman extends CI_Controller
       return;
     }
 
-    $updated = $this->AnjumanM->update_miqaat_invoice_amount((int)$invoice_id, number_format((float)$amount, 2, '.', ''));
+    $updateData = [
+      'amount' => number_format((float)$amount, 2, '.', '')
+    ];
+
+    if ($description !== null) {
+      $updateData['description'] = (string)$description;
+    }
+
+    if ($invoice_date !== null && $invoice_date !== '') {
+      $invoice_date = (string)$invoice_date;
+      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $invoice_date)) {
+        $this->output
+          ->set_content_type('application/json')
+          ->set_status_header(400)
+          ->set_output(json_encode(['status' => false, 'error' => 'Invalid invoice date']));
+        return;
+      }
+      $ts = strtotime($invoice_date);
+      if ($ts === false) {
+        $this->output
+          ->set_content_type('application/json')
+          ->set_status_header(400)
+          ->set_output(json_encode(['status' => false, 'error' => 'Invalid invoice date']));
+        return;
+      }
+      $updateData['date'] = $invoice_date;
+    }
+
+    $updated = $this->AnjumanM->update_miqaat_invoice_fields((int)$invoice_id, $updateData);
 
     if ($updated) {
       $this->output
@@ -3105,10 +3135,19 @@ class Anjuman extends CI_Controller
 
     $data["miqaat_type"] = $miqaat_type;
 
+    $sanitize_hijri_year = function ($v) {
+      $v = trim(strip_tags((string)$v));
+      // Keep only digits and hyphen (supports formats like 1447 or 1446-47)
+      $v = preg_replace('/[^0-9-]/', '', $v);
+      // Collapse repeated hyphens
+      $v = preg_replace('/-+/', '-', $v);
+      return trim((string)$v, '-');
+    };
+
     // Determine selected Hijri year: prefer GET 'year', else current Hijri year
     $year_stats = $this->CommonM->get_year_calendar_daytypes();
-    $current_hijri_year = isset($year_stats['hijri_year']) ? $year_stats['hijri_year'] : null;
-    $selected_year = $this->input->get('year');
+    $current_hijri_year = isset($year_stats['hijri_year']) ? $sanitize_hijri_year($year_stats['hijri_year']) : null;
+    $selected_year = $sanitize_hijri_year($this->input->get('year'));
     if (empty($selected_year)) {
       $selected_year = $current_hijri_year;
     }
@@ -3123,7 +3162,8 @@ class Anjuman extends CI_Controller
     // hijri_date expected in format 'd-m-Y' (day-month-year). Extract year part.
     $rows = $this->db->select("DISTINCT SUBSTRING_INDEX(hijri_date, '-', -1) as hy")->from('hijri_calendar')->order_by('hy DESC')->get()->result_array();
     foreach ($rows as $r) {
-      if (!empty($r['hy'])) $yearsList[] = $r['hy'];
+      $hy = $sanitize_hijri_year($r['hy'] ?? '');
+      if ($hy !== '') $yearsList[] = $hy;
     }
     $yearsList = array_values(array_unique($yearsList));
     rsort($yearsList);
@@ -3187,6 +3227,25 @@ class Anjuman extends CI_Controller
     $data["miqaats"] = $this->AnjumanM->get_all_approved_past_miqaats($miqaat_type, [
       'raza_id' => $razaIdFilter
     ]);
+
+    // Hijri year dropdown: show all distinct years from hijri_calendar (newest first)
+    $yearsList = $this->HijriCalendar->get_distinct_hijri_years();
+    $yearsList = array_values(array_unique(array_filter(array_map(function ($y) {
+      $y = trim((string)$y);
+      return $y !== '' ? $y : null;
+    }, is_array($yearsList) ? $yearsList : []))));
+    rsort($yearsList);
+    $data['hijri_years'] = $yearsList;
+
+    // Current Hijri year for default selection
+    $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $currentHijriYear = null;
+    if ($todayHijri && isset($todayHijri['hijri_date'])) {
+      $parts = explode('-', (string)$todayHijri['hijri_date']);
+      $currentHijriYear = $parts[2] ?? null;
+      $currentHijriYear = $currentHijriYear !== null ? trim((string)$currentHijriYear) : null;
+    }
+    $data['current_hijri_year'] = $currentHijriYear;
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/GenerateMiqaatInvoice', $data);
@@ -3282,25 +3341,14 @@ class Anjuman extends CI_Controller
     $data['sectors'] = $sectorRows; // each row: ['Sector' => '...']
     $data['sub_sectors'] = $subSectorRows; // each row: ['Sub_Sector' => '...']
 
-    // Hijri year list for year filter dropdown (full range from hijri_calendar)
-    $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
-    $currentHijriYear = null;
-    if ($todayHijri && isset($todayHijri['hijri_date'])) {
-      $parts = explode('-', $todayHijri['hijri_date']);
-      $currentHijriYear = $parts[2] ?? null;
-    }
-    $rangeRow = $this->db->query("SELECT MIN(CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED)) AS min_y, MAX(CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED)) AS max_y FROM hijri_calendar")->row_array();
-    $minY = isset($rangeRow['min_y']) && $rangeRow['min_y'] !== null ? (int)$rangeRow['min_y'] : (int)$currentHijriYear;
-    $maxY = isset($rangeRow['max_y']) && $rangeRow['max_y'] !== null ? (int)$rangeRow['max_y'] : (int)$currentHijriYear;
-    $hijri_years = [];
-    if ($maxY >= $minY && $minY > 0) {
-      for ($y = $maxY; $y >= $minY; $y--) {
-        $hijri_years[] = (string)$y;
-      }
-    } elseif ($currentHijriYear) {
-      $hijri_years[] = (string)$currentHijriYear;
-    }
-    $data['hijri_years'] = $hijri_years;
+    // Hijri year list for year filter dropdown (distinct years from hijri_calendar)
+    $yearsList = $this->HijriCalendar->get_distinct_hijri_years();
+    $yearsList = array_values(array_unique(array_filter(array_map(function ($y) {
+      $y = trim((string)$y);
+      return $y !== '' ? $y : null;
+    }, is_array($yearsList) ? $yearsList : []))));
+    rsort($yearsList);
+    $data['hijri_years'] = $yearsList;
     $data['current_hijri_year'] = $currentHijriYear; // explicit current hijri year
     $data['selected_year'] = $selectedYear; // currently selected filter year
 
@@ -3707,7 +3755,7 @@ class Anjuman extends CI_Controller
     // Business rule: For invoices linked to a specific Miqaat, do not allow receiving payment
     // until a Raza has been submitted (invoice must be linked to a valid raza row).
     $inv = $this->db
-      ->select('id, miqaat_id, raza_id')
+      ->select('id, user_id, miqaat_id, raza_id')
       ->from('miqaat_invoice')
       ->where('id', (int)$invoice_id)
       ->get()
@@ -3718,9 +3766,31 @@ class Anjuman extends CI_Controller
     }
     $isLinkedToMiqaat = !empty($inv['miqaat_id']);
     if ($isLinkedToMiqaat && empty($inv['raza_id'])) {
-      echo json_encode(['success' => false, 'error' => 'Raza is not submitted for this Miqaat. Payment cannot be received until the Raza is submitted.']);
-      return;
+      // If Raza was submitted after invoice generation, auto-link latest matching Raza.
+      // This allows receiving payment immediately after submission without regenerating invoice.
+      $razaRow = $this->db
+        ->select('id')
+        ->from('raza')
+        ->where('miqaat_id', (int)$inv['miqaat_id'])
+        ->where('user_id', (int)$inv['user_id'])
+        ->order_by('id', 'DESC')
+        ->limit(1)
+        ->get()
+        ->row_array();
+
+      if (!empty($razaRow) && !empty($razaRow['id'])) {
+        $this->db
+          ->set('raza_id', (int)$razaRow['id'])
+          ->where('id', (int)$invoice_id)
+          ->update('miqaat_invoice');
+        // Update local copy so subsequent checks pass
+        $inv['raza_id'] = (int)$razaRow['id'];
+      } else {
+        echo json_encode(['success' => false, 'error' => 'Raza is not submitted for this Miqaat. Payment cannot be received until the Raza is submitted.']);
+        return;
+      }
     }
+
     if ($isLinkedToMiqaat && !empty($inv['raza_id'])) {
       $razaExists = $this->db
         ->select('id')

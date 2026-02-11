@@ -57,11 +57,11 @@
             <div class="icon-box mb-3">
               <i class="fa-solid fa-bowl-food fa-2x text-primary"></i>
             </div>
-            <h5 class="card-title">FMB Thaali Takhmeen</h5>
+            <h5 class="card-title">Receive Thaali Takhmeen Payment</h5>
             <p class="card-text">Receive Thaali Takhmeen Payments</p>
             <div class="d-flex justify-content-center gap-2 flex-wrap">
               <a href="<?php echo base_url("anjuman/fmbthaalitakhmeen"); ?>" class="btn btn-sm btn-primary text-white">
-                <i class="fa-solid fa-file-invoice-dollar me-2"></i> Receive Thaali Payment
+                <i class="fa-solid fa-file-invoice-dollar me-2"></i> Receive Payment
               </a>
             </div>
           </div>

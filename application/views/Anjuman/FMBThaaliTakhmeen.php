@@ -48,9 +48,9 @@
     <div class="col-12 col-md-2 mb-2">
       <input type="text" id="filter-member" class="form-control form-control-sm" placeholder="Filter name or ITS" autocomplete="off" />
     </div>
-    <div class="col-12 col-md-2 mb-2">
+    <!-- <div class="col-12 col-md-2 mb-2">
       <input type="text" id="filter-its" class="form-control form-control-sm" placeholder="Filter ITS ID" autocomplete="off" value="<?php echo htmlspecialchars(isset($filter_its) ? $filter_its : $this->input->get('its')); ?>" />
-    </div>
+    </div> -->
     <div class="col-12 col-md-1 mb-2">
       <form method="post" action="<?php echo base_url('anjuman/fmbthaalitakhmeen'); ?>" class="m-0">
         <select name="fmb_year" id="fmb-year" class="form-control form-control-sm" onchange="this.form.submit()">

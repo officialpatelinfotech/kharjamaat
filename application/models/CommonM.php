@@ -2064,7 +2064,16 @@ class CommonM extends CI_Model
       $CI->load->model('HijriCalendar');
       $h = $CI->HijriCalendar->get_hijri_date($today);
       if ($h && !empty($h['hijri_date'])) {
-        $hijri_year = explode('-', $h['hijri_date'])[2];
+        $hijriDateRaw = strip_tags((string)$h['hijri_date']);
+        $parts = explode('-', $hijriDateRaw);
+        // Expected format: d-m-Y. Some installs may store year ranges like d-m-1446-47.
+        if (count($parts) >= 3) {
+          $yearPart = (string)$parts[2];
+          if (count($parts) >= 4 && ctype_digit((string)$parts[2]) && ctype_digit((string)$parts[3])) {
+            $yearPart .= '-' . (string)$parts[3];
+          }
+          $hijri_year = $yearPart;
+        }
       }
     }
 

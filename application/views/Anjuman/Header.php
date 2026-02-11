@@ -61,9 +61,6 @@
       <a href="<?php echo base_url("/?from=anjuman") ?>" style="text-decoration: none;">
         <img src="<?php echo base_url('assets/main_logo.png') ?>" class="logo">
       </a>
-      <a href="<?php echo base_url("/anjuman") ?>" class="user-welcome font-lvl-3-xs">
-        <?php echo $user_name ?>
-      </a>
     </div>
     <button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse" aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler">
       <span class="navbar-toggler-icon"></span>
@@ -88,6 +85,11 @@
                             href="<?php echo base_url('/accounts/changepassword/') ?>" class="dropdown-item"><i
                                 class="fa fa-lock px-1"></i>Change Password</a></div>
                 </li> -->
+        <li class="nav-link">
+          <span class="user-welcome font-lvl-3-xs">
+            <?php echo $user_name ?>
+          </span>
+        </li>
         <li class="nav-item"><a href="<?php echo base_url('/accounts/logout/') ?>" class="nav-link"><i
               class="fa fa-sign-out-alt px-1"></i>Log Out</a></li>
       </ul>

@@ -61,7 +61,6 @@
       <a href="<?php echo base_url("/?from=amilsaheb") ?>">
         <img src="<?php echo base_url('assets/main_logo.png') ?>" class="logo">
       </a>
-      <a href="<?php echo base_url("/amilsaheb") ?>" class="user-welcome font-lvl-3-xs"><?php echo $user_name ?></a>
     </div>
     <button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse" aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler">
       <span class="navbar-toggler-icon"></span>
@@ -73,13 +72,8 @@
         </li>
       </ul>
       <ul class="navbar-nav navbar-right">
-        <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
-            class="nav-link dropdown-toggle" aria-expanded="false"><i
-              class="fa fa-user px-1"></i>Account</a>
-          <div class="dropdown-menu"><a href="<?php echo base_url("/amilsaheb/update-profile/") ?>"
-              class="dropdown-item"><i class="fa fa-edit px-1"></i>Update Profile</a><a
-              href="<?php echo base_url('/accounts/changepassword/') ?>" class="dropdown-item"><i
-                class="fa fa-lock px-1"></i>Change Password</a></div>
+        <li class="nav-item dropdown">
+          <span class="nav-link user-welcome font-lvl-3-xs"><?php echo $user_name ?></span>
         </li>
         <li class="nav-item"><a href="<?php echo base_url('/accounts/logout/') ?>" class="nav-link"><i
               class="fa fa-sign-out-alt px-1"></i>Log Out</a></li>

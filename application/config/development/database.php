@@ -114,7 +114,9 @@ $defaultHost = (PHP_SAPI === 'cli' || $isMamp) ? '127.0.0.1' : 'localhost';
 // If DB_PORT isn't set, probe localhost quickly and pick the first open port.
 if ((!is_string($dbPort) || $dbPort === '') && $isMamp) {
 	$probeHost = '127.0.0.1';
-	$portsToTry = array(3306, 8889);
+	// Prefer MAMP's default port first. If a system MySQL is running on 3306,
+	// probing 3306 first can make CLI/web point at different servers.
+	$portsToTry = array(8889, 3306);
 	$chosen = null;
 	foreach ($portsToTry as $p) {
 		$errno = 0;
