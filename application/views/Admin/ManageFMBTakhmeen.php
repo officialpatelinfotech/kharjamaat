@@ -89,6 +89,7 @@
           <th>Sub-Sector</th>
           <th>Takhmeen</th>
           <th>Thaali Day</th>
+          <th>Assigned Thaali Days</th>
           <th data-no-sort>Action</th>
         </tr>
       </thead>
@@ -129,6 +130,12 @@
                   }
                 ?>
               </td>
+              <td data-sort-value="<?php echo isset($user['assigned_thaali_days']) ? (int)$user['assigned_thaali_days'] : 0; ?>">
+                <?php $assignedCnt = isset($user['assigned_thaali_days']) ? (int)$user['assigned_thaali_days'] : 0; ?>
+                <a href="#" class="view-assigned-thaali-days" data-user-id="<?php echo htmlspecialchars($user['ITS_ID'], ENT_QUOTES); ?>" data-user-name="<?php echo htmlspecialchars($user['Full_Name'], ENT_QUOTES); ?>" data-year="<?php echo htmlspecialchars($hijri_year, ENT_QUOTES); ?>">
+                  <?php echo $assignedCnt; ?>
+                </a>
+              </td>
               <td>
                 <button id="add-takhmeen" class="add-takhmeen mb-2 btn btn-sm btn-success" data-toggle="modal" data-target="#add-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo $user["Full_Name"]; ?>"><i class="fa-solid fa-plus"></i></button>
 
@@ -143,6 +150,26 @@
         ?>
       </tbody>
     </table>
+  </div>
+</div>
+
+<div class="modal fade" id="assigned-thaali-days-container" tabindex="-1" aria-labelledby="assigned-thaali-days-label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assigned-thaali-days-label">Assigned Thaali Dates</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2"><strong>Member Name:</strong> <span id="assigned-user-name">-</span></p>
+        <p class="mb-3"><strong>FY:</strong> <span id="assigned-fy">-</span></p>
+        <div id="assigned-dates-loading" class="text-secondary">Loading...</div>
+        <div id="assigned-dates-empty" class="text-secondary d-none">No dates assigned.</div>
+        <ul id="assigned-dates-list" class="pl-3 mb-0"></ul>
+      </div>
+    </div>
   </div>
 </div>
 <div class="modal fade" id="add-takhmeen-container" tabindex="-1" aria-labelledby="add-takhmeen-container-label" aria-hidden="true">
@@ -183,6 +210,18 @@
             <label for="takhmeen-amount" class="form-label">Takhmeen Amount</label>
             <input type="number" id="takhmeen-amount" name="fmb_takhmeen_amount" class="form-control" placeholder="Enter Takhmeen Amount" min="1" required>
           </div>
+          <div class="form-group">
+            <label for="thaali-date" class="form-label">Thaali days</label>
+            <div class="input-group">
+              <input type="date" id="thaali-date" class="form-control" min="<?php echo !empty($hijri_calendar_min_greg) ? htmlspecialchars($hijri_calendar_min_greg, ENT_QUOTES) : '2000-01-01'; ?>" max="<?php echo !empty($hijri_calendar_max_greg) ? htmlspecialchars($hijri_calendar_max_greg, ENT_QUOTES) : '2100-12-31'; ?>" />
+              <div class="input-group-append">
+                <button type="button" id="add-thaali-date-btn" class="btn btn-secondary">Add</button>
+              </div>
+            </div>
+            <small id="thaali-error" class="text-danger d-none">Please select date</small>
+            <div id="thaali-dates-list" class="mt-2"></div>
+            <input type="hidden" name="thaali_dates" id="thaali-dates-hidden" />
+          </div>
           <div class="d-flex align-items-center justify-content-between">
             <button type="submit" id="add-takhmeen-btn" class="btn btn-primary">Add Takhmeen</button>
             <p id="validate-takhmeen" class="text-secondary m-0"></p>
@@ -211,6 +250,8 @@
                 <th>#</th>
                 <th>Takhmeen Year</th>
                 <th>Amount</th>
+                <th>Thaali Days</th>
+                <th>Assigned Thaali Days</th>
                 <th>Update Remark</th>
               </tr>
             </thead>
@@ -258,16 +299,81 @@
   </div>
 </div>
 <script>
+  const hijriGregMin = <?php echo json_encode(isset($hijri_calendar_min_greg) ? $hijri_calendar_min_greg : null); ?>;
+  const hijriGregMax = <?php echo json_encode(isset($hijri_calendar_max_greg) ? $hijri_calendar_max_greg : null); ?>;
+
+  function isIsoInRange(isoDate){
+    const d = String(isoDate || '');
+    if (!d.match(/^\d{4}-\d{2}-\d{2}$/)) return false;
+    if (hijriGregMin && d < String(hijriGregMin)) return false;
+    if (hijriGregMax && d > String(hijriGregMax)) return false;
+    return true;
+  }
+
+  function hijriRangeMsg(){
+    if (hijriGregMin && hijriGregMax) return 'Please select a date between ' + formatThaaliDateDisplay(hijriGregMin) + ' and ' + formatThaaliDateDisplay(hijriGregMax) + '.';
+    return 'Please select a valid date.';
+  }
+
+  function resetAddTakhmeenModal() {
+    // Reset to Add mode defaults
+    $("#add-takhmeen-container-label").text("Add FMB Takhmeen Amount");
+    $("#add-takhmeen-btn").show();
+    $("#takhmeen-amount").prop("disabled", false).val("");
+    $("#validate-takhmeen").html("");
+    $("#thaali-dates-list").empty();
+    $("#thaali-dates-hidden").val("");
+    $("#thaali-date").val("");
+    $("#thaali-date").prop('disabled', false);
+    $("#add-thaali-date-btn").prop('disabled', false);
+    $("#thaali-error").addClass("d-none").text("Please select date");
+    $("#takhmeen-year").prop("disabled", false);
+  }
+
+  function openAddTakhmeenAsEdit(userId, userName, year) {
+    resetAddTakhmeenModal();
+    $("#add-takhmeen-container-label").text("Edit FMB Takhmeen Amount");
+    $("#user-id").val(userId);
+    $("#user-name").html(userName);
+
+    if (year) {
+      $("#takhmeen-year").val(year);
+    }
+    // Trigger validation/update UI for selected year
+    $("#takhmeen-year").trigger("change");
+    // Show already selected/assigned thaali dates for this FY
+    if (userId && year) {
+      loadAssignedThaaliDatesIntoForm(userId, year);
+    }
+    // When editing a specific year via history, prevent changing year accidentally
+    if (year) {
+      $("#takhmeen-year").prop("disabled", true);
+    }
+
+    $("#add-takhmeen-container").modal("show");
+  }
+
   $(".add-takhmeen").on("click", function(e) {
+    resetAddTakhmeenModal();
     $userId = $(this).data("user-id");
     $userName = $(this).data("user-name");
     $("#user-id").val($userId);
     $("#user-name").html($userName);
   });
 
+  // Ensure modal resets when closed so next open is clean.
+  $(document).on('hidden.bs.modal', '#add-takhmeen-container', function(){
+    resetAddTakhmeenModal();
+  });
+
   $("#takhmeen-year").on("change", function(e) {
     $userId = $("#user-id").val();
     $takhmeen_year = $(this).val();
+
+    // If there are already assigned thaali dates for this FY, show them in the list
+    if ($userId && $takhmeen_year) {
+      loadAssignedThaaliDatesIntoForm($userId, $takhmeen_year);
+    }
 
     $.ajax({
       url: "<?php echo base_url("admin/validatefmbtakhmeen"); ?>",
@@ -340,29 +446,153 @@
     });
   });
 
+  function renderThaaliDatesListReadOnly(dates) {
+    const $list = $('#thaali-dates-list');
+    $list.empty();
+    const safeDates = Array.isArray(dates) ? dates : [];
+    if (!safeDates.length) {
+      // Show explicit empty state so user knows we tried loading
+      $list.append($('<div>').addClass('text-secondary').text('No dates selected.'));
+      $('#thaali-dates-hidden').val('[]');
+      return;
+    }
+    $('#thaali-dates-hidden').val(JSON.stringify(safeDates));
+    safeDates.forEach(function(d){
+      const row = $('<div>')
+        .addClass('thaali-date-row d-flex align-items-center mb-1')
+        .css('gap','0.5rem');
+      const dateText = $('<span>')
+        .addClass('badge badge-info badge-pill')
+        .text(formatThaaliDateDisplay(d));
+      const remove = $('<a>')
+        .attr('href', '#')
+        .addClass('remove-assigned-thaali-date text-danger')
+        .attr('data-date', d)
+        .html('&times;')
+        .css({ 'font-weight': 'bold', 'font-size': '1.2em', 'line-height': '1' });
+      row.append(dateText);
+      row.append(remove);
+      $list.append(row);
+    });
+  }
+
+  $(document).on('click', '.remove-assigned-thaali-date', function(e){
+    e.preventDefault();
+    const dateVal = String($(this).data('date') || '').trim();
+    const userId = String($('#user-id').val() || '').trim();
+    const year = String($('#takhmeen-year').val() || '').trim();
+    if (!dateVal || !userId || !year) return;
+
+    if (!confirm('Remove thaali date ' + formatThaaliDateDisplay(dateVal) + ' ?')) {
+      return;
+    }
+
+    const $link = $(this);
+    $link.css('pointer-events','none');
+    $.ajax({
+      url: "<?php echo base_url('admin/removefmbassignedthaalidate'); ?>",
+      type: 'POST',
+      data: { user_id: userId, year: year, date: dateVal },
+      success: function(res){
+        let payload = res;
+        try { if (typeof res === 'string') payload = JSON.parse(res); } catch (e) { payload = { success: false, message: 'Invalid response' }; }
+        if (!payload || payload.success === false) {
+          alert((payload && payload.message) ? payload.message : 'Failed to remove date');
+          $link.css('pointer-events','');
+          return;
+        }
+
+        // Update hidden list
+        let existing = [];
+        try { existing = JSON.parse($('#thaali-dates-hidden').val() || '[]'); } catch(err) { existing = []; }
+        existing = Array.isArray(existing) ? existing : [];
+        const idx = existing.indexOf(dateVal);
+        if (idx !== -1) existing.splice(idx, 1);
+        $('#thaali-dates-hidden').val(JSON.stringify(existing));
+
+        // Remove row
+        $link.closest('.thaali-date-row').remove();
+        if (!existing.length) {
+          $('#thaali-dates-list').empty().append($('<div>').addClass('text-secondary').text('No dates selected.'));
+        }
+      },
+      error: function(){
+        alert('Failed to remove date');
+        $link.css('pointer-events','');
+      }
+    });
+  });
+
+  function loadAssignedThaaliDatesIntoForm(userId, year) {
+    // This is for displaying existing assigned dates (read-only) in the Add/Edit modal.
+    const $list = $('#thaali-dates-list');
+    $list.empty().append($('<div>').addClass('text-secondary').text('Loading...'));
+    $.ajax({
+      url: "<?php echo base_url('admin/getfmbassignedthaalidates'); ?>",
+      type: 'POST',
+      data: { user_id: userId, year: year },
+      success: function(res){
+        let payload = res;
+        try {
+          if (typeof res === 'string') payload = JSON.parse(res);
+        } catch (e) {
+          payload = { success: false, dates: [], message: 'Invalid response' };
+        }
+
+        if (!payload || payload.success === false) {
+          const msg = payload && payload.message ? String(payload.message) : 'No dates selected.';
+          $list.empty().append($('<div>').addClass('text-secondary').text(msg));
+          $('#thaali-dates-hidden').val('[]');
+          return;
+        }
+
+        const dates = payload && payload.dates ? payload.dates : [];
+        renderThaaliDatesListReadOnly(dates);
+      },
+      error: function(){
+        // Show empty state on failure
+        $list.empty().append($('<div>').addClass('text-secondary').text('No dates selected.'));
+        $('#thaali-dates-hidden').val('[]');
+      }
+    });
+  }
+
   $(".view-takhmeen").on("click", function(e) {
     resetViewTakhmeenModal();
     $userId = $(this).data("user-id");
     $userName = $(this).data("user-name");
     $takhmeens = $(this).data("takhmeens");
+    const perDayCost = <?php echo json_encode(isset($per_day_thaali_cost_amount) ? (float)$per_day_thaali_cost_amount : 0); ?>;
 
     $("#view-user-name").html($userName);
 
     if ($takhmeens && $takhmeens.length > 0) {
       let historyHtml = '';
       $takhmeens.forEach((takhmeen, index) => {
+        const assignedCnt = (takhmeen && typeof takhmeen.assigned_thaali_days !== 'undefined') ? Number(takhmeen.assigned_thaali_days) : 0;
+        let thaaliDaysDisplay = '-';
+        if (perDayCost && Number(perDayCost) > 0 && takhmeen && typeof takhmeen.amount !== 'undefined') {
+          const amtNum = parseFloat(String(takhmeen.amount).replace(/[^0-9.]/g, ''));
+          if (!isNaN(amtNum)) {
+            thaaliDaysDisplay = Math.floor(amtNum / Number(perDayCost));
+          }
+        }
         historyHtml += `
           <tr>
             <td>${index + 1}</td>
             <td>${takhmeen.year}</td>
             <td>&#8377;${new Intl.NumberFormat("en-IN", { maximumSignificantDigits: 3 }).format(takhmeen.amount)}</td>
+            <td>${thaaliDaysDisplay}</td>
+            <td>
+              <a href="#" class="view-assigned-thaali-days" data-user-id="${$userId}" data-user-name="${$userName}" data-year="${takhmeen.year}">${assignedCnt}</a>
+            </td>
             <td>${takhmeen.remark ? $('<div/>').text(takhmeen.remark).html() : '-'}</td>
           </tr>
         `;
       });
       $("#takhmeen-history-body").html(historyHtml);
     } else {
-      $("#takhmeen-history-body").html('<tr><td colspan="4" class="text-center">No Takhmeen history found.</td></tr>');
+      $("#takhmeen-history-body").html('<tr><td colspan="6" class="text-center">No Takhmeen history found.</td></tr>');
     }
   });
 
@@ -409,109 +639,19 @@
   $(document).on("click", ".edit-single-takhmeen", function(e) {
     e.preventDefault();
 
-    let $btn = $(this);
-    let $row = $btn.closest("tr");
-    let userId = $btn.data("user-id");
-    let year = $btn.data("year");
-    let amount = $btn.data("amount");
+    // Open popup like the Add Takhmeen modal, prefilled for this year.
+    const $btn = $(this);
+    const userId = $btn.data('user-id');
+    const year = $btn.data('year');
+    const userName = String($('#edit-user-name').text() || '').trim();
 
-    // Replace the amount cell with an input field
-    let $amountTd = $row.find("td").eq(2);
-    $amountTd.html(`
-      <input type="number" class="form-control form-control-sm edit-amount-input" 
-        value="${amount}" min="1" style="width:120px; display:inline-block;">
-    `);
-
-    // Replace the button cell: add remark input + Save/Cancel
-    let $actionTd = $row.find("td").eq(3);
-    $actionTd.html(`
-      <div class=\"form-group mb-2\">
-        <input type=\"text\" class=\"form-control form-control-sm edit-remark-input\" placeholder=\"Edit remark (required)\" />
-      </div>
-      <div>
-        <button class=\"btn btn-sm btn-success save-takhmeen\" 
-          data-user-id=\"${userId}\" data-year=\"${year}\"><i class=\"fa-solid fa-check\"></i></button>
-        <button class=\"btn btn-sm btn-secondary cancel-edit-takhmeen\"
-          data-amount=\"${amount}\" data-user-id=\"${userId}\" data-year=\"${year}\">\n          <i class=\"fa-solid fa-times\"></i>\n        </button>
-      </div>
-    `);
-  });
-
-  // ===== CANCEL BUTTON FLOW =====
-  $(document).on("click", ".cancel-edit-takhmeen", function(e) {
-    let $btn = $(this);
-    let $row = $btn.closest("tr");
-    let amount = $btn.data("amount");
-    let userId = $btn.data("user-id");
-    let year = $btn.data("year");
-
-    $row.find("td").eq(2).html(`&#8377;${new Intl.NumberFormat("en-IN").format(amount)}`);
-    $row.find("td").eq(3).html(`
-    <button class="btn btn-sm btn-primary edit-single-takhmeen" 
-      data-user-id="${userId}" 
-      data-year="${year}" 
-      data-amount="${amount}">
-      <i class="fa-solid fa-pencil"></i>
-    </button>
-    <button class="btn btn-sm btn-danger delete-single-takhmeen" 
-      data-user-id="${userId}" 
-      data-year="${year}">
-      <i class="fa-solid fa-trash"></i>
-    </button>
-  `);
-  });
-
-
-  // ===== SAVE BUTTON FLOW =====
-  $(document).on("click", ".save-takhmeen", function(e) {
-    let $btn = $(this);
-    let $row = $btn.closest("tr");
-    let userId = $btn.data("user-id");
-    let year = $btn.data("year");
-    let newAmount = $row.find(".edit-amount-input").val();
-    let remark = $row.find('.edit-remark-input').val();
-    remark = String(remark || '').trim();
-    if (!remark) {
-      alert('Please enter edit remark before saving.');
-      return;
-    }
-
-    $.ajax({
-      url: "<?php echo base_url('admin/updatefmbtakhmeen/0'); ?>",
-      type: "POST",
-      data: {
-        user_id: userId,
-        year: year,
-        fmb_takhmeen_amount: newAmount,
-        edit_remark: remark
-      },
-      success: function(res) {
-        let parsed = JSON.parse(res);
-        if (parsed.success) {
-          alert("Takhmeen updated successfully!");
-          $row.find("td").eq(2).html(`&#8377;${new Intl.NumberFormat("en-IN").format(newAmount)}`);
-          $row.find("td").eq(3).html(`
-            <button class="btn btn-sm btn-primary edit-single-takhmeen" 
-              data-user-id="${userId}" 
-              data-year="${year}" 
-              data-amount="${newAmount}">
-              <i class="fa-solid fa-pencil"></i>
-            </button>
-            <button class="btn btn-sm btn-danger delete-single-takhmeen" 
-              data-user-id="${userId}" 
-              data-year="${year}">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          `);
-          window.location.reload();
-        } else {
-          alert("Update failed: " + parsed.message);
-        }
-      },
-      error: function(jqXHR, textStatus, errorThrown) {
-        console.error("AJAX Error:", textStatus, errorThrown);
-      }
+    // Close history modal first to avoid stacked modal/backdrop issues.
+    // Bind handler before hiding to avoid missing the event.
+    $('#edit-takhmeen-container').off('hidden.bs.modal.__openEdit').on('hidden.bs.modal.__openEdit', function(){
+      $(this).off('hidden.bs.modal.__openEdit');
+      openAddTakhmeenAsEdit(userId, userName, year);
     });
+    $('#edit-takhmeen-container').modal('hide');
   });
 
   $(document).on("click", ".delete-single-takhmeen", function(e) {
@@ -649,4 +789,218 @@
       let i=1; tbody.querySelectorAll('tr').forEach(r => { const td = r.querySelector('td'); if(td) td.textContent = i++; });
     }
   })();
+  // === Thaali Date add/remove handlers ===
+    // Require at least one Thaali date on submit
+    $(document).on('submit', '#add-takhmeen-container form', function(e) {
+      var thaaliDates = $('#thaali-dates-hidden').val();
+      try { thaaliDates = JSON.parse(thaaliDates || '[]'); } catch(err) { thaaliDates = []; }
+      if (!thaaliDates.length) {
+        alert('Please select date');
+        $('#thaali-error').removeClass('d-none').text('Please select date');
+        $('#thaali-date').focus();
+        e.preventDefault();
+        return false;
+      }
+      $('#thaali-error').addClass('d-none');
+    });
+  function formatThaaliDateDisplay(isoDate) {
+    // Expects YYYY-MM-DD from <input type="date">. Return DD-MM-YYYY.
+    const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return isoDate;
+    return `${m[3]}-${m[2]}-${m[1]}`;
+  }
+
+  function addThaaliDate(dateVal) {
+    if (!dateVal) {
+      $('#thaali-error').removeClass('d-none').text('Please select date');
+      return;
+    }
+    if (!isIsoInRange(dateVal)) {
+      alert(hijriRangeMsg());
+      return;
+    }
+    $('#thaali-error').addClass('d-none');
+
+    let existing = [];
+    try { existing = JSON.parse($('#thaali-dates-hidden').val() || '[]'); } catch(err) { existing = []; }
+    if (existing.indexOf(dateVal) !== -1) {
+      alert('Date already added');
+      $('#thaali-date').val('');
+      return;
+    }
+    existing.push(dateVal);
+    $('#thaali-dates-hidden').val(JSON.stringify(existing));
+
+    // Each selected date renders on its own line (ek ke niche ek)
+    const row = $('<div>').addClass('thaali-date-row d-flex align-items-center mb-1').css('gap','0.5rem');
+    const dateText = $('<span>').addClass('badge badge-info badge-pill').text(formatThaaliDateDisplay(dateVal));
+    const remove = $('<a>')
+      .attr('href', '#')
+      .addClass('remove-thaali-date text-white ml-2')
+      .attr('data-date', dateVal)
+      .html('&times;')
+      .css({ 'font-weight': 'bold', 'font-size': '1.2em' });
+    row.append(dateText).append(remove);
+    $('#thaali-dates-list').append(row);
+    $('#thaali-date').val('');
+  }
+
+  function isExistingEditMode(){
+    return $('#validate-takhmeen #save-takhmeen-btn').length > 0;
+  }
+
+  function addAssignedThaaliDateAjax(dateVal){
+    if (!dateVal) {
+      $('#thaali-error').removeClass('d-none').text('Please select date');
+      return;
+    }
+    if (!isIsoInRange(dateVal)) {
+      alert(hijriRangeMsg());
+      return;
+    }
+    $('#thaali-error').addClass('d-none');
+
+    const userId = String($('#user-id').val() || '').trim();
+    const year = String($('#takhmeen-year').val() || '').trim();
+    if (!userId || !year) {
+      alert('Missing user/year');
+      return;
+    }
+
+    $.ajax({
+      url: "<?php echo base_url('admin/addfmbassignedthaalidate'); ?>",
+      type: 'POST',
+      data: { user_id: userId, year: year, date: dateVal },
+      success: function(res){
+        let payload = res;
+        try { if (typeof res === 'string') payload = JSON.parse(res); } catch (e) { payload = { success: false, message: 'Invalid response' }; }
+        if (!payload || payload.success === false) {
+          alert((payload && payload.message) ? payload.message : 'Failed to add date');
+          return;
+        }
+        // Refresh the fetched list
+        loadAssignedThaaliDatesIntoForm(userId, year);
+        $('#thaali-date').val('');
+      },
+      error: function(){
+        alert('Failed to add date');
+      }
+    });
+  }
+
+  $(document).on('click', '#add-thaali-date-btn', function(e) {
+    e.preventDefault();
+    const v = $('#thaali-date').val();
+    if (isExistingEditMode()) {
+      addAssignedThaaliDateAjax(v);
+    } else {
+      addThaaliDate(v);
+    }
+  });
+
+  // Auto-add when a date is selected from the picker
+  $(document).on('change', '#thaali-date', function() {
+    const v = $(this).val();
+    if (isExistingEditMode()) {
+      addAssignedThaaliDateAjax(v);
+    } else {
+      addThaaliDate(v);
+    }
+  });
+
+  $(document).on('click', '.remove-thaali-date', function(e) {
+    e.preventDefault();
+    const d = $(this).data('date');
+    let existing = [];
+    try { existing = JSON.parse($('#thaali-dates-hidden').val() || '[]'); } catch(err) { existing = []; }
+    const idx = existing.indexOf(d);
+    if (idx !== -1) existing.splice(idx, 1);
+    $('#thaali-dates-hidden').val(JSON.stringify(existing));
+    $(this).closest('.thaali-date-row').remove();
+  });
+
+  // === Assigned Thaali days popup ===
+  function formatIsoToDmy(isoDate){
+    const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!m) return isoDate;
+    return `${m[3]}-${m[2]}-${m[1]}`;
+  }
+
+  function openAssignedThaaliDaysModal(userId, userName, year){
+    $('#assigned-user-name').text(userName || '-');
+    $('#assigned-fy').text(year || '-');
+    $('#assigned-dates-list').empty();
+    $('#assigned-dates-empty').addClass('d-none').text('No dates assigned.');
+    $('#assigned-dates-loading').removeClass('d-none');
+
+    // Show assigned modal (supports being opened over another modal)
+    var $assigned = $('#assigned-thaali-days-container');
+
+    // Ensure modal is under body to avoid z-index/overflow quirks
+    if ($assigned.parent()[0] !== document.body) {
+      $assigned.appendTo(document.body);
+    }
+
+    // Compute next z-index above any currently-visible modal
+    var maxZ = 1040;
+    $('.modal.show').each(function(){
+      var z = parseInt($(this).css('z-index'), 10);
+      if (!isNaN(z)) maxZ = Math.max(maxZ, z);
+    });
+    $assigned.css('z-index', maxZ + 10);
+
+    $assigned.off('shown.bs.modal.fmbstack').on('shown.bs.modal.fmbstack', function(){
+      // Raise the newest backdrop just under the assigned modal
+      var $backdrop = $('.modal-backdrop').not('.modal-stack').last();
+      $backdrop.css('z-index', maxZ + 5).addClass('modal-stack');
+      // Keep body locked when multiple modals are open
+      $('body').addClass('modal-open');
+    });
+    $assigned.off('hidden.bs.modal.fmbstack').on('hidden.bs.modal.fmbstack', function(){
+      $(this).css('z-index', '');
+      // If another modal is still open, keep modal-open
+      if ($('.modal.show').length) {
+        $('body').addClass('modal-open');
+      }
+    });
+
+    $assigned.modal('show');
+
+    $.ajax({
+      url: "<?php echo base_url('admin/getfmbassignedthaalidates'); ?>",
+      type: 'POST',
+      data: { user_id: userId, year: year },
+      success: function(res){
+        let payload = res;
+        try {
+          if (typeof res === 'string') payload = JSON.parse(res);
+        } catch (err) {
+          payload = { success: false, dates: [], message: 'Invalid response' };
+        }
+
+        $('#assigned-dates-loading').addClass('d-none');
+        const dates = payload && payload.dates ? payload.dates : [];
+        if (!dates.length) {
+          $('#assigned-dates-empty').removeClass('d-none');
+          return;
+        }
+        dates.forEach(function(d){
+          $('#assigned-dates-list').append($('<li>').text(formatIsoToDmy(d)));
+        });
+      },
+      error: function(){
+        $('#assigned-dates-loading').addClass('d-none');
+        $('#assigned-dates-empty').removeClass('d-none').text('Failed to load dates.');
+      }
+    });
+  }
+
+  $(document).on('click', '.view-assigned-thaali-days', function(e){
+    e.preventDefault();
+    const userId = $(this).data('user-id');
+    const userName = $(this).data('user-name');
+    const year = $(this).data('year');
+
+    openAssignedThaaliDaysModal(userId, userName, year);
+  });
 </script>

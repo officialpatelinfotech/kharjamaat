@@ -298,6 +298,27 @@ class AdminM extends CI_Model
       $current_hijri_date = null;
     }
 
+    // Determine FY to show for this listing
+    if (isset($filter_data["year"]) && !empty($filter_data["year"])) {
+      $takhmeen_year = $filter_data["year"];
+    } else {
+      $takhmeen_year = null;
+      if (isset($current_hijri_month) && isset($current_hijri_year) && $current_hijri_year) {
+        if ($current_hijri_month >= "01" && $current_hijri_month <= "08") {
+          $y1 = $current_hijri_year - 1;
+          $y2 = substr($current_hijri_year, -2);
+          $takhmeen_year = "$y1-$y2";
+        } else if ($current_hijri_month >= "09" && $current_hijri_month <= "12") {
+          $y1 = $current_hijri_year;
+          $y2 = substr($current_hijri_year + 1, -2);
+          $takhmeen_year = "$y1-$y2";
+        }
+      }
+      if (!$takhmeen_year) {
+        $takhmeen_year = '';
+      }
+    }
+
     // Step 2: Fetch all rows
     $this->db->select("
     u.ITS_ID,
@@ -348,7 +369,8 @@ class AdminM extends CI_Model
           'Surname' => $row['Surname'],
           'takhmeens' => [],
           'current_year_takhmeen' => null,
-          'hijri_year' => null,
+          'hijri_year' => $takhmeen_year,
+          'assigned_thaali_days' => 0,
         ];
       }
 
@@ -362,26 +384,45 @@ class AdminM extends CI_Model
         ];
         $users[$itsId]['takhmeens'][] = $takhmeenEntry;
 
-        if (isset($filter_data["year"]) && !empty($filter_data["year"])) {
-          $takhmeen_year = $filter_data["year"];
-        } else {
-          if ($current_hijri_month >= "01" && $current_hijri_month <= "08") {
-            $y1 = $current_hijri_year - 1;
-            $y2 = substr($current_hijri_year, -2);
-            $takhmeen_year = "$y1-$y2";
-          } else if ($current_hijri_month >= "09" && $current_hijri_month <= "12") {
-            $y1 = $current_hijri_year;
-            $y2 = substr($current_hijri_year + 1, -2);
-            $takhmeen_year = "$y1-$y2";
-          }
-        }
-
         $users[$itsId]['hijri_year'] = $takhmeen_year;
 
         if ($row['takhmeen_year'] == $takhmeen_year) {
           $users[$itsId]['current_year_takhmeen'] = $takhmeenEntry;
         }
       }
+    }
+
+    // Assigned thaali days count (per user + per FY) so we can show counts in list + history modal
+    if (!empty($users) && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      $ids = array_keys($users);
+      $this->db->select('user_id, year, COUNT(1) AS cnt', false);
+      $this->db->from('fmb_thaali_day_assignment');
+      $this->db->where_in('user_id', $ids);
+      $this->db->group_by('user_id, year');
+      $counts = [];
+      foreach ($this->db->get()->result_array() as $r) {
+        $uid = isset($r['user_id']) ? (string)$r['user_id'] : '';
+        $yr = isset($r['year']) ? (string)$r['year'] : '';
+        if ($uid === '' || $yr === '') {
+          continue;
+        }
+        if (!isset($counts[$uid])) {
+          $counts[$uid] = [];
+        }
+        $counts[$uid][$yr] = isset($r['cnt']) ? (int)$r['cnt'] : 0;
+      }
+
+      foreach ($users as $uid => &$u) {
+        $u['assigned_thaali_days'] = (!empty($takhmeen_year) && isset($counts[(string)$uid][(string)$takhmeen_year])) ? (int)$counts[(string)$uid][(string)$takhmeen_year] : 0;
+        if (!empty($u['takhmeens'])) {
+          foreach ($u['takhmeens'] as &$t) {
+            $ty = isset($t['year']) ? (string)$t['year'] : '';
+            $t['assigned_thaali_days'] = ($ty !== '' && isset($counts[(string)$uid][$ty])) ? (int)$counts[(string)$uid][$ty] : 0;
+          }
+          unset($t);
+        }
+      }
+      unset($u);
     }
 
     return array_values($users);
