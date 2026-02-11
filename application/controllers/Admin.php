@@ -3144,7 +3144,7 @@ HTML;
       if (count($parts) === 3) {
         $month = (int)$parts[1];
         $year  = (int)$parts[2];
-        if ($month >= 1 && $month <= 8) {
+        if ($month >= 1 && $month <= 6) {
           $y1 = $year - 1;
           $y2 = substr($year, -2);
           $fy = $y1 . '-' . $y2;

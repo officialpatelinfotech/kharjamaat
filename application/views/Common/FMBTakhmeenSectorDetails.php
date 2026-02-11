@@ -59,7 +59,6 @@ if (!function_exists('format_inr')) {
       <thead>
         <tr>
             <th data-type="string">Member</th>
-            <th data-type="number">Thaali Days</th>
             <th data-type="number">Assigned Thaali Days</th>
             <th data-type="number">Total</th>
             <th data-type="number">Paid (FIFO)</th>
@@ -70,30 +69,97 @@ if (!function_exists('format_inr')) {
         <?php if (!empty($details['rows'])): ?>
           <?php foreach ($details['rows'] as $r): ?>
             <?php
-              $thaaliDays = null;
-              if (!empty($r['total']) && $perDayAmount !== null && (float)$perDayAmount > 0) {
-                $thaaliDays = (int) floor(((float)$r['total']) / (float)$perDayAmount);
-              }
               $assignedDays = isset($r['assigned_thaali_days']) ? (int)$r['assigned_thaali_days'] : 0;
             ?>
             <tr>
               <td><?php echo htmlspecialchars($r['name']); ?></td>
-              <td data-sort-value="<?php echo $thaaliDays !== null ? (int)$thaaliDays : ''; ?>"><?php echo $thaaliDays !== null ? (int)$thaaliDays : '-'; ?></td>
-              <td data-sort-value="<?php echo (int)$assignedDays; ?>"><?php echo (int)$assignedDays; ?></td>
+              <td data-sort-value="<?php echo (int)$assignedDays; ?>">
+                <a href="#" class="view-assigned-thaali-days" data-user-id="<?php echo htmlspecialchars($r['user_id'] ?? '', ENT_QUOTES); ?>" data-user-name="<?php echo htmlspecialchars($r['name'] ?? '', ENT_QUOTES); ?>" data-year="<?php echo htmlspecialchars($details['takhmeen_year'] ?? '', ENT_QUOTES); ?>">
+                  <?php echo (int)$assignedDays; ?>
+                </a>
+              </td>
               <td data-sort-value="<?php echo (float)$r['total']; ?>">₹<?php echo format_inr((float)$r['total']); ?></td>
               <td class="text-success" data-sort-value="<?php echo (float)$r['paid']; ?>">₹<?php echo format_inr((float)$r['paid']); ?></td>
               <td class="text-danger" data-sort-value="<?php echo (float)$r['due']; ?>">₹<?php echo format_inr((float)$r['due']); ?></td>
             </tr>
           <?php endforeach; ?>
         <?php else: ?>
-          <tr><td colspan="6" class="text-center text-muted">No takhmeen data for this sector and year.</td></tr>
+          <tr><td colspan="5" class="text-center text-muted">No takhmeen data for this sector and year.</td></tr>
         <?php endif; ?>
       </tbody>
     </table>
     </div>
 
+    <!-- Assigned Thaali Days Modal -->
+    <div class="modal fade" id="assigned-thaali-days-modal" tabindex="-1" aria-labelledby="assigned-thaali-days-title" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="assigned-thaali-days-title">Assigned Thaali Dates</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-1"><b>Member Name:</b> <span id="assigned-thaali-days-member"></span></p>
+            <p class="mb-3"><b>FY:</b> <span id="assigned-thaali-days-year"></span></p>
+            <div id="assigned-thaali-days-loading" class="text-center text-secondary" style="display:none;">Loading...</div>
+            <div id="assigned-thaali-days-empty" class="text-center text-secondary" style="display:none;">No assigned dates.</div>
+            <ul id="assigned-thaali-days-list" class="mb-0"></ul>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
       document.addEventListener('DOMContentLoaded', function() {
+        // Assigned thaali days popup (uses Bootstrap modal + jQuery)
+        if (window.jQuery) {
+          $(document).on('click', '.view-assigned-thaali-days', function(e) {
+            e.preventDefault();
+            const userId = $(this).data('user-id');
+            const userName = $(this).data('user-name');
+            const year = $(this).data('year');
+
+            $('#assigned-thaali-days-member').text(userName || '');
+            $('#assigned-thaali-days-year').text(year || '');
+            $('#assigned-thaali-days-list').empty();
+            $('#assigned-thaali-days-empty').hide();
+            $('#assigned-thaali-days-loading').show();
+            $('#assigned-thaali-days-modal').modal('show');
+
+            $.ajax({
+              url: "<?php echo base_url('common/getfmbassignedthaalidates'); ?>",
+              type: 'POST',
+              dataType: 'json',
+              data: { user_id: userId, year: year },
+              success: function(res) {
+                $('#assigned-thaali-days-loading').hide();
+                const dates = (res && res.success && Array.isArray(res.dates)) ? res.dates : [];
+                if (!dates.length) {
+                  $('#assigned-thaali-days-empty').show();
+                  return;
+                }
+                dates.forEach(function(d) {
+                  let label = d;
+                  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                    const parts = d.split('-');
+                    label = parts[2] + '-' + parts[1] + '-' + parts[0];
+                  }
+                  $('#assigned-thaali-days-list').append('<li>' + label + '</li>');
+                });
+              },
+              error: function() {
+                $('#assigned-thaali-days-loading').hide();
+                $('#assigned-thaali-days-empty').text('Failed to load assigned dates.').show();
+              }
+            });
+          });
+        }
+
         var table = document.querySelector('.table.table-bordered.table-striped');
         if (!table) return;
         var thead = table.querySelector('thead');

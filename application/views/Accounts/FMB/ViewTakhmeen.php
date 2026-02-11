@@ -774,8 +774,8 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
             <thead class="thead-dark">
               <tr>
                 <th>Year</th>
+                <!-- <th class="text-end">Thaali Days</th> -->
                 <th class="text-end">Thaali Days</th>
-                <th class="text-end">Assigned Thaali Days</th>
                 <th class="text-end">Amount (₹)</th>
                 <th class="text-end">Paid (₹)</th>
                 <th class="text-end">Due (₹)</th>
@@ -825,8 +825,8 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
                   $highlight = ($currentYearLabel && strpos($rowYear, (string)$currentYearLabel) !== false) ? 'table-warning fw-bold' : '';
                   echo '<tr class="' . $highlight . '">';
                   echo '<td>' . htmlspecialchars($rowYear) . '</td>';
-                  echo '<td class="text-end">' . (($daysVal === null || $daysVal === '') ? '-' : (int)$daysVal) . '</td>';
-                  echo '<td class="text-end">' . $assignedDaysVal . '</td>';
+                  // echo '<td class="text-end">' . (($daysVal === null || $daysVal === '') ? '-' : (int)$daysVal) . '</td>';
+                  echo '<td class="text-end"><a href="#" class="view-assigned-thaali-days" data-year="' . htmlspecialchars($rowYear, ENT_QUOTES) . '">' . $assignedDaysVal . '</a></td>';
                   echo '<td class="text-end">₹' . format_inr_no_decimals($amtVal) . '</td>';
                   echo '<td class="text-end text-success">₹' . format_inr_no_decimals($paidVal) . '</td>';
                   echo '<td class="text-end text-danger">₹' . format_inr_no_decimals($dueVal) . '</td>';
@@ -1181,6 +1181,27 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
       </div>
     </div>
   </div>
+
+  <!-- Assigned Thaali Dates Modal -->
+  <div class="modal fade" id="assigned-thaali-days-container" tabindex="-1" aria-labelledby="assigned-thaali-days-label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="assigned-thaali-days-label">Assigned Thaali Dates</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2"><strong>Member Name:</strong> <span id="assigned-user-name"><?php echo htmlspecialchars($member_name ?? '-', ENT_QUOTES); ?></span></p>
+          <p class="mb-3"><strong>FY:</strong> <span id="assigned-fy">-</span></p>
+          <div id="assigned-dates-loading" class="text-secondary">Loading...</div>
+          <div id="assigned-dates-empty" class="text-secondary d-none">No dates assigned.</div>
+          <ul id="assigned-dates-list" class="pl-3 mb-0"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
 </div> <!-- /details-sections -->
 </div> <!-- /container -->
 <script>
@@ -1322,6 +1343,80 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
       }
     });
   });
+
+  // View assigned thaali dates (family-wise) for a given FY in a popup modal.
+  (function() {
+    const cache = {};
+
+    function pad2(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function fmtGregDateDMY(d) {
+      try {
+        const dt = new Date(String(d) + 'T00:00:00');
+        if (isNaN(dt.getTime())) return String(d);
+        return pad2(dt.getDate()) + '-' + pad2(dt.getMonth() + 1) + '-' + dt.getFullYear();
+      } catch (e) {
+        return String(d);
+      }
+    }
+
+    function renderDatesList(dates) {
+      const $list = $('#assigned-dates-list');
+      $list.empty();
+      if (!dates || !dates.length) {
+        $('#assigned-dates-empty').removeClass('d-none');
+        return;
+      }
+      $('#assigned-dates-empty').addClass('d-none');
+      dates.forEach(function(item) {
+        const greg = item && item.greg_date ? fmtGregDateDMY(item.greg_date) : '-';
+        const $li = $('<li></li>').text(greg);
+        $list.append($li);
+      });
+    }
+
+    $(document).on('click', '.view-assigned-thaali-days', function(e) {
+      e.preventDefault();
+      const year = String($(this).data('year') || '').trim();
+      if (!year) return;
+
+      $('#assigned-fy').text(year);
+      $('#assigned-dates-loading').removeClass('d-none').text('Loading...');
+      $('#assigned-dates-empty').addClass('d-none');
+      $('#assigned-dates-list').empty();
+      $('#assigned-thaali-days-container').modal('show');
+
+      if (cache[year]) {
+        $('#assigned-dates-loading').addClass('d-none');
+        renderDatesList(cache[year]);
+        return;
+      }
+
+      $.ajax({
+        url: '<?php echo base_url('accounts/getfmbassignedthaalidates'); ?>',
+        type: 'POST',
+        dataType: 'json',
+        data: { year: year },
+        success: function(res) {
+          $('#assigned-dates-loading').addClass('d-none');
+          if (!res || res.success === false) {
+            const msg = (res && res.message) ? String(res.message) : 'Failed to load assigned dates.';
+            $('#assigned-dates-empty').removeClass('d-none').text(msg);
+            return;
+          }
+          const dates = (res && res.dates) ? res.dates : [];
+          cache[year] = dates;
+          renderDatesList(dates);
+        },
+        error: function() {
+          $('#assigned-dates-loading').addClass('d-none');
+          $('#assigned-dates-empty').removeClass('d-none').text('Failed to load assigned dates.');
+        }
+      });
+    });
+  })();
 
   $(".view-description").on("click", function(e) {
     e.preventDefault();

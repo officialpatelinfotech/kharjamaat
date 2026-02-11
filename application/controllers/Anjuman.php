@@ -2602,52 +2602,63 @@ class Anjuman extends CI_Controller
       $users[$idx]['selected_takhmeen_year'] = $selectedYear;
     }
 
-    // Assigned Thaali Days (count of menu days assigned to member) for selected FY
-    // Derive FY using hijri_calendar+menu_date (more reliable than relying on assignment.year)
-    $assignedDaysMap = [];
-    if (!empty($selectedYear) && $this->db->table_exists('fmb_thaali_day_assignment')) {
-      $fyStart = null;
-      $fyEnd = null;
-      if (preg_match('/^(\d{4})-(\d{2})$/', (string)$selectedYear, $m)) {
-        $fyStart = (int)$m[1];
-        $fyEnd = $fyStart + 1;
-      }
-
+    // Assigned Thaali Days (count of menu days assigned to member) per FY
+    // Used for both selected-year column + takhmeen details modal per-year rows
+    $assignedCountsByUserYear = [];
+    if ($this->db->table_exists('fmb_thaali_day_assignment')) {
       $rows = [];
-      if ($fyStart && $fyEnd) {
-        $sql = "SELECT a.user_id, COUNT(DISTINCT a.menu_id) AS c
+      if ($this->db->table_exists('hijri_calendar')) {
+        $sql = "SELECT
+                  a.user_id,
+                  CASE
+                    WHEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12
+                      THEN CONCAT(
+                        CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED),
+                        '-',
+                        LPAD(RIGHT(CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) + 1, 2), 2, '0')
+                      )
+                    ELSE CONCAT(
+                      CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) - 1,
+                      '-',
+                      LPAD(RIGHT(CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED), 2), 2, '0')
+                    )
+                  END AS fy,
+                  COUNT(DISTINCT a.menu_id) AS c
                 FROM fmb_thaali_day_assignment a
                 JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
-                WHERE (
-                  (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
-                    AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12)
-                  OR
-                  (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
-                    AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 8)
-                )
-                GROUP BY a.user_id";
-        $rows = $this->db->query($sql, [$fyStart, $fyEnd])->result_array();
+                GROUP BY a.user_id, fy";
+        $rows = $this->db->query($sql)->result_array();
       } else {
         // Fallback to stored year column
         $rows = $this->db->query(
-          "SELECT user_id, COUNT(DISTINCT menu_id) AS c
+          "SELECT user_id, year AS fy, COUNT(DISTINCT menu_id) AS c
            FROM fmb_thaali_day_assignment
-           WHERE year = ?
-           GROUP BY user_id",
-          [$selectedYear]
+           GROUP BY user_id, year"
         )->result_array();
       }
 
       foreach ($rows as $r) {
         $uid = isset($r['user_id']) ? (string)$r['user_id'] : '';
-        if ($uid !== '') {
-          $assignedDaysMap[$uid] = (int)($r['c'] ?? 0);
+        $fy = isset($r['fy']) ? (string)$r['fy'] : '';
+        if ($uid !== '' && $fy !== '') {
+          if (!isset($assignedCountsByUserYear[$uid])) {
+            $assignedCountsByUserYear[$uid] = [];
+          }
+          $assignedCountsByUserYear[$uid][$fy] = (int)($r['c'] ?? 0);
         }
       }
     }
+
     foreach ($users as $idx => $u) {
       $uid = isset($u['ITS_ID']) ? (string)$u['ITS_ID'] : '';
-      $users[$idx]['assigned_thaali_days'] = ($uid !== '' && array_key_exists($uid, $assignedDaysMap)) ? (int)$assignedDaysMap[$uid] : 0;
+      $users[$idx]['assigned_thaali_days'] = ($uid !== '' && $selectedYear !== '' && isset($assignedCountsByUserYear[$uid][$selectedYear])) ? (int)$assignedCountsByUserYear[$uid][$selectedYear] : 0;
+
+      if (!empty($users[$idx]['all_takhmeen']) && is_array($users[$idx]['all_takhmeen'])) {
+        foreach ($users[$idx]['all_takhmeen'] as $k => $yr) {
+          $fy = isset($yr['year']) ? (string)$yr['year'] : '';
+          $users[$idx]['all_takhmeen'][$k]['assigned_thaali_days'] = ($uid !== '' && $fy !== '' && isset($assignedCountsByUserYear[$uid][$fy])) ? (int)$assignedCountsByUserYear[$uid][$fy] : 0;
+        }
+      }
     }
 
     // Server-side filtering (optional) via GET params: its, sector, sub_sector
@@ -2688,6 +2699,67 @@ class Anjuman extends CI_Controller
     $data['filter_sub_sector'] = $filter_sub_sector;
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/FMBThaaliTakhmeen', $data);
+  }
+
+  public function getfmbassignedthaalidates()
+  {
+    if (empty($_SESSION['user']) || (int)($_SESSION['user']['role'] ?? 0) != 3) {
+      redirect('/accounts');
+    }
+
+    $user_id = trim((string)$this->input->post('user_id'));
+    $year = (string)$this->input->post('year');
+
+    $this->output->set_content_type('application/json');
+    if ($user_id === '' || !preg_match('/^\d+$/', $user_id) || $year === '') {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Missing parameters', 'dates' => []]));
+      return;
+    }
+
+    if (!$this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->output->set_output(json_encode(['success' => true, 'dates' => []]));
+      return;
+    }
+
+    $fyStart = null;
+    $fyEnd = null;
+    if (preg_match('/^(\d{4})-(\d{2})$/', (string)$year, $m)) {
+      $fyStart = (int)$m[1];
+      $fyEnd = $fyStart + 1;
+    }
+
+    $rows = [];
+    if ($fyStart && $fyEnd && $this->db->table_exists('hijri_calendar')) {
+      $sql = "SELECT DISTINCT DATE(a.menu_date) AS d
+              FROM fmb_thaali_day_assignment a
+              JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
+              WHERE a.user_id = ? AND (
+                (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                  AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12)
+                OR
+                (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                  AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 8)
+              )
+              ORDER BY d ASC";
+      $rows = $this->db->query($sql, [$user_id, $fyStart, $fyEnd])->result_array();
+    } else {
+      // Fallback to stored year column
+      $this->db->select('DATE(menu_date) AS d', false);
+      $this->db->from('fmb_thaali_day_assignment');
+      $this->db->where('user_id', $user_id);
+      $this->db->where('year', $year);
+      $this->db->order_by('menu_date', 'ASC');
+      $rows = $this->db->get()->result_array();
+    }
+
+    $dates = [];
+    foreach ($rows as $r) {
+      if (!empty($r['d'])) {
+        $dates[] = (string)$r['d'];
+      }
+    }
+
+    $this->output->set_output(json_encode(['success' => true, 'dates' => $dates]));
   }
 
   // FMB General Contribution section

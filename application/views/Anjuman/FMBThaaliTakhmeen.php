@@ -105,7 +105,6 @@
             <th>Sector</th>
             <th>Sub-Sector</th>
             <th>Thaali Days</th>
-            <th>Assigned Thaali Days</th>
             <th>Selected Year Takhmeen</th>
             <th>Total Paid</th>
             <th>Total Due</th>
@@ -124,19 +123,16 @@
                 <td data-sort-value="<?php echo htmlspecialchars($user['Sector'], ENT_QUOTES); ?>"><?php echo $user["Sector"]; ?></td>
                 <td data-sort-value="<?php echo htmlspecialchars($user['Sub_Sector'], ENT_QUOTES); ?>"><?php echo $user["Sub_Sector"]; ?></td>
                 <?php
-                $thaaliDays = null;
-                if (!empty($user['selected_total_takhmeen']) && isset($per_day_thaali_cost_amount) && $per_day_thaali_cost_amount !== null && (float)$per_day_thaali_cost_amount > 0) {
-                  $thaaliDays = (int) floor(((float) $user['selected_total_takhmeen']) / (float) $per_day_thaali_cost_amount);
-                }
-                ?>
-                <td data-sort-value="<?php echo $thaaliDays !== null ? (int)$thaaliDays : ''; ?>">
-                  <?php echo $thaaliDays !== null ? (int)$thaaliDays : '-'; ?>
-                </td>
-                <?php
                 $assignedDays = isset($user['assigned_thaali_days']) ? $user['assigned_thaali_days'] : null;
                 ?>
                 <td data-sort-value="<?php echo $assignedDays !== null ? (int)$assignedDays : ''; ?>">
-                  <?php echo $assignedDays !== null ? (int)$assignedDays : '-'; ?>
+                  <?php if ($assignedDays !== null): ?>
+                    <a href="#" class="view-assigned-thaali-days" data-user-id="<?php echo htmlspecialchars($user['ITS_ID'], ENT_QUOTES); ?>" data-user-name="<?php echo htmlspecialchars($user['Full_Name'], ENT_QUOTES); ?>" data-year="<?php echo htmlspecialchars($selected_year ?? '', ENT_QUOTES); ?>">
+                      <?php echo (int)$assignedDays; ?>
+                    </a>
+                  <?php else: ?>
+                    -
+                  <?php endif; ?>
                 </td>
                 <td data-sort-value="<?php echo (int)($user['selected_total_takhmeen'] ?? 0); ?>">
                   <?php if (!empty($user['selected_total_takhmeen'])): ?>
@@ -152,7 +148,7 @@
                 <td class="takhmeen-amount <?php echo $user["overall_due"] > 0 ? 'text-danger' : ''; ?>" data-sort-value="<?php echo (int)$user['overall_due']; ?>" data-raw="<?php echo (int)$user['overall_due']; ?>"><?php echo $user["overall_due"]; ?></td>
                 <td>
                   <?php if (count($user["all_takhmeen"]) > 0): ?>
-                    <button class="view-due btn btn-sm btn-info mb-2" data-toggle="modal" data-target="#due-overview-modal" data-user-name="<?php echo $user["Full_Name"]; ?>" data-all-takhmeen='<?php echo htmlspecialchars(json_encode($user["all_takhmeen"]), ENT_QUOTES, 'UTF-8'); ?>'>Takhmeen Details</button>
+                    <button class="view-due btn btn-sm btn-info mb-2" data-toggle="modal" data-target="#due-overview-modal" data-user-id="<?php echo htmlspecialchars($user['ITS_ID'], ENT_QUOTES); ?>" data-user-name="<?php echo $user["Full_Name"]; ?>" data-all-takhmeen='<?php echo htmlspecialchars(json_encode($user["all_takhmeen"]), ENT_QUOTES, 'UTF-8'); ?>'>Takhmeen Details</button>
                   <?php endif; ?>
                   <?php if ($user["overall_due"] > 0): ?>
                     <button id="pay-takhmeen-btn" class="pay-takhmeen-btn btn btn-sm btn-success mb-2" data-toggle="modal" data-target="#pay-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo $user["Full_Name"]; ?>" data-overall-due="<?php echo $user["overall_due"]; ?>">Receive Payment</button>
@@ -168,6 +164,30 @@
           ?>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- Assigned Thaali Days Modal -->
+<div class="modal fade" id="assigned-thaali-days-modal" tabindex="-1" aria-labelledby="assigned-thaali-days-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assigned-thaali-days-title">Assigned Thaali Dates</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1"><b>Member Name:</b> <span id="assigned-thaali-days-member"></span></p>
+        <p class="mb-3"><b>FY:</b> <span id="assigned-thaali-days-year"></span></p>
+        <div id="assigned-thaali-days-loading" class="text-center text-secondary" style="display:none;">Loading...</div>
+        <div id="assigned-thaali-days-empty" class="text-center text-secondary" style="display:none;">No assigned dates.</div>
+        <ul id="assigned-thaali-days-list" class="mb-0"></ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
     </div>
   </div>
 </div>
@@ -190,6 +210,7 @@
               <th>Takhmeen Amount</th>
               <th>Paid</th>
               <th>Due</th>
+              <th>Assigned Thaali Days</th>
               <th>Update Remark</th>
             </tr>
           </thead>
@@ -276,6 +297,28 @@
 </div>
 
 <script>
+  // Modal z-index stacking fix (Bootstrap) for pages with multiple modals
+  // Ensures newly opened modal + its backdrop appear above existing open modals.
+  $(document).on('show.bs.modal', '.modal', function() {
+    const $openModals = $('.modal.show');
+    const baseZ = 1040;
+    const z = baseZ + ($openModals.length * 10) + 10;
+    $(this).css('z-index', z);
+
+    // Backdrop is inserted after this event; adjust it on next tick
+    setTimeout(function() {
+      const $backdrops = $('.modal-backdrop').not('.modal-stack');
+      $backdrops.css('z-index', z - 1).addClass('modal-stack');
+    }, 0);
+  });
+
+  // When a stacked modal closes, keep body scroll lock if others remain open
+  $(document).on('hidden.bs.modal', '.modal', function() {
+    if ($('.modal.show').length) {
+      $('body').addClass('modal-open');
+    }
+  });
+
   // Precise currency formatting without rounding significant digits
   $(function() {
     $(".takhmeen-amount").each(function() {
@@ -295,6 +338,7 @@
 
   $(document).ready(function() {
     $(".view-due").on("click", function() {
+      const userId = $(this).data("user-id");
       const userName = $(this).data("user-name");
       const allTakhmeen = $(this).data("all-takhmeen");
 
@@ -315,6 +359,9 @@
         const amtTotal = `₹${fmt.format(parseFloat(takhmeen.total_amount||0))}`;
         const amtPaid = `₹${fmt.format(parseFloat(takhmeen.total_paid||0))}`;
         const amtDue = `₹${fmt.format(parseFloat(takhmeen.due||0))}`;
+        const assignedDays = parseInt(takhmeen.assigned_thaali_days || 0, 10) || 0;
+        const fy = (takhmeen.year || '').toString();
+        const assignedHtml = `<a href="#" class="view-assigned-thaali-days" data-user-id="${(userId||'').toString()}" data-user-name="${(userName||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}" data-year="${fy.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}">${assignedDays}</a>`;
 
         $("#due-details").append(`
         <tr>
@@ -322,6 +369,7 @@
           <td class="text-primary">${amtTotal}</td>
           <td class="text-success">${amtPaid}</td>
           <td class="${(takhmeen.due||0) > 0 ? 'text-danger' : ''}">${amtDue}</td>
+          <td>${assignedHtml}</td>
           <td>${remarkSafe || '-'}</td>
         </tr>
       `);
@@ -489,6 +537,52 @@
   });
 
   $(".alert").hide(3000);
+
+  $(document).on('click', '.view-assigned-thaali-days', function(e) {
+    e.preventDefault();
+    const userId = $(this).data('user-id');
+    const userName = $(this).data('user-name');
+    const year = $(this).data('year');
+
+    $('#assigned-thaali-days-member').text(userName || '');
+    $('#assigned-thaali-days-year').text(year || '');
+    $('#assigned-thaali-days-list').empty();
+    $('#assigned-thaali-days-empty').hide();
+    $('#assigned-thaali-days-loading').show();
+
+    $('#assigned-thaali-days-modal').modal('show');
+
+    $.ajax({
+      url: "<?php echo base_url('anjuman/getfmbassignedthaalidates'); ?>",
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        user_id: userId,
+        year: year
+      },
+      success: function(res) {
+        $('#assigned-thaali-days-loading').hide();
+        const dates = (res && res.success && Array.isArray(res.dates)) ? res.dates : [];
+        if (!dates.length) {
+          $('#assigned-thaali-days-empty').show();
+          return;
+        }
+        dates.forEach(function(d) {
+          // d is expected as YYYY-MM-DD
+          let label = d;
+          if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+            const parts = d.split('-');
+            label = parts[2] + '-' + parts[1] + '-' + parts[0];
+          }
+          $('#assigned-thaali-days-list').append('<li>' + label + '</li>');
+        });
+      },
+      error: function() {
+        $('#assigned-thaali-days-loading').hide();
+        $('#assigned-thaali-days-empty').text('Failed to load assigned dates.').show();
+      }
+    });
+  });
 
   // Improved sortable columns for main takhmeen table
   (function() {

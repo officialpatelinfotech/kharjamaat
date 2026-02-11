@@ -362,6 +362,28 @@ class Common extends CI_Controller
       $data['menu'][$key]['hijri_date'] = $this->get_hijri_day_month($value["date"], $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"]);
     }
 
+    // Count distinct members assigned in the current listing
+    $assigned_member_its = [];
+    $assigned_days_count = 0;
+    $total_thaali_days_count = 0;
+    if (!empty($data['menu'])) {
+      foreach ($data['menu'] as $row) {
+        $has_menu = !empty($row['items']) && is_array($row['items']) && count($row['items']) > 0;
+        if ($has_menu) {
+          $total_thaali_days_count++;
+        }
+        if (!empty($row['assigned_to_its'])) {
+          $assigned_member_its[(string) $row['assigned_to_its']] = true;
+          if ($has_menu) {
+            $assigned_days_count++;
+          }
+        }
+      }
+    }
+    $data['assigned_members_count'] = count($assigned_member_its);
+    $data['assigned_days_count'] = (int) $assigned_days_count;
+    $data['total_thaali_days_count'] = (int) $total_thaali_days_count;
+
     // Summary cards data (moved from view)
     // Summary cards data aggregated for the Hijri year using AccountM helpers
     $this->load->model('AccountM');
@@ -510,22 +532,7 @@ class Common extends CI_Controller
 
     $selected_item_ids = json_decode($this->input->post('selected_item_ids'), true);
 
-    // Must assign a member before creating/updating menu
-    if ($this->db->table_exists('fmb_thaali_day_assignment') && !$assigned_user_id) {
-      $this->session->set_flashdata('error', "You can't create the menu. You have to assign the member first.");
-      $from = isset($_SESSION['from']) ? $_SESSION['from'] : '';
-      if ($edit_mode) {
-        $menu_id_redirect = (int)$this->input->post('menu_id');
-        if ($menu_id_redirect) {
-          redirect('common/edit_menu/' . $menu_id_redirect . '?from=' . $from);
-          return;
-        }
-      }
-      // For create mode, redirect back to create screen (keeps the date in URL when possible)
-      $iso = $menu_date ? date('Y-m-d', strtotime($menu_date)) : '';
-      redirect('common/createmenu' . ($iso ? ('?date=' . $iso) : ''));
-      return;
-    }
+    // Member assignment is optional. If provided, validation is enforced below.
 
     // Server-side enforcement: do not allow assignment when pending thaali days are 0.
     // (UI blocks selection, but this prevents bypass.)
@@ -748,7 +755,9 @@ class Common extends CI_Controller
       return;
     }
 
-    $ids = array_values(array_map(function ($u) { return (int)$u['ITS_ID']; }, $users));
+    $ids = array_values(array_map(function ($u) {
+      return (int)$u['ITS_ID'];
+    }, $users));
 
     // Takhmeen amounts for FY
     $takhmeen_map = [];
@@ -914,6 +923,28 @@ class Common extends CI_Controller
         $data['menu'][$key]['hijri_date'] = $this->get_hijri_day_month($value["date"]);
       }
     }
+
+    // Count distinct members assigned in the current listing
+    $assigned_member_its = [];
+    $assigned_days_count = 0;
+    $total_thaali_days_count = 0;
+    if (!empty($data['menu'])) {
+      foreach ($data['menu'] as $row) {
+        $has_menu = !empty($row['items']) && is_array($row['items']) && count($row['items']) > 0;
+        if ($has_menu) {
+          $total_thaali_days_count++;
+        }
+        if (!empty($row['assigned_to_its'])) {
+          $assigned_member_its[(string) $row['assigned_to_its']] = true;
+          if ($has_menu) {
+            $assigned_days_count++;
+          }
+        }
+      }
+    }
+    $data['assigned_members_count'] = count($assigned_member_its);
+    $data['assigned_days_count'] = (int) $assigned_days_count;
+    $data['total_thaali_days_count'] = (int) $total_thaali_days_count;
 
     $data["hijri_months"] = $this->HijriCalendar->get_hijri_month();
 
@@ -1679,8 +1710,19 @@ class Common extends CI_Controller
         redirect('common/createmiqaat?date=' . $date);
       }
 
-      if ($miqaat_type == "Shehrullah" && !($hijri_month == 9 && ($hijri_day >= 1 && $hijri_day <= 30))) {
-        $this->session->set_flashdata('error', 'Shehrullah Miqaat can only be created between 1st to 30th Ramadan.');
+      $is_shehrullah_window = (
+        ($hijri_month == 9 && ($hijri_day >= 1 && $hijri_day <= 30))
+        || ($hijri_month == 8 && (int)$hijri_day == 29)
+        || ($hijri_month == 10 && (int)$hijri_day == 1)
+      );
+
+      if ($hijri_month == 8 && (int)$hijri_day == 29 && $miqaat_type != "Shehrullah") {
+        $this->session->set_flashdata('error', 'Only Shehrullah Miqaat can be created on this date.');
+        redirect('common/createmiqaat?date=' . $date);
+      }
+
+      if ($miqaat_type == "Shehrullah" && !$is_shehrullah_window) {
+        $this->session->set_flashdata('error', 'Shehrullah Miqaat can only be created between 29th Shabaan to 1st Shawwal.');
         redirect('common/createmiqaat?date=' . $date);
       }
 
@@ -1930,8 +1972,19 @@ class Common extends CI_Controller
         redirect('common/createmiqaat?date=' . $date);
       }
 
-      if ($miqaat_type == "Shehrullah" && !($hijri_month == 9 && ($hijri_day >= 1 && $hijri_day <= 30))) {
-        $this->session->set_flashdata('error', 'Shehrullah Miqaat can only be created between 1st to 30th Ramadan.');
+      $is_shehrullah_window = (
+        ($hijri_month == 9 && ($hijri_day >= 1 && $hijri_day <= 30))
+        || ($hijri_month == 8 && (int)$hijri_day == 29)
+        || ($hijri_month == 10 && (int)$hijri_day == 1)
+      );
+
+      if ($hijri_month == 8 && (int)$hijri_day == 29 && $miqaat_type != "Shehrullah") {
+        $this->session->set_flashdata('error', 'Only Shehrullah Miqaat can be created on this date.');
+        redirect('common/createmiqaat?date=' . $date);
+      }
+
+      if ($miqaat_type == "Shehrullah" && !$is_shehrullah_window) {
+        $this->session->set_flashdata('error', 'Shehrullah Miqaat can only be created between 29th Shabaan to 1st Shawwal.');
         redirect('common/createmiqaat?date=' . $date);
       }
 
@@ -2133,12 +2186,44 @@ class Common extends CI_Controller
         'ybookwala@gmail.com'
       ];
       $adminSub = 'Miqaat Activated: ' . $miqaatName;
+
+      // Include assignment details for admins (helps identify affected members/groups)
+      $assignSummaryHtml = '';
+      if (!empty($miqaat['assignments']) && is_array($miqaat['assignments'])) {
+        $lines = [];
+        foreach ($miqaat['assignments'] as $ass) {
+          $atype = $ass['assign_type'] ?? '';
+          if ($atype === 'Individual') {
+            $mName = trim((string)($ass['member_name'] ?? ''));
+            $mId = trim((string)($ass['member_id'] ?? ''));
+            $line = $mName;
+            if ($mId !== '') {
+              $line = trim($line . ' (' . $mId . ')');
+            }
+            if ($line !== '') $lines[] = htmlspecialchars($line);
+          } elseif ($atype === 'Group') {
+            $gName = trim((string)($ass['group_name'] ?? ''));
+            $lName = trim((string)($ass['group_leader_name'] ?? ''));
+            $lId = trim((string)($ass['group_leader_id'] ?? ''));
+            $line = 'Group';
+            if ($gName !== '') $line .= ': ' . $gName;
+            $leaderPart = trim($lName . ($lId !== '' ? (' ' . $lId) : ''));
+            if ($leaderPart !== '') $line .= ' (Leader: ' . $leaderPart . ')';
+            $lines[] = htmlspecialchars($line);
+          }
+        }
+        if (!empty($lines)) {
+          $assignSummaryHtml = implode('<br/>', $lines);
+        }
+      }
+
       $adminBody = '<p>A miqaat has been activated.</p>'
         . '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
         . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
         . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
         . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>') : '')
         . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>'
+        . ($assignSummaryHtml !== '' ? ('<tr><td><strong>Assigned To</strong></td><td>' . $assignSummaryHtml . '</td></tr>') : '')
         . '</table>';
       foreach ($admins as $a) {
         $this->EmailQueueM->enqueue($a, $adminSub, $adminBody, null, 'html');
@@ -2152,10 +2237,22 @@ class Common extends CI_Controller
             $memberId = $ass['member_id'];
             $member = $this->AccountM->getUserData($memberId);
             if (!empty($member) && !empty($member['Email'])) {
+              $memberName = '';
+              if (!empty($member['Full_Name'])) {
+                $memberName = (string)$member['Full_Name'];
+              } else {
+                $memberName = trim((string)($member['First_Name'] ?? '') . ' ' . (string)($member['Surname'] ?? ''));
+              }
+
               $sub = 'Miqaat Activated: submit your Raza for ' . $miqaatName;
-              $body = '<p>Baad Afzalus Salaam,</p>';
+              $body = '<p>Baad Afzalus Salaam,';
+              if ($memberName !== '') {
+                $body .= '<br/><b>' . htmlspecialchars($memberName) . '</b>';
+              }
+              $body .= '</p>';
               $body .= '<p>The miqaat below which you were assigned to has now been <strong>activated</strong>:</p>';
               $body .= '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+                . '<tr><td><strong>Member</strong></td><td>' . htmlspecialchars(trim($memberName . (!empty($memberId) ? (' (' . $memberId . ')') : ''))) . '</td></tr>'
                 . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
                 . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
                 . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>') : '')
@@ -2171,10 +2268,22 @@ class Common extends CI_Controller
             $leaderId = $ass['group_leader_id'];
             $leader = $this->AccountM->getUserData($leaderId);
             if (!empty($leader) && !empty($leader['Email'])) {
+              $leaderName = '';
+              if (!empty($leader['Full_Name'])) {
+                $leaderName = (string)$leader['Full_Name'];
+              } else {
+                $leaderName = trim((string)($leader['First_Name'] ?? '') . ' ' . (string)($leader['Surname'] ?? ''));
+              }
+
               $sub = 'Miqaat: ' . $miqaatName . ' activated - Submit Raza for your group';
-              $body = '<p>Baad Afzalus Salaam,</p>';
+              $body = '<p>Baad Afzalus Salaam,';
+              if ($leaderName !== '') {
+                $body .= '<br/>' . htmlspecialchars($leaderName);
+              }
+              $body .= '</p>';
               $body .= '<p>The miqaat below which your group is assigned to has now been <strong>activated</strong>. You can now submit a Raza for this miqaat.</p>';
               $body .= '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+                . '<tr><td><strong>Member</strong></td><td>' . htmlspecialchars(trim($leaderName . (!empty($leaderId) ? (' (' . $leaderId . ')') : ''))) . '</td></tr>'
                 . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
                 . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
                 . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>') : '')
@@ -3116,6 +3225,41 @@ class Common extends CI_Controller
 
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/FMBTakhmeenSectorDetails', $data);
+  }
+
+  public function getfmbassignedthaalidates()
+  {
+    $this->validateUser($_SESSION['user']);
+
+    $user_id = trim((string)$this->input->post('user_id'));
+    $year = (string)$this->input->post('year');
+
+    $this->output->set_content_type('application/json');
+    if ($user_id === '' || !preg_match('/^\d+$/', $user_id) || $year === '') {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Missing parameters', 'dates' => []]));
+      return;
+    }
+
+    if (!$this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->output->set_output(json_encode(['success' => true, 'dates' => []]));
+      return;
+    }
+
+    $this->db->select('DATE(menu_date) AS d', false);
+    $this->db->from('fmb_thaali_day_assignment');
+    $this->db->where('user_id', $user_id);
+    $this->db->where('year', $year);
+    $this->db->order_by('menu_date', 'ASC');
+    $rows = $this->db->get()->result_array();
+
+    $dates = [];
+    foreach ($rows as $r) {
+      if (!empty($r['d'])) {
+        $dates[] = (string)$r['d'];
+      }
+    }
+
+    $this->output->set_output(json_encode(['success' => true, 'dates' => $dates]));
   }
 
   // ===================== FMB General Contribution (Card + Listing) =====================

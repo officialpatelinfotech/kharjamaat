@@ -290,6 +290,35 @@ class Accounts extends CI_Controller
     $data["fmb_takhmeen_details"] = [
       'total_due' => $family_fmb_due,
     ];
+
+    // FMB Due badge should reflect *all* FMB-related dues shown on the FMB screen
+    // (Thaali/FMB takhmeen + FMB extra contributions + Miqaat invoices)
+    $fmb_extra_due = 0.0;
+    $fmb_miqaat_invoice_due = 0.0;
+    if (!empty($memberIds)) {
+      $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
+
+      // FMB extra contributions (GC)
+      $gcRow = $this->db->query(
+        "SELECT COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due\n" .
+          "FROM fmb_general_contribution gc\n" .
+          "LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id\n" .
+          "WHERE gc.user_id IN ($placeholders)",
+        $memberIds
+      )->row_array();
+      $fmb_extra_due = isset($gcRow['total_due']) ? (float)$gcRow['total_due'] : 0.0;
+
+      // Miqaat invoice dues
+      $miqRow = $this->db->query(
+        "SELECT COALESCE(SUM(i.amount - COALESCE(p.total_paid,0)),0) AS total_due\n" .
+          "FROM miqaat_invoice i\n" .
+          "LEFT JOIN (SELECT miqaat_invoice_id, SUM(amount) AS total_paid FROM miqaat_payment GROUP BY miqaat_invoice_id) p ON p.miqaat_invoice_id = i.id\n" .
+          "WHERE i.user_id IN ($placeholders)",
+        $memberIds
+      )->row_array();
+      $fmb_miqaat_invoice_due = isset($miqRow['total_due']) ? (float)$miqRow['total_due'] : 0.0;
+    }
+    $data['fmb_due_badge'] = (($family_fmb_due + $fmb_extra_due + $fmb_miqaat_invoice_due) > 0);
     $data["sabeel_takhmeen_details"] = [
       'total_due' => $family_sabeel_due,
       'current_year' => $family_sabeel_current_year,
@@ -1931,6 +1960,100 @@ class Accounts extends CI_Controller
       $res = ['success' => false, 'message' => 'Invoice not found'];
     }
     $this->output->set_content_type('application/json')->set_output(json_encode($res));
+  }
+
+  /**
+   * AJAX: Return assigned thaali dates for the logged-in user's family for a given FY.
+   * POST: year (FY label like 1447-48)
+   * Response: JSON { success, dates: [{greg_date, hijri_date}], message? }
+   */
+  public function getfmbassignedthaalidates()
+  {
+    if (empty($_SESSION['user'])) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Unauthorized', 'dates' => []]));
+      return;
+    }
+
+    $year = trim((string)$this->input->post('year'));
+    $this->output->set_content_type('application/json');
+
+    if ($year === '' || !preg_match('/^\d{4}-\d{2}$/', $year)) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Invalid year', 'dates' => []]));
+      return;
+    }
+
+    if (!$this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->output->set_output(json_encode(['success' => true, 'dates' => []]));
+      return;
+    }
+
+    $member_id = $_SESSION['user_data']['ITS_ID'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_id);
+    $memberIds = [$hof_id];
+    $family = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) $memberIds[] = (int)$f['ITS_ID'];
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    if (empty($memberIds)) {
+      $this->output->set_output(json_encode(['success' => true, 'dates' => []]));
+      return;
+    }
+
+    // Prefer Hijri-calendar derived FY boundaries (same as viewfmbtakhmeen aggregation).
+    $dates = [];
+    $fyStart = null;
+    $fyEnd = null;
+    if (preg_match('/^(\d{4})-(\d{2})$/', (string)$year, $m)) {
+      $fyStart = (int)$m[1];
+      $fyEnd = $fyStart + 1;
+    }
+
+    if ($fyStart && $fyEnd && $this->db->table_exists('hijri_calendar')) {
+      $sql = "SELECT DISTINCT DATE(a.menu_date) AS greg_date, hc.hijri_date AS hijri_date
+              FROM fmb_thaali_day_assignment a
+              JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
+              WHERE a.user_id IN (" . implode(',', array_fill(0, count($memberIds), '?')) . ")
+                AND (
+                  (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                    AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12)
+                  OR
+                  (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                    AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 8)
+                )
+              ORDER BY greg_date ASC";
+      $params = array_map('intval', $memberIds);
+      $params[] = $fyStart;
+      $params[] = $fyEnd;
+      $rows = $this->db->query($sql, $params)->result_array();
+
+      foreach ($rows as $r) {
+        if (!empty($r['greg_date'])) {
+          $dates[] = [
+            'greg_date' => (string)$r['greg_date'],
+            'hijri_date' => !empty($r['hijri_date']) ? (string)$r['hijri_date'] : null,
+          ];
+        }
+      }
+    } else {
+      // Fallback to stored year column.
+      $this->db->select('DISTINCT DATE(menu_date) AS greg_date', false);
+      $this->db->from('fmb_thaali_day_assignment');
+      $this->db->where_in('user_id', $memberIds);
+      $this->db->where('year', $year);
+      $this->db->order_by('menu_date', 'ASC');
+      $rows = $this->db->get()->result_array();
+      foreach ($rows as $r) {
+        if (!empty($r['greg_date'])) {
+          $dates[] = ['greg_date' => (string)$r['greg_date'], 'hijri_date' => null];
+        }
+      }
+    }
+
+    $this->output->set_output(json_encode(['success' => true, 'dates' => $dates]));
   }
 
   public function ViewSabeelTakhmeen()

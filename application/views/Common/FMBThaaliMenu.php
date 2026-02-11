@@ -2,20 +2,32 @@
   .menu-list-container {
     width: 100%;
   }
+
   /* Hide Actions column and print button when printing */
   @media print {
+
     /* Hide actions column */
     .menu-list-container table th:last-child,
-    .menu-list-container table td:last-child { display: none !important; }
+    .menu-list-container table td:last-child {
+      display: none !important;
+    }
+
     /* Hide everything except heading and table */
     #print-table-btn,
     .print-controls,
     .create-menu-btn,
     .create-menu-btn form,
     .create-menu-btn #clear-filter,
-    .container.mb-3.p-0 { display: none !important; }
+    .container.mb-3.p-0 {
+      display: none !important;
+    }
+
     /* Remove page padding for compact print */
-    body, .margintopcontainer { padding: 0 !important; margin: 0 !important; }
+    body,
+    .margintopcontainer {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
   }
 </style>
 
@@ -25,8 +37,8 @@
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
-<div class="container margintopcontainer pt-5">
-  <div class="container mb-3 p-0">
+<div class="margintopcontainer pt-5 mx-3">
+  <div class="mb-3 p-0">
     <a href="<?php echo isset($from) ? base_url($from) : base_url("anjuman/fmbthaali"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
   <div class="create-menu-btn d-flex">
@@ -79,9 +91,24 @@
     </div>
   </div>
 
-  
+
 
   <h4 class="text-center mb-3">FMB Thaali Menu</h4>
+
+  <?php if (isset($assigned_members_count) || isset($assigned_days_count) || isset($total_thaali_days_count)): ?>
+    <div class="mb-2 text-center text-secondary">
+      <?php if (isset($assigned_members_count)): ?>
+        Assigned Members: <strong class="text-dark"><?php echo (int) $assigned_members_count; ?></strong>
+      <?php endif; ?>
+      <?php if (isset($assigned_days_count) && isset($total_thaali_days_count)): ?>
+        <?php if (isset($assigned_members_count)): ?>
+          &nbsp;|&nbsp;
+        <?php endif; ?>
+        Assigned Days: <strong class="text-dark"><?php echo (int) $assigned_days_count; ?></strong> / <strong class="text-dark"><?php echo (int) $total_thaali_days_count; ?></strong>
+      <?php endif; ?>
+
+    </div>
+  <?php endif; ?>
 
   <div class="mb-2 d-flex justify-content-center">
     <div class="text-center">
@@ -176,66 +203,94 @@
       </tbody>
     </table>
     <script>
-      (function(){
+      (function() {
         const table = document.querySelector('.menu-list-container table');
-        if(!table) return;
+        if (!table) return;
         const thead = table.querySelector('thead');
         const tbody = table.querySelector('tbody');
-        if(!thead || !tbody) return;
+        if (!thead || !tbody) return;
 
         // Make headers sortable (except those marked data-no-sort)
         thead.querySelectorAll('th').forEach((th, idx) => {
-          if(th.hasAttribute('data-no-sort')) return;
+          if (th.hasAttribute('data-no-sort')) return;
           th.classList.add('sortable');
           const original = th.innerHTML.trim();
-          th.innerHTML = '<span class="sort-label">'+original+'</span><span class="sort-indicator" aria-hidden="true"></span>';
-          th.setAttribute('role','button'); th.setAttribute('tabindex','0');
+          th.innerHTML = '<span class="sort-label">' + original + '</span><span class="sort-indicator" aria-hidden="true"></span>';
+          th.setAttribute('role', 'button');
+          th.setAttribute('tabindex', '0');
           th.addEventListener('click', () => toggleSort(idx, th));
-          th.addEventListener('keydown', e => { if(['Enter',' '].includes(e.key)){ e.preventDefault(); toggleSort(idx, th); }});
+          th.addEventListener('keydown', e => {
+            if (['Enter', ' '].includes(e.key)) {
+              e.preventDefault();
+              toggleSort(idx, th);
+            }
+          });
         });
 
-        function getCellValue(tr, index){
+        function getCellValue(tr, index) {
           const cells = tr.querySelectorAll('td');
-          if(!cells[index]) return '';
+          if (!cells[index]) return '';
           return cells[index].getAttribute('data-sort-value') || cells[index].textContent.trim();
         }
-        function inferType(val){
-          if(/^\d{4}-\d{2}-\d{2}$/.test(val)) return 'date';
-          if(!isNaN(parseFloat(val)) && isFinite(val)) return 'number';
+
+        function inferType(val) {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return 'date';
+          if (!isNaN(parseFloat(val)) && isFinite(val)) return 'number';
           return 'text';
         }
-        function norm(val){
+
+        function norm(val) {
           const t = inferType(val);
-          if(t==='date') return new Date(val).getTime();
-          if(t==='number') return parseFloat(val);
+          if (t === 'date') return new Date(val).getTime();
+          if (t === 'number') return parseFloat(val);
           return val.toLowerCase();
         }
-        function toggleSort(idx, th){
+
+        function toggleSort(idx, th) {
           const newDir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
-          thead.querySelectorAll('th.sortable').forEach(h => { h.dataset.sortDir=''; const ind=h.querySelector('.sort-indicator'); if(ind) ind.textContent=''; });
-          th.dataset.sortDir = newDir; const ind=th.querySelector('.sort-indicator'); if(ind) ind.textContent = newDir==='asc' ? '▲' : '▼';
+          thead.querySelectorAll('th.sortable').forEach(h => {
+            h.dataset.sortDir = '';
+            const ind = h.querySelector('.sort-indicator');
+            if (ind) ind.textContent = '';
+          });
+          th.dataset.sortDir = newDir;
+          const ind = th.querySelector('.sort-indicator');
+          if (ind) ind.textContent = newDir === 'asc' ? '▲' : '▼';
 
           const allRows = Array.from(tbody.querySelectorAll('tr'));
           const monthHeaders = allRows.filter(r => r.classList.contains('month-header'));
           const dataRows = allRows.filter(r => !r.classList.contains('month-header'));
 
-          dataRows.sort((a,b) => {
+          dataRows.sort((a, b) => {
             const va = norm(getCellValue(a, idx));
             const vb = norm(getCellValue(b, idx));
-            if(va < vb) return newDir==='asc' ? -1 : 1;
-            if(va > vb) return newDir==='asc' ? 1 : -1;
+            if (va < vb) return newDir === 'asc' ? -1 : 1;
+            if (va > vb) return newDir === 'asc' ? 1 : -1;
             return 0;
           });
 
           // Rebuild tbody with month headers preceding first row of each month in current order
-          tbody.innerHTML='';
+          tbody.innerHTML = '';
           const inserted = new Set();
           dataRows.forEach(r => {
             const m = r.getAttribute('data-hijri-date');
             let mName = '';
-            if(m){ const parts = m.split(' '); parts.shift(); mName = parts.join(' ');} 
-            if(mName && !inserted.has(mName)){
-              const hdr = document.createElement('tr'); hdr.className='month-header'; const td=document.createElement('td'); td.colSpan=7; td.className='bg-dark text-white text-center'; td.style.fontWeight='bold'; td.textContent='Hijri Month: '+mName; hdr.appendChild(td); tbody.appendChild(hdr); inserted.add(mName);
+            if (m) {
+              const parts = m.split(' ');
+              parts.shift();
+              mName = parts.join(' ');
+            }
+            if (mName && !inserted.has(mName)) {
+              const hdr = document.createElement('tr');
+              hdr.className = 'month-header';
+              const td = document.createElement('td');
+              td.colSpan = 7;
+              td.className = 'bg-dark text-white text-center';
+              td.style.fontWeight = 'bold';
+              td.textContent = 'Hijri Month: ' + mName;
+              hdr.appendChild(td);
+              tbody.appendChild(hdr);
+              inserted.add(mName);
             }
             tbody.appendChild(r);
           });
@@ -243,13 +298,17 @@
 
         // Assigned To filter: search by Name or ITS (client-side)
         const assignedFilter = document.getElementById('filter-assigned');
-        function applyAssignedFilter(){
+
+        function applyAssignedFilter() {
           const q = (assignedFilter && assignedFilter.value ? assignedFilter.value : '').toString().toLowerCase().trim();
           const rows = Array.from(tbody.querySelectorAll('tr'));
           // First pass: hide/show data rows
           rows.forEach(r => {
-            if(r.classList.contains('month-header')) return;
-            if(!q){ r.style.display=''; return; }
+            if (r.classList.contains('month-header')) return;
+            if (!q) {
+              r.style.display = '';
+              return;
+            }
             const tds = r.querySelectorAll('td');
             const assignedName = (tds[5] ? tds[5].textContent : '').toString().toLowerCase();
             const assignedIts = (r.getAttribute('data-assigned-its') || '').toString().toLowerCase();
@@ -260,41 +319,45 @@
           let currentHeader = null;
           let anyVisibleForHeader = false;
           rows.forEach(r => {
-            if(r.classList.contains('month-header')){
-              if(currentHeader){
+            if (r.classList.contains('month-header')) {
+              if (currentHeader) {
                 currentHeader.style.display = anyVisibleForHeader ? '' : 'none';
               }
               currentHeader = r;
               anyVisibleForHeader = false;
               return;
             }
-            if(r.style.display !== 'none') anyVisibleForHeader = true;
+            if (r.style.display !== 'none') anyVisibleForHeader = true;
           });
-          if(currentHeader){
+          if (currentHeader) {
             currentHeader.style.display = anyVisibleForHeader ? '' : 'none';
           }
         }
-        if(assignedFilter){
+        if (assignedFilter) {
           assignedFilter.addEventListener('input', applyAssignedFilter);
         }
 
         // Eng Date filter (only this column controls filtering)
         const engFilter = document.getElementById('eng-date-filter');
-        if(engFilter){
+        if (engFilter) {
           engFilter.addEventListener('change', () => {
             const v = engFilter.value; // YYYY-MM-DD
             const rows = Array.from(tbody.querySelectorAll('tr'));
             rows.forEach(r => {
-              if(r.classList.contains('month-header')) return; // keep headers for context
+              if (r.classList.contains('month-header')) return; // keep headers for context
               const eng = r.getAttribute('data-eng-date') || '';
-              if(!v || eng === v){ r.style.display=''; } else { r.style.display='none'; }
+              if (!v || eng === v) {
+                r.style.display = '';
+              } else {
+                r.style.display = 'none';
+              }
             });
           });
         }
 
         // Print table only
         const printTableBtn = document.getElementById('print-table-btn');
-        if(printTableBtn){
+        if (printTableBtn) {
           printTableBtn.addEventListener('click', () => {
             // Directly print current page; CSS @media print hides Actions column & button
             window.print();
