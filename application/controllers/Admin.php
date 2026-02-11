@@ -2390,8 +2390,47 @@ class Admin extends CI_Controller
 
   public function managefmbtakhmeen()
   {
+    // Debug markers to verify which server code/view is being served.
+    // These must run before the auth redirect so we can still observe headers.
+    $this->output->set_header('X-ManageFMBTakhmeen-Version: 2026-02-10a');
+    $viewPath = APPPATH . 'views' . DIRECTORY_SEPARATOR . 'Admin' . DIRECTORY_SEPARATOR . 'ManageFMBTakhmeen.php';
+    if (is_file($viewPath)) {
+      $this->output->set_header('X-ManageFMBTakhmeen-View-Path: ' . str_replace('\\', '/', $viewPath));
+      $this->output->set_header('X-ManageFMBTakhmeen-View-MTime: ' . (string)@filemtime($viewPath));
+      $hash = @md5_file($viewPath);
+      if ($hash) {
+        $this->output->set_header('X-ManageFMBTakhmeen-View-Hash: ' . $hash);
+      }
+    } else {
+      $this->output->set_header('X-ManageFMBTakhmeen-View-Path: NOT_FOUND');
+    }
+    if (function_exists('ini_get')) {
+      $this->output->set_header('X-OPcache-Enable: ' . (string)ini_get('opcache.enable'));
+      $this->output->set_header('X-OPcache-Validate-Timestamps: ' . (string)ini_get('opcache.validate_timestamps'));
+      $this->output->set_header('X-OPcache-Revalidate-Freq: ' . (string)ini_get('opcache.revalidate_freq'));
+    }
+
     if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
+    }
+
+    // Dev convenience: ensure view changes show immediately even if OPcache is enabled.
+    if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+      // Make sure file mtimes are re-checked.
+      if (function_exists('clearstatcache')) {
+        @clearstatcache(true);
+        if (is_file($viewPath)) {
+          @clearstatcache(true, $viewPath);
+        }
+      }
+
+      // If OPcache exists, invalidate/reset so updated PHP view is served.
+      if (function_exists('opcache_invalidate') && is_file($viewPath)) {
+        @opcache_invalidate($viewPath, true);
+      }
+      if (function_exists('opcache_reset')) {
+        @opcache_reset();
+      }
     }
 
     $data["all_user_fmb_takhmeen"] = $this->AdminM->get_user_fmb_takhmeen_details();
@@ -2410,9 +2449,131 @@ class Admin extends CI_Controller
       $data['per_day_thaali_cost_amount'] = $row && isset($row['amount']) ? (float)$row['amount'] : null;
     }
 
+    // Per-day thaali cost map by FY (used for year-wise calculations in modals)
+    $data['per_day_thaali_cost_by_year'] = [];
+    $this->load->model('PerDayThaaliCostM');
+    foreach ($this->PerDayThaaliCostM->get_all() as $r) {
+      if (!empty($r['year'])) {
+        $data['per_day_thaali_cost_by_year'][(string)$r['year']] = isset($r['amount']) ? (float)$r['amount'] : null;
+      }
+    }
+
+    // Hijri calendar gregorian date range (for validating/limiting thaali date picker)
+    $data['hijri_calendar_min_greg'] = null;
+    $data['hijri_calendar_max_greg'] = null;
+    if ($this->db->table_exists('hijri_calendar')) {
+      $r = $this->db->select('MIN(greg_date) AS min_d, MAX(greg_date) AS max_d', false)
+        ->from('hijri_calendar')
+        ->get()->row_array();
+      if (!empty($r['min_d'])) $data['hijri_calendar_min_greg'] = (string)$r['min_d'];
+      if (!empty($r['max_d'])) $data['hijri_calendar_max_greg'] = (string)$r['max_d'];
+    }
+
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/ManageFMBTakhmeen', $data);
+
+    // Runtime safety net: enforce required Edit modal columns even if an older cached view is served.
+    $perDayMapJson = json_encode(isset($data['per_day_thaali_cost_by_year']) && is_array($data['per_day_thaali_cost_by_year']) ? $data['per_day_thaali_cost_by_year'] : new stdClass());
+    $runtimeFix = <<<HTML
+<script>
+(function(){
+  try {
+    if (!window.jQuery) return;
+    var perDayCostByYear = $perDayMapJson || {};
+
+    function ensureEditHeader(){
+      var row = document.querySelector('#edit-takhmeen-container table thead tr');
+      if (!row) return;
+      var ths = row.querySelectorAll('th');
+      var hasThaali = false;
+      var hasAssigned = false;
+      for (var i = 0; i < ths.length; i++) {
+        var t = (ths[i].textContent || '').trim();
+        if (t === 'Thaali Days') hasThaali = true;
+        if (t === 'Assigned Thaali Days') hasAssigned = true;
+      }
+      if (hasThaali && hasAssigned) return;
+      row.innerHTML = '<th>#</th><th>Takhmeen Year</th><th>Amount</th><th>Thaali Days</th><th>Assigned Thaali Days</th><th>Action</th>';
+    }
+
+    function computeThaaliDays(year, amount){
+      var y = (year === null || typeof year === 'undefined') ? '' : String(year);
+      var per = (perDayCostByYear && typeof perDayCostByYear[y] !== 'undefined') ? Number(perDayCostByYear[y]) : 0;
+      if (!per || isNaN(per) || per <= 0) return '-';
+      var amt = Number(String(amount).replace(/[^0-9.]/g, ''));
+      if (isNaN(amt)) return '-';
+      return Math.floor(amt / per);
+    }
+
+    function inrFormat(amount){
+      var n = Number(String(amount).replace(/[^0-9.]/g, ''));
+      if (isNaN(n)) return String(amount);
+      try {
+        return '&#8377;' + new Intl.NumberFormat('en-IN', { maximumSignificantDigits: 3 }).format(n);
+      } catch (e) {
+        return '&#8377;' + String(n);
+      }
+    }
+
+    function renderEditModal(btn){
+      var jq = window.jQuery;
+      var b = jq(btn);
+      var userId = b.data('user-id');
+      var userName = b.data('user-name');
+      var takhmeens = b.data('takhmeens');
+
+      jq('#edit-user-name').text(userName || '');
+      ensureEditHeader();
+
+      var html = '';
+      if (Array.isArray(takhmeens) && takhmeens.length > 0) {
+        for (var i = 0; i < takhmeens.length; i++) {
+          var t = takhmeens[i] || {};
+          var year = (typeof t.year !== 'undefined') ? t.year : '';
+          var amount = (typeof t.amount !== 'undefined') ? t.amount : '';
+          var assigned = (typeof t.assigned_thaali_days !== 'undefined') ? Number(t.assigned_thaali_days) : 0;
+          if (isNaN(assigned)) assigned = 0;
+          var days = computeThaaliDays(year, amount);
+
+          html += '<tr>'
+            + '<td>' + (i + 1) + '</td>'
+            + '<td>' + year + '</td>'
+            + '<td>' + inrFormat(amount) + '</td>'
+            + '<td>' + days + '</td>'
+            + '<td><a href="#" class="view-assigned-thaali-days" data-user-id="' + userId + '" data-user-name="' + (userName || '') + '" data-year="' + year + '">' + assigned + '</a></td>'
+            + '<td>'
+            +   '<button class="btn btn-sm btn-primary edit-single-takhmeen" data-user-id="' + userId + '" data-year="' + year + '" data-amount="' + amount + '"><i class="fa-solid fa-pencil"></i></button> '
+            +   '<button class="btn btn-sm btn-danger delete-single-takhmeen" data-user-id="' + userId + '" data-year="' + year + '"><i class="fa-solid fa-trash"></i></button>'
+            + '</td>'
+            + '</tr>';
+        }
+      } else {
+        html = '<tr><td colspan="6" class="text-center">No Takhmeen history found.</td></tr>';
+      }
+
+      jq('#edit-takhmeen-body').html(html);
+    }
+
+    window.jQuery(function(){
+      // Remove any older direct click handler attached in stale templates.
+      try { window.jQuery('.edit-takhmeen').off('click'); } catch(e) {}
+      // Install our own handler to render with the required columns.
+      window.jQuery(document).off('click.__fmb_edit_fix', '.edit-takhmeen');
+      window.jQuery(document).on('click.__fmb_edit_fix', '.edit-takhmeen', function(){
+        renderEditModal(this);
+      });
+
+      // If modal exists, fix header immediately.
+      ensureEditHeader();
+    });
+  } catch (e) {
+    // no-op
+  }
+})();
+</script>
+HTML;
+    $this->output->append_output($runtimeFix);
   }
 
   public function deletefmbtakhmeen()
@@ -2536,6 +2697,26 @@ class Admin extends CI_Controller
       $row = $this->PerDayThaaliCostM->get_by_year($fy);
       $data['per_day_thaali_cost_amount'] = $row && isset($row['amount']) ? (float)$row['amount'] : null;
     }
+
+    // Per-day thaali cost map by FY (used for year-wise calculations in modals)
+    $data['per_day_thaali_cost_by_year'] = [];
+    $this->load->model('PerDayThaaliCostM');
+    foreach ($this->PerDayThaaliCostM->get_all() as $r) {
+      if (!empty($r['year'])) {
+        $data['per_day_thaali_cost_by_year'][(string)$r['year']] = isset($r['amount']) ? (float)$r['amount'] : null;
+      }
+    }
+
+    // Hijri calendar gregorian date range (for validating/limiting thaali date picker)
+    $data['hijri_calendar_min_greg'] = null;
+    $data['hijri_calendar_max_greg'] = null;
+    if ($this->db->table_exists('hijri_calendar')) {
+      $r = $this->db->select('MIN(greg_date) AS min_d, MAX(greg_date) AS max_d', false)
+        ->from('hijri_calendar')
+        ->get()->row_array();
+      if (!empty($r['min_d'])) $data['hijri_calendar_min_greg'] = (string)$r['min_d'];
+      if (!empty($r['max_d'])) $data['hijri_calendar_max_greg'] = (string)$r['max_d'];
+    }
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $member_name;
     $data['year'] = $year;
@@ -2552,12 +2733,96 @@ class Admin extends CI_Controller
 
   public function addfmbtakhmeenamount()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || (int)($_SESSION['user']['role'] ?? 0) != 1) {
       redirect('/accounts');
     }
     $user_id = $this->input->post("user_id");
     $fmb_takhmeen_amount = $this->input->post("fmb_takhmeen_amount");
     $fmb_takhmeen_year = $this->input->post("fmb_takhmeen_year");
+    $thaali_dates_raw = $this->input->post('thaali_dates');
+
+    $thaali_dates = [];
+    if (!empty($thaali_dates_raw)) {
+      $decoded = json_decode($thaali_dates_raw, true);
+      if (is_array($decoded)) {
+        foreach ($decoded as $d) {
+          $d = trim((string)$d);
+          if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) {
+            $thaali_dates[] = $d;
+          }
+        }
+      }
+    }
+    $thaali_dates = array_values(array_unique($thaali_dates));
+
+    if (empty($thaali_dates)) {
+      $this->session->set_flashdata('error', 'Please select date');
+      redirect('admin/managefmbtakhmeen');
+      return;
+    }
+
+    // Validate selected dates belong to selected FY (based on Hijri date conversion)
+    $this->load->model('HijriCalendar');
+    $computeFy = function ($iso) {
+      $row = $this->HijriCalendar->get_hijri_date($iso);
+      if (!$row || empty($row['hijri_date'])) return null;
+      $parts = explode('-', (string)$row['hijri_date']);
+      if (count($parts) !== 3) return null;
+      $hm = $parts[1];
+      $hy = (int)$parts[2];
+      if ($hm >= '01' && $hm <= '08') {
+        $y1 = $hy - 1;
+        $y2 = substr((string)$hy, -2);
+        return $y1 . '-' . $y2;
+      }
+      $y1 = $hy;
+      $y2 = substr((string)($hy + 1), -2);
+      return $y1 . '-' . $y2;
+    };
+
+    foreach ($thaali_dates as $d) {
+      $fy = $computeFy($d);
+      if (!$fy || (string)$fy !== (string)$fmb_takhmeen_year) {
+        $this->session->set_flashdata('error', 'Selected date ' . date('d-m-Y', strtotime($d)) . ' does not belong to FY ' . $fmb_takhmeen_year . '.');
+        redirect('admin/managefmbtakhmeen');
+        return;
+      }
+    }
+
+    // Validate selected count does not exceed allowed days from amount/per-day cost (if cost configured)
+    $this->load->model('PerDayThaaliCostM');
+    $cost = $this->PerDayThaaliCostM->get_by_year((string)$fmb_takhmeen_year);
+    $per_day = $cost && isset($cost['amount']) ? (float)$cost['amount'] : 0;
+    if ($per_day > 0) {
+      $allowed = (int)floor(((float)$fmb_takhmeen_amount) / $per_day);
+      if (count($thaali_dates) > $allowed) {
+        $this->session->set_flashdata('error', 'Selected thaali dates (' . count($thaali_dates) . ') exceed allowed days (' . $allowed . ') for FY ' . $fmb_takhmeen_year . '.');
+        redirect('admin/managefmbtakhmeen');
+        return;
+      }
+    }
+
+    // Prevent overlapping: same date cannot be assigned to two different members.
+    if ($this->db->table_exists('fmb_thaali_day_assignment')) {
+      $placeholders = implode(',', array_fill(0, count($thaali_dates), '?'));
+      $params = array_merge([(string)$fmb_takhmeen_year], $thaali_dates, [(int)$user_id]);
+      $sql = "SELECT DATE(a.menu_date) AS d, a.user_id, u.Full_Name
+              FROM fmb_thaali_day_assignment a
+              LEFT JOIN user u ON u.ITS_ID = a.user_id
+              WHERE a.year = ? AND DATE(a.menu_date) IN ($placeholders) AND a.user_id <> ?";
+      $conflicts = $this->db->query($sql, $params)->result_array();
+      if (!empty($conflicts)) {
+        $parts = [];
+        foreach ($conflicts as $c) {
+          $dd = !empty($c['d']) ? date('d-m-Y', strtotime($c['d'])) : '';
+          $nm = !empty($c['Full_Name']) ? $c['Full_Name'] : ('ITS ' . ($c['user_id'] ?? ''));
+          $parts[] = $dd . ' -> ' . $nm;
+        }
+        $this->session->set_flashdata('error', 'These dates are already assigned: ' . implode(', ', $parts));
+        redirect('admin/managefmbtakhmeen');
+        return;
+      }
+    }
 
     $data = array(
       "user_id" => $user_id,
@@ -2565,7 +2830,29 @@ class Admin extends CI_Controller
       "total_amount" => $fmb_takhmeen_amount,
     );
 
+    $this->load->model('CommonM');
+    $this->db->trans_start();
+
     $result = $this->AdminM->addfmbtakhmeenamount($data);
+
+    if ($result && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      foreach ($thaali_dates as $d) {
+        $ok = $this->CommonM->upsert_day_assignment_by_date($d, (int)$user_id, (string)$fmb_takhmeen_year, null);
+        if (!$ok) {
+          $this->db->trans_rollback();
+          $this->session->set_flashdata('error', 'Failed to assign thaali date ' . date('d-m-Y', strtotime($d)) . '.');
+          redirect('admin/managefmbtakhmeen');
+          return;
+        }
+      }
+    }
+
+    $this->db->trans_complete();
+    if ($this->db->trans_status() === false) {
+      $this->session->set_flashdata('error', 'Failed to save takhmeen/assignments.');
+      redirect('admin/managefmbtakhmeen');
+      return;
+    }
 
     redirect("admin/success/managefmbtakhmeen");
   }
@@ -2587,6 +2874,168 @@ class Admin extends CI_Controller
     if ($result) {
       echo json_encode(["success" => true, "user_takhmeen" => $result]);
     }
+  }
+
+  public function getfmbassignedthaalidates()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || (int)($_SESSION['user']['role'] ?? 0) != 1) {
+      redirect('/accounts');
+    }
+
+    $user_id = trim((string)$this->input->post('user_id'));
+    $year = (string)$this->input->post('year');
+
+    $this->output->set_content_type('application/json');
+    if ($user_id === '' || !preg_match('/^\d+$/', $user_id) || $year === '') {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Missing parameters', 'dates' => []]));
+      return;
+    }
+
+    if (!$this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->output->set_output(json_encode(['success' => true, 'dates' => []]));
+      return;
+    }
+
+    $this->db->select('DATE(menu_date) AS d', false);
+    $this->db->from('fmb_thaali_day_assignment');
+    $this->db->where('user_id', $user_id);
+    $this->db->where('year', $year);
+    $this->db->order_by('menu_date', 'ASC');
+    $rows = $this->db->get()->result_array();
+
+    $dates = [];
+    foreach ($rows as $r) {
+      if (!empty($r['d'])) {
+        $dates[] = (string)$r['d'];
+      }
+    }
+
+    $this->output->set_output(json_encode(['success' => true, 'dates' => $dates]));
+  }
+
+  public function removefmbassignedthaalidate()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || (int)($_SESSION['user']['role'] ?? 0) != 1) {
+      redirect('/accounts');
+    }
+
+    $user_id = trim((string)$this->input->post('user_id'));
+    $year = trim((string)$this->input->post('year'));
+    $date = trim((string)$this->input->post('date'));
+
+    $this->output->set_content_type('application/json');
+    if ($user_id === '' || !preg_match('/^\d+$/', $user_id) || $year === '' || !preg_match('/^\d{4}-\d{2}$/', $year) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Invalid parameters']));
+      return;
+    }
+
+    if (!$this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Assignment table not found']));
+      return;
+    }
+
+    $menu_date = $date . ' 00:00:00';
+    $this->db->where('user_id', $user_id);
+    $this->db->where('year', $year);
+    $this->db->where('menu_date', $menu_date);
+    $this->db->delete('fmb_thaali_day_assignment');
+
+    // Even if row doesn't exist, treat as success (idempotent)
+    $this->output->set_output(json_encode(['success' => true]));
+  }
+
+  public function addfmbassignedthaalidate()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || (int)($_SESSION['user']['role'] ?? 0) != 1) {
+      redirect('/accounts');
+    }
+
+    $user_id_raw = trim((string)$this->input->post('user_id'));
+    $year = trim((string)$this->input->post('year'));
+    $date = trim((string)$this->input->post('date'));
+
+    $this->output->set_content_type('application/json');
+    if ($user_id_raw === '' || !preg_match('/^\d+$/', $user_id_raw) || $year === '' || !preg_match('/^\d{4}-\d{2}$/', $year) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Invalid parameters']));
+      return;
+    }
+
+    if (!$this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Assignment table not found']));
+      return;
+    }
+
+    // Ensure takhmeen exists for this user+FY
+    $this->db->from('fmb_takhmeen');
+    $this->db->where('user_id', $user_id_raw);
+    $this->db->where('year', $year);
+    $takhmeen = $this->db->get()->row_array();
+    if (!$takhmeen) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Takhmeen not found for this year']));
+      return;
+    }
+
+    // Validate selected date belongs to selected FY (Hijri-based FY logic)
+    $this->load->model('HijriCalendar');
+    $row = $this->HijriCalendar->get_hijri_date($date);
+    if (!$row || empty($row['hijri_date'])) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Hijri calendar not found for ' . $date . '. Please select a valid date within the configured Hijri calendar range.']));
+      return;
+    }
+    $parts = explode('-', (string)$row['hijri_date']);
+    if (count($parts) !== 3) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Invalid Hijri date format']));
+      return;
+    }
+    $hm = $parts[1];
+    $hy = (int)$parts[2];
+    if ($hm >= '01' && $hm <= '08') {
+      $fy = ($hy - 1) . '-' . substr((string)$hy, -2);
+    } else {
+      $fy = $hy . '-' . substr((string)($hy + 1), -2);
+    }
+    if ((string)$fy !== (string)$year) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Selected date does not belong to FY ' . $year]));
+      return;
+    }
+
+    // Prevent overlapping: same date cannot be assigned to two different members.
+    $sql = "SELECT a.user_id, u.Full_Name FROM fmb_thaali_day_assignment a LEFT JOIN user u ON u.ITS_ID = a.user_id WHERE a.year = ? AND DATE(a.menu_date) = ? AND a.user_id <> ?";
+    $conflict = $this->db->query($sql, [(string)$year, (string)$date, (string)$user_id_raw])->row_array();
+    if (!empty($conflict)) {
+      $nm = !empty($conflict['Full_Name']) ? $conflict['Full_Name'] : ('ITS ' . ($conflict['user_id'] ?? ''));
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Date already assigned to ' . $nm]));
+      return;
+    }
+
+    // Enforce allowed-days based on takhmeen amount / per-day cost (if configured)
+    $this->load->model('PerDayThaaliCostM');
+    $cost = $this->PerDayThaaliCostM->get_by_year((string)$year);
+    $per_day = $cost && isset($cost['amount']) ? (float)$cost['amount'] : 0;
+    if ($per_day > 0) {
+      $amt = isset($takhmeen['total_amount']) ? (float)$takhmeen['total_amount'] : 0;
+      $allowed = (int)floor($amt / $per_day);
+      $this->db->select('COUNT(1) AS cnt', false);
+      $this->db->from('fmb_thaali_day_assignment');
+      $this->db->where('user_id', $user_id_raw);
+      $this->db->where('year', $year);
+      $cur = $this->db->get()->row_array();
+      $currentCnt = isset($cur['cnt']) ? (int)$cur['cnt'] : 0;
+      if (($currentCnt + 1) > $allowed) {
+        $this->output->set_output(json_encode(['success' => false, 'message' => 'Selected dates exceed allowed days (' . $allowed . ') for FY ' . $year . '. Update amount first.']));
+        return;
+      }
+    }
+
+    // Upsert assignment
+    $this->load->model('CommonM');
+    $ok = $this->CommonM->upsert_day_assignment_by_date($date, (int)$user_id_raw, (string)$year, null);
+    if (!$ok) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Failed to assign date']));
+      return;
+    }
+
+    $this->output->set_output(json_encode(['success' => true]));
   }
   public function updatefmbtakhmeen($redirect)
   {
