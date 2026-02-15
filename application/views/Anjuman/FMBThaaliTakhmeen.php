@@ -173,7 +173,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="assigned-thaali-days-title">Assigned Thaali Dates</h5>
+        <h5 class="modal-title" id="assigned-thaali-days-title">Thaali Dates</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -210,7 +210,7 @@
               <th>Takhmeen Amount</th>
               <th>Paid</th>
               <th>Due</th>
-              <th>Assigned Thaali Days</th>
+              <th>Thaali Days</th>
               <th>Update Remark</th>
             </tr>
           </thead>
@@ -297,6 +297,44 @@
 </div>
 
 <script>
+  // === Hijri label helper (Gregorian + Hijri) ===
+  const __hijriPartsCache = {};
+  function hijriLabelFromParts(parts) {
+    if (!parts) return '';
+    const d = String(parts.hijri_day || '').trim();
+    const m = String(parts.hijri_month_name || parts.hijri_month || '').trim();
+    const y = String(parts.hijri_year || '').trim();
+    return [d, m, y].filter(Boolean).join(' ');
+  }
+  function getHijriLabelForGregIso(gregIso) {
+    const iso = String(gregIso || '').trim();
+    if (!iso) return Promise.resolve('');
+    if (__hijriPartsCache[iso]) return Promise.resolve(__hijriPartsCache[iso]);
+    return fetch('<?php echo base_url('common/get_hijri_parts'); ?>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: new URLSearchParams({ greg_date: iso })
+    })
+      .then(r => r.json())
+      .then(resp => {
+        if (resp && resp.status === 'success' && resp.parts) {
+          const lbl = hijriLabelFromParts(resp.parts);
+          __hijriPartsCache[iso] = lbl;
+          return lbl;
+        }
+        __hijriPartsCache[iso] = '';
+        return '';
+      })
+      .catch(() => '');
+  }
+
+  function formatIsoToDmy(iso) {
+    if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      const parts = iso.split('-');
+      return parts[2] + '-' + parts[1] + '-' + parts[0];
+    }
+    return String(iso || '');
+  }
   // Modal z-index stacking fix (Bootstrap) for pages with multiple modals
   // Ensures newly opened modal + its backdrop appear above existing open modals.
   $(document).on('show.bs.modal', '.modal', function() {
@@ -568,13 +606,15 @@
           return;
         }
         dates.forEach(function(d) {
-          // d is expected as YYYY-MM-DD
-          let label = d;
-          if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-            const parts = d.split('-');
-            label = parts[2] + '-' + parts[1] + '-' + parts[0];
-          }
-          $('#assigned-thaali-days-list').append('<li>' + label + '</li>');
+          const iso = String(d || '').trim();
+          const g = formatIsoToDmy(iso);
+          const $li = $('<li>').text(g);
+          $('#assigned-thaali-days-list').append($li);
+          getHijriLabelForGregIso(iso).then(function(lbl) {
+            if (lbl) {
+              $li.text(g + ' | ' + lbl);
+            }
+          });
         });
       },
       error: function() {

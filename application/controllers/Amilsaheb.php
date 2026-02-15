@@ -912,6 +912,125 @@ class Amilsaheb extends CI_Controller
     $flag = $this->AmilsahebM->approve_raza($raza_id, $remark);
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
 
+    // WhatsApp: Raza approved (admin + member)
+    if ($flag) {
+      $this->load->library('Notification_lib');
+      $adminWaRecipients = admin_whatsapp_recipients();
+
+      $memberPhoneRaw = (string)($user['Registered_Family_Mobile'] ?? $user['Mobile'] ?? $user['WhatsApp_No'] ?? '');
+      $memberWa = substr(preg_replace('/\D+/', '', $memberPhoneRaw), -10);
+      $memberName = (string)($user['Full_Name'] ?? $user['ITS_ID'] ?? '');
+      $memberIts = (string)($user['ITS_ID'] ?? '');
+
+      $razaRowForWa = $this->db->select('id, raza_id, user_id, miqaat_id, razaType, razadata')
+        ->from('raza')
+        ->where('id', $raza_id)
+        ->get()->row_array();
+
+      $razaPublicId = isset($razaRowForWa['raza_id']) && $razaRowForWa['raza_id'] !== '' ? (string)$razaRowForWa['raza_id'] : (string)$raza_id;
+      $waRazaId = (string)$razaPublicId;
+      if ($waRazaId !== '' && stripos($waRazaId, 'R#') !== 0) {
+        $waRazaId = 'R#' . $waRazaId;
+      }
+
+      $detailsText = '';
+      if (!empty($razaRowForWa['miqaat_id'])) {
+        $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRowForWa['miqaat_id']);
+        $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
+        $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRowForWa['miqaat_id'];
+        $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
+        $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+
+        $assignmentLabel = '';
+        $assignmentGroupName = '';
+        $ass = $this->AccountM->get_miqaat_assignment_for_member((int)$razaRowForWa['miqaat_id'], $razaRowForWa['user_id']);
+        if (!empty($ass)) {
+          $assignmentLabel = isset($ass['assign_type']) ? (string)$ass['assign_type'] : '';
+          $assignmentGroupName = isset($ass['group_name']) ? (string)$ass['group_name'] : '';
+          $al = strtolower(trim($assignmentLabel));
+          if ($al === 'group') $assignmentLabel = 'Group';
+          if ($al === 'individual') $assignmentLabel = 'Individual';
+        }
+
+        $parts = [];
+        if ($miqaatName !== '') $parts[] = 'Miqaat: ' . $miqaatName;
+        if ($miqaatPublicId !== '') {
+          $waMiqaatId = (string)$miqaatPublicId;
+          if ($waMiqaatId !== '' && stripos($waMiqaatId, 'M#') !== 0) {
+            $waMiqaatId = 'M#' . $waMiqaatId;
+          }
+          $parts[] = 'Miqaat ID: ' . $waMiqaatId;
+        }
+        if ($miqaatType !== '') $parts[] = 'Type: ' . $miqaatType;
+        if ($miqaatDate !== '') $parts[] = 'Date: ' . $miqaatDate;
+        if ($assignmentLabel !== '') $parts[] = 'Assignment: ' . $assignmentLabel;
+        if ($assignmentGroupName !== '') $parts[] = 'Group: ' . $assignmentGroupName;
+        $detailsText = implode(' | ', $parts);
+      }
+
+      if ($detailsText === '') {
+        $this->load->helper('raza_details');
+        $rtRow = null;
+        if (!empty($razaRowForWa['razaType'])) {
+          $rtRow = $this->db->select('id, name, fields')
+            ->from('raza_type')
+            ->where('id', (int)$razaRowForWa['razaType'])
+            ->get()->row_array();
+        }
+        $razadataDecoded = [];
+        if (!empty($razaRowForWa['razadata'])) {
+          $tmp = json_decode($razaRowForWa['razadata'], true);
+          if (is_array($tmp)) $razadataDecoded = $tmp;
+        }
+        $rtFieldsDecoded = [];
+        if (!empty($rtRow['fields'])) {
+          $tmp = json_decode($rtRow['fields'], true);
+          if (is_array($tmp)) $rtFieldsDecoded = $tmp;
+        }
+        $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
+        $detailsText = function_exists('render_raza_details_compact_text')
+          ? (string)render_raza_details_compact_text($razaName, $rtFieldsDecoded, $razadataDecoded)
+          : '';
+        if ($detailsText === '') {
+          $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
+          $detailsText = function_exists('render_raza_details_compact_text_from_html')
+            ? (string)render_raza_details_compact_text_from_html($detailsHtml)
+            : trim(preg_replace('/\s+/', ' ', strip_tags((string)$detailsHtml)));
+        }
+      }
+
+      // Keep variables strictly single-line; ExprezBot/WhatsApp templates may not dispatch reliably with embedded newlines.
+      $detailsText = trim(preg_replace('/\s+/', ' ', str_replace(["\r", "\n", "\r\n"], ' ', (string)$detailsText)));
+      if ($detailsText === '') $detailsText = 'Raza';
+
+      if ($memberWa !== '') {
+        $this->notification_lib->send_whatsapp([
+          'recipient' => $memberWa,
+          'template_name' => 'raza_approved_member',
+          'template_language' => 'en',
+          'body_vars' => [
+            (string)$memberName,
+            (string)$waRazaId,
+            (string)$detailsText,
+          ]
+        ]);
+      }
+
+      foreach ($adminWaRecipients as $wa) {
+        $this->notification_lib->send_whatsapp([
+          'recipient' => $wa,
+          'template_name' => 'raza_approved_admin',
+          'template_language' => 'en',
+          'body_vars' => [
+            (string)$memberName,
+            (string)$memberIts,
+            (string)$waRazaId,
+            (string)$detailsText,
+          ]
+        ]);
+      }
+    }
+
     // enqueue notifications instead of sending immediately
     $this->load->model('NotificationM');
     $this->load->helper('email_template');
@@ -1007,6 +1126,34 @@ class Amilsaheb extends CI_Controller
     }
 
     // Notify admins
+    // Build details HTML once so admin email matches member email.
+    $this->load->helper('raza_details');
+    $razaRowEmail = $this->db->select('id, raza_id, user_id, razaType, razadata, miqaat_id')
+      ->from('raza')
+      ->where('id', $raza_id)
+      ->get()->row_array();
+    $rtRowEmail = null;
+    if (!empty($razaRowEmail['razaType'])) {
+      $rtRowEmail = $this->db->select('id, name, fields')
+        ->from('raza_type')
+        ->where('id', (int)$razaRowEmail['razaType'])
+        ->get()->row_array();
+    }
+    $razadataDecodedEmail = [];
+    if (!empty($razaRowEmail['razadata'])) {
+      $tmp = json_decode($razaRowEmail['razadata'], true);
+      if (is_array($tmp)) $razadataDecodedEmail = $tmp;
+    }
+    $rtFieldsDecodedEmail = [];
+    if (!empty($rtRowEmail['fields'])) {
+      $tmp = json_decode($rtRowEmail['fields'], true);
+      if (is_array($tmp)) $rtFieldsDecodedEmail = $tmp;
+    }
+    $razaNameEmail = isset($rtRowEmail['name']) ? (string)$rtRowEmail['name'] : 'Raza';
+    $razaPublicIdEmail = isset($razaRowEmail['raza_id']) && $razaRowEmail['raza_id'] !== '' ? (string)$razaRowEmail['raza_id'] : (string)$raza_id;
+    $detailsHtmlEmail = render_raza_details_table_html($razaNameEmail, $rtFieldsDecodedEmail, $razadataDecodedEmail);
+    $remarkHtmlEmail = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
+
     $admins = [
       'amilsaheb@kharjamaat.in',
       '3042@carmelnmh.in',
@@ -1017,31 +1164,43 @@ class Amilsaheb extends CI_Controller
       'ybookwala@gmail.com'
     ];
     foreach ($admins as $a) {
-      $adminDetails = [
-        'Member' => (string)$userName,
-        'ITS' => (string)($user['ITS_ID'] ?? ''),
-        'Raza ID' => (string)($raza_id ?? ''),
+      // Render the member info as a table inside the body so it always shows,
+      // even when we append the Raza Details table (body contains <table>, so
+      // render_generic_email_html() would otherwise skip the `details` table).
+      $adminDetailsRows = [
+        ['label' => 'Member', 'value' => (string)$userName],
+        ['label' => 'ITS', 'value' => (string)($user['ITS_ID'] ?? '')],
+        ['label' => 'Raza ID', 'value' => (string)$razaPublicIdEmail],
       ];
+
       // If this is a Miqaat Raza, include miqaat details.
-      if (!empty($razaRow) && !empty($razaRow['miqaat_id'])) {
-        $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRow['miqaat_id']);
+      if (!empty($razaRowEmail) && !empty($razaRowEmail['miqaat_id'])) {
+        $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRowEmail['miqaat_id']);
         $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
-        $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRow['miqaat_id'];
+        $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRowEmail['miqaat_id'];
         $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
         $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
-        if ($miqaatName !== '') $adminDetails['Miqaat'] = $miqaatName;
-        if ($miqaatPublicId !== '') $adminDetails['Miqaat ID'] = $miqaatPublicId;
-        if ($miqaatType !== '') $adminDetails['Type'] = $miqaatType;
-        if ($miqaatDate !== '') $adminDetails['Date'] = $miqaatDate;
+        if ($miqaatName !== '') $adminDetailsRows[] = ['label' => 'Miqaat', 'value' => $miqaatName];
+        if ($miqaatPublicId !== '') $adminDetailsRows[] = ['label' => 'Miqaat ID', 'value' => $miqaatPublicId];
+        if ($miqaatType !== '') $adminDetailsRows[] = ['label' => 'Type', 'value' => $miqaatType];
+        if ($miqaatDate !== '') $adminDetailsRows[] = ['label' => 'Date', 'value' => $miqaatDate];
       }
+
+      $adminMemberTableHtml = function_exists('email_kv_details_table_html')
+        ? (string)email_kv_details_table_html($adminDetailsRows)
+        : '';
 
       $adminBody = render_generic_email_html([
         'title' => 'Raza Approved',
         'todayDate' => date('l, j M Y, h:i:s A'),
         'greeting' => 'Baad Afzalus Salaam,',
         'cardTitle' => 'Please be informed that the following Raza has been approved by Amil Saheb.',
-        'details' => $adminDetails,
-        'body' => 'Regards,<br/>Amil Saheb Office',
+        'body' => $adminMemberTableHtml
+          . '<div style="margin-top:12px;">'
+          . $remarkHtmlEmail
+          . (empty($razaRowEmail['miqaat_id']) ? $detailsHtmlEmail : '')
+          . 'Regards,<br/>Amil Saheb Office'
+          . '</div>',
         'ctaUrl' => base_url('accounts'),
         'ctaText' => 'Login to your account',
       ]);
@@ -1089,6 +1248,30 @@ class Amilsaheb extends CI_Controller
 
         $miqaat = $this->AnjumanM->get_miqaat_by_id($miqaatId);
         $miqName = is_array($miqaat) ? ($miqaat['name'] ?? '') : '';
+        // Always fetch the public Miqaat ID from `miqaat.miqaat_id` for notifications.
+        // Important: AnjumanM::get_miqaat_by_id() selects m.* and ma.*; both contain `miqaat_id`,
+        // so the assignment FK can overwrite the public code in the resulting array.
+        $miqPublicId = '';
+        $row = $this->db->select('miqaat_id')
+          ->from('miqaat')
+          ->where('id', (int)$miqaatId)
+          ->limit(1)
+          ->get()->row_array();
+        if (!empty($row['miqaat_id'])) {
+          $miqPublicId = (string)$row['miqaat_id'];
+        }
+
+        // Fallbacks (should be rare).
+        if ($miqPublicId === '' && is_array($miqaat) && !empty($miqaat['miqaat_code'])) {
+          $miqPublicId = (string)$miqaat['miqaat_code'];
+        }
+        if ($miqPublicId === '' && is_array($miqaat) && !empty($miqaat['miqaat_id'])) {
+          $miqPublicId = (string)$miqaat['miqaat_id'];
+        }
+        if ($miqPublicId === '') {
+          // Last-resort fallback (should be rare): keep something non-empty.
+          $miqPublicId = (string)$miqaatId;
+        }
         $miqDate = is_array($miqaat) ? (date("d-m-Y", strtotime($miqaat['date'])) ?? '') : '';
         $miqTime = is_array($miqaat) ? ($miqaat['time'] ?? '') : '';
         $miqHijri = is_array($miqaat) ? ($miqaat['hijri_date'] ?? '') : '';
@@ -1097,7 +1280,8 @@ class Amilsaheb extends CI_Controller
 
         $subject = 'RSVP Open: ' . ($miqName !== '' ? $miqName : ('Miqaat #' . $miqaatId));
         $rsvpDetails = [
-          'Miqaat ID' => (string)$miqaatId,
+          // Use public ID so members see M#1447-118, not M#318.
+          'Miqaat ID' => (string)$miqPublicId,
         ];
         if ($miqName !== '') $rsvpDetails['Miqaat'] = $miqName;
         if ($miqDate !== '') $rsvpDetails['Date'] = $miqDate;
@@ -1140,7 +1324,7 @@ class Amilsaheb extends CI_Controller
         // WhatsApp: send ExprezBot template to members with a valid mobile.
         // Template variables/order are controlled by the ExprezBot template itself.
         // Start with no variables (works with templates that have no placeholders).
-        $waMembers = $this->db->select("COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile", false)
+        $waMembers = $this->db->select("u.Full_Name AS name, COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') AS mobile", false)
           ->from('user u')
           ->where('u.inactive_status IS NULL', null, false)
           ->where("COALESCE(u.Registered_Family_Mobile, u.Mobile, u.WhatsApp_No, '') <> ''", null, false)
@@ -1150,12 +1334,22 @@ class Amilsaheb extends CI_Controller
         foreach ($waMembers as $wm) {
           $phone = preg_replace('/[^0-9]/', '', (string)($wm['mobile'] ?? ''));
           if ($phone === '') continue;
+          $waName = trim((string)($wm['name'] ?? ''));
+          if ($waName === '') $waName = 'Member';
+
           $this->notification_lib->send_whatsapp([
             'recipient' => $phone,
             'recipient_type' => 'member',
-            'template_name' => 'rsvp_new_khar',
+            'template_name' => 'rsvp_open_member',
             'template_language' => 'en',
-            'body_vars' => []
+            'body_vars' => [
+              (string)$waName,
+              (string)$miqName,
+              (stripos((string)$miqPublicId, 'M#') === 0 ? (string)$miqPublicId : ('M#' . (string)$miqPublicId)),
+              (string)$miqDate,
+              // Template button URL expects internal numeric id for the RSVP link.
+              (string)$miqaatId,
+            ]
           ]);
         }
       }

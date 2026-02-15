@@ -5,6 +5,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $config['amil_whatsapp'] = '+918452840052';
 $config['jamaat_whatsapp_group'] = null;
 
+// Admin WhatsApp recipients (digits or +91...); optional.
+// If empty, code may fallback to looking up admin mobiles by email.
+$config['admin_whatsapp_recipients'] = [
+	'+919372415351',
+	'+919820150617',
+	'+919820291857',
+];
+
 // Scheduling defaults
 $config['thaali_signup_daily_time'] = '09:00';
 $config['thaali_feedback_time'] = '22:00';

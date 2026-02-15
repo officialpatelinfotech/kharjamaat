@@ -669,6 +669,43 @@ class CommonM extends CI_Model
 
     $rows = $this->db->query($sql, $params)->result_array();
 
+    // Add assigned thaali day counts per user for the selected FY
+    // (assignment.year stored as FY like 1447-48; count unique dates)
+    if (!empty($year) && !empty($rows) && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      $takhmeen_year = $year . '-' . substr($year + 1, -2);
+      $user_ids_for_assign = array_values(array_filter(array_map(function ($r) {
+        return isset($r['user_id']) ? (string) $r['user_id'] : '';
+      }, $rows)));
+      if (!empty($user_ids_for_assign)) {
+        $aRows = $this->db->select('user_id, COUNT(DISTINCT DATE(menu_date)) AS cnt', false)
+          ->from('fmb_thaali_day_assignment')
+          ->where('year', $takhmeen_year)
+          ->where_in('user_id', $user_ids_for_assign)
+          ->group_by('user_id')
+          ->get()->result_array();
+
+        $assigned_map = [];
+        foreach ($aRows as $ar) {
+          $uid = isset($ar['user_id']) ? (string) $ar['user_id'] : '';
+          if ($uid !== '') {
+            $assigned_map[$uid] = (int) ($ar['cnt'] ?? 0);
+          }
+        }
+
+        foreach ($rows as &$r) {
+          $uid = isset($r['user_id']) ? (string) $r['user_id'] : '';
+          $r['assigned_thaali_days'] = isset($assigned_map[$uid]) ? (int) $assigned_map[$uid] : 0;
+        }
+        unset($r);
+      }
+    } else {
+      // Keep key present for view safety
+      foreach ($rows as &$r) {
+        $r['assigned_thaali_days'] = 0;
+      }
+      unset($r);
+    }
+
     // If a specific hijri start year is requested, compute per-user paid/due
     // for that year by allocating payments FIFO to oldest years first.
     if (!empty($year) && !empty($rows)) {
@@ -815,7 +852,7 @@ class CommonM extends CI_Model
     // Assigned Thaali Days per user for this FY (stored as composite FY in assignment.year like 1447-48)
     $assigned_map = [];
     if ($this->db->table_exists('fmb_thaali_day_assignment')) {
-      $aRows = $this->db->select('user_id, COUNT(DISTINCT menu_id) AS cnt', false)
+      $aRows = $this->db->select('user_id, COUNT(DISTINCT DATE(menu_date)) AS cnt', false)
         ->from('fmb_thaali_day_assignment')
         ->where('year', $takhmeen_year)
         ->where_in('user_id', $user_ids)

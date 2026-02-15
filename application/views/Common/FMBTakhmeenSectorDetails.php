@@ -59,7 +59,7 @@ if (!function_exists('format_inr')) {
       <thead>
         <tr>
             <th data-type="string">Member</th>
-            <th data-type="number">Assigned Thaali Days</th>
+            <th data-type="number">Thaali Days</th>
             <th data-type="number">Total</th>
             <th data-type="number">Paid (FIFO)</th>
             <th data-type="number">Due</th>
@@ -95,7 +95,7 @@ if (!function_exists('format_inr')) {
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="assigned-thaali-days-title">Assigned Thaali Dates</h5>
+            <h5 class="modal-title" id="assigned-thaali-days-title">Thaali Dates</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
@@ -116,6 +116,43 @@ if (!function_exists('format_inr')) {
 
     <script>
       document.addEventListener('DOMContentLoaded', function() {
+        // Cache greg->hijri label lookups to avoid repeated requests
+        var hijriLabelCache = {};
+        function getHijriLabelForGregIso(gregIso) {
+          return new Promise(function(resolve) {
+            if (!gregIso) return resolve('');
+            if (hijriLabelCache.hasOwnProperty(gregIso)) return resolve(hijriLabelCache[gregIso]);
+            if (!window.jQuery) return resolve('');
+            $.ajax({
+              url: "<?php echo base_url('common/get_hijri_parts'); ?>",
+              type: 'POST',
+              dataType: 'json',
+              data: { greg_date: gregIso },
+              success: function(resp) {
+                var label = '';
+                if (resp && resp.status === 'success' && resp.parts) {
+                  var p = resp.parts;
+                  var day = p.hijri_day || '';
+                  var monthName = p.hijri_month_name || p.hijri_month || '';
+                  var year = p.hijri_year || '';
+                  if (day && monthName && year) {
+                    // Avoid String.padStart for broader compatibility
+                    var dnum = parseInt(day, 10);
+                    var d2 = (!isNaN(dnum) && dnum < 10) ? ('0' + dnum) : String(day);
+                    label = d2 + ' ' + monthName + ' ' + year;
+                  }
+                }
+                hijriLabelCache[gregIso] = label;
+                resolve(label);
+              },
+              error: function() {
+                hijriLabelCache[gregIso] = '';
+                resolve('');
+              }
+            });
+          });
+        }
+
         // Assigned thaali days popup (uses Bootstrap modal + jQuery)
         if (window.jQuery) {
           $(document).on('click', '.view-assigned-thaali-days', function(e) {
@@ -144,12 +181,26 @@ if (!function_exists('format_inr')) {
                   return;
                 }
                 dates.forEach(function(d) {
-                  let label = d;
-                  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-                    const parts = d.split('-');
-                    label = parts[2] + '-' + parts[1] + '-' + parts[0];
+                  var gregIso = (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d : '';
+                  var gregLabel = d;
+                  if (gregIso) {
+                    var parts = gregIso.split('-');
+                    gregLabel = parts[2] + '-' + parts[1] + '-' + parts[0];
                   }
-                  $('#assigned-thaali-days-list').append('<li>' + label + '</li>');
+
+                  var $li = $('<li></li>');
+                  var $greg = $('<span class="greg-label"></span>').text(gregLabel);
+                  var $hijri = $('<span class="text-muted ml-2 hijri-label"></span>').text('');
+                  $li.append($greg).append($hijri);
+                  $('#assigned-thaali-days-list').append($li);
+
+                  if (gregIso) {
+                    getHijriLabelForGregIso(gregIso).then(function(hLabel) {
+                      if (hLabel) {
+                        $hijri.text(' | ' + hLabel);
+                      }
+                    });
+                  }
                 });
               },
               error: function() {

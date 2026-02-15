@@ -1679,6 +1679,12 @@ class Anjuman extends CI_Controller
     }
     $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
     $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+
+    $emailRazaId = (string)$razaPublicId;
+    if ($emailRazaId !== '' && stripos($emailRazaId, 'R#') !== 0 && preg_match('/^\d/', $emailRazaId)) {
+      $emailRazaId = 'R#' . $emailRazaId;
+    }
+
     $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
     $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
     $flag = $this->AdminM->approve_raza($raza_id, $remark);
@@ -1688,9 +1694,71 @@ class Anjuman extends CI_Controller
     $amilsaheb_details = $this->AdminM->get_user_by_role("Amilsaheb");
     $amilsaheb_mobile = substr(preg_replace('/\D+/', '', $amilsaheb_details[0]['Mobile'] ?? ''), -10);
 
+    // WhatsApp: Raza recommended (admin + member)
+    $this->load->library('Notification_lib');
+    $adminWaRecipients = admin_whatsapp_recipients();
+
+    $memberWa = '';
+    if (!empty($user['Mobile'])) {
+      $memberWa = substr(preg_replace('/\D+/', '', (string)$user['Mobile']), -10);
+    }
+    $memberLabel = trim((string)($user['Full_Name'] ?? '') . ' (' . (string)($user['ITS_ID'] ?? '') . ')');
+
+    $waRazaId = (string)$razaPublicId;
+    if ($waRazaId !== '' && stripos($waRazaId, 'R#') !== 0) {
+      $waRazaId = 'R#' . $waRazaId;
+    }
+
+    $detailsText = function_exists('render_raza_details_compact_text')
+      ? (string)render_raza_details_compact_text($razaName, $rtFieldsDecoded, $razadataDecoded)
+      : '';
+    if ($detailsText === '') {
+      $detailsText = function_exists('render_raza_details_compact_text_from_html')
+        ? (string)render_raza_details_compact_text_from_html($detailsHtml)
+        : trim(preg_replace('/\s+/', ' ', strip_tags((string)$detailsHtml)));
+    }
+    if ($detailsText === '') {
+      $detailsText = 'Raza';
+    }
+
+    $amilContact = '';
+    if ($amilsaheb_mobile !== '') {
+      $amilContact = '+91-' . $amilsaheb_mobile;
+    } elseif (!empty($adminWaRecipients[0])) {
+      // Fallback: any admin WhatsApp number
+      $amilContact = (string)$adminWaRecipients[0];
+    }
+
+    if ($memberWa !== '') {
+      $this->notification_lib->send_whatsapp([
+        'recipient' => $memberWa,
+        'template_name' => 'raza_recommended_member',
+        'template_language' => 'en',
+        'body_vars' => [
+          (string)($user['Full_Name'] ?? $user['ITS_ID'] ?? ''),
+          (string)$waRazaId,
+          (string)$detailsText,
+          (string)$amilContact,
+        ]
+      ]);
+    }
+
+    foreach ($adminWaRecipients as $wa) {
+      $this->notification_lib->send_whatsapp([
+        'recipient' => $wa,
+        'template_name' => 'raza_recommended_admin',
+        'template_language' => 'en',
+        'body_vars' => [
+          (string)$memberLabel,
+          (string)$waRazaId,
+          (string)$detailsText,
+        ]
+      ]);
+    }
+
     $message = '<p>Baad Afzalus Salaam,</p>'
       . '<p><strong>Mubarak!</strong> Your Raza request has received a recommendation from Anjuman-e-Saifee Jamaat.</p>'
-      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
       . $remarkHtml
       . $detailsHtml
       . '<p>Kindly reach out to <strong>Janab Amil Saheb</strong> via <strong>phone or WhatsApp</strong> at: <strong>+91-' . $amilsaheb_mobile . '</strong> to obtain his <strong>final Raza and Dua</strong>.</p>'
@@ -1703,7 +1771,7 @@ class Anjuman extends CI_Controller
     // Notify monitoring/admin recipients
     $msg_html = '<p>Raza request has been recommended by the Jamaat Coordinator.</p>'
       . '<p><strong>Member:</strong> ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ')</p>'
-      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
       . $remarkHtml
       . $detailsHtml;
     $notify_recipients = [
@@ -1763,6 +1831,12 @@ class Anjuman extends CI_Controller
     }
     $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
     $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+
+    $emailRazaId = (string)$razaPublicId;
+    if ($emailRazaId !== '' && stripos($emailRazaId, 'R#') !== 0 && preg_match('/^\d/', $emailRazaId)) {
+      $emailRazaId = 'R#' . $emailRazaId;
+    }
+
     $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
     $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
 
@@ -1770,7 +1844,7 @@ class Anjuman extends CI_Controller
     if ($memberEmail !== '' && filter_var($memberEmail, FILTER_VALIDATE_EMAIL)) {
       $body = '<p>Baad Afzalus Salaam,</p>'
         . '<p>Your Raza has <strong>not</strong> been recommended by the Jamaat coordinator.</p>'
-        . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+        . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
         . $remarkHtml
         . $detailsHtml
         . '<p>Please wait for Janab\'s response or contact Jamaat office for guidance.</p>'
@@ -2555,7 +2629,9 @@ class Anjuman extends CI_Controller
       return $r['year'];
     }, $yearRows));
 
-    // Compute current Hijri financial composite year (months 09–12 + next 01–08)
+    // Compute current Hijri financial year
+    // FY boundary: Hijri months 07–12 belong to current FY start year; 01–03 belong to previous FY.
+    // Additionally, show *next* FY by default in the 2-month window before FY end (Hijri months 04–06).
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
     $currentCompositeYear = null;
@@ -2564,10 +2640,15 @@ class Anjuman extends CI_Controller
       $hm = isset($parts[1]) ? str_pad($parts[1], 2, '0', STR_PAD_LEFT) : null;
       $hy = isset($parts[2]) ? (int)$parts[2] : null;
       if ($hy) {
-        if ($hm >= '09' && $hm <= '12') {
+        if ($hm >= '04' && $hm <= '06') {
+          // 2 months prior to FY end (06): default to next FY
           $currentCompositeYear = sprintf('%d-%s', $hy, substr($hy + 1, -2));
-        } else {
+        } elseif ($hm >= '01' && $hm <= '03') {
+          // Early months: still in previous FY
           $currentCompositeYear = sprintf('%d-%s', $hy - 1, substr($hy, -2));
+        } else {
+          // Months 07–12: current FY
+          $currentCompositeYear = sprintf('%d-%s', $hy, substr($hy + 1, -2));
         }
       }
     }
@@ -2611,7 +2692,7 @@ class Anjuman extends CI_Controller
         $sql = "SELECT
                   a.user_id,
                   CASE
-                    WHEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12
+                    WHEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 7 AND 12
                       THEN CONCAT(
                         CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED),
                         '-',
@@ -2623,7 +2704,7 @@ class Anjuman extends CI_Controller
                       LPAD(RIGHT(CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED), 2), 2, '0')
                     )
                   END AS fy,
-                  COUNT(DISTINCT a.menu_id) AS c
+                  COUNT(DISTINCT DATE(a.menu_date)) AS c
                 FROM fmb_thaali_day_assignment a
                 JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
                 GROUP BY a.user_id, fy";
@@ -2631,7 +2712,7 @@ class Anjuman extends CI_Controller
       } else {
         // Fallback to stored year column
         $rows = $this->db->query(
-          "SELECT user_id, year AS fy, COUNT(DISTINCT menu_id) AS c
+          "SELECT user_id, year AS fy, COUNT(DISTINCT DATE(menu_date)) AS c
            FROM fmb_thaali_day_assignment
            GROUP BY user_id, year"
         )->result_array();
@@ -2735,10 +2816,10 @@ class Anjuman extends CI_Controller
               JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
               WHERE a.user_id = ? AND (
                 (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
-                  AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12)
+                  AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 7 AND 12)
                 OR
                 (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
-                  AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 8)
+                  AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 6)
               )
               ORDER BY d ASC";
       $rows = $this->db->query($sql, [$user_id, $fyStart, $fyEnd])->result_array();

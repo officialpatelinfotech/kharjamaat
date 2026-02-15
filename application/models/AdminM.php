@@ -292,25 +292,37 @@ class AdminM extends CI_Model
     $current_hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d"));
     if ($current_hijri_date) {
       $current_hijri_date = $current_hijri_date["hijri_date"];
-      $current_hijri_month = explode("-", $current_hijri_date)[1];
-      $current_hijri_year = explode("-", $current_hijri_date)[2];
+      $parts = explode("-", $current_hijri_date);
+      $current_hijri_month = isset($parts[1]) ? str_pad((string)$parts[1], 2, '0', STR_PAD_LEFT) : null;
+      $current_hijri_year = isset($parts[2]) ? (int)$parts[2] : null;
     } else {
       $current_hijri_date = null;
+      $current_hijri_month = null;
+      $current_hijri_year = null;
     }
 
     // Determine FY to show for this listing
+    // Business rule: Hijri FY ends in month 06. Show next FY starting 2 months prior (month 04).
     if (isset($filter_data["year"]) && !empty($filter_data["year"])) {
       $takhmeen_year = $filter_data["year"];
     } else {
       $takhmeen_year = null;
-      if (isset($current_hijri_month) && isset($current_hijri_year) && $current_hijri_year) {
-        if ($current_hijri_month >= "01" && $current_hijri_month <= "08") {
-          $y1 = $current_hijri_year - 1;
-          $y2 = substr($current_hijri_year, -2);
+      if (!empty($current_hijri_month) && !empty($current_hijri_year)) {
+        // Month comparisons are string-safe because we normalize to 2 digits above.
+        if ($current_hijri_month >= '04' && $current_hijri_month <= '06') {
+          // 2 months before FY end (06): default to next FY
+          $y1 = (int)$current_hijri_year;
+          $y2 = substr((string)($current_hijri_year + 1), -2);
           $takhmeen_year = "$y1-$y2";
-        } else if ($current_hijri_month >= "09" && $current_hijri_month <= "12") {
-          $y1 = $current_hijri_year;
-          $y2 = substr($current_hijri_year + 1, -2);
+        } else if ($current_hijri_month >= '01' && $current_hijri_month <= '03') {
+          // Early in calendar year: still show current FY (previousYear-currentYearShort)
+          $y1 = (int)$current_hijri_year - 1;
+          $y2 = substr((string)$current_hijri_year, -2);
+          $takhmeen_year = "$y1-$y2";
+        } else if ($current_hijri_month >= '07' && $current_hijri_month <= '12') {
+          // FY started: show current FY (currentYear-nextYearShort)
+          $y1 = (int)$current_hijri_year;
+          $y2 = substr((string)($current_hijri_year + 1), -2);
           $takhmeen_year = "$y1-$y2";
         }
       }

@@ -12,6 +12,158 @@ class Common extends CI_Controller
     $this->load->model('HijriCalendar');
   }
 
+  private function normalize_digits_phone($phone)
+  {
+    $digits = preg_replace('/[^0-9]/', '', (string)$phone);
+    return $digits !== null ? $digits : '';
+  }
+
+  private function format_miqaat_public_id($miqaatPublicId)
+  {
+    $id = trim((string)$miqaatPublicId);
+    if ($id === '') return '';
+
+    // Normalize whitespace
+    $id = preg_replace('/\s+/', ' ', $id);
+    if ($id === null) $id = trim((string)$miqaatPublicId);
+
+    // Avoid double-prefixing
+    if (stripos($id, 'M#') === 0) {
+      return $id;
+    }
+    if (stripos($id, 'M #') === 0) {
+      return 'M#' . trim(substr($id, 3));
+    }
+
+    return 'M#' . $id;
+  }
+
+  private function miqaat_members_html_list($memberLabels, $totalCount, $limit = 50)
+  {
+    $memberLabels = is_array($memberLabels) ? $memberLabels : [];
+    $totalCount = (int)$totalCount;
+    $limit = (int)$limit;
+    if ($limit <= 0) $limit = 50;
+
+    $shown = array_slice($memberLabels, 0, $limit);
+    $safe = [];
+    foreach ($shown as $label) {
+      $safe[] = htmlspecialchars((string)$label);
+    }
+
+    $html = '';
+    if (!empty($safe)) {
+      $html .= '<p><strong>Members (' . htmlspecialchars((string)$totalCount) . '):</strong></p>';
+      $html .= '<ul><li>' . implode('</li><li>', $safe) . '</li></ul>';
+      if ($totalCount > $limit) {
+        $html .= '<p><em>List truncated; showing first ' . htmlspecialchars((string)$limit) . ' members.</em></p>';
+      }
+    }
+    return $html;
+  }
+
+  private function miqaat_members_compact_text($memberLabels, $totalCount, $limit = 50, $maxChars = 900)
+  {
+    $memberLabels = is_array($memberLabels) ? $memberLabels : [];
+    $totalCount = (int)$totalCount;
+    $limit = (int)$limit;
+    $maxChars = (int)$maxChars;
+    if ($limit <= 0) $limit = 50;
+    if ($maxChars <= 0) $maxChars = 900;
+
+    $clean = [];
+    foreach ($memberLabels as $label) {
+      $s = trim((string)$label);
+      if ($s === '') continue;
+      $s = preg_replace('/\s+/', ' ', $s);
+      if ($s === null) $s = trim((string)$label);
+      $clean[] = $s;
+    }
+
+    $shown = array_slice($clean, 0, $limit);
+    $text = implode(', ', $shown);
+    if ($totalCount > count($shown)) {
+      $text .= ' (+' . (string)($totalCount - count($shown)) . ' more)';
+    }
+
+    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+      if (mb_strlen($text) > $maxChars) {
+        $text = mb_substr($text, 0, max(0, $maxChars - 1)) . '…';
+      }
+    } else {
+      if (strlen($text) > $maxChars) {
+        $text = substr($text, 0, max(0, $maxChars - 1)) . '…';
+      }
+    }
+
+    return $text;
+  }
+
+  private function get_admin_whatsapp_recipients($adminEmails = [])
+  {
+    $waAdmins = admin_whatsapp_recipients();
+
+    // Fallback: try resolving mobiles for admin email recipients
+    if (empty($waAdmins) && is_array($adminEmails)) {
+      foreach ($adminEmails as $adminEmail) {
+        $adminEmail = trim((string)$adminEmail);
+        if ($adminEmail === '') continue;
+        $row = $this->db->query(
+          "SELECT COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') AS mobile\n" .
+            "FROM user\n" .
+            "WHERE (Email = ? OR email = ?)\n" .
+            "  AND COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') <> ''\n" .
+            "LIMIT 1",
+          [$adminEmail, $adminEmail]
+        )->row_array();
+        if (!empty($row['mobile'])) {
+          $waAdmins[] = (string)$row['mobile'];
+        }
+      }
+    }
+
+    $norm = [];
+    foreach ($waAdmins as $m) {
+      $d = $this->normalize_digits_phone($m);
+      if ($d === '') continue;
+      $norm[] = $d;
+    }
+    return array_values(array_unique($norm));
+  }
+
+  // Default FMB (Thaali) Financial Year start (Hijri).
+  // FY starts in Hijri month 07 and ends in month 06.
+  // Rule: during months 04–06, default to next FY; during 01–03, default to previous FY.
+  private function get_default_fmb_fy_start_year()
+  {
+    $today = date('Y-m-d');
+    $hijri_today = $this->HijriCalendar->get_hijri_date($today);
+    if (empty($hijri_today) || empty($hijri_today['hijri_date'])) {
+      return null;
+    }
+    $parts = explode('-', (string) $hijri_today['hijri_date']);
+    $hmon = isset($parts[1]) ? (int) ltrim((string) $parts[1], '0') : 0;
+    $hyr = isset($parts[2]) ? (int) $parts[2] : 0;
+    if ($hmon < 1 || $hmon > 12 || $hyr <= 0) {
+      return null;
+    }
+
+    // Base FY start is same hijri year for months 07–12, else previous hijri year.
+    $base_start = ($hmon >= 7) ? $hyr : ($hyr - 1);
+
+    // Switch window: show next FY during months 04–06.
+    if ($hmon >= 4 && $hmon <= 6) {
+      return $base_start + 1;
+    }
+
+    // Early months: show previous FY during months 01–03.
+    if ($hmon >= 1 && $hmon <= 3) {
+      return $base_start - 1;
+    }
+
+    return $base_start;
+  }
+
   private function validateUser($user)
   {
     if (empty($user) || ($user['role'] != 1 && $user['role'] != 3 && $user['role'] != 2 && $user['role'] != 16)) {
@@ -1750,7 +1902,25 @@ class Common extends CI_Controller
 
       if ($assign_type == 'Individual') {
         $ids = explode(",", $this->input->post('individual_ids'));
+
+        $this->load->model('EmailQueueM');
+        $this->load->model('AccountM');
+        $this->load->library('Notification_lib');
+        $this->config->load('whatsapp', true);
+
+        $miqaatRow = $this->CommonM->get_miqaat_by_id($new_miqaat_id);
+        $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
+        $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? $miqaatRow['miqaat_id'] : $new_miqaat_id;
+        $miqaatPublicId = $this->format_miqaat_public_id($miqaatPublicId);
+        $miqaatType = isset($miqaatRow['type']) ? $miqaatRow['type'] : $miqaat_type;
+        $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+
+        $adminMemberLabels = [];
+        $adminMemberCount = 0;
         foreach ($ids as $id) {
+          $id = trim((string)$id);
+          if ($id === '') continue;
+
           $this->CommonM->insert_assignment([
             'miqaat_id' => $new_miqaat_id,
             'assign_type' => 'individual',
@@ -1758,14 +1928,11 @@ class Common extends CI_Controller
           ]);
 
           $this->CommonM->delete_fala_ni_niyaz_by_user_id($id, $miqaat_type, $hijri_year);
-          $this->load->model('EmailQueueM');
-          $this->load->model('AccountM');
           $member = $this->AccountM->getUserData($id);
-          $miqaatRow = $this->CommonM->get_miqaat_by_id($new_miqaat_id);
-          $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
-          $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? $miqaatRow['miqaat_id'] : $new_miqaat_id;
-          $miqaatType = isset($miqaatRow['type']) ? $miqaatRow['type'] : $miqaat_type;
-          $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+
+          $adminMemberLabels[] = (string)($member['Full_Name'] ?? $id) . ' (' . (string)$id . ')';
+          $adminMemberCount++;
+
           if (!empty($member) && !empty($member['Email'])) {
             $subject = 'Miqaat Assignment: ' . $miqaatName;
             $body = '<p>Baad Afzalus Salaam,</p>';
@@ -1782,28 +1949,98 @@ class Common extends CI_Controller
             $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
             $this->EmailQueueM->enqueue($member['Email'], $subject, $body, null, 'html');
           }
-          // Admin notification
-          $admins = [
-            'amilsaheb@kharjamaat.in',
-            '3042@carmelnmh.in',
-            'kharjamaat@gmail.com',
-            'kharamilsaheb@gmail.com',
-            'kharjamaat786@gmail.com',
-            'khozemtopiwalla@gmail.com',
-            'ybookwala@gmail.com'
+
+          // WhatsApp: member assignment (template-based)
+          $memberMobile = $member['Registered_Family_Mobile'] ?? $member['Mobile'] ?? $member['WhatsApp_No'] ?? '';
+          $memberMobile = $this->normalize_digits_phone($memberMobile);
+          if ($memberMobile !== '') {
+            $tplCfg = $this->config->item('templates', 'whatsapp');
+            $memberTplKey = (is_array($tplCfg) && isset($tplCfg['miqaat_assigned_member_v2'])) ? 'miqaat_assigned_member_v2' : 'miqaat_assigned_member';
+            $tpl = is_array($tplCfg) && isset($tplCfg[$memberTplKey]) ? $tplCfg[$memberTplKey] : [];
+            $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+            $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'miqaat', 'miqaat_id', 'type', 'date', 'assigned_to'];
+
+            $varsMap = [
+              'name' => (string)($member['Full_Name'] ?? $id),
+              'miqaat' => (string)$miqaatName,
+              'miqaat_id' => (string)$miqaatPublicId,
+              'type' => (string)$miqaatType,
+              'date' => (string)$miqaatDate,
+              'assigned_to' => 'Individual',
+            ];
+            $bodyVars = [];
+            foreach ($tplVars as $k) {
+              $key = is_string($k) ? trim($k) : '';
+              if ($key === '') continue;
+              $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+            }
+            $this->notification_lib->send_whatsapp([
+              'recipient' => $memberMobile,
+              'recipient_type' => 'user',
+              'template_name' => $memberTplKey,
+              'template_language' => $tplLang,
+              'body_vars' => $bodyVars,
+            ]);
+          }
+        }
+
+        // Admin notification (single consolidated)
+        $admins = [
+          'amilsaheb@kharjamaat.in',
+          '3042@carmelnmh.in',
+          'kharjamaat@gmail.com',
+          'kharamilsaheb@gmail.com',
+          'kharjamaat786@gmail.com',
+          'khozemtopiwalla@gmail.com',
+          'ybookwala@gmail.com'
+        ];
+
+        $membersHtml = $this->miqaat_members_html_list($adminMemberLabels, $adminMemberCount, 50);
+        foreach ($admins as $a) {
+          $asub = 'Miqaat Assigned: ' . $miqaatName;
+          $abody = '<p>Miqaat assignment recorded.</p>'
+            . '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+            . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+            . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
+            . '<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>'
+            . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>'
+            . '<tr><td><strong>Assignment</strong></td><td>Individual</td></tr>'
+            . '</table>'
+            . $membersHtml;
+          $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
+        }
+
+        // WhatsApp: admin assignment recorded (single consolidated)
+        $waAdmins = $this->get_admin_whatsapp_recipients($admins);
+        if (!empty($waAdmins)) {
+          $tplCfg = $this->config->item('templates', 'whatsapp');
+          $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin']) ? $tplCfg['miqaat_assigned_admin'] : [];
+          $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+          $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['member', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
+
+          $adminMembersText = $this->miqaat_members_compact_text($adminMemberLabels, $adminMemberCount, 50, 900);
+          $varsMap = [
+            'member' => $adminMembersText,
+            'miqaat' => (string)$miqaatName,
+            'miqaat_id' => (string)$miqaatPublicId,
+            'type' => (string)$miqaatType,
+            'date' => (string)$miqaatDate,
+            'assignment' => 'Individual (' . (string)$adminMemberCount . ')',
           ];
-          foreach ($admins as $a) {
-            $asub = 'Miqaat Assigned: ' . $miqaatName;
-            $abody = '<p>Miqaat assignment recorded.</p>'
-              . '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
-              . '<tr><td><strong>Member</strong></td><td>' . htmlspecialchars($member['Full_Name'] ?? $id) . ' (' . htmlspecialchars($id) . ')</td></tr>'
-              . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
-              . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
-              . '<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>'
-              . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>'
-              . '<tr><td><strong>Assignment</strong></td><td>Individual</td></tr>'
-              . '</table>';
-            $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
+          $bodyVars = [];
+          foreach ($tplVars as $k) {
+            $key = is_string($k) ? trim($k) : '';
+            if ($key === '') continue;
+            $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+          }
+          foreach ($waAdmins as $adminMobile) {
+            $this->notification_lib->send_whatsapp([
+              'recipient' => $adminMobile,
+              'recipient_type' => 'admin',
+              'template_name' => 'miqaat_assigned_admin',
+              'template_language' => $tplLang,
+              'body_vars' => $bodyVars,
+            ]);
           }
         }
       } elseif ($assign_type == 'Group') {
@@ -1827,6 +2064,7 @@ class Common extends CI_Controller
         $miqaatRow = $this->CommonM->get_miqaat_by_id($new_miqaat_id);
         $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
         $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? $miqaatRow['miqaat_id'] : $new_miqaat_id;
+        $miqaatPublicId = $this->format_miqaat_public_id($miqaatPublicId);
         $miqaatType = isset($miqaatRow['type']) ? $miqaatRow['type'] : $miqaat_type;
         $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
 
@@ -1865,6 +2103,42 @@ class Common extends CI_Controller
           $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
           $this->EmailQueueM->enqueue($leader['Email'], $subject, $body, null, 'html');
         }
+
+        // WhatsApp: group leader assignment (template-based)
+        $this->load->library('Notification_lib');
+        $this->config->load('whatsapp', true);
+        $leaderMobile = $leader['Registered_Family_Mobile'] ?? $leader['Mobile'] ?? $leader['WhatsApp_No'] ?? '';
+        $leaderMobile = $this->normalize_digits_phone($leaderMobile);
+        if ($leaderMobile !== '') {
+          $tplCfg = $this->config->item('templates', 'whatsapp');
+          $memberTplKey = (is_array($tplCfg) && isset($tplCfg['miqaat_assigned_member_v2'])) ? 'miqaat_assigned_member_v2' : 'miqaat_assigned_member';
+          $tpl = is_array($tplCfg) && isset($tplCfg[$memberTplKey]) ? $tplCfg[$memberTplKey] : [];
+          $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+          $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'miqaat', 'miqaat_id', 'type', 'date', 'assigned_to'];
+
+          $varsMap = [
+            'name' => (string)($leader['Full_Name'] ?? $leader_id),
+            'miqaat' => (string)$miqaatName,
+            'miqaat_id' => (string)$miqaatPublicId,
+            'type' => (string)$miqaatType,
+            'date' => (string)$miqaatDate,
+            'assigned_to' => 'Group: ' . (string)$group_name,
+          ];
+          $bodyVars = [];
+          foreach ($tplVars as $k) {
+            $key = is_string($k) ? trim($k) : '';
+            if ($key === '') continue;
+            $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+          }
+
+          $this->notification_lib->send_whatsapp([
+            'recipient' => $leaderMobile,
+            'recipient_type' => 'user',
+            'template_name' => $memberTplKey,
+            'template_language' => $tplLang,
+            'body_vars' => $bodyVars,
+          ]);
+        }
         // Admin notification
         $admins = [
           'amilsaheb@kharjamaat.in',
@@ -1890,6 +2164,44 @@ class Common extends CI_Controller
             . '</table>'
             . $membersHtml;
           $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
+        }
+
+        // WhatsApp: admin group assignment recorded (template-based)
+        $waAdmins = $this->get_admin_whatsapp_recipients($admins);
+        if (!empty($waAdmins)) {
+          $tplCfg = $this->config->item('templates', 'whatsapp');
+          $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin']) ? $tplCfg['miqaat_assigned_admin'] : [];
+          $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+          $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['member', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
+
+          $compactMembers = $this->miqaat_members_compact_text($memberLines, count($members), 50, 900);
+          $adminMemberLabel = 'Leader: ' . (string)($leader['Full_Name'] ?? $leader_id) . ' (' . (string)$leader_id . ')';
+          if ($compactMembers !== '') {
+            $adminMemberLabel .= '; Members: ' . $compactMembers;
+          }
+          $varsMap = [
+            'member' => $adminMemberLabel,
+            'miqaat' => (string)$miqaatName,
+            'miqaat_id' => (string)$miqaatPublicId,
+            'type' => (string)$miqaatType,
+            'date' => (string)$miqaatDate,
+            'assignment' => 'Group: ' . (string)$group_name,
+          ];
+          $bodyVars = [];
+          foreach ($tplVars as $k) {
+            $key = is_string($k) ? trim($k) : '';
+            if ($key === '') continue;
+            $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+          }
+          foreach ($waAdmins as $adminMobile) {
+            $this->notification_lib->send_whatsapp([
+              'recipient' => $adminMobile,
+              'recipient_type' => 'admin',
+              'template_name' => 'miqaat_assigned_admin',
+              'template_language' => $tplLang,
+              'body_vars' => $bodyVars,
+            ]);
+          }
         }
       } elseif ($assign_type == 'Fala ni Niyaz') {
         $fmb_users = $this->CommonM->get_umoor_fmb_users();
@@ -2005,7 +2317,34 @@ class Common extends CI_Controller
 
           $this->CommonM->delete_raza_by_miqaat_id($miqaat_id, $ids);
 
+          $this->load->model('EmailQueueM');
+          $this->load->model('AccountM');
+          $this->load->library('Notification_lib');
+          $this->config->load('whatsapp', true);
+
+          $admins = [
+            'amilsaheb@kharjamaat.in',
+            '3042@carmelnmh.in',
+            'kharjamaat@gmail.com',
+            'kharamilsaheb@gmail.com',
+            'kharjamaat786@gmail.com',
+            'khozemtopiwalla@gmail.com',
+            'ybookwala@gmail.com'
+          ];
+
+          $adminMemberLabels = [];
+          $adminMemberCount = 0;
+
+          $miqaatRow = $this->CommonM->get_miqaat_by_id($miqaat_id);
+          $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
+          $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+          $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? $miqaatRow['miqaat_id'] : $miqaat_id;
+          $miqaatPublicId = $this->format_miqaat_public_id($miqaatPublicId);
+          $miqaatType = isset($miqaatRow['type']) ? $miqaatRow['type'] : $miqaat_type;
+
           foreach ($ids as $id) {
+            $id = trim((string)$id);
+            if ($id === '') continue;
             $this->CommonM->insert_assignment([
               'miqaat_id' => $miqaat_id,
               'assign_type' => 'Individual',
@@ -2014,12 +2353,11 @@ class Common extends CI_Controller
 
             $this->CommonM->delete_fala_ni_niyaz_by_user_id($id, $miqaat_type, $hijri_year);
             // Notify individual and admins about assignment (update)
-            $this->load->model('EmailQueueM');
-            $this->load->model('AccountM');
             $member = $this->AccountM->getUserData($id);
-            $miqaatRow = $this->CommonM->get_miqaat_by_id($miqaat_id);
-            $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
-            $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+
+            $adminMemberLabels[] = (string)($member['Full_Name'] ?? $id) . ' (' . (string)$id . ')';
+            $adminMemberCount++;
+
             if (!empty($member) && !empty($member['Email'])) {
               $subject = 'Miqaat Assignment: ' . $miqaatName;
               $body = '<p>Baad Afzalus Salaam,</p>';
@@ -2027,19 +2365,90 @@ class Common extends CI_Controller
               $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
               $this->EmailQueueM->enqueue($member['Email'], $subject, $body, null, 'html');
             }
-            $admins = [
-              'amilsaheb@kharjamaat.in',
-              '3042@carmelnmh.in',
-              'kharjamaat@gmail.com',
-              'kharamilsaheb@gmail.com',
-              'kharjamaat786@gmail.com',
-              'khozemtopiwalla@gmail.com',
-              'ybookwala@gmail.com'
+
+            // WhatsApp: member assignment (update)
+            $memberMobile = $member['Registered_Family_Mobile'] ?? $member['Mobile'] ?? $member['WhatsApp_No'] ?? '';
+            $memberMobile = $this->normalize_digits_phone($memberMobile);
+            if ($memberMobile !== '') {
+              $tplCfg = $this->config->item('templates', 'whatsapp');
+              $memberTplKey = (is_array($tplCfg) && isset($tplCfg['miqaat_assigned_member_v2'])) ? 'miqaat_assigned_member_v2' : 'miqaat_assigned_member';
+              $tpl = is_array($tplCfg) && isset($tplCfg[$memberTplKey]) ? $tplCfg[$memberTplKey] : [];
+              $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+              $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'miqaat', 'miqaat_id', 'type', 'date', 'assigned_to'];
+
+              $varsMap = [
+                'name' => (string)($member['Full_Name'] ?? $id),
+                'miqaat' => (string)$miqaatName,
+                'miqaat_id' => (string)$miqaatPublicId,
+                'type' => (string)$miqaatType,
+                'date' => (string)$miqaatDate,
+                'assigned_to' => 'Individual',
+              ];
+              $bodyVars = [];
+              foreach ($tplVars as $k) {
+                $key = is_string($k) ? trim($k) : '';
+                if ($key === '') continue;
+                $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+              }
+
+              $this->notification_lib->send_whatsapp([
+                'recipient' => $memberMobile,
+                'recipient_type' => 'user',
+                'template_name' => $memberTplKey,
+                'template_language' => $tplLang,
+                'body_vars' => $bodyVars,
+              ]);
+            }
+          }
+
+          // Admin notification (single consolidated) for update
+          $membersHtml = $this->miqaat_members_html_list($adminMemberLabels, $adminMemberCount, 50);
+          foreach ($admins as $a) {
+            $asub = 'Miqaat Assigned: ' . $miqaatName;
+            $abody = '<p>Miqaat assignment recorded.</p>'
+              . '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
+              . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
+              . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars((string)$miqaatPublicId) . '</td></tr>'
+              . '<tr><td><strong>Type</strong></td><td>' . htmlspecialchars((string)$miqaatType) . '</td></tr>'
+              . '<tr><td><strong>Date</strong></td><td>' . htmlspecialchars((string)$miqaatDate) . '</td></tr>'
+              . '<tr><td><strong>Assignment</strong></td><td>Individual</td></tr>'
+              . '</table>'
+              . $membersHtml;
+            $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
+          }
+
+          // WhatsApp: admin assignment recorded (single consolidated) for update
+          $waAdmins = $this->get_admin_whatsapp_recipients($admins);
+          if (!empty($waAdmins)) {
+            $tplCfg = $this->config->item('templates', 'whatsapp');
+            $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin']) ? $tplCfg['miqaat_assigned_admin'] : [];
+            $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+            $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['member', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
+
+            $adminMembersText = $this->miqaat_members_compact_text($adminMemberLabels, $adminMemberCount, 50, 900);
+            $varsMap = [
+              'member' => $adminMembersText,
+              'miqaat' => (string)$miqaatName,
+              'miqaat_id' => (string)$miqaatPublicId,
+              'type' => (string)$miqaatType,
+              'date' => (string)$miqaatDate,
+              'assignment' => 'Individual (' . (string)$adminMemberCount . ')',
             ];
-            foreach ($admins as $a) {
-              $asub = 'Miqaat Assigned: ' . $miqaatName;
-              $abody = '<p>Member <strong>' . htmlspecialchars($member['Full_Name'] ?? $id) . ' (' . htmlspecialchars($id) . ')</strong> has been assigned to miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on ' . htmlspecialchars($miqaatDate) . '.</p>';
-              $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
+            $bodyVars = [];
+            foreach ($tplVars as $k) {
+              $key = is_string($k) ? trim($k) : '';
+              if ($key === '') continue;
+              $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+            }
+
+            foreach ($waAdmins as $adminMobile) {
+              $this->notification_lib->send_whatsapp([
+                'recipient' => $adminMobile,
+                'recipient_type' => 'admin',
+                'template_name' => 'miqaat_assigned_admin',
+                'template_language' => $tplLang,
+                'body_vars' => $bodyVars,
+              ]);
             }
           }
         } elseif ($assign_type == 'Group') {
@@ -2066,10 +2475,24 @@ class Common extends CI_Controller
           $miqaatRow = $this->CommonM->get_miqaat_by_id($miqaat_id);
           $miqaatName = isset($miqaatRow['name']) ? $miqaatRow['name'] : '';
           $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
+
+          $memberLines = [];
+          $memberCount = 0;
+          foreach ($members as $mid) {
+            $mid = trim((string)$mid);
+            if ($mid === '') continue;
+            $m = $this->AccountM->getUserData($mid);
+            $memberLines[] = (string)($m['Full_Name'] ?? $mid) . ' (' . (string)$mid . ')';
+            $memberCount++;
+            if ($memberCount >= 50) break;
+          }
+          $membersHtml = $this->miqaat_members_html_list($memberLines, count($members), 50);
+
           if (!empty($leader) && !empty($leader['Email'])) {
             $subject = 'You have been appointed group leader for miqaat: ' . $miqaatName;
             $body = '<p>Baad Afzalus Salaam,</p>';
             $body .= '<p>You have been appointed as the group leader (<strong>' . htmlspecialchars($group_name) . '</strong>) for the miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on <strong>' . htmlspecialchars($miqaatDate) . '</strong>.</p>';
+            $body .= $membersHtml;
             $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
             $this->EmailQueueM->enqueue($leader['Email'], $subject, $body, null, 'html');
           }
@@ -2084,8 +2507,94 @@ class Common extends CI_Controller
           ];
           foreach ($admins as $a) {
             $asub = 'Group Assigned for Miqaat: ' . $miqaatName;
-            $abody = '<p>Group <strong>' . htmlspecialchars($group_name) . '</strong> led by <strong>' . htmlspecialchars($leader['Full_Name'] ?? $leader_id) . ' (' . htmlspecialchars($leader_id) . ')</strong> has been assigned to miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on ' . htmlspecialchars($miqaatDate) . '.</p>';
+            $abody = '<p>Miqaat group assignment recorded.</p>'
+              . '<p>Group <strong>' . htmlspecialchars($group_name) . '</strong> led by <strong>' . htmlspecialchars($leader['Full_Name'] ?? $leader_id) . ' (' . htmlspecialchars($leader_id) . ')</strong></p>'
+              . '<p>Miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on ' . htmlspecialchars($miqaatDate) . '</p>'
+              . $membersHtml;
             $this->EmailQueueM->enqueue($a, $asub, $abody, null, 'html');
+          }
+
+          // WhatsApp: group leader assignment (update)
+          $this->load->library('Notification_lib');
+          $this->config->load('whatsapp', true);
+          $leaderMobile = $leader['Registered_Family_Mobile'] ?? $leader['Mobile'] ?? $leader['WhatsApp_No'] ?? '';
+          $leaderMobile = $this->normalize_digits_phone($leaderMobile);
+          if ($leaderMobile !== '') {
+            $tplCfg = $this->config->item('templates', 'whatsapp');
+            $memberTplKey = (is_array($tplCfg) && isset($tplCfg['miqaat_assigned_member_v2'])) ? 'miqaat_assigned_member_v2' : 'miqaat_assigned_member';
+            $tpl = is_array($tplCfg) && isset($tplCfg[$memberTplKey]) ? $tplCfg[$memberTplKey] : [];
+            $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+            $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'miqaat', 'miqaat_id', 'type', 'date', 'assigned_to'];
+
+            $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? $miqaatRow['miqaat_id'] : $miqaat_id;
+            $miqaatPublicId = $this->format_miqaat_public_id($miqaatPublicId);
+            $miqaatType = isset($miqaatRow['type']) ? $miqaatRow['type'] : $miqaat_type;
+
+            $varsMap = [
+              'name' => (string)($leader['Full_Name'] ?? $leader_id),
+              'miqaat' => (string)$miqaatName,
+              'miqaat_id' => (string)$miqaatPublicId,
+              'type' => (string)$miqaatType,
+              'date' => (string)$miqaatDate,
+              'assigned_to' => 'Group: ' . (string)$group_name,
+            ];
+            $bodyVars = [];
+            foreach ($tplVars as $k) {
+              $key = is_string($k) ? trim($k) : '';
+              if ($key === '') continue;
+              $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+            }
+
+            $this->notification_lib->send_whatsapp([
+              'recipient' => $leaderMobile,
+              'recipient_type' => 'user',
+              'template_name' => $memberTplKey,
+              'template_language' => $tplLang,
+              'body_vars' => $bodyVars,
+            ]);
+          }
+
+          // WhatsApp: admin group assignment recorded (update)
+          $waAdmins = $this->get_admin_whatsapp_recipients($admins);
+          if (!empty($waAdmins)) {
+            $tplCfg = $this->config->item('templates', 'whatsapp');
+            $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin']) ? $tplCfg['miqaat_assigned_admin'] : [];
+            $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+            $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['member', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
+
+            $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? $miqaatRow['miqaat_id'] : $miqaat_id;
+            $miqaatPublicId = $this->format_miqaat_public_id($miqaatPublicId);
+            $miqaatType = isset($miqaatRow['type']) ? $miqaatRow['type'] : $miqaat_type;
+            $compactMembers = $this->miqaat_members_compact_text($memberLines, count($members), 50, 900);
+            $adminMemberLabel = 'Leader: ' . (string)($leader['Full_Name'] ?? $leader_id) . ' (' . (string)$leader_id . ')';
+            if ($compactMembers !== '') {
+              $adminMemberLabel .= '; Members: ' . $compactMembers;
+            }
+
+            $varsMap = [
+              'member' => $adminMemberLabel,
+              'miqaat' => (string)$miqaatName,
+              'miqaat_id' => (string)$miqaatPublicId,
+              'type' => (string)$miqaatType,
+              'date' => (string)$miqaatDate,
+              'assignment' => 'Group: ' . (string)$group_name,
+            ];
+            $bodyVars = [];
+            foreach ($tplVars as $k) {
+              $key = is_string($k) ? trim($k) : '';
+              if ($key === '') continue;
+              $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+            }
+
+            foreach ($waAdmins as $adminMobile) {
+              $this->notification_lib->send_whatsapp([
+                'recipient' => $adminMobile,
+                'recipient_type' => 'admin',
+                'template_name' => 'miqaat_assigned_admin',
+                'template_language' => $tplLang,
+                'body_vars' => $bodyVars,
+              ]);
+            }
           }
         } elseif ($assign_type == 'Fala ni Niyaz') {
           $miqaat_data['status'] = 1;
@@ -2169,9 +2678,12 @@ class Common extends CI_Controller
       // Notify admins and assigned members/group leaders about activation
       $this->load->model('EmailQueueM');
       $this->load->model('AccountM');
+      $this->load->library('Notification_lib');
+      $this->config->load('whatsapp', true);
       $miqaat = $this->CommonM->get_miqaat_by_id($miqaat_id);
       $miqaatName = isset($miqaat['name']) ? $miqaat['name'] : '';
       $miqaatPublicId = isset($miqaat['miqaat_id']) ? $miqaat['miqaat_id'] : $miqaat_id;
+      $miqaatPublicId = $this->format_miqaat_public_id($miqaatPublicId);
       $miqaatType = isset($miqaat['type']) ? $miqaat['type'] : '';
       $miqaatDate = isset($miqaat['date']) ? date('d-m-Y', strtotime($miqaat['date'])) : '';
 
@@ -2229,6 +2741,88 @@ class Common extends CI_Controller
         $this->EmailQueueM->enqueue($a, $adminSub, $adminBody, null, 'html');
       }
 
+      // WhatsApp: admin miqaat activated (template-based)
+      $waAdmins = $this->get_admin_whatsapp_recipients($admins);
+      if (!empty($waAdmins)) {
+        $assignedToLabel = '';
+        if (!empty($miqaat['assignments']) && is_array($miqaat['assignments'])) {
+          $lines = [];
+          $maxLines = 20;
+          $total = count($miqaat['assignments']);
+          $idx = 0;
+
+          foreach ($miqaat['assignments'] as $ass) {
+            $idx++;
+            if (count($lines) >= $maxLines) break;
+
+            $atype = $ass['assign_type'] ?? '';
+            if ($atype === 'Individual') {
+              $mName = trim((string)($ass['member_name'] ?? ''));
+              $mId = trim((string)($ass['member_id'] ?? ''));
+              $line = $mName;
+              if ($mId !== '') {
+                $line = trim($line . ' (' . $mId . ')');
+              }
+              if ($line === '') {
+                $line = $mId;
+              }
+              if ($line !== '') {
+                $lines[] = $line;
+              }
+            } elseif ($atype === 'Group') {
+              $gName = trim((string)($ass['group_name'] ?? ''));
+              $lName = trim((string)($ass['group_leader_name'] ?? ''));
+              $lId = trim((string)($ass['group_leader_id'] ?? ''));
+              $line = 'Group';
+              if ($gName !== '') $line .= ': ' . $gName;
+              $leaderPart = trim($lName . ($lId !== '' ? (' (' . $lId . ')') : ''));
+              if ($leaderPart !== '') $line .= ' | Leader: ' . $leaderPart;
+              $lines[] = $line;
+            }
+          }
+
+          if ($total > $maxLines) {
+            $lines[] = '...and ' . (string)($total - $maxLines) . ' more';
+          }
+
+          if (!empty($lines)) {
+            $assignedToLabel = implode(', ', $lines);
+          }
+        }
+        if ($assignedToLabel === '' && isset($miqaat['assigned_to'])) {
+          $assignedToLabel = (string)$miqaat['assigned_to'];
+        }
+
+        $tplCfg = $this->config->item('templates', 'whatsapp');
+        $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_activated_admin']) ? $tplCfg['miqaat_activated_admin'] : [];
+        $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+        $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['miqaat', 'miqaat_id', 'type', 'date', 'assigned_to'];
+
+        $varsMap = [
+          'miqaat' => (string)$miqaatName,
+          'miqaat_id' => (string)$miqaatPublicId,
+          'type' => (string)$miqaatType,
+          'date' => (string)$miqaatDate,
+          'assigned_to' => (string)$assignedToLabel,
+        ];
+        $bodyVars = [];
+        foreach ($tplVars as $k) {
+          $key = is_string($k) ? trim($k) : '';
+          if ($key === '') continue;
+          $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+        }
+
+        foreach ($waAdmins as $adminMobile) {
+          $this->notification_lib->send_whatsapp([
+            'recipient' => $adminMobile,
+            'recipient_type' => 'admin',
+            'template_name' => 'miqaat_activated_admin',
+            'template_language' => $tplLang,
+            'body_vars' => $bodyVars,
+          ]);
+        }
+      }
+
       // Notify assigned members and group leaders
       if (!empty($miqaat['assignments']) && is_array($miqaat['assignments'])) {
         $assigned_link = base_url('accounts/assigned_miqaats');
@@ -2264,6 +2858,39 @@ class Common extends CI_Controller
               $body .= '<p>Wasalaam,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
               $this->EmailQueueM->enqueue($member['Email'], $sub, $body, null, 'html');
             }
+
+            // WhatsApp: member miqaat activated (template-based)
+            $memberMobile = $member['Registered_Family_Mobile'] ?? $member['Mobile'] ?? $member['WhatsApp_No'] ?? '';
+            $memberMobile = $this->normalize_digits_phone($memberMobile);
+            if ($memberMobile !== '') {
+              $tplCfg = $this->config->item('templates', 'whatsapp');
+              $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_activated_member']) ? $tplCfg['miqaat_activated_member'] : [];
+              $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+              $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
+
+              $varsMap = [
+                'name' => (string)($memberName !== '' ? $memberName : ($member['Full_Name'] ?? $memberId)),
+                'miqaat' => (string)$miqaatName,
+                'miqaat_id' => (string)$miqaatPublicId,
+                'type' => (string)$miqaatType,
+                'date' => (string)$miqaatDate,
+                'assignment' => 'Individual: ' . trim((string)($memberName !== '' ? $memberName : ($member['Full_Name'] ?? $memberId)) . ($memberId !== '' ? (' (' . $memberId . ')') : '')),
+              ];
+              $bodyVars = [];
+              foreach ($tplVars as $k) {
+                $key = is_string($k) ? trim($k) : '';
+                if ($key === '') continue;
+                $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+              }
+
+              $this->notification_lib->send_whatsapp([
+                'recipient' => $memberMobile,
+                'recipient_type' => 'user',
+                'template_name' => 'miqaat_activated_member',
+                'template_language' => $tplLang,
+                'body_vars' => $bodyVars,
+              ]);
+            }
           } elseif (isset($ass['assign_type']) && $ass['assign_type'] === 'Group') {
             $leaderId = $ass['group_leader_id'];
             $leader = $this->AccountM->getUserData($leaderId);
@@ -2295,6 +2922,39 @@ class Common extends CI_Controller
               $body .= '<p>Click the link above to go to the assigned miqaat and submit the Raza.</p>';
               $body .= '<p>Wasalaam,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
               $this->EmailQueueM->enqueue($leader['Email'], $sub, $body, null, 'html');
+            }
+
+            // WhatsApp: group leader miqaat activated (template-based)
+            $leaderMobile = $leader['Registered_Family_Mobile'] ?? $leader['Mobile'] ?? $leader['WhatsApp_No'] ?? '';
+            $leaderMobile = $this->normalize_digits_phone($leaderMobile);
+            if ($leaderMobile !== '') {
+              $tplCfg = $this->config->item('templates', 'whatsapp');
+              $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_activated_member']) ? $tplCfg['miqaat_activated_member'] : [];
+              $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+              $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
+
+              $varsMap = [
+                'name' => (string)($leaderName !== '' ? $leaderName : ($leader['Full_Name'] ?? $leaderId)),
+                'miqaat' => (string)$miqaatName,
+                'miqaat_id' => (string)$miqaatPublicId,
+                'type' => (string)$miqaatType,
+                'date' => (string)$miqaatDate,
+                'assignment' => 'Group Leader: ' . trim((string)($leaderName !== '' ? $leaderName : ($leader['Full_Name'] ?? $leaderId)) . ($leaderId !== '' ? (' (' . $leaderId . ')') : '')),
+              ];
+              $bodyVars = [];
+              foreach ($tplVars as $k) {
+                $key = is_string($k) ? trim($k) : '';
+                if ($key === '') continue;
+                $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+              }
+
+              $this->notification_lib->send_whatsapp([
+                'recipient' => $leaderMobile,
+                'recipient_type' => 'user',
+                'template_name' => 'miqaat_activated_member',
+                'template_language' => $tplLang,
+                'body_vars' => $bodyVars,
+              ]);
             }
           }
         }
@@ -3151,9 +3811,19 @@ class Common extends CI_Controller
     }
     $data["active_controller"] = $_SESSION["from"];
 
-    $year = $this->input->get_post('hijri_year');
-    if (!$year) {
-      // Force default Hijri financial year start to 1446 (1446-47)
+    $yearParam = $this->input->get_post('hijri_year');
+    if (!empty($yearParam) && preg_match('/^(\d{4})-\d{2}$/', (string) $yearParam, $m)) {
+      $year = (int) $m[1];
+    } elseif (is_numeric($yearParam)) {
+      $year = (int) $yearParam;
+    } else {
+      $year = null;
+    }
+    if (empty($year)) {
+      $year = $this->get_default_fmb_fy_start_year();
+    }
+    if (empty($year)) {
+      // Fallback to previous behavior if Hijri date lookup fails
       $year = 1446;
     }
     $data['selected_hijri_year'] = $year;
@@ -3193,12 +3863,17 @@ class Common extends CI_Controller
     }
     $data['active_controller'] = isset($_SESSION['from']) ? $_SESSION['from'] : '';
 
-    $year = $this->input->get('hijri_year');
+    $yearParam = $this->input->get('hijri_year');
+    if (!empty($yearParam) && preg_match('/^(\d{4})-\d{2}$/', (string) $yearParam, $m)) {
+      $year = (int) $m[1];
+    } elseif (is_numeric($yearParam)) {
+      $year = (int) $yearParam;
+    } else {
+      $year = null;
+    }
     $sector = $this->input->get('sector');
     if (empty($year)) {
-      $today = date('Y-m-d');
-      $hijri_today = $this->HijriCalendar->get_hijri_date($today);
-      $year = $hijri_today && isset($hijri_today['hijri_date']) ? explode('-', $hijri_today['hijri_date'])[2] : '';
+      $year = $this->get_default_fmb_fy_start_year();
     }
     $data['selected_hijri_year'] = $year;
     $data['sector'] = $sector;
@@ -3232,7 +3907,18 @@ class Common extends CI_Controller
     $this->validateUser($_SESSION['user']);
 
     $user_id = trim((string)$this->input->post('user_id'));
-    $year = (string)$this->input->post('year');
+    $yearRaw = trim((string)$this->input->post('year'));
+
+    // Accept either FY (e.g., 1447-48) or start year (e.g., 1447)
+    $year = $yearRaw;
+    if ($yearRaw !== '' && preg_match('/^(\d{4})$/', $yearRaw, $m)) {
+      $start = (int) $m[1];
+      $year = sprintf('%d-%02d', $start, ($start + 1) % 100);
+    } elseif ($yearRaw !== '' && preg_match('/^(\d{4})-(\d{4})$/', $yearRaw, $m)) {
+      $start = (int) $m[1];
+      $end = (int) $m[2];
+      $year = sprintf('%d-%02d', $start, $end % 100);
+    }
 
     $this->output->set_content_type('application/json');
     if ($user_id === '' || !preg_match('/^\d+$/', $user_id) || $year === '') {
@@ -3245,11 +3931,11 @@ class Common extends CI_Controller
       return;
     }
 
-    $this->db->select('DATE(menu_date) AS d', false);
+    $this->db->select('DISTINCT DATE(menu_date) AS d', false);
     $this->db->from('fmb_thaali_day_assignment');
     $this->db->where('user_id', $user_id);
     $this->db->where('year', $year);
-    $this->db->order_by('menu_date', 'ASC');
+    $this->db->order_by('d', 'ASC');
     $rows = $this->db->get()->result_array();
 
     $dates = [];
@@ -3313,13 +3999,18 @@ class Common extends CI_Controller
   {
     $this->validateUser($_SESSION["user"]);
     $data['user_name'] = $_SESSION['user']['username'];
-    $year = $this->input->get_post('hijri_year');
+    $yearParam = $this->input->get_post('hijri_year');
+    if (!empty($yearParam) && preg_match('/^(\d{4})-\d{2}$/', (string) $yearParam, $m)) {
+      $year = (int) $m[1];
+    } elseif (is_numeric($yearParam)) {
+      $year = (int) $yearParam;
+    } else {
+      $year = null;
+    }
     $name_filter = $this->input->get_post('name');
     $amount_zero = $this->input->get_post('amount_zero');
-    if (!$year) {
-      $today = date('Y-m-d');
-      $hijri_today = $this->HijriCalendar->get_hijri_date($today);
-      $year = $hijri_today && isset($hijri_today['hijri_date']) ? explode('-', $hijri_today['hijri_date'])[2] : '';
+    if (empty($year)) {
+      $year = $this->get_default_fmb_fy_start_year();
     }
     $data['selected_hijri_year'] = $year;
     $data['hijri_years'] = $this->HijriCalendar->get_distinct_hijri_years();
@@ -3338,11 +4029,16 @@ class Common extends CI_Controller
       return;
     }
     $data['user_name'] = $_SESSION['user']['username'];
-    $year = $this->input->get_post('hijri_year');
-    if (!$year) {
-      $today = date('Y-m-d');
-      $hijri_today = $this->HijriCalendar->get_hijri_date($today);
-      $year = $hijri_today && isset($hijri_today['hijri_date']) ? explode('-', $hijri_today['hijri_date'])[2] : '';
+    $yearParam = $this->input->get_post('hijri_year');
+    if (!empty($yearParam) && preg_match('/^(\d{4})-\d{2}$/', (string) $yearParam, $m)) {
+      $year = (int) $m[1];
+    } elseif (is_numeric($yearParam)) {
+      $year = (int) $yearParam;
+    } else {
+      $year = null;
+    }
+    if (empty($year)) {
+      $year = $this->get_default_fmb_fy_start_year();
     }
     $rows = $this->CommonM->get_fmb_user_details($year);
     $match = array_values(array_filter($rows, function ($r) use ($user_id) {

@@ -20,7 +20,7 @@ class Notifications extends CI_Controller
     // Enable explicitly via env: EMAIL_ALLOW_PHP_MAIL_FALLBACK=1
     return $this->env_bool('EMAIL_ALLOW_PHP_MAIL_FALLBACK', false);
   }
-  
+
   private function prefer_php_mail_primary()
   {
     // When enabled, attempt PHP mail() first, then try SMTP only if mail() fails.
@@ -561,7 +561,7 @@ class Notifications extends CI_Controller
           $this->email->set_header('X-Notification-ID', (string)$id);
           if (!empty($subject)) $this->email->subject($subject);
           $this->email->message($body);
-  
+
           // If configured, try PHP mail() first.
           if ($preferPhpMailPrimary) {
             $primaryOk = $this->php_mail_fallback($recipient, $subject, $body);
@@ -575,7 +575,7 @@ class Notifications extends CI_Controller
             }
             echo "[{$id}] primary php mail() failed; trying SMTP...\n";
           }
-  
+
           $ok = $this->email->send();
           // Always capture debugger output so we can inspect SMTP server responses (cron logs)
           $debug = $this->email->print_debugger(array('headers', 'subject'));
@@ -589,7 +589,7 @@ class Notifications extends CI_Controller
             $crypto = (string)($emailConfig['smtp_crypto'] ?? '');
             echo "TRANSPORT: protocol={$proto} host={$host} port={$port} crypto={$crypto}\n";
             echo "DEBUG: " . PHP_EOL . $debug . PHP_EOL;
-  
+
             $line = "[" . date('Y-m-d H:i:s') . "] notifications email id={$id} recipient=" . (string)$recipient . " message_id={$messageId} transport={$proto} host={$host} port={$port} crypto={$crypto} status=sent\n";
             @file_put_contents(APPPATH . 'logs/notifications_email.log', $line, FILE_APPEND | LOCK_EX);
           } else {
@@ -699,6 +699,77 @@ class Notifications extends CI_Controller
   }
 
   /**
+   * Process only pending WhatsApp notifications for a specific template (CLI-only)
+   * Usage: php index.php notifications process_whatsapp_template <template_name> [limit]
+   */
+  public function process_whatsapp_template($templateName = '', $limit = 200)
+  {
+    if (!is_cli()) {
+      echo "This endpoint may only be run from CLI." . PHP_EOL;
+      return;
+    }
+
+    $templateName = trim((string)$templateName);
+    if ($templateName === '') {
+      echo "Usage: php index.php notifications process_whatsapp_template <template_name> [limit]" . PHP_EOL;
+      return;
+    }
+
+    echo "ENVIRONMENT=" . (defined('ENVIRONMENT') ? ENVIRONMENT : 'unknown') . PHP_EOL;
+
+    $this->load->model('NotificationM');
+    $this->load->library('Notification_lib');
+
+    $limit = (int)$limit;
+    if ($limit <= 0) $limit = 200;
+
+    $now = date('Y-m-d H:i:s');
+    $needle = '"template_name":"' . $templateName . '"';
+
+    echo "Processing up to {$limit} pending WhatsApp template messages for '{$templateName}'...\n";
+
+    $pending = $this->db->from('notifications')
+      ->where("(scheduled_at IS NULL OR scheduled_at <= '{$now}')", null, false)
+      ->where('status', 'pending')
+      ->where('channel', 'whatsapp')
+      ->like('body', $needle, 'both', false)
+      ->order_by('scheduled_at', 'ASC')
+      ->limit($limit)
+      ->get()
+      ->result_array();
+
+    $count = count($pending);
+    echo "Found {$count} pending WhatsApp items\n";
+
+    foreach ($pending as $n) {
+      $id = isset($n['id']) ? (int)$n['id'] : 0;
+      $recipient = isset($n['recipient']) ? $n['recipient'] : null;
+      echo "[{$id}] whatsapp recipient={$recipient}\n";
+
+      try {
+        $result = $this->notification_lib->deliver_whatsapp($n);
+        if (!empty($result['ok'])) {
+          $this->NotificationM->mark_sent($id);
+          $http = isset($result['http_code']) ? (int)$result['http_code'] : 0;
+          echo "[{$id}] whatsapp sent http={$http}\n";
+        } else {
+          $http = isset($result['http_code']) ? (int)$result['http_code'] : 0;
+          $err = isset($result['error']) ? (string)$result['error'] : 'unknown error';
+          echo "[{$id}] whatsapp failed http={$http} err={$err}\n";
+          $this->NotificationM->increment_attempts_and_fail($id);
+          $line = "[" . date('Y-m-d H:i:s') . "] notifications whatsapp id={$id} recipient=" . (string)($n['recipient'] ?? '') . " http={$http} err={$err}\n";
+          @file_put_contents(APPPATH . 'logs/whatsapp.log', $line, FILE_APPEND | LOCK_EX);
+        }
+      } catch (Exception $e) {
+        $this->NotificationM->increment_attempts_and_fail($id);
+        echo "[{$id}] exception: " . $e->getMessage() . "\n";
+      }
+    }
+
+    echo "Done.\n";
+  }
+
+  /**
    * Send fallback using PHP mail() when SMTP fails.
    * Accepts $to (string or array)
    */
@@ -730,7 +801,7 @@ class Notifications extends CI_Controller
   /**
    * Enqueue scheduled reminders. Run from cron.
    * Usage: php index.php notifications schedule [job]
-    * job: all|thaali_signup|thaali_feedback|sabeel_monthly|fmb_monthly|corpus_weekly|appointments_digest|event_reminders|event_reminders_3d|event_reminders_1d|event_reminders_dayof
+   * job: all|thaali_signup|thaali_feedback|sabeel_monthly|fmb_monthly|corpus_weekly|appointments_digest|event_reminders|event_reminders_3d|event_reminders_1d|event_reminders_dayof
    */
   public function schedule($job = 'all', $force = '0')
   {
@@ -886,6 +957,9 @@ class Notifications extends CI_Controller
     $dryRun = getenv('EVENT_REMINDER_DRY_RUN');
     $dryRun = is_string($dryRun) && trim($dryRun) === '1';
 
+    // WhatsApp recipient (Amil). Pulled from DB (roles/app_settings) with config fallback.
+    $amilWhatsapp = amilsaheb_whatsapp_number();
+
     $targetDate = date('Y-m-d', strtotime('+' . $offsetDays . ' day'));
     $overrideDate = getenv('EVENT_REMINDER_TARGET_DATE');
     if (is_string($overrideDate)) {
@@ -986,11 +1060,54 @@ class Notifications extends CI_Controller
       $memberName = trim((string)($ev['member_name'] ?? ''));
       $requestedBy = $memberName !== '' ? $memberName : ('ITS ' . (string)($ev['user_id'] ?? ''));
 
+      // Prefer public IDs for emails (raza.raza_id / miqaat.miqaat_id) but fall back to numeric IDs.
+      $emailRazaIdRaw = (string)$razaId;
+      $rp = $this->db->select('raza_id')->from('raza')->where('id', $razaId)->limit(1)->get()->row_array();
+      if (!empty($rp) && !empty($rp['raza_id'])) {
+        $emailRazaIdRaw = (string)$rp['raza_id'];
+      }
+      $emailRazaId = trim($emailRazaIdRaw);
+      if ($emailRazaId !== '' && stripos($emailRazaId, 'R#') !== 0 && preg_match('/^\d/', $emailRazaId)) {
+        $emailRazaId = 'R#' . $emailRazaId;
+      }
+
+      $emailMiqaatId = '';
+      if ($miqaatId > 0) {
+        $emailMiqaatIdRaw = (string)$miqaatId;
+        $mp = $this->db->select('miqaat_id')->from('miqaat')->where('id', $miqaatId)->limit(1)->get()->row_array();
+        if (!empty($mp) && !empty($mp['miqaat_id'])) {
+          $emailMiqaatIdRaw = (string)$mp['miqaat_id'];
+        }
+        $emailMiqaatId = trim($emailMiqaatIdRaw);
+        if ($emailMiqaatId !== '' && stripos($emailMiqaatId, 'M#') !== 0 && preg_match('/^\d/', $emailMiqaatId)) {
+          $emailMiqaatId = 'M#' . $emailMiqaatId;
+        }
+      }
+
+      // WhatsApp vars (single-line; provider can silently fail on newlines in variables)
+      $waEventType = preg_replace('/\s+/', ' ', (string)$eventTypeLabel);
+      $waEventDate = preg_replace('/\s+/', ' ', (string)$eventDateNice);
+      // Use public IDs with prefixes (consistent with email table + other notifications)
+      $waRazaId = $emailRazaId !== '' ? (string)$emailRazaId : ('R#' . (string)$razaId);
+      if ($miqaatId > 0) {
+        $waMiqaatId = $emailMiqaatId !== '' ? (string)$emailMiqaatId : ('M#' . (string)$miqaatId);
+      } else {
+        $waMiqaatId = '-';
+      }
+      $waMiqaatName = $miqaatName !== '' ? $miqaatName : '-';
+      $waRequestedBy = preg_replace('/\s+/', ' ', (string)$requestedBy);
+      if ($waEventType === null) $waEventType = (string)$eventTypeLabel;
+      if ($waEventDate === null) $waEventDate = (string)$eventDateNice;
+      if ($waRequestedBy === null) $waRequestedBy = (string)$requestedBy;
+      $waEventType = trim((string)$waEventType);
+      $waEventDate = trim((string)$waEventDate);
+      $waRequestedBy = trim((string)$waRequestedBy);
+
       $detailsRows = [];
       $detailsRows[] = ['Event Type', $eventTypeLabel];
       $detailsRows[] = ['Event Date', $eventDateNice];
-      $detailsRows[] = ['Raza ID', (string)$razaId];
-      if ($miqaatId > 0) $detailsRows[] = ['Miqaat ID', (string)$miqaatId];
+      $detailsRows[] = ['Raza ID', (string)$emailRazaId];
+      if ($miqaatId > 0) $detailsRows[] = ['Miqaat ID', (string)$emailMiqaatId];
       if ($miqaatName !== '') $detailsRows[] = ['Miqaat Name', $miqaatName];
       $detailsRows[] = ['Requested By', $requestedBy];
 
@@ -1022,6 +1139,7 @@ class Notifications extends CI_Controller
           ->where('raza_id', $razaId)
           ->where('trigger_key', $triggerKey)
           ->where('recipient', $to)
+          ->where('DATE(created_at) = CURDATE()', null, false)
           ->limit(1)
           ->get()->row_array();
         if (!empty($exists)) continue;
@@ -1046,6 +1164,45 @@ class Notifications extends CI_Controller
             'notification_id' => (int)$notificationId,
           ]);
           $countQueued++;
+        }
+      }
+
+      // WhatsApp reminder to Amil (same template used for D-3/D-1/D0)
+      if (!empty($amilWhatsapp)) {
+        $existsWa = $this->db->select('id')
+          ->from('event_reminder_log')
+          ->where('event_umoor', $umoor)
+          ->where('raza_id', $razaId)
+          ->where('trigger_key', $triggerKey)
+          ->where('recipient', $amilWhatsapp)
+          ->limit(1)
+          ->get()->row_array();
+
+        if (empty($existsWa)) {
+          $notificationId = $this->notification_lib->send_whatsapp([
+            'recipient' => $amilWhatsapp,
+            'recipient_type' => 'amil',
+            'template_name' => 'event_reminder_d3_member',
+            'template_language' => 'en',
+            'body_vars' => [
+              (string)$waEventType,
+              (string)$waEventDate,
+              (string)$waRazaId,
+              (string)$waMiqaatId,
+              (string)$waMiqaatName,
+              (string)$waRequestedBy,
+            ]
+          ]);
+
+          if (!empty($notificationId)) {
+            $this->db->insert('event_reminder_log', [
+              'event_umoor' => $umoor,
+              'raza_id' => $razaId,
+              'trigger_key' => $triggerKey,
+              'recipient' => $amilWhatsapp,
+              'notification_id' => (int)$notificationId,
+            ]);
+          }
         }
       }
     }
@@ -1149,10 +1306,16 @@ class Notifications extends CI_Controller
       foreach ($members as $r) {
         $phone = preg_replace('/[^0-9+]/', '', $r['mobile']);
         if (!empty($phone)) {
+          $waName = trim((string)($r['Full_Name'] ?? ''));
+          if ($waName === '') $waName = 'Member';
           $this->notification_lib->send_whatsapp([
             'recipient' => $phone,
             'recipient_type' => 'member',
-            'body' => $tpl
+            'template_name' => 'thaali_signup_reminder_member',
+            'template_language' => 'en',
+            'body_vars' => [
+              (string)$waName,
+            ]
           ]);
         }
       }
@@ -1188,10 +1351,17 @@ class Notifications extends CI_Controller
         // No email: send whatsapp directly per member
         $phone = preg_replace('/[^0-9+]/', '', $r['mobile']);
         if (empty($phone)) continue;
+
+        $waName = trim((string)($r['Full_Name'] ?? ''));
+        if ($waName === '') $waName = 'Member';
         $this->notification_lib->send_whatsapp([
           'recipient' => $phone,
           'recipient_type' => 'member',
-          'body' => $tpl
+          'template_name' => 'thaali_feedback_reminder_member',
+          'template_language' => 'en',
+          'body_vars' => [
+            (string)$waName,
+          ]
         ]);
         $count++;
       }
@@ -1211,10 +1381,17 @@ class Notifications extends CI_Controller
       foreach ($members as $r) {
         $phone = preg_replace('/[^0-9+]/', '', $r['mobile']);
         if (empty($phone)) continue;
+
+        $waName = trim((string)($r['Full_Name'] ?? ''));
+        if ($waName === '') $waName = 'Member';
         $this->notification_lib->send_whatsapp([
           'recipient' => $phone,
           'recipient_type' => 'member',
-          'body' => $tpl
+          'template_name' => 'thaali_feedback_reminder_member',
+          'template_language' => 'en',
+          'body_vars' => [
+            (string)$waName,
+          ]
         ]);
       }
     }
@@ -1245,6 +1422,7 @@ class Notifications extends CI_Controller
   protected function schedule_monthly_finances()
   {
     $this->load->model('AccountM');
+    $this->load->library('Whatsapp_bot_lib');
 
     $subject = (string)$this->config->item('tpl_finance_dues_subject', 'notifications');
     if ($subject === '') $subject = 'Finance Dues Summary';
@@ -1265,14 +1443,30 @@ class Notifications extends CI_Controller
       if ($rcpt !== '') $already[strtolower($rcpt)] = true;
     }
 
+    // Avoid sending duplicate WhatsApp messages on the same day.
+    // Template payload is stored as JSON in notifications.body.
+    $existingWa = $this->db->select('recipient')
+      ->from('notifications')
+      ->where('channel', 'whatsapp')
+      ->like('body', '"template_name":"finance_dues_summary_member"', 'both', false)
+      ->where('DATE(created_at) = CURDATE()', null, false)
+      ->get()
+      ->result_array();
+    $waAlready = [];
+    foreach ($existingWa as $e) {
+      $rcpt = isset($e['recipient']) ? trim((string)$e['recipient']) : '';
+      if ($rcpt !== '') $waAlready[strtolower($rcpt)] = true;
+    }
+
     // Build family-wise recipient list, preferring HOF email (or any valid family email).
     $sql = "SELECT ITS_ID, HOF_ID, HOF_FM_TYPE, Full_Name,
-              COALESCE(NULLIF(Email,''), NULLIF(email,''), '') AS email
+              COALESCE(NULLIF(Email,''), NULLIF(email,''), '') AS email,
+              COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') AS mobile
             FROM user
             WHERE Inactive_Status IS NULL AND COALESCE(Sector,'') <> ''";
     $rows = $this->db->query($sql)->result_array();
 
-    $families = []; // familyId => ['its'=>familyId,'name'=>...,'email'=>...]
+    $families = []; // familyId => ['its'=>familyId,'name'=>...,'email'=>...,'mobile'=>...]
     foreach ($rows as $r) {
       $its = (int)($r['ITS_ID'] ?? 0);
       if ($its <= 0) continue;
@@ -1281,35 +1475,43 @@ class Notifications extends CI_Controller
 
       $email = trim((string)($r['email'] ?? ''));
       $emailOk = (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL));
+
+      $mobile = trim((string)($r['mobile'] ?? ''));
+      $mobileOk = ($mobile !== '');
+
       $name = trim((string)($r['Full_Name'] ?? ''));
       $isHofRow = ((string)($r['HOF_FM_TYPE'] ?? '') === 'HOF') || ($its === $familyId);
 
       if (!isset($families[$familyId])) {
-        $families[$familyId] = ['its' => $familyId, 'name' => $name, 'email' => ($emailOk ? $email : '')];
+        $families[$familyId] = [
+          'its' => $familyId,
+          'name' => $name,
+          'email' => ($emailOk ? $email : ''),
+          'mobile' => ($mobileOk ? $mobile : ''),
+        ];
       }
 
       // Prefer HOF email/name when available; otherwise fill missing email.
       if ($isHofRow) {
         if ($name !== '') $families[$familyId]['name'] = $name;
         if ($emailOk) $families[$familyId]['email'] = $email;
+        if ($mobileOk) $families[$familyId]['mobile'] = $mobile;
       } else {
         if ($families[$familyId]['email'] === '' && $emailOk) $families[$familyId]['email'] = $email;
+        if ($families[$familyId]['mobile'] === '' && $mobileOk) $families[$familyId]['mobile'] = $mobile;
       }
     }
 
     $count = 0;
     $sentEmails = [];
+    $sentWhatsapps = [];
 
     foreach ($families as $familyId => $fam) {
       $familyId = (int)$familyId;
       if ($familyId <= 0) continue;
 
       $email = trim((string)($fam['email'] ?? ''));
-      if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
-
-      $emailKey = strtolower($email);
-      if (isset($already[$emailKey])) continue;
-      if (isset($sentEmails[$emailKey])) continue;
+      $emailOk = (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL));
 
       // Compute dues (family-wise for FMB & Sabeel; other dues remain HOF/family anchor based)
       $fmb = $this->AccountM->get_family_total_fmb_due_upto_current_year($familyId);
@@ -1335,6 +1537,36 @@ class Notifications extends CI_Controller
       };
 
       $name = trim((string)($fam['name'] ?? ''));
+
+      // WhatsApp (template): only send if mobile exists AND there is some due.
+      $mobile = trim((string)($fam['mobile'] ?? ''));
+      $waName = ($name !== '' ? $name : 'Member');
+      if ($mobile !== '' && $total > 0) {
+        $waRecipient = strtolower($this->whatsapp_bot_lib->normalize_phone($mobile));
+        if (!isset($waAlready[$waRecipient]) && !isset($sentWhatsapps[$waRecipient])) {
+          $details = 'FMB: ₹' . $fmt($fmbDue)
+            . ' | Sabeel: ₹' . $fmt($sabeelDue)
+            . ' | Miqaat: ₹' . $fmt($miqDue)
+            . ' | Extra: ₹' . $fmt($gcDue);
+          // Provider can silently fail on newlines; keep vars strictly single-line.
+          $details = preg_replace('/\s+/', ' ', (string)$details);
+          if ($details === null) $details = 'FMB: ₹' . $fmt($fmbDue);
+
+          $this->notification_lib->send_whatsapp([
+            'recipient' => $mobile,
+            'recipient_type' => 'member',
+            'template_name' => 'finance_dues_summary_member',
+            'template_language' => 'en',
+            'body_vars' => [
+              (string)$waName,
+              (string)$details,
+              '₹' . $fmt($total),
+            ]
+          ]);
+          $sentWhatsapps[$waRecipient] = true;
+        }
+      }
+
       $lines = [];
       $lines[] = ($intro !== '' ? $intro : 'This is a consolidated reminder of your current outstanding dues:');
       $lines[] = '';
@@ -1352,17 +1584,23 @@ class Notifications extends CI_Controller
 
       $body = implode("\n", $lines);
 
-      $this->notification_lib->send_email([
-        'recipient' => $email,
-        'recipient_type' => 'member',
-        'subject' => $subject,
-        'body' => $body,
-        'recipient_name' => $name,
-        'recipient_its' => (string)$familyId,
-        'card_title' => 'Finance Dues Summary'
-      ]);
-      $count++;
-      $sentEmails[$emailKey] = true;
+      // Email (existing behavior): send only when a valid family email exists.
+      if ($emailOk) {
+        $emailKey = strtolower($email);
+        if (!isset($already[$emailKey]) && !isset($sentEmails[$emailKey])) {
+          $this->notification_lib->send_email([
+            'recipient' => $email,
+            'recipient_type' => 'member',
+            'subject' => $subject,
+            'body' => $body,
+            'recipient_name' => $name,
+            'recipient_its' => (string)$familyId,
+            'card_title' => 'Finance Dues Summary'
+          ]);
+          $count++;
+          $sentEmails[$emailKey] = true;
+        }
+      }
     }
 
     echo "Finances monthly reminders queued for {$count} families\n";
@@ -1456,11 +1694,21 @@ class Notifications extends CI_Controller
 
       $phone = preg_replace('/[^0-9+]/', '', $r['mobile']);
       if (empty($phone)) continue;
-      $this->notification_lib->send_whatsapp([
-        'recipient' => $phone,
-        'recipient_type' => 'hof',
-        'body' => $body
-      ]);
+
+      // WhatsApp template reminder (only when there is an outstanding due)
+      if ($totalDue > 0) {
+        $waName = ($hofName !== '' ? $hofName : 'Member');
+        $this->notification_lib->send_whatsapp([
+          'recipient' => $phone,
+          'recipient_type' => 'hof',
+          'template_name' => 'corpus_fund_reminder_member',
+          'template_language' => 'en',
+          'body_vars' => [
+            (string)$waName,
+            '₹' . $fmt($totalDue),
+          ]
+        ]);
+      }
       $email = trim((string)($r['email'] ?? ''));
       if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $emailKey = strtolower($email);
@@ -1521,6 +1769,38 @@ class Notifications extends CI_Controller
 
     $countAppointments = count($rows);
     $tomorrow = date('d M Y', strtotime('+1 day'));
+
+    // WhatsApp summary (single-line; provider can silently fail on newlines in variables)
+    $waSummary = '';
+    if ($countAppointments === 0) {
+      $waSummary = 'No upcoming pending appointments found.';
+    } else {
+      $parts = [];
+      foreach ($rows as $r) {
+        $time    = trim((string)($r['time'] ?? ''));
+        $its     = trim((string)($r['its'] ?? ''));
+        $name    = trim((string)($r['Full_Name'] ?? 'Member'));
+        $purpose = trim((string)($r['purpose'] ?? ''));
+        if ($purpose === '') $purpose = '-';
+
+        $item = '';
+        if ($time !== '') $item .= $time . ' - ';
+        $item .= $name;
+        if ($its !== '') $item .= ' (' . $its . ')';
+        $item .= ' - ' . $purpose;
+
+        $item = preg_replace('/\s+/', ' ', $item);
+        if ($item === null) $item = '';
+        $item = trim($item);
+        if ($item !== '') $parts[] = $item;
+      }
+
+      $waSummary = implode(' | ', $parts);
+      $waSummary = preg_replace('/\s+/', ' ', (string)$waSummary);
+      if ($waSummary === null) $waSummary = '';
+      $waSummary = trim($waSummary);
+      if ($waSummary === '') $waSummary = 'Appointments scheduled for ' . $tomorrow . '.';
+    }
 
     $body = '<p style="font-family:Arial,Helvetica,sans-serif;">
 Below is the list of scheduled appointments for tomorrow (' . $tomorrow . '):
@@ -1585,6 +1865,31 @@ Below is the list of scheduled appointments for tomorrow (' . $tomorrow . '):
         </a>
       </p>
     ';
+
+    // WhatsApp digest to Amil (once per day)
+    $amilWhatsapp = amilsaheb_whatsapp_number();
+    if (!empty($amilWhatsapp)) {
+      $existsWa = $this->db->select('id')
+        ->from('notifications')
+        ->where('channel', 'whatsapp')
+        ->where('recipient', $amilWhatsapp)
+        ->like('body', '"template_name":"daily_appointments_summary_amil"')
+        ->where('DATE(created_at) = CURDATE()', null, false)
+        ->limit(1)
+        ->get()->row_array();
+
+      if (empty($existsWa)) {
+        $this->notification_lib->send_whatsapp([
+          'recipient' => $amilWhatsapp,
+          'recipient_type' => 'amil',
+          'template_name' => 'daily_appointments_summary_amil',
+          'template_language' => 'en',
+          'body_vars' => [
+            (string)$waSummary,
+          ]
+        ]);
+      }
+    }
 
     // Duplicate protection: one digest per recipient per day
     foreach ($recipients as $to) {

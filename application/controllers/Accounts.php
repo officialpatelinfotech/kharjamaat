@@ -922,6 +922,8 @@ class Accounts extends CI_Controller
       // enqueue notifications for admins about this miqaat raza submission
       $this->load->model('NotificationM');
       $this->load->helper('email_template');
+      $this->load->library('Notification_lib');
+      $this->config->load('whatsapp', true);
       $user_row = $this->AccountM->getUserData($user_id);
       $user_full = !empty($user_row['Full_Name']) ? $user_row['Full_Name'] : $user_id;
 
@@ -959,6 +961,90 @@ class Accounts extends CI_Controller
       $miqaatInfo = '';
       if ($miqaatNameRaw !== '') {
         $miqaatInfo = $miqaatNameEsc . ($miqaatDate !== '' ? (' (' . htmlspecialchars($miqaatDate) . ')') : '');
+      }
+
+      // WhatsApp enqueue: member acknowledgement + admin alert
+      $miqaatPublicIdWa = trim((string)$miqaatPublicId);
+      if ($miqaatPublicIdWa !== '' && stripos($miqaatPublicIdWa, 'M#') !== 0) {
+        $miqaatPublicIdWa = 'M#' . $miqaatPublicIdWa;
+      }
+
+      $memberMobile = $user_row['Registered_Family_Mobile'] ?? $user_row['Mobile'] ?? $user_row['WhatsApp_No'] ?? '';
+      $memberMobile = preg_replace('/[^0-9]/', '', (string)$memberMobile);
+      if ($memberMobile === null) $memberMobile = '';
+
+      $segments = ['Miqaat Raza'];
+      if ($miqaatNameRaw !== '') $segments[] = 'Miqaat: ' . preg_replace('/\s+/', ' ', trim((string)$miqaatNameRaw));
+      if ($miqaatPublicIdWa !== '') $segments[] = 'Miqaat ID: ' . preg_replace('/\s+/', ' ', trim((string)$miqaatPublicIdWa));
+      if ($miqaatType !== '') $segments[] = 'Type: ' . preg_replace('/\s+/', ' ', trim((string)$miqaatType));
+      if ($miqaatDate !== '') $segments[] = 'Date: ' . preg_replace('/\s+/', ' ', trim((string)$miqaatDate));
+      if ($assignmentLabel !== '') {
+        $a = 'Assignment: ' . preg_replace('/\s+/', ' ', trim((string)$assignmentLabel));
+        if ($assignmentGroupName !== '') {
+          $a .= ' (' . preg_replace('/\s+/', ' ', trim((string)$assignmentGroupName)) . ')';
+        }
+        $segments[] = $a;
+      }
+      $razaDetailsText = implode(' | ', array_filter($segments, function ($v) {
+        return trim((string)$v) !== '';
+      }));
+
+      $dateSubmittedText = date('j M Y, h:i A');
+      $varsMap = [
+        'name' => (string)$user_full,
+        'raza_details' => (string)$razaDetailsText,
+        'mobile_no' => (string)$memberMobile,
+        'raza_id' => 'R#' . (string)$raza_id,
+        'date_submitted' => (string)$dateSubmittedText,
+      ];
+
+      // Member WhatsApp acknowledgement
+      if (!empty($memberMobile)) {
+        $tplCfg = $this->config->item('templates', 'whatsapp');
+        $tpl = is_array($tplCfg) && isset($tplCfg['raza_application_submitted_v2']) ? $tplCfg['raza_application_submitted_v2'] : [];
+        $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+        $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'raza_details', 'mobile_no', 'raza_id', 'date_submitted'];
+
+        $bodyVars = [];
+        foreach ($tplVars as $k) {
+          $key = is_string($k) ? trim($k) : '';
+          if ($key === '') continue;
+          $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+        }
+
+        $this->notification_lib->send_whatsapp([
+          'recipient' => $memberMobile,
+          'recipient_type' => 'user',
+          'template_name' => 'raza_application_submitted_v2',
+          'template_language' => $tplLang,
+          'body_vars' => $bodyVars,
+        ]);
+      }
+
+      // Admin WhatsApp alert
+      $adminMobiles = admin_whatsapp_recipients();
+      if (!empty($adminMobiles)) {
+        $tplCfg = $this->config->item('templates', 'whatsapp');
+        $tpl = is_array($tplCfg) && isset($tplCfg['raza_application_submitted_admin']) ? $tplCfg['raza_application_submitted_admin'] : [];
+        $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+        $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'raza_details', 'mobile_no', 'raza_id', 'date_submitted'];
+
+        $bodyVarsAdmin = [];
+        foreach ($tplVars as $k) {
+          $key = is_string($k) ? trim($k) : '';
+          if ($key === '') continue;
+          $bodyVarsAdmin[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+        }
+
+        foreach ($adminMobiles as $adminMobile) {
+          $this->notification_lib->send_whatsapp([
+            'recipient' => $adminMobile,
+            'recipient_type' => 'admin',
+            'template_name' => 'raza_application_submitted_admin',
+            'template_language' => $tplLang,
+            'body_vars' => $bodyVarsAdmin,
+          ]);
+        }
       }
 
       $admins = [
@@ -3068,29 +3154,15 @@ class Accounts extends CI_Controller
           return '';
         };
 
-        // Build a compact, single-line Raza Details string (pipe-separated)
-        $razaFor = $pickFirst(['Raza For', 'Raza for', 'Raza for (Applicant)', 'Raza For (Applicant)']);
-        if ($razaFor === '' && !empty($razatype['name'])) {
-          $razaFor = (string)$razatype['name'];
-        }
-        $dateVal = $pickFirst(['Date', 'date']);
-        $timeVal = $pickFirst(['Time', 'time']);
-        $venueVal = $pickFirst(['Venue', 'venue']);
-        $thaalVal = $pickFirst(['Thaal Count', 'Thaal count', 'Approximate Thaal count', 'Approximate Thaal Count']);
-
-        $segments = [];
-        if (trim($razaFor) !== '') $segments[] = 'Raza For: ' . preg_replace('/\s+/', ' ', trim($razaFor));
-        if (trim($dateVal) !== '') $segments[] = 'Date: ' . preg_replace('/\s+/', ' ', trim($dateVal));
-        if (trim($timeVal) !== '') $segments[] = 'Time: ' . preg_replace('/\s+/', ' ', trim($timeVal));
-        if (trim($venueVal) !== '') $segments[] = 'Venue: ' . preg_replace('/\s+/', ' ', trim($venueVal));
-        if (trim($thaalVal) !== '') $segments[] = 'Thaal Count: ' . preg_replace('/\s+/', ' ', trim($thaalVal));
-
-        $razaDetailsText = '';
-        if (!empty($segments)) {
-          $razaDetailsText = implode(' | ', $segments);
-        } elseif (!empty($razaDetailsLines)) {
-          // Fallback: multi-line key/value dump
-          $razaDetailsText = implode("\n", $razaDetailsLines);
+        // Build a compact, single-line Raza Details string from the exact razadata we store in DB.
+        $this->load->helper('raza_details');
+        $razadataDecodedForWa = json_decode($data, true);
+        $razaDetailsText = function_exists('render_raza_details_compact_text')
+          ? render_raza_details_compact_text((string)($razatype['name'] ?? ''), $razafields, $razadataDecodedForWa)
+          : '';
+        if ($razaDetailsText === '' && !empty($razaDetailsLines)) {
+          // Fallback: key/value dump (still keep it single-line)
+          $razaDetailsText = implode(' | ', $razaDetailsLines);
         }
 
         $dateSubmittedText = date('j M Y, h:i A');
@@ -3208,6 +3280,70 @@ class Accounts extends CI_Controller
 
       foreach ($admins as $adminEmail) {
         $this->EmailQueueM->enqueue($adminEmail, $adminSubject, $adminBody, null, 'html');
+      }
+
+      // WhatsApp alert to admins (template-based)
+      // Uses notification queue; delivery happens via CLI worker (Notifications::process)
+      $waAdmins = admin_whatsapp_recipients();
+
+      // Fallback: try resolving mobiles for the admin email recipients
+      if (empty($waAdmins)) {
+        foreach ($admins as $adminEmail) {
+          $adminEmail = trim((string)$adminEmail);
+          if ($adminEmail === '') continue;
+          $row = $this->db->query(
+            "SELECT COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') AS mobile\n" .
+              "FROM user\n" .
+              "WHERE (Email = ? OR email = ?)\n" .
+              "  AND COALESCE(Registered_Family_Mobile, Mobile, WhatsApp_No, '') <> ''\n" .
+              "LIMIT 1",
+            [$adminEmail, $adminEmail]
+          )->row_array();
+          if (!empty($row['mobile'])) {
+            $waAdmins[] = (string)$row['mobile'];
+          }
+        }
+      }
+
+      // Normalize and de-duplicate
+      $waAdminsNorm = [];
+      foreach ($waAdmins as $m) {
+        $digits = preg_replace('/[^0-9]/', '', (string)$m);
+        if ($digits === null) $digits = '';
+        if ($digits === '') continue;
+        $waAdminsNorm[] = $digits;
+      }
+      $waAdminsNorm = array_values(array_unique($waAdminsNorm));
+
+      if (!empty($waAdminsNorm)) {
+        $tplCfg = $this->config->item('templates', 'whatsapp');
+        $tpl = is_array($tplCfg) && isset($tplCfg['raza_application_submitted_admin']) ? $tplCfg['raza_application_submitted_admin'] : [];
+        $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+        $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'raza_details', 'mobile_no', 'raza_id', 'date_submitted'];
+
+        // Reuse the same vars map as member acknowledgement
+        $varsMapForAdmin = $varsMap;
+        // Admin template expects applicant name; keep as-is
+        if (empty($varsMapForAdmin['name'])) {
+          $varsMapForAdmin['name'] = (string)($user_data['Full_Name'] ?? '');
+        }
+
+        $bodyVarsAdmin = [];
+        foreach ($tplVars as $k) {
+          $key = is_string($k) ? trim($k) : '';
+          if ($key === '') continue;
+          $bodyVarsAdmin[] = isset($varsMapForAdmin[$key]) ? (string)$varsMapForAdmin[$key] : '';
+        }
+
+        foreach ($waAdminsNorm as $adminMobile) {
+          $this->notification_lib->send_whatsapp([
+            'recipient' => $adminMobile,
+            'recipient_type' => 'admin',
+            'template_name' => 'raza_application_submitted_admin',
+            'template_language' => $tplLang,
+            'body_vars' => $bodyVarsAdmin,
+          ]);
+        }
       }
 
       redirect('/accounts/success/myrazarequest');
@@ -3422,6 +3558,7 @@ class Accounts extends CI_Controller
     // Load required models/helpers
     $this->load->model('AccountM');
     $this->load->model('NotificationM');
+    $this->load->library('Notification_lib');
     $this->load->helper('email_template');
 
     // Retrieve ITS_ID and Full_Name
@@ -3569,20 +3706,56 @@ class Accounts extends CI_Controller
       $user_mobile = preg_replace('/[^0-9+]/', '', (string)$user_mobile);
 
       if ($user_mobile !== '') {
-        $plainText = "Your appointment has been booked.\n"
-          . "Date: " . date('d M Y', strtotime($slot_date)) . "\n"
-          . "Time: {$time}\n"
-          . (!empty($purpose) ? "Purpose: {$purpose}\n" : '')
-          . (!empty($details) ? "Details: {$details}\n" : '');
+        $waPurpose = trim((string)$purpose);
+        if ($waPurpose === '') $waPurpose = '-';
+        $waDetails = trim((string)$details);
+        if ($waDetails === '') $waDetails = '-';
+        // ExprezBot can silently fail on newlines in variables; force single-line.
+        $waPurpose = preg_replace('/\s+/', ' ', $waPurpose);
+        $waDetails = preg_replace('/\s+/', ' ', $waDetails);
+        if ($waPurpose === null) $waPurpose = '-';
+        if ($waDetails === null) $waDetails = '-';
 
-        $this->NotificationM->insert_notification([
-          'channel'        => 'whatsapp',
-          'recipient'      => $user_mobile,
+        $this->notification_lib->send_whatsapp([
+          'recipient' => $user_mobile,
           'recipient_type' => 'user',
-          'subject'        => null,
-          'body'           => $plainText,
-          'scheduled_at'   => null
+          'template_name' => 'appointment_confirmed_member',
+          'template_language' => 'en',
+          'body_vars' => [
+            (string)$user_name,
+            (string)date('d M Y', strtotime((string)$slot_date)),
+            (string)$time,
+            (string)$waPurpose,
+            (string)$waDetails,
+          ]
         ]);
+      }
+
+      // Admin WhatsApp (template)
+      $amilMobile = amilsaheb_whatsapp_number();
+
+      $waMember = trim((string)$user_name);
+      $waIts = trim((string)($user_info->ITS_ID ?? ''));
+      if ($waIts !== '') $waMember .= ' (' . $waIts . ')';
+      $waMember = preg_replace('/\s+/', ' ', $waMember);
+      if ($waMember === null || trim($waMember) === '') $waMember = (string)$user_name;
+
+      if ($amilMobile !== '') {
+        $this->notification_lib->send_whatsapp([
+          'recipient' => $amilMobile,
+          'recipient_type' => 'admin',
+          'template_name' => 'appointment_booked_admin',
+          'template_language' => 'en',
+          'body_vars' => [
+            (string)$waMember,
+            (string)date('d M Y', strtotime((string)$slot_date)),
+            (string)$time,
+            (string)$waPurpose,
+            (string)$waDetails,
+          ]
+        ]);
+      } else {
+        log_message('error', 'appointment_booked_admin WhatsApp skipped: missing Amilsaheb WhatsApp number');
       }
 
       // Admin emails

@@ -142,9 +142,40 @@ class Notification_lib
     $recipient = isset($opts['recipient']) ? (string)$opts['recipient'] : '';
     $recipient = $this->CI->whatsapp_bot_lib->normalize_phone($recipient);
 
+    // Per-trigger de-duplication: within a single web request / CLI run, only queue
+    // one WhatsApp notification per unique normalized phone number.
+    // This prevents duplicate sends when multiple members share the same family mobile
+    // or when code loops produce repeated rows.
+    static $seenRecipients = [];
+    $disableRequestDedupe = getenv('EXPREZBOT_WHATSAPP_DISABLE_REQUEST_DEDUPE');
+    $disableRequestDedupe = is_string($disableRequestDedupe) && trim($disableRequestDedupe) === '1';
+    $requestUnique = isset($opts['unique_recipient_per_request']) ? (bool)$opts['unique_recipient_per_request'] : true;
+    if (!$disableRequestDedupe && $requestUnique && $recipient !== '') {
+      if (isset($seenRecipients[$recipient])) {
+        return (int)$seenRecipients[$recipient];
+      }
+    }
+
     $templateName = isset($opts['template_name']) ? trim((string)$opts['template_name']) : '';
     $templateLanguage = isset($opts['template_language']) ? trim((string)$opts['template_language']) : '';
     $bodyVars = isset($opts['body_vars']) && is_array($opts['body_vars']) ? array_values($opts['body_vars']) : [];
+
+    // IMPORTANT: ExprezBot/WhatsApp templates can silently fail when variables contain newlines.
+    // Normalize all template variables to a single line.
+    if (!empty($bodyVars)) {
+      $san = [];
+      foreach ($bodyVars as $v) {
+        $s = (string)$v;
+        // Replace CR/LF with spaces
+        $s2 = preg_replace("/[\r\n]+/", ' ', $s);
+        if ($s2 === null) $s2 = str_replace(["\r", "\n"], ' ', $s);
+        // Collapse repeated whitespace
+        $s3 = preg_replace('/\s+/', ' ', $s2);
+        if ($s3 === null) $s3 = trim($s2);
+        $san[] = trim($s3);
+      }
+      $bodyVars = $san;
+    }
 
     $body = isset($opts['body']) ? $opts['body'] : null;
     if (!empty($body) && is_string($body)) {
@@ -167,6 +198,27 @@ class Notification_lib
       $storedBody = $body;
     }
 
+    // Dedupe: avoid queuing the exact same WhatsApp payload twice for the same recipient.
+    // This protects against cron/job re-runs and accidental double loops.
+    // Failed notifications are not considered duplicates so they can be re-queued.
+    $disableDedupe = getenv('EXPREZBOT_WHATSAPP_DISABLE_DEDUPE');
+    $disableDedupe = is_string($disableDedupe) && trim($disableDedupe) === '1';
+    $doDedupe = isset($opts['dedupe']) ? (bool)$opts['dedupe'] : true;
+    if (!$disableDedupe && $doDedupe && $recipient !== '' && $storedBody !== null) {
+      $existing = $this->CI->db->select('id')
+        ->from('notifications')
+        ->where('channel', 'whatsapp')
+        ->where('recipient', $recipient)
+        ->where('body', $storedBody)
+        ->where_in('status', ['pending', 'sent'])
+        ->where('DATE(created_at) = CURDATE()', null, false)
+        ->limit(1)
+        ->get()->row_array();
+      if (!empty($existing) && isset($existing['id'])) {
+        return (int)$existing['id'];
+      }
+    }
+
     $id = $this->CI->NotificationM->insert_notification([
       'channel' => 'whatsapp',
       'recipient' => $recipient !== '' ? $recipient : null,
@@ -175,6 +227,10 @@ class Notification_lib
       'body' => $storedBody,
       'scheduled_at' => isset($opts['scheduled_at']) ? $opts['scheduled_at'] : null
     ]);
+
+    if (!$disableRequestDedupe && $requestUnique && $recipient !== '') {
+      $seenRecipients[$recipient] = (int)$id;
+    }
     return $id;
   }
 
