@@ -139,6 +139,110 @@
     echo "razas.push(" . $raza['fields'] . ");";
   } ?>
 
+  function isLaagatRentAmountField(fieldLabel) {
+    fieldLabel = (fieldLabel || '').toString().toLowerCase();
+    // Supports: "Laagat /Rent Amount", "Laagat Amount", "Rent Amount"
+    return /(?:laagat\s*(?:\/\s*rent)?|rent)\s*amount/.test(fieldLabel);
+  }
+
+  function formatInrCurrency(amount) {
+    var n = Number(amount);
+    if (!isFinite(n)) n = 0;
+    var hasPaise = Math.abs(n - Math.round(n)) > 1e-9;
+    var opts = {
+      minimumFractionDigits: hasPaise ? 2 : 0,
+      maximumFractionDigits: hasPaise ? 2 : 0
+    };
+    try {
+      return '₹' + n.toLocaleString('en-IN', opts);
+    } catch (e) {
+      return '₹' + String(n);
+    }
+  }
+
+  function closestFormGroup(el) {
+    var cur = el;
+    while (cur && cur !== document) {
+      if (cur.classList && (cur.classList.contains('form-group') || cur.classList.contains('mb-3'))) return cur;
+      cur = cur.parentNode;
+    }
+    return null;
+  }
+
+  function renderLaagatRentInfo(groupEl, rawFieldName, chargeType, title, amount) {
+    if (!groupEl) return;
+    rawFieldName = (rawFieldName || '').toString();
+    var displayLabel = (chargeType === 'laagat') ? 'Laagat Details' : 'Rent Details';
+    var bgClass = 'bg-white';
+    var toneClass = 'text-dark';
+    var n = Number(amount);
+    if (!isFinite(n)) n = 0;
+
+    while (groupEl.firstChild) groupEl.removeChild(groupEl.firstChild);
+
+    var box = document.createElement('div');
+    box.className = 'pt-2 pb-3 px-3 rounded border ' + bgClass;
+    groupEl.appendChild(box);
+
+    var label = document.createElement('label');
+    label.className = 'col-form-label ' + toneClass;
+    label.textContent = displayLabel;
+    box.appendChild(label);
+
+    if (title) {
+      var row = document.createElement('div');
+      row.className = 'd-flex justify-content-between align-items-baseline mt-1';
+
+      var t = document.createElement('div');
+      t.className = 'h5 mb-0 ' + toneClass;
+      t.textContent = String(title);
+      row.appendChild(t);
+
+      var v = document.createElement('div');
+      v.className = 'h5 mb-0 text-success';
+      v.textContent = formatInrCurrency(n);
+      row.appendChild(v);
+
+      box.appendChild(row);
+    } else {
+      var v = document.createElement('div');
+      v.className = 'h5 mb-0 w-100 text-end text-success mt-1';
+      v.textContent = formatInrCurrency(n);
+      box.appendChild(v);
+    }
+
+    // Add invoice creation text
+    var invoiceNote = document.createElement('div');
+    invoiceNote.className = 'small text-muted mt-2 font-italic';
+    if (chargeType === 'laagat') {
+      invoiceNote.textContent = 'An invoice will be created for Laagat on Raza submission.';
+    } else {
+      invoiceNote.textContent = 'An invoice will be created for Rent on Raza submission.';
+    }
+    box.appendChild(invoiceNote);
+
+    if (rawFieldName) {
+      var hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = rawFieldName;
+      hidden.value = String(n);
+      box.appendChild(hidden);
+    }
+  }
+
+  function normalizeFieldName(label) {
+    return (label || '').toString().toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+  }
+
+  function fetchLaagatRentAmount(razaTypeId) {
+    return fetch('<?= base_url('accounts/get_laagat_rent_amount') ?>' + '?raza_type_id=' + encodeURIComponent(razaTypeId), {
+        credentials: 'same-origin'
+      })
+      .then(function(r) {
+        return r.json();
+      });
+  }
+
   function updateFormFields(existingData = null) {
     let selectedRazaType = document.getElementById('raza-type').value;
     let selectedRaza = razas.find(r => r.id == selectedRazaType);
@@ -241,6 +345,8 @@
         }
       });
     } else {
+      let laagatRentInput = null;
+
       selectedRaza.fields.forEach(field => {
         let fieldName = field.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
         let fieldValue = data[fieldName] || '';
@@ -291,7 +397,41 @@
 
         group.appendChild(input);
         container.appendChild(group);
+
+        if (isLaagatRentAmountField(field.name)) {
+          laagatRentInput = input;
+        }
       });
+
+      if (laagatRentInput && selectedRazaType) {
+        // prevent manual changes, but still submit value
+        laagatRentInput.readOnly = true;
+      }
+
+      if (selectedRazaType) {
+        fetchLaagatRentAmount(selectedRazaType)
+          .then(function(resp) {
+            if (!resp || !resp.success) return;
+            if (resp.amount === null || resp.amount === undefined) return;
+
+            if (laagatRentInput) {
+              var grp = closestFormGroup(laagatRentInput) || laagatRentInput.parentNode;
+              var rawName = laagatRentInput.getAttribute('name') || normalizeFieldName('Laagat /Rent Amount');
+              renderLaagatRentInfo(grp, rawName, resp.charge_type, resp.title || '', resp.amount);
+              return;
+            }
+
+            // Field not present in DB-defined form; append it so it shows.
+            var rawFieldName = normalizeFieldName('Laagat /Rent Amount');
+            var group = document.createElement('div');
+            group.className = 'form-group';
+            renderLaagatRentInfo(group, rawFieldName, resp.charge_type, resp.title || '', resp.amount);
+            container.appendChild(group);
+          })
+          .catch(function() {
+            // ignore
+          });
+      }
     }
   }
 

@@ -31,6 +31,361 @@ class Admin extends CI_Controller
     $this->load->view('Admin/Home', $data);
   }
 
+  // Laagat / Rent Module
+  public function laagat()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/LaagatRentMenu', $data);
+  }
+
+  public function laagat_create()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->model('LaagatRentM');
+
+    // Build Hijri financial year ranges like 1442-43 up to current hijri year.
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $current_hijri_year = null;
+    if (isset($today_hijri['hijri_date'])) {
+      $parts = explode('-', (string)$today_hijri['hijri_date']);
+      if (count($parts) === 3 && is_numeric($parts[2])) {
+        $current_hijri_year = (int)$parts[2];
+      }
+    }
+    if (!$current_hijri_year) {
+      $current_hijri_year = 1442;
+    }
+    $start_year = 1442;
+    $end_year = max($start_year, (int)$current_hijri_year);
+    $year_ranges = [];
+    for ($y = $start_year; $y <= $end_year; $y++) {
+      $year_ranges[] = $y . '-' . substr((string)($y + 1), -2);
+    }
+    $data['hijri_year_options'] = $year_ranges;
+
+    $data['flash_success'] = isset($_SESSION['laagat_flash_success']) ? (string)$_SESSION['laagat_flash_success'] : null;
+    $data['flash_error'] = isset($_SESSION['laagat_flash_error']) ? (string)$_SESSION['laagat_flash_error'] : null;
+    unset($_SESSION['laagat_flash_success'], $_SESSION['laagat_flash_error']);
+
+    $defaultYear = !empty($year_ranges) ? $year_ranges[count($year_ranges) - 1] : '';
+    $data['form'] = [
+      'id' => null,
+      'title' => '',
+      'hijri_year' => $defaultYear,
+      'charge_type' => '',
+      'amount' => '',
+      'raza_type_id' => '',
+      'raza_type_name' => '',
+      'raza_types' => []
+    ];
+
+    // Edit mode: /admin/laagat/create?edit={id}
+    $editId = (int)$this->input->get('edit');
+    if ($editId > 0) {
+      $row = $this->LaagatRentM->get_by_id($editId);
+      if ($row) {
+        $razaTypes = $this->LaagatRentM->get_raza_types_for_record($editId);
+        $data['form'] = [
+          'id' => (int)$row['id'],
+          'title' => (string)$row['title'],
+          'hijri_year' => (string)$row['hijri_year'],
+          'charge_type' => (string)$row['charge_type'],
+          'amount' => isset($row['amount']) ? (string)$row['amount'] : '',
+          'raza_type_id' => isset($row['raza_type_id']) ? (string)$row['raza_type_id'] : '',
+          'raza_type_name' => isset($row['raza_type_name']) ? (string)$row['raza_type_name'] : '',
+          'raza_types' => is_array($razaTypes) ? $razaTypes : []
+        ];
+      }
+    }
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/LaagatRent', $data);
+  }
+
+  public function laagat_manage()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->model('LaagatRentM');
+
+    // Filters (GET)
+    $filters = [
+      'title' => trim((string)$this->input->get('title')),
+      'hijri_year' => trim((string)$this->input->get('hijri_year')),
+      'charge_type' => strtolower(trim((string)$this->input->get('charge_type'))),
+      'raza_category' => trim((string)$this->input->get('raza_category')),
+    ];
+    $data['filters'] = $filters;
+
+    // Hijri year dropdown options (descending)
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $current_hijri_year = null;
+    if (isset($today_hijri['hijri_date'])) {
+      $parts = explode('-', (string)$today_hijri['hijri_date']);
+      if (count($parts) === 3 && is_numeric($parts[2])) {
+        $current_hijri_year = (int)$parts[2];
+      }
+    }
+    if (!$current_hijri_year) {
+      $current_hijri_year = 1442;
+    }
+    $start_year = 1442;
+    $end_year = max($start_year, (int)$current_hijri_year);
+    $year_ranges = [];
+    for ($y = $start_year; $y <= $end_year; $y++) {
+      $year_ranges[] = $y . '-' . substr((string)($y + 1), -2);
+    }
+    $data['hijri_year_options'] = array_reverse($year_ranges);
+
+    $data['flash_success'] = isset($_SESSION['laagat_flash_success']) ? (string)$_SESSION['laagat_flash_success'] : null;
+    $data['flash_error'] = isset($_SESSION['laagat_flash_error']) ? (string)$_SESSION['laagat_flash_error'] : null;
+    unset($_SESSION['laagat_flash_success'], $_SESSION['laagat_flash_error']);
+
+    $data['rows'] = $this->LaagatRentM->get_all($filters);
+    foreach ($data['rows'] as &$row) {
+      $row['has_invoices'] = $this->LaagatRentM->has_invoices($row['id']);
+    }
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/LaagatRentManage', $data);
+  }
+
+  public function laagat_save()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('LaagatRentM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      redirect('admin/laagat/create');
+      return;
+    }
+
+    // Rebuild Hijri year options for validation
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $current_hijri_year = null;
+    if (isset($today_hijri['hijri_date'])) {
+      $parts = explode('-', (string)$today_hijri['hijri_date']);
+      if (count($parts) === 3 && is_numeric($parts[2])) {
+        $current_hijri_year = (int)$parts[2];
+      }
+    }
+    if (!$current_hijri_year) {
+      $current_hijri_year = 1442;
+    }
+    $start_year = 1442;
+    $end_year = max($start_year, (int)$current_hijri_year);
+    $year_ranges = [];
+    for ($y = $start_year; $y <= $end_year; $y++) {
+      $year_ranges[] = $y . '-' . substr((string)($y + 1), -2);
+    }
+
+    $id = (int)$this->input->post('id');
+    $title = trim((string)$this->input->post('title'));
+    $hijriYear = trim((string)$this->input->post('hijri_year'));
+    $chargeType = strtolower(trim((string)$this->input->post('charge_type')));
+    $amountRaw = $this->input->post('amount');
+    $postedRazaTypeIds = $this->input->post('raza_type_ids');
+    if (!is_array($postedRazaTypeIds)) {
+      $postedRazaTypeIds = [];
+    }
+    $razaTypeIds = [];
+    foreach ($postedRazaTypeIds as $rid) {
+      $rid = (int)$rid;
+      if ($rid > 0) {
+        $razaTypeIds[$rid] = $rid;
+      }
+    }
+    $razaTypeIds = array_values($razaTypeIds);
+    $razaTypeId = !empty($razaTypeIds) ? (int)$razaTypeIds[0] : 0;
+
+    $valid = true;
+    if ($title === '') {
+      $valid = false;
+    }
+    if ($hijriYear === '' || !in_array($hijriYear, $year_ranges, true)) {
+      $valid = false;
+    }
+    if (!in_array($chargeType, ['laagat', 'rent'], true)) {
+      $valid = false;
+    }
+    if ($amountRaw === null || $amountRaw === '' || !is_numeric($amountRaw) || (float)$amountRaw < 0) {
+      $valid = false;
+    }
+    if ($razaTypeId <= 0) {
+      $valid = false;
+    }
+
+    if (!$valid) {
+      $_SESSION['laagat_flash_error'] = 'Please fill Title, Hijri Year, Charge Type, Amount and Applicable Raza Categories.';
+      $redir = $id > 0 ? ('admin/laagat/create?edit=' . $id) : 'admin/laagat/create';
+      redirect($redir);
+      return;
+    }
+
+    $payload = [
+      'title' => $title,
+      'hijri_year' => $hijriYear,
+      'charge_type' => $chargeType,
+      'amount' => (float)$amountRaw,
+      'raza_type_id' => $razaTypeId,
+      'raza_type_ids' => $razaTypeIds,
+    ];
+
+    if ($id > 0) {
+      $res = $this->LaagatRentM->update($id, $payload);
+      if (empty($res['success'])) {
+        $_SESSION['laagat_flash_error'] = !empty($res['error']) ? (string)$res['error'] : 'Unable to update record.';
+        redirect('admin/laagat/create?edit=' . $id);
+        return;
+      }
+      $ctLabel = ucfirst($chargeType);
+      $_SESSION['laagat_flash_success'] = $ctLabel . ' updated.';
+    } else {
+      $res = $this->LaagatRentM->create($payload);
+      if (empty($res['success'])) {
+        $_SESSION['laagat_flash_error'] = !empty($res['error']) ? (string)$res['error'] : 'Unable to create record.';
+        redirect('admin/laagat/create');
+        return;
+      }
+      $ctLabel = ucfirst($chargeType);
+      $_SESSION['laagat_flash_success'] = $ctLabel . ' created.';
+    }
+
+    redirect('admin/laagat/manage');
+  }
+
+  public function laagat_toggle()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('LaagatRentM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      redirect('admin/laagat/manage');
+      return;
+    }
+
+    $id = (int)$this->input->post('id');
+    if ($id <= 0) {
+      $_SESSION['laagat_flash_error'] = 'Invalid record.';
+      redirect('admin/laagat/manage');
+      return;
+    }
+
+    $res = $this->LaagatRentM->toggle_active($id);
+    if (!empty($res['success'])) {
+      $ctLabel = ucfirst($res['charge_type'] ?? 'Record');
+      $_SESSION['laagat_flash_success'] = $ctLabel . (((int)$res['is_active'] === 1) ? ' activated.' : ' deactivated.');
+    } else {
+      $_SESSION['laagat_flash_error'] = !empty($res['error']) ? (string)$res['error'] : 'Unable to update.';
+    }
+    redirect('admin/laagat/manage');
+  }
+
+  public function laagat_delete()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('LaagatRentM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      redirect('admin/laagat/manage');
+      return;
+    }
+
+    $id = (int)$this->input->post('id');
+    if ($id <= 0) {
+      $_SESSION['laagat_flash_error'] = 'Invalid record.';
+      redirect('admin/laagat/manage');
+      return;
+    }
+
+    if ($this->LaagatRentM->has_invoices($id)) {
+      $_SESSION['laagat_flash_error'] = 'This Laagat/Rent Cannot deleted beacuase invoice exist for this record .';
+      redirect('admin/laagat/manage');
+      return;
+    }
+
+    $row = $this->LaagatRentM->get_by_id($id);
+    $ok = $this->LaagatRentM->delete($id);
+    $ctLabel = ucfirst(($row['charge_type'] ?? 'Record'));
+    $_SESSION['laagat_flash_' . ($ok ? 'success' : 'error')] = $ok ? ($ctLabel . ' deleted.') : ('Unable to delete ' . strtolower($ctLabel) . '.');
+    redirect('admin/laagat/manage');
+  }
+
+  // AJAX: Raza Categories for autocomplete, filtered by charge type
+  public function laagat_raza_categories()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('LaagatRentM');
+
+    $chargeType = (string)$this->input->get('charge_type');
+    $term = (string)$this->input->get('term');
+    $items = $this->LaagatRentM->search_raza_categories($chargeType, $term);
+
+    $out = [];
+    foreach ($items as $r) {
+      $out[] = [
+        'id' => (int)$r['id'],
+        'name' => (string)$r['name'],
+        'umoor' => (string)$r['umoor'],
+      ];
+    }
+
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => true,
+      'items' => $out
+    ]));
+  }
+
+  // AJAX: Check whether a Laagat/Rent record already exists for same Hijri Year + Charge Type
+  // with overlapping Applicable Raza Categories.
+  public function laagat_check_duplicate()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('LaagatRentM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['success' => false, 'error' => 'Invalid request']));
+      return;
+    }
+
+    $excludeId = (int)$this->input->post('id');
+    $hijriYear = trim((string)$this->input->post('hijri_year'));
+    $chargeType = strtolower(trim((string)$this->input->post('charge_type')));
+
+    $postedRazaTypeIds = $this->input->post('raza_type_ids');
+    if (!is_array($postedRazaTypeIds)) {
+      $postedRazaTypeIds = [];
+    }
+    $razaTypeIds = [];
+    foreach ($postedRazaTypeIds as $rid) {
+      $rid = (int)$rid;
+      if ($rid > 0) {
+        $razaTypeIds[$rid] = $rid;
+      }
+    }
+    $razaTypeIds = array_values($razaTypeIds);
+
+    $dupId = $this->LaagatRentM->check_duplicate_overlap($hijriYear, $chargeType, $razaTypeIds, $excludeId);
+    $exists = $dupId > 0;
+
+    $this->output
+      ->set_content_type('application/json')
+      ->set_output(json_encode([
+        'success' => true,
+        'exists' => $exists,
+        'duplicate_id' => (int)$dupId,
+        'message' => $exists ? "Raza already exist. You can't create same Raza." : '',
+      ]));
+  }
+
   // Qardan Hasana schemes
   // - /admin/qardanhasana
   // - /admin/qardanhasana/mohammedi | taher | husain

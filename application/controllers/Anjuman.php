@@ -287,6 +287,17 @@ class Anjuman extends CI_Controller
       'total' => ($qh_moh + $qh_tah + $qh_hus)
     ];
 
+    // Laagat & Rent dashboard total
+    $this->load->model('LaagatRentM');
+    $lr_year = $sel_hijri_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446);
+    $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year]);
+    $dashboard_laagat_rent_total = 0.0;
+    foreach ($lr_invoices as $lrinv) {
+        $dashboard_laagat_rent_total += (float)($lrinv['master_amount'] ?? 0);
+    }
+    $data['dashboard_laagat_rent_total'] = $dashboard_laagat_rent_total;
+    $data['dashboard_laagat_rent_hijri_year'] = $lr_year;
+
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/Home', $data);
   }
@@ -544,6 +555,537 @@ class Anjuman extends CI_Controller
       $this->session->set_flashdata('error', 'Failed to delete expense.');
     }
     redirect('anjuman/expense');
+  }
+
+  // Laagat / Rent Module
+  public function laagat_rent()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/LaagatRentDashboard', $data);
+  }
+
+  public function laagat_rent_master()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->model('LaagatRentM');
+
+    // Filters (GET)
+    $filters = [
+      'title' => trim((string)$this->input->get('title')),
+      'hijri_year' => trim((string)$this->input->get('hijri_year')),
+      'charge_type' => strtolower(trim((string)$this->input->get('charge_type'))),
+      'raza_category' => trim((string)$this->input->get('raza_category')),
+    ];
+    $data['filters'] = $filters;
+
+    // Hijri year dropdown options (descending)
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $current_hijri_year = null;
+    if (isset($today_hijri['hijri_date'])) {
+      $parts = explode('-', (string)$today_hijri['hijri_date']);
+      if (count($parts) === 3 && is_numeric($parts[2])) {
+        $current_hijri_year = (int)$parts[2];
+      }
+    }
+    if (!$current_hijri_year) {
+      $current_hijri_year = 1442;
+    }
+    $start_year = 1442;
+    $end_year = max($start_year, (int)$current_hijri_year);
+    $year_ranges = [];
+    for ($y = $start_year; $y <= $end_year; $y++) {
+      $year_ranges[] = $y . '-' . substr((string)($y + 1), -2);
+    }
+    $data['hijri_year_options'] = array_reverse($year_ranges);
+
+    $data['flash_success'] = $this->session->flashdata('laagat_flash_success');
+    $data['flash_error'] = $this->session->flashdata('laagat_flash_error');
+
+    $data['rows'] = $this->LaagatRentM->get_all($filters);
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/LaagatRent', $data);
+  }
+
+  public function laagat_rent_invoices()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('LaagatRentM');
+
+    $filters = [
+      'year' => $this->input->get('year'),
+      'its_id' => $this->input->get('its_id'),
+      'charge_type' => $this->input->get('charge_type'),
+    ];
+    $data['filters'] = $filters;
+
+    $data['invoices'] = $this->LaagatRentM->get_invoices($filters);
+
+    $distinctYears = $this->db->distinct()->select('hijri_year')->from('laagat_rent')->order_by('hijri_year', 'DESC')->get()->result_array();
+    $data['hijri_years'] = array_column($distinctYears, 'hijri_year');
+
+    // Fetch all active master records for the Edit modal dropdown
+    $data['all_masters'] = $this->LaagatRentM->get_all(['is_active' => 1]);
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/LaagatRentInvoices', $data);
+  }
+
+  public function laagat_rent_payments()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 3 && $_SESSION['user']['role'] != 2)) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('LaagatRentM');
+
+    $filters = [
+      'year' => $this->input->get('year'),
+      'its_id' => $this->input->get('its_id'),
+      'charge_type' => $this->input->get('charge_type'),
+    ];
+    $data['filters'] = $filters;
+
+    $data['invoices'] = $this->LaagatRentM->get_invoices($filters);
+
+    $distinctYears = $this->db->distinct()->select('hijri_year')->from('laagat_rent')->order_by('hijri_year', 'DESC')->get()->result_array();
+    $data['hijri_years'] = array_column($distinctYears, 'hijri_year');
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/LaagatRentPayments', $data);
+  }
+
+  public function laagat_rent_save_payment()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 3 && $_SESSION['user']['role'] != 2)) {
+      redirect('/accounts');
+    }
+    if ($this->input->post()) {
+      $this->load->model('LaagatRentM');
+      $invoice_id = (int)$this->input->post('invoice_id');
+      $amount = (float)$this->input->post('amount');
+      $payment_date = $this->input->post('payment_date');
+      if (!$payment_date) $payment_date = date('Y-m-d');
+      $payment_method = $this->input->post('payment_method');
+      $remarks = $this->input->post('remarks');
+
+      if ($invoice_id > 0 && $amount > 0) {
+        $payload = [
+          'invoice_id' => $invoice_id,
+          'amount' => $amount,
+          'payment_date' => $payment_date,
+          'payment_method' => $payment_method,
+          'remarks' => $remarks
+        ];
+        $this->LaagatRentM->add_payment($payload);
+        $this->session->set_flashdata('laagat_flash_success', 'Payment recorded successfully.');
+      } else {
+        $this->session->set_flashdata('laagat_flash_error', 'Invalid payment data.');
+      }
+    }
+    redirect('anjuman/laagat_rent_payments');
+  }
+
+  public function laagat_receipt($payment_id = null)
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 3 && $_SESSION['user']['role'] != 2)) {
+      redirect('/accounts');
+    }
+
+    $payment_id = (int)$payment_id;
+    if ($payment_id <= 0) {
+      show_404();
+    }
+
+    $this->load->model('LaagatRentM');
+    $payment = $this->LaagatRentM->get_payment_by_id($payment_id);
+    if (!$payment) {
+      show_404();
+    }
+
+    $data['payment'] = $payment;
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->view('Accounts/LaagatReceipt', $data);
+  }
+
+  public function laagat_rent_invoice_delete()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      redirect('anjuman/laagat_rent_invoices');
+      return;
+    }
+
+    $id = (int)$this->input->post('id');
+    if ($id <= 0) {
+      $this->session->set_flashdata('laagat_flash_error', 'Invalid invoice.');
+      redirect('anjuman/laagat_rent_invoices');
+      return;
+    }
+
+    $this->load->model('LaagatRentM');
+    $invoice = $this->LaagatRentM->get_invoice_by_id($id);
+    $ok = $this->LaagatRentM->delete_invoice($id);
+    if ($ok) {
+      $ctLabel = ucfirst(($invoice['charge_type'] ?? 'Invoice'));
+      $this->session->set_flashdata('laagat_flash_success', $ctLabel . ' invoice deleted successfully.');
+    } else {
+      $this->session->set_flashdata('laagat_flash_error', 'Unable to delete invoice.');
+    }
+    redirect('anjuman/laagat_rent_invoices');
+  }
+
+  public function laagat_rent_invoice_save()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    if ($this->input->post()) {
+      $this->load->model('LaagatRentM');
+      $id = (int)$this->input->post('id');
+      $laagat_rent_id = (int)$this->input->post('laagat_rent_id');
+
+      if ($id > 0) {
+        $this->load->model('LaagatRentM');
+        $manual_amount = $this->input->post('amount');
+        
+        $updateData = [];
+
+        if ($manual_amount !== null && $manual_amount !== '') {
+          $updateData['amount'] = (float)$manual_amount;
+        }
+
+        if (!empty($updateData)) {
+          $this->LaagatRentM->update_invoice($id, $updateData);
+          $invoice = $this->LaagatRentM->get_invoice_by_id($id);
+          $ctLabel = ucfirst(($invoice['charge_type'] ?? 'Invoice'));
+          $this->session->set_flashdata('laagat_flash_success', $ctLabel . ' invoice updated successfully.');
+        }
+      } else {
+        $this->session->set_flashdata('laagat_flash_error', 'Invalid data.');
+      }
+    }
+    redirect('anjuman/laagat_rent_invoices');
+  }
+
+  public function get_laagat_payment_history()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 3 && $_SESSION['user']['role'] != 2)) {
+      echo json_encode([]);
+      return;
+    }
+    $invoice_id = (int)$this->input->post('invoice_id');
+    if ($invoice_id > 0) {
+      $this->load->model('LaagatRentM');
+      $payments = $this->LaagatRentM->get_payments_by_invoice($invoice_id);
+      echo json_encode($payments);
+    } else {
+      echo json_encode([]);
+    }
+  }
+
+  public function laagat_rent_delete_payment()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 3 && $_SESSION['user']['role'] != 2)) {
+      echo json_encode(["success" => false, "message" => "Unauthorized"]);
+      return;
+    }
+    $payment_id = $this->input->post("payment_id");
+
+    if ($payment_id) {
+      $this->load->model('LaagatRentM');
+      $result = $this->LaagatRentM->delete_payment($payment_id);
+      if ($result) {
+        echo json_encode(["success" => true]);
+      } else {
+        echo json_encode(["success" => false, "message" => "Failed to delete payment."]);
+      }
+    } else {
+      echo json_encode(["success" => false, "message" => "Invalid payment ID."]);
+    }
+  }
+
+  public function laagat_rent_add()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->model('LaagatRentM');
+
+    // Build Hijri financial year ranges
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $current_hijri_year = null;
+    if (isset($today_hijri['hijri_date'])) {
+      $parts = explode('-', (string)$today_hijri['hijri_date']);
+      if (count($parts) === 3 && is_numeric($parts[2])) {
+        $current_hijri_year = (int)$parts[2];
+      }
+    }
+    if (!$current_hijri_year) {
+      $current_hijri_year = 1442;
+    }
+    $start_year = 1442;
+    $end_year = max($start_year, (int)$current_hijri_year);
+    $year_ranges = [];
+    for ($y = $start_year; $y <= $end_year; $y++) {
+      $year_ranges[] = $y . '-' . substr((string)($y + 1), -2);
+    }
+    $data['hijri_year_options'] = $year_ranges;
+
+    $data['flash_success'] = $this->session->flashdata('laagat_flash_success');
+    $data['flash_error'] = $this->session->flashdata('laagat_flash_error');
+
+    $defaultYear = !empty($year_ranges) ? $year_ranges[count($year_ranges) - 1] : '';
+    $data['form'] = [
+      'id' => null,
+      'title' => '',
+      'hijri_year' => $defaultYear,
+      'charge_type' => '',
+      'amount' => '',
+      'raza_type_id' => '',
+      'raza_type_name' => '',
+      'raza_types' => []
+    ];
+
+    $editId = (int)$this->input->get('edit');
+    if ($editId > 0) {
+      $row = $this->LaagatRentM->get_by_id($editId);
+      if ($row) {
+        $razaTypes = $this->LaagatRentM->get_raza_types_for_record($editId);
+        $data['form'] = [
+          'id' => (int)$row['id'],
+          'title' => (string)$row['title'],
+          'hijri_year' => (string)$row['hijri_year'],
+          'charge_type' => (string)$row['charge_type'],
+          'amount' => isset($row['amount']) ? (string)$row['amount'] : '',
+          'raza_type_id' => isset($row['raza_type_id']) ? (string)$row['raza_type_id'] : '',
+          'raza_type_name' => isset($row['raza_type_name']) ? (string)$row['raza_type_name'] : '',
+          'raza_types' => is_array($razaTypes) ? $razaTypes : []
+        ];
+      }
+    }
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/LaagatRentForm', $data);
+  }
+
+  public function laagat_rent_save()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $this->load->model('LaagatRentM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      redirect('anjuman/laagat_rent_add');
+      return;
+    }
+
+    $id = (int)$this->input->post('id');
+    $title = trim((string)$this->input->post('title'));
+    $hijriYear = trim((string)$this->input->post('hijri_year'));
+    $chargeType = strtolower(trim((string)$this->input->post('charge_type')));
+    $amountRaw = $this->input->post('amount');
+    $postedRazaTypeIds = $this->input->post('raza_type_ids');
+    if (!is_array($postedRazaTypeIds)) {
+      $postedRazaTypeIds = [];
+    }
+    $razaTypeIds = [];
+    foreach ($postedRazaTypeIds as $rid) {
+      $rid = (int)$rid;
+      if ($rid > 0) {
+        $razaTypeIds[$rid] = $rid;
+      }
+    }
+    $razaTypeIds = array_values($razaTypeIds);
+    $razaTypeId = !empty($razaTypeIds) ? (int)$razaTypeIds[0] : 0;
+
+    $valid = true;
+    if ($title === '' || $hijriYear === '' || $razaTypeId <= 0 || !in_array($chargeType, ['laagat', 'rent'], true) || $amountRaw === null || $amountRaw === '' || !is_numeric($amountRaw) || (float)$amountRaw < 0) {
+      $valid = false;
+    }
+
+    if (!$valid) {
+      $this->session->set_flashdata('laagat_flash_error', 'Please fill Title, Hijri Year, Charge Type, Amount and Applicable Raza Categories.');
+      $redir = $id > 0 ? ('anjuman/laagat_rent_add?edit=' . $id) : 'anjuman/laagat_rent_add';
+      redirect($redir);
+      return;
+    }
+
+    $payload = [
+      'title' => $title,
+      'hijri_year' => $hijriYear,
+      'charge_type' => $chargeType,
+      'amount' => (float)$amountRaw,
+      'raza_type_id' => $razaTypeId,
+      'raza_type_ids' => $razaTypeIds,
+    ];
+
+    if ($id > 0) {
+      $res = $this->LaagatRentM->update($id, $payload);
+      if (empty($res['success'])) {
+        $this->session->set_flashdata('laagat_flash_error', !empty($res['error']) ? (string)$res['error'] : 'Unable to update record.');
+        redirect('anjuman/laagat_rent_add?edit=' . $id);
+        return;
+      }
+      $ctLabel = ucfirst($chargeType);
+      $this->session->set_flashdata('laagat_flash_success', $ctLabel . ' updated.');
+    } else {
+      $res = $this->LaagatRentM->create($payload);
+      if (empty($res['success'])) {
+        $this->session->set_flashdata('laagat_flash_error', !empty($res['error']) ? (string)$res['error'] : 'Unable to create record.');
+        redirect('anjuman/laagat_rent_add');
+        return;
+      }
+      $ctLabel = ucfirst($chargeType);
+      $this->session->set_flashdata('laagat_flash_success', $ctLabel . ' created.');
+    }
+
+    redirect('anjuman/laagat_rent_master');
+  }
+
+  public function laagat_rent_toggle()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $this->load->model('LaagatRentM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      redirect('anjuman/laagat_rent_master');
+      return;
+    }
+
+    $id = (int)$this->input->post('id');
+    if ($id <= 0) {
+      $this->session->set_flashdata('laagat_flash_error', 'Invalid record.');
+      redirect('anjuman/laagat_rent_master');
+      return;
+    }
+
+    $res = $this->LaagatRentM->toggle_active($id);
+    if (!empty($res['success'])) {
+      $ctLabel = ucfirst($res['charge_type'] ?? 'Record');
+      $this->session->set_flashdata('laagat_flash_success', $ctLabel . (((int)$res['is_active'] === 1) ? ' activated.' : ' deactivated.'));
+    } else {
+      $this->session->set_flashdata('laagat_flash_error', !empty($res['error']) ? (string)$res['error'] : 'Unable to update.');
+    }
+    redirect('anjuman/laagat_rent_master');
+  }
+
+  public function laagat_rent_delete()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $this->load->model('LaagatRentM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      redirect('anjuman/laagat_rent_master');
+      return;
+    }
+
+    $id = (int)$this->input->post('id');
+    if ($id <= 0) {
+      $this->session->set_flashdata('laagat_flash_error', 'Invalid record.');
+      redirect('anjuman/laagat_rent_master');
+      return;
+    }
+
+    $row = $this->LaagatRentM->get_by_id($id);
+    $ok = $this->LaagatRentM->delete($id);
+    if ($ok) {
+      $ctLabel = ucfirst(($row['charge_type'] ?? 'Record'));
+      $this->session->set_flashdata('laagat_flash_success', $ctLabel . ' deleted.');
+    } else {
+      $this->session->set_flashdata('laagat_flash_error', 'Unable to delete record.');
+    }
+    redirect('anjuman/laagat_rent_master');
+  }
+
+  public function laagat_rent_raza_categories()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      return $this->output->set_status_header(403)->set_output('Unauthorized');
+    }
+    $this->load->model('LaagatRentM');
+
+    $chargeType = (string)$this->input->get('charge_type');
+    $term = (string)$this->input->get('term');
+    $items = $this->LaagatRentM->search_raza_categories($chargeType, $term);
+
+    $out = [];
+    foreach ($items as $r) {
+      $out[] = [
+        'id' => (int)$r['id'],
+        'name' => (string)$r['name'],
+        'umoor' => (string)$r['umoor'],
+      ];
+    }
+
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => true,
+      'items' => $out
+    ]));
+  }
+
+  public function laagat_rent_check_duplicate()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      return $this->output->set_status_header(403)->set_output('Unauthorized');
+    }
+    $this->load->model('LaagatRentM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['success' => false, 'error' => 'Invalid request']));
+      return;
+    }
+
+    $excludeId = (int)$this->input->post('id');
+    $hijriYear = trim((string)$this->input->post('hijri_year'));
+    $chargeType = strtolower(trim((string)$this->input->post('charge_type')));
+
+    $postedRazaTypeIds = $this->input->post('raza_type_ids');
+    if (!is_array($postedRazaTypeIds)) {
+      $postedRazaTypeIds = [];
+    }
+    $razaTypeIds = [];
+    foreach ($postedRazaTypeIds as $rid) {
+      $rid = (int)$rid;
+      if ($rid > 0) {
+        $razaTypeIds[$rid] = $rid;
+      }
+    }
+    $razaTypeIds = array_values($razaTypeIds);
+
+    $dupId = $this->LaagatRentM->check_duplicate_overlap($hijriYear, $chargeType, $razaTypeIds, $excludeId);
+    $exists = $dupId > 0;
+
+    $this->output
+      ->set_content_type('application/json')
+      ->set_output(json_encode([
+        'success' => true,
+        'exists' => $exists,
+        'duplicate_id' => (int)$dupId,
+        'message' => $exists ? "Raza already exist. You can't create same Raza." : '',
+      ]));
   }
 
   public function update_user_details()

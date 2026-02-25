@@ -77,6 +77,11 @@ $route['admin/expense/source-create'] = 'Admin/expense_source_create';
 $route['admin/expense/source-update'] = 'Admin/expense_source_update';
 $route['admin/expense/source-delete'] = 'Admin/expense_source_delete';
 
+// Laagat / Rent module routes
+$route['admin/laagat/create'] = 'Admin/laagat_create';
+$route['admin/laagat/manage'] = 'Admin/laagat_manage';
+$route['admin/laagat/check-duplicate'] = 'Admin/laagat_check_duplicate';
+
 
 
 
