@@ -272,6 +272,7 @@
 						<select name="payment_mode" id="rpmMode" class="form-control">
 							<option value="Cash">Cash</option>
 							<option value="Check">Check</option>
+							<option value="NEFT">NEFT</option>
 						</select>
 					</div>
 

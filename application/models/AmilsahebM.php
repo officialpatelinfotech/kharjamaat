@@ -176,7 +176,23 @@ class AmilsahebM extends CI_Model
       // hof can be ITS_ID of hof
       $this->db->where('HOF_ID', $params['hof']);
     }
+
+      // Marital status
+      if (!empty($params['marital_status'])) {
+        $this->db->where('Marital_Status', $params['marital_status']);
+      } elseif (!empty($params['marital'])) {
+        $this->db->where('Marital_Status', $params['marital']);
+      } elseif (!empty($params['ms'])) {
+        $this->db->where('Marital_Status', $params['ms']);
+      }
+
     // Age range
+      if (isset($params['age_min']) && is_numeric($params['age_min']) && !isset($params['min'])) {
+        $params['min'] = $params['age_min'];
+      }
+      if (isset($params['age_max']) && is_numeric($params['age_max']) && !isset($params['max'])) {
+        $params['max'] = $params['age_max'];
+      }
     if (isset($params['min']) && is_numeric($params['min'])) {
       $this->db->where('Age >=', (int)$params['min']);
     }

@@ -96,6 +96,10 @@ $route['menu'] = 'publicmenu';
 // Cookie consent
 $route['cookies/accept'] = 'cookies/accept';
 
+// Reports
+$route['reports/sabeel-diff'] = 'reports/sabeel_takhmeen_diff';
+$route['reports/sabeel-diff/data'] = 'reports/sabeel_takhmeen_diff_data';
+
 // Member Madresa pages
 $route['accounts/madresa/payment-history/(:num)'] = 'accounts/madresa_payment_history/$1';
 

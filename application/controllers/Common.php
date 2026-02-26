@@ -347,6 +347,15 @@ class Common extends CI_Controller
     $payment_id = $this->input->post("id");
     $for = $this->input->post("for");
 
+    $payment_for_map = [
+      1 => 'FMB Takhmeen',
+      2 => 'Miqaat',
+      3 => 'FMB General Contribution',
+      4 => 'Sabeel Takhmeen',
+      5 => 'Corpus Fund',
+      6 => 'Ekram Fund',
+    ];
+
     $table = null;
     switch ($for) {
       case 1:
@@ -374,7 +383,163 @@ class Common extends CI_Controller
 
     $result = $this->CommonM->get_payment_details($payment_id, $table);
 
-    $data = [];
+    $receipt_no = '';
+    if (!empty($result)) {
+      $stored = '';
+      if (isset($result['receipt_no'])) $stored = (string) $result['receipt_no'];
+      elseif (isset($result['receipt_number'])) $stored = (string) $result['receipt_number'];
+      elseif (isset($result['receipt'])) $stored = (string) $result['receipt'];
+
+      $stored = trim($stored);
+      if ($stored !== '') {
+        // Only show numeric portion (no characters). Prefer the last numeric group.
+        if (preg_match('/(\d+)(?!.*\d)/', $stored, $m)) {
+          $receipt_no = $m[1];
+        }
+      }
+
+      if ($receipt_no === '' && !empty($payment_id)) {
+        // Fallback: just the payment row id (numeric) once payment row exists (captured)
+        $receipt_no = (string) ((int) $payment_id);
+      }
+    }
+
+    $payment_for = isset($payment_for_map[(int) $for]) ? $payment_for_map[(int) $for] : '';
+
+    $remarks = '';
+    if (!empty($result)) {
+      $remarks = trim((string) ($result['remarks'] ?? ''));
+      if ($remarks === '') $remarks = trim((string) ($result['payment_remarks'] ?? ''));
+      if ($remarks === '') $remarks = trim((string) ($result['notes'] ?? ''));
+      if ($remarks === '') $remarks = trim((string) ($result['description'] ?? ''));
+    }
+
+    if ((int) $for === 5 && !empty($result)) {
+      $payment_for = 'Corpus Funds';
+      if (!empty($result['payment_date'])) {
+        $greg = date('Y-m-d', strtotime((string) $result['payment_date']));
+        $hd = $this->HijriCalendar->get_hijri_date($greg);
+        $hyr = '';
+        if (!empty($hd) && !empty($hd['hijri_date'])) {
+          $parts = explode('-', (string) $hd['hijri_date']);
+          if (count($parts) >= 3) {
+            $hyr = trim((string) $parts[2]);
+          }
+        }
+        if ($hyr !== '') {
+          $payment_for .= ' - Year: ' . $hyr;
+        }
+      }
+    }
+
+    if ((int) $for === 6 && !empty($result)) {
+      $payment_for = 'Ekram Funds';
+      if (!empty($result['payment_date'])) {
+        $greg = date('Y-m-d', strtotime((string) $result['payment_date']));
+        $hd = $this->HijriCalendar->get_hijri_date($greg);
+        $hyr = '';
+        if (!empty($hd) && !empty($hd['hijri_date'])) {
+          $parts = explode('-', (string) $hd['hijri_date']);
+          if (count($parts) >= 3) {
+            $hyr = trim((string) $parts[2]);
+          }
+        }
+        if ($hyr !== '') {
+          $payment_for .= ' - Year: ' . $hyr;
+        }
+      }
+    }
+
+    if ((int) $for === 1 && !empty($result)) {
+      $years = [];
+      if (!empty($result['user_id']) && isset($result['payment_date']) && isset($result['amount'])) {
+        $years = $this->CommonM->get_fmb_takhmeen_payment_years_covered(
+          $result['user_id'],
+          (int) $payment_id,
+          (string) $result['payment_date'],
+          (float) $result['amount']
+        );
+      }
+
+      $payment_for = 'FMB Takhmeen';
+      if (!empty($years)) {
+        $payment_for .= ' - Year(s): ' . implode(', ', $years);
+      } else {
+        $payment_for .= ' - Year(s): Advance';
+      }
+    }
+
+    if ((int) $for === 4 && !empty($result)) {
+      $stype = strtolower(trim((string) ($result['type'] ?? '')));
+      $typeLabel = '';
+      if ($stype === 'residential') $typeLabel = 'Residential';
+      elseif ($stype === 'establishment') $typeLabel = 'Establishment';
+
+      $years = [];
+      if (!empty($result['user_id']) && $stype !== '' && isset($result['payment_date']) && isset($result['amount'])) {
+        $years = $this->CommonM->get_sabeel_payment_years_covered(
+          $result['user_id'],
+          $stype,
+          (int) $payment_id,
+          (string) $result['payment_date'],
+          (float) $result['amount']
+        );
+      }
+
+      $payment_for = 'Sabeel Takhmeen' . ($typeLabel !== '' ? (' (' . $typeLabel . ')') : '');
+      if (!empty($years)) {
+        $payment_for .= ' - Year(s): ' . implode(', ', $years);
+      } else {
+        $payment_for .= ' - Year(s): Advance';
+      }
+    }
+
+    if ((int) $for === 2 && !empty($result)) {
+      $invoiceId = (int) ($result['miqaat_invoice_id'] ?? 0);
+      if ($invoiceId > 0) {
+        $meta = $this->CommonM->get_miqaat_invoice_receipt_meta($invoiceId);
+        $mt = trim((string) ($meta['miqaat_type'] ?? ''));
+        $yr = trim((string) ($meta['invoice_year'] ?? ''));
+        $code = trim((string) ($meta['miqaat_code'] ?? ''));
+        if ($mt !== '') {
+          $payment_for = $mt;
+        }
+        $payment_for .= ' Miqaat Invoice ';
+        if ($code !== '') {
+          $payment_for .= ' - Miqaat ID: ' . $this->format_miqaat_public_id($code);
+        }
+        if ($yr !== '') {
+          $payment_for .= ' - Year: ' . $yr;
+        }
+      }
+    }
+
+    if ((int) $for === 3 && !empty($result)) {
+      $gcId = (int) ($result['fmbgc_id'] ?? 0);
+      if ($gcId > 0) {
+        $meta = $this->CommonM->get_fmb_gc_receipt_meta($gcId);
+        $ft = strtolower(trim((string) ($meta['fmb_type'] ?? '')));
+        $ct = trim((string) ($meta['contri_type'] ?? ''));
+        $yr = trim((string) ($meta['contri_year'] ?? ''));
+
+        $base = 'FMB General Contribution';
+        if ($ft === 'thaali' || $ft === 'thali') $base = 'FMB Thaali';
+        elseif ($ft === 'niyaz' || $ft === 'niyazat' || $ft === 'niyazaat') $base = 'FMB Niyaz';
+
+        $base .= ' Extra Contribution';
+
+        $parts = [$base];
+        if ($ct !== '') $parts[] = $ct;
+        if ($yr !== '') $parts[] = $yr;
+        $payment_for = implode(' - ', $parts);
+      }
+    }
+
+    $data = [
+      'receipt_no' => $receipt_no,
+      'payment_for' => $payment_for,
+      'remarks' => $remarks,
+    ];
 
     if ($result) {
       // Indian number words using Crore/Lakh/Thousand/Hundred
@@ -433,13 +598,13 @@ class Common extends CI_Controller
       }
       $amount_inr = "₹" . $amtStr;
 
-      $data = array(
+      $data = array_merge($data, array(
         "date" => $result["payment_date"],
         "name" => $result["Full_Name"],
         "address" => $result["Address"],
         "amount" => $amount_inr,
         "amount_words" => $amount_words . " Only",
-      );
+      ));
     }
 
     $html = $this->load->view('pdf_template', $data, true);
@@ -2014,7 +2179,8 @@ class Common extends CI_Controller
         $waAdmins = $this->get_admin_whatsapp_recipients($admins);
         if (!empty($waAdmins)) {
           $tplCfg = $this->config->item('templates', 'whatsapp');
-          $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin']) ? $tplCfg['miqaat_assigned_admin'] : [];
+          $adminTplKey = (is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin_v2'])) ? 'miqaat_assigned_admin_v2' : 'miqaat_assigned_admin';
+          $tpl = is_array($tplCfg) && isset($tplCfg[$adminTplKey]) ? $tplCfg[$adminTplKey] : [];
           $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
           $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['member', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
 
@@ -2037,7 +2203,7 @@ class Common extends CI_Controller
             $this->notification_lib->send_whatsapp([
               'recipient' => $adminMobile,
               'recipient_type' => 'admin',
-              'template_name' => 'miqaat_assigned_admin',
+              'template_name' => $adminTplKey,
               'template_language' => $tplLang,
               'body_vars' => $bodyVars,
             ]);
@@ -2170,7 +2336,8 @@ class Common extends CI_Controller
         $waAdmins = $this->get_admin_whatsapp_recipients($admins);
         if (!empty($waAdmins)) {
           $tplCfg = $this->config->item('templates', 'whatsapp');
-          $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin']) ? $tplCfg['miqaat_assigned_admin'] : [];
+          $adminTplKey = (is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin_v2'])) ? 'miqaat_assigned_admin_v2' : 'miqaat_assigned_admin';
+          $tpl = is_array($tplCfg) && isset($tplCfg[$adminTplKey]) ? $tplCfg[$adminTplKey] : [];
           $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
           $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['member', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
 
@@ -2197,7 +2364,7 @@ class Common extends CI_Controller
             $this->notification_lib->send_whatsapp([
               'recipient' => $adminMobile,
               'recipient_type' => 'admin',
-              'template_name' => 'miqaat_assigned_admin',
+              'template_name' => $adminTplKey,
               'template_language' => $tplLang,
               'body_vars' => $bodyVars,
             ]);
@@ -2421,7 +2588,8 @@ class Common extends CI_Controller
           $waAdmins = $this->get_admin_whatsapp_recipients($admins);
           if (!empty($waAdmins)) {
             $tplCfg = $this->config->item('templates', 'whatsapp');
-            $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin']) ? $tplCfg['miqaat_assigned_admin'] : [];
+            $adminTplKey = (is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin_v2'])) ? 'miqaat_assigned_admin_v2' : 'miqaat_assigned_admin';
+            $tpl = is_array($tplCfg) && isset($tplCfg[$adminTplKey]) ? $tplCfg[$adminTplKey] : [];
             $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
             $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['member', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
 
@@ -2445,7 +2613,7 @@ class Common extends CI_Controller
               $this->notification_lib->send_whatsapp([
                 'recipient' => $adminMobile,
                 'recipient_type' => 'admin',
-                'template_name' => 'miqaat_assigned_admin',
+                'template_name' => $adminTplKey,
                 'template_language' => $tplLang,
                 'body_vars' => $bodyVars,
               ]);
@@ -2558,7 +2726,8 @@ class Common extends CI_Controller
           $waAdmins = $this->get_admin_whatsapp_recipients($admins);
           if (!empty($waAdmins)) {
             $tplCfg = $this->config->item('templates', 'whatsapp');
-            $tpl = is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin']) ? $tplCfg['miqaat_assigned_admin'] : [];
+            $adminTplKey = (is_array($tplCfg) && isset($tplCfg['miqaat_assigned_admin_v2'])) ? 'miqaat_assigned_admin_v2' : 'miqaat_assigned_admin';
+            $tpl = is_array($tplCfg) && isset($tplCfg[$adminTplKey]) ? $tplCfg[$adminTplKey] : [];
             $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
             $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['member', 'miqaat', 'miqaat_id', 'type', 'date', 'assignment'];
 
@@ -2590,7 +2759,7 @@ class Common extends CI_Controller
               $this->notification_lib->send_whatsapp([
                 'recipient' => $adminMobile,
                 'recipient_type' => 'admin',
-                'template_name' => 'miqaat_assigned_admin',
+                'template_name' => $adminTplKey,
                 'template_language' => $tplLang,
                 'body_vars' => $bodyVars,
               ]);

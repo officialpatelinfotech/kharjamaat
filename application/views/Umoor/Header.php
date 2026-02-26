@@ -68,6 +68,11 @@
               class="fa fa-home px-1"></i>Home</a></li>
       </ul>
       <ul class="navbar-nav navbar-right">
+        <li class="nav-item mr-2" id="km-export-excel-wrap" style="display:none;">
+          <button type="button" id="km-export-excel-btn" class="btn btn-outline-secondary btn-sm" title="Export current table to Excel (CSV)">
+            <i class="fa fa-file-excel-o px-1"></i>Export Excel
+          </button>
+        </li>
         <li class="nav-item">
           <span class="nav-link user-welcome font-lvl-3-xs"><?php echo $user_name ?></span>
         </li>
@@ -77,3 +82,4 @@
     </div>
   </nav>
 </div>
+<script src="<?php echo base_url('assets/js/table-export.js'); ?>?v=1"></script>

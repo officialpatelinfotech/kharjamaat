@@ -216,6 +216,7 @@
   .wq-summary-card .stats-value::after {
     content: none !important;
   }
+
   .wq-summary-card .stats-value {
     white-space: normal;
     overflow: visible;
@@ -1143,6 +1144,7 @@
         </ul>
         <div class="menu-section">Activity</div>
         <ul class="menu-list">
+          <li><a class="menu-item" href="<?php echo base_url('anjuman/mumineendirectory') ?>"><span class="menu-icon"><i class="fa-solid fa-group"></i></span><span class="menu-label">Mumineen Directory</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/asharaohbat') ?>"><span class="menu-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="menu-label">Ashara Ohbat <?php $hijri_year = isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : '1446H';
                                                                                                                                                                                                       echo $hijri_year . 'H'; ?></span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/ashara_attendance') ?>"><span class="menu-icon"><i class="fa-solid fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
@@ -1150,7 +1152,7 @@
           <li><a class="menu-item" href="<?php echo base_url('common/thaali_signups_breakdown?from=anjuman'); ?>"><span class="menu-icon"><i class="fa-solid fa-chart-column"></i></span><span class="menu-label">FMB Thaali Signups</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/fmbthaalimenu?from=anjuman'); ?>"><span class="menu-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="menu-label">Add FMB Menu</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/managemiqaat?from=common/managemiqaat'); ?>"><span class="menu-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="menu-label">Create Miqaat</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=anjuman'); ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=anjuman'); ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/miqaatattendance?from=anjuman'); ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Miqaat Attendance Report</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('madresa'); ?>"><span class="menu-icon"><i class="fa-solid fa-school"></i></span><span class="menu-label">Madresa Module</span></a></li>
         </ul>
@@ -1160,7 +1162,7 @@
           <li><a class="menu-item" href="<?php echo base_url('anjuman/sabeeltakhmeendashboard') ?>"><span class="menu-icon"><i class="fa-solid fa-hand-holding-heart"></i></span><span class="menu-label">Sabeel Module</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/qardanhasana'); ?>"><span class="menu-icon"><i class="fa-solid fa-handshake"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/corpusfunds_receive'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
-            <li><a class="menu-item" href="<?= base_url('anjuman/ekramfunds_receive'); ?>"><span class="menu-icon"><i class="fa-solid fa-hand-holding-heart"></i></span><span class="menu-label">Ekram Fund Module</span></a></li>
+          <li><a class="menu-item" href="<?= base_url('anjuman/ekramfunds_receive'); ?>"><span class="menu-icon"><i class="fa-solid fa-hand-holding-heart"></i></span><span class="menu-label">Ekram Fund Module</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/financials'); ?>"><span class="menu-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span><span class="menu-label">Individual Financial Details</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/expense'); ?>"><span class="menu-icon"><i class="fa-solid fa-receipt"></i></span><span class="menu-label">Expense Module</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/wajebaat'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
@@ -1425,7 +1427,7 @@
                 <?php $ms = isset($marital_status_counts) ? $marital_status_counts : []; ?>
                 <?php if (empty($ms)) { ?>
                   <div class="col-12 text-center text-muted">No data available</div>
-                <?php } else {
+                  <?php } else {
                   foreach ($ms as $label => $count) {
                     $safeLabel = htmlspecialchars($label);
                     $lbl_l = strtolower(trim($label));
@@ -1453,15 +1455,17 @@
                       $iconBg = '#ecfeff';
                       $iconColor = '#0891b2';
                     }
-                ?>
+                  ?>
                     <div class="col-6 col-md-3 mb-3">
-                      <div class="overview-card">
-                        <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
-                        <div class="overview-body">
-                          <span class="overview-title"><?php echo $safeLabel; ?></span>
-                          <span class="overview-value"><?php echo (int)$count; ?></span>
+                      <a href="<?= base_url('anjuman/mumineendirectory?status=Active&marital_status=' . rawurlencode($label)); ?>" style="text-decoration:none;color:inherit;display:block;">
+                        <div class="overview-card">
+                          <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
+                          <div class="overview-body">
+                            <span class="overview-title"><?php echo $safeLabel; ?></span>
+                            <span class="overview-value"><?php echo (int)$count; ?></span>
+                          </div>
                         </div>
-                      </div>
+                      </a>
                     </div>
                 <?php }
                 } ?>
@@ -2508,7 +2512,8 @@
                 try {
                   $('#hofListModal').modal('show');
                 } catch (e) {
-                  /* ignore if bootstrap unavailable */ }
+                  /* ignore if bootstrap unavailable */
+                }
 
                 var url = window.location.pathname;
                 try {
@@ -3031,62 +3036,62 @@
 
           </div>
 
-            <!-- Ekram Funds Summary -->
-            <?php
-            $efundsCount = 0;
-            $esumAssigned = 0;
-            $esumPaid = 0;
-            if (isset($ekram_funds) && is_array($ekram_funds)) {
-              $efundsCount = count($ekram_funds);
-              foreach ($ekram_funds as $efrow) {
-                $esumAssigned += (float)($efrow['assigned_total'] ?? 0);
-                $esumPaid += (float)($efrow['paid_total'] ?? 0);
-              }
+          <!-- Ekram Funds Summary -->
+          <?php
+          $efundsCount = 0;
+          $esumAssigned = 0;
+          $esumPaid = 0;
+          if (isset($ekram_funds) && is_array($ekram_funds)) {
+            $efundsCount = count($ekram_funds);
+            foreach ($ekram_funds as $efrow) {
+              $esumAssigned += (float)($efrow['assigned_total'] ?? 0);
+              $esumPaid += (float)($efrow['paid_total'] ?? 0);
             }
-            $esumPending = max(0, (int)round($esumAssigned - $esumPaid));
-            ?>
-            <div class="col-md-12 mb-3 mb-md-3">
-              <div class="chart-container compact h-100 ekram-summary clickable"
-                data-total="<?= format_inr($esumAssigned); ?>"
-                data-assigned="<?= format_inr($esumPaid); ?>"
-                data-outstanding="<?= format_inr($esumPending); ?>">
-                <div class="d-flex align-items-center mb-2">
-                  <h5 class="chart-title m-0">Ekram Funds</h5>
+          }
+          $esumPending = max(0, (int)round($esumAssigned - $esumPaid));
+          ?>
+          <div class="col-md-12 mb-3 mb-md-3">
+            <div class="chart-container compact h-100 ekram-summary clickable"
+              data-total="<?= format_inr($esumAssigned); ?>"
+              data-assigned="<?= format_inr($esumPaid); ?>"
+              data-outstanding="<?= format_inr($esumPending); ?>">
+              <div class="d-flex align-items-center mb-2">
+                <h5 class="chart-title m-0">Ekram Funds</h5>
+              </div>
+              <div class="row text-center g-2">
+                <div class="col-12 col-md-4">
+                  <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="mini-card" style="margin-bottom:8px;">
+                      <div class="stats-value amount-clickable">₹<?= format_inr($esumAssigned); ?></div>
+                      <div class="stats-label">Total Assigned</div>
+                    </div>
+                  </a>
                 </div>
-                <div class="row text-center g-2">
-                  <div class="col-12 col-md-4">
-                    <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" style="text-decoration:none;color:inherit;display:block;">
-                      <div class="mini-card" style="margin-bottom:8px;">
-                        <div class="stats-value amount-clickable">₹<?= format_inr($esumAssigned); ?></div>
-                        <div class="stats-label">Total Assigned</div>
-                      </div>
-                    </a>
-                  </div>
-                  <div class="col-12 col-md-4">
-                    <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" style="text-decoration:none;color:inherit;display:block;">
-                      <div class="mini-card" style="margin-bottom:8px;">
-                        <div class="stats-value text-success amount-clickable">₹<?= format_inr($esumPaid); ?></div>
-                        <div class="stats-label">Total Received</div>
-                      </div>
-                    </a>
-                  </div>
-                  <div class="col-12 col-md-4">
-                    <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" style="text-decoration:none;color:inherit;display:block;">
-                      <div class="mini-card" style="margin-bottom:8px;">
-                        <div class="stats-value text-danger amount-clickable">₹<?= format_inr($esumPending); ?></div>
-                        <div class="stats-label">Total Pending</div>
-                      </div>
-                    </a>
-                  </div>
-                  <div class="col-12">
-                    <small class="text-muted">Funds: <?= (int)$efundsCount; ?></small>
-                  </div>
-                  <div class="col-12 mt-2">
-                    <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" class="btn btn-sm btn-outline-secondary">View All</a>
-                  </div>
+                <div class="col-12 col-md-4">
+                  <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="mini-card" style="margin-bottom:8px;">
+                      <div class="stats-value text-success amount-clickable">₹<?= format_inr($esumPaid); ?></div>
+                      <div class="stats-label">Total Received</div>
+                    </div>
+                  </a>
+                </div>
+                <div class="col-12 col-md-4">
+                  <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="mini-card" style="margin-bottom:8px;">
+                      <div class="stats-value text-danger amount-clickable">₹<?= format_inr($esumPending); ?></div>
+                      <div class="stats-label">Total Pending</div>
+                    </div>
+                  </a>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted">Funds: <?= (int)$efundsCount; ?></small>
+                </div>
+                <div class="col-12 mt-2">
+                  <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" class="btn btn-sm btn-outline-secondary">View All</a>
                 </div>
               </div>
             </div>
+          </div>
 
           <?php
           $wa = isset($dashboard_data['wajebaat_summary']) && is_array($dashboard_data['wajebaat_summary'])
@@ -3517,6 +3522,7 @@
           return null;
         }
       }
+
       function safeSet(key, val) {
         try {
           if (window.localStorage) localStorage.setItem(key, val);

@@ -245,6 +245,7 @@
               <option value="">-----</option>
               <option value="Cash">Cash</option>
               <option value="Cheque">Cheque</option>
+              <option value="NEFT">NEFT</option>
             </select>
           </div>
           <div class="form-group">

@@ -1255,13 +1255,15 @@
                 }
               ?>
                 <div class="col-6 col-md-3 mb-3">
-                  <div class="overview-card">
-                    <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
-                    <div class="overview-body">
-                      <span class="overview-title"><?php echo $safeLabel; ?></span>
-                      <span class="overview-value"><?php echo (int)$count; ?></span>
+                  <a href="<?= base_url('amilsaheb/mumineendirectory?status=Active&marital_status=' . rawurlencode($label)); ?>" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="overview-card">
+                      <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
+                      <div class="overview-body">
+                        <span class="overview-title"><?php echo $safeLabel; ?></span>
+                        <span class="overview-value"><?php echo (int)$count; ?></span>
+                      </div>
                     </div>
-                  </div>
+                  </a>
                 </div>
             <?php }
             } ?>

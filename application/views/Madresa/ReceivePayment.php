@@ -139,7 +139,7 @@
 					</div>
 					<div class="col-md-4">
 						<label class="form-label">Payment Mode</label>
-						<input type="text" name="payment_mode" class="form-control" placeholder="Cash / UPI / Bank" maxlength="50">
+						<input type="text" name="payment_mode" class="form-control" placeholder="Cash / UPI / NEFT / Bank" maxlength="50">
 					</div>
 					<div class="col-md-6">
 						<label class="form-label">Reference</label>

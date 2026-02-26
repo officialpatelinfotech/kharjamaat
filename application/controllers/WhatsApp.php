@@ -11,6 +11,7 @@ class Whatsapp extends CI_Controller
   /**
    * CLI-only quick test for ExprezBot template sending.
    * Usage:
+    *   php index.php whatsapp send_test_template 919309950513 rsvp_open_member_v2 en "[\"Name\",\"Miqaat\",\"Miqaat ID\",\"DD-MM-YYYY\"]"
     *   php index.php whatsapp send_test_template 919309950513 rsvp_open_member en "[\"Name\",\"Miqaat\",\"Miqaat ID\",\"DD-MM-YYYY\",\"miqaat_numeric_id_for_button\"]"
    */
   public function send_test_template($phone = '', $template = '', $lang = 'en', $bodyJson = '[]')

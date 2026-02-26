@@ -54,6 +54,22 @@
     .m-0 {
       margin: 0;
     }
+
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .meta-left {
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .meta-right {
+      text-align: right;
+      vertical-align: top;
+      white-space: nowrap;
+    }
   </style>
 </head>
 
@@ -65,8 +81,21 @@
   </div>
 
   <div class="section">
-    <!-- <span class="label">رسيد نمبر:</span> <?php echo isset($receipt_no) ? $receipt_no : ""; ?><br> -->
-    <p class="text-underline m-0"><span class="label">تاريخ:</span> <?php echo isset($date) ? date("d-m-Y", strtotime($date)) : ""; ?></p><br>
+    <table class="meta-table">
+      <tr>
+        <td class="meta-left">
+          <p class="text-underline m-0"><span class="label">تاريخ:</span> <?php echo isset($date) ? date("d-m-Y", strtotime($date)) : ""; ?></p>
+          <p class="text-underline m-0"><span class="label">Payment For:</span> <?php echo isset($payment_for) ? htmlspecialchars((string) $payment_for) : ""; ?></p>
+          <?php if (!empty($remarks)) { ?>
+            <p class="text-underline m-0"><span class="label">Remarks:</span> <?php echo htmlspecialchars((string) $remarks); ?></p>
+          <?php } ?>
+        </td>
+        <td class="meta-right rtl">
+          <p class="text-underline m-0"><span class="label">رسيد نمبر:</span> <?php echo isset($receipt_no) ? htmlspecialchars((string) $receipt_no) : ""; ?></p>
+        </td>
+      </tr>
+    </table>
+    <br>
   </div>
 
   <div class="section">

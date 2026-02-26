@@ -1337,19 +1337,33 @@ class Amilsaheb extends CI_Controller
           $waName = trim((string)($wm['name'] ?? ''));
           if ($waName === '') $waName = 'Member';
 
+          $this->config->load('whatsapp', true);
+          $tplCfg = $this->config->item('templates', 'whatsapp');
+          $tplKey = (is_array($tplCfg) && isset($tplCfg['rsvp_open_member_v2'])) ? 'rsvp_open_member_v2' : 'rsvp_open_member';
+          $tpl = is_array($tplCfg) && isset($tplCfg[$tplKey]) ? $tplCfg[$tplKey] : [];
+          $tplLang = isset($tpl['language']) ? (string)$tpl['language'] : 'en';
+          $tplVars = isset($tpl['vars']) && is_array($tpl['vars']) ? $tpl['vars'] : ['name', 'miqaat', 'miqaat_id', 'date', 'rsvp_miqaat_id'];
+
+          $varsMap = [
+            'name' => (string)$waName,
+            'miqaat' => (string)$miqName,
+            'miqaat_id' => (stripos((string)$miqPublicId, 'M#') === 0 ? (string)$miqPublicId : ('M#' . (string)$miqPublicId)),
+            'date' => (string)$miqDate,
+          ];
+
+          $bodyVars = [];
+          foreach ($tplVars as $k) {
+            $key = is_string($k) ? trim($k) : '';
+            if ($key === '') continue;
+            $bodyVars[] = isset($varsMap[$key]) ? (string)$varsMap[$key] : '';
+          }
+
           $this->notification_lib->send_whatsapp([
             'recipient' => $phone,
             'recipient_type' => 'member',
-            'template_name' => 'rsvp_open_member',
-            'template_language' => 'en',
-            'body_vars' => [
-              (string)$waName,
-              (string)$miqName,
-              (stripos((string)$miqPublicId, 'M#') === 0 ? (string)$miqPublicId : ('M#' . (string)$miqPublicId)),
-              (string)$miqDate,
-              // Template button URL expects internal numeric id for the RSVP link.
-              (string)$miqaatId,
-            ]
+            'template_name' => $tplKey,
+            'template_language' => $tplLang,
+            'body_vars' => $bodyVars,
           ]);
         }
       }

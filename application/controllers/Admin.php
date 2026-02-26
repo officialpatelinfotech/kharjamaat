@@ -88,12 +88,15 @@ class Admin extends CI_Controller
   // - /admin/qardanhasana
   // - /admin/qardanhasana/mohammedi | taher | husain
   // - /admin/qardanhasana/mohammedi/import (POST)
+  // - /admin/qardanhasana/mohammedi/template (GET)
   // - /admin/qardanhasana/mohammedi/delete/{id} (POST)
   // - /admin/qardanhasana/mohammedi/update/{id} (POST)
   // - /admin/qardanhasana/taher/import (POST)
+  // - /admin/qardanhasana/taher/template (GET)
   // - /admin/qardanhasana/taher/delete/{id} (POST)
   // - /admin/qardanhasana/taher/update/{id} (POST)
   // - /admin/qardanhasana/husain/import (POST)
+  // - /admin/qardanhasana/husain/template (GET)
   // - /admin/qardanhasana/husain/delete/{id} (POST)
   // - /admin/qardanhasana/husain/update/{id} (POST)
   public function qardanhasana($scheme = null, $action = null, $id = null)
@@ -103,6 +106,27 @@ class Admin extends CI_Controller
     $scheme = $scheme !== null ? strtolower(trim((string)$scheme)) : null;
     $action = $action !== null ? strtolower(trim((string)$action)) : null;
     $allowed = ['mohammedi', 'taher', 'husain'];
+
+    // Mohammedi scheme: downloadable CSV import template
+    // Must run before rendering any HTML to keep CSV output clean.
+    if ($scheme === 'mohammedi' && $action === 'template') {
+      $this->qh_download_mohammedi_import_template_csv();
+      return;
+    }
+
+    // Taher scheme: downloadable CSV import template
+    // Must run before rendering any HTML to keep CSV output clean.
+    if ($scheme === 'taher' && $action === 'template') {
+      $this->qh_download_taher_import_template_csv();
+      return;
+    }
+
+    // Husain scheme: downloadable CSV import template
+    // Must run before rendering any HTML to keep CSV output clean.
+    if ($scheme === 'husain' && $action === 'template') {
+      $this->qh_download_husain_import_template_csv();
+      return;
+    }
 
     $this->load->view('Admin/Header', $data);
 
@@ -439,6 +463,7 @@ class Admin extends CI_Controller
       'deposit_date' => $this->input->get('deposit_date'),
       'maturity_date' => $this->input->get('maturity_date'),
       'duration' => $this->input->get('duration'),
+      'search' => $this->input->get('search'),
       'its' => $this->input->get('its'),
       'member_name' => $this->input->get('member_name')
     ];
@@ -473,6 +498,7 @@ class Admin extends CI_Controller
       } elseif ($scheme === 'taher') {
         $data['records'] = $this->QardanHasanaM->get_taher_records([
           'miqaat_name' => $miqaatNameFilter,
+          'search' => isset($data['filters']['search']) ? trim((string)$data['filters']['search']) : '',
           'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
           'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
         ]);
@@ -488,6 +514,7 @@ class Admin extends CI_Controller
           'deposit_date' => $depositDate,
           'maturity_date' => $maturityDate,
           'duration' => $duration,
+          'search' => isset($data['filters']['search']) ? trim((string)$data['filters']['search']) : '',
           'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
           'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
         ]);
@@ -516,6 +543,67 @@ class Admin extends CI_Controller
       $data['total_amount'] = $total;
     }
     $this->load->view('Admin/QardanHasanaScheme', $data);
+  }
+
+  private function qh_download_mohammedi_import_template_csv()
+  {
+    $filename = 'qardan_hasana_mohammedi_import_template.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    // UTF-8 BOM helps Excel open the CSV correctly.
+    echo "\xEF\xBB\xBF";
+
+    $out = fopen('php://output', 'w');
+    if ($out === false) {
+      exit;
+    }
+    fputcsv($out, ['Miqaat Name', 'Hijri Date', 'English Date', 'Collection Amount']);
+    fclose($out);
+    exit;
+  }
+
+  private function qh_download_taher_import_template_csv()
+  {
+    $filename = 'qardan_hasana_taher_import_template.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    echo "\xEF\xBB\xBF";
+
+    $out = fopen('php://output', 'w');
+    if ($out === false) {
+      exit;
+    }
+
+    fputcsv($out, ['ITS', 'Unit = 215₹', 'No of 215₹ Units', 'Miqaat Name']);
+    fclose($out);
+    exit;
+  }
+
+  private function qh_download_husain_import_template_csv()
+  {
+    $filename = 'qardan_hasana_husain_import_template.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    echo "\xEF\xBB\xBF";
+
+    $out = fopen('php://output', 'w');
+    if ($out === false) {
+      exit;
+    }
+
+    // Per requirement: do NOT include Member Name in import template.
+    fputcsv($out, ['ITS', 'Amount', 'Deposit Date', 'Maturity Date', 'Duration']);
+    fclose($out);
+    exit;
   }
 
   // Ekram Fund card page

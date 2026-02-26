@@ -95,8 +95,26 @@
 </head>
 <body>
 <div style="margin-top: 7rem;">
-    <form>
-        <input type="text" id="searchInput" placeholder="Search..." oninput="performSearch()" class="form-control">
+    <form onsubmit="return false;">
+        <div class="row g-2 mb-2">
+            <div class="col-12 col-md-4">
+                <input type="text" id="searchInput" placeholder="Search..." oninput="applyFilters()" class="form-control">
+            </div>
+            <div class="col-12 col-md-3">
+                <select id="filterMaritalStatus" class="form-select" onchange="applyFilters()">
+                    <option value="">All Marital Status</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <input type="number" id="filterAgeMin" class="form-control" placeholder="Min Age" min="0" step="1" onchange="applyFilters()">
+            </div>
+            <div class="col-6 col-md-2">
+                <input type="number" id="filterAgeMax" class="form-control" placeholder="Max Age" min="0" step="1" onchange="applyFilters()">
+            </div>
+            <div class="col-12 col-md-1 d-grid">
+                <button type="button" class="btn btn-outline-secondary" onclick="resetFilters()">Reset</button>
+            </div>
+        </div>
     </form>
 
     <div class="card">
@@ -153,16 +171,81 @@
     const originalData = <?= json_encode($users) ?>;
     let sortDirection = {};
 
-    updateSectorCount(originalData);
-    updateUserTable(originalData);
+    populateMaritalStatusOptions();
+    applyFilters();
 
-    function performSearch() {
-        const keyword = document.getElementById('searchInput').value.toLowerCase();
-        const filteredData = originalData.filter(user => {
-            return Object.values(user).some(val => val && val.toString().toLowerCase().includes(keyword));
+    function populateMaritalStatusOptions() {
+        const el = document.getElementById('filterMaritalStatus');
+        if (!el) return;
+
+        const statuses = new Set();
+        (originalData || []).forEach(u => {
+            const ms = (u.Marital_Status || u.MaritalStatus || u.Marital || '').toString().trim();
+            if (ms) statuses.add(ms);
         });
+
+        // clear existing (keep default)
+        el.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
+
+        const preferred = ['Single', 'Married', 'Engaged', 'Separated', 'Divorced', 'Widowed'];
+        const remaining = new Set(statuses);
+        preferred.forEach(v => {
+            if (remaining.has(v)) {
+                const o = document.createElement('option');
+                o.value = v;
+                o.textContent = v;
+                el.appendChild(o);
+                remaining.delete(v);
+            }
+        });
+        Array.from(remaining).sort().forEach(v => {
+            const o = document.createElement('option');
+            o.value = v;
+            o.textContent = v;
+            el.appendChild(o);
+        });
+    }
+
+    function applyFilters() {
+        const keyword = (document.getElementById('searchInput').value || '').toLowerCase();
+        const marital = (document.getElementById('filterMaritalStatus').value || '').toString();
+        const minRaw = document.getElementById('filterAgeMin').value;
+        const maxRaw = document.getElementById('filterAgeMax').value;
+        const minAge = minRaw !== '' ? parseInt(minRaw, 10) : null;
+        const maxAge = maxRaw !== '' ? parseInt(maxRaw, 10) : null;
+
+        const filteredData = (originalData || []).filter(user => {
+            if (keyword) {
+                const ok = Object.values(user).some(val => val && val.toString().toLowerCase().includes(keyword));
+                if (!ok) return false;
+            }
+            if (marital) {
+                const ms = (user.Marital_Status || user.MaritalStatus || '').toString();
+                if (ms !== marital) return false;
+            }
+            if (minAge !== null || maxAge !== null) {
+                const ageVal = parseInt((user.Age || '').toString(), 10);
+                if (Number.isNaN(ageVal)) return false;
+                if (minAge !== null && ageVal < minAge) return false;
+                if (maxAge !== null && ageVal > maxAge) return false;
+            }
+            return true;
+        });
+
         updateSectorCount(filteredData);
         updateUserTable(filteredData);
+    }
+
+    function resetFilters() {
+        const s = document.getElementById('searchInput');
+        const m = document.getElementById('filterMaritalStatus');
+        const amin = document.getElementById('filterAgeMin');
+        const amax = document.getElementById('filterAgeMax');
+        if (s) s.value = '';
+        if (m) m.value = '';
+        if (amin) amin.value = '';
+        if (amax) amax.value = '';
+        applyFilters();
     }
 
     function updateSectorCount(users) {

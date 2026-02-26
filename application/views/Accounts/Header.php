@@ -141,6 +141,11 @@ $its_id = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_
               class="fa fa-home px-1"></i>Home</a></li>
       </ul>
       <ul class="navbar-nav navbar-right">
+        <li class="nav-item mr-2" id="km-export-excel-wrap" style="display:none;">
+          <button type="button" id="km-export-excel-btn" class="btn btn-outline-secondary btn-sm" title="Export current table to Excel (CSV)">
+            <i class="fa fa-file-excel-o px-1"></i>Export Excel
+          </button>
+        </li>
         <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
             class="nav-link dropdown-toggle" aria-expanded="false"><i
               class="fa fa-user px-1"></i>Account</a>
@@ -184,6 +189,7 @@ $its_id = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_
   })();
 </script>
 <script src="<?php echo base_url('assets/js/table-sort.js'); ?>?v=1"></script>
+<script src="<?php echo base_url('assets/js/table-export.js'); ?>?v=1"></script>
 
 <?php if (empty($_COOKIE['km_cookie_consent'])): ?>
   <div id="cookie-consent-banner" class="alert alert-dark mb-0" role="alert" style="position:fixed;left:0;right:0;bottom:0;z-index:1050;border-radius:0;">

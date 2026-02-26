@@ -606,6 +606,7 @@
                 <select id="rip-method" name="payment_method" class="form-control">
                   <option value="Cash">Cash</option>
                   <option value="Cheque">Cheque</option>
+                  <option value="NEFT">NEFT</option>
                 </select>
               </div>
               <div class="form-group">

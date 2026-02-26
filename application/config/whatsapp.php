@@ -90,17 +90,15 @@ $config['templates'] = [
 			'raza_details',
 		],
 	],
-	// RSVP open notification to member
+	// RSVP open notification to member (v2)
 	// Hello *{{1}}*, ... *Miqaat:* {{2}} *Miqaat ID:* {{3}} *Date:* {{4}}
-	// Note: Template has a website button with URL containing {{5}} (miqaat numeric id for RSVP link)
-	'rsvp_open_member' => [
+	'rsvp_open_member_v2' => [
 		'language' => 'en',
 		'vars' => [
 			'name',
 			'miqaat',
 			'miqaat_id',
 			'date',
-			'rsvp_miqaat_id',
 		],
 	],
 	// Thaali signup reminder to member
@@ -198,7 +196,9 @@ $config['templates'] = [
 	],
 	// Miqaat assignment recorded notification to admins
 	// {{1}} member/leader label, {{2}} miqaat, {{3}} miqaat id, {{4}} type, {{5}} date, {{6}} assignment
-	'miqaat_assigned_admin' => [
+	// Miqaat assignment recorded notification to admins (v2)
+	// *Member:* {{1}} *Miqaat:* {{2}} *Miqaat ID:* {{3}} *Type:* {{4}} *Date:* {{5}} *Assignment:* {{6}}
+	'miqaat_assigned_admin_v2' => [
 		'language' => 'en',
 		'vars' => [
 			'member',
