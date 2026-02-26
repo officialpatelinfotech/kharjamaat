@@ -158,8 +158,19 @@
 							name="class"
 							value="<?php echo htmlspecialchars($selectedClassQuery); ?>"
 							placeholder="Search class"
+							class="form-control form-control-sm mr-2"
+							style="width:200px"
+							onkeydown="if(event.key==='Enter'){event.preventDefault();this.form.submit();}"
+							onchange="this.form.submit()"
+						/>
+
+						<input
+							type="text"
+							name="student_name"
+							value="<?php echo htmlspecialchars($selectedStudentQuery ?? ''); ?>"
+							placeholder="Search student name"
 							class="form-control form-control-sm"
-							style="width:260px"
+							style="width:200px"
 							onkeydown="if(event.key==='Enter'){event.preventDefault();this.form.submit();}"
 							onchange="this.form.submit()"
 						/>
@@ -167,9 +178,7 @@
 				</form>
 			</div>
 
-			<?php if (!empty($selectedYear)) { ?>
-				<div class="text-muted small mb-3">Showing classes for Hijri year <?php echo (int)$selectedYear; ?></div>
-			<?php } ?>
+
 
 			<?php $message = $this->input->get('message'); ?>
 			<?php if (!empty($message)) { ?>
@@ -228,7 +237,13 @@
 											<td class="td-right"><span class="amt amt-total">₹<?php echo htmlspecialchars($fmt($row['amount_to_collect'] ?? 0)); ?></span></td>
 											<td class="td-right"><span class="amt amt-collected">₹<?php echo htmlspecialchars($fmt($row['amount_collected'] ?? 0)); ?></span></td>
 											<td class="td-right"><span class="amt amt-due">₹<?php echo htmlspecialchars($fmt($row['amount_due'] ?? 0)); ?></span></td>
-											<td class="col-status td-center"><?php echo htmlspecialchars((string)($row['status'] ?? '')); ?></td>
+											<td class="col-status td-center">
+												<?php
+													$st = trim((string)($row['status'] ?? ''));
+													$stClass = (strtolower($st) === 'active') ? 'badge badge-info' : 'badge badge-secondary';
+												?>
+												<span class="<?php echo $stClass; ?>"><?php echo htmlspecialchars($st !== '' ? $st : '-'); ?></span>
+											</td>
 											<td class="col-actions td-actions">
 												<a href="<?php echo base_url($madresa_base . '/classes/view/' . (int)$row['id']); ?>" class="btn btn-outline-secondary btn-sm btn-view" title="View Class Details" aria-label="View Class Details">
 													View Class Details

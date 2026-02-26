@@ -66,15 +66,6 @@
 	.amt-due { color: #dc3545; }
 	.card { border: 1px solid #e6eaf2; border-radius: 12px; }
 	.card-header { background: #f8fafc !important; border-bottom: 1px solid #e6eaf2; }
-	.status-pill {
-		display: inline-block;
-		padding: 2px 10px;
-		border-radius: 999px;
-		font-size: 0.9rem;
-		font-weight: 700;
-	}
-	.status-active { background: rgba(25,135,84,0.12); color: #198754; }
-	.status-inactive { background: rgba(220,53,69,0.12); color: #dc3545; }
 	.action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 	.action-buttons .btn { white-space: nowrap; }
 	.info-card { background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%); }
@@ -134,8 +125,7 @@
 							<div class="info-value">
 								<?php
 									$st = trim((string)($class['status'] ?? ''));
-									$stLower = strtolower($st);
-									$stClass = ($stLower === 'active') ? 'status-pill status-active' : 'status-pill status-inactive';
+									$stClass = (strtolower($st) === 'active') ? 'badge badge-info' : 'badge badge-secondary';
 								?>
 								<span class="<?php echo $stClass; ?>"><?php echo htmlspecialchars($st !== '' ? $st : '-'); ?></span>
 							</div>
@@ -172,6 +162,7 @@
 											<tr>
 												<th style="width:140px" data-type="number">ITS ID</th>
 												<th data-type="string">Name</th>
+												<th class="text-end" style="width:160px">Fees</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -179,6 +170,7 @@
 												<tr>
 													<td><?php echo (int)$s['ITS_ID']; ?></td>
 													<td><?php echo htmlspecialchars((string)$s['Full_Name']); ?></td>
+													<td class="text-end">₹<?php echo htmlspecialchars($fmtMoney($s['amount_to_collect'] ?? 0)); ?></td>
 												</tr>
 											<?php } ?>
 										</tbody>

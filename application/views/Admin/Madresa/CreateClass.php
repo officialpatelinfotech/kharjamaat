@@ -100,23 +100,23 @@
 	<div class="row">
 		<div class="col-12">
 
-			<!-- PAGE HEADER (outside card) -->
-			<div class="page-header mb-3">
-				<div class="page-header-left">
+			<!-- PAGE HEADER -->
+			<div class="p-0 mb-4">
+				<div class="d-flex justify-content-between align-items-center">
 					<a href="<?php echo base_url($madresa_base); ?>"
 						 class="btn btn-outline-secondary btn-sm btn-back"
 						 title="Back"
 						 aria-label="Back">
 						<span class="back-arrow">&larr;</span>
 					</a>
-					<h3 class="mb-0">Create Class</h3>
+					<a href="<?php echo base_url($madresa_base . '/classes'); ?>"
+						 class="btn btn-outline-secondary btn-sm">
+						Go to Manage
+					</a>
 				</div>
-
-				<a href="<?php echo base_url($madresa_base . '/classes'); ?>"
-					 class="btn btn-outline-secondary btn-sm">
-					Go to Manage
-				</a>
 			</div>
+
+			<h3 class="text-center mb-4">Create Class</h3>
 
 			<!-- ALERTS -->
 			<?php if (!empty($error)) { ?>
@@ -163,8 +163,6 @@
 							</select>
 						</div>
 
-						<?php $selected_status = 'Active'; ?>
-						<?php $this->load->view('Admin/Madresa/_status_select'); ?>
 
 						<!-- FEES -->
 						<div class="form-group">
@@ -226,8 +224,12 @@
 	}
 
 	var selectedIds = {}; // map of id -> true
+	var enrolledIds = {}; // map of id -> true (already enrolled this year)
 	var sortKey = 'Full_Name';
 	var sortDir = 'asc';
+	
+	var enrolledStudentsUrl = "<?php echo base_url($madresa_base . '/ajax-get-enrolled-students'); ?>";
+	var hijriYearSelect = document.querySelector('select[name="hijri_year"]');
 
 	function escapeHtml(str) {
 		return String(str == null ? '' : str)
@@ -236,6 +238,40 @@
 			.replace(/>/g, '&gt;')
 			.replace(/\"/g, '&quot;')
 			.replace(/'/g, '&#039;');
+	}
+
+	function loadEnrolledStudents() {
+		if (!hijriYearSelect) return;
+		var year = hijriYearSelect.value;
+		enrolledIds = {}; // Reset
+		if (!year) return;
+
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', enrolledStudentsUrl + '?hijri_year=' + encodeURIComponent(year), true);
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState === 4 && xhr.status === 200) {
+				try {
+					var res = JSON.parse(xhr.responseText);
+					if (res.success && res.enrolled_ids) {
+						for (var i = 0; i < res.enrolled_ids.length; i++) {
+							enrolledIds[String(res.enrolled_ids[i])] = true;
+						}
+					}
+				} catch (e) {
+					console.error("Failed to parse enrolled students", e);
+				}
+			}
+		};
+		xhr.send();
+	}
+
+	if (hijriYearSelect) {
+		hijriYearSelect.addEventListener('change', function() {
+			loadEnrolledStudents();
+			search.value = ''; // clear search when year changes
+			hideSuggestions();
+		});
+		loadEnrolledStudents(); // Load initially
 	}
 
 	function getSelectedIds() {
@@ -248,7 +284,24 @@
 	function syncSelectedMapFromInputs() {
 		selectedIds = {};
 		var ids = getSelectedIds();
-		for (var i = 0; i < ids.length; i++) selectedIds[String(ids[i])] = true;
+		for (var i = 0; i < ids.length; i++) {
+			var id = String(ids[i]);
+			if (id) selectedIds[id] = true;
+		}
+	}
+
+	function isAlreadySelected(id) {
+		id = String(id);
+		if (selectedIds[id]) return true;
+		// Fallback check the DOM just in case
+		var inputs = idsBox.querySelectorAll('input[name="student_ids[]"]');
+		for (var i = 0; i < inputs.length; i++) {
+			if (String(inputs[i].value) === id) {
+				selectedIds[id] = true; // Repair the map
+				return true;
+			}
+		}
+		return false;
 	}
 
 	function addStudent(id) {
@@ -308,7 +361,8 @@
 			var s = studentsData[i] || {};
 			var id = String(s.ITS_ID || '');
 			var name = String(s.Full_Name || '').toLowerCase();
-			if (selectedIds[id]) continue;
+			// Skip if already selected in this class OR already enrolled in another class for this year
+			if (isAlreadySelected(id) || enrolledIds[id]) continue;
 			if (id.indexOf(q) !== -1 || name.indexOf(q) !== -1) {
 				out.push(s);
 				if (out.length >= 15) break;

@@ -1076,7 +1076,6 @@
           <li><a class="menu-item" href="<?php echo base_url('common/managemiqaat?from=common/managemiqaat'); ?>"><span class="menu-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="menu-label">Create Miqaat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=anjuman'); ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/miqaatattendance?from=anjuman'); ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Miqaat Attendance Report</span></a></li>
-          <li><a class="menu-item" href="<?php echo base_url('madresa'); ?>"><span class="menu-icon"><i class="fa-solid fa-school"></i></span><span class="menu-label">Madresa Module</span></a></li>
         </ul>
         <div class="menu-section">Finance</div>
         <ul class="menu-list">
@@ -1089,6 +1088,7 @@
           <li><a class="menu-item" href="<?= base_url('anjuman/expense'); ?>"><span class="menu-icon"><i class="fa-solid fa-receipt"></i></span><span class="menu-label">Expense Module</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/laagat_rent'); ?>"><span class="menu-icon"><i class="fa-solid fa-file-invoice"></i></span><span class="menu-label">Laagat / Rent</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/wajebaat'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('madresa'); ?>"><span class="menu-icon"><i class="fa-solid fa-school"></i></span><span class="menu-label">Madresa Module</span></a></li>
         </ul>
       </div>
     </div>

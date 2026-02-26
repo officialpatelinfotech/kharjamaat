@@ -575,7 +575,7 @@ class Accounts extends CI_Controller
     }
     $memberIds = array_values(array_unique($memberIds));
 
-    // Fetch overall fees/dues from admin-created Madresa classes (same as Madresa Classes screen)
+    // Fetch member-specific fees/dues from student classwise financials
     $this->load->model('MadresaM');
     $this->load->model('HijriCalendar');
     $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
@@ -583,13 +583,14 @@ class Accounts extends CI_Controller
     $currentHy = !empty($parts) && !empty($parts[2]) ? (int)$parts[2] : (int)date('Y');
 
     $data['selected_hijri_year'] = $currentHy;
-    $data['madresa_classes'] = $this->MadresaM->list_classes_by_year($currentHy, false);
+    // get_students_classwise_financials returns data per student-class pair
+    $data['madresa_classes'] = $this->MadresaM->get_students_classwise_financials($memberIds);
 
     $totalFees = 0.0;
     $totalDues = 0.0;
     if (!empty($data['madresa_classes'])) {
       foreach ($data['madresa_classes'] as $c) {
-        $totalFees += (float)($c['amount_to_collect'] ?? 0);
+        $totalFees += (float)($c['fees'] ?? 0);
         $totalDues += (float)($c['amount_due'] ?? 0);
       }
     }
@@ -790,6 +791,43 @@ class Accounts extends CI_Controller
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Madresa/PaymentHistory', $data);
+  }
+
+  public function ajax_madresa_payment_history()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+      return;
+    }
+
+    $classId = (int)$this->input->post('class_id');
+    $studentItsId = $this->input->post('student_its_id');
+
+    if ($classId <= 0 || empty($studentItsId)) {
+      echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+      return;
+    }
+
+    $this->load->model('AccountM');
+    $memberIts = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($memberIts);
+    $familyRows = $this->AccountM->get_all_family_member($hof_id);
+    
+    $familyIts = [(string)$hof_id];
+    if (!empty($familyRows)) {
+      foreach ($familyRows as $r) {
+        if (!empty($r['ITS_ID'])) $familyIts[] = (string)$r['ITS_ID'];
+      }
+    }
+
+    if (!in_array((string)$studentItsId, $familyIts)) {
+      echo json_encode(['success' => false, 'message' => 'Access denied']);
+      return;
+    }
+
+    $this->load->model('MadresaM');
+    $payments = $this->MadresaM->list_class_payments($classId, $studentItsId);
+    echo json_encode(['success' => true, 'payments' => $payments]);
   }
 
   public function wajebaat()

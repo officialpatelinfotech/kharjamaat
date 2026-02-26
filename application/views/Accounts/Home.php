@@ -933,6 +933,32 @@
           </div>
         </div>
       </div>
+
+      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
+        <div class="dashboard-card mx-1">
+          <div class="card-header">
+            <span>Madresa</span>
+          </div>
+          <div class="card-body no-scroll" style="height:auto;">
+            <div class="row mb-2 text-center">
+              <div class="col-6 mb-2">
+                <div class="mini-card">
+                  <div class="stats-value text-success">₹<?php echo format_inr_no_decimals($madresa_summary['total_fees'] ?? 0); ?></div>
+                  <div class="stats-label">Total Fees</div>
+                </div>
+              </div>
+              <div class="col-6 mb-2">
+                <div class="mini-card">
+                  <div class="stats-value text-danger">₹<?php echo format_inr_no_decimals($madresa_summary['total_due'] ?? 0); ?></div>
+                  <div class="stats-label">Due</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="text-center"><a href="<?php echo base_url('accounts/madresa'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="continer d-flex justify-content-center">

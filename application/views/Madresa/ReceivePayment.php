@@ -139,7 +139,11 @@
 					</div>
 					<div class="col-md-4">
 						<label class="form-label">Payment Mode</label>
-						<input type="text" name="payment_mode" class="form-control" placeholder="Cash / UPI / Bank" maxlength="50">
+						<select name="payment_mode" class="form-control">
+							<option value="Cash">Cash</option>
+							<option value="Cheque">Cheque</option>
+							<option value="NEFT">NEFT</option>
+						</select>
 					</div>
 					<div class="col-md-6">
 						<label class="form-label">Reference</label>
@@ -151,7 +155,7 @@
 					</div>
 					<div class="col-12 d-flex gap-2 flex-wrap">
 						<button type="submit" class="btn btn-success">Save Payment</button>
-						<a class="btn btn-outline-secondary" href="<?php echo base_url($madresa_base . '/classes/payment-history/' . $classId . '?students_its_id=' . $itsId); ?>">Payment History</a>
+						<a class="btn btn-outline-secondary" href="<?php echo base_url($madresa_base . '/classes/view/' . $classId); ?>">Cancel</a>
 					</div>
 				</div>
 			</form>
