@@ -217,7 +217,7 @@
           </select>
         </div>
         <div class="form-group mx-3">
-          <input type="text" class="form-control" name="member_name_filter" id="member-name-filter" placeholder="Filter by member/group" value="<?php echo isset($member_name_filter) ? htmlspecialchars($member_name_filter) : ''; ?>">
+          <input type="text" class="form-control" name="member_name_filter" id="member-name-filter" placeholder="Filter by member/group/ITS" value="<?php echo isset($member_name_filter) ? htmlspecialchars($member_name_filter) : ''; ?>">
         </div>
         <div class="form-group mx-3">
           <select id="assignment-filter" name="assignment_filter" class="form-control">

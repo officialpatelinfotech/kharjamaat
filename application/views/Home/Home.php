@@ -80,16 +80,16 @@
         <div class="col-12">
           <div class="title-base text-left">
             <hr />
-            <h2>Anjuman-e-Saifee Khar</h2>
+            <h2>Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?></h2>
             <p>Welcome to</p>
           </div>
           <p class="welcome-text">
-            Welcome to Anjuman-e-Saifee Jamaat, Khar.
+            Welcome to Anjuman-e-Saifee Jamaat, <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>.
           </p>
           <p>
             We are the members of Dawoodi Bohra Community - Fatimid Shia
             followers of His Holiness Syedna Aali Qadr Muffaddal Saifuddin
-            (TUS) residing in the Khar.
+            (TUS) residing in the <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>.
           </p>
           <p>
             The rich history of the Dawoodi Bohra community can be traced
@@ -106,28 +106,9 @@
           </p>
           <p>
             We are a non-profit organization administering and managing the
-            affairs of the Dawoodi Bohra community in Khar, Mumbai, Maharashtra, India.
+            affairs of the Dawoodi Bohra community in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, Mumbai, Maharashtra, India.
           </p>
         </div>
-
-        <?php if (!empty($_SESSION['user'])) { ?>
-          <div class="col-12 mt-5">
-            <div class="title-base title-left">
-              <hr />
-              <h2>Modules</h2>
-            </div>
-          </div>
-          <div class="col-md-4 mb-3">
-            <a href="<?php echo base_url('madresa'); ?>" class="text-decoration-none">
-              <div class="card shadow-sm border-0 home-module-card h-100">
-                <div class="card-body">
-                  <h5 class="card-title mb-2">Madresa Module</h5>
-                  <p class="card-text text-muted mb-0">Create classes and manage classes.</p>
-                </div>
-              </div>
-            </a>
-          </div>
-        <?php } ?>
 
         <div class="col-12 mt-5">
           <div class="title-base title-left">
@@ -209,11 +190,12 @@
     <?php
     // Provide footer defaults for unauthenticated landing page.
     $footer_defaults = array(
-      'org_name' => 'Anjuman-e-Saifee Khar',
-      'address_line' => '3RFP+FV4, SV Rd, Khar',
-      'city_state' => 'Khar West, Mumbai, Maharashtra',
+      'org_name' => 'Anjuman-e-Saifee ' . jamaat_place(),
+      'address_line' => app_setting('address_line', '3RFP+FV4, SV Rd, ' . jamaat_place()),
+      'city_state' => app_setting('city_state', jamaat_place() . ' West, Mumbai, Maharashtra'),
       'pincode' => '400052',
-      'support_email' => 'anjuman@kharjamaat.in',
+      'pincode' => app_setting('pincode', '400052'),
+      'support_email' => app_setting('support_email', 'anjuman@kharjamaat.in'),
       'last_updated' => date('d M Y')
     );
     $this->load->view('Common/Footer', $footer_defaults);

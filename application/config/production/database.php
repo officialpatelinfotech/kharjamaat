@@ -73,12 +73,22 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $active_group = 'default';
 $query_builder = TRUE;
 
+$dbHost = getenv('DB_HOST');
+$dbPort = getenv('DB_PORT');
+$dbName = getenv('DB_NAME');
+$dbUser = getenv('DB_USER');
+$dbPass = getenv('DB_PASS');
+
+// In CLI/cron contexts, using 'localhost' can force MySQL socket usage and fail
+// with HY000/2002 depending on PHP/MySQL socket paths. Prefer TCP for CLI.
+$defaultHost = (PHP_SAPI === 'cli') ? '127.0.0.1' : 'localhost';
+
 $db['default'] = array(
 	'dsn' => '',
-	'hostname' => 'localhost',
-	'username' => 'kharjam1_kharjamaat',
-	'password' => 'khar@2024',
-	'database' => 'kharjam1_kharjamaat',
+	'hostname' => ($dbHost !== false && $dbHost !== '') ? $dbHost : $defaultHost,
+	'username' => ($dbUser !== false && $dbUser !== '') ? $dbUser : 'kharjam1_kharjamaat',
+	'password' => ($dbPass !== false) ? $dbPass : 'khar@2024',
+	'database' => ($dbName !== false && $dbName !== '') ? $dbName : 'kharjam1_kharjamaat',
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,
@@ -92,5 +102,6 @@ $db['default'] = array(
 	'compress' => FALSE,
 	'stricton' => FALSE,
 	'failover' => array(),
-	'save_queries' => TRUE
+	'save_queries' => TRUE,
+	'port' => (is_string($dbPort) && $dbPort !== '' && ctype_digit($dbPort)) ? (int)$dbPort : NULL
 );

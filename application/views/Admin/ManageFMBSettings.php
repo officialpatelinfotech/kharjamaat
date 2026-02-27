@@ -118,7 +118,7 @@
     <div class="fmb-card">
       <span class="fmb-card-icon"><i class="fa-solid fa-calendar-days"></i></span>
       <div class="fmb-card-title">Create & Manage Miqaat</div>
-      <a href="<?php echo base_url('common/managemiqaat?from=admin'); ?>" class="fmb-card-link">Go to Miqaat</a>
+      <a href="<?php echo base_url('common/managemiqaat?from=admin/managefmbsettings'); ?>" class="fmb-card-link">Go to Miqaat</a>
     </div>
     <div class="fmb-card">
       <span class="fmb-card-icon"><i class="fa-solid fa-utensils"></i></span>

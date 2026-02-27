@@ -83,4 +83,93 @@ class Cli extends CI_Controller
         echo "db_error: " . json_encode($err) . "\n";
         echo "last_query: " . $this->db->last_query() . "\n";
     }
+
+    // Run from CLI: php index.php cli db_check
+    // Prints actual connected DB/host/port and checks key table existence.
+    public function db_check()
+    {
+        if (!is_cli()) {
+            echo "This command can only be run from the CLI.\n";
+            return;
+        }
+
+        $env = defined('ENVIRONMENT') ? ENVIRONMENT : 'unknown';
+        echo "ENVIRONMENT: {$env}\n";
+        echo "DB_HOST (env): " . (string)getenv('DB_HOST') . "\n";
+        echo "DB_PORT (env): " . (string)getenv('DB_PORT') . "\n";
+        echo "DB_NAME (env): " . (string)getenv('DB_NAME') . "\n";
+        echo "DB_USER (env): " . (string)getenv('DB_USER') . "\n";
+
+        $info = $this->db->query("SELECT DATABASE() AS db, @@hostname AS host, @@port AS port")->row_array();
+        if (is_array($info)) {
+            echo "Connected DB: " . ($info['db'] ?? '') . "\n";
+            echo "MySQL host:   " . ($info['host'] ?? '') . "\n";
+            echo "MySQL port:   " . ($info['port'] ?? '') . "\n";
+        }
+
+        $table = 'fmb_per_day_thaali_cost';
+        $exists = $this->db->table_exists($table);
+        echo "Table '{$table}' exists: " . ($exists ? 'YES' : 'NO') . "\n";
+        if (!$exists) {
+            $err = $this->db->error();
+            echo "db_error: " . json_encode($err) . "\n";
+        }
+    }
+
+        // Run from CLI: php index.php cli migrations_status
+        public function migrations_status()
+        {
+            if (!is_cli()) {
+                echo "This command can only be run from the CLI.\n";
+                return;
+            }
+
+            $env = defined('ENVIRONMENT') ? ENVIRONMENT : 'unknown';
+            echo "ENVIRONMENT: {$env}\n";
+            $info = $this->db->query("SELECT DATABASE() AS db, @@hostname AS host, @@port AS port")->row_array();
+            if (is_array($info)) {
+                echo "Connected DB: " . ($info['db'] ?? '') . "\n";
+                echo "MySQL port:   " . ($info['port'] ?? '') . "\n";
+            }
+
+            if (!$this->db->table_exists('migrations')) {
+                echo "Table 'migrations' exists: NO\n";
+                return;
+            }
+
+            $row = $this->db->query("SELECT version FROM migrations LIMIT 1")->row_array();
+            $version = is_array($row) ? ($row['version'] ?? null) : null;
+            echo "migrations.version: " . var_export($version, true) . "\n";
+
+            $table = 'fmb_per_day_thaali_cost';
+            echo "Table '{$table}' exists: " . ($this->db->table_exists($table) ? 'YES' : 'NO') . "\n";
+        }
+
+        // Run from CLI: php index.php cli migrations_set_version 32
+        public function migrations_set_version($version = null)
+        {
+            if (!is_cli()) {
+                echo "This command can only be run from the CLI.\n";
+                return;
+            }
+
+            if ($version === null || !is_numeric($version)) {
+                echo "Usage: php index.php cli migrations_set_version <number>\n";
+                return;
+            }
+            $version = (int)$version;
+
+            if (!$this->db->table_exists('migrations')) {
+                echo "Table 'migrations' does not exist; cannot set version.\n";
+                return;
+            }
+
+            $this->db->query("UPDATE migrations SET version = ?", array($version));
+            $err = $this->db->error();
+            if (!empty($err['code'])) {
+                echo "db_error: " . json_encode($err) . "\n";
+                return;
+            }
+            echo "Updated migrations.version to {$version}\n";
+        }
 }

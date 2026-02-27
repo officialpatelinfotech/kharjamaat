@@ -2221,6 +2221,12 @@ class Anjuman extends CI_Controller
     }
     $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
     $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+
+    $emailRazaId = (string)$razaPublicId;
+    if ($emailRazaId !== '' && stripos($emailRazaId, 'R#') !== 0 && preg_match('/^\d/', $emailRazaId)) {
+      $emailRazaId = 'R#' . $emailRazaId;
+    }
+
     $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
     $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
     $flag = $this->AdminM->approve_raza($raza_id, $remark);
@@ -2230,9 +2236,71 @@ class Anjuman extends CI_Controller
     $amilsaheb_details = $this->AdminM->get_user_by_role("Amilsaheb");
     $amilsaheb_mobile = substr(preg_replace('/\D+/', '', $amilsaheb_details[0]['Mobile'] ?? ''), -10);
 
+    // WhatsApp: Raza recommended (admin + member)
+    $this->load->library('Notification_lib');
+    $adminWaRecipients = admin_whatsapp_recipients();
+
+    $memberWa = '';
+    if (!empty($user['Mobile'])) {
+      $memberWa = substr(preg_replace('/\D+/', '', (string)$user['Mobile']), -10);
+    }
+    $memberLabel = trim((string)($user['Full_Name'] ?? '') . ' (' . (string)($user['ITS_ID'] ?? '') . ')');
+
+    $waRazaId = (string)$razaPublicId;
+    if ($waRazaId !== '' && stripos($waRazaId, 'R#') !== 0) {
+      $waRazaId = 'R#' . $waRazaId;
+    }
+
+    $detailsText = function_exists('render_raza_details_compact_text')
+      ? (string)render_raza_details_compact_text($razaName, $rtFieldsDecoded, $razadataDecoded)
+      : '';
+    if ($detailsText === '') {
+      $detailsText = function_exists('render_raza_details_compact_text_from_html')
+        ? (string)render_raza_details_compact_text_from_html($detailsHtml)
+        : trim(preg_replace('/\s+/', ' ', strip_tags((string)$detailsHtml)));
+    }
+    if ($detailsText === '') {
+      $detailsText = 'Raza';
+    }
+
+    $amilContact = '';
+    if ($amilsaheb_mobile !== '') {
+      $amilContact = '+91-' . $amilsaheb_mobile;
+    } elseif (!empty($adminWaRecipients[0])) {
+      // Fallback: any admin WhatsApp number
+      $amilContact = (string)$adminWaRecipients[0];
+    }
+
+    if ($memberWa !== '') {
+      $this->notification_lib->send_whatsapp([
+        'recipient' => $memberWa,
+        'template_name' => 'raza_recommended_member',
+        'template_language' => 'en',
+        'body_vars' => [
+          (string)($user['Full_Name'] ?? $user['ITS_ID'] ?? ''),
+          (string)$waRazaId,
+          (string)$detailsText,
+          (string)$amilContact,
+        ]
+      ]);
+    }
+
+    foreach ($adminWaRecipients as $wa) {
+      $this->notification_lib->send_whatsapp([
+        'recipient' => $wa,
+        'template_name' => 'raza_recommended_admin',
+        'template_language' => 'en',
+        'body_vars' => [
+          (string)$memberLabel,
+          (string)$waRazaId,
+          (string)$detailsText,
+        ]
+      ]);
+    }
+
     $message = '<p>Baad Afzalus Salaam,</p>'
       . '<p><strong>Mubarak!</strong> Your Raza request has received a recommendation from Anjuman-e-Saifee Jamaat.</p>'
-      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
       . $remarkHtml
       . $detailsHtml
       . '<p>Kindly reach out to <strong>Janab Amil Saheb</strong> via <strong>phone or WhatsApp</strong> at: <strong>+91-' . $amilsaheb_mobile . '</strong> to obtain his <strong>final Raza and Dua</strong>.</p>'
@@ -2245,7 +2313,7 @@ class Anjuman extends CI_Controller
     // Notify monitoring/admin recipients
     $msg_html = '<p>Raza request has been recommended by the Jamaat Coordinator.</p>'
       . '<p><strong>Member:</strong> ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ')</p>'
-      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
       . $remarkHtml
       . $detailsHtml;
     $notify_recipients = [
@@ -2305,6 +2373,12 @@ class Anjuman extends CI_Controller
     }
     $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
     $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+
+    $emailRazaId = (string)$razaPublicId;
+    if ($emailRazaId !== '' && stripos($emailRazaId, 'R#') !== 0 && preg_match('/^\d/', $emailRazaId)) {
+      $emailRazaId = 'R#' . $emailRazaId;
+    }
+
     $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
     $remarkHtml = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
 
@@ -2312,7 +2386,7 @@ class Anjuman extends CI_Controller
     if ($memberEmail !== '' && filter_var($memberEmail, FILTER_VALIDATE_EMAIL)) {
       $body = '<p>Baad Afzalus Salaam,</p>'
         . '<p>Your Raza has <strong>not</strong> been recommended by the Jamaat coordinator.</p>'
-        . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+        . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
         . $remarkHtml
         . $detailsHtml
         . '<p>Please wait for Janab\'s response or contact Jamaat office for guidance.</p>'
@@ -2616,9 +2690,11 @@ class Anjuman extends CI_Controller
   // Update a miqaat invoice amount (AJAX)
   public function updateMiqaatInvoiceAmount()
   {
-    // Expect POST: invoice_id, amount
+    // Expect POST: invoice_id, amount (optional: description, invoice_date)
     $invoice_id = $this->input->post('invoice_id');
     $amount = $this->input->post('amount');
+    $description = $this->input->post('description');
+    $invoice_date = $this->input->post('invoice_date');
 
     if (empty($invoice_id) || !is_numeric($invoice_id)) {
       $this->output
@@ -2636,7 +2712,35 @@ class Anjuman extends CI_Controller
       return;
     }
 
-    $updated = $this->AnjumanM->update_miqaat_invoice_amount((int)$invoice_id, number_format((float)$amount, 2, '.', ''));
+    $updateData = [
+      'amount' => number_format((float)$amount, 2, '.', '')
+    ];
+
+    if ($description !== null) {
+      $updateData['description'] = (string)$description;
+    }
+
+    if ($invoice_date !== null && $invoice_date !== '') {
+      $invoice_date = (string)$invoice_date;
+      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $invoice_date)) {
+        $this->output
+          ->set_content_type('application/json')
+          ->set_status_header(400)
+          ->set_output(json_encode(['status' => false, 'error' => 'Invalid invoice date']));
+        return;
+      }
+      $ts = strtotime($invoice_date);
+      if ($ts === false) {
+        $this->output
+          ->set_content_type('application/json')
+          ->set_status_header(400)
+          ->set_output(json_encode(['status' => false, 'error' => 'Invalid invoice date']));
+        return;
+      }
+      $updateData['date'] = $invoice_date;
+    }
+
+    $updated = $this->AnjumanM->update_miqaat_invoice_fields((int)$invoice_id, $updateData);
 
     if ($updated) {
       $this->output
@@ -3067,7 +3171,9 @@ class Anjuman extends CI_Controller
       return $r['year'];
     }, $yearRows));
 
-    // Compute current Hijri financial composite year (months 09–12 + next 01–08)
+    // Compute current Hijri financial year
+    // FY boundary: Hijri months 07–12 belong to current FY start year; 01–03 belong to previous FY.
+    // Additionally, show *next* FY by default in the 2-month window before FY end (Hijri months 04–06).
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
     $currentCompositeYear = null;
@@ -3076,10 +3182,15 @@ class Anjuman extends CI_Controller
       $hm = isset($parts[1]) ? str_pad($parts[1], 2, '0', STR_PAD_LEFT) : null;
       $hy = isset($parts[2]) ? (int)$parts[2] : null;
       if ($hy) {
-        if ($hm >= '09' && $hm <= '12') {
+        if ($hm >= '04' && $hm <= '06') {
+          // 2 months prior to FY end (06): default to next FY
           $currentCompositeYear = sprintf('%d-%s', $hy, substr($hy + 1, -2));
-        } else {
+        } elseif ($hm >= '01' && $hm <= '03') {
+          // Early months: still in previous FY
           $currentCompositeYear = sprintf('%d-%s', $hy - 1, substr($hy, -2));
+        } else {
+          // Months 07–12: current FY
+          $currentCompositeYear = sprintf('%d-%s', $hy, substr($hy + 1, -2));
         }
       }
     }
@@ -3114,52 +3225,63 @@ class Anjuman extends CI_Controller
       $users[$idx]['selected_takhmeen_year'] = $selectedYear;
     }
 
-    // Assigned Thaali Days (count of menu days assigned to member) for selected FY
-    // Derive FY using hijri_calendar+menu_date (more reliable than relying on assignment.year)
-    $assignedDaysMap = [];
-    if (!empty($selectedYear) && $this->db->table_exists('fmb_thaali_day_assignment')) {
-      $fyStart = null;
-      $fyEnd = null;
-      if (preg_match('/^(\d{4})-(\d{2})$/', (string)$selectedYear, $m)) {
-        $fyStart = (int)$m[1];
-        $fyEnd = $fyStart + 1;
-      }
-
+    // Assigned Thaali Days (count of menu days assigned to member) per FY
+    // Used for both selected-year column + takhmeen details modal per-year rows
+    $assignedCountsByUserYear = [];
+    if ($this->db->table_exists('fmb_thaali_day_assignment')) {
       $rows = [];
-      if ($fyStart && $fyEnd) {
-        $sql = "SELECT a.user_id, COUNT(DISTINCT a.menu_id) AS c
+      if ($this->db->table_exists('hijri_calendar')) {
+        $sql = "SELECT
+                  a.user_id,
+                  CASE
+                    WHEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 7 AND 12
+                      THEN CONCAT(
+                        CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED),
+                        '-',
+                        LPAD(RIGHT(CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) + 1, 2), 2, '0')
+                      )
+                    ELSE CONCAT(
+                      CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) - 1,
+                      '-',
+                      LPAD(RIGHT(CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED), 2), 2, '0')
+                    )
+                  END AS fy,
+                  COUNT(DISTINCT DATE(a.menu_date)) AS c
                 FROM fmb_thaali_day_assignment a
                 JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
-                WHERE (
-                  (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
-                    AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12)
-                  OR
-                  (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
-                    AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 8)
-                )
-                GROUP BY a.user_id";
-        $rows = $this->db->query($sql, [$fyStart, $fyEnd])->result_array();
+                GROUP BY a.user_id, fy";
+        $rows = $this->db->query($sql)->result_array();
       } else {
         // Fallback to stored year column
         $rows = $this->db->query(
-          "SELECT user_id, COUNT(DISTINCT menu_id) AS c
+          "SELECT user_id, year AS fy, COUNT(DISTINCT DATE(menu_date)) AS c
            FROM fmb_thaali_day_assignment
-           WHERE year = ?
-           GROUP BY user_id",
-          [$selectedYear]
+           GROUP BY user_id, year"
         )->result_array();
       }
 
       foreach ($rows as $r) {
         $uid = isset($r['user_id']) ? (string)$r['user_id'] : '';
-        if ($uid !== '') {
-          $assignedDaysMap[$uid] = (int)($r['c'] ?? 0);
+        $fy = isset($r['fy']) ? (string)$r['fy'] : '';
+        if ($uid !== '' && $fy !== '') {
+          if (!isset($assignedCountsByUserYear[$uid])) {
+            $assignedCountsByUserYear[$uid] = [];
+          }
+          $assignedCountsByUserYear[$uid][$fy] = (int)($r['c'] ?? 0);
         }
       }
     }
+
     foreach ($users as $idx => $u) {
       $uid = isset($u['ITS_ID']) ? (string)$u['ITS_ID'] : '';
-      $users[$idx]['assigned_thaali_days'] = ($uid !== '' && array_key_exists($uid, $assignedDaysMap)) ? (int)$assignedDaysMap[$uid] : 0;
+      $users[$idx]['assigned_thaali_days'] = ($uid !== '' && $selectedYear !== '' && isset($assignedCountsByUserYear[$uid][$selectedYear])) ? (int)$assignedCountsByUserYear[$uid][$selectedYear] : 0;
+
+      if (!empty($users[$idx]['all_takhmeen']) && is_array($users[$idx]['all_takhmeen'])) {
+        foreach ($users[$idx]['all_takhmeen'] as $k => $yr) {
+          $fy = isset($yr['year']) ? (string)$yr['year'] : '';
+          $users[$idx]['all_takhmeen'][$k]['assigned_thaali_days'] = ($uid !== '' && $fy !== '' && isset($assignedCountsByUserYear[$uid][$fy])) ? (int)$assignedCountsByUserYear[$uid][$fy] : 0;
+        }
+      }
     }
 
     // Server-side filtering (optional) via GET params: its, sector, sub_sector
@@ -3200,6 +3322,67 @@ class Anjuman extends CI_Controller
     $data['filter_sub_sector'] = $filter_sub_sector;
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/FMBThaaliTakhmeen', $data);
+  }
+
+  public function getfmbassignedthaalidates()
+  {
+    if (empty($_SESSION['user']) || (int)($_SESSION['user']['role'] ?? 0) != 3) {
+      redirect('/accounts');
+    }
+
+    $user_id = trim((string)$this->input->post('user_id'));
+    $year = (string)$this->input->post('year');
+
+    $this->output->set_content_type('application/json');
+    if ($user_id === '' || !preg_match('/^\d+$/', $user_id) || $year === '') {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Missing parameters', 'dates' => []]));
+      return;
+    }
+
+    if (!$this->db->table_exists('fmb_thaali_day_assignment')) {
+      $this->output->set_output(json_encode(['success' => true, 'dates' => []]));
+      return;
+    }
+
+    $fyStart = null;
+    $fyEnd = null;
+    if (preg_match('/^(\d{4})-(\d{2})$/', (string)$year, $m)) {
+      $fyStart = (int)$m[1];
+      $fyEnd = $fyStart + 1;
+    }
+
+    $rows = [];
+    if ($fyStart && $fyEnd && $this->db->table_exists('hijri_calendar')) {
+      $sql = "SELECT DISTINCT DATE(a.menu_date) AS d
+              FROM fmb_thaali_day_assignment a
+              JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
+              WHERE a.user_id = ? AND (
+                (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                  AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 7 AND 12)
+                OR
+                (CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
+                  AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 6)
+              )
+              ORDER BY d ASC";
+      $rows = $this->db->query($sql, [$user_id, $fyStart, $fyEnd])->result_array();
+    } else {
+      // Fallback to stored year column
+      $this->db->select('DATE(menu_date) AS d', false);
+      $this->db->from('fmb_thaali_day_assignment');
+      $this->db->where('user_id', $user_id);
+      $this->db->where('year', $year);
+      $this->db->order_by('menu_date', 'ASC');
+      $rows = $this->db->get()->result_array();
+    }
+
+    $dates = [];
+    foreach ($rows as $r) {
+      if (!empty($r['d'])) {
+        $dates[] = (string)$r['d'];
+      }
+    }
+
+    $this->output->set_output(json_encode(['success' => true, 'dates' => $dates]));
   }
 
   // FMB General Contribution section
@@ -3647,24 +3830,35 @@ class Anjuman extends CI_Controller
 
     $data["miqaat_type"] = $miqaat_type;
 
+    $sanitize_hijri_year = function ($v) {
+      $v = trim(strip_tags((string)$v));
+      // Keep only digits and hyphen (supports formats like 1447 or 1446-47)
+      $v = preg_replace('/[^0-9-]/', '', $v);
+      // Collapse repeated hyphens
+      $v = preg_replace('/-+/', '-', $v);
+      return trim((string)$v, '-');
+    };
+
     // Determine selected Hijri year: prefer GET 'year', else current Hijri year
     $year_stats = $this->CommonM->get_year_calendar_daytypes();
-    $current_hijri_year = isset($year_stats['hijri_year']) ? $year_stats['hijri_year'] : null;
-    $selected_year = $this->input->get('year');
+    $current_hijri_year = isset($year_stats['hijri_year']) ? $sanitize_hijri_year($year_stats['hijri_year']) : null;
+    $selected_year = $sanitize_hijri_year($this->input->get('year'));
     if (empty($selected_year)) {
       $selected_year = $current_hijri_year;
     }
     $data['current_hijri_year'] = $selected_year;
 
-    // Include FM entries as well so invoices generated for family members appear here; scope by selected year
-    $data["member_miqaat_payments"] = $this->AnjumanM->get_all_member_miqaat_payments($miqaat_type, true, $selected_year);
+    // Include FM entries as well so invoices generated for family members appear here.
+    // Load all years and let the page's client-side filter handle year switching.
+    $data["member_miqaat_payments"] = $this->AnjumanM->get_all_member_miqaat_payments($miqaat_type, true, null);
 
     // Build list of available Hijri years from hijri_calendar table (FMB calendar), newest first
     $yearsList = [];
     // hijri_date expected in format 'd-m-Y' (day-month-year). Extract year part.
     $rows = $this->db->select("DISTINCT SUBSTRING_INDEX(hijri_date, '-', -1) as hy")->from('hijri_calendar')->order_by('hy DESC')->get()->result_array();
     foreach ($rows as $r) {
-      if (!empty($r['hy'])) $yearsList[] = $r['hy'];
+      $hy = $sanitize_hijri_year($r['hy'] ?? '');
+      if ($hy !== '') $yearsList[] = $hy;
     }
     $yearsList = array_values(array_unique($yearsList));
     rsort($yearsList);
@@ -3702,7 +3896,51 @@ class Anjuman extends CI_Controller
 
     $data["miqaat_type"] = $miqaat_type;
 
-    $data["miqaats"] = $this->AnjumanM->get_all_approved_past_miqaats($miqaat_type);
+    $razaIdFilter = trim((string)$this->input->get('raza_id'));
+    // Allow users to paste values like "R#123"; store filter as raw raza_id without prefix.
+    if ($razaIdFilter !== '') {
+      $razaIdFilter = preg_replace('/^\s*R\s*#\s*/i', '', $razaIdFilter);
+      $razaIdFilter = trim((string)$razaIdFilter);
+    }
+    $data['raza_id_filter'] = $razaIdFilter;
+
+    // Total amount of already-generated invoices for this miqaat type (useful summary while generating pending ones)
+    $this->db->select('COALESCE(SUM(inv.amount), 0) AS total', false);
+    $this->db->from('miqaat_invoice inv');
+    $this->db->join('miqaat m', 'm.id = inv.miqaat_id', 'left');
+    $this->db->join('raza r', 'r.id = inv.raza_id', 'left');
+    $this->db->group_start();
+    $this->db->where('m.type', $miqaat_type);
+    $this->db->or_where('inv.miqaat_type', $miqaat_type);
+    $this->db->group_end();
+    if ($razaIdFilter !== '') {
+      $this->db->where('r.raza_id', $razaIdFilter);
+    }
+    $totalRow = $this->db->get()->row_array();
+    $data['generated_invoice_total'] = isset($totalRow['total']) ? (float)$totalRow['total'] : 0.0;
+
+    $data["miqaats"] = $this->AnjumanM->get_all_approved_past_miqaats($miqaat_type, [
+      'raza_id' => $razaIdFilter
+    ]);
+
+    // Hijri year dropdown: show all distinct years from hijri_calendar (newest first)
+    $yearsList = $this->HijriCalendar->get_distinct_hijri_years();
+    $yearsList = array_values(array_unique(array_filter(array_map(function ($y) {
+      $y = trim((string)$y);
+      return $y !== '' ? $y : null;
+    }, is_array($yearsList) ? $yearsList : []))));
+    rsort($yearsList);
+    $data['hijri_years'] = $yearsList;
+
+    // Current Hijri year for default selection
+    $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $currentHijriYear = null;
+    if ($todayHijri && isset($todayHijri['hijri_date'])) {
+      $parts = explode('-', (string)$todayHijri['hijri_date']);
+      $currentHijriYear = $parts[2] ?? null;
+      $currentHijriYear = $currentHijriYear !== null ? trim((string)$currentHijriYear) : null;
+    }
+    $data['current_hijri_year'] = $currentHijriYear;
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/GenerateMiqaatInvoice', $data);
@@ -3798,25 +4036,14 @@ class Anjuman extends CI_Controller
     $data['sectors'] = $sectorRows; // each row: ['Sector' => '...']
     $data['sub_sectors'] = $subSectorRows; // each row: ['Sub_Sector' => '...']
 
-    // Hijri year list for year filter dropdown (full range from hijri_calendar)
-    $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
-    $currentHijriYear = null;
-    if ($todayHijri && isset($todayHijri['hijri_date'])) {
-      $parts = explode('-', $todayHijri['hijri_date']);
-      $currentHijriYear = $parts[2] ?? null;
-    }
-    $rangeRow = $this->db->query("SELECT MIN(CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED)) AS min_y, MAX(CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED)) AS max_y FROM hijri_calendar")->row_array();
-    $minY = isset($rangeRow['min_y']) && $rangeRow['min_y'] !== null ? (int)$rangeRow['min_y'] : (int)$currentHijriYear;
-    $maxY = isset($rangeRow['max_y']) && $rangeRow['max_y'] !== null ? (int)$rangeRow['max_y'] : (int)$currentHijriYear;
-    $hijri_years = [];
-    if ($maxY >= $minY && $minY > 0) {
-      for ($y = $maxY; $y >= $minY; $y--) {
-        $hijri_years[] = (string)$y;
-      }
-    } elseif ($currentHijriYear) {
-      $hijri_years[] = (string)$currentHijriYear;
-    }
-    $data['hijri_years'] = $hijri_years;
+    // Hijri year list for year filter dropdown (distinct years from hijri_calendar)
+    $yearsList = $this->HijriCalendar->get_distinct_hijri_years();
+    $yearsList = array_values(array_unique(array_filter(array_map(function ($y) {
+      $y = trim((string)$y);
+      return $y !== '' ? $y : null;
+    }, is_array($yearsList) ? $yearsList : []))));
+    rsort($yearsList);
+    $data['hijri_years'] = $yearsList;
     $data['current_hijri_year'] = $currentHijriYear; // explicit current hijri year
     $data['selected_year'] = $selectedYear; // currently selected filter year
 
@@ -3867,6 +4094,7 @@ class Anjuman extends CI_Controller
 
     $miqaat_id   = $this->input->post('miqaat_id');
     $raza_id     = $this->input->post('raza_id');
+    $raza_id     = ($raza_id === '' || $raza_id === null) ? null : $raza_id;
     $miqaat_type = $this->input->post('miqaat_type');
     $year        = $this->input->post('year');
     $assigned_to = $this->input->post('assigned_to');
@@ -4008,11 +4236,13 @@ class Anjuman extends CI_Controller
         $data = [
           'date'        => $date,
           'miqaat_id'   => $miqaat_id,
-          'raza_id'     => $raza_id,
           'user_id'     => $mid,
           'amount'      => $amount,
           'description' => $description
         ];
+        if ($raza_id !== null) {
+          $data['raza_id'] = $raza_id;
+        }
         $this->AnjumanM->create_miqaat_invoice($data);
       }
 
@@ -4217,6 +4447,59 @@ class Anjuman extends CI_Controller
       return;
     }
 
+    // Business rule: For invoices linked to a specific Miqaat, do not allow receiving payment
+    // until a Raza has been submitted (invoice must be linked to a valid raza row).
+    $inv = $this->db
+      ->select('id, user_id, miqaat_id, raza_id')
+      ->from('miqaat_invoice')
+      ->where('id', (int)$invoice_id)
+      ->get()
+      ->row_array();
+    if (!$inv) {
+      echo json_encode(['success' => false, 'error' => 'Invoice not found']);
+      return;
+    }
+    $isLinkedToMiqaat = !empty($inv['miqaat_id']);
+    if ($isLinkedToMiqaat && empty($inv['raza_id'])) {
+      // If Raza was submitted after invoice generation, auto-link latest matching Raza.
+      // This allows receiving payment immediately after submission without regenerating invoice.
+      $razaRow = $this->db
+        ->select('id')
+        ->from('raza')
+        ->where('miqaat_id', (int)$inv['miqaat_id'])
+        ->where('user_id', (int)$inv['user_id'])
+        ->order_by('id', 'DESC')
+        ->limit(1)
+        ->get()
+        ->row_array();
+
+      if (!empty($razaRow) && !empty($razaRow['id'])) {
+        $this->db
+          ->set('raza_id', (int)$razaRow['id'])
+          ->where('id', (int)$invoice_id)
+          ->update('miqaat_invoice');
+        // Update local copy so subsequent checks pass
+        $inv['raza_id'] = (int)$razaRow['id'];
+      } else {
+        echo json_encode(['success' => false, 'error' => 'Raza is not submitted for this Miqaat. Payment cannot be received until the Raza is submitted.']);
+        return;
+      }
+    }
+
+    if ($isLinkedToMiqaat && !empty($inv['raza_id'])) {
+      $razaExists = $this->db
+        ->select('id')
+        ->from('raza')
+        ->where('id', (int)$inv['raza_id'])
+        ->limit(1)
+        ->get()
+        ->row_array();
+      if (!$razaExists) {
+        echo json_encode(['success' => false, 'error' => 'Raza link is missing/invalid for this invoice. Please submit Raza and regenerate the invoice before receiving payment.']);
+        return;
+      }
+    }
+
     // Server-side guard: do not allow payment beyond due
     $caps = $this->AnjumanM->get_invoice_paid_and_amount((int)$invoice_id);
     $invoice_total = (float)$caps['invoice_amount'];
@@ -4309,6 +4592,7 @@ class Anjuman extends CI_Controller
     $data['error'] = $this->session->flashdata('corpus_payment_error');
     // Read optional filters from GET (for persistent server-side filtering)
     $filters = [];
+    $filters['name'] = ($this->input->get('name') !== null) ? trim((string)$this->input->get('name')) : null;
     // Avoid trim(null) deprecation by casting to string when input may be null
     $filters['its_id'] = ($this->input->get('its_id') !== null) ? trim((string)$this->input->get('its_id')) : null;
     $filters['sector'] = ($this->input->get('sector') !== null) ? trim((string)$this->input->get('sector')) : null;
@@ -4319,6 +4603,7 @@ class Anjuman extends CI_Controller
     // Fetch all assignments with payment aggregates (apply filters if any)
     $data['assignments'] = $this->CorpusFundM->get_all_assignments_with_payments($filters);
     // Expose filter values back to view for prefill
+    $data['filter_name'] = $filters['name'];
     $data['filter_its'] = $filters['its_id'];
     $data['filter_sector'] = $filters['sector'];
     $data['filter_sub_sector'] = $filters['sub_sector'];
@@ -4326,6 +4611,87 @@ class Anjuman extends CI_Controller
     $data['filter_hijri_year'] = $filters['hijri_year'];
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/CorpusFundsReceive', $data);
+  }
+
+  public function corpusfunds_bulk_receipts_pdf()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      redirect('anjuman/corpusfunds_receive');
+    }
+
+    // Bulk PDF generation can be heavy; allow more time/memory for this request.
+    if (function_exists('set_time_limit')) {
+      @set_time_limit(0);
+    }
+    @ini_set('max_execution_time', '0');
+    @ini_set('memory_limit', '1024M');
+
+    $this->load->model('CorpusFundM');
+    $this->load->library('dompdf_lib');
+    $dompdf = $this->dompdf_lib->load();
+
+    // Filters (optional)
+    $filters = [];
+    $filters['name'] = ($this->input->post('name') !== null) ? trim((string)$this->input->post('name')) : null;
+    $filters['its_id'] = ($this->input->post('its_id') !== null) ? trim((string)$this->input->post('its_id')) : null;
+    $filters['sector'] = ($this->input->post('sector') !== null) ? trim((string)$this->input->post('sector')) : null;
+    $filters['sub_sector'] = ($this->input->post('sub_sector') !== null) ? trim((string)$this->input->post('sub_sector')) : null;
+    $filters['fund_id'] = $this->input->post('fund_id') ? (int)$this->input->post('fund_id') : null;
+
+    // Optional explicit list of HOFs (used to match the currently-visible table rows)
+    $hofIdsRaw = $this->input->post('hof_ids');
+    $hofIds = [];
+    if (is_array($hofIdsRaw)) {
+      foreach ($hofIdsRaw as $v) {
+        $id = (int)$v;
+        if ($id > 0) $hofIds[$id] = true;
+      }
+      $hofIds = array_keys($hofIds);
+    }
+
+    if (!empty($hofIds)) {
+      $filters['hof_ids'] = $hofIds;
+    }
+
+    $rows = $this->CorpusFundM->get_hof_totals_with_payments($filters);
+    $hofs = [];
+    foreach ($rows as $r) {
+      $hofs[] = [
+        'hof_id' => (int)($r['hof_id'] ?? 0),
+        'its_id' => $r['its_id'] ?? '',
+        'name' => $r['hof_name'] ?? '',
+        'assigned' => (float)($r['assigned_total'] ?? 0),
+        'paid' => (float)($r['paid_total'] ?? 0),
+        'due' => (float)($r['due_total'] ?? 0),
+      ];
+    }
+
+    // Determine receipt title
+    $title = 'Masjid Tameer Funds Shehrullah 1447';
+    if (!empty($filters['fund_id'])) {
+      $fid = (int)$filters['fund_id'];
+      $fundRow = $this->db->select('title')->from('corpus_fund')->where('id', $fid)->get()->row_array();
+      if ($fundRow && !empty($fundRow['title'])) {
+        $title = (string)$fundRow['title'];
+      }
+    }
+
+    $data = [
+      'org_title' => 'Anjuman e Saifee Khar',
+      'fund_title' => $title,
+      'receipts' => $hofs,
+      'generated_on' => date('Y-m-d'),
+    ];
+
+    $html = $this->load->view('pdf_corpus_bulk_receipts', $data, true);
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
+    $filename = 'corpus_receipts_' . date('Ymd_His') . '.pdf';
+    $dompdf->stream($filename, array('Attachment' => 0));
   }
 
   public function corpusfunds_receive_payment()
@@ -4629,7 +4995,7 @@ class Anjuman extends CI_Controller
       } else {
         // name search: first matching user by name (used only to pre-select if desired)
         $like = "%{$q}%";
-        $r = $this->db->query("SELECT ITS_ID, HOF_ID FROM user WHERE Full_Name LIKE ? OR Full_Name LIKE ? LIMIT 1", [$like, $like])->row_array();
+        $r = $this->db->query("SELECT ITS_ID, HOF_ID FROM user WHERE Full_Name LIKE ? OR ITS_ID LIKE ? LIMIT 1", [$like, $like])->row_array();
         if (!empty($r)) {
           $reqIts = $r['ITS_ID'];
           $reqHof = isset($r['HOF_ID']) ? $r['HOF_ID'] : $reqHof;
@@ -4931,7 +5297,7 @@ class Anjuman extends CI_Controller
         }
       } else {
         $like = "%{$q}%";
-        $r = $this->db->query("SELECT ITS_ID, HOF_ID FROM user WHERE Full_Name LIKE ? OR Full_Name LIKE ? LIMIT 1", [$like, $like])->row_array();
+        $r = $this->db->query("SELECT ITS_ID, HOF_ID FROM user WHERE Full_Name LIKE ? OR ITS_ID LIKE ? LIMIT 1", [$like, $like])->row_array();
         if (!empty($r)) {
           $reqIts = $r['ITS_ID'];
           if (!empty($r['HOF_ID'])) $reqHof = $r['HOF_ID'];

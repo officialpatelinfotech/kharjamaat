@@ -165,7 +165,44 @@
   </div>
 
   <!-- Dues confirmation modal -->
-  <div id="dues-modal" class="modal" tabindex="-1" role="dialog" style="display:none; position:fixed; left:50%; top:10%; transform:translateX(-50%); z-index:1050;">
+  <style>
+    /* Pending dues modal: make content scrollable within viewport */
+    #dues-modal {
+      position: fixed;
+      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 1050;
+    }
+
+    #dues-modal .modal-dialog {
+      margin: 0;
+      width: 100%;
+      max-width: 820px;
+      max-height: 90vh;
+    }
+
+    #dues-modal .modal-content {
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #dues-modal .modal-body {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1 1 auto;
+    }
+  </style>
+
+  <div id="dues-modal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
@@ -431,12 +468,16 @@
 
   function showDuesModal(html) {
     document.getElementById('dues-content').innerHTML = html;
-    document.getElementById('dues-modal').style.display = 'block';
-    var bd = document.getElementById('dues-backdrop'); if (bd) bd.style.display = 'block';
+    document.getElementById('dues-modal').style.display = 'flex';
+    var bd = document.getElementById('dues-backdrop');
+    if (bd) bd.style.display = 'block';
+    document.body.style.overflow = 'hidden';
   }
   function hideDuesModal() {
     document.getElementById('dues-modal').style.display = 'none';
-    var bd = document.getElementById('dues-backdrop'); if (bd) bd.style.display = 'none';
+    var bd = document.getElementById('dues-backdrop');
+    if (bd) bd.style.display = 'none';
+    document.body.style.overflow = '';
   }
 
   document.getElementById('raza-form').addEventListener('submit', function (e) {

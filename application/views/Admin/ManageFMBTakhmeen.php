@@ -5,6 +5,16 @@
     .fmb-filter-bar label { font-size:.75rem; color:#6c757d; margin-bottom:.25rem; }
     .fmb-filter-bar .form-control { min-width:220px; }
     @media (max-width: 576px){ .fmb-filter-bar .form-control { min-width:unset; width:100%; } }
+
+    /* Hijri calendar (same UX as Create Miqaat) */
+    #thaali-hijri-calendar .hijri-day.active { background: #0d6efd; color: #fff; }
+    #thaali-hijri-calendar .hijri-day { width: 34px; padding: 4px 0; }
+    #thaali-hijri-calendar .hijri-week-grid { display: flex; flex-direction: column; width: 100%; }
+    #thaali-hijri-calendar .hijri-row { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+    #thaali-hijri-calendar .hijri-head { margin-bottom: 2px; }
+    #thaali-hijri-calendar .hijri-cell { min-height: 38px; display: flex; align-items: center; justify-content: center; }
+    #thaali-hijri-calendar .hijri-cell.empty { background: transparent; }
+    #thaali-hijri-calendar .hijri-head-cell { font-size: 0.75rem; text-transform: uppercase; }
   </style>
   <?php if ($this->session->flashdata('error')): ?>
     <div class="alert alert-danger">
@@ -37,7 +47,7 @@
       if (!function_exists('selopt')) { function selopt($cur, $val){ return ((string)($cur ?? '') === (string)$val) ? 'selected' : ''; } }
     ?>
     <form method="POST" action="<?php echo base_url("admin/filterfmbtakhmeen"); ?>" id="filter-form" class="row m-0">
-      <input type="text" name="member_name" id="member-name" class="apply-filter form-control col-3 mr-3" placeholder="Filter by Member name" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
+      <input type="text" name="member_name" id="member-name" class="apply-filter form-control col-3 mr-3" placeholder="Filter by Name or ITS" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
       <select name="sector" id="sector" class="apply-filter form-control col-3 mr-3">
         <option value="">All Sectors</option>
         <?php foreach($sectors_list as $s): ?>
@@ -53,13 +63,13 @@
 
       <select name="filter_year" id="filter-year" class="apply-filter form-control col-3 mt-3">
         <option value="">Select Year</option>
-        <option value="1442-43" <?php echo (isset($year) && $year == "1442-43") ? "selected" : ""; ?>>1442-43</option>
-        <option value="1443-44" <?php echo (isset($year) && $year == "1443-44") ? "selected" : ""; ?>>1443-44</option>
-        <option value="1444-45" <?php echo (isset($year) && $year == "1444-45") ? "selected" : ""; ?>>1444-45</option>
-        <option value="1445-46" <?php echo (isset($year) && $year == "1445-46") ? "selected" : ""; ?>>1445-46</option>
-        <option value="1446-47" <?php echo (isset($year) && $year == "1446-47") ? "selected" : ""; ?>>1446-47</option>
-        <option value="1447-48" <?php echo (isset($year) && $year == "1447-48") ? "selected" : ""; ?>>1447-48</option>
         <option value="1448-49" <?php echo (isset($year) && $year == "1448-49") ? "selected" : ""; ?>>1448-49</option>
+        <option value="1447-48" <?php echo (isset($year) && $year == "1447-48") ? "selected" : ""; ?>>1447-48</option>
+        <option value="1446-47" <?php echo (isset($year) && $year == "1446-47") ? "selected" : ""; ?>>1446-47</option>
+        <option value="1445-46" <?php echo (isset($year) && $year == "1445-46") ? "selected" : ""; ?>>1445-46</option>
+        <option value="1444-45" <?php echo (isset($year) && $year == "1444-45") ? "selected" : ""; ?>>1444-45</option>
+        <option value="1443-44" <?php echo (isset($year) && $year == "1443-44") ? "selected" : ""; ?>>1443-44</option>
+        <option value="1442-43" <?php echo (isset($year) && $year == "1442-43") ? "selected" : ""; ?>>1442-43</option>
       </select>
 
       <button type="submit" class="btn btn-primary ml-2 mt-3">Filter</button>
@@ -188,22 +198,22 @@
           <div class="form-group">
             <label for="takhmeen-year">Year</label>
             <select name="fmb_takhmeen_year" id="takhmeen-year" class="form-control" required>
-              <option value="1442-43">1442-43</option>
-              <option value="1443-44">1443-44</option>
-              <option value="1444-45">1444-45</option>
-              <option value="1445-46">1445-46</option>
-              <option value="1446-47">1446-47</option>
-              <option value="1447-48">1447-48</option>
-              <option value="1448-49">1448-49</option>
-              <option value="1449-50">1449-50</option>
-              <option value="1450-51">1450-51</option>
-              <option value="1451-52">1451-52</option>
-              <option value="1452-53">1452-53</option>
-              <option value="1453-54">1453-54</option>
-              <option value="1454-55">1454-55</option>
-              <option value="1455-56">1455-56</option>
-              <option value="1456-57">1456-57</option>
-              <option value="1457-58">1457-58</option>
+              <option value="1457-58" <?php echo selopt($hijri_year ?? '', '1457-58'); ?>>1457-58</option>
+              <option value="1456-57" <?php echo selopt($hijri_year ?? '', '1456-57'); ?>>1456-57</option>
+              <option value="1455-56" <?php echo selopt($hijri_year ?? '', '1455-56'); ?>>1455-56</option>
+              <option value="1454-55" <?php echo selopt($hijri_year ?? '', '1454-55'); ?>>1454-55</option>
+              <option value="1453-54" <?php echo selopt($hijri_year ?? '', '1453-54'); ?>>1453-54</option>
+              <option value="1452-53" <?php echo selopt($hijri_year ?? '', '1452-53'); ?>>1452-53</option>
+              <option value="1451-52" <?php echo selopt($hijri_year ?? '', '1451-52'); ?>>1451-52</option>
+              <option value="1450-51" <?php echo selopt($hijri_year ?? '', '1450-51'); ?>>1450-51</option>
+              <option value="1449-50" <?php echo selopt($hijri_year ?? '', '1449-50'); ?>>1449-50</option>
+              <option value="1448-49" <?php echo selopt($hijri_year ?? '', '1448-49'); ?>>1448-49</option>
+              <option value="1447-48" <?php echo selopt($hijri_year ?? '', '1447-48'); ?>>1447-48</option>
+              <option value="1446-47" <?php echo selopt($hijri_year ?? '', '1446-47'); ?>>1446-47</option>
+              <option value="1445-46" <?php echo selopt($hijri_year ?? '', '1445-46'); ?>>1445-46</option>
+              <option value="1444-45" <?php echo selopt($hijri_year ?? '', '1444-45'); ?>>1444-45</option>
+              <option value="1443-44" <?php echo selopt($hijri_year ?? '', '1443-44'); ?>>1443-44</option>
+              <option value="1442-43" <?php echo selopt($hijri_year ?? '', '1442-43'); ?>>1442-43</option>
             </select>
           </div>
           <div class="form-group">
@@ -218,6 +228,24 @@
                 <button type="button" id="add-thaali-date-btn" class="btn btn-secondary">Add</button>
               </div>
             </div>
+            <p id="thaali-date-both-display" class="form-text text-muted mb-1">Selected: -</p>
+
+            <div class="border rounded p-2 bg-light" id="thaali-hijri-selector-wrapper">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="fw-bold m-0">Select Hijri Date</label>
+                <div>
+                  <select id="thaali-hijri-year-select" class="form-control form-select form-select-sm d-inline-block w-auto" aria-label="Hijri Year" style="min-width:90px"></select>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <button type="button" id="thaali-hijri-prev" class="btn btn-sm btn-outline-secondary">«</button>
+                <span id="thaali-hijri-current" class="mx-2 fw-semibold small"></span>
+                <button type="button" id="thaali-hijri-next" class="btn btn-sm btn-outline-secondary">»</button>
+              </div>
+              <div id="thaali-hijri-calendar" class="hijri-cal-grid mb-2"></div>
+              <small id="thaali-hijri-help" class="text-muted d-block">Click a Hijri day to auto-fill the Gregorian date above.</small>
+            </div>
+
             <small id="thaali-error" class="text-danger d-none">Please select date</small>
             <div id="thaali-dates-list" class="mt-2"></div>
             <input type="hidden" name="thaali_dates" id="thaali-dates-hidden" />
@@ -299,6 +327,7 @@
   </div>
 </div>
 <script>
+  const DEFAULT_FMB_FY = "<?php echo htmlspecialchars((string)($hijri_year ?? ''), ENT_QUOTES); ?>";
   const hijriGregMin = <?php echo json_encode(isset($hijri_calendar_min_greg) ? $hijri_calendar_min_greg : null); ?>;
   const hijriGregMax = <?php echo json_encode(isset($hijri_calendar_max_greg) ? $hijri_calendar_max_greg : null); ?>;
 
@@ -324,11 +353,443 @@
     $("#thaali-dates-list").empty();
     $("#thaali-dates-hidden").val("");
     $("#thaali-date").val("");
+    $("#thaali-date-both-display").text('Selected: -');
     $("#thaali-date").prop('disabled', false);
     $("#add-thaali-date-btn").prop('disabled', false);
     $("#thaali-error").addClass("d-none").text("Please select date");
     $("#takhmeen-year").prop("disabled", false);
+
+    // Default year in popup should match the current FY shown on page
+    if (DEFAULT_FMB_FY) {
+      $('#takhmeen-year').val(DEFAULT_FMB_FY);
+    }
   }
+
+  // === Hijri label helper for date chips (Gregorian + Hijri) ===
+  const __hijriPartsCache = {};
+  function hijriLabelFromParts(parts) {
+    if (!parts) return '';
+    const d = String(parts.hijri_day || '').trim();
+    const m = String(parts.hijri_month_name || parts.hijri_month || '').trim();
+    const y = String(parts.hijri_year || '').trim();
+    return [d, m, y].filter(Boolean).join(' ');
+  }
+  function getHijriLabelForGregIso(gregIso) {
+    const iso = String(gregIso || '').trim();
+    if (!iso) return Promise.resolve('');
+    if (__hijriPartsCache[iso]) return Promise.resolve(__hijriPartsCache[iso]);
+    return fetch('<?php echo base_url('common/get_hijri_parts'); ?>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: new URLSearchParams({ greg_date: iso })
+    })
+      .then(r => r.json())
+      .then(resp => {
+        if (resp && resp.status === 'success' && resp.parts) {
+          const lbl = hijriLabelFromParts(resp.parts);
+          __hijriPartsCache[iso] = lbl;
+          return lbl;
+        }
+        __hijriPartsCache[iso] = '';
+        return '';
+      })
+      .catch(() => '');
+  }
+
+  function setChipTextWithHijri($chip, gregIso) {
+    const iso = String(gregIso || '').trim();
+    const g = iso ? formatThaaliDateDisplay(iso) : '';
+
+    // If chip has a nested label, update only that
+    const $label = ($chip && $chip.find) ? $chip.find('.thaali-date-label').first() : null;
+    const $target = ($label && $label.length) ? $label : $chip;
+
+    // First paint with greg, then enhance with hijri
+    $target.text(g || '-');
+    if (!iso) return;
+    getHijriLabelForGregIso(iso).then(lbl => {
+      if (lbl) {
+        $target.text(g + ' | ' + lbl);
+      } else {
+        $target.text(g);
+      }
+    });
+  }
+
+  // Hijri calendar selector for thaali-date (linked to Gregorian date)
+  (function initThaaliHijriSelector(){
+    const calContainer = document.getElementById('thaali-hijri-calendar');
+    const currentLbl = document.getElementById('thaali-hijri-current');
+    const prevBtn = document.getElementById('thaali-hijri-prev');
+    const nextBtn = document.getElementById('thaali-hijri-next');
+    const yearSelect = document.getElementById('thaali-hijri-year-select');
+    const wrapper = document.getElementById('thaali-hijri-selector-wrapper');
+    const help = document.getElementById('thaali-hijri-help');
+    const gregInput = document.getElementById('thaali-date');
+    const bothDisplay = document.getElementById('thaali-date-both-display');
+    if (!calContainer || !gregInput || !bothDisplay) return;
+
+    let monthsCache = {}; // {year: [{id,name}]}
+    let daysCache = {}; // { 'year-month': [ {day,hijri_date,greg_date} ] }
+    let years = [];
+    let currentYear = null;
+    let currentMonth = 1;
+    let pendingSelectGreg = null; // iso Y-m-d to highlight
+
+    function isoTodayLocal() {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function fetchJSON(url) {
+      return fetch(url).then(r => r.json());
+    }
+
+    function safeText(v){
+      return (v === null || typeof v === 'undefined') ? '' : String(v);
+    }
+
+    function monthName(year, month) {
+      const ms = monthsCache[year] || [];
+      const f = ms.find(m => parseInt(m.id) === parseInt(month));
+      return f ? f.name : ('Month ' + month);
+    }
+
+    function setBothDisplay(gregIso, hijriLabel){
+      const gIso = safeText(gregIso).trim();
+      const g = gIso ? (typeof formatThaaliDateDisplay === 'function' ? formatThaaliDateDisplay(gIso) : gIso) : '';
+      const h = safeText(hijriLabel).trim();
+      if (g && h) {
+        bothDisplay.textContent = 'Selected: ' + g + ' | ' + h;
+      } else if (g) {
+        bothDisplay.textContent = 'Selected: ' + g;
+      } else {
+        bothDisplay.textContent = 'Selected: -';
+      }
+    }
+
+    function fyStartYearFromString(fy) {
+      const s = String(fy || '').trim();
+      if (!s) return null;
+      const p = s.split('-');
+      const y = parseInt(p[0], 10);
+      return Number.isFinite(y) ? String(y) : null;
+    }
+
+    function ensureYearOptionExists(y) {
+      const yy = String(y || '').trim();
+      if (!yy || !yearSelect) return;
+      const exists = [...yearSelect.options].some(o => String(o.value) === yy);
+      if (exists) return;
+
+      // Add missing year and keep options sorted desc (same as API)
+      const opt = document.createElement('option');
+      opt.value = yy;
+      opt.textContent = yy;
+      yearSelect.appendChild(opt);
+
+      const vals = [...yearSelect.options].map(o => String(o.value));
+      vals.sort((a,b) => parseInt(b,10) - parseInt(a,10));
+      yearSelect.innerHTML = vals.map(v => `<option value="${v}">${v}</option>`).join('');
+
+      // Keep internal years array in sync for navigation
+      if (!years.includes(yy)) {
+        years.push(yy);
+        years.sort((a,b) => parseInt(b,10) - parseInt(a,10));
+      }
+    }
+
+    function syncCalendarToTodayMonth() {
+      const todayIso = isoTodayLocal();
+      pendingSelectGreg = todayIso;
+      return fetch('<?php echo base_url('common/get_hijri_parts'); ?>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: new URLSearchParams({ greg_date: todayIso })
+      })
+        .then(r => r.json())
+        .then(resp => {
+          if (resp && resp.status === 'success' && resp.parts) {
+            const parts = resp.parts;
+            ensureYearOptionExists(parts.hijri_year);
+            currentYear = String(parts.hijri_year);
+            currentMonth = parseInt(parts.hijri_month, 10);
+            if (yearSelect) yearSelect.value = currentYear;
+          }
+        })
+        .catch(() => {});
+    }
+
+    function loadYears() {
+      return fetchJSON('<?php echo base_url('common/get_hijri_years'); ?>').then(d => {
+        if (d && d.status === 'success') {
+          years = d.years || [];
+          // Default Hijri year should align with FY in popup (start year)
+          if (!currentYear) {
+            const fyStart = fyStartYearFromString(DEFAULT_FMB_FY);
+            currentYear = (fyStart && years.includes(fyStart)) ? fyStart : (years[0] || null);
+          }
+          if (yearSelect && years.length) {
+            yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+            yearSelect.value = currentYear;
+          }
+        }
+      });
+    }
+
+    function loadMonths(year) {
+      if (!year) return Promise.resolve([]);
+      if (monthsCache[year]) return Promise.resolve(monthsCache[year]);
+      return fetchJSON('<?php echo base_url('common/get_hijri_months'); ?>?year=' + encodeURIComponent(year)).then(d => {
+        if (d && d.status === 'success') monthsCache[year] = d.months || [];
+        return monthsCache[year] || [];
+      });
+    }
+
+    function loadDays(year, month) {
+      const k = year + '-' + month;
+      if (daysCache[k]) return Promise.resolve(daysCache[k]);
+      return fetchJSON('<?php echo base_url('common/get_hijri_days'); ?>?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month)).then(d => {
+        if (d && d.status === 'success') daysCache[k] = d.days || [];
+        return daysCache[k] || [];
+      });
+    }
+
+    function highlightGreg(iso) {
+      if (!iso) return;
+      const btn = calContainer.querySelector('[data-greg="' + iso + '"]');
+      if (btn) {
+        [...calContainer.querySelectorAll('.hijri-day')].forEach(x => x.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    }
+
+    function applyAutoSelect() {
+      if (!pendingSelectGreg) return;
+      highlightGreg(pendingSelectGreg);
+      pendingSelectGreg = null;
+    }
+
+    function gregWeekday(iso) {
+      const d = new Date(String(iso).replace(/-/g, '/'));
+      return d.getDay();
+    }
+
+    function render() {
+      if (!currentYear) {
+        calContainer.innerHTML = '<div class="text-muted small">No Hijri calendar data.</div>';
+        return;
+      }
+      loadMonths(currentYear)
+        .then(() => loadDays(currentYear, currentMonth))
+        .then(days => {
+          if (currentLbl) currentLbl.textContent = monthName(currentYear, currentMonth) + ' ' + currentYear;
+          calContainer.innerHTML = '';
+          if (!days || !days.length) {
+            calContainer.innerHTML = '<div class="text-muted small">No days.</div>';
+            return;
+          }
+
+          const table = document.createElement('div');
+          table.className = 'hijri-week-grid';
+          const headers = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          const headRow = document.createElement('div');
+          headRow.className = 'hijri-row hijri-head';
+          headers.forEach(h => {
+            const hd = document.createElement('div');
+            hd.className = 'hijri-cell hijri-head-cell fw-semibold text-center';
+            hd.textContent = h;
+            headRow.appendChild(hd);
+          });
+          table.appendChild(headRow);
+
+          let weekRow = document.createElement('div');
+          weekRow.className = 'hijri-row';
+          let cellsInRow = 0;
+          const firstWeekday = gregWeekday(days[0].greg_date);
+          for (let i = 0; i < firstWeekday; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'hijri-cell empty';
+            weekRow.appendChild(empty);
+            cellsInRow++;
+          }
+
+          days.forEach(d => {
+            if (cellsInRow === 7) {
+              table.appendChild(weekRow);
+              weekRow = document.createElement('div');
+              weekRow.className = 'hijri-row';
+              cellsInRow = 0;
+            }
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-sm btn-outline-primary hijri-day';
+            btn.textContent = d.day;
+            btn.dataset.greg = d.greg_date;
+            btn.dataset.hijri = d.hijri_date;
+            btn.addEventListener('click', () => {
+              const iso = d.greg_date;
+              if (!isIsoInRange(iso)) {
+                alert(hijriRangeMsg());
+                return;
+              }
+              gregInput.value = iso;
+              gregInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+              const hp = String(d.hijri_date || '').split('-');
+              if (hp.length === 3) {
+                const label = hp[0] + ' ' + monthName(currentYear, currentMonth) + ' ' + hp[2];
+                setBothDisplay(iso, label);
+              } else {
+                setBothDisplay(iso, '');
+              }
+              [...calContainer.querySelectorAll('.hijri-day')].forEach(x => x.classList.remove('active'));
+              btn.classList.add('active');
+            });
+            const cell = document.createElement('div');
+            cell.className = 'hijri-cell text-center';
+            cell.appendChild(btn);
+            weekRow.appendChild(cell);
+            cellsInRow++;
+          });
+
+          if (cellsInRow > 0 && cellsInRow < 7) {
+            for (let i = cellsInRow; i < 7; i++) {
+              const empty = document.createElement('div');
+              empty.className = 'hijri-cell empty';
+              weekRow.appendChild(empty);
+            }
+          }
+          table.appendChild(weekRow);
+          calContainer.appendChild(table);
+          applyAutoSelect();
+        });
+    }
+
+    // Add a show/hide toggle button (same as Create Miqaat)
+    (function ensureToggle() {
+      if (!wrapper || document.getElementById('toggle-thaali-hijri-cal')) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'toggle-thaali-hijri-cal';
+      btn.className = 'btn btn-sm btn-outline-primary mb-2';
+      btn.setAttribute('aria-expanded', 'false');
+      btn.textContent = 'Show Hijri Calendar';
+      // Insert after header row
+      if (wrapper.children.length > 0) {
+        wrapper.insertBefore(btn, wrapper.children[1] || null);
+      } else {
+        wrapper.insertBefore(btn, wrapper.firstChild);
+      }
+      calContainer.style.display = 'none';
+      if (help) help.style.display = 'none';
+      btn.addEventListener('click', () => {
+        const hidden = calContainer.style.display === 'none';
+        if (hidden) {
+          calContainer.style.display = '';
+          if (help) help.style.display = '';
+          btn.textContent = 'Hide Hijri Calendar';
+          btn.setAttribute('aria-expanded', 'true');
+        } else {
+          calContainer.style.display = 'none';
+          if (help) help.style.display = 'none';
+          btn.textContent = 'Show Hijri Calendar';
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    })();
+
+    function navigate(delta) {
+      currentMonth += delta;
+      if (currentMonth < 1) {
+        currentMonth = 12;
+        const idx = years.indexOf(currentYear);
+        if (idx > 0) currentYear = years[idx - 1];
+      } else if (currentMonth > 12) {
+        currentMonth = 1;
+        const idx = years.indexOf(currentYear);
+        if (idx < years.length - 1) currentYear = years[idx + 1];
+      }
+      if (yearSelect) yearSelect.value = currentYear;
+      if (!monthsCache[currentYear]) {
+        loadMonths(currentYear).then(() => render());
+      } else {
+        render();
+      }
+    }
+
+    function syncCalendarToGregorian(iso) {
+      const gregIso = String(iso || '').trim();
+      if (!gregIso) {
+        setBothDisplay('', '');
+        return;
+      }
+      pendingSelectGreg = gregIso;
+
+      // Fetch hijri parts for display and jumping calendar
+      fetch('<?php echo base_url('common/get_hijri_parts'); ?>', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: new URLSearchParams({ greg_date: gregIso })
+      }).then(r => r.json()).then(resp => {
+        if (resp && resp.status === 'success' && resp.parts) {
+          const parts = resp.parts;
+          const hLabel = (parts.hijri_day ? String(parts.hijri_day) : '')
+            + ' ' + (parts.hijri_month_name ? String(parts.hijri_month_name) : (parts.hijri_month ? String(parts.hijri_month) : ''))
+            + ' ' + (parts.hijri_year ? String(parts.hijri_year) : '');
+          setBothDisplay(gregIso, hLabel.trim());
+          ensureYearOptionExists(parts.hijri_year);
+          currentYear = String(parts.hijri_year);
+          currentMonth = parseInt(parts.hijri_month);
+          if (yearSelect) yearSelect.value = currentYear;
+        } else {
+          setBothDisplay(gregIso, 'Hijri Date: Not found');
+        }
+        render();
+      }).catch(() => {
+        setBothDisplay(gregIso, 'Hijri Date: Error fetching');
+        render();
+      });
+    }
+
+    // Boot
+    loadYears()
+      .then(() => loadMonths(currentYear))
+      .then(() => {
+        if (gregInput.value) {
+          syncCalendarToGregorian(gregInput.value);
+        } else {
+          // Default view: show current (today's) Hijri month/year
+          syncCalendarToTodayMonth().then(() => render());
+        }
+      });
+
+    // Event wiring
+    gregInput.addEventListener('change', function(){
+      syncCalendarToGregorian(this.value);
+    });
+
+    if (prevBtn && nextBtn) {
+      prevBtn.addEventListener('click', function(){ navigate(-1); });
+      nextBtn.addEventListener('click', function(){ navigate(1); });
+    }
+    if (yearSelect) {
+      yearSelect.addEventListener('change', function(){
+        const newYear = this.value;
+        if (newYear && newYear !== currentYear) {
+          currentYear = newYear;
+          loadMonths(currentYear).then(ms => {
+            const exists = (ms || []).some(m => parseInt(m.id) === parseInt(currentMonth));
+            if (!exists) currentMonth = (ms && ms.length) ? parseInt(ms[0].id) : 1;
+            render();
+          });
+        }
+      });
+    }
+  })();
 
   function openAddTakhmeenAsEdit(userId, userName, year) {
     resetAddTakhmeenModal();
@@ -461,17 +922,23 @@
       const row = $('<div>')
         .addClass('thaali-date-row d-flex align-items-center mb-1')
         .css('gap','0.5rem');
+
       const dateText = $('<span>')
-        .addClass('badge badge-info badge-pill')
+        .addClass('badge badge-info badge-pill d-inline-flex align-items-center')
+        .css('gap', '0.35rem');
+      const label = $('<span>')
+        .addClass('thaali-date-label')
         .text(formatThaaliDateDisplay(d));
       const remove = $('<a>')
         .attr('href', '#')
-        .addClass('remove-assigned-thaali-date text-danger')
+        .addClass('remove-assigned-thaali-date text-white')
         .attr('data-date', d)
         .html('&times;')
-        .css({ 'font-weight': 'bold', 'font-size': '1.2em', 'line-height': '1' });
+        .css({ 'line-height': '1', 'font-weight': 'bold', 'font-size': '1.2em', 'text-decoration': 'none' });
+      dateText.append(label, remove);
+      setChipTextWithHijri(dateText, d);
+
       row.append(dateText);
-      row.append(remove);
       $list.append(row);
     });
   }
@@ -562,7 +1029,7 @@
     $userId = $(this).data("user-id");
     $userName = $(this).data("user-name");
     $takhmeens = $(this).data("takhmeens");
-    const perDayCost = <?php echo json_encode(isset($per_day_thaali_cost_amount) ? (float)$per_day_thaali_cost_amount : 0); ?>;
+    const perDayCostByYear = <?php echo json_encode(isset($per_day_thaali_cost_by_year) && is_array($per_day_thaali_cost_by_year) ? $per_day_thaali_cost_by_year : new stdClass()); ?>;
 
     $("#view-user-name").html($userName);
 
@@ -571,6 +1038,8 @@
       $takhmeens.forEach((takhmeen, index) => {
         const assignedCnt = (takhmeen && typeof takhmeen.assigned_thaali_days !== 'undefined') ? Number(takhmeen.assigned_thaali_days) : 0;
         let thaaliDaysDisplay = '-';
+        const yearKey = takhmeen && typeof takhmeen.year !== 'undefined' ? String(takhmeen.year) : '';
+        const perDayCost = (yearKey && perDayCostByYear && typeof perDayCostByYear[yearKey] !== 'undefined') ? Number(perDayCostByYear[yearKey]) : 0;
         if (perDayCost && Number(perDayCost) > 0 && takhmeen && typeof takhmeen.amount !== 'undefined') {
           const amtNum = parseFloat(String(takhmeen.amount).replace(/[^0-9.]/g, ''));
           if (!isNaN(amtNum)) {
@@ -826,6 +1295,7 @@
     if (existing.indexOf(dateVal) !== -1) {
       alert('Date already added');
       $('#thaali-date').val('');
+      $('#thaali-date-both-display').text('Selected: -');
       return;
     }
     existing.push(dateVal);
@@ -833,16 +1303,24 @@
 
     // Each selected date renders on its own line (ek ke niche ek)
     const row = $('<div>').addClass('thaali-date-row d-flex align-items-center mb-1').css('gap','0.5rem');
-    const dateText = $('<span>').addClass('badge badge-info badge-pill').text(formatThaaliDateDisplay(dateVal));
+    const dateText = $('<span>')
+      .addClass('badge badge-info badge-pill d-inline-flex align-items-center')
+      .css('gap', '0.35rem');
+    const label = $('<span>')
+      .addClass('thaali-date-label')
+      .text(formatThaaliDateDisplay(dateVal));
     const remove = $('<a>')
       .attr('href', '#')
-      .addClass('remove-thaali-date text-white ml-2')
+      .addClass('remove-thaali-date text-white')
       .attr('data-date', dateVal)
       .html('&times;')
-      .css({ 'font-weight': 'bold', 'font-size': '1.2em' });
-    row.append(dateText).append(remove);
+      .css({ 'line-height': '1', 'font-weight': 'bold', 'font-size': '1.2em', 'text-decoration': 'none' });
+    dateText.append(label, remove);
+    setChipTextWithHijri(dateText, dateVal);
+    row.append(dateText);
     $('#thaali-dates-list').append(row);
     $('#thaali-date').val('');
+    $('#thaali-date-both-display').text('Selected: -');
   }
 
   function isExistingEditMode(){
@@ -985,7 +1463,14 @@
           return;
         }
         dates.forEach(function(d){
-          $('#assigned-dates-list').append($('<li>').text(formatIsoToDmy(d)));
+          const $li = $('<li>').text(formatIsoToDmy(d));
+          $('#assigned-dates-list').append($li);
+          // Enhance with hijri label
+          getHijriLabelForGregIso(d).then(function(lbl){
+            if (lbl) {
+              $li.text(formatIsoToDmy(d) + ' | ' + lbl);
+            }
+          });
         });
       },
       error: function(){

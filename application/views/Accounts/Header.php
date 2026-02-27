@@ -23,7 +23,7 @@
   integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://kit.fontawesome.com/e50fe14bb8.js" crossorigin="anonymous"></script>
-<title>Khar Jamaat</title>
+<title><?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></title>
 <link rel="icon" type="image/x-icon" href="<?php echo base_url('assets/header_logo.png'); ?>">
 <style>
   .navbar-brand .logo {
@@ -118,10 +118,10 @@ $its_id = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_
         $navigation_link = base_url("/MasoolMusaid/");
       }
       ?>
-      <a href="<?php echo $navigation_link ?>" class="user-welcome font-lvl-3-xs d-none d-md-inline-block">
+      <span class="user-welcome font-lvl-3-xs d-none d-md-inline-block">
         <?php echo htmlspecialchars(!empty($display_name) ? $display_name : 'Member Name'); ?><?php echo !empty($its_id) ? ', ' . htmlspecialchars($its_id) : ''; ?>
         <small class="text-muted"><?php echo isset($sector) ? '(' . htmlspecialchars($sector) . ')' : ""; ?></small>
-      </a>
+      </span>
     </div>
     <button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse" aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler">
       <span class="navbar-toggler-icon"></span>
@@ -141,6 +141,11 @@ $its_id = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_
               class="fa fa-home px-1"></i>Home</a></li>
       </ul>
       <ul class="navbar-nav navbar-right">
+        <li class="nav-item mr-2" id="km-export-excel-wrap" style="display:none;">
+          <button type="button" id="km-export-excel-btn" class="btn btn-outline-secondary btn-sm" title="Export current table to Excel (CSV)">
+            <i class="fa fa-file-excel-o px-1"></i>Export Excel
+          </button>
+        </li>
         <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
             class="nav-link dropdown-toggle" aria-expanded="false"><i
               class="fa fa-user px-1"></i>Account</a>
@@ -160,11 +165,12 @@ $its_id = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_
   // Inject global footer once per page load (Accounts scope)
   (function() {
     if (document.getElementById('global-site-footer')) return; // avoid duplicates
+    var jamaatName = <?php echo json_encode(jamaat_name()); ?>;
     var footerHtml = '\n<footer id="global-site-footer" class="site-footer" style="background:#222;color:#eee;font-size:14px;margin-top:40px;padding:32px 0 16px;">' +
       '<style>.site-footer a{color:#ffc107;text-decoration:none;} .site-footer a:hover{text-decoration:underline;color:#ffda55;} .site-footer h5{font-size:16px;font-weight:600;color:#fff;} .site-footer .footer-bottom{border-top:1px solid #444;margin-top:24px;padding-top:12px;font-size:12px;color:#bbb;} @media (max-width:767px){.site-footer{padding:24px 0;} .site-footer h5{margin-top:24px;} }</style>' +
       '<div class="container">' +
       '<div class="row">' +
-      '<div class="col-md-4 col-sm-6"><h5>About</h5><p>Khar Jamaat platform for organized community participation.</p></div>' +
+      '<div class="col-md-4 col-sm-6"><h5>About</h5><p>' + jamaatName + ' platform for organized community participation.</p></div>' +
       '<div class="col-md-2 col-sm-6"><h5>Legal</h5><ul class="list-unstyled mb-0">' +
       '<li><a href="' + (window.BASE_URL || '<?php echo base_url(); ?>') + 'terms">Terms & Conditions</a></li>' +
       '<li><a href="' + (window.BASE_URL || '<?php echo base_url(); ?>') + 'privacy">Privacy Policy</a></li>' +
@@ -172,7 +178,8 @@ $its_id = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_
       '</ul></div>' +
       '<div class="col-md-3 col-sm-6"><h5>Contact</h5><p class="mb-1"><strong>Email:</strong> <a href="mailto:support@kharjamaat.in">support@kharjamaat.in</a></p><p class="mb-1"><strong>Phone:</strong> <a href="tel:+919000000000">+91-90000-00000</a></p><p class="mb-0"><strong>Hours:</strong> Mon-Sat 10:00–18:00 IST</p></div>' +
       '<div class="col-md-3 col-sm-6"><h5>Status</h5><p class="mb-2">Last Updated: <?php echo date('d M Y'); ?></p><p class="small mb-2">For payment or account queries contact support before disputes.</p></div>' +
-      '</div>' + \n + '<div class="footer-bottom text-center"><span>&copy; <?php echo date('Y'); ?> Khar Jamaat. All rights reserved.</span></div>' +
+      '</div>' +
+      '<div class="footer-bottom text-center"><span>&copy; <?php echo date('Y'); ?> ' + jamaatName + '. All rights reserved.</span></div>' +
       '</div></footer>';
     var div = document.createElement('div');
     div.innerHTML = footerHtml;
@@ -182,36 +189,37 @@ $its_id = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_
   })();
 </script>
 <script src="<?php echo base_url('assets/js/table-sort.js'); ?>?v=1"></script>
+<script src="<?php echo base_url('assets/js/table-export.js'); ?>?v=1"></script>
 
-  <?php if (empty($_COOKIE['km_cookie_consent'])): ?>
-    <div id="cookie-consent-banner" class="alert alert-dark mb-0" role="alert" style="position:fixed;left:0;right:0;bottom:0;z-index:1050;border-radius:0;">
-      <div class="container d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
-        <div class="me-md-3">
-          We use essential cookies to keep this site working. <a href="<?php echo base_url('privacy'); ?>" class="alert-link">Learn more</a>.
-        </div>
-        <div class="mt-2 mt-md-0">
-          <button type="button" id="cookie-consent-accept" class="btn btn-warning btn-sm">Accept</button>
-        </div>
+<?php if (empty($_COOKIE['km_cookie_consent'])): ?>
+  <div id="cookie-consent-banner" class="alert alert-dark mb-0" role="alert" style="position:fixed;left:0;right:0;bottom:0;z-index:1050;border-radius:0;">
+    <div class="container d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+      <div class="me-md-3">
+        We use essential cookies to keep this site working. <a href="<?php echo base_url('privacy'); ?>" class="alert-link">Learn more</a>.
+      </div>
+      <div class="mt-2 mt-md-0">
+        <button type="button" id="cookie-consent-accept" class="btn btn-warning btn-sm">Accept</button>
       </div>
     </div>
-    <script>
-      (function() {
-        var btn = document.getElementById('cookie-consent-accept');
-        var banner = document.getElementById('cookie-consent-banner');
-        if (!btn || !banner) return;
-        btn.addEventListener('click', function() {
-          btn.disabled = true;
-          fetch('<?php echo base_url('cookies/accept'); ?>', {
-            method: 'POST',
-            headers: {
-              'X-Requested-With': 'XMLHttpRequest'
-            }
-          }).then(function() {
-            banner.style.display = 'none';
-          }).catch(function() {
-            btn.disabled = false;
-          });
+  </div>
+  <script>
+    (function() {
+      var btn = document.getElementById('cookie-consent-accept');
+      var banner = document.getElementById('cookie-consent-banner');
+      if (!btn || !banner) return;
+      btn.addEventListener('click', function() {
+        btn.disabled = true;
+        fetch('<?php echo base_url('cookies/accept'); ?>', {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        }).then(function() {
+          banner.style.display = 'none';
+        }).catch(function() {
+          btn.disabled = false;
         });
-      })();
-    </script>
-  <?php endif; ?>
+      });
+    })();
+  </script>
+<?php endif; ?>

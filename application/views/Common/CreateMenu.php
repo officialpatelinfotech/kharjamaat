@@ -363,12 +363,6 @@
         alert("Please select at least one item for the menu.");
         return;
       }
-
-      const assignedId = ($('#assigned-user-id').val() || '').toString().trim();
-      if (!assignedId) {
-        alert("You can't create the menu. You have to assign the member first.");
-        return;
-      }
       if (submitting) return;
       const raw = $("#menu_date").val();
       const iso = toISO(raw);
@@ -388,11 +382,6 @@
         $("#miqaat-conflict-text").text(text);
         $('#miqaatConflictModal').modal('show');
         $('#miqaat-confirm').off('click').on('click', function() {
-          const assignedId2 = ($('#assigned-user-id').val() || '').toString().trim();
-          if (!assignedId2) {
-            alert("You can't create the menu. You have to assign the member first.");
-            return;
-          }
           $('#miqaatConflictModal').modal('hide');
           submitting = true;
           $("form")[0].submit();

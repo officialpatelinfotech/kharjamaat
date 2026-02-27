@@ -16,7 +16,7 @@
   integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://kit.fontawesome.com/e50fe14bb8.js" crossorigin="anonymous"></script>
-<title>Khar Jamaat</title>
+<title><?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></title>
 <link rel="icon" type="image/x-icon" href="<?php echo base_url('assets/header_logo.png'); ?>">
 <style>
   .navbar-brand .logo {
@@ -57,9 +57,7 @@
 </style>
 <div>
   <nav class="fixed-top navbar navbar-expand-lg navbar-light main-navbar">
-    <div class="navbar-brand"><a href="<?php echo base_url("/") ?>"><img
-          src="<?php echo base_url('assets/main_logo.png') ?>" class="logo"></a><a
-        href="<?php echo base_url("/MasoolMusaid") ?>" class="user-welcome font-lvl-3-xs"><?php echo $user_name ?></a>
+    <div class="navbar-brand"><a href="<?php echo base_url("/") ?>"><img src="<?php echo base_url('assets/main_logo.png') ?>" class="logo"></a>
     </div><button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse"
       aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation"
       class="navbar-toggler"><span class="navbar-toggler-icon"></span></button>
@@ -67,21 +65,15 @@
       <ul class="navbar-nav mr-auto">
         <li class="nav-item"><a href="<?php echo base_url("/MasoolMusaid") ?>" class="nav-link"><i
               class="fa fa-home px-1"></i>Home</a></li>
-        <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
-            class="nav-link dropdown-toggle" aria-expanded="false"><i
-              class="fa fa-life-ring px-1"></i>Help</a>
-          <div class="dropdown-menu"><a href="<?php echo base_url("MasoolMusaid/request-help") ?>"
-              class="dropdown-item">Help Desk</a></div>
-        </li>
       </ul>
       <ul class="navbar-nav navbar-right">
-        <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
-            class="nav-link dropdown-toggle" aria-expanded="false"><i
-              class="fa fa-user px-1"></i>Account</a>
-          <div class="dropdown-menu"><a href="<?php echo base_url("/MasoolMusaid/update-profile/") ?>"
-              class="dropdown-item"><i class="fa fa-edit px-1"></i>Update Profile</a><a
-              href="<?php echo base_url('/accounts/changepassword/') ?>" class="dropdown-item"><i
-                class="fa fa-lock px-1"></i>Change Password</a></div>
+        <li class="nav-item mr-2" id="km-export-excel-wrap" style="display:none;">
+          <button type="button" id="km-export-excel-btn" class="btn btn-outline-secondary btn-sm" title="Export current table to Excel (CSV)">
+            <i class="fa fa-file-excel-o px-1"></i>Export Excel
+          </button>
+        </li>
+        <li class="nav-item dropdown">
+          <a href="<?php echo base_url("/MasoolMusaid") ?>" class="nav-link user-welcome font-lvl-3-xs"><?php echo $user_name ?></a>
         </li>
         <li class="nav-item"><a href="<?php echo base_url('/accounts/logout/') ?>" class="nav-link"><i
               class="fa fa-sign-out-alt px-1"></i>Log Out</a></li>
@@ -93,3 +85,4 @@
 <script>
   window.USER_NAME = <?= json_encode($user_name) ?>;
 </script>
+<script src="<?php echo base_url('assets/js/table-export.js'); ?>?v=1"></script>

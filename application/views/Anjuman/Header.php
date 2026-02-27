@@ -17,7 +17,7 @@
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://kit.fontawesome.com/e50fe14bb8.js" crossorigin="anonymous"></script>
 <link rel="icon" type="image/x-icon" href="<?php echo base_url('assets/header_logo.png'); ?>">
-<title>Khar Jamaat</title>
+<title><?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></title>
 <style>
   .navbar-brand .logo {
     max-height: 30px;
@@ -61,9 +61,6 @@
       <a href="<?php echo base_url("/?from=anjuman") ?>" style="text-decoration: none;">
         <img src="<?php echo base_url('assets/main_logo.png') ?>" class="logo">
       </a>
-      <a href="<?php echo base_url("/anjuman") ?>" class="user-welcome font-lvl-3-xs">
-        <?php echo $user_name ?>
-      </a>
     </div>
     <button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse" aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler">
       <span class="navbar-toggler-icon"></span>
@@ -80,6 +77,11 @@
                 </li> -->
       </ul>
       <ul class="navbar-nav navbar-right">
+        <li class="nav-item mr-2" id="km-export-excel-wrap" style="display:none;">
+          <button type="button" id="km-export-excel-btn" class="btn btn-outline-secondary btn-sm" title="Export current table to Excel (CSV)">
+            <i class="fa fa-file-excel-o px-1"></i>Export Excel
+          </button>
+        </li>
         <!-- <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
                         class="nav-link dropdown-toggle" aria-expanded="false"><i
                             class="fa fa-user px-1"></i>Account</a>
@@ -88,9 +90,15 @@
                             href="<?php echo base_url('/accounts/changepassword/') ?>" class="dropdown-item"><i
                                 class="fa fa-lock px-1"></i>Change Password</a></div>
                 </li> -->
+        <li class="nav-link">
+          <span class="user-welcome font-lvl-3-xs">
+            <?php echo $user_name ?>
+          </span>
+        </li>
         <li class="nav-item"><a href="<?php echo base_url('/accounts/logout/') ?>" class="nav-link"><i
               class="fa fa-sign-out-alt px-1"></i>Log Out</a></li>
       </ul>
     </div>
   </nav>
 </div>
+<script src="<?php echo base_url('assets/js/table-export.js'); ?>?v=1"></script>

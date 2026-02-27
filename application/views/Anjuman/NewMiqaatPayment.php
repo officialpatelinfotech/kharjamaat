@@ -40,11 +40,12 @@
           <option value="">Select Payment Method</option>
           <option value="Cash">Cash</option>
           <option value="Cheque">Cheque</option>
+          <option value="NEFT">NEFT</option>
         </select>
       </div>
       <div class="form-group mb-3">
-        <label for="member-name">Member Name</label>
-        <input type="text" class="form-control" id="member-name" name="member_name" placeholder="Enter member name" required>
+        <label for="member-name">Name or ITS</label>
+        <input type="text" class="form-control" id="member-name" name="member_name" placeholder="Enter name or ITS" required>
         <div id="member-autocomplete-list" class="list-group position-absolute" style="z-index: 1000; width: 100%;"></div>
         <input type="hidden" name="user_id" id="user-id">
       </div>

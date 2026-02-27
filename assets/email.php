@@ -149,7 +149,7 @@
 				</div>
 			</div>
 			<div class="footer">
-				Anjuman-e-Saifee — Khar Jamaat • Bohra Masjid, Khar • <a href="tel:+919372415351">+919372415351</a> • <a href="mailto:kharjamaat786@gmail.com">kharjamaat786@gmail.com</a>
+				Anjuman-e-Saifee — {%jamaat_name%} • Bohra Masjid, Khar • <a href="tel:+919372415351">+919372415351</a> • <a href="mailto:kharjamaat786@gmail.com">kharjamaat786@gmail.com</a>
 			</div>
 		</div>
 	</div>

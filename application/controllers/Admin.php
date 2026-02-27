@@ -10,6 +10,7 @@ class Admin extends CI_Controller
     parent::__construct();
     $this->load->model('AdminM');
     $this->load->model('AccountM');
+    $this->load->model('SettingsM');
     $this->load->model('HijriCalendar');
     $this->load->library('email', $this->config->item('email'));
     $this->AdminM->updateHijriGregorianDates();
@@ -390,12 +391,15 @@ class Admin extends CI_Controller
   // - /admin/qardanhasana
   // - /admin/qardanhasana/mohammedi | taher | husain
   // - /admin/qardanhasana/mohammedi/import (POST)
+  // - /admin/qardanhasana/mohammedi/template (GET)
   // - /admin/qardanhasana/mohammedi/delete/{id} (POST)
   // - /admin/qardanhasana/mohammedi/update/{id} (POST)
   // - /admin/qardanhasana/taher/import (POST)
+  // - /admin/qardanhasana/taher/template (GET)
   // - /admin/qardanhasana/taher/delete/{id} (POST)
   // - /admin/qardanhasana/taher/update/{id} (POST)
   // - /admin/qardanhasana/husain/import (POST)
+  // - /admin/qardanhasana/husain/template (GET)
   // - /admin/qardanhasana/husain/delete/{id} (POST)
   // - /admin/qardanhasana/husain/update/{id} (POST)
   public function qardanhasana($scheme = null, $action = null, $id = null)
@@ -405,6 +409,27 @@ class Admin extends CI_Controller
     $scheme = $scheme !== null ? strtolower(trim((string)$scheme)) : null;
     $action = $action !== null ? strtolower(trim((string)$action)) : null;
     $allowed = ['mohammedi', 'taher', 'husain'];
+
+    // Mohammedi scheme: downloadable CSV import template
+    // Must run before rendering any HTML to keep CSV output clean.
+    if ($scheme === 'mohammedi' && $action === 'template') {
+      $this->qh_download_mohammedi_import_template_csv();
+      return;
+    }
+
+    // Taher scheme: downloadable CSV import template
+    // Must run before rendering any HTML to keep CSV output clean.
+    if ($scheme === 'taher' && $action === 'template') {
+      $this->qh_download_taher_import_template_csv();
+      return;
+    }
+
+    // Husain scheme: downloadable CSV import template
+    // Must run before rendering any HTML to keep CSV output clean.
+    if ($scheme === 'husain' && $action === 'template') {
+      $this->qh_download_husain_import_template_csv();
+      return;
+    }
 
     $this->load->view('Admin/Header', $data);
 
@@ -741,6 +766,7 @@ class Admin extends CI_Controller
       'deposit_date' => $this->input->get('deposit_date'),
       'maturity_date' => $this->input->get('maturity_date'),
       'duration' => $this->input->get('duration'),
+      'search' => $this->input->get('search'),
       'its' => $this->input->get('its'),
       'member_name' => $this->input->get('member_name')
     ];
@@ -775,6 +801,7 @@ class Admin extends CI_Controller
       } elseif ($scheme === 'taher') {
         $data['records'] = $this->QardanHasanaM->get_taher_records([
           'miqaat_name' => $miqaatNameFilter,
+          'search' => isset($data['filters']['search']) ? trim((string)$data['filters']['search']) : '',
           'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
           'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
         ]);
@@ -790,6 +817,7 @@ class Admin extends CI_Controller
           'deposit_date' => $depositDate,
           'maturity_date' => $maturityDate,
           'duration' => $duration,
+          'search' => isset($data['filters']['search']) ? trim((string)$data['filters']['search']) : '',
           'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
           'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
         ]);
@@ -818,6 +846,67 @@ class Admin extends CI_Controller
       $data['total_amount'] = $total;
     }
     $this->load->view('Admin/QardanHasanaScheme', $data);
+  }
+
+  private function qh_download_mohammedi_import_template_csv()
+  {
+    $filename = 'qardan_hasana_mohammedi_import_template.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    // UTF-8 BOM helps Excel open the CSV correctly.
+    echo "\xEF\xBB\xBF";
+
+    $out = fopen('php://output', 'w');
+    if ($out === false) {
+      exit;
+    }
+    fputcsv($out, ['Miqaat Name', 'Hijri Date', 'English Date', 'Collection Amount']);
+    fclose($out);
+    exit;
+  }
+
+  private function qh_download_taher_import_template_csv()
+  {
+    $filename = 'qardan_hasana_taher_import_template.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    echo "\xEF\xBB\xBF";
+
+    $out = fopen('php://output', 'w');
+    if ($out === false) {
+      exit;
+    }
+
+    fputcsv($out, ['ITS', 'Unit = 215₹', 'No of 215₹ Units', 'Miqaat Name']);
+    fclose($out);
+    exit;
+  }
+
+  private function qh_download_husain_import_template_csv()
+  {
+    $filename = 'qardan_hasana_husain_import_template.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    echo "\xEF\xBB\xBF";
+
+    $out = fopen('php://output', 'w');
+    if ($out === false) {
+      exit;
+    }
+
+    // Per requirement: do NOT include Member Name in import template.
+    fputcsv($out, ['ITS', 'Amount', 'Deposit Date', 'Maturity Date', 'Duration']);
+    fclose($out);
+    exit;
   }
 
   // Ekram Fund card page
@@ -884,7 +973,7 @@ class Admin extends CI_Controller
     $hijri_year = ($hijri_year_raw !== null && $hijri_year_raw !== '') ? (int)$hijri_year_raw : null;
     $amount = (float)$this->input->post('amount');
     $description = trim((string)$this->input->post('description'));
-    $old = ['title'=>$title,'hijri_year'=>$hijri_year,'amount'=>$amount,'description'=>$description];
+    $old = ['title' => $title, 'hijri_year' => $hijri_year, 'amount' => $amount, 'description' => $description];
     // If title not supplied (form removed), auto-generate using Hijri year
     if ($title === '') {
       $title = $hijri_year ? ('Ekram Fund ' . $hijri_year) : 'Ekram Fund';
@@ -913,20 +1002,20 @@ class Admin extends CI_Controller
       foreach ($hofs as $h) {
         $hof_id = (int)$h['HOF_ID'];
         if ($hof_id <= 0) continue;
-        $exists = $this->db->get_where('ekram_fund_assignment', ['fund_id'=>$fund_id,'hof_id'=>$hof_id])->row_array();
+        $exists = $this->db->get_where('ekram_fund_assignment', ['fund_id' => $fund_id, 'hof_id' => $hof_id])->row_array();
         if (!$exists) {
-          $batch[] = ['fund_id'=>$fund_id, 'hof_id'=>$hof_id, 'amount_assigned'=>$amount, 'created_at'=>date('Y-m-d H:i:s')];
+          $batch[] = ['fund_id' => $fund_id, 'hof_id' => $hof_id, 'amount_assigned' => $amount, 'created_at' => date('Y-m-d H:i:s')];
         }
       }
       if (!empty($batch)) $this->db->insert_batch('ekram_fund_assignment', $batch);
       $assigned = count($batch);
-      $this->session->set_flashdata('ekram_message', 'Ekram fund created (ID '.$fund_id.') and assigned to '.$assigned.' HOFs.');
+      $this->session->set_flashdata('ekram_message', 'Ekram fund created (ID ' . $fund_id . ') and assigned to ' . $assigned . ' HOFs.');
       redirect('admin/ekramfunds');
       return;
     } else {
       $errMsg = 'Failed to create ekram fund.';
       if (is_array($result) && isset($result['error']['message'])) {
-        $errMsg .= ' DB Error: '.$result['error']['message'];
+        $errMsg .= ' DB Error: ' . $result['error']['message'];
       }
       $this->session->set_flashdata('ekram_error', $errMsg);
       $this->session->set_flashdata('ekram_old', $old);
@@ -1447,7 +1536,9 @@ class Admin extends CI_Controller
         redirect('admin/corpusfunds_hofs_import');
         return;
       }
-      $processed = 0; $inserted = 0; $updated = 0;
+      $processed = 0;
+      $inserted = 0;
+      $updated = 0;
       $first = fgetcsv($fh);
       $hasHeader = false;
       if ($first !== false) {
@@ -1463,12 +1554,12 @@ class Admin extends CI_Controller
             $fund_id = isset($row[1]) ? (int)trim($row[1]) : 0;
             $amount = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
             if ($hof_id > 0 && $fund_id > 0) {
-              $exists = $this->db->get_where('corpus_fund_assignment', ['hof_id'=>$hof_id, 'fund_id'=>$fund_id])->row_array();
+              $exists = $this->db->get_where('corpus_fund_assignment', ['hof_id' => $hof_id, 'fund_id' => $fund_id])->row_array();
               if ($exists) {
-                $this->db->where('id', $exists['id'])->update('corpus_fund_assignment', ['amount_assigned'=>$amount]);
+                $this->db->where('id', $exists['id'])->update('corpus_fund_assignment', ['amount_assigned' => $amount]);
                 $updated++;
               } else {
-                $this->db->insert('corpus_fund_assignment', ['hof_id'=>$hof_id, 'fund_id'=>$fund_id, 'amount_assigned'=>$amount, 'created_at'=>date('Y-m-d H:i:s')]);
+                $this->db->insert('corpus_fund_assignment', ['hof_id' => $hof_id, 'fund_id' => $fund_id, 'amount_assigned' => $amount, 'created_at' => date('Y-m-d H:i:s')]);
                 $inserted++;
               }
             }
@@ -1481,12 +1572,12 @@ class Admin extends CI_Controller
         $fund_id = isset($row[1]) ? (int)trim($row[1]) : 0;
         $amount = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
         if ($hof_id > 0 && $fund_id > 0) {
-          $exists = $this->db->get_where('corpus_fund_assignment', ['hof_id'=>$hof_id, 'fund_id'=>$fund_id])->row_array();
+          $exists = $this->db->get_where('corpus_fund_assignment', ['hof_id' => $hof_id, 'fund_id' => $fund_id])->row_array();
           if ($exists) {
-            $this->db->where('id', $exists['id'])->update('corpus_fund_assignment', ['amount_assigned'=>$amount]);
+            $this->db->where('id', $exists['id'])->update('corpus_fund_assignment', ['amount_assigned' => $amount]);
             $updated++;
           } else {
-            $this->db->insert('corpus_fund_assignment', ['hof_id'=>$hof_id, 'fund_id'=>$fund_id, 'amount_assigned'=>$amount, 'created_at'=>date('Y-m-d H:i:s')]);
+            $this->db->insert('corpus_fund_assignment', ['hof_id' => $hof_id, 'fund_id' => $fund_id, 'amount_assigned' => $amount, 'created_at' => date('Y-m-d H:i:s')]);
             $inserted++;
           }
         }
@@ -1520,7 +1611,7 @@ class Admin extends CI_Controller
     echo "\xEF\xBB\xBF";
     $out = fopen('php://output', 'w');
     fputcsv($out, ['hof_id', 'fund_id', 'amount_assigned']);
-    for ($i=0;$i<5;$i++) fputcsv($out, ['', '', '']);
+    for ($i = 0; $i < 5; $i++) fputcsv($out, ['', '', '']);
     fclose($out);
     exit;
   }
@@ -2152,12 +2243,22 @@ class Admin extends CI_Controller
     }
     $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
     $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+
+    $emailRazaId = (string)$razaPublicId;
+    if ($emailRazaId !== '' && stripos($emailRazaId, 'R#') !== 0 && preg_match('/^\d/', $emailRazaId)) {
+      $emailRazaId = 'R#' . $emailRazaId;
+    }
+
     $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
     // If this is a Miqaat Raza, show Miqaat details in the email instead of generic razatype fields.
     if (!empty($razaRow['miqaat_id'])) {
       $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRow['miqaat_id']);
       $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
       $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRow['miqaat_id'];
+      $emailMiqaatId = (string)$miqaatPublicId;
+      if ($emailMiqaatId !== '' && stripos($emailMiqaatId, 'M#') !== 0 && preg_match('/^\d/', $emailMiqaatId)) {
+        $emailMiqaatId = 'M#' . $emailMiqaatId;
+      }
       $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
       $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
 
@@ -2174,7 +2275,7 @@ class Admin extends CI_Controller
 
       $detailsHtml = '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
         . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
-        . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars($miqaatPublicId) . '</td></tr>'
+        . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars($emailMiqaatId) . '</td></tr>'
         . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars($miqaatType) . '</td></tr>') : '')
         . ($miqaatDate !== '' ? ('<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>') : '')
         . ($assignmentLabel !== '' ? ('<tr><td><strong>Assignment</strong></td><td>' . htmlspecialchars($assignmentLabel) . '</td></tr>') : '')
@@ -2187,11 +2288,92 @@ class Admin extends CI_Controller
 
     $amilsaheb_mobile = substr(preg_replace('/\D+/', '', $amilsaheb_details[0]['Mobile'] ?? ''), -10);
 
+    // WhatsApp: Raza recommended (admin + member)
+    $this->load->library('Notification_lib');
+    $adminWaRecipients = admin_whatsapp_recipients();
+
+    $memberWa = '';
+    if (!empty($user['Mobile'])) {
+      $memberWa = substr(preg_replace('/\D+/', '', (string)$user['Mobile']), -10);
+    }
+    $memberLabel = trim((string)($user['Full_Name'] ?? '') . ' (' . (string)($user['ITS_ID'] ?? '') . ')');
+
+    $waRazaId = (string)$razaPublicId;
+    if ($waRazaId !== '' && stripos($waRazaId, 'R#') !== 0) {
+      $waRazaId = 'R#' . $waRazaId;
+    }
+
+    $detailsText = '';
+    if (!empty($miqaatName)) {
+      $waMiqaatId = (string)$miqaatPublicId;
+      if ($waMiqaatId !== '' && stripos($waMiqaatId, 'M#') !== 0) {
+        $waMiqaatId = 'M#' . $waMiqaatId;
+      }
+      $parts = [];
+      if ($miqaatName !== '') $parts[] = 'Miqaat: ' . $miqaatName;
+      if ($waMiqaatId !== '') $parts[] = 'Miqaat ID: ' . $waMiqaatId;
+      if ($miqaatType !== '') $parts[] = 'Type: ' . $miqaatType;
+      if ($miqaatDate !== '') $parts[] = 'Date: ' . $miqaatDate;
+      if ($assignmentLabel !== '') $parts[] = 'Assignment: ' . $assignmentLabel;
+      if ($assignmentGroupName !== '') $parts[] = 'Group: ' . $assignmentGroupName;
+      // Keep variables single-line; ExprezBot/WhatsApp templates may not dispatch reliably with embedded newlines.
+      $detailsText = implode(' | ', $parts);
+    }
+    if ($detailsText === '') {
+      // Non-Miqaat: derive from razadata so field labels/values stay separated.
+      $detailsText = function_exists('render_raza_details_compact_text')
+        ? (string)render_raza_details_compact_text($razaName, $rtFieldsDecoded, $razadataDecoded)
+        : '';
+    }
+    if ($detailsText === '') {
+      $detailsText = function_exists('render_raza_details_compact_text_from_html')
+        ? (string)render_raza_details_compact_text_from_html($detailsHtml)
+        : trim(preg_replace('/\s+/', ' ', strip_tags((string)$detailsHtml)));
+    }
+    if ($detailsText === '') {
+      $detailsText = 'Raza';
+    }
+
+    $amilContact = '';
+    if ($amilsaheb_mobile !== '') {
+      $amilContact = '+91-' . $amilsaheb_mobile;
+    } elseif (!empty($adminWaRecipients[0])) {
+      // Fallback: any admin WhatsApp number
+      $amilContact = (string)$adminWaRecipients[0];
+    }
+
+    if ($memberWa !== '') {
+      $this->notification_lib->send_whatsapp([
+        'recipient' => $memberWa,
+        'template_name' => 'raza_recommended_member',
+        'template_language' => 'en',
+        'body_vars' => [
+          (string)($user['Full_Name'] ?? $user['ITS_ID'] ?? ''),
+          (string)$waRazaId,
+          (string)$detailsText,
+          (string)$amilContact,
+        ]
+      ]);
+    }
+
+    foreach ($adminWaRecipients as $wa) {
+      $this->notification_lib->send_whatsapp([
+        'recipient' => $wa,
+        'template_name' => 'raza_recommended_admin',
+        'template_language' => 'en',
+        'body_vars' => [
+          (string)$memberLabel,
+          (string)$waRazaId,
+          (string)$detailsText,
+        ]
+      ]);
+    }
+
     // Enqueue email to user (non-blocking)
     $this->load->model('EmailQueueM');
     $message = '<p>Baad Afzalus Salaam,</p>'
       . '<p><strong>Mubarak!</strong> Your Raza request has received a recommendation from Anjuman-e-Saifee Jamaat.</p>'
-      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
       . $remarkHtml
       . $detailsHtml
       . '<p>Kindly reach out to <strong>Janab Amil Saheb</strong> via <strong>Phone/WhatsApp</strong> to obtain his <strong>final Raza and Dua</strong>: <strong>+91-' . $amilsaheb_mobile . '</strong></p>'
@@ -2201,7 +2383,7 @@ class Admin extends CI_Controller
     // Notify Amilsaheb, Khar Jamaat, 3042 Carmelnmh, Anjuman
     $msg_html = '<p>Raza request has been recommended by the Jamaat Coordinator.</p>'
       . '<p><strong>Member:</strong> ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ')</p>'
-      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
       . $remarkHtml
       . $detailsHtml;
 
@@ -2263,12 +2445,22 @@ class Admin extends CI_Controller
     }
     $razaName = isset($rtRow['name']) ? (string)$rtRow['name'] : 'Raza';
     $razaPublicId = isset($razaRow['raza_id']) && $razaRow['raza_id'] !== '' ? (string)$razaRow['raza_id'] : (string)$raza_id;
+
+    $emailRazaId = (string)$razaPublicId;
+    if ($emailRazaId !== '' && stripos($emailRazaId, 'R#') !== 0 && preg_match('/^\d/', $emailRazaId)) {
+      $emailRazaId = 'R#' . $emailRazaId;
+    }
+
     $detailsHtml = render_raza_details_table_html($razaName, $rtFieldsDecoded, $razadataDecoded);
     // If this is a Miqaat Raza, show Miqaat details in the email instead of generic razatype fields.
     if (!empty($razaRow['miqaat_id'])) {
       $miqaatRow = $this->AccountM->get_miqaat_by_id((int)$razaRow['miqaat_id']);
       $miqaatName = isset($miqaatRow['name']) ? (string)$miqaatRow['name'] : '';
       $miqaatPublicId = isset($miqaatRow['miqaat_id']) ? (string)$miqaatRow['miqaat_id'] : (string)$razaRow['miqaat_id'];
+      $emailMiqaatId = (string)$miqaatPublicId;
+      if ($emailMiqaatId !== '' && stripos($emailMiqaatId, 'M#') !== 0 && preg_match('/^\d/', $emailMiqaatId)) {
+        $emailMiqaatId = 'M#' . $emailMiqaatId;
+      }
       $miqaatType = isset($miqaatRow['type']) ? (string)$miqaatRow['type'] : '';
       $miqaatDate = isset($miqaatRow['date']) ? date('d-m-Y', strtotime($miqaatRow['date'])) : '';
 
@@ -2284,9 +2476,9 @@ class Admin extends CI_Controller
       }
 
       $detailsHtml = '<table border="0" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">'
-        . '<tr><td><strong>Raza ID</strong></td><td>' . htmlspecialchars($razaPublicId) . '</td></tr>'
+        . '<tr><td><strong>Raza ID</strong></td><td>' . htmlspecialchars($emailRazaId) . '</td></tr>'
         . '<tr><td><strong>Miqaat</strong></td><td>' . htmlspecialchars($miqaatName) . '</td></tr>'
-        . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars($miqaatPublicId) . '</td></tr>'
+        . '<tr><td><strong>Miqaat ID</strong></td><td>' . htmlspecialchars($emailMiqaatId) . '</td></tr>'
         . ($miqaatType !== '' ? ('<tr><td><strong>Type</strong></td><td>' . htmlspecialchars($miqaatType) . '</td></tr>') : '')
         . ($miqaatDate !== '' ? ('<tr><td><strong>Date</strong></td><td>' . htmlspecialchars($miqaatDate) . '</td></tr>') : '')
         . ($assignmentLabel !== '' ? ('<tr><td><strong>Assignment</strong></td><td>' . htmlspecialchars($assignmentLabel) . '</td></tr>') : '')
@@ -2299,7 +2491,7 @@ class Admin extends CI_Controller
     $this->load->model('EmailQueueM');
     $memberBody = '<p>Baad Afzalus Salaam,</p>'
       . '<p>Your Raza has <strong>not</strong> been recommended by the Jamaat coordinator.</p>'
-      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
       . $remarkHtml
       . $detailsHtml
       . '<p>Please wait for Janab\'s response or contact Jamaat office for guidance.</p>'
@@ -2309,7 +2501,7 @@ class Admin extends CI_Controller
     $msg_text = 'Raza request for ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ') has not been recommended by the Jamaat Coordinator. Raza ID: ' . htmlspecialchars($razaPublicId);
     $msg_html = '<p>Raza request has <strong>not</strong> been recommended by the Jamaat Coordinator.</p>'
       . '<p><strong>Member:</strong> ' . htmlspecialchars($user['Full_Name']) . ' (' . htmlspecialchars($user['ITS_ID']) . ')</p>'
-      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($razaPublicId) . '</p>'
+      . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
       . $remarkHtml
       . $detailsHtml;
 
@@ -2454,8 +2646,8 @@ class Admin extends CI_Controller
     $flag = $this->AdminM->update_raza_type($id, json_encode($raza['fields']));
 
     if ($flag) {
-            $title = trim((string)$this->input->post('title'));
-            $description = trim((string)$this->input->post('description'));
+      $title = trim((string)$this->input->post('title'));
+      $description = trim((string)$this->input->post('description'));
     } else {
       http_response_code(500);
       echo json_encode(['status' => false, 'error' => 'Failed to submit']);
@@ -3446,7 +3638,7 @@ HTML;
       if (count($parts) === 3) {
         $month = (int)$parts[1];
         $year  = (int)$parts[2];
-        if ($month >= 1 && $month <= 8) {
+        if ($month >= 1 && $month <= 6) {
           $y1 = $year - 1;
           $y2 = substr($year, -2);
           $fy = $y1 . '-' . $y2;
@@ -3952,9 +4144,9 @@ HTML;
     // If neither applies or the expected id is missing, fall back to full HOF list.
     $hof_list = [];
     $hof_list = $this->AdminM->get_family_members_by_hof_id($member['HOF_ID']);
-    
+
     $data['hof_list'] = $hof_list;
-    
+
     $data['sector_map'] = $this->AdminM->get_sector_hierarchy();
     $data['sector_list'] = array_keys($data['sector_map']);
     $this->load->view('Admin/Header', $data);

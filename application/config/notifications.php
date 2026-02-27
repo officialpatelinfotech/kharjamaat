@@ -5,6 +5,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $config['amil_whatsapp'] = '+918452840052';
 $config['jamaat_whatsapp_group'] = null;
 
+// Admin WhatsApp recipients (digits or +91...); optional.
+// If empty, code may fallback to looking up admin mobiles by email.
+$config['admin_whatsapp_recipients'] = [
+	'+919372415351',
+	'+919820150617',
+	'+919820291857',
+];
+
 // Scheduling defaults
 $config['thaali_signup_daily_time'] = '09:00';
 $config['thaali_feedback_time'] = '22:00';
@@ -12,6 +20,15 @@ $config['thaali_feedback_time'] = '22:00';
 // Amil Saheb appointment digest
 $config['amilsaheb_appointments_digest_time'] = '22:00';
 $config['amilsaheb_appointments_digest_recipients'] = ['kharamilsaheb@gmail.com'];
+
+// Amil Saheb event reminders (Miqaat Public Event / Kaaraj Private Event)
+// If empty, code falls back to `amilsaheb_appointments_digest_recipients`.
+$config['amilsaheb_event_reminder_recipients'] = ['kharamilsaheb@gmail.com'];
+
+// Event reminder schedule times (server local time)
+$config['event_reminder_time_d3'] = '13:00'; // 3 days before at 01:00 pm
+$config['event_reminder_time_d1'] = '21:00'; // 1 day before at 09:00 pm
+$config['event_reminder_time_d0'] = '09:00'; // event day at 09:00 am
 
 // Monthly/weekly schedule settings
 $config['sabeel_monthly_day'] = 1;

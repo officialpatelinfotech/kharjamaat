@@ -102,12 +102,13 @@
             </div>
             <div class="col-md-4 col-12 mt-2">
               <label class="form-label small mb-1">Member Type</label>
+              <?php $jp = htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>
               <select name="Member_Type" id="memberTypeSelect" class="form-control form-select form-select-sm">
                 <option value="">-- Select Member Type --</option>
-                <option value="Resident Mumineen">Resident Mumineen – Living in Khar, ITS in Khar, regular Sabeel payer</option>
-                <option value="External Sabeel Payers">External Sabeel Payers – ITS not in Khar, but resident & regular Sabeel payer</option>
-                <option value="Moved-Out Mumineen">Moved-Out Mumineen – ITS in Khar but no longer residing</option>
-                <option value="Non-Sabeel Residents">Non-Sabeel Residents – Living in Khar, ITS not in Khar, not a Sabeel payer</option>
+                <option value="Resident Mumineen">Resident Mumineen – Living in <?php echo $jp; ?>, ITS in <?php echo $jp; ?>, regular Sabeel payer</option>
+                <option value="External Sabeel Payers">External Sabeel Payers – ITS not in <?php echo $jp; ?>, but resident & regular Sabeel payer</option>
+                <option value="Moved-Out Mumineen">Moved-Out Mumineen – ITS in <?php echo $jp; ?> but no longer residing</option>
+                <option value="Non-Sabeel Residents">Non-Sabeel Residents – Living in <?php echo $jp; ?>, ITS not in <?php echo $jp; ?>, not a Sabeel payer</option>
                 <option value="Temporary Mumineen/Visitors">Temporary Mumineen/Visitors – Temporary presence for events</option>
               </select>
               <div id="memberTypeError" class="text-danger small mt-1" style="display:none;"></div>

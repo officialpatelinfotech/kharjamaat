@@ -38,11 +38,13 @@ class NotificationM extends CI_Model {
 
     public function mark_sent($id)
     {
+        // Treat attempts as "number of times we tried to deliver".
+        // Successful deliveries should therefore have attempts >= 1.
+        $this->db->set('attempts', 'attempts+1', FALSE);
+        $this->db->set('status', 'sent');
+        $this->db->set('sent_at', date('Y-m-d H:i:s'));
         $this->db->where('id', $id);
-        $this->db->update('notifications', [
-            'status' => 'sent',
-            'sent_at' => date('Y-m-d H:i:s')
-        ]);
+        $this->db->update('notifications');
         return $this->db->affected_rows() > 0;
     }
 

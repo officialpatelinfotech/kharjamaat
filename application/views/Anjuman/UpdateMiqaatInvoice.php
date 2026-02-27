@@ -1,19 +1,78 @@
-<div class="margintopcontainer pt-5">
-  <div class="row">
+<div class="margintopcontainer pt-3">
+  <div class="row px-3">
     <div class="col-12">
-      <div class="col-12 col-md-6 m-0 mb-2">
-        <a href="<?php echo base_url("anjuman/fmbniyaz") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
-      </div>
-      <div class="col-12 col-md-6 m-0 text-right ml-auto mb-3">
-        <button id="fala-ni-niyaz-invoices" class="btn btn-primary" data-toggle="modal" data-target="#falaNiyazInvoicesModal">Invoices Generated for Miqaats</button>
+      <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 10px;">
+        <div class="mb-2">
+          <a href="<?php echo base_url("anjuman/fmbniyaz") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+        </div>
+        <div class="mb-2 ml-auto">
+          <?php
+          $btnType = isset($miqaat_type) ? (string)$miqaat_type : '';
+          $btnYears = isset($hijri_years) && is_array($hijri_years) ? $hijri_years : [];
+          $btnYear = isset($selected_year) && $selected_year !== ''
+            ? (string)$selected_year
+            : (isset($current_hijri_year) && $current_hijri_year !== '' ? (string)$current_hijri_year : (!empty($btnYears) ? (string)$btnYears[0] : ''));
+          ?>
+          <button id="fala-ni-niyaz-invoices" class="btn btn-primary" data-toggle="modal" data-target="#falaNiyazInvoicesModal">Update Fala Amount for <?php echo htmlspecialchars($btnType); ?> <?php echo htmlspecialchars($btnYear); ?></button>
+        </div>
       </div>
     </div>
   </div>
+  <div id="miqaat-filters" class="p-3 bg-light border m-3">
+    <div class="form-row">
+      <div class="col-md-2 mb-2">
+        <label for="mf-name" class="mb-1 text-muted">Name or ITS</label>
+        <input type="text" id="mf-name" class="form-control form-control-sm" placeholder="Search name or ITS...">
+      </div>
+      <div class="col-md-2 mb-2">
+        <label for="mf-sector" class="mb-1 text-muted">Sector</label>
+        <select id="mf-sector" class="form-control form-control-sm">
+          <option value="">All Sectors</option>
+          <?php if (isset($sectors) && is_array($sectors)): foreach ($sectors as $s): $secVal = isset($s['Sector']) ? $s['Sector'] : (is_string($s) ? $s : '');
+              if ($secVal === '') continue; ?>
+              <option value="<?php echo htmlspecialchars(strtolower($secVal), ENT_QUOTES); ?>"><?php echo htmlspecialchars($secVal); ?></option>
+          <?php endforeach;
+          endif; ?>
+        </select>
+      </div>
+      <div class="col-md-2 mb-2">
+        <label for="mf-subsector" class="mb-1 text-muted">Sub Sector</label>
+        <select id="mf-subsector" class="form-control form-control-sm">
+          <option value="">All Sub Sectors</option>
+          <?php if (isset($sub_sectors) && is_array($sub_sectors)): foreach ($sub_sectors as $ss): $subVal = isset($ss['Sub_Sector']) ? $ss['Sub_Sector'] : (is_string($ss) ? $ss : '');
+              if ($subVal === '') continue; ?>
+              <option value="<?php echo htmlspecialchars(strtolower($subVal), ENT_QUOTES); ?>"><?php echo htmlspecialchars($subVal); ?></option>
+          <?php endforeach;
+          endif; ?>
+        </select>
+      </div>
+      <div class="col-md-2 mb-2">
+        <label for="mf-year" class="mb-1 text-muted">Hijri Year</label>
+        <?php
+        $years = isset($hijri_years) && is_array($hijri_years) ? $hijri_years : [];
+        $defaultYear = isset($selected_year) && $selected_year !== ''
+          ? $selected_year
+          : (isset($current_hijri_year) && $current_hijri_year !== '' ? $current_hijri_year : (!empty($years) ? end($years) : ''));
+        if (!empty($years)) reset($years);
+        ?>
+        <select id="mf-year" class="form-control form-control-sm" data-default-year="<?php echo htmlspecialchars($defaultYear, ENT_QUOTES); ?>">
+          <option value="">All Years</option>
+          <?php foreach ($years as $y): ?>
+            <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ($defaultYear === $y ? 'selected' : ''); ?>><?php echo htmlspecialchars($y); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-2 mb-2 d-flex align-items-end">
+        <button type="button" id="mf-clear" class="btn btn-outline-secondary btn-sm w-100">Clear Filters</button>
+      </div>
+    </div>
+  </div>
+
   <div class="col-12 mb-3">
     <?php
-      $displayYear = isset($current_hijri_year) && $current_hijri_year !== ''
-        ? $current_hijri_year
-        : (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years) ? $hijri_years[0] : '');
+    $displayYear = isset($current_hijri_year) && $current_hijri_year !== ''
+      ? $current_hijri_year
+      : (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years) ? $hijri_years[0] : '');
     ?>
     <h4 class="heading text-center mb-0">
       <span class="text-primary"><?php echo isset($miqaat_type) ? $miqaat_type : ''; ?></span>
@@ -39,27 +98,107 @@
     }
   }
 
-  $rows = [];
+  // Build a flat invoice-wise list (each row = one invoice)
+  $invoice_rows = [];
   $grand_total = 0.0;
+  $seen_invoice_ids = [];
+
+  if (!function_exists('format_inr_no_decimals')) {
+    function format_inr_no_decimals($num)
+    {
+      if ($num === null || $num === '' || !is_numeric($num)) {
+        $num = 0;
+      }
+      $num = (float)$num;
+      $num = round($num);
+      $neg = $num < 0;
+      if ($neg) $num = abs($num);
+      $int = (string)$num;
+      if (strlen($int) <= 3) {
+        $res = $int;
+      } else {
+        $last3 = substr($int, -3);
+        $rest = substr($int, 0, -3);
+        $rest = preg_replace('/\B(?=(?:\d{2})+(?!\d))/', ',', $rest);
+        $res = $rest . ',' . $last3;
+      }
+      return ($neg ? '-' : '') . $res;
+    }
+  }
+
   if (!empty($members)) {
     foreach ($members as $m) {
-      $its = isset($m['ITS_ID']) ? $m['ITS_ID'] : '';
-      $name = isset($m['Full_Name']) ? $m['Full_Name'] : '';
-      if (isset($m['miqaat_invoices']) && is_array($m['miqaat_invoices'])) {
-        foreach ($m['miqaat_invoices'] as $inv) {
-          $row = [
-            'invoice_id'   => isset($inv['invoice_id']) ? $inv['invoice_id'] : '',
-            'its_id'       => $its,
-            'full_name'    => $name,
-            'miqaat_id'    => isset($inv['miqaat_id']) ? $inv['miqaat_id'] : '',
-            'miqaat_name'  => isset($inv['miqaat_name']) ? $inv['miqaat_name'] : '',
-            'invoice_date' => isset($inv['invoice_date']) ? $inv['invoice_date'] : '',
-            'amount'       => isset($inv['amount']) ? (float)$inv['amount'] : 0.0,
-            'description'  => isset($inv['description']) ? $inv['description'] : '',
-          ];
-          $rows[] = $row;
-          $grand_total += (float)$row['amount'];
+      $its = isset($m['ITS_ID']) ? (string)$m['ITS_ID'] : '';
+      $name = isset($m['Full_Name']) ? (string)$m['Full_Name'] : '';
+      $sector = isset($m['Sector']) ? (string)$m['Sector'] : (isset($m['sector']) ? (string)$m['sector'] : '');
+      $subSector = isset($m['Sub_Sector']) ? (string)$m['Sub_Sector'] : (isset($m['sub_sector']) ? (string)$m['sub_sector'] : '');
+
+      $invoices = isset($m['miqaat_invoices']) && is_array($m['miqaat_invoices']) ? $m['miqaat_invoices'] : [];
+      foreach ($invoices as $inv) {
+        $invoiceId = isset($inv['invoice_id']) ? (string)$inv['invoice_id'] : '';
+        if ($invoiceId !== '' && isset($seen_invoice_ids[$invoiceId])) {
+          continue;
         }
+        if ($invoiceId !== '') {
+          $seen_invoice_ids[$invoiceId] = true;
+        }
+
+        $amount = 0.0;
+        if (isset($inv['amount']) && $inv['amount'] !== '' && $inv['amount'] !== null) {
+          $amount = (float)$inv['amount'];
+        } elseif (isset($inv['invoice_amount']) && $inv['invoice_amount'] !== '' && $inv['invoice_amount'] !== null) {
+          $amount = (float)$inv['invoice_amount'];
+        }
+
+        $displayDateIso = '';
+        if (!empty($inv['miqaat_date'])) {
+          $displayDateIso = (string)$inv['miqaat_date'];
+        } elseif (!empty($inv['invoice_date'])) {
+          $displayDateIso = (string)$inv['invoice_date'];
+        }
+
+        $invoiceDateIso = '';
+        if (!empty($inv['invoice_date'])) {
+          $invoiceDateIso = (string)$inv['invoice_date'];
+        }
+
+        $miqaatId = isset($inv['miqaat_id']) ? (string)$inv['miqaat_id'] : '';
+        $razaId = isset($inv['raza_id']) ? (string)$inv['raza_id'] : '';
+        $miqaatName = isset($inv['miqaat_name']) ? (string)$inv['miqaat_name'] : '';
+        $assignedTo = isset($inv['assigned_to']) ? (string)$inv['assigned_to'] : '';
+        if ($assignedTo === '' && $miqaatId === '') {
+          $assignedTo = 'Fala ni Niyaz';
+        }
+
+        $individualCount = 0;
+        if (isset($inv['individual_count']) && $inv['individual_count'] !== '' && $inv['individual_count'] !== null) {
+          $individualCount = (int)$inv['individual_count'];
+        }
+
+        $hijriDate = isset($inv['hijri_date']) ? (string)$inv['hijri_date'] : '';
+        $invYear = isset($inv['invoice_year']) ? (string)$inv['invoice_year'] : '';
+        $desc = isset($inv['description']) ? (string)$inv['description'] : '';
+
+        $invoice_rows[] = [
+          'invoice_id' => $invoiceId,
+          'its_id' => $its,
+          'full_name' => $name,
+          'sector' => $sector,
+          'sub_sector' => $subSector,
+          'display_date_iso' => $displayDateIso,
+          'invoice_date_iso' => $invoiceDateIso,
+          'hijri_date' => $hijriDate,
+          'invoice_year' => $invYear,
+          'miqaat_id' => $miqaatId,
+          'raza_id' => $razaId,
+          'miqaat_name' => $miqaatName,
+          'assigned_to' => $assignedTo,
+          'individual_count' => $individualCount,
+          'details' => trim($name . ($its !== '' ? (' (' . $its . ')') : '')),
+          'amount' => $amount,
+          'description' => $desc,
+        ];
+        $grand_total += (float)$amount;
       }
     }
   }
@@ -73,11 +212,49 @@
     && is_array($member_miqaat_invoices['miqaats'])
   ) {
     $miqaats_list = $member_miqaat_invoices['miqaats'];
+
+    // Show ONLY Fala ni Niyaz invoice groups in the popup.
+    // In our data shape, miqaat invoice groups have group_key like "M#...".
+    // Fala ni Niyaz invoice groups use a non-M# group_key and have miqaat_id null.
+    $miqaats_list = array_values(array_filter($miqaats_list, function ($m) {
+      $gk = isset($m['group_key']) ? (string)$m['group_key'] : '';
+      $miqaatId = isset($m['miqaat_id']) ? $m['miqaat_id'] : null;
+      $name = isset($m['miqaat_name']) ? (string)$m['miqaat_name'] : '';
+
+      // Primary rule: exclude real miqaats (group_key starts with M#)
+      if ($gk !== '' && strpos($gk, 'M#') === 0) {
+        return false;
+      }
+
+      // Secondary: allow groups that clearly look like Fala (miqaat_id empty or name matches)
+      if ($miqaatId === null || $miqaatId === '') {
+        return true;
+      }
+      if ($name !== '' && stripos($name, 'Fala ni Niyaz') !== false) {
+        return true;
+      }
+
+      return false;
+    }));
   }
   ?>
 
-  <?php if (empty($members)) : ?>
-    <div class="col-12 alert alert-info">No invoices found for members.</div>
+  <?php
+  // Format INR without decimals for the summary (fallback if helper not loaded)
+  $gt = isset($grand_total) ? (float)$grand_total : 0.0;
+  $gtRounded = round($gt);
+  $gtStr = (string)abs((int)$gtRounded);
+  if (strlen($gtStr) > 3) {
+    $last3 = substr($gtStr, -3);
+    $rest = substr($gtStr, 0, -3);
+    $rest = preg_replace('/\B(?=(?:\d{2})+(?!\d))/', ',', $rest);
+    $gtStr = $rest . ',' . $last3;
+  }
+  $gtStr = ($gtRounded < 0 ? '-' : '') . $gtStr;
+  ?>
+
+  <?php if (empty($invoice_rows)) : ?>
+    <div class="col-3 m-auto alert alert-info">No invoices found.</div>
   <?php else : ?>
     <style>
       #miqaat-filters label {
@@ -89,179 +266,202 @@
       #miqaat-filters select {
         font-size: 13px;
       }
+
+      /* Prevent long text from forcing table overflow */
+      .km-table-fixed {
+        table-layout: fixed;
+        width: 100%;
+      }
+
+      .km-table-fixed th,
+      .km-table-fixed td {
+        overflow-wrap: anywhere;
+      }
+
+      .km-cell-nowrap {
+        white-space: nowrap;
+      }
+
+      .km-cell-wrap {
+        white-space: normal;
+      }
+
+      .km-actions {
+        white-space: nowrap;
+      }
+
+      th.km-sortable {
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+
+      th.km-sortable .sort-indicator {
+        font-size: 11px;
+        margin-left: 4px;
+        opacity: 0.8;
+      }
     </style>
-    <div class="col-12 table-responsive">
-      <div id="miqaat-filters" class="p-3 bg-light border mb-2">
-        <div class="form-row">
-          <div class="col-md-3 mb-2">
-            <label for="mf-name" class="mb-1 text-muted">Member Name</label>
-            <input type="text" id="mf-name" class="form-control form-control-sm" placeholder="Search name...">
-          </div>
-          <div class="col-md-3 mb-2">
-            <label for="mf-sector" class="mb-1 text-muted">Sector</label>
-            <select id="mf-sector" class="form-control form-control-sm">
-              <option value="">All Sectors</option>
-              <?php if (isset($sectors) && is_array($sectors)): foreach ($sectors as $s): $secVal = isset($s['Sector']) ? $s['Sector'] : (is_string($s) ? $s : '');
-                  if ($secVal === '') continue; ?>
-                  <option value="<?php echo htmlspecialchars(strtolower($secVal), ENT_QUOTES); ?>"><?php echo htmlspecialchars($secVal); ?></option>
-              <?php endforeach;
-              endif; ?>
-            </select>
-          </div>
-          <div class="col-md-3 mb-2">
-            <label for="mf-subsector" class="mb-1 text-muted">Sub Sector</label>
-            <select id="mf-subsector" class="form-control form-control-sm">
-              <option value="">All Sub Sectors</option>
-              <?php if (isset($sub_sectors) && is_array($sub_sectors)): foreach ($sub_sectors as $ss): $subVal = isset($ss['Sub_Sector']) ? $ss['Sub_Sector'] : (is_string($ss) ? $ss : '');
-                  if ($subVal === '') continue; ?>
-                  <option value="<?php echo htmlspecialchars(strtolower($subVal), ENT_QUOTES); ?>"><?php echo htmlspecialchars($subVal); ?></option>
-              <?php endforeach;
-              endif; ?>
-            </select>
-          </div>
-          <div class="col-md-3 mb-2">
-            <label for="mf-year" class="mb-1 text-muted">Hijri Year</label>
-            <?php
-              $years = isset($hijri_years) && is_array($hijri_years) ? $hijri_years : [];
-              $defaultYear = isset($selected_year) && $selected_year !== ''
-                ? $selected_year
-                : (isset($current_hijri_year) && $current_hijri_year !== '' ? $current_hijri_year : (!empty($years) ? end($years) : ''));
-              if (!empty($years)) reset($years);
-            ?>
-            <select id="mf-year" class="form-control form-control-sm" data-default-year="<?php echo htmlspecialchars($defaultYear, ENT_QUOTES); ?>">
-              <option value="">All Years</option>
-              <?php foreach ($years as $y): ?>
-                <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ($defaultYear === $y ? 'selected' : ''); ?>><?php echo htmlspecialchars($y); ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div class="col-md-3 mb-2 d-flex align-items-end">
-            <button type="button" id="mf-clear" class="btn btn-outline-secondary btn-sm w-100">Clear Filters</button>
-          </div>
+    <div class="mb-3">
+      <div class="d-flex justify-content-between align-items-center p-2 col-4 mx-auto" style="background:#f8f9fa; border:1px solid #e5e7eb; border-radius:10px;">
+        <div>
+          <b>Total Invoice Amount:</b>
+          <span id="miqaat-total-amount" class="text-success">₹<?php echo $gtStr; ?></span>
+        </div>
+        <div class="text-dark" style="font-size:16px;">
+          Invoices shown: <span id="miqaat-invoices-count"><?php echo isset($invoice_rows) && is_array($invoice_rows) ? count($invoice_rows) : 0; ?></span>
         </div>
       </div>
-      <table class="table table-striped table-bordered" id="miqaat-member-table">
-        <thead class="thead-light">
+    </div>
+
+    <div class="col-12 table-responsive">
+      <table class="table table-bordered table-striped km-table-fixed" id="miqaat-invoice-table">
+        <colgroup>
+          <col style="width: 44px;">
+          <col style="width: 128px;">
+          <col style="width: 140px;">
+          <col style="width: 92px;">
+          <col style="width: 92px;">
+          <col style="width: 96px;">
+          <col style="width: 220px;">
+          <col style="width: 140px;">
+          <col style="width: 190px;">
+          <col style="width: 128px;">
+          <col style="width: 110px;">
+          <col style="width: 96px;">
+        </colgroup>
+        <thead class="thead-dark table-dark">
           <tr>
-            <th class="km-sortable" data-sort-type="number"># <span class="sort-indicator"></span></th>
-            <th class="km-sortable" data-sort-type="string">ITS ID <span class="sort-indicator"></span></th>
-            <th class="km-sortable" data-sort-type="string">Member Name <span class="sort-indicator"></span></th>
-            <th class="km-sortable" data-sort-type="string">Sector <span class="sort-indicator"></span></th>
-            <th class="km-sortable" data-sort-type="string">Sub Sector <span class="sort-indicator"></span></th>
-            <th class="km-sortable" data-sort-type="number">Total Invoices <span class="sort-indicator"></span></th>
-            <th class="km-sortable text-right" data-sort-type="currency">Total Amount <span class="sort-indicator"></span></th>
-            <th>Action</th>
+            <th class="km-sortable" data-sort-key="index" data-sort-type="number"># <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="date" data-sort-type="date">Date <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="hijri" data-sort-type="string">Hijri Date <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="miqaatId" data-sort-type="number">Miqaat ID <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="razaId" data-sort-type="number">Raza ID <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="invoiceId" data-sort-type="number">Invoice ID <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="miqaatName" data-sort-type="string">Miqaat Name <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="assignedTo" data-sort-type="string">Assigned To <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="details" data-sort-type="string">Details <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="invoiceDate" data-sort-type="date">Invoice Date <span class="sort-indicator"></span></th>
+            <th class="km-sortable text-right" data-sort-key="amount" data-sort-type="number">Amount <span class="sort-indicator"></span></th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          <?php
-          // Default ordering: Sector ASC, Sub Sector ASC (case-insensitive)
-          if (!empty($members) && is_array($members)) {
-            usort($members, function($a, $b) {
-              $sa = strtolower(isset($a['Sector']) ? $a['Sector'] : (isset($a['sector']) ? $a['sector'] : ''));
-              $sb = strtolower(isset($b['Sector']) ? $b['Sector'] : (isset($b['sector']) ? $b['sector'] : ''));
-              if ($sa === $sb) {
-                $ssa = strtolower(isset($a['Sub_Sector']) ? $a['Sub_Sector'] : (isset($a['sub_sector']) ? $a['sub_sector'] : ''));
-                $ssb = strtolower(isset($b['Sub_Sector']) ? $b['Sub_Sector'] : (isset($b['sub_sector']) ? $b['sub_sector'] : ''));
-                return $ssa <=> $ssb;
-              }
-              return $sa <=> $sb;
-            });
-          }
-          ?>
-          <?php foreach ($members as $key => $m) : ?>
+          <tr id="miqaat-invoice-no-matches" style="display:none;">
+            <td colspan="12" class="text-center text-muted">No matching rows</td>
+          </tr>
+          <?php foreach ($invoice_rows as $i => $r) : ?>
             <?php
-            $its = isset($m['ITS_ID']) ? $m['ITS_ID'] : '';
-            $name = isset($m['Full_Name']) ? $m['Full_Name'] : '';
-            $sector = isset($m['Sector']) ? $m['Sector'] : (isset($m['sector']) ? $m['sector'] : '');
-            $subSector = isset($m['Sub_Sector']) ? $m['Sub_Sector'] : (isset($m['sub_sector']) ? $m['sub_sector'] : '');
-            $invoices = isset($m['miqaat_invoices']) && is_array($m['miqaat_invoices']) ? $m['miqaat_invoices'] : [];
-            // Normalize invoice amount fields so frontend has both keys
-            $invoices_normalized = [];
-            $seen_ids = [];
-            foreach ($invoices as $inv) {
-              $norm = $inv;
-              $hasAmount = isset($inv['amount']) && $inv['amount'] !== '' && $inv['amount'] !== null;
-              $hasInvoiceAmount = isset($inv['invoice_amount']) && $inv['invoice_amount'] !== '' && $inv['invoice_amount'] !== null;
-              if ($hasAmount && !$hasInvoiceAmount) {
-                $norm['invoice_amount'] = $inv['amount'];
-              } elseif (!$hasAmount && $hasInvoiceAmount) {
-                $norm['amount'] = $inv['invoice_amount'];
-              } elseif (!$hasAmount && !$hasInvoiceAmount) {
-                $norm['amount'] = 0;
-                $norm['invoice_amount'] = 0;
-              }
-              // Deduplicate by invoice_id (string compare)
-              $iid = isset($norm['invoice_id']) ? (string)$norm['invoice_id'] : '';
-              if ($iid !== '' && isset($seen_ids[$iid])) {
-                continue;
-              }
-              if ($iid !== '') { $seen_ids[$iid] = true; }
-              $invoices_normalized[] = $norm;
+            $greg = isset($r['display_date_iso']) ? (string)$r['display_date_iso'] : '';
+            $gregFmt = '-';
+            if ($greg !== '') {
+              $t = strtotime($greg);
+              if ($t) $gregFmt = date('d F Y', $t);
             }
-            // Use deduplicated invoices for accurate count
-            $count = count($invoices_normalized);
-            $totalAmt = 0.0;
-            $yearsForMember = [];
-            foreach ($invoices_normalized as $inv) {
-              $amt = 0.0;
-              if (isset($inv['amount']) && $inv['amount'] !== '') {
-                $amt = (float)$inv['amount'];
-              } elseif (isset($inv['invoice_amount']) && $inv['invoice_amount'] !== '') {
-                $amt = (float)$inv['invoice_amount'];
-              }
-              $totalAmt += $amt;
-              if (isset($inv['invoice_year']) && $inv['invoice_year'] !== '' && !in_array($inv['invoice_year'], $yearsForMember)) {
-                $yearsForMember[] = $inv['invoice_year'];
-              }
+
+            $invIso = isset($r['invoice_date_iso']) ? (string)$r['invoice_date_iso'] : '';
+            $invFmt = '-';
+            if ($invIso !== '') {
+              $ti = strtotime($invIso);
+              if ($ti) $invFmt = date('d F Y', $ti);
             }
-            $yearsAttr = strtolower(implode(',', $yearsForMember));
+            $miqaatId = isset($r['miqaat_id']) ? (string)$r['miqaat_id'] : '';
+            $razaId = isset($r['raza_id']) ? (string)$r['raza_id'] : '';
+
+            $assignedLabel = isset($r['assigned_to']) ? (string)$r['assigned_to'] : '';
+            $assignedKey = strtolower(trim($assignedLabel));
+            $individualCountForSort = 0;
+            if ($assignedKey === 'individual') {
+              $cnt = isset($r['individual_count']) ? (int)$r['individual_count'] : 0;
+              $assignedLabel = $assignedLabel . ' (' . $cnt . ')';
+              $individualCountForSort = $cnt;
+            }
             ?>
-            <tr data-sector="<?php echo htmlspecialchars(strtolower($sector), ENT_QUOTES); ?>" data-subsector="<?php echo htmlspecialchars(strtolower($subSector), ENT_QUOTES); ?>" data-years="<?php echo htmlspecialchars($yearsAttr, ENT_QUOTES); ?>">
-              <td><?php echo $key + 1; ?></td>
-              <td><?php echo htmlspecialchars($its); ?></td>
-              <td class="member-name-cell"><?php echo htmlspecialchars($name); ?></td>
-              <td><?php echo htmlspecialchars($sector); ?></td>
-              <td><?php echo htmlspecialchars($subSector); ?></td>
-              <td><?php echo $count; ?></td>
-              <td class="text-right">₹<?php
-                if (!function_exists('format_inr_no_decimals')) {
-                  function format_inr_no_decimals($num) {
-                    if ($num === null || $num === '' || !is_numeric($num)) {
-                      $num = 0;
-                    }
-                    $num = (float)$num;
-                    // Round to nearest rupee (can change to floor if needed)
-                    $num = round($num);
-                    $neg = $num < 0; if ($neg) $num = abs($num);
-                    $int = (string)$num;
-                    if (strlen($int) <= 3) {
-                      $res = $int;
-                    } else {
-                      $last3 = substr($int, -3);
-                      $rest = substr($int, 0, -3);
-                      $rest = preg_replace('/\B(?=(?:\d{2})+(?!\d))/', ',', $rest);
-                      $res = $rest . ',' . $last3;
-                    }
-                    return ($neg ? '-' : '') . $res;
-                  }
-                }
-                echo format_inr_no_decimals($totalAmt); ?></td>
-              <td>
-                <button
-                  class="btn btn-sm btn-outline-primary view-invoices-btn"
-                  data-toggle="modal"
-                  data-target="#memberInvoicesModal"
-                  data-its="<?php echo htmlspecialchars($its); ?>"
-                  data-name="<?php echo htmlspecialchars($name); ?>"
-                  data-sector="<?php echo htmlspecialchars($sector); ?>"
-                  data-subsector="<?php echo htmlspecialchars($subSector); ?>"
-                  data-invoices='<?php echo json_encode($invoices_normalized); ?>'>View Invoices</button>
+            <tr class="miqaat-invoice-row"
+              data-name="<?php echo htmlspecialchars(strtolower($r['full_name']), ENT_QUOTES); ?>"
+              data-its="<?php echo htmlspecialchars(strtolower($r['its_id']), ENT_QUOTES); ?>"
+              data-sector="<?php echo htmlspecialchars(strtolower($r['sector']), ENT_QUOTES); ?>"
+              data-subsector="<?php echo htmlspecialchars(strtolower($r['sub_sector']), ENT_QUOTES); ?>"
+              data-year="<?php echo htmlspecialchars($r['invoice_year'], ENT_QUOTES); ?>"
+              data-greg-date="<?php echo htmlspecialchars($greg, ENT_QUOTES); ?>"
+              data-invoice-date="<?php echo htmlspecialchars($invIso, ENT_QUOTES); ?>"
+              data-hijri-date="<?php echo htmlspecialchars(strtolower($r['hijri_date']), ENT_QUOTES); ?>"
+              data-miqaat-id="<?php echo htmlspecialchars($miqaatId, ENT_QUOTES); ?>"
+              data-raza-id="<?php echo htmlspecialchars($razaId, ENT_QUOTES); ?>"
+              data-miqaat-name="<?php echo htmlspecialchars(strtolower($r['miqaat_name']), ENT_QUOTES); ?>"
+              data-assigned-to="<?php echo htmlspecialchars(strtolower($assignedLabel), ENT_QUOTES); ?>"
+              data-individual-count="<?php echo htmlspecialchars((string)$individualCountForSort, ENT_QUOTES); ?>"
+              data-amount="<?php echo htmlspecialchars((string)$r['amount'], ENT_QUOTES); ?>"
+              data-description="<?php echo htmlspecialchars((string)($r['description'] ?? ''), ENT_QUOTES); ?>"
+              data-invoice-id="<?php echo htmlspecialchars($r['invoice_id'], ENT_QUOTES); ?>">
+              <td class="km-cell-nowrap"><b><?php echo $i + 1; ?></b></td>
+              <td class="km-cell-wrap"><?php echo htmlspecialchars($gregFmt); ?></td>
+              <td class="km-cell-wrap"><?php echo htmlspecialchars($r['hijri_date']); ?></td>
+              <td class="km-cell-wrap"><?php echo $miqaatId !== '' ? ('M#' . htmlspecialchars($miqaatId)) : '-'; ?></td>
+              <td class="km-cell-wrap"><?php echo $razaId !== '' ? ('R#' . htmlspecialchars($razaId)) : '-'; ?></td>
+              <td class="km-cell-wrap"><?php echo $r['invoice_id'] !== '' ? ('I#' . htmlspecialchars((string)$r['invoice_id'])) : '-'; ?></td>
+              <td class="km-cell-wrap"><b><?php echo htmlspecialchars($r['miqaat_name']); ?></b></td>
+              <td class="km-cell-wrap"><b><?php echo htmlspecialchars($assignedLabel); ?></b></td>
+              <td class="km-cell-wrap"><?php echo htmlspecialchars($r['details']); ?></td>
+              <td class="invoice-date-cell km-cell-wrap"><?php echo htmlspecialchars($invFmt); ?></td>
+              <td class="text-right invoice-amount-cell">₹<?php echo htmlspecialchars(format_inr_no_decimals($r['amount'])); ?></td>
+              <td class="text-center km-actions">
+                <div class="btn-group-vertical btn-group-sm" role="group" aria-label="Actions">
+                  <button type="button" class="btn btn-outline-primary invoice-edit-btn" data-invoice-id="<?php echo htmlspecialchars($r['invoice_id'], ENT_QUOTES); ?>"><i class="fa-solid fa-pencil"></i></button>
+                  <button type="button" class="btn btn-outline-danger invoice-delete-btn" data-invoice-id="<?php echo htmlspecialchars($r['invoice_id'], ENT_QUOTES); ?>"><i class="fa-solid fa-trash"></i></button>
+                </div>
               </td>
             </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
+    </div>
+
+    <!-- Edit Invoice Modal -->
+    <div class="modal fade" id="editInvoiceModal" tabindex="-1" role="dialog" aria-labelledby="editInvoiceModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editInvoiceModalLabel">Edit Invoice</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form id="editInvoiceForm">
+            <div class="modal-body">
+              <input type="hidden" id="edit-invoice-id" value="">
+
+              <div class="mb-2">
+                <label class="form-label mb-0"><b>Miqaat Details:</b></label>
+                <div id="edit-invoice-details" class="form-control-plaintext"></div>
+              </div>
+              <hr>
+
+              <div class="mb-2">
+                <label class="mb-1 text-muted" for="edit-amount">Amount</label>
+                <div class="input-group">
+                  <div class="input-group-prepend"><span class="input-group-text">₹</span></div>
+                  <input type="number" class="form-control" id="edit-amount" min="0" step="1" required>
+                </div>
+              </div>
+
+              <div class="mb-2">
+                <label class="mb-1 text-muted" for="edit-description">Description</label>
+                <textarea class="form-control" id="edit-description" rows="2"></textarea>
+              </div>
+
+              <div class="mb-2">
+                <label class="mb-1 text-muted" for="edit-invoice-date">Invoice Date</label>
+                <input type="date" class="form-control" id="edit-invoice-date" required>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="edit-invoice-save">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
     <div class="modal fade" id="memberInvoicesModal" tabindex="-1" role="dialog" aria-labelledby="memberInvoicesModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
@@ -316,10 +516,24 @@
     <script>
       // Filter logic with default year pre-selection
       (function() {
+        function toLower(s) {
+          return (s || '').toString().trim().toLowerCase();
+        }
+
+        function escapeHtml(str) {
+          const s = (str === null || str === undefined) ? '' : String(str);
+          return s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        }
+
         function applyFilters() {
-          const nameVal = (document.getElementById('mf-name').value || '').trim().toLowerCase();
-          const sectorVal = (document.getElementById('mf-sector').value || '').trim();
-          const subVal = (document.getElementById('mf-subsector').value || '').trim();
+          const nameVal = toLower(document.getElementById('mf-name')?.value);
+          const sectorVal = toLower(document.getElementById('mf-sector')?.value);
+          const subVal = toLower(document.getElementById('mf-subsector')?.value);
           const yearSelect = document.getElementById('mf-year');
           const yearRaw = (yearSelect && yearSelect.value ? yearSelect.value : '').trim();
           // Update title year display when filter changes (display-only; data already server-filtered)
@@ -332,8 +546,11 @@
               titleYearEl.textContent = defYear ? `(Hijri ${defYear})` : '';
             }
           }
-          const rows = document.querySelectorAll('#miqaat-member-table tbody tr');
+          const rows = Array.from(document.querySelectorAll('#miqaat-invoice-table tbody tr.miqaat-invoice-row'));
+          const noMatchRow = document.getElementById('miqaat-invoice-no-matches');
           let index = 1;
+          let visibleInvoices = 0;
+          let visibleTotal = 0;
 
           // Local helper for INR grouping (no decimals)
           function formatRupees(n) {
@@ -341,7 +558,8 @@
             let num = parseFloat(n);
             if (isNaN(num)) num = 0;
             num = Math.round(num);
-            const neg = num < 0; if (neg) num = Math.abs(num);
+            const neg = num < 0;
+            if (neg) num = Math.abs(num);
             let s = String(num);
             if (s.length > 3) {
               const last3 = s.slice(-3);
@@ -352,44 +570,34 @@
             return (neg ? '-' : '') + '₹' + s;
           }
 
-          rows.forEach(r => {
-            const rName = (r.querySelector('.member-name-cell')?.textContent || '').trim().toLowerCase();
+          rows.forEach(function(r) {
+            const rName = r.getAttribute('data-name') || '';
+            const rIts = r.getAttribute('data-its') || '';
             const rSector = r.getAttribute('data-sector') || '';
             const rSub = r.getAttribute('data-subsector') || '';
             let show = true;
-            if (nameVal && rName.indexOf(nameVal) === -1) show = false;
+            if (nameVal && rName.indexOf(nameVal) === -1 && rIts.indexOf(nameVal) === -1) show = false;
             if (sectorVal && rSector !== sectorVal) show = false;
             if (subVal && rSub !== subVal) show = false;
-
-            // Always show member regardless of year; adjust counts/amount per selected year
             if (!show) {
               r.style.display = 'none';
               return;
             }
-
-            // Recalculate invoice count & total for selected year (or all if none selected)
-            const btn = r.querySelector('.view-invoices-btn');
-            let allInvoices = [];
-            if (btn) {
-              try { allInvoices = JSON.parse(btn.getAttribute('data-invoices') || '[]'); } catch(e) { allInvoices = []; }
-            }
-            // Do not client-filter by year; server provides year-scoped invoices.
-            let working = allInvoices;
-            const cells = r.querySelectorAll('td');
-            // Column order: 0 #, 1 ITS, 2 Name, 3 Sector, 4 Sub Sector, 5 Total Invoices, 6 Total Amount, 7 Action
-            if (cells[5]) cells[5].textContent = working.length;
-            if (cells[6]) {
-              const sum = working.reduce((acc, it) => {
-                const a = (it.amount !== undefined && it.amount !== null) ? parseFloat(it.amount) : undefined;
-                const ia = (it.invoice_amount !== undefined && it.invoice_amount !== null) ? parseFloat(it.invoice_amount) : undefined;
-                const v = (!isNaN(a) ? a : (!isNaN(ia) ? ia : 0));
-                return acc + (isNaN(v) ? 0 : v);
-              }, 0);
-              cells[6].textContent = formatRupees(sum);
-            }
             r.style.display = '';
-            r.querySelector('td').textContent = index++;
+            const firstCell = r.querySelector('td');
+            if (firstCell) firstCell.textContent = index++;
+            visibleInvoices++;
+            visibleTotal += parseFloat(r.getAttribute('data-amount') || '0') || 0;
           });
+
+          if (noMatchRow) {
+            noMatchRow.style.display = visibleInvoices === 0 ? '' : 'none';
+          }
+
+          const totalEl = document.getElementById('miqaat-total-amount');
+          if (totalEl) totalEl.textContent = formatRupees(visibleTotal);
+          const cntEl = document.getElementById('miqaat-invoices-count');
+          if (cntEl) cntEl.textContent = String(visibleInvoices);
         }
         const nameInput = document.getElementById('mf-name');
         const sectorSel = document.getElementById('mf-sector');
@@ -398,10 +606,14 @@
         if (nameInput) nameInput.addEventListener('input', applyFilters);
         if (sectorSel) sectorSel.addEventListener('change', applyFilters);
         if (subSel) subSel.addEventListener('change', applyFilters);
-        if (yearSel) yearSel.addEventListener('change', function(){
-          const y = (yearSel.value||'').trim();
+        if (yearSel) yearSel.addEventListener('change', function() {
+          const y = (yearSel.value || '').trim();
           const params = new URLSearchParams(window.location.search);
-          if (y) { params.set('year', y); } else { params.delete('year'); }
+          if (y) {
+            params.set('year', y);
+          } else {
+            params.delete('year');
+          }
           // Preserve existing miqaat_type param
           const url = window.location.pathname + '?' + params.toString();
           window.location.replace(url);
@@ -426,52 +638,305 @@
               window.location.replace(url);
               return;
             }
-
-            // Otherwise just reset visible rows/counts to their full values (client-side)
-            const rows = document.querySelectorAll('#miqaat-member-table tbody tr');
-            let i = 1;
-            rows.forEach(r => {
-              // Reset counts/amounts to full invoice totals
-              const btn = r.querySelector('.view-invoices-btn');
-              let allInvoices = [];
-              if (btn) { try { allInvoices = JSON.parse(btn.getAttribute('data-invoices') || '[]'); } catch(e) { allInvoices = []; } }
-              const cells = r.querySelectorAll('td');
-              if (cells[5]) cells[5].textContent = allInvoices.length;
-              if (cells[6]) {
-                const sum = allInvoices.reduce((acc, it) => {
-                  const a = (it.amount !== undefined && it.amount !== null) ? parseFloat(it.amount) : undefined;
-                  const ia = (it.invoice_amount !== undefined && it.invoice_amount !== null) ? parseFloat(it.invoice_amount) : undefined;
-                  const v = (!isNaN(a) ? a : (!isNaN(ia) ? ia : 0));
-                  return acc + (isNaN(v) ? 0 : v);
-                }, 0);
-                // Basic INR no-decimal format (reuse formatting logic)
-                let num = Math.round(sum);
-                let s = String(num);
-                if (s.length > 3) {
-                  const last3 = s.slice(-3);
-                  let rest = s.slice(0, -3);
-                  rest = rest.replace(/\B(?=(?:\d{2})+(?!\d))/g, ',');
-                  s = rest + ',' + last3;
-                }
-                cells[6].textContent = '₹' + s;
-              }
-              r.style.display = '';
-              r.querySelector('td').textContent = i++;
-            });
-            // Re-apply filters to update title and any remaining visual state
             applyFilters();
           });
         }
-        // Set title year to selected/default on initial load
-        if (yearSel) {
-          const defYear = (yearSel.getAttribute('data-default-year') || '').trim();
-          const titleYearEl = document.getElementById('title-hijri-year');
-          if (titleYearEl && defYear) titleYearEl.textContent = `(Hijri ${defYear})`;
-          // Because data is already filtered server-side, we only update counts visually
-          // to ensure consistency on initial paint
-          applyFilters();
-        }
+
+        // Initial paint
+        applyFilters();
       })();
+
+      // Sorting + Edit/Delete for invoice-wise table
+      (function() {
+        const UPDATE_URL = '<?php echo base_url("anjuman/updateMiqaatInvoiceAmount"); ?>';
+        const DELETE_URL = '<?php echo base_url("anjuman/deleteMiqaatInvoice"); ?>';
+
+        function escapeHtml(str) {
+          const s = (str === null || str === undefined) ? '' : String(str);
+          return s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        }
+
+        function parseNumber(text) {
+          if (text == null) return NaN;
+          const m = String(text).match(/\d+(?:\.\d+)?/);
+          return m ? parseFloat(m[0]) : NaN;
+        }
+
+        function getSortValue(tr, key, type) {
+          if (!tr) return '';
+          if (key === 'index') {
+            const firstCellText = tr.querySelector('td') ? tr.querySelector('td').textContent : '';
+            return parseNumber(firstCellText);
+          }
+          if (key === 'date') {
+            const iso = tr.getAttribute('data-greg-date') || '';
+            const t = Date.parse(iso.replace(/-/g, '/'));
+            return isNaN(t) ? 0 : t;
+          }
+          if (key === 'hijri') return (tr.getAttribute('data-hijri-date') || '').toString().toLowerCase();
+          if (key === 'miqaatId') return parseNumber(tr.getAttribute('data-miqaat-id'));
+          if (key === 'razaId') return parseNumber(tr.getAttribute('data-raza-id'));
+          if (key === 'invoiceId') return parseNumber(tr.getAttribute('data-invoice-id'));
+          if (key === 'miqaatName') return (tr.getAttribute('data-miqaat-name') || '').toString().toLowerCase();
+          if (key === 'assignedTo') {
+            const raw = (tr.getAttribute('data-assigned-to') || '').toString().trim().toLowerCase();
+            let label = raw;
+            if (!label) {
+              const cells = tr.querySelectorAll('td');
+              // Assigned To column index in invoice table: 7
+              const cell = cells && cells.length >= 8 ? cells[7] : null;
+              label = (cell ? cell.textContent : '').toString().trim().toLowerCase();
+            }
+
+            const type = (label.split('(')[0] || '').trim();
+            const typeKey = type || label;
+
+            // Special-case: for Individual (N), sort by N within the type
+            if (typeKey === 'individual') {
+              let cnt = parseInt((tr.getAttribute('data-individual-count') || '').toString(), 10);
+              if (isNaN(cnt)) {
+                const m = label.match(/\((\d+)\)/);
+                cnt = m ? parseInt(m[1], 10) : 0;
+              }
+              const padded = ('000000' + String(isNaN(cnt) ? 0 : cnt)).slice(-6);
+              return 'individual|' + padded;
+            }
+
+            return typeKey + '|';
+          }
+          if (key === 'invoiceDate') {
+            const iso = tr.getAttribute('data-invoice-date') || '';
+            const t = Date.parse(iso.replace(/-/g, '/'));
+            return isNaN(t) ? 0 : t;
+          }
+          if (key === 'amount') {
+            return parseNumber(tr.getAttribute('data-amount'));
+          }
+          if (key === 'details') {
+            const cells = tr.querySelectorAll('td');
+            const detailsCell = cells && cells.length >= 9 ? cells[8] : null;
+            return (detailsCell ? detailsCell.textContent : '').toString().trim().toLowerCase();
+          }
+          return '';
+        }
+
+        function updateIndicators(table, activeTh, dir) {
+          table.querySelectorAll('thead th.km-sortable').forEach(function(th) {
+            const ind = th.querySelector('.sort-indicator');
+            if (th === activeTh) {
+              th.setAttribute('data-sort-dir', dir);
+              if (ind) ind.textContent = (dir === 'asc') ? '▲' : '▼';
+            } else {
+              th.removeAttribute('data-sort-dir');
+              if (ind) ind.textContent = '↕';
+            }
+          });
+        }
+
+        function sortTable(key, type, dir) {
+          const table = document.getElementById('miqaat-invoice-table');
+          if (!table) return;
+          const tbody = table.querySelector('tbody');
+          if (!tbody) return;
+          const noMatchRow = document.getElementById('miqaat-invoice-no-matches');
+          const rows = Array.from(tbody.querySelectorAll('tr.miqaat-invoice-row'));
+
+          rows.sort(function(a, b) {
+            const va = getSortValue(a, key, type);
+            const vb = getSortValue(b, key, type);
+            let cmp = 0;
+            if (type === 'number' || type === 'date') {
+              const na = (typeof va === 'number' && !isNaN(va)) ? va : -Infinity;
+              const nb = (typeof vb === 'number' && !isNaN(vb)) ? vb : -Infinity;
+              cmp = na === nb ? 0 : (na < nb ? -1 : 1);
+            } else {
+              cmp = String(va).localeCompare(String(vb));
+            }
+            return (dir === 'asc') ? cmp : -cmp;
+          });
+
+          if (noMatchRow && noMatchRow.parentElement === tbody) {
+            tbody.appendChild(noMatchRow);
+          }
+          rows.forEach(function(r) {
+            tbody.appendChild(r);
+          });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+          const table = document.getElementById('miqaat-invoice-table');
+          if (table) {
+            table.querySelectorAll('thead th.km-sortable .sort-indicator').forEach(function(ind) {
+              if (!ind.textContent || ind.textContent.trim() === '') ind.textContent = '↕';
+            });
+            table.querySelectorAll('thead th.km-sortable').forEach(function(th) {
+              th.addEventListener('click', function() {
+                const key = th.getAttribute('data-sort-key') || '';
+                const type = th.getAttribute('data-sort-type') || 'string';
+                const current = th.getAttribute('data-sort-dir');
+                const dir = (current === 'asc') ? 'desc' : 'asc';
+                updateIndicators(table, th, dir);
+                sortTable(key, type, dir);
+              });
+            });
+          }
+
+          // Edit
+          $(document).on('click', '.invoice-edit-btn', function() {
+            const invoiceId = $(this).attr('data-invoice-id') || '';
+            if (!invoiceId) return;
+            const tr = document.querySelector('tr.miqaat-invoice-row[data-invoice-id="' + invoiceId + '"]');
+            const amount = tr ? (tr.getAttribute('data-amount') || '0') : '0';
+            const description = tr ? (tr.getAttribute('data-description') || '') : '';
+            const invoiceDateIso = tr ? (tr.getAttribute('data-invoice-date') || '') : '';
+
+            // Prefer display strings from table cells (preserves formatting)
+            let miqaatIdText = '-';
+            let razaIdText = '-';
+            let miqaatNameText = '-';
+            let dateText = '-';
+            let hijriText = '-';
+            let assignedText = '-';
+            let assignmentDetailsText = '-';
+            if (tr) {
+              const tds = tr.querySelectorAll('td');
+              if (tds && tds.length >= 11) {
+                dateText = (tds[1].textContent || '-').trim();
+                hijriText = (tds[2].textContent || '-').trim();
+                miqaatIdText = (tds[3].textContent || '-').trim();
+                razaIdText = (tds[4].textContent || '-').trim();
+                // tds[5] is Invoice ID
+                miqaatNameText = (tds[6].textContent || '-').trim();
+                assignedText = (tds[7].textContent || '-').trim();
+                assignmentDetailsText = (tds[8].textContent || '-').trim();
+              }
+            }
+
+            const detailsHtml = `
+              <div><b>Miqaat ID:</b> ${escapeHtml(miqaatIdText)}</div>
+              <div><b>Raza ID:</b> ${escapeHtml(razaIdText)}</div>
+              <div><b>Miqaat Name:</b> ${escapeHtml(miqaatNameText)}</div>
+              <div><b>Date:</b> ${escapeHtml(dateText)}</div>
+              <div><b>Hijri:</b> ${escapeHtml(hijriText)}</div>
+              <div><b>Assigned:</b> ${escapeHtml(assignedText)}</div>
+              <div><b>Assignment Details:</b> ${escapeHtml(assignmentDetailsText)}</div>
+            `;
+
+            $('#edit-invoice-id').val(invoiceId);
+            $('#edit-amount').val(Math.round(parseFloat(amount) || 0));
+            $('#edit-description').val(description);
+            $('#edit-invoice-date').val(invoiceDateIso);
+            $('#edit-invoice-details').html(detailsHtml);
+            $('#editInvoiceModal').modal('show');
+          });
+
+          $('#editInvoiceForm').on('submit', function(e) {
+            e.preventDefault();
+            const invoiceId = ($('#edit-invoice-id').val() || '').trim();
+            const amount = ($('#edit-amount').val() || '').trim();
+            const description = ($('#edit-description').val() || '').trim();
+            const invoiceDate = ($('#edit-invoice-date').val() || '').trim();
+            if (!invoiceId) return;
+
+            $('#edit-invoice-save').prop('disabled', true);
+            fetch(UPDATE_URL, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `invoice_id=${encodeURIComponent(invoiceId)}&amount=${encodeURIComponent(amount)}&description=${encodeURIComponent(description)}&invoice_date=${encodeURIComponent(invoiceDate)}`
+              })
+              .then(res => res.json().catch(() => ({})))
+              .then(data => {
+                if (!data || data.status !== true) throw new Error('Update failed');
+                const tr = document.querySelector('tr.miqaat-invoice-row[data-invoice-id="' + invoiceId + '"]');
+                if (tr) {
+                  const newAmt = String(parseFloat(amount) || 0);
+                  tr.setAttribute('data-amount', newAmt);
+                  tr.setAttribute('data-description', description);
+                  if (invoiceDate) {
+                    tr.setAttribute('data-invoice-date', invoiceDate);
+                    const invCell = tr.querySelector('td.invoice-date-cell');
+                    if (invCell) {
+                      const d = new Date(invoiceDate + 'T00:00:00');
+                      if (!isNaN(d.getTime())) {
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = d.toLocaleString('en-US', {
+                          month: 'long'
+                        });
+                        const year = String(d.getFullYear());
+                        invCell.textContent = `${day} ${month} ${year}`;
+                      } else {
+                        invCell.textContent = invoiceDate;
+                      }
+                    }
+                  }
+                  const amtCell = tr.querySelector('td.invoice-amount-cell');
+                  if (amtCell) {
+                    const rounded = Math.round(parseFloat(newAmt) || 0);
+                    const neg = rounded < 0;
+                    let n = Math.abs(rounded);
+                    let s = String(n);
+                    if (s.length > 3) {
+                      const last3 = s.slice(-3);
+                      let rest = s.slice(0, -3);
+                      rest = rest.replace(/\B(?=(?:\d{2})+(?!\d))/g, ',');
+                      s = rest + ',' + last3;
+                    }
+                    amtCell.textContent = '₹' + (neg ? '-' : '') + s;
+                  }
+                }
+                $('#editInvoiceModal').modal('hide');
+                // Recompute totals via current filters
+                const nameEl = document.getElementById('mf-name');
+                if (nameEl) nameEl.dispatchEvent(new Event('input'));
+              })
+              .catch(() => {
+                alert('Update failed. Please try again.');
+              })
+              .finally(() => {
+                $('#edit-invoice-save').prop('disabled', false);
+              });
+          });
+
+          // Delete
+          $(document).on('click', '.invoice-delete-btn', function() {
+            const invoiceId = $(this).attr('data-invoice-id') || '';
+            if (!invoiceId) return;
+            if (!confirm('Are you sure you want to delete this invoice?')) return;
+
+            const btn = this;
+            btn.disabled = true;
+            fetch(DELETE_URL, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `invoice_id=${encodeURIComponent(invoiceId)}`
+              })
+              .then(res => res.json().catch(() => ({})))
+              .then(data => {
+                if (!data || data.status !== true) throw new Error('Delete failed');
+                const tr = document.querySelector('tr.miqaat-invoice-row[data-invoice-id="' + invoiceId + '"]');
+                if (tr && tr.parentNode) tr.parentNode.removeChild(tr);
+                const nameEl = document.getElementById('mf-name');
+                if (nameEl) nameEl.dispatchEvent(new Event('input'));
+              })
+              .catch(() => {
+                alert('Delete failed. Please try again.');
+              })
+              .finally(() => {
+                btn.disabled = false;
+              });
+          });
+        });
+      })();
+
       // Styles for loading overlay (scoped to Fala modal)
       (function addFalaOverlayStyles() {
         try {
@@ -482,7 +947,8 @@
           `;
           document.head.appendChild(tag);
         } catch (e) {
-          /* no-op */ }
+          /* no-op */
+        }
       })();
 
       // Provide miqaats array for Fala Ni Niyaz modal (we will render miqaats, not member invoices)
@@ -505,7 +971,8 @@
           if (isNaN(num)) num = 0;
           // Round to nearest rupee
           num = Math.round(num);
-          const neg = num < 0; if (neg) num = Math.abs(num);
+          const neg = num < 0;
+          if (neg) num = Math.abs(num);
           let intPart = String(num);
           if (intPart.length > 3) {
             const last3 = intPart.slice(-3);
@@ -621,13 +1088,14 @@
             invoices = [];
           }
           // Deduplicate by invoice_id to avoid duplicate rows
-          (function dedupe(){
+          (function dedupe() {
             const seen = new Set();
             invoices = invoices.filter(inv => {
-              const id = String(inv.invoice_id||'');
-              if(!id) return true; // keep if no id
-              if(seen.has(id)) return false;
-              seen.add(id); return true;
+              const id = String(inv.invoice_id || '');
+              if (!id) return true; // keep if no id
+              if (seen.has(id)) return false;
+              seen.add(id);
+              return true;
             });
           })();
           // Do not apply the main year filter inside the modal; always show all
@@ -816,11 +1284,11 @@
           // Deduplicate groups by group_key to avoid repeated rows
           const unique = [];
           const seenGK = new Set();
-          (Array.isArray(miqaList)?miqaList:[]).forEach(m => {
+          (Array.isArray(miqaList) ? miqaList : []).forEach(m => {
             const gk = m.group_key || '';
             const key = String(gk);
-            if(key && seenGK.has(key)) return;
-            if(key) seenGK.add(key);
+            if (key && seenGK.has(key)) return;
+            if (key) seenGK.add(key);
             unique.push(m);
           });
           const rows = unique.map((m, idx) => {
@@ -1046,46 +1514,65 @@
         })();
       })();
       // --- Sorting for member table ---
-      (function enableMemberTableSorting(){
+      (function enableMemberTableSorting() {
         const table = document.getElementById('miqaat-member-table');
-        if(!table) return;
+        if (!table) return;
         const headers = table.querySelectorAll('thead th.km-sortable');
-        function parseCurrency(text){
-          if(text==null) return 0;
-          const cleaned = String(text).replace(/[^0-9.-]/g,'');
-          const v = parseFloat(cleaned); return isNaN(v)?0:v;
+
+        function parseCurrency(text) {
+          if (text == null) return 0;
+          const cleaned = String(text).replace(/[^0-9.-]/g, '');
+          const v = parseFloat(cleaned);
+          return isNaN(v) ? 0 : v;
         }
-        headers.forEach((th, colIndex)=>{
-          th.addEventListener('click', ()=>{
+        headers.forEach((th, colIndex) => {
+          th.addEventListener('click', () => {
             const sortType = th.getAttribute('data-sort-type') || 'string';
             const currentDir = th.getAttribute('data-sort-dir');
             const newDir = currentDir === 'asc' ? 'desc' : 'asc';
             // reset indicators
-            headers.forEach(h=>{ if(h!==th){ h.removeAttribute('data-sort-dir'); const si=h.querySelector('.sort-indicator'); if(si) si.textContent=''; }});
-            th.setAttribute('data-sort-dir', newDir);
-            const ind = th.querySelector('.sort-indicator'); if(ind) ind.textContent = newDir==='asc'?'▲':'▼';
-            const tbody = table.querySelector('tbody');
-            const allRows = Array.from(tbody.querySelectorAll('tr'));
-            const visible = allRows.filter(r=>r.style.display !== 'none');
-            const hidden = allRows.filter(r=>r.style.display === 'none');
-            visible.sort((a,b)=>{
-              let aVal = a.children[colIndex]?a.children[colIndex].textContent.trim():'';
-              let bVal = b.children[colIndex]?b.children[colIndex].textContent.trim():'';
-              if(sortType==='number'){
-                const toNum = v=>{ const n = parseFloat(v.replace(/[^0-9.-]/g,'')); return isNaN(n)?0:n; };
-                aVal = toNum(aVal); bVal = toNum(bVal);
-                return newDir==='asc'? aVal-bVal : bVal-aVal;
-              } else if(sortType==='currency') {
-                aVal = parseCurrency(aVal); bVal = parseCurrency(bVal);
-                return newDir==='asc'? aVal-bVal : bVal-aVal;
-              } else { // string
-                aVal = aVal.toLowerCase(); bVal = bVal.toLowerCase();
-                if(aVal===bVal) return 0;
-                return newDir==='asc' ? (aVal<bVal?-1:1) : (aVal>bVal?-1:1);
+            headers.forEach(h => {
+              if (h !== th) {
+                h.removeAttribute('data-sort-dir');
+                const si = h.querySelector('.sort-indicator');
+                if (si) si.textContent = '';
               }
             });
-            visible.forEach((r,i)=>{ tbody.appendChild(r); const first=r.children[0]; if(first) first.textContent = i+1; });
-            hidden.forEach(r=>tbody.appendChild(r));
+            th.setAttribute('data-sort-dir', newDir);
+            const ind = th.querySelector('.sort-indicator');
+            if (ind) ind.textContent = newDir === 'asc' ? '▲' : '▼';
+            const tbody = table.querySelector('tbody');
+            const allRows = Array.from(tbody.querySelectorAll('tr'));
+            const visible = allRows.filter(r => r.style.display !== 'none');
+            const hidden = allRows.filter(r => r.style.display === 'none');
+            visible.sort((a, b) => {
+              let aVal = a.children[colIndex] ? a.children[colIndex].textContent.trim() : '';
+              let bVal = b.children[colIndex] ? b.children[colIndex].textContent.trim() : '';
+              if (sortType === 'number') {
+                const toNum = v => {
+                  const n = parseFloat(v.replace(/[^0-9.-]/g, ''));
+                  return isNaN(n) ? 0 : n;
+                };
+                aVal = toNum(aVal);
+                bVal = toNum(bVal);
+                return newDir === 'asc' ? aVal - bVal : bVal - aVal;
+              } else if (sortType === 'currency') {
+                aVal = parseCurrency(aVal);
+                bVal = parseCurrency(bVal);
+                return newDir === 'asc' ? aVal - bVal : bVal - aVal;
+              } else { // string
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+                if (aVal === bVal) return 0;
+                return newDir === 'asc' ? (aVal < bVal ? -1 : 1) : (aVal > bVal ? -1 : 1);
+              }
+            });
+            visible.forEach((r, i) => {
+              tbody.appendChild(r);
+              const first = r.children[0];
+              if (first) first.textContent = i + 1;
+            });
+            hidden.forEach(r => tbody.appendChild(r));
           });
         });
       })();

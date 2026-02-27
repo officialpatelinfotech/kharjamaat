@@ -60,6 +60,19 @@ $autoload['packages'] = array();
 */
 $autoload['libraries'] = array('database','session','migration');
 
+// Optional: when running lightweight CLI checks/tests, you may skip auto-connecting DB.
+// Enable by setting SKIP_CI_DB_AUTOLOAD=1 in environment.
+if (php_sapi_name() === 'cli') {
+	$skip = getenv('SKIP_CI_DB_AUTOLOAD');
+	if ($skip === false && isset($_ENV['SKIP_CI_DB_AUTOLOAD'])) $skip = $_ENV['SKIP_CI_DB_AUTOLOAD'];
+	$skip = is_string($skip) ? trim($skip) : '';
+	if ($skip === '1' || strtolower($skip) === 'true') {
+		$autoload['libraries'] = array_values(array_filter($autoload['libraries'], function ($v) {
+			return $v !== 'database' && $v !== 'migration';
+		}));
+	}
+}
+
 /*
 | -------------------------------------------------------------------
 |  Auto-load Drivers
@@ -90,6 +103,9 @@ $autoload['drivers'] = array();
 |	$autoload['helper'] = array('url', 'file');
 */
 $autoload['helper'] = array('url','inr_helper');
+
+// App settings (e.g. jamaat_name())
+$autoload['helper'][] = 'settings';
 
 /*
 | -------------------------------------------------------------------

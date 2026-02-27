@@ -15,7 +15,7 @@
   integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
   crossorigin="anonymous"></script>
 
-<title>Khar Jamaat</title>
+<title><?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></title>
 <link rel="icon" type="image/x-icon" href="<?php echo base_url('assets/header_logo.png'); ?>">
 <style>
   .navbar-brand .logo {

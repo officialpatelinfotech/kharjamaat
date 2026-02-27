@@ -32,7 +32,7 @@ $selected = isset($selected_hijri_year) ? $selected_hijri_year : '';
         <label class="form-check-label" for="amount_zero">Only zero amount</label>
       </div>
       <label class="mr-2">Name</label>
-      <input type="text" name="name" class="form-control mr-2" placeholder="Search name" value="<?php echo htmlspecialchars($name_filter ?? ''); ?>" />
+      <input type="text" name="name" class="form-control mr-2" placeholder="Search name or ITS" value="<?php echo htmlspecialchars($name_filter ?? ''); ?>" />
       <button type="submit" class="btn btn-primary">Filter</button>
     </form>
 

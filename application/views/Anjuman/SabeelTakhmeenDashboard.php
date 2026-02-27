@@ -204,8 +204,8 @@
     <div class="col-12 col-md-8">
       <form method="POST" action="<?php echo base_url("anjuman/filteruserinsabeeltakhmeen"); ?>" class="d-flex flex-wrap m-0 align-items-end">
         <div class="col-12 col-md-3 mb-2">
-          <label class="small text-muted m-0">Member Name</label>
-          <input type="text" name="member_name" id="member-name" class="form-control form-control-sm" placeholder="Member name" value="<?php echo isset($member_name) ? htmlspecialchars($member_name) : ''; ?>">
+          <label class="small text-muted m-0">Name or ITS</label>
+          <input type="text" name="member_name" id="member-name" class="form-control form-control-sm" placeholder="Name or ITS" value="<?php echo isset($member_name) ? htmlspecialchars($member_name) : ''; ?>">
         </div>
         <div class="col-12 col-md-3 mb-2">
           <label class="small text-muted m-0">ITS ID</label>
@@ -410,6 +410,7 @@
               <option value="">-----</option>
               <option value="Cash">Cash</option>
               <option value="Cheque">Cheque</option>
+              <option value="NEFT">NEFT</option>
             </select>
           </div>
           <label for="sabeel-type" class="form-label">Sabeel Type</label>

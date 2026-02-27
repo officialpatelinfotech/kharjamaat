@@ -77,6 +77,6 @@ class EmailQueueM extends CI_Model
     // increment attempts and set last_error
     $this->db->set('attempts', 'attempts+1', false);
     $this->db->set('last_error', $error);
-    return $this->db->where('id', $id)->update('email_queue');
+    return $this->db->where('id', $id)->update('email_queue', ['status' => 'failed']);
   }
 }

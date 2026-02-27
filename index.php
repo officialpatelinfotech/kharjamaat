@@ -8,6 +8,48 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 // Load Dotenv for environment variables from .env
 if (class_exists('Dotenv\Dotenv')) {
   try {
+    // Compatibility: some deployments keep `.env` in shell format:
+    //   export KEY="value"
+    // vlucas/phpdotenv does not parse the leading `export` by default.
+    // Load those lines safely (do not override already-set env vars).
+    $envFile = __DIR__ . '/.env';
+    if (is_readable($envFile)) {
+      $lines = @file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+      if (is_array($lines)) {
+        foreach ($lines as $line) {
+          $line = trim((string)$line);
+          if ($line === '' || strpos($line, '#') === 0) continue;
+          if (stripos($line, 'export ') === 0) {
+            $line = trim(substr($line, 7));
+          }
+          $eqPos = strpos($line, '=');
+          if ($eqPos === false) continue;
+          $key = trim(substr($line, 0, $eqPos));
+          $val = trim(substr($line, $eqPos + 1));
+          if ($key === '') continue;
+          // Don't override real env vars.
+          $existing = getenv($key);
+          if ($existing !== false && $existing !== null && $existing !== '') continue;
+
+          // Strip optional quotes.
+          $len = strlen($val);
+          if ($len >= 2) {
+            $first = $val[0];
+            $last = $val[$len - 1];
+            if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+              $val = substr($val, 1, -1);
+            }
+          }
+          // Minimal unescape for common .env patterns.
+          $val = str_replace(['\\n', '\\r', '\\t'], ["\n", "\r", "\t"], $val);
+
+          @putenv($key . '=' . $val);
+          $_ENV[$key] = $val;
+          $_SERVER[$key] = $val;
+        }
+      }
+    }
+
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
     $dotenv->safeLoad();
   } catch (Throwable $e) {
@@ -76,9 +118,10 @@ switch (ENVIRONMENT) {
   case 'production':
     ini_set('display_errors', 0);
     if (version_compare(PHP_VERSION, '5.3', '>=')) {
-      error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT & ~E_USER_NOTICE & ~E_USER_DEPRECATED);
+      // Avoid referencing E_STRICT (deprecated in PHP 8.4)
+      error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_USER_NOTICE & ~E_USER_DEPRECATED);
     } else {
-      error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_USER_NOTICE);
+      error_reporting(E_ALL & ~E_NOTICE & ~E_USER_NOTICE);
     }
     break;
 

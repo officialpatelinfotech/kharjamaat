@@ -95,12 +95,49 @@ $query_builder = TRUE;
 // 	'save_queries' => TRUE
 // );
 
+$dbHost = getenv('DB_HOST');
+$dbPort = getenv('DB_PORT');
+$dbName = getenv('DB_NAME');
+$dbUser = getenv('DB_USER');
+$dbPass = getenv('DB_PASS');
+
+// In CLI/cron contexts, using 'localhost' can force MySQL socket usage and fail
+// with HY000/2002 depending on PHP/MySQL socket paths. Prefer TCP for CLI.
+$isMamp = is_dir('/Applications/MAMP');
+
+// Prefer TCP to avoid socket issues on macOS/MAMP (HY000/2002 No such file or directory).
+// - In CLI: always use 127.0.0.1 by default.
+// - In web: use 127.0.0.1 by default when MAMP is present.
+$defaultHost = (PHP_SAPI === 'cli' || $isMamp) ? '127.0.0.1' : 'localhost';
+
+// MAMP MySQL port varies (commonly 3306 or 8889).
+// If DB_PORT isn't set, probe localhost quickly and pick the first open port.
+if ((!is_string($dbPort) || $dbPort === '') && $isMamp) {
+	$probeHost = '127.0.0.1';
+	// Prefer MAMP's default port first. If a system MySQL is running on 3306,
+	// probing 3306 first can make CLI/web point at different servers.
+	$portsToTry = array(8889, 3306);
+	$chosen = null;
+	foreach ($portsToTry as $p) {
+		$errno = 0;
+		$errstr = '';
+		$fp = @fsockopen($probeHost, $p, $errno, $errstr, 0.2);
+		if ($fp) {
+			fclose($fp);
+			$chosen = (string)$p;
+			break;
+		}
+	}
+	// Default to 3306 if nothing responds (user can still override via DB_PORT).
+	$dbPort = $chosen ?: '3306';
+}
+
 $db['default'] = array(
 	'dsn' => '',
-	'hostname' => 'localhost',
-	'username' => 'root',
-	'password' => '',
-	'database' => 'kharjamaat',
+	'hostname' => ($dbHost !== false && $dbHost !== '') ? $dbHost : $defaultHost,
+	'username' => ($dbUser !== false && $dbUser !== '') ? $dbUser : 'root',
+	'password' => ($dbPass !== false) ? $dbPass : '',
+	'database' => ($dbName !== false && $dbName !== '') ? $dbName : 'kharjamaat',
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,
@@ -113,6 +150,28 @@ $db['default'] = array(
 	'encrypt' => FALSE,
 	'compress' => FALSE,
 	'stricton' => FALSE,
-	'failover' => array(),
-	'save_queries' => TRUE
+	'failover' => $isMamp ? array(
+		array(
+			'hostname' => '127.0.0.1',
+			'username' => ($dbUser !== false && $dbUser !== '') ? $dbUser : 'root',
+			'password' => ($dbPass !== false) ? $dbPass : '',
+			'database' => ($dbName !== false && $dbName !== '') ? $dbName : 'kharjamaat',
+			'dbdriver' => 'mysqli',
+			'dbprefix' => '',
+			'pconnect' => FALSE,
+			'db_debug' => (ENVIRONMENT !== 'production'),
+			'cache_on' => FALSE,
+			'cachedir' => '',
+			'char_set' => 'utf8',
+			'dbcollat' => 'utf8_general_ci',
+			'swap_pre' => '',
+			'encrypt' => FALSE,
+			'compress' => FALSE,
+			'stricton' => FALSE,
+			'save_queries' => TRUE,
+			'port' => 3306
+		)
+	) : array(),
+	'save_queries' => TRUE,
+	'port' => (is_string($dbPort) && $dbPort !== '' && ctype_digit($dbPort)) ? (int)$dbPort : NULL
 );

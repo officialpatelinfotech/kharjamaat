@@ -121,6 +121,7 @@ if (!function_exists('render_generic_email_html')) {
       'cardTitleHtml' => $cardTitleHtml,
       'cardBodyHtml' => $cardBodyHtml,
       'ctaHtml' => $ctaHtml,
+      'jamaat_name' => htmlspecialchars(jamaat_name()),
     ];
 
     foreach ($repl as $key => $value) {
@@ -135,12 +136,49 @@ if (!function_exists('email_kv_details_table_html')) {
   function email_kv_details_table_html($rows)
   {
     if (!is_array($rows) || empty($rows)) return '';
+
+    $normalizeIdForLabel = function ($label, $value) {
+      $label = trim((string)$label);
+      $value = is_scalar($value) ? trim((string)$value) : (is_null($value) ? '' : trim(json_encode($value)));
+      if ($label === '' || $value === '') return $value;
+
+      $lcLabel = strtolower($label);
+      $lcValue = strtolower($value);
+      if ($lcValue === '-' || $lcValue === 'na' || $lcValue === 'n/a') return $value;
+
+      $prefixIfMissing = function ($val, $prefix) {
+        $val = trim((string)$val);
+        if ($val === '') return $val;
+
+        // Normalize existing prefix casing/spacing.
+        if (preg_match('/^\s*' . preg_quote($prefix, '/') . '\s*(.+)$/i', $val, $m)) {
+          return $prefix . trim((string)$m[1]);
+        }
+
+        // Only prefix values that look like an ID (starts with a digit).
+        if (preg_match('/^\d/', $val)) {
+          return $prefix . $val;
+        }
+        return $val;
+      };
+
+      if (strpos($lcLabel, 'raza id') !== false) {
+        return $prefixIfMissing($value, 'R#');
+      }
+      if (strpos($lcLabel, 'miqaat id') !== false) {
+        return $prefixIfMissing($value, 'M#');
+      }
+      return $value;
+    };
+
     $html = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse;">';
     foreach ($rows as $r) {
       if (!is_array($r)) continue;
       $label = isset($r['label']) ? trim((string)$r['label']) : '';
       $value = isset($r['value']) ? (string)$r['value'] : '';
       if ($label === '' && trim($value) === '') continue;
+
+      $value = $normalizeIdForLabel($label, $value);
       $html .= '<tr>';
       $html .= '<td style="padding:8px 10px; border-bottom:1px solid #e9ecef; width:170px; color:#334; font-weight:600; vertical-align:top;">' . htmlspecialchars($label) . '</td>';
       $html .= '<td style="padding:8px 10px; border-bottom:1px solid #e9ecef; color:#111; vertical-align:top;">' . nl2br(htmlspecialchars($value)) . '</td>';

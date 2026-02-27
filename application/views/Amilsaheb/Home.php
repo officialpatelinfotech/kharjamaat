@@ -592,11 +592,82 @@
     margin-bottom: 10px;
   }
 
+  .sidebar-menu .menu-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f7f7fb;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+
+  .sidebar-menu .menu-search i {
+    color: #9aa0a6;
+    font-size: 14px;
+    flex: 0 0 auto;
+  }
+
+  .sidebar-menu .menu-search input {
+    border: 0;
+    outline: 0;
+    background: transparent;
+    width: 100%;
+    font-size: 0.95rem;
+    color: #111827;
+  }
+
+  .sidebar-menu .menu-search input::placeholder {
+    color: #9aa0a6;
+  }
+
+  .sidebar-menu .menu-search .menu-search-clear {
+    border: 0;
+    background: #ffffff;
+    color: #6b7280;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+
+  .sidebar-menu .menu-search .menu-search-clear:hover {
+    background: #f3f4f6;
+  }
+
   .sidebar-menu .menu-section {
     font-size: .85rem;
     color: #777;
     margin: 16px 8px 6px;
     text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+
+  .sidebar-menu .menu-section:hover {
+    background: #f7f7fb;
+  }
+
+  .sidebar-menu .menu-section::after {
+    content: '▾';
+    font-size: .75rem;
+    color: #9aa0a6;
+    transform: rotate(0deg);
+    transition: transform .15s ease;
+  }
+
+  .sidebar-menu .menu-section.is-collapsed::after {
+    transform: rotate(-90deg);
   }
 
   .sidebar-menu .menu-list {
@@ -804,6 +875,11 @@
     <div class="col-md-4 col-lg-3 mb-4 col-sidebar">
       <div class="sidebar-menu">
         <div class="menu-title">Quick Menu</div>
+        <div class="menu-search" role="search">
+          <i class="fa fa-search" aria-hidden="true"></i>
+          <input id="quickMenuSearch" type="text" placeholder="Search menu..." aria-label="Search quick menu" autocomplete="off" />
+          <button type="button" id="quickMenuClear" class="menu-search-clear" aria-label="Clear search">&times;</button>
+        </div>
         <div class="menu-section">Raza</div>
         <ul class="menu-list">
           <li><a class="menu-item" href="<?php echo base_url('amilsaheb/EventRazaRequest?event_type=1') ?>"><span class="menu-icon"><i class="fa fa-handshake-o"></i></span><span class="menu-label">Miqaat Raza Request</span></a></li>
@@ -1180,13 +1256,15 @@
                 }
               ?>
                 <div class="col-6 col-md-3 mb-3">
-                  <div class="overview-card">
-                    <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
-                    <div class="overview-body">
-                      <span class="overview-title"><?php echo $safeLabel; ?></span>
-                      <span class="overview-value"><?php echo (int)$count; ?></span>
+                  <a href="<?= base_url('amilsaheb/mumineendirectory?status=Active&marital_status=' . rawurlencode($label)); ?>" style="text-decoration:none;color:inherit;display:block;">
+                    <div class="overview-card">
+                      <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
+                      <div class="overview-body">
+                        <span class="overview-title"><?php echo $safeLabel; ?></span>
+                        <span class="overview-value"><?php echo (int)$count; ?></span>
+                      </div>
                     </div>
-                  </div>
+                  </a>
                 </div>
             <?php }
             } ?>
@@ -2573,6 +2651,148 @@
                   if (a) closeSidebar();
                 });
               }
+            })();
+
+            // Collapsible Quick Menu sections (Raza/Finance/Reports/Appointments/Activity)
+            (function() {
+              var sidebarMenu = document.querySelector('.sidebar-menu');
+              if (!sidebarMenu) return;
+
+              var searchInput = document.getElementById('quickMenuSearch');
+
+              var sections = Array.prototype.slice.call(sidebarMenu.querySelectorAll('.menu-section'));
+              if (!sections.length) return;
+
+              function safeGet(key) {
+                try {
+                  return window.localStorage ? localStorage.getItem(key) : null;
+                } catch (e) {
+                  return null;
+                }
+              }
+              function safeSet(key, val) {
+                try {
+                  if (window.localStorage) localStorage.setItem(key, val);
+                } catch (e) {}
+              }
+
+              var prefix = 'quickmenu:' + (window.location && window.location.pathname ? window.location.pathname : 'page');
+
+              sections.forEach(function(sec, idx) {
+                var list = sec.nextElementSibling;
+                if (!list || !list.classList || !list.classList.contains('menu-list')) return;
+
+                sec.setAttribute('role', 'button');
+                sec.setAttribute('tabindex', '0');
+
+                if (!list.id) {
+                  list.id = 'qm-' + idx + '-' + Math.random().toString(36).slice(2, 8);
+                }
+                sec.setAttribute('aria-controls', list.id);
+
+                var label = (sec.textContent || '').trim().toLowerCase();
+                var key = prefix + '|' + label;
+                var stored = safeGet(key);
+                // Default: collapsed (unless user previously expanded it)
+                var collapsed = stored === null ? true : (stored === '1');
+
+                function applyState() {
+                  list.style.display = collapsed ? 'none' : '';
+                  sec.classList.toggle('is-collapsed', collapsed);
+                  sec.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                  safeSet(key, collapsed ? '1' : '0');
+                }
+
+                function toggle() {
+                  collapsed = !collapsed;
+                  applyState();
+                }
+
+                sec.addEventListener('click', function(e) {
+                  if (window.getSelection && String(window.getSelection()).length) return;
+                  // While searching, keep sections expanded so matches are visible.
+                  if (searchInput && (searchInput.value || '').trim().length) return;
+                  toggle();
+                });
+                sec.addEventListener('keydown', function(e) {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (searchInput && (searchInput.value || '').trim().length) return;
+                    toggle();
+                  }
+                });
+
+                applyState();
+              });
+            })();
+
+            // Quick Menu search filter
+            (function() {
+              var sidebarMenu = document.querySelector('.sidebar-menu');
+              var input = document.getElementById('quickMenuSearch');
+              var clearBtn = document.getElementById('quickMenuClear');
+              if (!sidebarMenu || !input) return;
+
+              var sections = Array.prototype.slice.call(sidebarMenu.querySelectorAll('.menu-section'));
+              var lists = Array.prototype.slice.call(sidebarMenu.querySelectorAll('.menu-list'));
+
+              function normalize(s) {
+                return (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+              }
+
+              function apply() {
+                var q = normalize(input.value);
+                if (clearBtn) clearBtn.style.display = q ? 'inline-flex' : 'none';
+
+                lists.forEach(function(list) {
+                  if (!q) {
+                    list.dataset.prevDisplay = (list.style.display || '');
+                  }
+
+                  var items = Array.prototype.slice.call(list.querySelectorAll('li'));
+                  var visibleCount = 0;
+                  items.forEach(function(li) {
+                    var labelEl = li.querySelector('.menu-label');
+                    var text = normalize(labelEl ? labelEl.textContent : li.textContent);
+                    var match = !q || (text.indexOf(q) !== -1);
+                    li.style.display = match ? '' : 'none';
+                    if (match) visibleCount++;
+                  });
+
+                  list.dataset.searchVisibleCount = String(visibleCount);
+
+                  if (q) {
+                    list.style.display = visibleCount > 0 ? '' : 'none';
+                  } else {
+                    list.style.display = list.dataset.prevDisplay || '';
+                  }
+                });
+
+                sections.forEach(function(sec) {
+                  var list = sec.nextElementSibling;
+                  if (!list || !list.classList || !list.classList.contains('menu-list')) return;
+
+                  if (q) {
+                    var vc = parseInt(list.dataset.searchVisibleCount || '0', 10);
+                    sec.style.display = vc > 0 ? '' : 'none';
+                    sec.classList.remove('is-collapsed');
+                    sec.setAttribute('aria-expanded', vc > 0 ? 'true' : 'false');
+                  } else {
+                    sec.style.display = '';
+                  }
+                });
+              }
+
+              input.addEventListener('input', apply);
+              if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                  input.value = '';
+                  input.focus();
+                  apply();
+                });
+              }
+
+              apply();
             })();
 
             // Disable sector details modal; cards now navigate via links

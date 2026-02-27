@@ -340,6 +340,7 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
+    const MAX_MEMBER_ASSIGNMENTS = 3;
     // Show assign-to input when edit button is clicked
     var editBtn = document.getElementById('edit-assignments-btn');
     var assignToContainer = document.getElementById('assign-to-container');
@@ -422,7 +423,7 @@
       });
     }
 
-    function setupAutocomplete(inputId, appendContainer, selectedContainer, hiddenInputId, multiple = false) {
+    function setupAutocomplete(inputId, appendContainer, selectedContainer, hiddenInputId, multiple = false, maxSelections = null) {
 
       const input = document.getElementById(inputId);
       const hiddenInput = document.getElementById(hiddenInputId);
@@ -449,6 +450,12 @@
         },
         select: function(event, ui) {
           let ids = hiddenInput.value ? hiddenInput.value.split(",") : [];
+
+          if (maxSelections && ids.length >= maxSelections) {
+            alert("You can assign maximum " + maxSelections + " members.");
+            input.value = "";
+            return false;
+          }
 
           if (ids.length > 0 && !multiple) {
             alert("Only one selection is allowed! To replace, unselect the current one.");
@@ -502,7 +509,7 @@
       });
     }
 
-    setupAutocomplete("individuals", ".acod-1", "selected-individuals", "individual-ids", true);
+    setupAutocomplete("individuals", ".acod-1", "selected-individuals", "individual-ids", true, MAX_MEMBER_ASSIGNMENTS);
     setupAutocomplete("group-leader", ".acod-2", "selected-group-leader", "group-leader-id", false);
     setupAutocomplete("group-members", ".acod-3", "selected-group-members", "group-member-ids", false);
 
@@ -527,7 +534,7 @@
       });
     }
 
-    setupAutocomplete("edit-individuals", ".acod-4", "edit-selected-individuals", "edit-individual-ids", true);
+    setupAutocomplete("edit-individuals", ".acod-4", "edit-selected-individuals", "edit-individual-ids", true, MAX_MEMBER_ASSIGNMENTS);
     setupAutocomplete("edit-group-leader", ".acod-5", "edit-selected-group-leader", "edit-group-leader-id", false);
     setupAutocomplete("edit-group-members", ".acod-6", "edit-selected-group-members", "edit-group-member-ids", true);
 
@@ -658,6 +665,12 @@
       if ($("#assign-to").val() === "Individual") {
         if ($("#individual-ids").val().trim() === "") {
           alert("Please select at least one individual.");
+          return false;
+        }
+
+        var idsArr = $("#individual-ids").val().split(",").filter(Boolean);
+        if (idsArr.length > MAX_MEMBER_ASSIGNMENTS) {
+          alert("You can assign maximum " + MAX_MEMBER_ASSIGNMENTS + " members.");
           return false;
         }
       }

@@ -1,8 +1,9 @@
 <div class="container-fluid margintopcontainer pt-5">
-  <div class="d-flex justify-content-between align-items-center mb-2">
+  <div class="d-flex justify-content-between align-items-center mb-3">
     <a href="<?= base_url('anjuman'); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i></a>
+    <h4 class="m-0 flex-grow-1 text-center">Corpus Funds - Receive Payments</h4>
+    <button type="button" id="generateReceiptsBtn" class="btn btn-outline-primary btn-sm">Corpus Takhmeen Form PDF</button>
   </div>
-  <h4 class="m-0 flex-grow-1 text-center mb-3">Corpus Funds - Receive Payments</h4>
   <?php if (!empty($message)): ?>
     <div class="alert alert-success py-2 px-3"><?= htmlspecialchars($message); ?></div>
   <?php endif; ?>
@@ -62,8 +63,8 @@
     <div class="card-body py-2">
       <div class="row g-2 align-items-center">
         <div class="col-md-3 mb-2 mb-md-0">
-          <label class="small mb-1">Filter by Name</label>
-          <input type="text" class="form-control form-control-sm" id="filterName" placeholder="Search HOF name..." value="<?= isset($filter_name) ? htmlspecialchars($filter_name) : ''; ?>" />
+          <label class="small mb-1">Name or ITS</label>
+          <input type="text" class="form-control form-control-sm" id="filterName" placeholder="Search name or ITS..." value="<?= isset($filter_name) ? htmlspecialchars($filter_name) : ''; ?>" />
         </div>
         <div class="col-md-2 mb-2 mb-md-0">
           <label class="small mb-1">ITS ID</label>
@@ -104,6 +105,15 @@
       </div>
     </div>
   </div>
+
+  <form id="bulkReceiptsForm" method="post" action="<?= base_url('anjuman/corpusfunds_bulk_receipts_pdf'); ?>" target="_blank" style="display:none;">
+    <input type="hidden" name="name" id="bulk_name" value="" />
+    <input type="hidden" name="its_id" id="bulk_its_id" value="" />
+    <input type="hidden" name="sector" id="bulk_sector" value="" />
+    <input type="hidden" name="sub_sector" id="bulk_sub_sector" value="" />
+    <input type="hidden" name="fund_id" id="bulk_fund_id" value="" />
+    <div id="bulk_hof_ids"></div>
+  </form>
   <div class="table-responsive">
     <table class="table table-sm table-striped align-middle" id="hofTable">
       <thead class="table-light">
@@ -242,6 +252,7 @@
                 <option value="">Select</option>
                 <option value="Cash">Cash</option>
                 <option value="Cheque">Cheque</option>
+                <option value="NEFT">NEFT</option>
               </select>
             </div>
           </div>
@@ -369,7 +380,7 @@
         var textSubSector = ($tr.find('.td-subsector').text() || '').trim().toLowerCase();
         var rowFundIds = ($tr.data('fund-ids') || '').toString();
         var rowIts = (($tr.data('its') || '') + '').toString().trim().toLowerCase();
-        var matchName = !nameQ || textName.indexOf(nameQ) !== -1;
+        var matchName = !nameQ || textName.indexOf(nameQ) !== -1 || rowIts.indexOf(nameQ) !== -1 || (String($tr.find('.td-its').text() || '').toLowerCase().indexOf(nameQ) !== -1);
         var matchIts = !itsQ || rowIts.indexOf(itsQ) !== -1 || (String($tr.find('.td-its').text() || '').toLowerCase().indexOf(itsQ) !== -1);
         var matchFund = !fundId || (',' + rowFundIds + ',').indexOf(',' + fundId + ',') !== -1;
         var matchSector = !sectorQ || textSector === sectorQ;
@@ -397,12 +408,52 @@
       if (onlyName) { applyFilters(); return; }
       var url = '<?= base_url('anjuman/corpusfunds_receive'); ?>';
       var params = [];
+      if (nameQ) params.push('name=' + encodeURIComponent(nameQ));
       if (itsQ) params.push('its_id=' + encodeURIComponent(itsQ));
       if (fundId) params.push('fund_id=' + encodeURIComponent(fundId));
       if (sectorQ) params.push('sector=' + encodeURIComponent(sectorQ));
       if (subSectorQ) params.push('sub_sector=' + encodeURIComponent(subSectorQ));
       if (params.length) url += '?' + params.join('&');
       window.location = url;
+    });
+
+    function getVisibleHofIds() {
+      var ids = [];
+      $('#hofTable tbody tr:visible').each(function() {
+        var $tr = $(this);
+        if ($tr.is('#noFilterResults')) return;
+        var hid = $tr.data('hof-id');
+        if (hid) ids.push(String(hid));
+      });
+      // de-dup
+      var seen = {};
+      return ids.filter(function(v) {
+        if (seen[v]) return false;
+        seen[v] = true;
+        return true;
+      });
+    }
+
+    $('#generateReceiptsBtn').on('click', function() {
+      // Match what user is currently seeing (client-side filtered rows)
+      $('#bulk_name').val(($('#filterName').val() || '').trim());
+      $('#bulk_its_id').val(($('#filterITS').val() || '').trim());
+      $('#bulk_sector').val(($('#filterSector').val() || '').trim());
+      $('#bulk_sub_sector').val(($('#filterSubSector').val() || '').trim());
+      $('#bulk_fund_id').val(($('#filterFund').val() || '').trim());
+
+      var $container = $('#bulk_hof_ids');
+      $container.empty();
+      var ids = getVisibleHofIds();
+      ids.forEach(function(id) {
+        $('<input>').attr({ type: 'hidden', name: 'hof_ids[]' }).val(id).appendTo($container);
+      });
+
+      if (ids.length === 0) {
+        alert('No members to generate receipts for.');
+        return;
+      }
+      document.getElementById('bulkReceiptsForm').submit();
     });
 
     $('#clearFilters').on('click', function() {

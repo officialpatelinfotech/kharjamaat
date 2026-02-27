@@ -29,7 +29,7 @@
   }
 </style>
 <div class="container margintopcontainer">
-  <h1 class="text-center heading pt-5 mb-4">Welcome to Anjuman-e-Saifee Khar Jamaat</h1>
+  <h1 class="text-center heading pt-5 mb-4">Welcome to Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
   <hr>
   <div class="continer d-flex justify-content-center">
     <div class="row container mt-5">
@@ -89,6 +89,14 @@
           </div>
         </div>
       </a>
+      <a href="<?php echo base_url('common/managemiqaat?from=admin'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Create & Manage Miqaat</div>
+            <i class="icon fa-solid fa-calendar-days"></i>
+          </div>
+        </div>
+      </a>
       <a href="<?php echo base_url('admin/corpusfunds'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card text-center">
           <div class="card-body d-flex flex-column justify-content-between">
@@ -145,6 +153,15 @@
           <div class="card-body d-flex flex-column justify-content-between">
             <div class="title">Madresa Module</div>
             <i class="icon fa-solid fa-school"></i>
+          </div>
+        </div>
+      </a>
+
+      <a href="<?php echo base_url('admin/preferences'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Preferences</div>
+            <i class="icon fa-solid fa-gear"></i>
           </div>
         </div>
       </a>

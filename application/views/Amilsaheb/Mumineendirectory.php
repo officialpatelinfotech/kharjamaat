@@ -23,29 +23,64 @@
     align-items: center;
     justify-content: space-between;
   }
-  .filters-card { background: #fff; border: 1px solid #e9ecef; border-radius: 6px; box-shadow: 0 1px 4px rgba(16,24,40,0.03); margin-bottom: 1rem; overflow: hidden }
-  .filters-form { padding: 1rem; }
-  .filters-form .form-label { font-size: .9rem; margin-bottom: .35rem; }
-  .filters-form .form-control, .filters-form .form-select { min-height: 42px; height: 44px; padding: .5rem .75rem; }
-  .filters-form .form-control::placeholder { color: #9aa0a6 }
+
+  .filters-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(16, 24, 40, 0.03);
+    margin-bottom: 1rem;
+    overflow: hidden
+  }
+
+  .filters-form {
+    padding: 1rem;
+  }
+
+  .filters-form .form-label {
+    font-size: .9rem;
+    margin-bottom: .35rem;
+  }
+
+  .filters-form .form-control,
+  .filters-form .form-select {
+    min-height: 42px;
+    height: 44px;
+    padding: .5rem .75rem;
+  }
+
+  .filters-form .form-control::placeholder {
+    color: #9aa0a6
+  }
 
   /* Filter grid: one row on wide screens, wraps cleanly into a 2nd row on smaller screens */
   .filters-grid {
     display: grid;
-    grid-template-columns: 1.6fr 1fr 1fr 1fr 1.6fr;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr 1fr;
     gap: .75rem;
     align-items: end;
     margin: 0;
   }
-  .filters-grid > div { min-width: 0; }
-  .filters-grid .form-label { display: block; }
+
+  .filters-grid>div {
+    min-width: 0;
+  }
+
+  .filters-grid .form-label {
+    display: block;
+  }
+
   .filters-grid .form-control,
-  .filters-grid .form-select { width: 100%; }
+  .filters-grid .form-select {
+    width: 100%;
+  }
+
   .filters-actions {
     display: flex;
     gap: .5rem;
     margin-top: .75rem;
   }
+
   @media (max-width: 992px) {
     .filters-grid {
       grid-template-columns: 1fr 1fr;
@@ -54,22 +89,65 @@
 
   /* Mobile layout */
   @media (max-width: 576px) {
-    .mumineen-container { padding: 1rem; }
-    .filters-form { padding: .75rem; }
-    .filters-grid { grid-template-columns: 1fr; gap: .65rem; }
-    .filters-actions { flex-direction: column; gap: .5rem; }
-    .filters-actions .btn { width: 100%; }
+    .mumineen-container {
+      padding: 1rem;
+    }
 
-    .filters-bar { gap: .5rem; }
-    #toggleFiltersBtn { padding: .25rem .5rem; width: auto; }
+    .filters-form {
+      padding: .75rem;
+    }
 
-    .hof-header { flex-direction: column; align-items: flex-start; gap: .25rem; }
-    .hof-left { width: 100%; }
+    .filters-grid {
+      grid-template-columns: 1fr;
+      gap: .65rem;
+    }
 
-    .member-row { flex-wrap: wrap; gap: .5rem; }
-    .member-index { width: auto; }
-    .member-name { flex: 1 1 100%; min-width: 0; }
-    .actions { width: auto; margin-left: auto; }
+    .filters-actions {
+      flex-direction: column;
+      gap: .5rem;
+    }
+
+    .filters-actions .btn {
+      width: 100%;
+    }
+
+    .filters-bar {
+      gap: .5rem;
+    }
+
+    #toggleFiltersBtn {
+      padding: .25rem .5rem;
+      width: auto;
+    }
+
+    .hof-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: .25rem;
+    }
+
+    .hof-left {
+      width: 100%;
+    }
+
+    .member-row {
+      flex-wrap: wrap;
+      gap: .5rem;
+    }
+
+    .member-index {
+      width: auto;
+    }
+
+    .member-name {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+
+    .actions {
+      width: auto;
+      margin-left: auto;
+    }
   }
 
   .hof-header {
@@ -184,11 +262,28 @@
   /* legacy responsive tweaks no longer needed with CSS grid */
 
   /* Modal scrollability fixes */
-  .modal-dialog { max-width: 960px; }
-  .modal-body { max-height: 70vh; overflow-y: auto; }
-  .modal-content { overflow: hidden; }
-  pre { max-width: 100%; white-space: pre-wrap; word-wrap: break-word; }
-  textarea.form-control { resize: vertical; }
+  .modal-dialog {
+    max-width: 960px;
+  }
+
+  .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .modal-content {
+    overflow: hidden;
+  }
+
+  pre {
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  textarea.form-control {
+    resize: vertical;
+  }
 
   @media (max-width:760px) {
     .top-actions {
@@ -204,7 +299,10 @@
     .its-small {
       display: none
     }
-    .modal-body { max-height: 60vh; }
+
+    .modal-body {
+      max-height: 60vh;
+    }
   }
 </style>
 
@@ -227,12 +325,8 @@
     <form id="filtersForm" class="filters-form" onsubmit="return false;">
       <div class="filters-grid">
         <div>
-          <label class="form-label">Member Name</label>
-          <input type="text" id="filterName" class="form-control" placeholder="e.g. Burhanuddin">
-          <div class="filters-actions">
-            <button id="applyFiltersBtn" class="btn btn-primary btn-sm">✔ Apply</button>
-            <button id="resetFiltersBtn" class="btn btn-outline-secondary btn-sm">↺ Reset</button>
-          </div>
+          <label class="form-label">Name or ITS</label>
+          <input type="text" id="filterName" class="form-control" placeholder="e.g. Burhanuddin / 12345678">
         </div>
         <div>
           <label class="form-label">Sector</label>
@@ -255,10 +349,29 @@
           </select>
         </div>
         <div>
+          <label class="form-label">Marital Status</label>
+          <select id="filterMaritalStatus" class="form-select">
+            <option value="">All</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Age Range</label>
+          <div class="d-flex gap-2">
+            <input type="number" id="filterAgeMin" class="form-control" placeholder="Min" min="0" step="1">
+            <input type="number" id="filterAgeMax" class="form-control" placeholder="Max" min="0" step="1">
+          </div>
+        </div>
+        <div>
           <label class="form-label">HOF</label>
           <select id="filterHOF" class="form-select">
             <option value="">All HOFs</option>
           </select>
+        </div>
+        <div class="filters-actions">
+          <button id="applyFiltersBtn" class="btn btn-primary btn-sm">✔ Apply</button>
+          <button id="resetFiltersBtn" class="btn btn-outline-secondary btn-sm">↺ Reset</button>
+          <!-- <div class="filters-actions">
+          </div> -->
         </div>
       </div>
     </form>
@@ -414,9 +527,9 @@
 
     // Render all keys from user object in a readable way
     Object.keys(user).forEach(key => {
-        // hide internal id field from modal
-        if (String(key).toLowerCase() === 'id') return;
-        let val = user[key];
+      // hide internal id field from modal
+      if (String(key).toLowerCase() === 'id') return;
+      let val = user[key];
       if (val === null || val === undefined) val = '';
 
       const col = document.createElement('div');
@@ -478,9 +591,10 @@
     const sector = params.get('sector') || params.get('filterSector') || '';
     const sub = params.get('sub_sector') || params.get('sub') || params.get('filterSubSector') || '';
     const status = params.get('status') || params.get('filterStatus') || '';
+    const marital = params.get('marital_status') || params.get('marital') || params.get('ms') || '';
     const hof = params.get('hof') || params.get('filterHOF') || '';
-    const min = params.get('min');
-    const max = params.get('max');
+    const min = params.get('min') ?? params.get('age_min');
+    const max = params.get('max') ?? params.get('age_max');
 
     // If legacy filter provided, handle those cases first
     if (legacyFilter) {
@@ -490,25 +604,41 @@
           break;
         case 'sector':
           // set select if option exists
-          if (legacyValue) { const sel = document.getElementById('filterSector'); if (sel) sel.value = legacyValue; }
+          if (legacyValue) {
+            const sel = document.getElementById('filterSector');
+            if (sel) sel.value = legacyValue;
+          }
           break;
         case 'member_type':
-          if (legacyValue) { const sel = document.getElementById('filterStatus'); if (sel) sel.value = legacyValue; }
+          if (legacyValue) {
+            const sel = document.getElementById('filterStatus');
+            if (sel) sel.value = legacyValue;
+          }
           break;
-            case 'gender':
-              // store gender on form dataset instead of abusing name field
-              if (legacyValue) { const f = document.getElementById('filtersForm'); if (f) f.dataset.gender = legacyValue; }
-              break;
-            case 'hof_fm_type':
-              // legacy filter that specifies whether record is HOF or FM; store on form dataset and show chip
-              if (legacyValue) {
-                const f = document.getElementById('filtersForm'); if (f) f.dataset.hofFmType = legacyValue;
-                const chip = document.getElementById('activeFilter'); const chipText = document.getElementById('activeFilterText');
-                if (chip && chipText) { chipText.textContent = 'Type: ' + legacyValue; chip.style.display = 'inline-block'; }
-              }
-              break;
+        case 'gender':
+          // store gender on form dataset instead of abusing name field
+          if (legacyValue) {
+            const f = document.getElementById('filtersForm');
+            if (f) f.dataset.gender = legacyValue;
+          }
+          break;
+        case 'hof_fm_type':
+          // legacy filter that specifies whether record is HOF or FM; store on form dataset and show chip
+          if (legacyValue) {
+            const f = document.getElementById('filtersForm');
+            if (f) f.dataset.hofFmType = legacyValue;
+            const chip = document.getElementById('activeFilter');
+            const chipText = document.getElementById('activeFilterText');
+            if (chip && chipText) {
+              chipText.textContent = 'Type: ' + legacyValue;
+              chip.style.display = 'inline-block';
+            }
+          }
+          break;
         case 'age_range':
-          if (min !== null || max !== null) { /* handled below */ }
+          if (min !== null || max !== null) {
+            /* handled below */
+          }
           break;
         default:
           break;
@@ -516,17 +646,48 @@
     }
 
     // If any direct params exist, set form fields
-    if (name) { const el = document.getElementById('filterName'); if (el) el.value = name; }
-    if (sector) { const el = document.getElementById('filterSector'); if (el) el.value = sector; }
-    if (sub) { const el = document.getElementById('filterSubSector'); if (el) el.value = sub; }
-    if (status) { const el = document.getElementById('filterStatus'); if (el) el.value = status; }
-    if (hof) { const el = document.getElementById('filterHOF'); if (el) el.value = hof; }
+    if (name) {
+      const el = document.getElementById('filterName');
+      if (el) el.value = name;
+    }
+    if (sector) {
+      const el = document.getElementById('filterSector');
+      if (el) el.value = sector;
+    }
+    if (sub) {
+      const el = document.getElementById('filterSubSector');
+      if (el) el.value = sub;
+    }
+    if (status) {
+      const el = document.getElementById('filterStatus');
+      if (el) el.value = status;
+    }
+    if (marital) {
+      const el = document.getElementById('filterMaritalStatus');
+      if (el) el.value = marital;
+    }
+    if (hof) {
+      const el = document.getElementById('filterHOF');
+      if (el) el.value = hof;
+    }
     // direct gender param support (store on form dataset)
-    const directGender = params.get('gender'); if (directGender) { const f = document.getElementById('filtersForm'); if (f) f.dataset.gender = directGender; }
+    const directGender = params.get('gender');
+    if (directGender) {
+      const f = document.getElementById('filtersForm');
+      if (f) f.dataset.gender = directGender;
+    }
 
     // If min/max specified, we will apply an age_range style filter by storing them on the form element dataset
     if (min !== null || max !== null) {
-      const f = document.getElementById('filtersForm'); if (f) { f.dataset.min = min || ''; f.dataset.max = max || ''; }
+      const f = document.getElementById('filtersForm');
+      if (f) {
+        f.dataset.min = min || '';
+        f.dataset.max = max || '';
+      }
+      const minEl = document.getElementById('filterAgeMin');
+      if (minEl) minEl.value = min || '';
+      const maxEl = document.getElementById('filterAgeMax');
+      if (maxEl) maxEl.value = max || '';
     }
 
     // Apply filters now to reflect any GET-provided values
@@ -539,11 +700,14 @@
     const subSectors = new Set();
     const hofs = new Map();
     const statuses = new Set();
+    const maritalStatuses = new Set();
     // ITS -> name map to resolve HOF names (use full dataset)
     const itsMap = {};
     (originalAllData || originalData).forEach(u => {
       if (u.Sector) sectors.add(u.Sector);
       if (u.Sub_Sector) subSectors.add(u.Sub_Sector);
+      const ms = (u.Marital_Status || u.MaritalStatus || u.Marital || '').toString().trim();
+      if (ms) maritalStatuses.add(ms);
       const its = String(u.ITS_ID || u.ITS || '');
       if (its) itsMap[its] = u.Full_Name || u.FullName || u.Name || '';
       const hofId = u.HOF_ID || u.HOF || u.hof_id || '';
@@ -558,11 +722,13 @@
     const sectorEl = document.getElementById('filterSector');
     const subEl = document.getElementById('filterSubSector');
     const hofEl = document.getElementById('filterHOF');
+    const maritalEl = document.getElementById('filterMaritalStatus');
 
     // clear existing (keep default option)
     sectorEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
     subEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
     hofEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
+    if (maritalEl) maritalEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
 
     Array.from(sectors).sort().forEach(s => {
       const o = document.createElement('option');
@@ -583,19 +749,48 @@
       hofEl.appendChild(o);
     });
 
+    if (maritalEl) {
+      const preferred = ['Single', 'Married', 'Engaged', 'Separated', 'Divorced', 'Widowed'];
+      const remaining = new Set(maritalStatuses);
+      preferred.forEach(v => {
+        if (remaining.has(v)) {
+          const o = document.createElement('option');
+          o.value = v;
+          o.textContent = v;
+          maritalEl.appendChild(o);
+          remaining.delete(v);
+        }
+      });
+      Array.from(remaining).sort().forEach(v => {
+        const o = document.createElement('option');
+        o.value = v;
+        o.textContent = v;
+        maritalEl.appendChild(o);
+      });
+    }
+
     // when sector changes, filter sub-sector options to matching ones
     sectorEl.addEventListener('change', () => {
       const selected = sectorEl.value;
       const subSet = new Set();
       if (!selected) {
         // if sector cleared, show all sub sectors (use full dataset)
-        (originalAllData || originalData).forEach(u => { if (u.Sub_Sector) subSet.add(u.Sub_Sector); });
+        (originalAllData || originalData).forEach(u => {
+          if (u.Sub_Sector) subSet.add(u.Sub_Sector);
+        });
       } else {
-        (originalAllData || originalData).forEach(u => { if ((u.Sector || '') === selected && u.Sub_Sector) subSet.add(u.Sub_Sector); });
+        (originalAllData || originalData).forEach(u => {
+          if ((u.Sector || '') === selected && u.Sub_Sector) subSet.add(u.Sub_Sector);
+        });
       }
       // repopulate subEl
       subEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
-      Array.from(subSet).sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; subEl.appendChild(o); });
+      Array.from(subSet).sort().forEach(s => {
+        const o = document.createElement('option');
+        o.value = s;
+        o.textContent = s;
+        subEl.appendChild(o);
+      });
     });
   }
 
@@ -605,22 +800,30 @@
     const sector = document.getElementById('filterSector').value;
     const sub = document.getElementById('filterSubSector').value;
     const status = document.getElementById('filterStatus').value;
+    const marital = document.getElementById('filterMaritalStatus') ? document.getElementById('filterMaritalStatus').value : '';
     const hof = document.getElementById('filterHOF').value;
 
     // dataset-based filters (legacy/direct)
     const formEl = document.getElementById('filtersForm');
     const hofFmType = formEl && formEl.dataset && formEl.dataset.hofFmType ? formEl.dataset.hofFmType.toString().toUpperCase() : '';
     const dsGender = formEl && formEl.dataset && formEl.dataset.gender ? formEl.dataset.gender.toString().toLowerCase() : '';
-    const dsMin = formEl && formEl.dataset && formEl.dataset.min !== undefined && formEl.dataset.min !== '' ? parseInt(formEl.dataset.min, 10) : null;
-    const dsMax = formEl && formEl.dataset && formEl.dataset.max !== undefined && formEl.dataset.max !== '' ? parseInt(formEl.dataset.max, 10) : null;
+    const ageMinEl = document.getElementById('filterAgeMin');
+    const ageMaxEl = document.getElementById('filterAgeMax');
+    const inputMin = ageMinEl && ageMinEl.value !== '' ? parseInt(ageMinEl.value, 10) : null;
+    const inputMax = ageMaxEl && ageMaxEl.value !== '' ? parseInt(ageMaxEl.value, 10) : null;
+    const dsMinFallback = formEl && formEl.dataset && formEl.dataset.min !== undefined && formEl.dataset.min !== '' ? parseInt(formEl.dataset.min, 10) : null;
+    const dsMaxFallback = formEl && formEl.dataset && formEl.dataset.max !== undefined && formEl.dataset.max !== '' ? parseInt(formEl.dataset.max, 10) : null;
+    const dsMin = inputMin !== null ? inputMin : dsMinFallback;
+    const dsMax = inputMax !== null ? inputMax : dsMaxFallback;
 
-    const hasAnyFilter = !!(name || sector || sub || status || hof || hofFmType || dsGender || (dsMin !== null) || (dsMax !== null));
+    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || hofFmType || dsGender || (dsMin !== null) || (dsMax !== null));
 
     // if no filters set, show all (prefer full dataset when available)
     if (!hasAnyFilter) {
       currentData = (originalAllData && originalAllData.length) ? [...originalAllData] : [...originalData];
       renderList(currentData);
-      const chip = document.getElementById('activeFilter'); if (chip) chip.style.display = 'none';
+      const chip = document.getElementById('activeFilter');
+      if (chip) chip.style.display = 'none';
       return;
     }
 
@@ -635,8 +838,18 @@
       }
       if (sector) preds.push((u.Sector || '').toString() === sector);
       if (sub) preds.push((u.Sub_Sector || '').toString() === sub);
-      if (status) { const uStatus = (u.Status || u.Member_Status || '').toString(); preds.push(uStatus === status); }
-      if (hof) { const hofId = (u.HOF_ID || u.HOF || u.hof_id || '').toString(); preds.push(hofId === hof); }
+      if (status) {
+        const uStatus = (u.Status || u.Member_Status || '').toString();
+        preds.push(uStatus === status);
+      }
+      if (marital) {
+        const ms = (u.Marital_Status || u.MaritalStatus || '').toString();
+        preds.push(ms === marital);
+      }
+      if (hof) {
+        const hofId = (u.HOF_ID || u.HOF || u.hof_id || '').toString();
+        preds.push(hofId === hof);
+      }
       if (hofFmType) {
         const t = ((u.HOF_FM_TYPE || u.hof_fm_type || u.HOF_FM || '')).toString().toUpperCase();
         preds.push(t === hofFmType);
@@ -668,6 +881,7 @@
     if (sector) labelParts.push('Sector: ' + sector);
     if (sub) labelParts.push('Sub: ' + sub);
     if (status) labelParts.push('Status: ' + status);
+    if (marital) labelParts.push('Marital: ' + marital);
     if (hof) {
       const hofSelect = document.getElementById('filterHOF');
       labelParts.push('HOF: ' + (hofSelect.options[hofSelect.selectedIndex].text || hof));
@@ -709,9 +923,14 @@
   document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
 
   // Apply filters immediately when any select changes
-  ['filterSector','filterSubSector','filterStatus','filterHOF'].forEach(id=>{
+  ['filterSector', 'filterSubSector', 'filterStatus', 'filterMaritalStatus', 'filterHOF'].forEach(id => {
     const el = document.getElementById(id);
-    if(el) el.addEventListener('change', applyFilters);
+    if (el) el.addEventListener('change', applyFilters);
+  });
+
+  ['filterAgeMin', 'filterAgeMax'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', applyFilters);
   });
 
   const clearFilterEl = document.getElementById('clearFilterLink');
@@ -720,23 +939,25 @@
       e.preventDefault();
       history.replaceState(null, '', window.location.pathname);
       currentData = [...originalData];
-      const si = document.getElementById('searchInput'); if (si) si.value = '';
+      const si = document.getElementById('searchInput');
+      if (si) si.value = '';
       renderList(currentData);
-      const af = document.getElementById('activeFilter'); if (af) af.style.display = 'none';
+      const af = document.getElementById('activeFilter');
+      if (af) af.style.display = 'none';
     });
   }
 
   // Toggle filters visibility
-  (function(){
+  (function() {
     const btn = document.getElementById('toggleFiltersBtn');
-    if(!btn) return;
+    if (!btn) return;
     const filtersBar = document.querySelector('.filters-bar');
     const filtersForm = document.getElementById('filtersForm');
     const searchRow = document.querySelector('.search-row');
-    btn.addEventListener('click', function(){
+    btn.addEventListener('click', function() {
       const hidden = filtersForm.classList.toggle('d-none');
-      if(filtersBar) filtersBar.classList.toggle('d-none', hidden);
-      if(searchRow) searchRow.classList.toggle('d-none', hidden);
+      if (filtersBar) filtersBar.classList.toggle('d-none', hidden);
+      if (searchRow) searchRow.classList.toggle('d-none', hidden);
       btn.innerHTML = hidden ? '<i class="fa fa-sliders"></i> Show' : '<i class="fa fa-sliders"></i> Hide';
       btn.setAttribute('aria-expanded', (!hidden).toString());
     });

@@ -124,7 +124,7 @@
     </a>
   </div>
   <div class="">
-    <h1 class="text-center heading mb-4">Welcome to Anjuman-e-Saifee Khar Jamaat</h1>
+    <h1 class="text-center heading mb-4">Welcome to Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
     <hr>
 
   </div>

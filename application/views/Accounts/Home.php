@@ -184,6 +184,7 @@
     overflow: visible;
     padding-top: 10px;
     padding-bottom: 10px;
+    flex: 1 1 auto;
   }
 
   /* Tighten spacing inside dues containers */
@@ -208,7 +209,7 @@
 // `format_inr()` is provided by the autoloaded `inr_helper`.
 ?>
 <div class="container margintopcontainer pt-5">
-  <h1 class="text-center heading pt-5 mb-3">Welcome to Anjuman-e-Saifee Khar Jamaat</h1>
+  <h1 class="text-center heading pt-5 mb-3">Welcome to Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
   <p class="hirji-date text-center mb-4"><b><?php echo $hijri_date ?></b></p>
   <hr>
   <div class="row justify-content-center">
@@ -262,7 +263,7 @@
       <a href="<?php echo base_url('accounts/viewfmbtakhmeen') ?>" aria-label="FMB Due" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
         <div class="stat-icon-wrap mb-1">
           <i class="fa fa-cutlery"></i>
-          <?php if (isset($fmb_takhmeen_details['total_due']) && (int)$fmb_takhmeen_details['total_due'] > 0): ?>
+          <?php if (!empty($fmb_due_badge)): ?>
             <span class="count-badge">Due</span>
           <?php endif; ?>
         </div>
@@ -664,7 +665,7 @@
       </div>
 
       <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1 dues">
+        <div class="dashboard-card mx-1 dues h-100 d-flex flex-column">
           <div class="card-header">
             <span>FMB Dues</span>
             <?php if (isset($fmb_takhmeen_details["total_due"]) && (float)$fmb_takhmeen_details["total_due"] > 0): ?>
@@ -696,7 +697,7 @@
       </div>
 
       <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1 dues">
+        <div class="dashboard-card mx-1 dues h-100 d-flex flex-column">
           <div class="card-header">
             <span>Sabeel Dues</span>
             <?php if (isset($sabeel_takhmeen_details["total_due"]) && $sabeel_takhmeen_details["total_due"] > 0): ?>

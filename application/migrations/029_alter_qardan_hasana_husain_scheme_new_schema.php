@@ -7,7 +7,7 @@ class Migration_Alter_qardan_hasana_husain_scheme_new_schema extends CI_Migratio
     {
         if (!$this->db->table_exists('qardan_hasana_husain_scheme')) {
             // Create fresh table if it doesn't exist
-            $this->db->query("CREATE TABLE `qardan_hasana_husain_scheme` (
+            $this->db->query("CREATE TABLE IF NOT EXISTS `qardan_hasana_husain_scheme` (
                 `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 `uploaded_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `ITS` VARCHAR(20) NOT NULL,

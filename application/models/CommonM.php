@@ -4,6 +4,109 @@
 class CommonM extends CI_Model
 {
 
+  /**
+   * Aggregate Sabeel takhmeen yearly totals by type for each financial year.
+   *
+  * - Establishment uses grade.amount (treated as yearly in existing dashboards/models)
+  * - Residential uses grade.yearly_amount (fallback: amount*12)
+   *
+   * @param string|null $year Optional composite year like '1446-47'
+   * @return array
+   */
+  public function get_sabeel_yearly_type_totals($year = null)
+  {
+    $params = [];
+    $where = '';
+    if (!empty($year)) {
+      $where = ' WHERE st.year = ? ';
+      $params[] = $year;
+    }
+
+    $sql = "SELECT
+        st.year,
+        CAST(SUBSTRING_INDEX(st.year, '-', 1) AS UNSIGNED) AS start_year,
+        COALESCE(SUM(COALESCE(est.amount, 0)), 0) AS establishment_yearly_total,
+        COALESCE(SUM(COALESCE(res.yearly_amount, COALESCE(res.amount,0) * 12, 0)), 0) AS residential_yearly_total
+      FROM sabeel_takhmeen st
+      LEFT JOIN sabeel_takhmeen_grade est
+        ON est.id = st.establishment_grade
+       AND est.type = 'establishment'
+       AND est.year = st.year
+      LEFT JOIN sabeel_takhmeen_grade res
+        ON res.id = st.residential_grade
+       AND res.type = 'residential'
+       AND res.year = st.year
+      $where
+      GROUP BY st.year
+      ORDER BY start_year DESC";
+
+    return $this->db->query($sql, $params)->result_array();
+  }
+
+  /**
+   * Per-member YoY amounts for Sabeel takhmeen (Establishment & Residential).
+   * Returns one row per active HOF member.
+   */
+  public function get_sabeel_member_year_over_year($currentYear, $previousYear)
+  {
+    $currentYear = trim((string)$currentYear);
+    $previousYear = trim((string)$previousYear);
+    if ($currentYear === '' || $previousYear === '') return [];
+
+    // IMPORTANT: aggregate each year per-user first, then join to users.
+    // This avoids row multiplication if a user has multiple takhmeen rows.
+    $sql = "SELECT
+        u.ITS_ID,
+        u.Full_Name,
+        u.Sector,
+        u.Sub_Sector,
+        COALESCE(c.est_amount, 0) AS est_curr,
+        COALESCE(c.res_amount, 0) AS res_curr,
+        COALESCE(p.est_amount, 0) AS est_prev,
+        COALESCE(p.res_amount, 0) AS res_prev
+      FROM user u
+      LEFT JOIN (
+        SELECT
+          st.user_id,
+          SUM(COALESCE(est.amount, 0)) AS est_amount,
+          SUM(COALESCE(res.yearly_amount, COALESCE(res.amount,0) * 12, 0)) AS res_amount
+        FROM sabeel_takhmeen st
+        LEFT JOIN sabeel_takhmeen_grade est
+          ON est.id = st.establishment_grade
+         AND est.type = 'establishment'
+         AND est.year = st.year
+        LEFT JOIN sabeel_takhmeen_grade res
+          ON res.id = st.residential_grade
+         AND res.type = 'residential'
+         AND res.year = st.year
+        WHERE st.year = ?
+        GROUP BY st.user_id
+      ) c ON c.user_id = u.ITS_ID
+      LEFT JOIN (
+        SELECT
+          st.user_id,
+          SUM(COALESCE(est.amount, 0)) AS est_amount,
+          SUM(COALESCE(res.yearly_amount, COALESCE(res.amount,0) * 12, 0)) AS res_amount
+        FROM sabeel_takhmeen st
+        LEFT JOIN sabeel_takhmeen_grade est
+          ON est.id = st.establishment_grade
+         AND est.type = 'establishment'
+         AND est.year = st.year
+        LEFT JOIN sabeel_takhmeen_grade res
+          ON res.id = st.residential_grade
+         AND res.type = 'residential'
+         AND res.year = st.year
+        WHERE st.year = ?
+        GROUP BY st.user_id
+      ) p ON p.user_id = u.ITS_ID
+      WHERE u.Inactive_Status IS NULL
+        AND u.HOF_FM_TYPE = 'HOF'
+        AND u.Sector IS NOT NULL
+      ORDER BY u.Sector, u.Sub_Sector, u.Full_Name ASC";
+
+    return $this->db->query($sql, [$currentYear, $previousYear])->result_array();
+  }
+
   public function get_sabeel_user_details($year = null, $grade = null, $name_filter = null, $amount_zero = null)
   {
     // Returns per-user summary: user_id, full_name, total_takhmeen, total_paid, outstanding
@@ -50,8 +153,10 @@ class CommonM extends CI_Model
     // Optional HAVING filters
     $having = [];
     if (!empty($name_filter)) {
-      $having[] = "LOWER(MAX(COALESCE(u.Full_Name, CAST(b.user_id AS CHAR)))) LIKE ?";
-      $params[] = '%' . strtolower(trim($name_filter)) . '%';
+      $q = strtolower(trim((string)$name_filter));
+      $having[] = "(LOWER(MAX(COALESCE(u.Full_Name, ''))) LIKE ? OR CAST(b.user_id AS CHAR) LIKE ?)";
+      $params[] = '%' . $q . '%';
+      $params[] = '%' . $q . '%';
     }
     if (!empty($amount_zero)) {
       // total_takhmeen alias equals 0
@@ -198,6 +303,243 @@ class CommonM extends CI_Model
     $this->db->where('user_id', $user_id);
     $this->db->order_by('payment_date', 'ASC');
     return $this->db->get()->result_array();
+  }
+
+  /**
+   * For a specific Sabeel payment, infer which takhmeen year(s) it was applied to.
+   *
+   * Since `sabeel_takhmeen_payments` does not store a year column, we allocate payments
+   * FIFO to the oldest outstanding takhmeen years for that user + type.
+   *
+   * @param string|int $user_id ITS ID
+   * @param string $type 'establishment'|'residential'
+   * @param int $payment_id Payment row id in sabeel_takhmeen_payments
+   * @param string $payment_date Payment date/datetime string
+   * @param float $payment_amount Amount of this payment
+   * @return array List of composite years like ['1445-46','1446-47']
+   */
+  public function get_sabeel_payment_years_covered($user_id, $type, $payment_id, $payment_date, $payment_amount)
+  {
+    $user_id = trim((string) $user_id);
+    $type = strtolower(trim((string) $type));
+    $payment_id = (int) $payment_id;
+    $payment_date = trim((string) $payment_date);
+    $payment_amount = is_numeric($payment_amount) ? (float) $payment_amount : 0.0;
+    if ($user_id === '' || ($type !== 'establishment' && $type !== 'residential') || $payment_id <= 0 || $payment_date === '' || $payment_amount <= 0) {
+      return [];
+    }
+
+    // 1) Fetch per-year takhmeen totals for this user & type
+    if ($type === 'establishment') {
+      $sqlYears = "SELECT
+          st.year,
+          CAST(SUBSTRING_INDEX(st.year, '-', 1) AS UNSIGNED) AS start_year,
+          COALESCE(SUM(COALESCE(g.amount, 0)), 0) AS due
+        FROM sabeel_takhmeen st
+        LEFT JOIN sabeel_takhmeen_grade g
+          ON g.id = st.establishment_grade
+         AND g.type = 'establishment'
+         AND g.year = st.year
+        WHERE st.user_id = ?
+          AND st.year IS NOT NULL
+        GROUP BY st.year
+        ORDER BY start_year ASC";
+      $years = $this->db->query($sqlYears, [$user_id])->result_array();
+    } else {
+      $sqlYears = "SELECT
+          st.year,
+          CAST(SUBSTRING_INDEX(st.year, '-', 1) AS UNSIGNED) AS start_year,
+          COALESCE(SUM(COALESCE(g.yearly_amount, COALESCE(g.amount,0) * 12, 0)), 0) AS due
+        FROM sabeel_takhmeen st
+        LEFT JOIN sabeel_takhmeen_grade g
+          ON g.id = st.residential_grade
+         AND g.type = 'residential'
+         AND g.year = st.year
+        WHERE st.user_id = ?
+          AND st.year IS NOT NULL
+        GROUP BY st.year
+        ORDER BY start_year ASC";
+      $years = $this->db->query($sqlYears, [$user_id])->result_array();
+    }
+
+    if (empty($years)) return [];
+
+    // Keep only positive-due years
+    $yearDues = [];
+    foreach ($years as $r) {
+      $y = (string) ($r['year'] ?? '');
+      $due = is_numeric($r['due'] ?? null) ? (float) $r['due'] : 0.0;
+      if ($y === '' || $due <= 0) continue;
+      $yearDues[] = ['year' => $y, 'due' => $due];
+    }
+    if (empty($yearDues)) return [];
+
+    // 2) Compute total paid BEFORE this payment, using (payment_date, id) ordering
+    $sqlPaidBefore = "SELECT COALESCE(SUM(amount), 0) AS total
+      FROM sabeel_takhmeen_payments
+      WHERE user_id = ?
+        AND type = ?
+        AND (
+          payment_date < ?
+          OR (payment_date = ? AND id < ?)
+        )";
+    $row = $this->db->query($sqlPaidBefore, [$user_id, $type, $payment_date, $payment_date, $payment_id])->row_array();
+    $paidBefore = is_numeric($row['total'] ?? null) ? (float) $row['total'] : 0.0;
+    $paidAfter = $paidBefore + $payment_amount;
+
+    // 3) Determine which years this payment contributed to
+    $covered = [];
+    $cumDueBefore = 0.0;
+    foreach ($yearDues as $yd) {
+      $due = (float) $yd['due'];
+      $year = (string) $yd['year'];
+
+      $before = $paidBefore - $cumDueBefore;
+      $after = $paidAfter - $cumDueBefore;
+
+      $paidInYearBefore = min(max($before, 0.0), $due);
+      $paidInYearAfter = min(max($after, 0.0), $due);
+
+      if ($paidInYearAfter > $paidInYearBefore) {
+        $covered[] = $year;
+      }
+
+      $cumDueBefore += $due;
+    }
+
+    return $covered;
+  }
+
+  /**
+   * For a specific FMB Takhmeen payment, infer which takhmeen year(s) it was applied to.
+   *
+   * Since `fmb_takhmeen_payments` does not store a year column, we allocate payments FIFO
+   * to the oldest outstanding takhmeen years for that user.
+   *
+   * @param string|int $user_id ITS ID
+   * @param int $payment_id Payment row id in fmb_takhmeen_payments
+   * @param string $payment_date Payment date/datetime string
+   * @param float $payment_amount Amount of this payment
+   * @return array List of composite years like ['1445-46','1446-47']
+   */
+  public function get_fmb_takhmeen_payment_years_covered($user_id, $payment_id, $payment_date, $payment_amount)
+  {
+    $user_id = trim((string) $user_id);
+    $payment_id = (int) $payment_id;
+    $payment_date = trim((string) $payment_date);
+    $payment_amount = is_numeric($payment_amount) ? (float) $payment_amount : 0.0;
+    if ($user_id === '' || $payment_id <= 0 || $payment_date === '' || $payment_amount <= 0) {
+      return [];
+    }
+
+    // 1) Fetch per-year takhmeen totals for this user
+    $sqlYears = "SELECT
+        ft.year,
+        CAST(SUBSTRING_INDEX(ft.year, '-', 1) AS UNSIGNED) AS start_year,
+        COALESCE(SUM(COALESCE(ft.total_amount, 0)), 0) AS due
+      FROM fmb_takhmeen ft
+      WHERE ft.user_id = ?
+        AND ft.year IS NOT NULL
+      GROUP BY ft.year
+      ORDER BY start_year ASC";
+    $years = $this->db->query($sqlYears, [$user_id])->result_array();
+    if (empty($years)) return [];
+
+    $yearDues = [];
+    foreach ($years as $r) {
+      $y = (string) ($r['year'] ?? '');
+      $due = is_numeric($r['due'] ?? null) ? (float) $r['due'] : 0.0;
+      if ($y === '' || $due <= 0) continue;
+      $yearDues[] = ['year' => $y, 'due' => $due];
+    }
+    if (empty($yearDues)) return [];
+
+    // 2) Compute total paid BEFORE this payment, using (payment_date, id) ordering
+    $sqlPaidBefore = "SELECT COALESCE(SUM(amount), 0) AS total
+      FROM fmb_takhmeen_payments
+      WHERE user_id = ?
+        AND (
+          payment_date < ?
+          OR (payment_date = ? AND id < ?)
+        )";
+    $row = $this->db->query($sqlPaidBefore, [$user_id, $payment_date, $payment_date, $payment_id])->row_array();
+    $paidBefore = is_numeric($row['total'] ?? null) ? (float) $row['total'] : 0.0;
+    $paidAfter = $paidBefore + $payment_amount;
+
+    // 3) Determine which years this payment contributed to
+    $covered = [];
+    $cumDueBefore = 0.0;
+    foreach ($yearDues as $yd) {
+      $due = (float) $yd['due'];
+      $year = (string) $yd['year'];
+
+      $before = $paidBefore - $cumDueBefore;
+      $after = $paidAfter - $cumDueBefore;
+
+      $paidInYearBefore = min(max($before, 0.0), $due);
+      $paidInYearAfter = min(max($after, 0.0), $due);
+
+      if ($paidInYearAfter > $paidInYearBefore) {
+        $covered[] = $year;
+      }
+
+      $cumDueBefore += $due;
+    }
+
+    return $covered;
+  }
+
+  /**
+   * Fetch Miqaat invoice metadata for receipts: miqaat type + hijri year.
+   *
+   * @param int $invoice_id miqaat_invoice.id
+    * @return array|null ['miqaat_type' => string, 'invoice_year' => string, 'miqaat_code' => string]
+   */
+  public function get_miqaat_invoice_receipt_meta($invoice_id)
+  {
+    $invoice_id = (int) $invoice_id;
+    if ($invoice_id <= 0) return null;
+
+    $row = $this->db->select('i.id, i.year AS invoice_year, COALESCE(m.type, i.miqaat_type, "") AS miqaat_type, COALESCE(m.miqaat_id, "") AS miqaat_code', false)
+      ->from('miqaat_invoice i')
+      ->join('miqaat m', 'm.id = i.miqaat_id', 'left')
+      ->where('i.id', $invoice_id)
+      ->limit(1)
+      ->get()->row_array();
+
+    if (empty($row)) return null;
+
+    return [
+      'miqaat_type' => (string) ($row['miqaat_type'] ?? ''),
+      'invoice_year' => (string) ($row['invoice_year'] ?? ''),
+      'miqaat_code' => (string) ($row['miqaat_code'] ?? ''),
+    ];
+  }
+
+  /**
+   * Fetch FMB General Contribution invoice metadata for receipts.
+   *
+   * @param int $fmbgc_id fmb_general_contribution.id
+   * @return array|null ['fmb_type' => string, 'contri_type' => string, 'contri_year' => string]
+   */
+  public function get_fmb_gc_receipt_meta($fmbgc_id)
+  {
+    $fmbgc_id = (int) $fmbgc_id;
+    if ($fmbgc_id <= 0) return null;
+
+    $row = $this->db->select('id, fmb_type, contri_type, contri_year')
+      ->from('fmb_general_contribution')
+      ->where('id', $fmbgc_id)
+      ->limit(1)
+      ->get()->row_array();
+
+    if (empty($row)) return null;
+
+    return [
+      'fmb_type' => (string) ($row['fmb_type'] ?? ''),
+      'contri_type' => (string) ($row['contri_type'] ?? ''),
+      'contri_year' => (string) ($row['contri_year'] ?? ''),
+    ];
   }
 
   // ===================== FMB (Thaali) Takhmeen - Summary & Details =====================
@@ -651,8 +993,10 @@ class CommonM extends CI_Model
     // Optional HAVING filters
     $having = [];
     if (!empty($name_filter)) {
-      $having[] = "LOWER(MAX(COALESCE(u.Full_Name, CAST(b.user_id AS CHAR)))) LIKE ?";
-      $params[] = '%' . strtolower(trim($name_filter)) . '%';
+      $q = strtolower(trim((string)$name_filter));
+      $having[] = "(LOWER(MAX(COALESCE(u.Full_Name, ''))) LIKE ? OR CAST(b.user_id AS CHAR) LIKE ?)";
+      $params[] = '%' . $q . '%';
+      $params[] = '%' . $q . '%';
     }
     if (!empty($amount_zero)) {
       $having[] = "COALESCE(SUM(ft.total_amount), 0) = 0";
@@ -664,6 +1008,43 @@ class CommonM extends CI_Model
     $sql .= " ORDER BY full_name ASC";
 
     $rows = $this->db->query($sql, $params)->result_array();
+
+    // Add assigned thaali day counts per user for the selected FY
+    // (assignment.year stored as FY like 1447-48; count unique dates)
+    if (!empty($year) && !empty($rows) && $this->db->table_exists('fmb_thaali_day_assignment')) {
+      $takhmeen_year = $year . '-' . substr($year + 1, -2);
+      $user_ids_for_assign = array_values(array_filter(array_map(function ($r) {
+        return isset($r['user_id']) ? (string) $r['user_id'] : '';
+      }, $rows)));
+      if (!empty($user_ids_for_assign)) {
+        $aRows = $this->db->select('user_id, COUNT(DISTINCT DATE(menu_date)) AS cnt', false)
+          ->from('fmb_thaali_day_assignment')
+          ->where('year', $takhmeen_year)
+          ->where_in('user_id', $user_ids_for_assign)
+          ->group_by('user_id')
+          ->get()->result_array();
+
+        $assigned_map = [];
+        foreach ($aRows as $ar) {
+          $uid = isset($ar['user_id']) ? (string) $ar['user_id'] : '';
+          if ($uid !== '') {
+            $assigned_map[$uid] = (int) ($ar['cnt'] ?? 0);
+          }
+        }
+
+        foreach ($rows as &$r) {
+          $uid = isset($r['user_id']) ? (string) $r['user_id'] : '';
+          $r['assigned_thaali_days'] = isset($assigned_map[$uid]) ? (int) $assigned_map[$uid] : 0;
+        }
+        unset($r);
+      }
+    } else {
+      // Keep key present for view safety
+      foreach ($rows as &$r) {
+        $r['assigned_thaali_days'] = 0;
+      }
+      unset($r);
+    }
 
     // If a specific hijri start year is requested, compute per-user paid/due
     // for that year by allocating payments FIFO to oldest years first.
@@ -811,7 +1192,7 @@ class CommonM extends CI_Model
     // Assigned Thaali Days per user for this FY (stored as composite FY in assignment.year like 1447-48)
     $assigned_map = [];
     if ($this->db->table_exists('fmb_thaali_day_assignment')) {
-      $aRows = $this->db->select('user_id, COUNT(DISTINCT menu_id) AS cnt', false)
+      $aRows = $this->db->select('user_id, COUNT(DISTINCT DATE(menu_date)) AS cnt', false)
         ->from('fmb_thaali_day_assignment')
         ->where('year', $takhmeen_year)
         ->where_in('user_id', $user_ids)
@@ -1096,7 +1477,7 @@ class CommonM extends CI_Model
   public function get_payment_details($payment_id, $table)
   {
     if ($table == 'corpus_fund_payment' || $table == 'ekram_fund_payment') {
-      $this->db->select('payments.amount_paid as amount, payments.paid_at as payment_date, user.Full_Name, user.Address');
+      $this->db->select('payments.amount_paid as amount, payments.paid_at as payment_date, payments.payment_method, payments.notes as remarks, user.Full_Name, user.Address');
       $this->db->from($table . ' as payments');
       $this->db->join('user', 'user.ITS_ID = payments.hof_id', 'left');
     } else {
@@ -2118,7 +2499,16 @@ class CommonM extends CI_Model
       $CI->load->model('HijriCalendar');
       $h = $CI->HijriCalendar->get_hijri_date($today);
       if ($h && !empty($h['hijri_date'])) {
-        $hijri_year = explode('-', $h['hijri_date'])[2];
+        $hijriDateRaw = strip_tags((string)$h['hijri_date']);
+        $parts = explode('-', $hijriDateRaw);
+        // Expected format: d-m-Y. Some installs may store year ranges like d-m-1446-47.
+        if (count($parts) >= 3) {
+          $yearPart = (string)$parts[2];
+          if (count($parts) >= 4 && ctype_digit((string)$parts[2]) && ctype_digit((string)$parts[3])) {
+            $yearPart .= '-' . (string)$parts[3];
+          }
+          $hijri_year = $yearPart;
+        }
       }
     }
 
@@ -2653,7 +3043,11 @@ class CommonM extends CI_Model
       }
     }
     if (!empty($filters['member_name'])) {
-      $this->db->like('u.Full_Name', $filters['member_name']);
+      $q = trim((string)$filters['member_name']);
+      $this->db->group_start();
+      $this->db->like('u.Full_Name', $q);
+      $this->db->or_like('u.ITS_ID', $q);
+      $this->db->group_end();
     }
     if (!empty($filters['dp_name'])) {
       $this->db->like('dp.name', $filters['dp_name']);

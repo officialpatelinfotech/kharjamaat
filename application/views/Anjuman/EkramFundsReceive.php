@@ -593,6 +593,7 @@
             <select id="rpPaymentMethod" class="form-control">
               <option>Cash</option>
               <option>Cheque</option>
+              <option>NEFT</option>
             </select>
           </div>
           <div class="form-group">

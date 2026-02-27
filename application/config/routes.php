@@ -76,6 +76,7 @@ $route['admin/expense/source-of-funds'] = 'Admin/expense_source_of_funds';
 $route['admin/expense/source-create'] = 'Admin/expense_source_create';
 $route['admin/expense/source-update'] = 'Admin/expense_source_update';
 $route['admin/expense/source-delete'] = 'Admin/expense_source_delete';
+$route['admin/preferences'] = 'Admin/preferences';
 
 // Laagat / Rent module routes
 $route['admin/laagat/create'] = 'Admin/laagat_create';
@@ -99,6 +100,10 @@ $route['menu'] = 'publicmenu';
 
 // Cookie consent
 $route['cookies/accept'] = 'cookies/accept';
+
+// Reports
+$route['reports/sabeel-diff'] = 'reports/sabeel_takhmeen_diff';
+$route['reports/sabeel-diff/data'] = 'reports/sabeel_takhmeen_diff_data';
 
 // Member Madresa pages
 $route['accounts/qardanhasana/(:any)'] = 'accounts/qardanhasana/$1';
