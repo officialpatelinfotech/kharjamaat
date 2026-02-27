@@ -111,6 +111,7 @@ class Madresa extends CI_Controller
 
       // Support a simple class name search in Jamaat module.
       $selectedClassQuery = trim((string)$this->input->get('class'));
+      $selectedStudentQuery = trim((string)$this->input->get('student_name'));
 
       // Backward-compatible: if a class_id is provided, it takes precedence.
       $selectedClassId = (int)$this->input->get('class_id');
@@ -119,14 +120,16 @@ class Madresa extends CI_Controller
       $data['current_hijri_year'] = $currentHy;
       $data['selected_hijri_year'] = $selectedYear;
       $data['selected_class_query'] = $selectedClassQuery;
+      $data['selected_student_query'] = $selectedStudentQuery;
 
       $years = $this->HijriCalendar->get_distinct_hijri_years();
       if (!empty($years)) {
         $data['hijri_years'] = array_map('intval', $years);
+        rsort($data['hijri_years']);
       } else {
         $data['hijri_years'] = [];
-        for ($y = $currentHy - 2; $y <= $currentHy + 2; $y++) {
-          $data['hijri_years'][] = $y;
+        for ($y = $currentHy + 2; $y >= $currentHy - 2; $y--) {
+          $data['hijri_years'][] = (int)$y;
         }
       }
 
@@ -144,12 +147,40 @@ class Madresa extends CI_Controller
           }
         }
         $data['classes'] = $filtered;
-      } elseif ($selectedClassQuery !== '') {
-        $q = mb_strtolower($selectedClassQuery);
+      } elseif ($selectedClassQuery !== '' || $selectedStudentQuery !== '') {
+        $q_class = mb_strtolower($selectedClassQuery);
+        $q_student = mb_strtolower($selectedStudentQuery);
+        
         $filtered = [];
         foreach ($all as $row) {
-          $name = !empty($row['class_name']) ? (string)$row['class_name'] : '';
-          if ($name !== '' && mb_strpos(mb_strtolower($name), $q) !== false) {
+          $matchClass = true;
+          $matchStudent = true;
+
+          if ($q_class !== '') {
+            $name = !empty($row['class_name']) ? (string)$row['class_name'] : '';
+            if ($name === '' || mb_strpos(mb_strtolower($name), $q_class) === false) {
+              $matchClass = false;
+            }
+          }
+
+          if ($matchClass && $q_student !== '') {
+            $students = $this->MadresaM->get_class_students($row['id']);
+            $studentFound = false;
+            if (!empty($students)) {
+              foreach ($students as $s) {
+                $sname = !empty($s['Full_Name']) ? (string)$s['Full_Name'] : '';
+                if ($sname !== '' && mb_strpos(mb_strtolower($sname), $q_student) !== false) {
+                  $studentFound = true;
+                  break;
+                }
+              }
+            }
+            if (!$studentFound) {
+              $matchStudent = false;
+            }
+          }
+
+          if ($matchClass && $matchStudent) {
             $filtered[] = $row;
           }
         }
@@ -194,22 +225,71 @@ class Madresa extends CI_Controller
     $requestedYear = (int)$this->input->get('year');
     $selectedYear = $requestedYear > 0 ? $requestedYear : $currentHy;
 
+    $selectedClassQuery = trim((string)$this->input->get('class'));
+    $selectedStudentQuery = trim((string)$this->input->get('student_name'));
+
     $data['current_hijri_year'] = $currentHy;
     $data['selected_hijri_year'] = $selectedYear;
+    $data['selected_class_query'] = $selectedClassQuery;
+    $data['selected_student_query'] = $selectedStudentQuery;
 
     // Year dropdown options from calendar (fallback to +/- 2 years)
     $years = $this->HijriCalendar->get_distinct_hijri_years();
     if (!empty($years)) {
       $data['hijri_years'] = array_map('intval', $years);
+      rsort($data['hijri_years']);
     } else {
       $data['hijri_years'] = [];
-      for ($y = $currentHy - 2; $y <= $currentHy + 2; $y++) {
-        $data['hijri_years'][] = $y;
+      for ($y = $currentHy + 2; $y >= $currentHy - 2; $y--) {
+        $data['hijri_years'][] = (int)$y;
       }
     }
 
     // Include legacy classes created before hijri_year existed (NULL year)
-    $data['classes'] = $this->MadresaM->list_classes_by_year($selectedYear, true);
+    $all = $this->MadresaM->list_classes_by_year($selectedYear, true);
+    $all = is_array($all) ? $all : [];
+
+    if ($selectedClassQuery !== '' || $selectedStudentQuery !== '') {
+      $q_class = mb_strtolower($selectedClassQuery);
+      $q_student = mb_strtolower($selectedStudentQuery);
+      
+      $filtered = [];
+      foreach ($all as $row) {
+        $matchClass = true;
+        $matchStudent = true;
+
+        if ($q_class !== '') {
+          $name = !empty($row['class_name']) ? (string)$row['class_name'] : '';
+          if ($name === '' || mb_strpos(mb_strtolower($name), $q_class) === false) {
+            $matchClass = false;
+          }
+        }
+
+        if ($matchClass && $q_student !== '') {
+          $students = $this->MadresaM->get_class_students($row['id']);
+          $studentFound = false;
+          if (!empty($students)) {
+            foreach ($students as $s) {
+              $sname = !empty($s['Full_Name']) ? (string)$s['Full_Name'] : '';
+              if ($sname !== '' && mb_strpos(mb_strtolower($sname), $q_student) !== false) {
+                $studentFound = true;
+                break;
+              }
+            }
+          }
+          if (!$studentFound) {
+            $matchStudent = false;
+          }
+        }
+
+        if ($matchClass && $matchStudent) {
+          $filtered[] = $row;
+        }
+      }
+      $data['classes'] = $filtered;
+    } else {
+      $data['classes'] = $all;
+    }
     $data['madresa_base'] = $this->madresaBasePath();
     $data['madresa_view_prefix'] = $this->madresaViewPrefix();
     $this->load->view($this->madresaViewPrefix() . '/ManageClasses', $data);
@@ -236,35 +316,6 @@ class Madresa extends CI_Controller
     $this->load->view($this->madresaViewPrefix() . '/ViewClass', $data);
   }
 
-  public function classes_payment_history($classId)
-  {
-    $this->requireLogin();
-
-    $this->loadHeader();
-
-    $classId = (int)$classId;
-    $class = $this->MadresaM->get_class($classId);
-    if (empty($class)) {
-      redirect($this->madresaPath('classes') . '?message=' . urlencode('Class not found'));
-    }
-
-    $data = [];
-    $data['class'] = $class;
-    $studentItsId = (int)$this->input->get('students_its_id');
-    $data['students_its_id'] = $studentItsId > 0 ? $studentItsId : 0;
-
-    if ($studentItsId > 0) {
-      $data['financials'] = $this->MadresaM->get_class_student_financials($classId, $studentItsId);
-    } else {
-      $data['financials'] = $this->MadresaM->get_class_financials($classId);
-    }
-
-    $data['payments'] = $this->MadresaM->list_class_payments($classId, $studentItsId > 0 ? $studentItsId : null);
-    $data['is_jamaat'] = $this->isReadOnlyMadresaUser();
-    $data['madresa_base'] = $this->madresaBasePath();
-    $data['madresa_view_prefix'] = $this->madresaViewPrefix();
-    $this->load->view($this->madresaViewPrefix() . '/ClassPayments', $data);
-  }
 
   public function classes_receive_payment($classId, $studentItsId)
   {
@@ -526,6 +577,9 @@ class Madresa extends CI_Controller
     $name = trim((string)$this->input->post('class_name'));
     $fees = $this->input->post('fees');
     $status = trim((string)$this->input->post('status'));
+    if ($status === '') {
+      $status = 'Active';
+    }
     $hijriYear = (int)$this->input->post('hijri_year');
     $studentIds = $this->input->post('student_ids');
 
@@ -653,5 +707,83 @@ class Madresa extends CI_Controller
     $this->output
       ->set_content_type('application/json')
       ->set_output(json_encode($payload));
+  }
+
+  // AJAX: Fetch payment history for a student in a class
+  public function get_payment_history()
+  {
+    $this->requireLogin();
+
+    $classId = (int)$this->input->post('class_id');
+    $studentItsId = (int)$this->input->post('students_its_id');
+
+    if ($classId <= 0 || $studentItsId <= 0) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_status_header(400)
+        ->set_output(json_encode(['error' => 'Invalid parameters']));
+      return;
+    }
+
+    $payments = $this->MadresaM->list_class_payments($classId, $studentItsId);
+
+    $this->output
+      ->set_content_type('application/json')
+      ->set_output(json_encode($payments));
+  }
+
+  // AJAX: Receive payment for a student in a class
+  public function ajax_receive_payment()
+  {
+    $this->requireLogin();
+
+    if (!$this->canReceiveMadresaPayment()) {
+      $this->output->set_status_header(403)->set_output(json_encode(['success' => false, 'error' => 'Not authorized']));
+      return;
+    }
+
+    $classId = (int)$this->input->post('class_id');
+    $studentItsId = (int)$this->input->post('students_its_id');
+    $amount = (float)$this->input->post('amount');
+    $paymentMode = trim((string)$this->input->post('payment_mode'));
+    $paidOn = trim((string)$this->input->post('paid_on'));
+    $notes = trim((string)$this->input->post('notes'));
+
+    if ($classId <= 0 || $studentItsId <= 0 || $amount <= 0) {
+      $this->output->set_status_header(400)->set_output(json_encode(['success' => false, 'error' => 'Invalid parameters']));
+      return;
+    }
+    
+    // Validate date format if provided
+    if ($paidOn !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $paidOn)) {
+      $this->output->set_status_header(400)->set_output(json_encode(['success' => false, 'error' => 'Invalid date format']));
+      return;
+    }
+
+    $createdBy = !empty($_SESSION['user']['username']) ? (string)$_SESSION['user']['username'] : null;
+
+    $res = $this->MadresaM->create_class_payment($classId, $studentItsId, $amount, $paidOn === '' ? null : $paidOn, $paymentMode === '' ? null : $paymentMode, null, $notes === '' ? null : $notes, $createdBy);
+    
+    if (empty($res) || empty($res['success'])) {
+      $errMsg = 'Failed to save payment.';
+      if (is_array($res) && !empty($res['error']['message'])) {
+        $errMsg .= ' ' . $res['error']['message'];
+      }
+      $this->output->set_output(json_encode(['success' => false, 'error' => $errMsg]));
+      return;
+    }
+
+    // Fetch updated totals and student info
+    $student = $this->MadresaM->get_class_student_financials($classId, $studentItsId);
+    $financials = $this->MadresaM->get_class_financials($classId);
+
+    $this->output
+      ->set_content_type('application/json')
+      ->set_output(json_encode([
+        'success' => true,
+        'message' => 'Payment received successfully',
+        'student' => $student,
+        'class_financials' => $financials
+      ]));
   }
 }

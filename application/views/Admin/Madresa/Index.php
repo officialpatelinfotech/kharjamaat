@@ -1,62 +1,100 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 
+<!-- Custom CSS -->
 <style>
-	body { padding-top: 70px; }
-	.btn-back {
-		width: 40px;
-		height: 34px;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0;
-		border-radius: 4px;
-		font-size: 18px;
-		line-height: 1;
-		font-weight: 700;
-	}
-	.btn-back .back-arrow {
-		font-weight: 900;
-		-webkit-text-stroke: 0.35px currentColor;
-		text-shadow: 0.35px 0 0 currentColor, -0.35px 0 0 currentColor;
-		display: inline-block;
-	}
+  .custom-card.madresa-blue {
+    background: #e6f7ff;
+    /* soft blue */
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .custom-card.madresa-green {
+    background: #e6ffe6;
+    /* soft mint green */
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .custom-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .icon-box {
+    background: #eef2f7;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+  }
+
+  .btn {
+    border-radius: 5px;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .btn:hover {
+    transform: scale(1.05);
+  }
 </style>
 
-<div class="container mt-4">
-	<?php $madresa_base = !empty($madresa_base) ? (string)$madresa_base : 'admin/madresa'; ?>
-	<?php $back_path = ($madresa_base === 'admin/madresa') ? 'admin' : $madresa_base; ?>
-	<div class="row">
-		<div class="col-12">
-			<div class="d-flex justify-content-between align-items-center mb-3">
-				<div class="d-flex align-items-center">
-					<a href="<?php echo base_url($back_path); ?>" class="btn btn-outline-secondary btn-sm btn-back mr-3" aria-label="Back" title="Back">
-						<span class="back-arrow">&larr;</span>
-					</a>
-					<h3 class="mb-0">Madresa Module</h3>
-				</div>
-			</div>
-		</div>
+<div class="container margintopcontainer pt-5 pb-4 position-relative">
+  <?php $madresa_base = !empty($madresa_base) ? (string)$madresa_base : 'admin/madresa'; ?>
+  <?php $back_path = ($madresa_base === 'admin/madresa') ? 'admin' : $madresa_base; ?>
+  
+  <div class="p-0 mb-4">
+    <div class="col-12 col-md-6">
+      <a href="<?php echo base_url($back_path); ?>" class="btn btn-outline-secondary">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+    </div>
+  </div>
 
-		<div class="col-md-6 mt-3">
-			<a href="<?php echo base_url($madresa_base . '/classes/new'); ?>" class="text-decoration-none">
-				<div class="card shadow-sm h-100">
-					<div class="card-body">
-						<h5 class="card-title mb-2">Create Classes</h5>
-						<p class="card-text text-muted mb-0">Add a new class for Madresa.</p>
-					</div>
-				</div>
-			</a>
-		</div>
+  <h4 class="text-center mb-3">Madresa Module</h4>
 
-		<div class="col-md-6 mt-3">
-			<a href="<?php echo base_url($madresa_base . '/classes'); ?>" class="text-decoration-none">
-				<div class="card shadow-sm h-100">
-					<div class="card-body">
-						<h5 class="card-title mb-2">Manage Classes</h5>
-						<p class="card-text text-muted mb-0">View and manage existing classes.</p>
-					</div>
-				</div>
-			</a>
-		</div>
-	</div>
+  <div class="container mt-4 m-0">
+    <div class="row">
+
+      <div class="col-md-6 mb-4">
+        <div class="card custom-card madresa-blue shadow-sm h-100">
+          <div class="card-body text-center">
+            <div class="icon-box mb-3">
+              <i class="fa-solid fa-plus fa-2x text-primary"></i>
+            </div>
+            <h4 class="card-title">Create Classes</h4>
+            <p class="card-text">Add a new class for Madresa.</p>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+              <a href="<?php echo base_url($madresa_base . '/classes/new'); ?>" class="btn btn-sm btn-primary text-white">
+                <i class="fa-solid fa-circle-plus me-2"></i> Go to Create Classes
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 mb-4">
+        <div class="card custom-card madresa-green shadow-sm h-100">
+          <div class="card-body text-center">
+            <div class="icon-box mb-3">
+              <i class="fa-solid fa-list-check fa-2x text-success"></i>
+            </div>
+            <h4 class="card-title">Manage Classes</h4>
+            <p class="card-text">View and manage existing classes.</p>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+              <a href="<?php echo base_url($madresa_base . '/classes'); ?>" class="btn btn-sm btn-success text-white">
+                <i class="fa-solid fa-list me-2"></i> Go to Manage Classes
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
+

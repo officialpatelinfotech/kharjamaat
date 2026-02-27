@@ -78,6 +78,11 @@ $route['admin/expense/source-update'] = 'Admin/expense_source_update';
 $route['admin/expense/source-delete'] = 'Admin/expense_source_delete';
 $route['admin/preferences'] = 'Admin/preferences';
 
+// Laagat / Rent module routes
+$route['admin/laagat/create'] = 'Admin/laagat_create';
+$route['admin/laagat/manage'] = 'Admin/laagat_manage';
+$route['admin/laagat/check-duplicate'] = 'Admin/laagat_check_duplicate';
+
 
 
 
@@ -101,6 +106,8 @@ $route['reports/sabeel-diff'] = 'reports/sabeel_takhmeen_diff';
 $route['reports/sabeel-diff/data'] = 'reports/sabeel_takhmeen_diff_data';
 
 // Member Madresa pages
+$route['accounts/qardanhasana/(:any)'] = 'accounts/qardanhasana/$1';
+$route['accounts/ajax-madresa-payment-history'] = 'accounts/ajax_madresa_payment_history';
 $route['accounts/madresa/payment-history/(:num)'] = 'accounts/madresa_payment_history/$1';
 
 // Madresa module
@@ -110,12 +117,13 @@ $route['madresa/classes/new'] = 'madresa/classes_new';
 $route['madresa/classes/create'] = 'madresa/classes_create';
 $route['madresa/classes/view/(:num)'] = 'madresa/classes_view/$1';
 $route['madresa/classes/receive-payment/(:num)/(:num)'] = 'madresa/classes_receive_payment/$1/$2';
-$route['madresa/classes/payment-history/(:num)'] = 'madresa/classes_payment_history/$1';
 $route['madresa/classes/payment-receipt/(:num)'] = 'madresa/classes_payment_receipt/$1';
 $route['madresa/classes/edit/(:num)'] = 'madresa/classes_edit/$1';
 $route['madresa/classes/update/(:num)'] = 'madresa/classes_update/$1';
 $route['madresa/classes/delete/(:num)'] = 'madresa/classes_delete/$1';
 $route['madresa/student-details'] = 'madresa/student_details';
+$route['madresa/get-payment-history'] = 'madresa/get_payment_history';
+$route['madresa/ajax-receive-payment'] = 'madresa/ajax_receive_payment';
 
 // Admin alias for Madresa module
 $route['admin/madresa'] = 'madresa/index';
@@ -125,9 +133,13 @@ $route['admin/madresa/classes'] = 'madresa/classes';
 $route['admin/madresa/classes/new'] = 'madresa/classes_new';
 $route['admin/madresa/classes/create'] = 'madresa/classes_create';
 $route['admin/madresa/classes/view/(:num)'] = 'madresa/classes_view/$1';
-$route['admin/madresa/classes/payment-history/(:num)'] = 'madresa/classes_payment_history/$1';
 $route['admin/madresa/classes/payment-receipt/(:num)'] = 'madresa/classes_payment_receipt/$1';
 $route['admin/madresa/classes/edit/(:num)'] = 'madresa/classes_edit/$1';
 $route['admin/madresa/classes/update/(:num)'] = 'madresa/classes_update/$1';
 $route['admin/madresa/classes/delete/(:num)'] = 'madresa/classes_delete/$1';
 $route['admin/madresa/student-details'] = 'madresa/student_details';
+$route['admin/madresa/get-payment-history'] = 'madresa/get_payment_history';
+$route['admin/madresa/ajax-receive-payment'] = 'madresa/ajax_receive_payment';
+$route['admin/madresa/ajax-get-enrolled-students'] = 'madresa/ajax_get_enrolled_students';
+
+$route['madresa/ajax-get-enrolled-students'] = 'madresa/ajax_get_enrolled_students';

@@ -894,9 +894,11 @@
           <li><a class="menu-item" href="<?php echo base_url('common/fmb_general_contributions?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-inr"></i></span><span class="menu-label">FMB General Contributions</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('amilsaheb/qardanhasana'); ?>"><span class="menu-icon"><i class="fa-solid fa-handshake"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
           <li><a class="menu-item" href="<?= base_url('amilsaheb/corpusfunds_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
+          <li><a class="menu-item" href="<?= base_url('anjuman/laagat_rent_payments'); ?>"><span class="menu-icon"><i class="fa-solid fa-hand-holding-dollar"></i></span><span class="menu-label">Laagat/Rent</span></a></li>
           <li><a class="menu-item" href="<?= base_url('amilsaheb/ekramfunds_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Ekram Funds</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('amilsaheb/wajebaat_details'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
           <li><a class="menu-item" href="<?= base_url('amilsaheb/expense'); ?>"><span class="menu-icon"><i class="fa-solid fa-receipt"></i></span><span class="menu-label">Expense Module</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('madresa'); ?>"><span class="menu-icon"><i class="fa fa-graduation-cap"></i></span><span class="menu-label">Madresa</span></a></li>
         </ul>
 
         <div class="menu-section">Reports</div>
@@ -918,7 +920,6 @@
           <li><a class="menu-item" href="<?php echo base_url('Amilsaheb/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat <?php $hijri_year = isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : '1446H';
                                                                                                                                                                                               echo $hijri_year . 'H'; ?></span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('Amilsaheb/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
-          <li><a class="menu-item" href="<?php echo base_url('madresa'); ?>"><span class="menu-icon"><i class="fa fa-graduation-cap"></i></span><span class="menu-label">Madresa</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>
         </ul>
       </div>

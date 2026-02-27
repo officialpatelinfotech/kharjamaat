@@ -1154,7 +1154,6 @@
           <li><a class="menu-item" href="<?php echo base_url('common/managemiqaat?from=common/managemiqaat'); ?>"><span class="menu-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="menu-label">Create Miqaat</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=anjuman'); ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/miqaatattendance?from=anjuman'); ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Miqaat Attendance Report</span></a></li>
-          <li><a class="menu-item" href="<?php echo base_url('madresa'); ?>"><span class="menu-icon"><i class="fa-solid fa-school"></i></span><span class="menu-label">Madresa Module</span></a></li>
         </ul>
         <div class="menu-section">Finance</div>
         <ul class="menu-list">
@@ -1165,7 +1164,9 @@
           <li><a class="menu-item" href="<?= base_url('anjuman/ekramfunds_receive'); ?>"><span class="menu-icon"><i class="fa-solid fa-hand-holding-heart"></i></span><span class="menu-label">Ekram Fund Module</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/financials'); ?>"><span class="menu-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span><span class="menu-label">Individual Financial Details</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/expense'); ?>"><span class="menu-icon"><i class="fa-solid fa-receipt"></i></span><span class="menu-label">Expense Module</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('anjuman/laagat_rent'); ?>"><span class="menu-icon"><i class="fa-solid fa-file-invoice"></i></span><span class="menu-label">Laagat / Rent</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/wajebaat'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('madresa'); ?>"><span class="menu-icon"><i class="fa-solid fa-school"></i></span><span class="menu-label">Madresa Module</span></a></li>
         </ul>
       </div>
     </div>
@@ -3230,6 +3231,29 @@
                       </div>
                       <div class="stats-label">
                         Expense<?= $dashboard_expense_hijri_year ? ' for ' . $dashboard_expense_hijri_year : ''; ?>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-12 mb-3 mb-md-3">
+            <div class="chart-container compact h-100">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="chart-title m-0">Laagat & Rent</h5>
+                <a href="<?= base_url('anjuman/laagat_rent'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
+              </div>
+              <div class="text-center py-3">
+                <div class="row justify-content-center">
+                  <div class="col-12 col-md-4">
+                    <div class="mini-card">
+                      <div class="stats-value">
+                        ₹<?= number_format($dashboard_laagat_rent_total, 0); ?>
+                      </div>
+                      <div class="stats-label">
+                        Invoiced for <?= $dashboard_laagat_rent_hijri_year ? $dashboard_laagat_rent_hijri_year . 'H' : ''; ?>
                       </div>
                     </div>
                   </div>

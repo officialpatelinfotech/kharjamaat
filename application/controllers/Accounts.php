@@ -327,6 +327,33 @@ class Accounts extends CI_Controller
       'current_year_due' => $family_sabeel_cy_due,
     ];
 
+    // Laagat & Rent family summary - Filtered by current Hijri year
+    $this->load->model('LaagatRentM');
+    $this->load->model('HijriCalendar');
+    $todayH = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $currHy = null;
+    if (isset($todayH['hijri_date'])) {
+      $p = explode('-', (string)$todayH['hijri_date']);
+      if (count($p) === 3) $currHy = (int)$p[2];
+    }
+    if (!$currHy) $currHy = (int)date('Y');
+    $currRange = $currHy . '-' . substr((string)($currHy + 1), -2);
+
+    $family_laagat_due = 0.0;
+    $family_laagat_total = 0.0;
+    foreach ($memberIds as $mid) {
+      $lr_invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'year' => $currRange]);
+      foreach ($lr_invoices as $lrinv) {
+        $family_laagat_total += (float)($lrinv['master_amount'] ?? 0);
+        $family_laagat_due += (float)($lrinv['master_amount'] ?? 0) - (float)($lrinv['paid_amount'] ?? 0);
+      }
+    }
+    $data['laagat_summary'] = [
+      'total_due' => $family_laagat_due,
+      'total_amount' => $family_laagat_total,
+      'year' => $currRange
+    ];
+
     // Corpus funds summary for this family (HOF): total per family, assigned, paid, outstanding
     $this->load->model('CorpusFundM');
     $corpusFunds = $this->CorpusFundM->get_funds();
@@ -577,7 +604,7 @@ class Accounts extends CI_Controller
     }
     $memberIds = array_values(array_unique($memberIds));
 
-    // Fetch overall fees/dues from admin-created Madresa classes (same as Madresa Classes screen)
+    // Fetch member-specific fees/dues from student classwise financials
     $this->load->model('MadresaM');
     $this->load->model('HijriCalendar');
     $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
@@ -585,13 +612,14 @@ class Accounts extends CI_Controller
     $currentHy = !empty($parts) && !empty($parts[2]) ? (int)$parts[2] : (int)date('Y');
 
     $data['selected_hijri_year'] = $currentHy;
-    $data['madresa_classes'] = $this->MadresaM->list_classes_by_year($currentHy, false);
+    // get_students_classwise_financials returns data per student-class pair
+    $data['madresa_classes'] = $this->MadresaM->get_students_classwise_financials($memberIds);
 
     $totalFees = 0.0;
     $totalDues = 0.0;
     if (!empty($data['madresa_classes'])) {
       foreach ($data['madresa_classes'] as $c) {
-        $totalFees += (float)($c['amount_to_collect'] ?? 0);
+        $totalFees += (float)($c['fees'] ?? 0);
         $totalDues += (float)($c['amount_due'] ?? 0);
       }
     }
@@ -792,6 +820,43 @@ class Accounts extends CI_Controller
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/Madresa/PaymentHistory', $data);
+  }
+
+  public function ajax_madresa_payment_history()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+      return;
+    }
+
+    $classId = (int)$this->input->post('class_id');
+    $studentItsId = $this->input->post('student_its_id');
+
+    if ($classId <= 0 || empty($studentItsId)) {
+      echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+      return;
+    }
+
+    $this->load->model('AccountM');
+    $memberIts = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($memberIts);
+    $familyRows = $this->AccountM->get_all_family_member($hof_id);
+    
+    $familyIts = [(string)$hof_id];
+    if (!empty($familyRows)) {
+      foreach ($familyRows as $r) {
+        if (!empty($r['ITS_ID'])) $familyIts[] = (string)$r['ITS_ID'];
+      }
+    }
+
+    if (!in_array((string)$studentItsId, $familyIts)) {
+      echo json_encode(['success' => false, 'message' => 'Access denied']);
+      return;
+    }
+
+    $this->load->model('MadresaM');
+    $payments = $this->MadresaM->list_class_payments($classId, $studentItsId);
+    echo json_encode(['success' => true, 'payments' => $payments]);
   }
 
   public function wajebaat()
@@ -2259,6 +2324,143 @@ class Accounts extends CI_Controller
 
   // Updated by Patel Infotech Services
 
+  public function laagat_rent()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+    $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $data['user_data'] = $this->AccountM->getUserData($user_id);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+
+    $hof_id = $this->AccountM->get_hof_id_for_member($user_id);
+    $memberIds = [(string)$hof_id];
+    $familyRows = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($familyRows)) {
+      foreach ($familyRows as $r) {
+        if (!empty($r['ITS_ID'])) {
+          $memberIds[] = (string)$r['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    $this->load->model('LaagatRentM');
+    $this->load->model('HijriCalendar');
+    $todayH = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $currHy = null;
+    if (isset($todayH['hijri_date'])) {
+      $p = explode('-', (string)$todayH['hijri_date']);
+      if (count($p) === 3) $currHy = (int)$p[2];
+    }
+    if (!$currHy) $currHy = (int)date('Y');
+    $currRange = $currHy . '-' . substr((string)($currHy + 1), -2);
+
+    $family_invoices = [];
+    foreach ($memberIds as $mid) {
+      $invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'year' => $currRange]);
+      if (!empty($invoices)) {
+        foreach ($invoices as $inv) {
+          $family_invoices[] = $inv;
+        }
+      }
+    }
+
+    $data['invoices'] = $family_invoices;
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/LaagatRent', $data);
+  }
+
+  public function get_laagat_payment_history()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode([]);
+      return;
+    }
+
+    $invoice_id = (int)$this->input->post('invoice_id');
+    if ($invoice_id <= 0) {
+      echo json_encode([]);
+      return;
+    }
+
+    $this->load->model('LaagatRentM');
+    $this->load->model('AccountM');
+
+    // Security check: Verify this invoice belongs to the user or their family
+    $invoice = $this->db->get_where('laagat_rent_invoices', ['id' => $invoice_id])->row_array();
+    if (!$invoice) {
+      echo json_encode([]);
+      return;
+    }
+
+    $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($user_id);
+    
+    $memberIds = [(string)$hof_id];
+    $familyRows = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($familyRows)) {
+      foreach ($familyRows as $r) {
+        if (!empty($r['ITS_ID'])) {
+          $memberIds[] = (string)$r['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    if (!in_array($invoice['user_id'], $memberIds)) {
+      echo json_encode([]);
+      return;
+    }
+
+    $payments = $this->LaagatRentM->get_payments_by_invoice($invoice_id);
+    echo json_encode($payments);
+  }
+
+  public function laagat_receipt($payment_id = null)
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+
+    $payment_id = (int)$payment_id;
+    if ($payment_id <= 0) {
+      show_404();
+    }
+
+    $this->load->model('LaagatRentM');
+    $this->load->model('AccountM');
+
+    $payment = $this->LaagatRentM->get_payment_by_id($payment_id);
+    if (!$payment) {
+      show_404();
+    }
+
+    // Security check: Verify this payment belongs to the user or their family
+    $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($user_id);
+    
+    $memberIds = [(string)$hof_id];
+    $familyRows = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($familyRows)) {
+      foreach ($familyRows as $r) {
+        if (!empty($r['ITS_ID'])) {
+          $memberIds[] = (string)$r['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    if (!in_array($payment['user_id'], $memberIds)) {
+      show_error('You do not have permission to view this receipt.');
+    }
+
+    $data['payment'] = $payment;
+    $this->load->view('Accounts/LaagatReceipt', $data);
+  }
+
   public function MyRazaRequest()
   {
     if (empty($_SESSION['user'])) {
@@ -2427,6 +2629,109 @@ class Accounts extends CI_Controller
     ];
 
     return $this->output->set_content_type('application/json')->set_output(json_encode($payload));
+  }
+
+  /**
+   * AJAX: Fetch Laagat/Rent amount for a selected raza type.
+   *
+   * Rules:
+   * - Private-Event (Kaaraj) => charge_type = rent
+   * - Non-event (not Public-Event/Private-Event) => charge_type = laagat
+   */
+  public function get_laagat_rent_amount()
+  {
+    if (empty($_SESSION['user'])) {
+      return $this->output->set_content_type('application/json')->set_output(json_encode([
+        'success' => false,
+        'error' => 'Unauthorized'
+      ]));
+    }
+
+    $razaTypeId = (int)$this->input->get('raza_type_id');
+    if ($razaTypeId <= 0) {
+      return $this->output->set_content_type('application/json')->set_output(json_encode([
+        'success' => false,
+        'error' => 'Invalid raza type'
+      ]));
+    }
+
+    // Determine charge type based on raza_type.umoor
+    $rt = $this->db->query('SELECT id, name, umoor FROM raza_type WHERE id = ? LIMIT 1', [$razaTypeId])->row_array();
+    if (!$rt) {
+      return $this->output->set_content_type('application/json')->set_output(json_encode([
+        'success' => false,
+        'error' => 'Raza type not found'
+      ]));
+    }
+
+    $umoor = (string)($rt['umoor'] ?? '');
+    $chargeTypesToTry = [];
+    if ($umoor === 'Private-Event') {
+      $chargeTypesToTry = ['rent', 'laagat'];
+    } elseif ($umoor !== 'Public-Event') {
+      $chargeTypesToTry = ['laagat', 'rent'];
+    }
+
+    if (empty($chargeTypesToTry)) {
+      return $this->output->set_content_type('application/json')->set_output(json_encode([
+        'success' => true,
+        'amount' => null,
+        'charge_type' => null,
+        'hijri_year' => null,
+        'message' => 'No laagat/rent configured for this raza category'
+      ]));
+    }
+
+    $this->load->model('HijriCalendar');
+    $this->load->model('LaagatRentM');
+
+    // Compute current Hijri financial year range like 1447-48
+    $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $hijriYearNum = null;
+    if (isset($todayHijri['hijri_date'])) {
+      $parts = explode('-', (string)$todayHijri['hijri_date']);
+      if (count($parts) === 3 && is_numeric($parts[2])) {
+        $hijriYearNum = (int)$parts[2];
+      }
+    }
+    if (!$hijriYearNum) {
+      $hijriYearNum = (int)date('Y');
+    }
+    $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
+
+    // Year-wise: fetch only for current Hijri year range
+    $row = null;
+    $chargeType = null;
+    foreach ($chargeTypesToTry as $ct) {
+      $row = $this->LaagatRentM->get_active_for_raza_type($ct, $razaTypeId, $hijriRange, false);
+      if ($row) {
+        $chargeType = $ct;
+        break;
+      }
+    }
+
+    if (!$chargeType && !empty($chargeTypesToTry)) {
+      $chargeType = $chargeTypesToTry[0];
+    }
+
+    if (!$row) {
+      return $this->output->set_content_type('application/json')->set_output(json_encode([
+        'success' => true,
+        'amount' => null,
+        'charge_type' => $chargeType,
+        'hijri_year' => null,
+        'title' => '',
+        'message' => 'No laagat/rent configured for this raza category for current Hijri year'
+      ]));
+    }
+
+    return $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => true,
+      'amount' => isset($row['amount']) ? (float)$row['amount'] : 0,
+      'charge_type' => (string)$row['charge_type'],
+      'hijri_year' => (string)$row['hijri_year'],
+      'title' => (string)($row['title'] ?? ''),
+    ]));
   }
 
   /**
@@ -3108,6 +3413,54 @@ class Accounts extends CI_Controller
       $generated_raza_id = $this->AccountM->generate_raza_id($hijri_year);
       $this->AccountM->update_raza_by_id($check, array("raza_id" => $generated_raza_id));
 
+      // --- Auto-create Laagat/Rent Invoice if applicable ---
+      try {
+        $this->load->model('LaagatRentM');
+        $this->load->model('HijriCalendar');
+        // $razatype already fetched above
+        $umoor = isset($razatype['umoor']) ? $razatype['umoor'] : '';
+        $chargeType = null;
+        if ($umoor === 'Private-Event') {
+          $chargeType = 'rent';
+        } elseif ($umoor !== 'Public-Event' && $umoor !== 'Private-Event') {
+          $chargeType = 'laagat';
+        }
+
+        if ($chargeType) {
+          $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+          $hijriYearNum = null;
+          if (isset($todayHijri['hijri_date'])) {
+            $parts = explode('-', (string)$todayHijri['hijri_date']);
+            if (count($parts) === 3 && is_numeric($parts[2])) {
+              $hijriYearNum = (int)$parts[2];
+            }
+          }
+          if (!$hijriYearNum) $hijriYearNum = (int)date('Y');
+          // e.g. 1446-47
+          $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
+
+          // Flexible fetching with fallback (parity with get_laagat_rent_amount)
+          $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, $hijriRange, false);
+          if (!$laagatRow) {
+            // Fallback: try ANY active record for this type if current year not found
+            $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, null, false);
+          }
+
+          if ($laagatRow && !empty($laagatRow['id'])) {
+            $invoiceData = [
+              'user_id' => $userId,
+              'laagat_rent_id' => $laagatRow['id'],
+              'raza_id' => $check,
+              'amount' => $laagatRow['amount'],
+              'created_at' => date('Y-m-d H:i:s')
+            ];
+            $this->db->insert('laagat_rent_invoices', $invoiceData);
+          }
+        }
+      } catch (Exception $e) {
+        log_message('error', 'Failed to auto-create invoice for Raza ID ' . $check . ': ' . $e->getMessage());
+      }
+      // ----------------------------------------------------
       // WhatsApp acknowledgement to member (template-based)
       $this->load->library('Notification_lib');
       $this->config->load('whatsapp', true);

@@ -53,15 +53,7 @@
 	.amt-due { color: #dc3545; }
 	.card { border: 1px solid #e6eaf2; border-radius: 12px; }
 	.card-header { background: #f8fafc !important; border-bottom: 1px solid #e6eaf2; }
-	.status-pill {
-		display: inline-block;
-		padding: 2px 10px;
-		border-radius: 999px;
-		font-size: 0.9rem;
-		font-weight: 700;
-	}
-	.status-active { background: rgba(25,135,84,0.12); color: #198754; }
-	.status-inactive { background: rgba(220,53,69,0.12); color: #dc3545; }
+
 	.action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 	.action-buttons .btn { white-space: nowrap; }
 	@media (max-width: 576px) {
@@ -101,7 +93,13 @@
 			<div class="row">
 				<div class="col-md-6 mb-2"><b>Class:</b> <?php echo htmlspecialchars((string)($class['class_name'] ?? '')); ?></div>
 				<div class="col-md-3 mb-2"><b>Hijri Year:</b> <?php echo !empty($class['hijri_year']) ? (int)$class['hijri_year'] : ''; ?></div>
-				<div class="col-md-3 mb-2"><b>Status:</b> <?php echo htmlspecialchars((string)($class['status'] ?? '')); ?></div>
+				<div class="col-md-3 mb-2"><b>Status:</b> 
+					<?php
+						$st = trim((string)($class['status'] ?? ''));
+						$stClass = (strtolower($st) === 'active') ? 'badge badge-info' : 'badge badge-secondary';
+					?>
+					<span class="<?php echo $stClass; ?>"><?php echo htmlspecialchars($st !== '' ? $st : '-'); ?></span>
+				</div>
 				<div class="col-12"><b>Fees:</b> ₹<?php echo htmlspecialchars($fmtMoney($class['fees'] ?? 0)); ?></div>
 			</div>
 		</div>

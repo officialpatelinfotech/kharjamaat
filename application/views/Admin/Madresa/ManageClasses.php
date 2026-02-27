@@ -10,6 +10,8 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 	<style>
+
+
 		/* FIX: space for fixed admin header */
 		body {
 			padding-top: 70px; /* adjust if your header is taller */
@@ -94,6 +96,17 @@
 			margin-right: 4px;
 		}
 
+		.action-btn {
+			width: 34px;
+			height: 34px;
+			padding: 0;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: 4px;
+			font-size: 14px;
+		}
+
 		/* Empty state */
 		.empty-state {
 			text-align: center;
@@ -125,49 +138,64 @@
 		<div class="col-12">
 
 			<!-- PAGE HEADER -->
-			<div class="page-header">
-				<div class="page-header-left">
+			<div class="p-0 mb-4">
+				<div class="d-flex justify-content-between align-items-center">
 					<a href="<?php echo base_url($madresa_base); ?>"
 						 class="btn btn-outline-secondary btn-sm btn-back"
 						 title="Back">
 						<span class="back-arrow">&larr;</span>
 					</a>
-					<h4 class="mb-0">Manage Classes</h4>
-				</div>
+					
+					<div class="page-header-right">
+						<?php $is_jamaat = !empty($_SESSION['user']['username']) && $_SESSION['user']['username'] === 'jamaat'; ?>
+						<?php $is_admin = (!empty($_SESSION['user']['role']) && (int)$_SESSION['user']['role'] === 1) || (!empty($_SESSION['user']['username']) && $_SESSION['user']['username'] === 'admin'); ?>
 
-				<div class="page-header-right">
-					<?php $is_jamaat = !empty($_SESSION['user']['username']) && $_SESSION['user']['username'] === 'jamaat'; ?>
-					<?php $is_admin = (!empty($_SESSION['user']['role']) && (int)$_SESSION['user']['role'] === 1) || (!empty($_SESSION['user']['username']) && $_SESSION['user']['username'] === 'admin'); ?>
-					<form method="get"
-							action="<?php echo base_url($madresa_base . '/classes'); ?>"
-								class="d-flex align-items-center mb-0">
-						<select name="year" class="form-control form-control-sm" style="width:140px" onchange="this.form.submit()">
-							<?php if (!empty($hijri_years)) { ?>
-								<?php foreach ($hijri_years as $y) { ?>
-									<option value="<?php echo (int)$y; ?>"
-										<?php echo (!empty($selected_hijri_year) && (int)$selected_hijri_year === (int)$y) ? 'selected' : ''; ?>>
-										<?php echo (int)$y; ?>
-									</option>
-								<?php } ?>
-							<?php } ?>
-						</select>
-					</form>
 
-					<?php if (empty($is_jamaat)) { ?>
-						<a href="<?php echo base_url($madresa_base . '/classes/new'); ?>"
-							 class="btn btn-primary btn-sm">
-							Create Class
-						</a>
-					<?php } ?>
+						<?php if (empty($is_jamaat)) { ?>
+							<a href="<?php echo base_url($madresa_base . '/classes/new'); ?>"
+								 class="btn btn-primary btn-sm">
+								Create Class
+							</a>
+						<?php } ?>
+					</div>
 				</div>
 			</div>
 
-			<!-- YEAR INFO -->
-			<?php if (!empty($selected_hijri_year)) { ?>
-				<div class="text-muted small mb-3">
-					Showing classes for Hijri year <?php echo (int)$selected_hijri_year; ?>
+			<div class="text-center mb-4">
+				<h3 class="mb-1">Manage Classes</h3>
+			</div>
+
+			<div class="card shadow-sm mb-4">
+				<div class="card-body py-3">
+					<form method="get" action="<?php echo base_url($madresa_base . '/classes'); ?>" class="row g-2 align-items-end">
+						<div class="col-md-3">
+							<label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #6c757d; margin-bottom: 2px;">Hijri Year</label>
+							<select name="year" class="form-control form-control-sm">
+								<?php if (!empty($hijri_years)) { ?>
+									<?php foreach ($hijri_years as $y) { ?>
+										<option value="<?php echo (int)$y; ?>"
+											<?php echo (!empty($selected_hijri_year) && (int)$selected_hijri_year === (int)$y) ? 'selected' : ''; ?>>
+											<?php echo (int)$y; ?>
+										</option>
+									<?php } ?>
+								<?php } ?>
+							</select>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #6c757d; margin-bottom: 2px;">Class</label>
+							<input type="text" name="class" class="form-control form-control-sm" value="<?php echo htmlspecialchars((string)($selected_class_query ?? '')); ?>" placeholder="Search class...">
+						</div>
+						<div class="col-md-4">
+							<label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #6c757d; margin-bottom: 2px;">Student Name</label>
+							<input type="text" name="student_name" class="form-control form-control-sm" value="<?php echo htmlspecialchars((string)($selected_student_query ?? '')); ?>" placeholder="Search student...">
+						</div>
+						<div class="col-md-2 mt-3 mt-md-0 d-flex align-items-end">
+							<button type="submit" class="btn btn-primary btn-sm w-50 mr-1" style="margin-right: 4px;">Filter</button>
+							<a href="<?php echo base_url($madresa_base . '/classes'); ?>" class="btn btn-outline-secondary btn-sm w-50 text-center" style="margin-left: 4px;">Clear</a>
+						</div>
+					</form>
 				</div>
-			<?php } ?>
+			</div>
 
 			<!-- SUCCESS MESSAGE -->
 			<?php $message = $this->input->get('message'); ?>
@@ -216,7 +244,7 @@
 										<th>Fees</th>
 										<th>Status</th>
 										<th>Created</th>
-										<th>Actions</th>
+										<th class="text-center">Actions</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -233,11 +261,18 @@
 												<?php } ?>
 											</td>
 											<td><?php echo (int)($row['student_count'] ?? 0); ?></td>
-											<td><?php echo htmlspecialchars($row['fees'] ?? ''); ?></td>
 											<td>
-												<span class="badge badge-info">
-													<?php echo htmlspecialchars($row['status']); ?>
-												</span>
+												<?php 
+													$fees = (float)($row['fees'] ?? 0);
+													echo '₹' . ($fees == (int)$fees ? number_format($fees, 0) : number_format($fees, 2));
+												?>
+											</td>
+											<td class="text-center">
+												<?php
+													$st = trim((string)($row['status'] ?? ''));
+													$stClass = (strtolower($st) === 'active') ? 'badge badge-info' : 'badge badge-secondary';
+												?>
+												<span class="<?php echo $stClass; ?>"><?php echo htmlspecialchars($st !== '' ? $st : '-'); ?></span>
 											</td>
 											<td>
 												<?php
@@ -246,15 +281,15 @@
 													echo $ts ? date('d-m-Y', $ts) : htmlspecialchars((string)$createdAt);
 												?>
 											</td>
-											<td>
+											<td class="text-center">
 												<a href="<?php echo base_url($madresa_base . '/classes/view/' . (int)$row['id']); ?>"
-													 class="btn btn-outline-secondary btn-sm"
+													 class="btn btn-outline-secondary btn-sm action-btn"
 													 title="View" aria-label="View">
 													<i class="fa fa-eye" aria-hidden="true"></i>
 												</a>
 												<?php if (empty($is_jamaat)) { ?>
 													<a href="<?php echo base_url($madresa_base . '/classes/edit/' . (int)$row['id']); ?>"
-														 class="btn btn-primary btn-sm"
+														 class="btn btn-primary btn-sm action-btn"
 														 title="Edit" aria-label="Edit">
 														<i class="fa fa-pencil" aria-hidden="true"></i>
 													</a>
@@ -266,7 +301,7 @@
 																class="d-inline"
 																onsubmit="return confirm('Are you sure you want to delete this class? This will remove all assigned students from it.');">
 														<input type="hidden" name="year" value="<?php echo (int)$selected_hijri_year; ?>">
-														<button type="submit" class="btn btn-outline-danger btn-sm" title="Delete" aria-label="Delete">
+														<button type="submit" class="btn btn-outline-danger btn-sm action-btn" title="Delete" aria-label="Delete">
 															<i class="fa fa-trash" aria-hidden="true"></i>
 														</button>
 													</form>

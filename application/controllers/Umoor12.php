@@ -223,6 +223,49 @@ class Umoor12 extends CI_Controller
     }
     $check = $this->AccountM->insert_raza($userId, $razatypeid, $data, $miqaat_id, $sabil, $fmb);
     if ($check) {
+      // Generate raza_id and update row
+      $this->load->model('HijriCalendar');
+      $hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d"));
+      $hijri_year = explode("-", $hijri_date["hijri_date"])[2];
+      $generated_raza_id = $this->AccountM->generate_raza_id($hijri_year);
+      $this->AccountM->update_raza_by_id($check, array("raza_id" => $generated_raza_id));
+
+      // --- Auto-create Laagat/Rent Invoice if applicable ---
+      try {
+        $this->load->model('LaagatRentM');
+        $umoor = isset($razatype['umoor']) ? $razatype['umoor'] : '';
+        $chargeType = null;
+        if ($umoor === 'Private-Event') {
+          $chargeType = 'rent';
+        } elseif ($umoor !== 'Public-Event') {
+          $chargeType = 'laagat';
+        }
+
+        if ($chargeType) {
+          $hijriYearNum = (int)$hijri_year;
+          $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
+
+          // Flexible fetching with fallback
+          $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, $hijriRange, false);
+          if (!$laagatRow) {
+            $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, null, false);
+          }
+
+          if ($laagatRow && !empty($laagatRow['id'])) {
+            $invoiceData = [
+              'user_id' => $userId,
+              'laagat_rent_id' => $laagatRow['id'],
+              'raza_id' => $check,
+              'amount' => $laagatRow['amount'],
+              'created_at' => date('Y-m-d H:i:s')
+            ];
+            $this->db->insert('laagat_rent_invoices', $invoiceData);
+          }
+        }
+      } catch (Exception $e) {
+        log_message('error', 'Failed to auto-create invoice in Umoor12 for Raza ID ' . $check . ': ' . $e->getMessage());
+      }
+
       redirect('/accounts/success/myrazarequest');
     } else {
       redirect('/accounts/error/myrazarequest');

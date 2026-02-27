@@ -65,15 +65,6 @@
 	.amt-due { color: #dc3545; }
 	.card { border: 1px solid #e6eaf2; border-radius: 12px; }
 	.card-header { background: #f8fafc !important; border-bottom: 1px solid #e6eaf2; }
-	.status-pill {
-		display: inline-block;
-		padding: 2px 10px;
-		border-radius: 999px;
-		font-size: 0.9rem;
-		font-weight: 700;
-	}
-	.status-active { background: rgba(25,135,84,0.12); color: #198754; }
-	.status-inactive { background: rgba(220,53,69,0.12); color: #dc3545; }
 	.action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 	.action-buttons .btn { white-space: nowrap; }
 	.modal-title { color: #1b3a57; font-weight: 700; }
@@ -159,8 +150,7 @@
 							<div class="info-value">
 								<?php
 									$st = trim((string)($class['status'] ?? ''));
-									$stLower = strtolower($st);
-									$stClass = ($stLower === 'active') ? 'status-pill status-active' : 'status-pill status-inactive';
+									$stClass = (strtolower($st) === 'active') ? 'badge badge-info' : 'badge badge-secondary';
 								?>
 								<span class="<?php echo $stClass; ?>"><?php echo htmlspecialchars($st !== '' ? $st : '-'); ?></span>
 							</div>
@@ -169,15 +159,15 @@
 							<div class="row g-3">
 									<div class="col-md-4 text-start">
 									<div class="money-label">Total To Be Collected</div>
-									<div class="money-value money-total">₹<?php echo htmlspecialchars($fmtMoney($financials['amount_to_collect'] ?? 0)); ?></div>
+									<div class="money-value money-total" id="header-total-collect">₹<?php echo htmlspecialchars($fmtMoney($financials['amount_to_collect'] ?? 0)); ?></div>
 								</div>
 									<div class="col-md-4 text-start text-md-center">
 									<div class="money-label">Total Paid</div>
-									<div class="money-value money-paid">₹<?php echo htmlspecialchars($fmtMoney($financials['amount_collected'] ?? 0)); ?></div>
+									<div class="money-value money-paid" id="header-total-paid">₹<?php echo htmlspecialchars($fmtMoney($financials['amount_paid'] ?? 0)); ?></div>
 								</div>
 									<div class="col-md-4 text-start text-md-end">
 									<div class="money-label">Total Due</div>
-									<div class="money-value money-due">₹<?php echo htmlspecialchars($fmtMoney($financials['amount_due'] ?? 0)); ?></div>
+									<div class="money-value money-due" id="header-total-due">₹<?php echo htmlspecialchars($fmtMoney($financials['amount_due'] ?? 0)); ?></div>
 								</div>
 							</div>
 						</div>
@@ -191,13 +181,27 @@
 					<?php if (empty($students)) { ?>
 						<p class="text-muted mb-0">No students assigned.</p>
 					<?php } else { ?>
+						<div class="row g-2 mb-3 align-items-end">
+							<div class="col-md-3">
+								<label for="filterItsId" class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #6c757d;">Filter by ITS ID</label>
+								<input type="text" id="filterItsId" class="form-control form-control-sm" placeholder="e.g. 309...">
+							</div>
+							<div class="col-md-4">
+								<label for="filterName" class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #6c757d;">Filter by Name</label>
+								<input type="text" id="filterName" class="form-control form-control-sm" placeholder="Enter student name...">
+							</div>
+							<div class="col-md-5 text-md-end text-start mt-2 mt-md-0">
+								<button type="button" class="btn btn-sm btn-outline-secondary" id="clearFilters">Clear Filters</button>
+							</div>
+						</div>
+						
 						<div class="table-scroll">
 							<table id="madresa-class-students-table" class="table table-striped mb-0">
 								<thead>
 									<tr>
 										<th style="width:140px">ITS ID</th>
 										<th>Name</th>
-										<th class="text-end" style="width:160px">To Be Collected</th>
+										<th class="text-end" style="width:160px">Fees</th>
 										<th class="text-end" style="width:140px">Paid</th>
 										<th class="text-end" style="width:140px">Due</th>
 										<th style="width:260px" data-sortable="false">Action</th>
@@ -205,13 +209,13 @@
 								</thead>
 								<tbody>
 									<?php foreach ($students as $s) { ?>
-										<tr>
-											<?php $sid = (int)($s['ITS_ID'] ?? 0); ?>
+										<?php $sid = (int)($s['ITS_ID'] ?? 0); ?>
+										<tr data-its-id="<?php echo $sid; ?>">
 											<td><?php echo $sid; ?></td>
 											<td><?php echo htmlspecialchars((string)($s['Full_Name'] ?? '')); ?></td>
 											<td class="text-end"><span class="amt amt-total">₹<?php echo htmlspecialchars($fmtMoney($s['amount_to_collect'] ?? 0)); ?></span></td>
-											<td class="text-end"><span class="amt amt-paid">₹<?php echo htmlspecialchars($fmtMoney($s['amount_paid'] ?? 0)); ?></span></td>
-											<td class="text-end"><span class="amt amt-due">₹<?php echo htmlspecialchars($fmtMoney($s['amount_due'] ?? 0)); ?></span></td>
+											<td class="text-end"><span class="amt amt-paid js-row-paid">₹<?php echo htmlspecialchars($fmtMoney($s['amount_paid'] ?? 0)); ?></span></td>
+											<td class="text-end"><span class="amt amt-due js-row-due">₹<?php echo htmlspecialchars($fmtMoney($s['amount_due'] ?? 0)); ?></span></td>
 											<td>
 												<div class="action-buttons">
 													<?php if (!empty($can_receive_payment)) { ?>
@@ -230,7 +234,17 @@
 															data-due="<?php echo (float)($s['amount_due'] ?? 0); ?>"
 														>Receive Payment</button>
 													<?php } ?>
-													<a class="btn btn-outline-secondary btn-sm" href="<?php echo base_url($madresa_base . '/classes/payment-history/' . (int)($class['id'] ?? 0) . '?students_its_id=' . $sid); ?>">Payment History</a>
+													<button
+														type="button"
+														class="btn btn-outline-secondary btn-sm btn-payment-history"
+														data-toggle="modal"
+														data-target="#historyModal"
+														data-bs-toggle="modal"
+														data-bs-target="#historyModal"
+														data-class-id="<?php echo (int)($class['id'] ?? 0); ?>"
+														data-its-id="<?php echo $sid; ?>"
+														data-student-name="<?php echo htmlspecialchars((string)($s['Full_Name'] ?? ''), ENT_QUOTES); ?>"
+													>Payment History</button>
 												</div>
 											</td>
 										</tr>
@@ -271,9 +285,14 @@
 						<label for="rpmMode" class="form-label">Payment Method</label>
 						<select name="payment_mode" id="rpmMode" class="form-control">
 							<option value="Cash">Cash</option>
-							<option value="Check">Check</option>
+							<option value="Cheque">Cheque</option>
 							<option value="NEFT">NEFT</option>
 						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="rpmDate" class="form-label">Payment Date</label>
+						<input type="date" name="paid_on" id="rpmDate" class="form-control" required>
 					</div>
 
 					<div class="form-group mb-0">
@@ -290,6 +309,45 @@
 	</div>
 </div>
 							<?php } ?>
+
+<!-- Payment History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content" style="border-radius:12px; border:1px solid #e6eaf2;">
+			<div class="modal-header" style="background:#f8fafc; border-bottom:1px solid #e6eaf2;">
+				<h5 class="modal-title">Payment History</h5>
+				<button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" style="border:0; background:transparent; font-size:1.5rem; line-height:1;">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="mb-3">
+					<div class="info-label">Student Name</div>
+					<div class="info-value" id="history_student_name">-</div>
+				</div>
+				<div class="table-scroll" style="max-height: 400px;">
+					<table class="table table-sm table-striped mb-0">
+						<thead>
+							<tr>
+								<th>Date</th>
+								<th>Method</th>
+								<th class="text-end">Amount</th>
+								<th>Description</th>
+								<th class="text-center">Action</th>
+							</tr>
+						</thead>
+						<tbody id="history_table_body">
+							<!-- Loaded via AJAX -->
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="modal-footer" style="border-top:1px solid #e6eaf2;">
+				<button type="button" class="btn btn-outline-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
 
 <script>
 	(function () {
@@ -371,6 +429,49 @@
 
 		document.addEventListener('DOMContentLoaded', function () {
 			makeTableSortable(document.getElementById('madresa-class-students-table'));
+			
+			// Filters Logic
+			var filterItsId = document.getElementById('filterItsId');
+			var filterName = document.getElementById('filterName');
+			var clearBtn = document.getElementById('clearFilters');
+			var table = document.getElementById('madresa-class-students-table');
+			var tbody = table ? table.querySelector('tbody') : null;
+			var rows = tbody ? tbody.querySelectorAll('tr') : [];
+
+			function applyFilters() {
+				var itsVal = (filterItsId.value || '').trim().toLowerCase();
+				var nameVal = (filterName.value || '').trim().toLowerCase();
+
+				rows.forEach(function (row) {
+					var itsCell = row.cells[0]; // First column is ITS ID
+					var nameCell = row.cells[1]; // Second column is Name
+
+					if (!itsCell || !nameCell) return;
+
+					var itsText = itsCell.textContent.toLowerCase();
+					var nameText = nameCell.textContent.toLowerCase();
+
+					var itsMatch = itsVal === '' || itsText.indexOf(itsVal) > -1;
+					var nameMatch = nameVal === '' || nameText.indexOf(nameVal) > -1;
+
+					if (itsMatch && nameMatch) {
+						row.style.display = '';
+					} else {
+						row.style.display = 'none';
+					}
+				});
+			}
+
+			if (filterItsId) filterItsId.addEventListener('input', applyFilters);
+			if (filterName) filterName.addEventListener('input', applyFilters);
+
+			if (clearBtn) {
+				clearBtn.addEventListener('click', function () {
+					if (filterItsId) filterItsId.value = '';
+					if (filterName) filterName.value = '';
+					applyFilters();
+				});
+			}
 		});
 	})();
 </script>
@@ -397,42 +498,162 @@
 				return;
 			}
 			if (window.jQuery && window.jQuery.fn && window.jQuery.fn.modal) {
-				window.jQuery(el).modal('show');
-				return;
+				$('#receivePaymentModal').modal('show');
 			}
 		}
 
-		document.addEventListener('click', function (e) {
-			var btn = e.target.closest ? e.target.closest('.btn-receive-payment') : null;
-			if (!btn) return;
+		// AJAX Submission for Receive Payment
+		$(document).on('submit', '#receivePaymentForm', function (e) {
 			e.preventDefault();
+			var form = $(this);
+			var submitBtn = form.find('button[type="submit"]');
+			
+			// Get IDs from the button that opened the modal (stored in current data or just parse from action)
+			// Efficient way: store in modal state
+			var classId = $('#receivePaymentModal').data('class-id');
+			var itsId = $('#receivePaymentModal').data('its-id');
 
-			var classId = btn.getAttribute('data-class-id') || '0';
-			var itsId = btn.getAttribute('data-its-id') || '0';
-			var studentName = btn.getAttribute('data-student-name') || '';
-			var due = btn.getAttribute('data-due') || '0';
+			submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
 
-			var form = document.getElementById('receivePaymentForm');
-			var amount = document.getElementById('rpmAmount');
-			var notes = document.getElementById('rpmNotes');
-			var studentLine = document.getElementById('rpmStudentLine');
-			// (Totals line removed)
-			if (!form || !amount) return;
+			$.ajax({
+				url: '<?php echo base_url($madresa_base . "/ajax-receive-payment"); ?>',
+				type: 'POST',
+				data: {
+					class_id: classId,
+					students_its_id: itsId,
+					amount: $('#rpmAmount').val(),
+					payment_mode: $('#rpmMode').val(),
+					paid_on: $('#rpmDate').val(),
+					notes: $('#rpmNotes').val()
+				},
+				dataType: 'json',
+				success: function (res) {
+					submitBtn.prop('disabled', false).text('Submit');
+					if (res.success) {
+						alert(res.message || 'Payment received successfully');
+						$('#receivePaymentModal').modal('hide');
 
-			form.action = '<?php echo base_url($madresa_base . '/classes/receive-payment/'); ?>' + String(parseInt(classId, 10)) + '/' + String(parseInt(itsId, 10));
+						// Update Row
+						if (res.student) {
+							var row = $('tr[data-its-id="' + itsId + '"]');
+							if (row.length) {
+								row.find('.js-row-paid').text('₹' + formatINR(res.student.amount_paid));
+								row.find('.js-row-due').text('₹' + formatINR(res.student.amount_due));
+								
+								// Also update the data attributes on the "Receive Payment" button in that row
+								var rpBtn = row.find('.btn-receive-payment');
+								if (rpBtn.length) {
+									rpBtn.data('paid', parseFloat(res.student.amount_paid));
+									rpBtn.data('due', parseFloat(res.student.amount_due));
+								}
+							}
+						}
+
+						// Update Header Totals
+						if (res.class_financials) {
+							$('#header-total-collect').text('₹' + formatINR(res.class_financials.amount_to_collect));
+							$('#header-total-paid').text('₹' + formatINR(res.class_financials.amount_paid));
+							$('#header-total-due').text('₹' + formatINR(res.class_financials.amount_due));
+						}
+					} else {
+						alert(res.error || 'Failed to process payment');
+					}
+				},
+				error: function () {
+					submitBtn.prop('disabled', false).text('Submit');
+					alert('Connection error. Please try again.');
+				}
+			});
+		});
+
+		$(document).on('click', '.btn-receive-payment', function (e) {
+			e.preventDefault();
+			var btn = $(this);
+			var classId = btn.data('class-id');
+			var itsId = btn.data('its-id');
+			var studentName = btn.data('student-name');
+			var due = btn.data('due');
+
+			// Store IDs in modal for the AJAX form
+			$('#receivePaymentModal').data('class-id', classId).data('its-id', itsId);
+
+			var form = $('#receivePaymentForm');
+			var amount = $('#rpmAmount');
+			var notes = $('#rpmNotes');
+			var studentLine = $('#rpmStudentLine');
+
+			if (!form.length || !amount.length) return;
+
+			// We don't strictly need this now but keeping for safety if someone refreshes and it redirects
+			form.attr('action', '<?php echo base_url($madresa_base . "/classes/receive-payment/"); ?>' + classId + '/' + itsId);
 
 			var dueNum = parseFloat(due);
 			if (isNaN(dueNum) || dueNum <= 0) dueNum = 0;
-			amount.value = (dueNum > 0) ? dueNum.toFixed(2).replace(/\.00$/, '') : '';
-			amount.max = (dueNum > 0) ? String(dueNum) : '';
-			if (notes) notes.value = '';
+			amount.val((dueNum > 0) ? dueNum.toFixed(2).replace(/\.00$/, '') : '');
+			amount.attr('max', (dueNum > 0) ? dueNum : '');
+			if (notes.length) notes.val('');
+			
+			var today = new Date();
+			var yyyy = today.getFullYear();
+			var mm = String(today.getMonth() + 1).padStart(2, '0');
+			var dd = String(today.getDate()).padStart(2, '0');
+			$('#rpmDate').val(yyyy + '-' + mm + '-' + dd);
 
-			if (studentLine) {
-				studentLine.textContent = (studentName ? studentName : ('ITS ' + itsId));
+			if (studentLine.length) {
+				studentLine.text(studentName || ('ITS ' + itsId));
 			}
-			// Totals line removed per UI requirement.
 
-			showModal();
+			$('#receivePaymentModal').modal('show');
+		});
+
+		$(document).on('click', '.btn-payment-history', function (e) {
+			e.preventDefault();
+			var btn = $(this);
+			var classId = btn.data('class-id');
+			var itsId = btn.data('its-id');
+			var name = btn.data('student-name');
+
+			$('#history_student_name').text(name || '-');
+			var tbody = $('#history_table_body');
+			tbody.html('<tr><td colspan="5" class="text-center font-italic text-muted py-4"><i class="fa fa-spinner fa-spin mr-2"></i> Loading history...</td></tr>');
+			
+			$('#historyModal').modal('show');
+
+			$.ajax({
+				url: '<?php echo base_url($madresa_base . "/get-payment-history"); ?>',
+				type: 'POST',
+				data: { class_id: classId, students_its_id: itsId },
+				dataType: 'json',
+				success: function(response) {
+					var html = '';
+					if (response && response.length > 0) {
+						response.forEach(function(item) {
+							var dt = item.paid_on ? item.paid_on : item.created_at;
+							var dateStr = '-';
+							if(dt) {
+								var parts = dt.split(' ')[0].split('-');
+								if(parts.length === 3) dateStr = parts[2] + '-' + parts[1] + '-' + parts[0];
+							}
+							
+							var receiptUrl = '<?php echo base_url($madresa_base . "/classes/payment-receipt/"); ?>' + item.m_class_id + '?payment_id=' + item.id;
+
+							html += '<tr>' +
+								'<td class="text-nowrap">' + dateStr + '</td>' +
+								'<td>' + (item.payment_mode || '-') + '</td>' +
+								'<td class="text-end fw-bold">₹' + formatINR(item.amount) + '</td>' +
+								'<td class="small text-muted">' + (item.notes || '-') + '</td>' +
+								'<td class="text-center"><a href="' + receiptUrl + '" class="btn btn-sm btn-outline-primary" target="_blank" title="View Receipt"><i class="fas fa-file-invoice"></i> Receipt</a></td>' +
+								'</tr>';
+						});
+					} else {
+						html = '<tr><td colspan="5" class="text-center text-muted py-4">No payment history found.</td></tr>';
+					}
+					tbody.html(html);
+				},
+				error: function() {
+					tbody.html('<tr><td colspan="5" class="text-center text-danger py-4">Error loading history.</td></tr>');
+				}
+			});
 		});
 	})();
 </script>

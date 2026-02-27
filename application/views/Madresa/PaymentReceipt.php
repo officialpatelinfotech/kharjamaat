@@ -83,7 +83,7 @@
 
 	<div class="page-title-bar">
 		<div class="page-title-left">
-			<a href="<?php echo base_url($madresa_base . '/classes/payment-history/' . (int)($class['id'] ?? 0)); ?>" class="btn btn-outline-secondary btn-sm btn-back" aria-label="Back" title="Back"><span class="back-arrow">&larr;</span></a>
+			<button type="button" class="btn btn-outline-secondary btn-sm btn-back" aria-label="Back" title="Back" onclick="window.history.length > 1 ? window.history.back() : window.close();"><span class="back-arrow">&larr;</span></button>
 		</div>
 		<h3 class="page-title">Payment Receipt</h3>
 		<div class="page-title-right">

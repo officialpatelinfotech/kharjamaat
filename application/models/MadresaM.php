@@ -113,6 +113,34 @@ class MadresaM extends CI_Model
     return array_values(array_unique($out));
   }
 
+  public function get_enrolled_student_ids_by_year($hijriYear, $excludeClassId = null)
+  {
+    $hijriYear = (int)$hijriYear;
+    if ($hijriYear <= 0) return [];
+
+    $this->db->select('a.students_its_id AS ITS_ID', false);
+    $this->db->from($this->tableAdmission . ' a');
+    $this->db->join($this->tableClass . ' c', 'c.id = a.m_class_id', 'inner');
+    $this->db->where('c.year', $hijriYear);
+
+    if ($excludeClassId !== null) {
+      $excludeClassId = (int)$excludeClassId;
+      if ($excludeClassId > 0) {
+        $this->db->where('a.m_class_id <>', $excludeClassId);
+      }
+    }
+
+    $rows = $this->db->get()->result_array();
+
+    $out = [];
+    if (!empty($rows)) {
+      foreach ($rows as $r) {
+        if (!empty($r['ITS_ID'])) $out[] = (string)$r['ITS_ID'];
+      }
+    }
+    return array_values(array_unique($out));
+  }
+
   public function create_class($className, $hijriYear, $fees = null, $status = 'Active')
   {
     try {
@@ -310,7 +338,7 @@ class MadresaM extends CI_Model
         a.students_its_id AS ITS_ID,
         u.Full_Name,
         COALESCE(c.fees, 0) AS amount_to_collect,
-        COALESCE(pp.amount_paid, 0) AS amount_collected,
+        COALESCE(pp.amount_paid, 0) AS amount_paid,
         GREATEST(COALESCE(c.fees, 0) - COALESCE(pp.amount_paid, 0), 0) AS amount_due
       FROM {$this->tableAdmission} a
       JOIN {$this->tableClass} c ON c.id = a.m_class_id
@@ -331,7 +359,7 @@ class MadresaM extends CI_Model
       a.students_its_id AS ITS_ID,
       u.Full_Name,
       COALESCE(c.fees, 0) AS amount_to_collect,
-      0 AS amount_collected,
+      0 AS amount_paid,
       COALESCE(c.fees, 0) AS amount_due
     FROM {$this->tableAdmission} a
     JOIN {$this->tableClass} c ON c.id = a.m_class_id
@@ -517,16 +545,16 @@ class MadresaM extends CI_Model
     $hasPaymentTable = $this->db->table_exists($this->tablePayments);
     $studentCountSql = "(SELECT COUNT(*) FROM {$this->tableAdmission} a WHERE a.m_class_id = c.id)";
     $amountToCollectSql = "(COALESCE(c.fees, 0) * {$studentCountSql})";
-    $amountCollectedSql = $hasPaymentTable
+    $amountPaidSql = $hasPaymentTable
       ? "(COALESCE((SELECT SUM(p.amount) FROM {$this->tablePayments} p WHERE p.m_class_id = c.id), 0))"
       : "(0)";
-    $amountDueSql = "(GREATEST({$amountToCollectSql} - {$amountCollectedSql}, 0))";
+    $amountDueSql = "(GREATEST({$amountToCollectSql} - {$amountPaidSql}, 0))";
 
     $sql = "SELECT
       c.id,
       {$studentCountSql} AS student_count,
       {$amountToCollectSql} AS amount_to_collect,
-      {$amountCollectedSql} AS amount_collected,
+      {$amountPaidSql} AS amount_paid,
       {$amountDueSql} AS amount_due
     FROM {$this->tableClass} c
     WHERE c.id = ?
@@ -611,10 +639,12 @@ class MadresaM extends CI_Model
     if ($hasPaymentTable) {
       $sql = "SELECT
         a.students_its_id AS students_its_id,
+        a.m_class_id AS class_id,
         COALESCE(u.Full_Name, '') AS student_name,
         COALESCE(c.name, '') AS class_name,
         c.year AS hijri_year,
         COALESCE(c.fees, 0) AS fees,
+        COALESCE(c.status, 'Active') AS status,
         COALESCE(pp.amount_paid, 0) AS amount_paid,
         GREATEST(COALESCE(c.fees, 0) - COALESCE(pp.amount_paid, 0), 0) AS amount_due
       FROM {$this->tableAdmission} a
@@ -634,10 +664,12 @@ class MadresaM extends CI_Model
 
     $sql = "SELECT
       a.students_its_id AS students_its_id,
+      a.m_class_id AS class_id,
       COALESCE(u.Full_Name, '') AS student_name,
       COALESCE(c.name, '') AS class_name,
       c.year AS hijri_year,
       COALESCE(c.fees, 0) AS fees,
+      COALESCE(c.status, 'Active') AS status,
       0 AS amount_paid,
       COALESCE(c.fees, 0) AS amount_due
     FROM {$this->tableAdmission} a
