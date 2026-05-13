@@ -4153,28 +4153,46 @@ HTML;
     $this->load->view('Admin/EditMember', $data);
   }
 
+  
+
+
+  // ─────────────────────────────────────────────────────────────────────────────
+// updatemember — update existing member
+// ─────────────────────────────────────────────────────────────────────────────
   public function updatemember()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
       redirect('/accounts');
     }
+
     $its_id = $this->input->post('its_id');
+
     if (!$its_id) {
-      echo json_encode(['status' => 'error', 'message' => 'Missing ITS ID']);
+      echo json_encode([
+        'status' => 'error',
+        'message' => 'Missing ITS ID'
+      ]);
       return;
     }
 
-    // Basic email validation if provided
+    // Email validation
     $email = $this->input->post('Email');
+
     if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-      echo json_encode(['status' => 'error', 'message' => 'Invalid email format']);
+      echo json_encode([
+        'status' => 'error',
+        'message' => 'Invalid email format'
+      ]);
       return;
     }
 
     $isHof = $this->input->post('hof_type') === 'HOF';
-    $hofReference = $isHof ? $its_id : $this->input->post('HOF_ID');
 
-    // Collect all allowed fields (whitelist) from POST
+    $hofReference = $isHof
+      ? $its_id
+      : $this->input->post('HOF_ID');
+
+    // Allowed fields
     $fields = [
       'Full_Name',
       'Full_Name_Arabic',
@@ -4252,70 +4270,104 @@ HTML;
       'Title',
       'Category',
       'Idara',
-      'Inactive_Status'
+      'Inactive_Status',
     ];
 
     $payload = [];
+
     foreach ($fields as $f) {
+
       $val = $this->input->post($f);
+
       if ($val !== null) {
-        $payload[$f] = is_string($val) ? trim($val) : $val;
+        $payload[$f] = is_string($val)
+          ? trim($val)
+          : $val;
       }
     }
 
-    // Enforce HOF fields
+    // HOF handling
     $payload['HOF_FM_TYPE'] = $isHof ? 'HOF' : 'FM';
-    $payload['HOF_ID'] = $hofReference ?: ($isHof ? $its_id : null);
+
+    $payload['HOF_ID'] = $hofReference
+      ?: ($isHof ? $its_id : null);
+
     if (!$isHof && empty($payload['HOF_ID'])) {
-      echo json_encode(['status' => 'error', 'message' => 'HOF selection required for family member']);
+
+      echo json_encode([
+        'status' => 'error',
+        'message' => 'HOF selection required for family member'
+      ]);
+
       return;
     }
 
-    // Guard: normalize empties (empty string -> omit so DB keeps NULL)
+    // Nullable fields cleanup
     foreach (['Sector', 'Sub_Sector', 'Inactive_Status'] as $nullableField) {
-      if (array_key_exists($nullableField, $payload) && $payload[$nullableField] === '') {
+
+      if (
+        array_key_exists($nullableField, $payload)
+        && $payload[$nullableField] === ''
+      ) {
         unset($payload[$nullableField]);
       }
     }
 
-    // Enumerated validation for member_type
+    // Direct member type validation
+    $allowed_member_types = [
+      'Resident Mumineen',
+      'Moved-Out Mumineen',
+      'Transfer Out',
+      'Wafat',
+      'Married Outcast',
+      'External Sabeel Payers',
+      'Non-Sabeel Residents',
+      'Temporary Mumineen/Visitors',
+    ];
+
     if (isset($payload['Member_Type']) && $payload['Member_Type'] !== '') {
-      $allowed_member_types = [
-        'Resident Mumineen',
-        'External Sabeel Payers',
-        'Moved-Out Mumineen',
-        'Non-Sabeel Residents',
-        'Temporary Mumineen/Visitors'
-      ];
+
       if (!in_array($payload['Member_Type'], $allowed_member_types, true)) {
+
         echo json_encode([
           'status' => 'error',
           'field' => 'Member_Type',
           'allowed_values' => $allowed_member_types,
           'received' => $payload['Member_Type'],
-          'message' => 'Invalid member type'
+          'message' => 'Invalid member type',
         ]);
+
         return;
       }
     }
 
     $updated = $this->AdminM->update_member($its_id, $payload);
+
     if ($updated) {
-      // If member_type not explicitly in payload (unchanged), fetch existing value
-      $mt_value = isset($payload['Member_Type']) ? $payload['Member_Type'] : null;
+
+      $mt_value = $payload['Member_Type'] ?? null;
+
       if ($mt_value === null) {
+
         $existing_row = $this->AdminM->get_member_by_its($its_id);
+
         if ($existing_row && isset($existing_row['Member_Type'])) {
           $mt_value = $existing_row['Member_Type'];
         }
       }
+
       echo json_encode([
         'status' => 'success',
         'message' => 'Member updated',
-        'Member_Type' => $mt_value
+        'Member_Type' => $mt_value,
       ]);
+
     } else {
-      echo json_encode(['status' => 'error', 'message' => 'No changes or update failed']);
+
+      echo json_encode([
+        'status' => 'error',
+        'message' => 'No changes or update failed'
+      ]);
     }
   }
 
@@ -4380,43 +4432,66 @@ HTML;
 
   public function savemember()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
       redirect('/accounts');
     }
+
     $its_id = $this->input->post('ITS_ID');
+
     if (!$its_id) {
-      echo json_encode(['status' => 'error', 'message' => 'ITS ID required']);
+      echo json_encode([
+        'status' => 'error',
+        'message' => 'ITS ID required'
+      ]);
       return;
     }
+
     $email = $this->input->post('Email');
+
     if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-      echo json_encode(['status' => 'error', 'message' => 'Invalid email']);
+      echo json_encode([
+        'status' => 'error',
+        'message' => 'Invalid email'
+      ]);
       return;
     }
-    $payload = $this->input->post(NULL, true); // all sanitized
+
+    $payload = $this->input->post(NULL, true);
+
+    // Direct member type validation
+    $allowed_member_types = [
+      'Resident Mumineen',
+      'Moved-Out Mumineen',
+      'Transfer Out',
+      'Wafat',
+      'Married Outcast',
+      'External Sabeel Payers',
+      'Non-Sabeel Residents',
+      'Temporary Mumineen/Visitors',
+    ];
+
     if (isset($payload['Member_Type']) && $payload['Member_Type'] !== '') {
-      $allowed_member_types = [
-        'Resident Mumineen',
-        'External Sabeel Payers',
-        'Moved-Out Mumineen',
-        'Non-Sabeel Residents',
-        'Temporary Mumineen/Visitors'
-      ];
+
       if (!in_array($payload['Member_Type'], $allowed_member_types, true)) {
+
         echo json_encode([
           'status' => 'error',
           'field' => 'Member_Type',
           'allowed_values' => $allowed_member_types,
           'received' => $payload['Member_Type'],
-          'message' => 'Invalid member type'
+          'message' => 'Invalid member type',
         ]);
+
         return;
       }
     }
+
     $result = $this->AdminM->create_member($payload);
+
     if ($result['status'] === 'success') {
       $result['Member_Type'] = $payload['Member_Type'] ?? null;
     }
+
     echo json_encode($result);
   }
 

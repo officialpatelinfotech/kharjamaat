@@ -1299,34 +1299,82 @@ class AdminM extends CI_Model
   public function create_member($payload)
   {
     if (empty($payload['ITS_ID'])) {
-      return ['status' => 'error', 'message' => 'ITS ID is required'];
-    }
-    // Uniqueness check
-    $exists = $this->db->where('ITS_ID', $payload['ITS_ID'])->get('user')->row_array();
-    if ($exists) {
-      return ['status' => 'error', 'message' => 'ITS ID already exists'];
-    }
-    // Validate member_type if provided
-    if (isset($payload['member_type']) && $payload['member_type'] !== '') {
-      $allowed_member_types = [
-        'Resident Mumineen',
-        'External Sabeel Payers',
-        'Moved-Out Mumineen',
-        'Non-Sabeel Residents',
-        'Temporary Mumineen/Visitors'
+      return [
+        'status' => 'error',
+        'message' => 'ITS ID is required'
       ];
-      if (!in_array($payload['member_type'], $allowed_member_types, true)) {
-        return ['status' => 'error', 'message' => 'Invalid member type'];
-      }
     }
-    $isHof = isset($payload['hof_type']) && $payload['hof_type'] === 'HOF';
+
+    // Check duplicate ITS ID
+    $exists = $this->db
+      ->where('ITS_ID', $payload['ITS_ID'])
+      ->get('user')
+      ->row_array();
+
+    if ($exists) {
+      return [
+        'status' => 'error',
+        'message' => 'ITS ID already exists'
+      ];
+    }
+
+    // Direct member type validation
+    $allowed_member_types = [
+      'Resident Mumineen',
+      'Moved-Out Mumineen',
+      'Transfer Out',
+      'Wafat',
+      'Married Outcast',
+      'External Sabeel Payers',
+      'Non-Sabeel Residents',
+      'Temporary Mumineen/Visitors',
+    ];
+
+    // Support both Member_Type and member_type
+    $memberType = null;
+
+    if (isset($payload['Member_Type'])) {
+      $memberType = $payload['Member_Type'];
+    } elseif (isset($payload['member_type'])) {
+      $memberType = $payload['member_type'];
+    }
+
+    if ($memberType !== null && $memberType !== '') {
+
+      if (!in_array($memberType, $allowed_member_types, true)) {
+
+        return [
+          'status' => 'error',
+          'field' => 'Member_Type',
+          'allowed_values' => $allowed_member_types,
+          'received' => $memberType,
+          'message' => 'Invalid member type'
+        ];
+      }
+
+      // Normalize to single DB field
+      $payload['Member_Type'] = $memberType;
+    }
+
+    $isHof = isset($payload['hof_type'])
+      && $payload['hof_type'] === 'HOF';
+
     // Normalize HOF fields
     $payload['HOF_FM_TYPE'] = $isHof ? 'HOF' : 'FM';
-    $payload['HOF_ID'] = $isHof ? $payload['ITS_ID'] : ($payload['HOF_ID'] ?? null);
+
+    $payload['HOF_ID'] = $isHof
+      ? $payload['ITS_ID']
+      : ($payload['HOF_ID'] ?? null);
+
     if (!$isHof && empty($payload['HOF_ID'])) {
-      return ['status' => 'error', 'message' => 'HOF selection required for family member'];
+
+      return [
+        'status' => 'error',
+        'message' => 'HOF selection required for family member'
+      ];
     }
-    // Allowed fields similar to update whitelist
+
+    // Allowed fields
     $fields = [
       'ITS_ID',
       'Full_Name',
@@ -1348,7 +1396,6 @@ class AdminM extends CI_Model
       'HOF_FM_TYPE',
       'HOF_ID',
       'Member_Type',
-      'member_type',
       'Registered_Family_Mobile',
       'Father_ITS_ID',
       'Mother_ITS_ID',
@@ -1408,36 +1455,65 @@ class AdminM extends CI_Model
       'Idara',
       'Inactive_Status'
     ];
+
     $insert = [];
+
     foreach ($fields as $f) {
+
       if (isset($payload[$f]) && $payload[$f] !== '') {
-        $insert[$f] = is_string($payload[$f]) ? trim($payload[$f]) : $payload[$f];
+
+        $insert[$f] = is_string($payload[$f])
+          ? trim($payload[$f])
+          : $payload[$f];
       }
     }
-    // Final safety: ensure mandatory minimal fields
+
+    // Required fields
     if (empty($insert['Full_Name'])) {
-      return ['status' => 'error', 'message' => 'Full Name required'];
+
+      return [
+        'status' => 'error',
+        'message' => 'Full Name required'
+      ];
     }
+
     if (empty($insert['ITS_ID'])) {
-      return ['status' => 'error', 'message' => 'ITS ID required'];
+
+      return [
+        'status' => 'error',
+        'message' => 'ITS ID required'
+      ];
     }
-    // Wrap in transaction to also create a corresponding login entry atomically
+
+    // Transaction start
     $this->db->trans_start();
+
     $ok = $this->db->insert('user', $insert);
 
     if ($ok) {
-      // Create login for the new member if not present
+
+      // Create login automatically
       $itsId = $insert['ITS_ID'];
-      $hofId = !empty($insert['HOF_ID']) ? $insert['HOF_ID'] : $itsId; // default to self if HOF unknown
-      $existingLogin = $this->db->where('username', $itsId)->get('login')->row_array();
+
+      $hofId = !empty($insert['HOF_ID'])
+        ? $insert['HOF_ID']
+        : $itsId;
+
+      $existingLogin = $this->db
+        ->where('username', $itsId)
+        ->get('login')
+        ->row_array();
+
       if (!$existingLogin) {
+
         $loginRow = [
           'username' => $itsId,
-          'password' => md5($itsId), // default password = ITS ID (hashed)
-          'role'     => 0,
-          'hof'      => $hofId,
-          'active'   => 1,
+          'password' => md5($itsId),
+          'role' => 0,
+          'hof' => $hofId,
+          'active' => 1,
         ];
+
         $this->db->insert('login', $loginRow);
       }
     }
@@ -1445,8 +1521,16 @@ class AdminM extends CI_Model
     $this->db->trans_complete();
 
     if ($this->db->trans_status() === FALSE) {
-      return ['status' => 'error', 'message' => 'Insert failed'];
+
+      return [
+        'status' => 'error',
+        'message' => 'Insert failed'
+      ];
     }
-    return ['status' => 'success', 'message' => 'Member created'];
+
+    return [
+      'status' => 'success',
+      'message' => 'Member created'
+    ];
   }
 }
