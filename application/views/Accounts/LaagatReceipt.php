@@ -40,6 +40,9 @@
             <a href="<?= $back_link ?>" class="btn btn-light rounded-pill px-4">
                 <i class="fas fa-arrow-left mr-2"></i> Back
             </a>
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="downloadReceiptPdf(<?= (int)($payment['id'] ?? 0) ?>)">
+                <i class="fas fa-file-pdf mr-2"></i> Download PDF
+            </button>
             <button onclick="window.print()" class="btn btn-primary rounded-pill px-4">
                 <i class="fas fa-print mr-2"></i> Print Receipt
             </button>
@@ -105,6 +108,29 @@
         </div>
     </div>
 </div>
+
+<script>
+function downloadReceiptPdf(paymentId) {
+    if (!paymentId) return;
+    const endpoint = "<?php echo base_url('common/generate_pdf'); ?>";
+    const form = new FormData();
+    form.append('id', String(paymentId));
+    form.append('for', '8');
+
+    fetch(endpoint, { method: 'POST', body: form })
+        .then(function(resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            return resp.blob();
+        })
+        .then(function(blob) {
+            var url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        })
+        .catch(function() {
+            alert('Failed to generate receipt PDF');
+        });
+}
+</script>
 
 </body>
 </html>

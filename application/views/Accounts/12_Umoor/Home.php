@@ -357,28 +357,15 @@
 			id: "public"
 		});
 
-		// Search functionality
-		$('#razaSearch').on('input', function() {
-			const searchTerm = $(this).val().toLowerCase();
+		function showSuggestions(filteredResults) {
 			const suggestions = $('#searchSuggestions');
-
-			if (searchTerm.length === 0) {
-				suggestions.hide();
-				return;
-			}
-
-			const filteredResults = razaData.filter(item =>
-				item.name.toLowerCase().includes(searchTerm) ||
-				(item.umoor && item.umoor.toLowerCase().includes(searchTerm))
-			);
-
 			suggestions.empty();
 			if (filteredResults.length > 0) {
 				filteredResults.forEach(item => {
 					suggestions.append(`
                         <div class="suggestion-item" 
-														data-umoor="${item.umoor}" 
-														data-id="${item.id || ''}">
+								data-umoor="${item.umoor}" 
+								data-id="${item.id || ''}">
                             <span class="suggestion-name">${item.name}</span>
                             <span class="suggestion-umoor">${item.umoor}</span>
                         </div>
@@ -386,8 +373,28 @@
 				});
 				suggestions.show();
 			} else {
-				suggestions.hide();
+				suggestions.empty().append(`<div class="suggestion-item"><span class="suggestion-name text-muted">No results found</span></div>`);
+				suggestions.show();
 			}
+		}
+
+		// Show all on focus (click into search bar)
+		$('#razaSearch').on('focus', function() {
+			showSuggestions(razaData);
+		});
+
+		// Filter on input
+		$('#razaSearch').on('input', function() {
+			const searchTerm = $(this).val().toLowerCase().trim();
+			if (searchTerm.length === 0) {
+				showSuggestions(razaData);
+				return;
+			}
+			const filteredResults = razaData.filter(item =>
+				item.name.toLowerCase().includes(searchTerm) ||
+				(item.umoor && item.umoor.toLowerCase().includes(searchTerm))
+			);
+			showSuggestions(filteredResults);
 		});
 
 		// Handle suggestion click (umoor in URL, razaId in POST)

@@ -8,6 +8,10 @@
     display: none;
   }
 
+  #search-results .list-group-item {
+    cursor: pointer;
+  }
+
   /* Hijri calendar styles (aligned with createmiqaat) */
   #hijri-calendar .hijri-day.active {
     background: #0d6efd;
@@ -65,6 +69,8 @@
   </div>
 
   <form method="post" action="<?php echo base_url("common/add_menu") ?>" class="mt-4">
+    <input type="hidden" name="return_hijri_month" value="<?php echo isset($return_hijri_month) ? htmlspecialchars((string) $return_hijri_month, ENT_QUOTES) : ''; ?>">
+    <input type="hidden" name="return_assigned_filter" value="<?php echo isset($return_assigned_filter) ? htmlspecialchars((string) $return_assigned_filter, ENT_QUOTES) : ''; ?>">
     <div class="form-group">
       <h4 class="mb-2">Date</h4>
       <div class="d-flex flex-column gap-2">
@@ -204,7 +210,7 @@
           const filteredItems = items.filter(item => !selectedItems.includes(Number(item.id)));
           filteredItems.forEach(item => {
             $('#search-results').append(`
-              <li class="list-group-item d-flex justify-content-between align-items-center">
+              <li class="list-group-item d-flex justify-content-between align-items-center add-item-row" data-id="${item.id}" data-name="${item.name}" role="button" tabindex="0">
                 ${item.name}
                 <button class="btn btn-sm btn-success add-item" data-id="${item.id}" data-name="${item.name}">Add</button>
               </li>
@@ -214,11 +220,8 @@
       });
     });
 
-    // Add to selected
-    $('#search-results').on('click', '.add-item', function(e) {
-      e.preventDefault();
-      const id = $(this).data('id');
-      const name = $(this).data('name');
+    function addItemToSelection(id, name, sourceElement) {
+      id = Number(id);
 
       if (!selectedItems.includes(id)) {
         selectedItems.push(id);
@@ -229,9 +232,32 @@
           </li>
         `);
         updateHiddenField();
-        $(this).closest('li').remove();
+        if (sourceElement) {
+          $(sourceElement).closest('li').remove();
+        }
         $("#search-input").val('').focus();
         $('#search-results').empty();
+      }
+    }
+
+    // Add to selected
+    $('#search-results').on('click', '.add-item', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      addItemToSelection($(this).data('id'), $(this).data('name'), this);
+    });
+
+    $('#search-results').on('click', '.add-item-row', function(e) {
+      if ($(e.target).closest('.add-item').length) {
+        return;
+      }
+      addItemToSelection($(this).data('id'), $(this).data('name'), this);
+    });
+
+    $('#search-results').on('keydown', '.add-item-row', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        addItemToSelection($(this).data('id'), $(this).data('name'), this);
       }
     });
 

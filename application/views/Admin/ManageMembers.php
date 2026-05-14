@@ -23,7 +23,11 @@
     </div>
     <div class="d-flex gap-2 align-items-center flex-wrap">
       <div class="btn-group mr-2 mt-2" role="group" aria-label="Data actions">
-        <a href="<?php echo base_url('admin/exportmembers'); ?>" class="btn btn-sm btn-outline-success" title="Download current member dataset"><i class="fa fa-download me-1"></i> Export Members</a>
+        <?php 
+          $qs = http_build_query(array_filter($_GET, function($v){ return $v!=='' && $v!==null; }));
+          $exportUrl = base_url('admin/exportmembers') . ($qs ? '?'.$qs : '');
+        ?>
+        <a href="<?php echo $exportUrl; ?>" class="btn btn-sm btn-outline-success" title="Download current member dataset"><i class="fa fa-download me-1"></i> Export Members</a>
         <a href="<?php echo base_url('admin/importlatest'); ?>" class="btn btn-sm btn-outline-primary" title="Import latest external data source"><i class="fa fa-upload me-1"></i> Import Latest Data</a>
       </div>
       <!-- <form method="post" action="<?php echo base_url('admin/reset_all_member_passwords'); ?>" class="mt-4 mr-2" onsubmit="return confirm('Are you absolutely sure? This will reset ALL active non-admin users\' passwords to default (ITS ID).');">
@@ -136,9 +140,9 @@
               <?php endforeach; ?>
             </select>
           </div>
-          <div class="col-12 d-flex gap-2 mt-3">
-            <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-check me-1"></i>Apply</button>
-            <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-sm btn-outline-secondary ml-2"><i class="fa fa-undo me-1"></i>Reset</a>
+          <div class="col-12 d-flex gap-2 mt-3" id="filterActionsRow">
+            <button type="submit" class="btn btn-sm btn-primary d-none"><i class="fa fa-check me-1"></i>Apply</button>
+            <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-sm btn-outline-secondary ml-2"><i class="fa fa-undo me-1"></i>Reset Filters</a>
           </div>
         </form>
       </div>
@@ -161,6 +165,24 @@
           if($(e.target).closest('form,select,input,button').length) return; // ignore if interacting with form
           btn.trigger('click');
         });
+        
+        // Auto-submit form on select change
+        $('.filter-form select').on('change', function() {
+          $(this).closest('form').submit();
+        });
+
+        // Auto-submit form on input text, with a small debounce to not trigger on every keystroke
+        let typingTimer;
+        const doneTypingInterval = 500; // 500ms
+        $('.filter-form input[type="text"]').on('keyup', function() {
+          clearTimeout(typingTimer);
+          typingTimer = setTimeout(() => {
+            $(this).closest('form').submit();
+          }, doneTypingInterval);
+        });
+        $('.filter-form input[type="text"]').on('keydown', function() {
+          clearTimeout(typingTimer);
+        });
       }
     })(jQuery);
   </script>
@@ -182,7 +204,7 @@
       };
     ?>
     <div class="table-responsive border rounded shadow-sm">
-      <table class="table table-sm table-hover mb-0 align-middle">
+      <table class="table table-sm table-hover mb-0 align-middle" data-export-url="<?php echo $exportUrl ?? base_url('admin/exportmembers'); ?>">
         <thead class="table-light">
           <tr>
             <th style="width:60px">#</th>
@@ -242,7 +264,7 @@
               
               <td class="text-center">
                 <div class="mm-actions">
-                  <button type="button" class="btn btn-outline-secondary btn-view-member" data-its="<?php echo htmlspecialchars($r['ITS_ID'] ?? ''); ?>" title="View"><i class="fa fa-eye"></i></button>
+                  <a href="<?php echo base_url('admin/viewmember/') . ($r['ITS_ID'] ?? ''); ?>" class="btn btn-outline-secondary" title="View"><i class="fa fa-eye"></i></a>
                   <a href="<?php echo base_url('admin/editmember/') . ($r['ITS_ID'] ?? ''); ?>" class="mm-edit-btn" title="Edit"><i class="fa fa-pencil"></i></a>
                   <form method="post" action="<?php echo base_url('admin/reset_member_password'); ?>" onsubmit="return confirm('Reset password to MD5 of ITS ID for this member?');" class="mt-3">
                     <input type="hidden" name="its_id" value="<?php echo htmlspecialchars($r['ITS_ID'] ?? ''); ?>">
@@ -259,30 +281,6 @@
   <?php else: ?>
     <div class="alert alert-info">No members found.</div>
   <?php endif; ?>
-</div>
-<!-- Member Details Modal -->
-<div class="modal fade" id="memberDetailsModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header py-2">
-        <h6 class="modal-title">Member Details</h6>
-        <button type="button" class="btn btn-close" data-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body p-0">
-        <div id="memberDetailsLoading" class="p-3 small text-muted">Loading...</div>
-        <div class="table-responsive" id="memberDetailsTableWrapper" style="display:none;">
-          <table class="table table-sm table-striped mb-0">
-            <tbody id="memberDetailsTableBody"></tbody>
-          </table>
-        </div>
-        <div id="memberDetailsError" class="p-3 text-danger small" style="display:none;"></div>
-      </div>
-      <div class="modal-footer py-2">
-        <a id="memberEditLink" href="#" class="btn btn-primary btn-sm"><i class="fa fa-pencil me-1"> </i>Edit</a>
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -349,74 +347,4 @@
       });
     });
   });
-  (function(){
-    const modalEl = document.getElementById('memberDetailsModal');
-    if(!modalEl) return;
-    // Bootstrap 5 modal init (assumes bootstrap bundle loaded globally)
-    let bsModal = null;
-    function ensureModal(){ if(!bsModal){ bsModal = new bootstrap.Modal(modalEl); } return bsModal; }
-    function humanize(key){
-      return key
-        .replace(/_/g,' ') 
-        .replace(/\bid\b/gi,'ID')
-        .replace(/\s+/g,' ') 
-        .trim()
-        .replace(/\b([a-z])/g, c => c.toUpperCase());
-    }
-    function clearState(){
-      document.getElementById('memberDetailsLoading').style.display='block';
-      document.getElementById('memberDetailsTableWrapper').style.display='none';
-      document.getElementById('memberDetailsError').style.display='none';
-      document.getElementById('memberDetailsTableBody').innerHTML='';
-    }
-    function populate(member){
-      const tbody = document.getElementById('memberDetailsTableBody');
-      // Sort keys alphabetically for consistency
-      const keys = Object.keys(member).sort();
-      const frag = document.createDocumentFragment();
-      keys.forEach(k => {
-        const tr = document.createElement('tr');
-        const th = document.createElement('th');
-        th.className='text-muted small text-uppercase';
-        th.style.width='220px';
-        th.textContent = humanize(k);
-        const td = document.createElement('td');
-        td.className='small';
-        const val = member[k];
-        if(val===null || val===''){
-          td.innerHTML = '<span class="text-muted">—</span>';
-        } else {
-          td.textContent = val;
-        }
-        tr.appendChild(th); tr.appendChild(td); frag.appendChild(tr);
-      });
-      tbody.appendChild(frag);
-      document.getElementById('memberDetailsLoading').style.display='none';
-      document.getElementById('memberDetailsTableWrapper').style.display='block';
-    }
-    function showError(msg){
-      document.getElementById('memberDetailsLoading').style.display='none';
-      const err = document.getElementById('memberDetailsError');
-      err.textContent = msg || 'Failed to load member.';
-      err.style.display='block';
-    }
-    document.querySelectorAll('.btn-view-member').forEach(btn => {
-      btn.addEventListener('click', function(){
-        const its = this.getAttribute('data-its');
-        if(!its) return;
-        clearState();
-        ensureModal().show();
-        fetch('<?php echo base_url('admin/memberjson/'); ?>'+ encodeURIComponent(its))
-          .then(r => r.json())
-          .then(json => {
-            if(json.status==='success'){ 
-              populate(json.member);
-              const editLink = document.getElementById('memberEditLink');
-              editLink.href = '<?php echo base_url('admin/editmember/'); ?>'+ encodeURIComponent(its);
-            } else { showError(json.message || 'Error'); }
-          })
-          .catch(()=> showError('Network error'));
-      });
-    });
-  })();
 </script>

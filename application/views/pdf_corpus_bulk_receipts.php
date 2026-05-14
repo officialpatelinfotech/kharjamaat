@@ -166,7 +166,7 @@
     <?php foreach ($receipts as $r): $idx++; ?>
       <div class="receipt" style="page-break-after: <?php echo ($idx < $total) ? 'always' : 'auto'; ?>;">
         <div class="frame">
-          <div class="header1"><?php echo htmlspecialchars($org_title ?? 'Anjuman e Saifee Khar'); ?></div>
+          <div class="header1"><?php echo htmlspecialchars($org_title ?? app_setting('receipt_jamaat_name', 'Anjuman-e-Saifee ' . ucfirst(jamaat_place()))); ?></div>
           <div class="header2"><?php echo htmlspecialchars($fund_title ?? 'Masjid Tameer Funds Shehrullah 1447'); ?></div>
 
           <div class="field name">

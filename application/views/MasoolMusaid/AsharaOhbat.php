@@ -44,12 +44,20 @@
     margin-bottom: 20px;
   }
 
+  .sector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
   .sector-card {
     background-color: #e7f1ff;
     padding: 10px 15px;
     border-radius: 8px;
-    margin: 5px 5px 10px 0;
-    display: inline-block;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
@@ -123,8 +131,8 @@
   }
 
   @media (max-width: 768px) {
-    .stats-grid {
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    .stats-grid, .sector-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
 
     .table-responsive {
@@ -214,7 +222,15 @@
       <div class="stats-value"><?= $stats['Age_5_15'] ?></div>
     </div>
     <div class="stats-card bg-light">
-      <h5>Seniors (65+)</h5>
+      <h5>Age 16-25</h5>
+      <div class="stats-value"><?= $stats['Age_16_25'] ?></div>
+    </div>
+    <div class="stats-card bg-light">
+      <h5>Age 26-65</h5>
+      <div class="stats-value"><?= $stats['Age_26_65'] ?></div>
+    </div>
+    <div class="stats-card bg-light">
+      <h5>Above 65</h5>
       <div class="stats-value"><?= $stats['Buzurgo'] ?></div>
     </div>
   </div>
@@ -288,7 +304,7 @@
           <th onclick="sortTable('Mobile')">Mobile</th>
           <th onclick="sortTable('Sector')">Sector</th>
           <th onclick="sortTable('Sub_Sector')">Sub</th>
-          <th onclick="sortTable('LeaveStatus')">Status</th>
+          <th onclick="sortTable('LeaveStatus')">Ohbat Status</th>
           <th onclick="sortTable('Comment')">Comment</th>
           <th>Action</th>
         </tr>
@@ -422,14 +438,13 @@
     `;
 
     const container = document.getElementById('sectorCardsContainer');
-    container.className = 'd-flex flex-wrap gap-3';
+    container.className = 'sector-grid';
     container.innerHTML = '';
 
     Object.entries(sectorStats).forEach(([sector, counts]) => {
       const div = document.createElement('div');
       div.className = `sector-card p-3 rounded shadow-sm border text-center ${currentSectorFilter === sector ? 'bg-primary text-white' : 'bg-white'}`;
       div.style.cssText = `
-            width: 200px;
             cursor: pointer;
             font-size: 1.1rem;
             transition: transform 0.2s;
@@ -632,9 +647,9 @@
     const leaveCol = document.createElement('div');
     leaveCol.className = 'col-12 mb-3';
     leaveCol.innerHTML = `
-                <label class="form-label fw-bold">Leave Status</label>
+                <label class="form-label fw-bold">Ohbat Status</label>
                 <select name="LeaveStatus" id="LeaveStatus" class="form-control form-select">
-                    <option value="">-- Select Leave Status --</option>
+                    <option value="">-- Select Ohbat --</option>
                     ${leaveOptions.map(opt => `
                         <option value="${opt}" ${user.LeaveStatus === opt ? 'selected' : ''}>${opt}</option>
                     `).join('')}

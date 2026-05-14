@@ -312,7 +312,9 @@
       <a href="<?php echo isset($back_url) ? $back_url : base_url('amilsaheb'); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     </div>
     <div class="col-6">
-      <div class="top-actions"></div>
+      <div class="top-actions">
+        <button type="button" onclick="exportCurrentDataToCSV()" class="btn btn-outline-success"><i class="fa fa-file-excel-o px-1"></i>Export Excel</button>
+      </div>
     </div>
   </div>
 
@@ -337,6 +339,12 @@
         <div>
           <label class="form-label">Sub Sector</label>
           <select id="filterSubSector" class="form-select">
+            <option value="">All</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Member Type</label>
+          <select id="filterMemberType" class="form-select">
             <option value="">All</option>
           </select>
         </div>
@@ -368,7 +376,6 @@
           </select>
         </div>
         <div class="filters-actions">
-          <button id="applyFiltersBtn" class="btn btn-primary btn-sm">✔ Apply</button>
           <button id="resetFiltersBtn" class="btn btn-outline-secondary btn-sm">↺ Reset</button>
           <!-- <div class="filters-actions">
           </div> -->
@@ -590,6 +597,7 @@
     const name = params.get('name') || params.get('filterName') || '';
     const sector = params.get('sector') || params.get('filterSector') || '';
     const sub = params.get('sub_sector') || params.get('sub') || params.get('filterSubSector') || '';
+    const mTypeParam = params.get('member_type') || params.get('filterMemberType') || '';
     const status = params.get('status') || params.get('filterStatus') || '';
     const marital = params.get('marital_status') || params.get('marital') || params.get('ms') || '';
     const hof = params.get('hof') || params.get('filterHOF') || '';
@@ -611,7 +619,7 @@
           break;
         case 'member_type':
           if (legacyValue) {
-            const sel = document.getElementById('filterStatus');
+            const sel = document.getElementById('filterMemberType');
             if (sel) sel.value = legacyValue;
           }
           break;
@@ -662,6 +670,10 @@
       const el = document.getElementById('filterStatus');
       if (el) el.value = status;
     }
+    if (mTypeParam) {
+      const el = document.getElementById('filterMemberType');
+      if (el) el.value = mTypeParam;
+    }
     if (marital) {
       const el = document.getElementById('filterMaritalStatus');
       if (el) el.value = marital;
@@ -700,6 +712,7 @@
     const subSectors = new Set();
     const hofs = new Map();
     const statuses = new Set();
+    const memberTypes = new Set();
     const maritalStatuses = new Set();
     // ITS -> name map to resolve HOF names (use full dataset)
     const itsMap = {};
@@ -717,17 +730,20 @@
       if (!resolved && u.Full_Name && hofId && (u.ITS_ID == hofId || u.ITS == hofId)) resolved = u.Full_Name;
       if (hofId) hofs.set(hofId, resolved);
       if (u.Status) statuses.add(u.Status);
+      if (u.Member_Type) memberTypes.add(u.Member_Type);
     });
 
     const sectorEl = document.getElementById('filterSector');
     const subEl = document.getElementById('filterSubSector');
     const hofEl = document.getElementById('filterHOF');
+    const mTypeEl = document.getElementById('filterMemberType');
     const maritalEl = document.getElementById('filterMaritalStatus');
 
     // clear existing (keep default option)
     sectorEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
     subEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
     hofEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
+    if (mTypeEl) mTypeEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
     if (maritalEl) maritalEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
 
     Array.from(sectors).sort().forEach(s => {
@@ -748,6 +764,24 @@
       o.textContent = name || id;
       hofEl.appendChild(o);
     });
+
+    if (mTypeEl) {
+      const preferredMTypes = ['Resident Mumineen', 'External Sabeel Payers', 'Moved-Out Mumineen', 'Non-Sabeel Residents'];
+      const remainingMTypes = new Set(memberTypes);
+      preferredMTypes.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v;
+        o.textContent = v;
+        mTypeEl.appendChild(o);
+        remainingMTypes.delete(v);
+      });
+      Array.from(remainingMTypes).sort().forEach(v => {
+        const o = document.createElement('option');
+        o.value = v;
+        o.textContent = v;
+        mTypeEl.appendChild(o);
+      });
+    }
 
     if (maritalEl) {
       const preferred = ['Single', 'Married', 'Engaged', 'Separated', 'Divorced', 'Widowed'];
@@ -799,6 +833,7 @@
     const name = (document.getElementById('filterName').value || '').toLowerCase();
     const sector = document.getElementById('filterSector').value;
     const sub = document.getElementById('filterSubSector').value;
+    const mTypeVal = document.getElementById('filterMemberType') ? document.getElementById('filterMemberType').value : '';
     const status = document.getElementById('filterStatus').value;
     const marital = document.getElementById('filterMaritalStatus') ? document.getElementById('filterMaritalStatus').value : '';
     const hof = document.getElementById('filterHOF').value;
@@ -816,7 +851,7 @@
     const dsMin = inputMin !== null ? inputMin : dsMinFallback;
     const dsMax = inputMax !== null ? inputMax : dsMaxFallback;
 
-    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || hofFmType || dsGender || (dsMin !== null) || (dsMax !== null));
+    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || mTypeVal || hofFmType || dsGender || (dsMin !== null) || (dsMax !== null));
 
     // if no filters set, show all (prefer full dataset when available)
     if (!hasAnyFilter) {
@@ -838,9 +873,11 @@
       }
       if (sector) preds.push((u.Sector || '').toString() === sector);
       if (sub) preds.push((u.Sub_Sector || '').toString() === sub);
+      if (mTypeVal) preds.push((u.Member_Type || '').toString() === mTypeVal);
       if (status) {
-        const uStatus = (u.Status || u.Member_Status || '').toString();
-        preds.push(uStatus === status);
+        const inactiveReason = (u.Inactive_Status || u.inactive_status || '').toString().trim();
+        const uStatus = inactiveReason ? 'Inactive' : 'Active';
+        preds.push(uStatus.toLowerCase() === status.toLowerCase());
       }
       if (marital) {
         const ms = (u.Marital_Status || u.MaritalStatus || '').toString();
@@ -869,8 +906,8 @@
           preds.push(false);
         }
       }
-      // OR behaviour: include if any predicate is true
-      return preds.length > 0 && preds.some(Boolean);
+      // AND behaviour: include if all predicates are true
+      return preds.length > 0 && preds.every(Boolean);
     });
 
     // show active filter chip (optional; markup may be removed)
@@ -919,18 +956,51 @@
     if (chip) chip.style.display = 'none';
   }
 
-  document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+  function exportCurrentDataToCSV() {
+    if (!currentData || currentData.length === 0) {
+      alert("No data to export.");
+      return;
+    }
+    
+    let headers = new Set();
+    currentData.forEach(row => {
+      Object.keys(row).forEach(k => headers.add(k));
+    });
+    headers = Array.from(headers);
+    
+    let csv = '"' + headers.join('","') + '"\n';
+    
+    currentData.forEach(row => {
+      let line = headers.map(h => {
+        let val = row[h] !== null && row[h] !== undefined ? String(row[h]) : "";
+        return '"' + val.replace(/"/g, '""') + '"';
+      });
+      csv += line.join(',') + '\n';
+    });
+    
+    let bom = '\uFEFF';
+    let blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    let link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    let dateStr = new Date().toISOString().slice(0, 10);
+    link.download = "mumineen_directory_" + dateStr + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
 
   // Apply filters immediately when any select changes
-  ['filterSector', 'filterSubSector', 'filterStatus', 'filterMaritalStatus', 'filterHOF'].forEach(id => {
+  ['filterSector', 'filterSubSector', 'filterMemberType', 'filterStatus', 'filterMaritalStatus', 'filterHOF'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', applyFilters);
   });
 
-  ['filterAgeMin', 'filterAgeMax'].forEach(id => {
+  // Apply filters immediately on text/number input
+  ['filterName', 'filterAgeMin', 'filterAgeMax'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('change', applyFilters);
+    if (el) el.addEventListener('input', applyFilters);
   });
 
   const clearFilterEl = document.getElementById('clearFilterLink');

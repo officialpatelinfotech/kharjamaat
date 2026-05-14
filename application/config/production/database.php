@@ -83,12 +83,27 @@ $dbPass = getenv('DB_PASS');
 // with HY000/2002 depending on PHP/MySQL socket paths. Prefer TCP for CLI.
 $defaultHost = (PHP_SAPI === 'cli') ? '127.0.0.1' : 'localhost';
 
+$currentHost = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+$defaultDbUser = 'kharjam1_kharjamaat';
+$defaultDbPass = 'khar@2024';
+$defaultDbName = 'kharjam1_kharjamaat';
+
+if (strpos($currentHost, 'tanzeem.in') !== false) {
+	$defaultDbUser = 'kharjam1_tanzeem';
+	$defaultDbPass = 'kharjam1_tanzeem';
+	$defaultDbName = 'kharjam1_tanzeem';
+} elseif (strpos($currentHost, 'jamalipoona.in') !== false) {
+	$defaultDbUser = 'kharjam1_jamalipoona';
+	$defaultDbPass = 'kharjam1_jamalipoona';
+	$defaultDbName = 'kharjam1_jamalipoona';
+}
+
 $db['default'] = array(
 	'dsn' => '',
 	'hostname' => ($dbHost !== false && $dbHost !== '') ? $dbHost : $defaultHost,
-	'username' => ($dbUser !== false && $dbUser !== '') ? $dbUser : 'kharjam1_kharjamaat',
-	'password' => ($dbPass !== false) ? $dbPass : 'khar@2024',
-	'database' => ($dbName !== false && $dbName !== '') ? $dbName : 'kharjam1_kharjamaat',
+	'username' => ($dbUser !== false && $dbUser !== '') ? $dbUser : $defaultDbUser,
+	'password' => ($dbPass !== false) ? $dbPass : $defaultDbPass,
+	'database' => ($dbName !== false && $dbName !== '') ? $dbName : $defaultDbName,
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,

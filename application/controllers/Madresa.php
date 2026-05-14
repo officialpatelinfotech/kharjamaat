@@ -786,4 +786,46 @@ class Madresa extends CI_Controller
         'class_financials' => $financials
       ]));
   }
+
+  // AJAX: Delete a payment for a student in a class
+  public function delete_payment()
+  {
+    $this->requireLogin();
+
+    if (!$this->canReceiveMadresaPayment()) {
+      $this->output->set_status_header(403)->set_output(json_encode(['success' => false, 'error' => 'Not authorized']));
+      return;
+    }
+
+    $paymentId = (int)$this->input->post('payment_id');
+    $classId = (int)$this->input->post('class_id');
+    $studentItsId = (int)$this->input->post('students_its_id');
+
+    if ($paymentId <= 0 || $classId <= 0 || $studentItsId <= 0) {
+      $this->output->set_status_header(400)->set_output(json_encode(['success' => false, 'error' => 'Invalid parameters']));
+      return;
+    }
+
+    $res = $this->MadresaM->delete_class_payment($paymentId, $classId, $studentItsId);
+    if (empty($res) || empty($res['success'])) {
+      $errMsg = 'Failed to delete payment.';
+      if (is_array($res) && !empty($res['error']['message'])) {
+        $errMsg .= ' ' . $res['error']['message'];
+      }
+      $this->output->set_output(json_encode(['success' => false, 'error' => $errMsg]));
+      return;
+    }
+
+    $student = $this->MadresaM->get_class_student_financials($classId, $studentItsId);
+    $financials = $this->MadresaM->get_class_financials($classId);
+
+    $this->output
+      ->set_content_type('application/json')
+      ->set_output(json_encode([
+        'success' => true,
+        'message' => 'Payment deleted successfully',
+        'student' => $student,
+        'class_financials' => $financials
+      ]));
+  }
 }

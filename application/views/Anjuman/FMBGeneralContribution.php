@@ -201,7 +201,7 @@
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label for="payment-method" class="form-label">Payment Method</label>
-                <select name="payment_method" id="payment-method" class="form-control" required>
+                <select name="payment_method" id="payment-method" class="form-control" required onchange="toggleFmbPaymentFields(this.value)">
                   <option value="">Select Method</option>
                   <option value="Cash">Cash</option>
                   <option value="Cheque">Cheque</option>
@@ -211,6 +211,16 @@
               <div class="col-md-6 mb-3">
                 <label for="payment-date" class="form-label">Payment Date</label>
                 <input type="date" name="payment_date" id="payment-date" class="form-control" value="<?php echo date('Y-m-d'); ?>" required>
+              </div>
+            </div>
+            <div class="row" id="extra-fmb-payment-fields" style="display: none;">
+              <div class="col-md-6 mb-3">
+                <label for="reference_no" class="form-label">Cheque No. / NEFT Ref No.</label>
+                <input type="text" name="reference_no" id="reference_no" class="form-control" placeholder="Reference number">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="bank_name" class="form-label">Drawn on Bank</label>
+                <input type="text" name="bank_name" id="bank_name" class="form-control" placeholder="Bank name">
               </div>
             </div>
             <div class="mb-3">
@@ -294,6 +304,15 @@
 </div>
 <script>
   $(document).ready(function() {
+    window.toggleFmbPaymentFields = function(method) {
+      if (method === 'Cheque' || method === 'NEFT') {
+        $('#extra-fmb-payment-fields').show();
+      } else {
+        $('#extra-fmb-payment-fields').hide();
+        $('#reference_no').val('');
+        $('#bank_name').val('');
+      }
+    };
     // Autocomplete for member name
     $("#member-autocomplete").on("input", function() {
       const query = $(this).val();
@@ -459,6 +478,10 @@
       $("#already-received").text(Math.round(alreadyReceived));
       $("#due-amount").text(Math.round(due));
       $("#payment-amount").attr("max", due).val(due > 0 ? due : '');
+      $("#payment-method").val('');
+      $("#reference_no").val('');
+      $("#bank_name").val('');
+      toggleFmbPaymentFields('');
       if (due <= 0) {
         $("#payment-amount-hint").text("Invoice already settled.").addClass("text-danger");
         $("#update-fmbgc-payment-btn").prop("disabled", true);

@@ -282,12 +282,15 @@ class Notifications extends CI_Controller
       . '</tr>';
 
     $dynamic = [
-      'todayDate' => $weekDateTime,
-      'name' => 'Test Member',
-      'its' => '00000000',
-      'table' => $table,
-      'razaname' => 'Test Raza',
-      'jamaat_name' => jamaat_name()
+      'todayDate'     => $weekDateTime,
+      'name'          => 'Test Member',
+      'its'           => '00000000',
+      'table'         => $table,
+      'razaname'      => 'Test Raza',
+      'jamaat_name'   => jamaat_name(),
+      'jamaat_place'  => jamaat_place(),
+      'support_email' => app_setting('support_email', 'anjuman@kharjamaat.in'),
+      'accounts_url'  => base_url('accounts'),
     ];
     foreach ($dynamic as $key => $value) {
       $emailTemplate = str_replace('{%' . $key . '%}', $value, $emailTemplate);

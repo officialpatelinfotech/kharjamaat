@@ -176,12 +176,13 @@
           <?php
           if (isset($hijri_months)) {
             foreach ($hijri_months as $key => $value) {
-          ?>
+              ?>
               <option value="<?php echo $value['id']; ?>" <?php echo isset($hijri_month_id) && $value['id'] == $hijri_month_id ? 'selected' : ''; ?>><?php echo $value['hijri_month']; ?></option>
-          <?php
+              <?php
             }
           }
           ?>
+          <option value="-2" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -2 ? "selected" : ""; ?>>Next Year</option>
         </select>
       </div>
       <div class="form-group">

@@ -23,7 +23,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
 | a PHP script and you can easily do that on your own.
 |
 */
-$config['base_url'] = 'https://kharjamaat.in/';
+$currentHost = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+if (strpos($currentHost, 'tanzeem.in') !== false) {
+    $config['base_url'] = 'https://tanzeem.in/';
+} elseif (strpos($currentHost, 'jamalipoona.in') !== false) {
+    $config['base_url'] = 'https://jamalipoona.in/';
+} else {
+    $config['base_url'] = 'https://kharjamaat.in/';
+}
 /*
 |--------------------------------------------------------------------------
 | Index File

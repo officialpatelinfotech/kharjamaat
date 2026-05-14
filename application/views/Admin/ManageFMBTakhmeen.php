@@ -72,7 +72,7 @@
         <option value="1442-43" <?php echo (isset($year) && $year == "1442-43") ? "selected" : ""; ?>>1442-43</option>
       </select>
 
-      <button type="submit" class="btn btn-primary ml-2 mt-3">Filter</button>
+      <button type="submit" class="btn btn-primary ml-2 mt-3 d-none">Filter</button>
 
       <button type="button" id="clear-filters" class="btn btn-outline-secondary ml-2 mt-3" title="Clear">
         <i class="fa-solid fa-times"></i>
@@ -330,6 +330,13 @@
   const DEFAULT_FMB_FY = "<?php echo htmlspecialchars((string)($hijri_year ?? ''), ENT_QUOTES); ?>";
   const hijriGregMin = <?php echo json_encode(isset($hijri_calendar_min_greg) ? $hijri_calendar_min_greg : null); ?>;
   const hijriGregMax = <?php echo json_encode(isset($hijri_calendar_max_greg) ? $hijri_calendar_max_greg : null); ?>;
+
+  function formatInrAmount(val) {
+    const n = parseFloat(String(val ?? '').replace(/[^0-9.]/g, ''));
+    if (isNaN(n)) return '0';
+    // Amounts are stored as whole rupees; format as integer without rounding to significant digits.
+    return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(n));
+  }
 
   function isIsoInRange(isoDate){
     const d = String(isoDate || '');
@@ -1050,7 +1057,7 @@
           <tr>
             <td>${index + 1}</td>
             <td>${takhmeen.year}</td>
-            <td>&#8377;${new Intl.NumberFormat("en-IN", { maximumSignificantDigits: 3 }).format(takhmeen.amount)}</td>
+            <td>&#8377;${formatInrAmount(takhmeen.amount)}</td>
             <td>${thaaliDaysDisplay}</td>
             <td>
               <a href="#" class="view-assigned-thaali-days" data-user-id="${$userId}" data-user-name="${$userName}" data-year="${takhmeen.year}">${assignedCnt}</a>
@@ -1080,7 +1087,7 @@
         <tr>
           <td>${index + 1}</td>
           <td>${takhmeen.year}</td>
-          <td>&#8377;${new Intl.NumberFormat("en-IN", { maximumSignificantDigits: 3 }).format(takhmeen.amount)}</td>
+          <td>&#8377;${formatInrAmount(takhmeen.amount)}</td>
           <td>
             <button class="btn btn-sm btn-primary edit-single-takhmeen" 
               data-user-id="${$userId}" 
@@ -1171,13 +1178,7 @@
       for (const index in $takhmeenAmount) {
         $indexTakhmeenAmount = $($takhmeenAmount[Number(index)]);
         $takhmeenAmountText = $indexTakhmeenAmount.html();
-        $indianFormatTA = new Intl.NumberFormat("en-IN", {
-          maximumSignificantDigits: 3
-        }).format(
-          $takhmeenAmountText,
-        );
-
-        $indianFormatTA = "&#8377;" + $indianFormatTA;
+        $indianFormatTA = "&#8377;" + formatInrAmount($takhmeenAmountText);
         $indexTakhmeenAmount.html($indianFormatTA);
       };
     }()
@@ -1201,6 +1202,22 @@
     if(subSectorSel) subSectorSel.value = '';
     if(yearSel) yearSel.value = '';
     form.submit();
+  });
+
+  // Auto-submit form on input text/select, with a small debounce for text
+  let typingTimer;
+  const doneTypingInterval = 500;
+  $('#filter-form input[type="text"]').on('keyup', function() {
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => {
+      $(this).closest('form').submit();
+    }, doneTypingInterval);
+  });
+  $('#filter-form input[type="text"]').on('keydown', function() {
+    clearTimeout(typingTimer);
+  });
+  $('#filter-form select').on('change', function() {
+    $(this).closest('form').submit();
   });
 
   $(".alert").delay(3000).fadeOut(500);
@@ -1259,19 +1276,11 @@
     }
   })();
   // === Thaali Date add/remove handlers ===
-    // Require at least one Thaali date on submit
-    $(document).on('submit', '#add-takhmeen-container form', function(e) {
-      var thaaliDates = $('#thaali-dates-hidden').val();
-      try { thaaliDates = JSON.parse(thaaliDates || '[]'); } catch(err) { thaaliDates = []; }
-      if (!thaaliDates.length) {
-        alert('Please select date');
-        $('#thaali-error').removeClass('d-none').text('Please select date');
-        $('#thaali-date').focus();
-        e.preventDefault();
-        return false;
-      }
-      $('#thaali-error').addClass('d-none');
-    });
+  // Thaali Dates are optional for adding takhmeen. Keep the field-level validation only when
+  // clicking "Add" to append a date.
+  $(document).on('submit', '#add-takhmeen-container form', function() {
+    $('#thaali-error').addClass('d-none');
+  });
   function formatThaaliDateDisplay(isoDate) {
     // Expects YYYY-MM-DD from <input type="date">. Return DD-MM-YYYY.
     const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);

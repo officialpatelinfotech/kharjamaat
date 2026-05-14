@@ -532,9 +532,11 @@ class AdminM extends CI_Model
     st.id AS takhmeen_id,
     st.year AS takhmeen_year,
 
+    st.establishment_grade AS establishment_grade_id,
     est_grade.grade AS establishment_grade,
     COALESCE(est_grade.amount, 0) AS establishment_amount,
 
+    st.residential_grade AS residential_grade_id,
     res_grade.grade AS residential_grade,
     COALESCE(res_grade.amount, 0) AS residential_amount,
     COALESCE(res_grade.yearly_amount, COALESCE(res_grade.amount,0) * 12) AS residential_yearly_amount
@@ -629,6 +631,7 @@ class AdminM extends CI_Model
           'id' => $row['takhmeen_id'],
           'year' => $row['takhmeen_year'],
           'establishment' => [
+            'grade_id' => $row['establishment_grade_id'],
             'grade' => $row['establishment_grade'],
             'yearly' => $est_amount,
             'monthly' => $est_amount ? round($est_amount / 12, 2) : 0.0,
@@ -636,6 +639,7 @@ class AdminM extends CI_Model
             'due' => max(0, $est_amount - (float)$estPaid),
           ],
           'residential' => [
+            'grade_id' => $row['residential_grade_id'],
             'grade' => $row['residential_grade'],
             'monthly' => $res_amount,
             'yearly' => $res_yearly_amount,
@@ -740,9 +744,8 @@ class AdminM extends CI_Model
     $residential_grade = $data["residential_grade"];
     if (!$user_id || !$takhmeen_id) return false;
     $update = [];
-    if (!empty($establishment_grade)) { $update['establishment_grade'] = $establishment_grade; }
-    if (!empty($residential_grade))   { $update['residential_grade']   = $residential_grade; }
-    if (empty($update)) return false; // nothing to update
+    $update['establishment_grade'] = $establishment_grade;
+    $update['residential_grade']   = $residential_grade;
 
     $this->db->where("user_id", $user_id);
     $this->db->where("id", $takhmeen_id);
@@ -1129,6 +1132,109 @@ class AdminM extends CI_Model
       ->get('user')->result_array();
   }
 
+  /**
+   * Fetch financial summary for all members in a family (by HOF_ID).
+   * Returns: sabeel, fmb, wajebaat, thaali, husain, corpus keyed by ITS_ID.
+   */
+  public function get_family_financial_data($hof_id)
+  {
+    if (!$hof_id) return [];
+
+    // Sabeel Takhmeen (latest year per member)
+    $sabeel_sql = "
+      SELECT st.user_id,
+             stg_est.grade AS est_grade, stg_est.amount AS est_amount,
+             stg_res.grade AS res_grade, stg_res.amount AS res_amount,
+             (IFNULL(stg_est.amount,0) + IFNULL(stg_res.amount,0)) AS total_sabeel,
+             st.year
+      FROM sabeel_takhmeen st
+      LEFT JOIN sabeel_takhmeen_grade stg_est ON stg_est.id = st.establishment_grade
+      LEFT JOIN sabeel_takhmeen_grade stg_res ON stg_res.id = st.residential_grade
+      INNER JOIN (SELECT user_id, MAX(year) AS max_year FROM sabeel_takhmeen GROUP BY user_id) latest
+        ON latest.user_id = st.user_id AND latest.max_year = st.year
+      INNER JOIN user u ON u.ITS_ID = st.user_id
+      WHERE u.HOF_ID = ?
+    ";
+    $sabeel_map = [];
+    foreach ($this->db->query($sabeel_sql, [$hof_id])->result_array() as $r) {
+      $sabeel_map[$r['user_id']] = $r;
+    }
+
+    // FMB Takhmeen (latest year per member)
+    $fmb_sql = "
+      SELECT ft.user_id, ft.total_amount AS fmb_amount, ft.year AS fmb_year
+      FROM fmb_takhmeen ft
+      INNER JOIN (SELECT user_id, MAX(year) AS max_year FROM fmb_takhmeen GROUP BY user_id) latest
+        ON latest.user_id = ft.user_id AND latest.max_year = ft.year
+      INNER JOIN user u ON u.ITS_ID = ft.user_id
+      WHERE u.HOF_ID = ?
+    ";
+    $fmb_map = [];
+    foreach ($this->db->query($fmb_sql, [$hof_id])->result_array() as $r) {
+      $fmb_map[$r['user_id']] = $r;
+    }
+
+    // Wajebaat
+    $wajebaat_sql = "
+      SELECT w.ITS_ID, w.amount, w.due
+      FROM wajebaat w
+      INNER JOIN user u ON u.ITS_ID = w.ITS_ID
+      WHERE u.HOF_ID = ?
+    ";
+    $wajebaat_map = [];
+    foreach ($this->db->query($wajebaat_sql, [$hof_id])->result_array() as $r) {
+      $wajebaat_map[$r['ITS_ID']] = $r;
+    }
+
+    // Thaali taking (latest signup per member)
+    $thaali_sql = "
+      SELECT ws.user_id, ws.want_thali, ws.signup_date
+      FROM fmb_weekly_signup ws
+      INNER JOIN (SELECT user_id, MAX(signup_date) AS latest FROM fmb_weekly_signup GROUP BY user_id) lt
+        ON lt.user_id = ws.user_id AND lt.latest = ws.signup_date
+      INNER JOIN user u ON u.ITS_ID = ws.user_id
+      WHERE u.HOF_ID = ?
+    ";
+    $thaali_map = [];
+    foreach ($this->db->query($thaali_sql, [$hof_id])->result_array() as $r) {
+      $thaali_map[$r['user_id']] = $r;
+    }
+
+    // Husain Scheme (latest record per ITS)
+    $husain_sql = "
+      SELECT hs.ITS, hs.amount, hs.deposit_date, hs.maturity_date
+      FROM qardan_hasana_husain_scheme hs
+      INNER JOIN user u ON u.ITS_ID = hs.ITS
+      WHERE u.HOF_ID = ?
+      ORDER BY hs.deposit_date DESC
+    ";
+    $husain_map = [];
+    foreach ($this->db->query($husain_sql, [$hof_id])->result_array() as $r) {
+      if (!isset($husain_map[$r['ITS']])) $husain_map[$r['ITS']] = $r;
+    }
+
+    // Corpus Funds (assigned to this HOF)
+    $corpus_sql = "
+      SELECT cf.title, cfa.amount_assigned,
+             IFNULL(SUM(cfp.amount_paid), 0) AS paid
+      FROM corpus_fund_assignment cfa
+      JOIN corpus_fund cf ON cf.id = cfa.fund_id
+      LEFT JOIN corpus_fund_payment cfp ON cfp.fund_id = cfa.fund_id AND cfp.hof_id = cfa.hof_id
+      WHERE cfa.hof_id = ?
+      GROUP BY cfa.id, cf.title, cfa.amount_assigned
+    ";
+    $corpus_rows = $this->db->query($corpus_sql, [$hof_id])->result_array();
+
+    return [
+      'sabeel'   => $sabeel_map,
+      'fmb'      => $fmb_map,
+      'wajebaat' => $wajebaat_map,
+      'thaali'   => $thaali_map,
+      'husain'   => $husain_map,
+      'corpus'   => $corpus_rows,
+    ];
+  }
+
   public function get_all_hofs()
   {
     return $this->db->select('ITS_ID, Full_Name')
@@ -1161,6 +1267,20 @@ class AdminM extends CI_Model
     if (!empty($filters['sub_sector'])) {
       $this->db->where('Sub_Sector', $filters['sub_sector']);
     }
+    if (!empty($filters['name'])) {
+      $q = trim((string)$filters['name']);
+      $this->db->group_start();
+      $this->db->like('Full_Name', $q);
+      $this->db->or_like('ITS_ID', $q);
+      $this->db->group_end();
+    }
+    if (!empty($filters['hof'])) {
+      $hof_id = $filters['hof'];
+      $this->db->group_start();
+      $this->db->where('ITS_ID', $hof_id);
+      $this->db->or_where('HOF_ID', $hof_id);
+      $this->db->group_end();
+    }
     $query = $this->db->get();
     return $query->result_array();
   }
@@ -1191,6 +1311,8 @@ class AdminM extends CI_Model
       'Mobile',
       'Email',
       'WhatsApp_No',
+      'HOF_FM_TYPE',
+      'HOF_ID',
       'Member_Type',
       'member_type',
       'Registered_Family_Mobile',

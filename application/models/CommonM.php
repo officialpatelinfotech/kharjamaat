@@ -1476,6 +1476,29 @@ class CommonM extends CI_Model
 
   public function get_payment_details($payment_id, $table)
   {
+    // Special cases where the payments table does not have payments.user_id
+    if ($table === 'madresa_fee_payment') {
+      // madresa_fee_payment stores student ITS in students_its_id
+      $this->db->select('payments.id, payments.amount, payments.paid_on as payment_date, payments.payment_mode as payment_method, payments.notes as remarks, user.Full_Name, user.Address, c.name as class_name, c.year as class_year', false);
+      $this->db->from($table . ' as payments');
+      $this->db->join('user', 'user.ITS_ID = payments.students_its_id', 'left');
+      $this->db->join('madresa_class c', 'c.id = payments.m_class_id', 'left');
+      $this->db->where('payments.id', $payment_id);
+      return $this->db->get()->row_array();
+    }
+
+    if ($table === 'laagat_rent_payments') {
+      // laagat_rent_payments links to invoice -> user via invoice.user_id
+      $this->db->select('payments.id, payments.amount, payments.payment_date, payments.payment_method, payments.remarks, user.Full_Name, user.Address, lr.charge_type, lr.hijri_year, lr.title, inv.raza_id as invoice_raza_id, r.raza_id as generated_raza_id', false);
+      $this->db->from($table . ' as payments');
+      $this->db->join('laagat_rent_invoices inv', 'inv.id = payments.invoice_id', 'left');
+      $this->db->join('laagat_rent lr', 'lr.id = inv.laagat_rent_id', 'left');
+      $this->db->join('raza r', 'r.id = inv.raza_id', 'left');
+      $this->db->join('user', 'user.ITS_ID = inv.user_id', 'left');
+      $this->db->where('payments.id', $payment_id);
+      return $this->db->get()->row_array();
+    }
+
     if ($table == 'corpus_fund_payment' || $table == 'ekram_fund_payment') {
       $this->db->select('payments.amount_paid as amount, payments.paid_at as payment_date, payments.payment_method, payments.notes as remarks, user.Full_Name, user.Address');
       $this->db->from($table . ' as payments');

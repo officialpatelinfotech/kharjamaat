@@ -15,11 +15,40 @@ if (!function_exists('norm_date_input')) {
     <h4 class="mb-0">Edit Member</h4>
     <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-sm btn-outline-secondary">Back</a>
   </div>
-  <?php if (!empty($member['member_type'])): ?>
-    <div class="mb-3">
-      <span class="badge bg-info text-dark">Member Type: <?php echo htmlspecialchars($member['member_type']); ?></span>
-    </div>
-  <?php endif; ?>
+  <?php
+    $its_match    = $member['its_sabeel_match'] ?? '';
+    $actStatus    = $member['activity_status']  ?? 'active';
+    $memberTypeLbl = $member['Member_Type']      ?? '';
+    $matchLabels  = [
+      'its_sabeel_both_khar'  => ['ITS & Sabeel both in Khar',      'success'],
+      'its_khar_sabeel_out'   => ['ITS in Khar, Sabeel outside',         'warning'],
+      'sabeel_khar_its_out'   => ['Sabeel in Khar, ITS outside',         'info'],
+      'both_not_khar'         => ['ITS & Sabeel both not in Khar',   'secondary'],
+    ];
+    $actClasses = ['active' => 'success', 'inactive' => 'danger', 'temporary' => 'warning'];
+    $matchLabel = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][0] : 'Not calculated';
+    $matchClass = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][1] : 'light';
+    $actClass   = $actClasses[$actStatus] ?? 'secondary';
+  ?>
+  <style>
+    .member-badges-wrapper .badge { font-size: 0.85rem; padding: 0.5rem 1rem; line-height: 1.2; text-align: left; white-space: normal; }
+    @media (max-width: 576px) {
+      .member-badges-wrapper { flex-direction: column; align-items: stretch !important; gap: 0.5rem !important; }
+      .member-badges-wrapper .badge { display: flex; align-items: flex-start; }
+      .member-badges-wrapper .badge i { margin-top: 2px; }
+    }
+  </style>
+  <div class="mb-3 d-flex flex-wrap gap-2 align-items-center member-badges-wrapper">
+    <?php if ($memberTypeLbl): ?>
+      <span class="badge rounded-pill bg-info text-dark fw-normal"><i class="fa-solid fa-users me-2"></i>Type: <?php echo htmlspecialchars($memberTypeLbl); ?></span>
+    <?php endif; ?>
+    <span class="badge rounded-pill bg-<?php echo $matchClass; ?> text-<?php echo in_array($matchClass, ['warning','info','light','secondary']) ? 'dark' : 'white'; ?> fw-normal">
+      <i class="fa-solid fa-link me-2"></i>ITS–Sabeel: <?php echo $matchLabel; ?>
+    </span>
+    <span class="badge rounded-pill bg-<?php echo $actClass; ?> text-white fw-normal">
+      </i>Status: <?php echo ucfirst($actStatus); ?>
+    </span>
+  </div>
   <?php if (!empty($member)): ?>
     <form id="editMemberForm" class="card shadow-sm border-0" method="post" action="<?php echo base_url('admin/updatemember'); ?>">
       <div class="card-body">
@@ -132,23 +161,98 @@ if (!function_exists('norm_date_input')) {
                 <label class="form-label small mb-1">Registered Family Mobile</label>
                 <input type="text" class="form-control form-control-sm" name="Registered_Family_Mobile" placeholder="Shared family mobile" value="<?php echo htmlspecialchars($member['Registered_Family_Mobile'] ?? ''); ?>">
               </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Member Type</label>
-                <?php $mt = $member['Member_Type'] ?? ''; ?>
-                <?php $jp = htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>
-                <select name="Member_Type" id="editMemberTypeSelect" class="form-control form-select form-select-sm">
-                  <option value="">-- Select Member Type --</option>
-                  <option value="Resident Mumineen" <?php echo $mt == 'Resident Mumineen' ? 'selected' : ''; ?>>Resident Mumineen – Living in <?php echo $jp; ?>, ITS in <?php echo $jp; ?>, regular Sabeel payer</option>
-                  <option value="External Sabeel Payers" <?php echo $mt == 'External Sabeel Payers' ? 'selected' : ''; ?>>External Sabeel Payers – ITS not in <?php echo $jp; ?>, but resident & regular Sabeel payer</option>
-                  <option value="Moved-Out Mumineen" <?php echo $mt == 'Moved-Out Mumineen' ? 'selected' : ''; ?>>Moved-Out Mumineen – ITS in <?php echo $jp; ?> but no longer residing</option>
-                  <option value="Non-Sabeel Residents" <?php echo $mt == 'Non-Sabeel Residents' ? 'selected' : ''; ?>>Non-Sabeel Residents – Living in <?php echo $jp; ?>, ITS not in <?php echo $jp; ?>, not a Sabeel payer</option>
-                  <option value="Temporary Mumineen/Visitors" <?php echo $mt == 'Temporary Mumineen/Visitors' ? 'selected' : ''; ?>>Temporary Mumineen/Visitors – Temporary presence for events</option>
+            </div>
+          </div>
+        </div>
+
+        <!-- Member Status (ITS-Sabeel + Living Statuses) -->
+        <div class="group-section">
+          <div class="group-header py-2 px-3 bg-primary text-white border rounded d-flex justify-content-between align-items-center" data-group-target="group-member-status">
+            <span class="small fw-semibold text-uppercase">Member Status</span><span class="toggle-indicator">−</span>
+          </div>
+          <div id="group-member-status" class="group-body border-start border-end border-bottom p-3">
+
+            <!-- Auto-calculated (read-only) -->
+            <p class="text-muted small mb-2"><i class="fa-solid fa-robot me-1"></i>Auto-calculated on CSV import or Sabeel changes. <em>Not editable here.</em></p>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6 col-12">
+                <label class="form-label small mb-1 fw-semibold">ITS–Sabeel Match <span class="badge bg-secondary ms-1" style="font-size:.65rem">Auto</span></label>
+                <input type="text" class="form-control form-control-sm bg-light" readonly
+                  value="<?php echo htmlspecialchars($matchLabel); ?>">
+              </div>
+              <div class="col-md-6 col-12">
+                <label class="form-label small mb-1 fw-semibold">Member Type <span class="badge bg-secondary ms-1" style="font-size:.65rem">Auto</span></label>
+                <input type="text" class="form-control form-control-sm bg-light" readonly
+                  value="<?php echo htmlspecialchars($memberTypeLbl ?: '—'); ?>">
+              </div>
+            </div>
+
+            <hr class="my-2">
+            <!-- Manual living status fields -->
+            <p class="text-muted small mb-2"><i class="fa-solid fa-user-pen me-1"></i>Living Status — manually managed by Admin.</p>
+            <div class="row g-3" id="living-status-fields">
+              <div class="col-md-2 col-12">
+                <label class="form-label small mb-1 fw-semibold">Member Status</label>
+                <select name="activity_status" id="activityStatusSel" class="form-control form-select form-select-sm">
+                  <?php foreach ($activity_status_options as $val => $label): ?>
+                    <option value="<?php echo htmlspecialchars($val); ?>"
+                      <?php echo (($member['activity_status'] ?? '') === $val) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($label); ?>
+                    </option>
+                  <?php endforeach; ?>
                 </select>
-                <div id="editMemberTypeError" class="text-danger small mt-1" style="display:none;"></div>
+              </div>
+              <div class="col-md-3 col-12">
+                <label class="form-label small mb-1 fw-semibold">Deeni Status</label>
+                <select name="deeni_status" id="deeniStatusSel" class="form-control form-select form-select-sm">
+                  <?php foreach ($deeni_status_options as $val => $label): ?>
+                    <option value="<?php echo htmlspecialchars($val); ?>"
+                      <?php echo (($member['deeni_status'] ?? '') === $val) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($label); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div class="col-md-2 col-12">
+                <label class="form-label small mb-1 fw-semibold">Member Type</label>
+                <?php $mt = $member['Member_Type'] ?? ''; ?>
+                <select name="Member_Type" id="memberTypeSel" class="form-control form-select form-select-sm">
+                  <option value="">-- None --</option>
+                  <option value="Resident Mumineen" <?php echo $mt == 'Resident Mumineen' ? 'selected' : ''; ?>>Resident Mumineen</option>
+                  <option value="External Sabeel Payers" <?php echo $mt == 'External Sabeel Payers' ? 'selected' : ''; ?>>External Sabeel Payers</option>
+                  <option value="Moved-Out Mumineen" <?php echo $mt == 'Moved-Out Mumineen' ? 'selected' : ''; ?>>Moved-Out Mumineen</option>
+                  <option value="Non-Sabeel Residents" <?php echo $mt == 'Non-Sabeel Residents' ? 'selected' : ''; ?>>Non-Sabeel Residents</option>
+                  <option value="Temporary Mumineen/Visitors" <?php echo $mt == 'Temporary Mumineen/Visitors' ? 'selected' : ''; ?>>Temporary Mumineen/Visitors</option>
+                  <option value="Permanent" <?php echo $mt == 'Permanent' ? 'selected' : ''; ?>>Permanent</option>
+                  <option value="Temporary" <?php echo $mt == 'Temporary' ? 'selected' : ''; ?>>Temporary</option>
+                </select>
+              </div>
+              <div class="col-md-3 col-12">
+                <label class="form-label small mb-1 fw-semibold">Residential Status</label>
+                <select name="residential_status" id="residentialStatusSel" class="form-control form-select form-select-sm">
+                  <?php foreach ($residential_status_options as $val => $label): ?>
+                    <option value="<?php echo htmlspecialchars($val); ?>"
+                      <?php echo (($member['residential_status'] ?? '') === $val) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($label); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div class="col-md-2 col-12">
+                <label class="form-label small mb-1 fw-semibold">Health Status</label>
+                <select name="health_status" id="healthStatusSel" class="form-control form-select form-select-sm">
+                  <?php foreach ($health_status_options as $val => $label): ?>
+                    <option value="<?php echo htmlspecialchars($val); ?>"
+                      <?php echo (($member['health_status'] ?? '') === $val) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($label); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
               </div>
             </div>
           </div>
         </div>
+
 
         <!-- Family & Relationships -->
         <div class="group-section">
@@ -564,9 +668,13 @@ if (!function_exists('norm_date_input')) {
         </div>
         <div class="form-sticky-spacer" style="height:90px"></div>
         <div class="form-sticky-bar">
-          <div class="inner d-flex justify-content-center align-items-center gap-2">
+          <div class="inner d-flex justify-content-center align-items-center gap-2 flex-wrap">
             <button type="submit" class="btn btn-primary btn-sm mr-2">Save Changes</button>
             <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-outline-secondary btn-sm">Cancel</a>
+            <button type="button" class="btn btn-outline-danger btn-sm ml-2"
+              onclick="if(confirm('Reset this member\'s password to their ITS ID?')){ var f=document.createElement('form'); f.method='post'; f.action='<?php echo base_url('admin/reset_member_password'); ?>'; var i=document.createElement('input'); i.type='hidden'; i.name='its_id'; i.value='<?php echo addslashes($member['ITS_ID'] ?? ''); ?>'; f.appendChild(i); document.body.appendChild(f); f.submit(); }">
+              <i class="fa fa-key me-1"></i>Reset Password
+            </button>
             <span id="editMemberStatus" class="small ms-2"></span>
           </div>
         </div>
@@ -750,6 +858,7 @@ if (!function_exists('norm_date_input')) {
             populateSubEdit(preSector);
           }
         }
+
       })();
     </script>
   <?php else: ?>

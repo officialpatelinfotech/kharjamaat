@@ -30,14 +30,6 @@
     max-height: 30px;
   }
 
-  @media (max-width: 768px) {
-
-    .btn,
-    .btn-group {
-      width: 100%;
-    }
-  }
-
   .user-welcome {
     font-weight: 600;
     margin-left: 10px;
@@ -59,7 +51,7 @@
   }
 
   .margintopcontainer {
-    margin-top: 80px;
+    margin-top: 60px;
   }
 
   /* Table sort indicators */
@@ -83,6 +75,17 @@
 
   th .ts-sort-controls i.active {
     color: #000;
+  }
+
+  @media (max-width: 768px) {
+    .margintopcontainer {
+      margin-top: 110px;
+    }
+
+    .btn,
+    .btn-group {
+      width: 100%;
+    }
   }
 </style>
 <?php

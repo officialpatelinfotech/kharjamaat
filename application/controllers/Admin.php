@@ -1812,7 +1812,9 @@ class Admin extends CI_Controller
     $filters = [
       'status' => $this->input->get('status'),
       'sector' => $this->input->get('sector'),
-      'sub_sector' => $this->input->get('sub_sector')
+      'sub_sector' => $this->input->get('sub_sector'),
+      'name' => $this->input->get('name'),
+      'hof' => $this->input->get('hof')
     ];
     $rows = $this->AdminM->get_all_members_for_export($filters);
     if ($isTemplate) {
@@ -1903,18 +1905,13 @@ class Admin extends CI_Controller
                   continue;
                 }
 
-                // Only process Residential / Resident Mumineen rows during import.
-                $memberType = '';
-                if (isset($assoc['Member_Type'])) $memberType = $assoc['Member_Type'];
-                elseif (isset($assoc['member_type'])) $memberType = $assoc['member_type'];
-                $memberType = trim(strtolower((string)$memberType));
-                $allowed = ['resident mumineen', 'residential mumineen'];
-                if ($memberType === '' || !in_array($memberType, $allowed, true)) {
-                  // Skip rows that are not Residential/Resident Mumineen
-                  $summary['skipped']++;
-                  continue;
-                }
                 $importedIds[] = $assoc['ITS_ID'];
+
+                if (isset($assoc['Sector']) && isset($assoc['Sub_Sector']) && $assoc['Sector'] !== '' && $assoc['Sub_Sector'] !== '') {
+                  $assoc['Sector'] = trim($assoc['Sector']);
+                  $assoc['Sub_Sector'] = trim($assoc['Sub_Sector']);
+                }
+
                 try {
                   $result = $this->AdminM->upsert_member_from_row($assoc);
                   if ($result === 'inserted') $summary['inserted']++;
@@ -1938,6 +1935,12 @@ class Admin extends CI_Controller
                           'active'   => 1
                         ];
                         $this->db->insert('login', $loginRow);
+                      } else {
+                        $userRow = $this->db->where('ITS_ID', $itsId)->get('user')->row_array();
+                        $hof = !empty($userRow['HOF_ID']) ? $userRow['HOF_ID'] : $itsId;
+                        if ($existingLogin['hof'] !== $hof) {
+                          $this->db->where('username', $itsId)->update('login', ['hof' => $hof]);
+                        }
                       }
                     }
 
@@ -1949,7 +1952,7 @@ class Admin extends CI_Controller
                       if (!$existingSectorLogin) {
                         $sectorLogin = [
                           'username' => $sector,
-                          'password' => md5('525352'),
+                          'password' => md5('515253'),
                           'role'     => 16,
                           'hof'      => '',
                           'active'   => 1
@@ -1966,7 +1969,7 @@ class Admin extends CI_Controller
                       if (!$existingSubLogin) {
                         $subLogin = [
                           'username' => $sub,
-                          'password' => md5('525352'),
+                          'password' => md5('515253'),
                           'role'     => 16,
                           'hof'      => '',
                           'active'   => 1
@@ -2023,6 +2026,15 @@ class Admin extends CI_Controller
         ];
         $this->db->insert('login', $loginRow);
       }
+      // Recalculate ITS–Sabeel match and Member_Type for all members after import
+      $this->load->model('MemberStatusM');
+      $statusResult = $this->MemberStatusM->recalculate_all();
+      $summary['status_updated'] = $statusResult['updated'];
+      $summary['status_errors']  = $statusResult['errors'];
+      // Fetch distribution breakdown to show in summary
+      $summary['match_distribution'] = $statusResult['match_distribution'] ?? [];
+
+      $data['summary'] = $summary;
       $this->load->view('Admin/Header', $data);
       $this->load->view('Admin/ImportMembers', $data);
       return;
@@ -2389,14 +2401,7 @@ class Admin extends CI_Controller
 
     $this->email->set_mailtype('html');
 
-    $notify_recipients = [
-      'kharjamaat@gmail.com',
-      'kharjamaat786@gmail.com',
-      'kharamilsaheb@gmail.com',
-      '3042@carmelnmh.in',
-      'khozemtopiwalla@gmail.com',
-      'ybookwala@gmail.com'
-    ];
+    $notify_recipients = admin_email_recipients();
 
     // Enqueue notification emails so sending happens in background worker
     foreach ($notify_recipients as $recipient) {
@@ -2508,15 +2513,7 @@ class Admin extends CI_Controller
     $this->email->set_mailtype('html');
 
     $monitor_bcc = ['khozemtopiwalla@gmail.com', 'ybookwala@gmail.com'];
-    $admin_recipients = [
-      'amilsaheb@kharjamaat.in',
-      '3042@carmelnmh.in',
-      'kharjamaat@gmail.com',
-      'kharamilsaheb@gmail.com',
-      'kharjamaat786@gmail.com',
-      'khozemtopiwalla@gmail.com',
-      'ybookwala@gmail.com'
-    ];
+    $admin_recipients = admin_email_recipients();
     foreach ($admin_recipients as $r) {
       $this->EmailQueueM->enqueue($r, 'Raza Not Recommended', $msg_html, $monitor_bcc, 'html');
     }
@@ -3249,12 +3246,6 @@ HTML;
     }
     $thaali_dates = array_values(array_unique($thaali_dates));
 
-    if (empty($thaali_dates)) {
-      $this->session->set_flashdata('error', 'Please select date');
-      redirect('admin/managefmbtakhmeen');
-      return;
-    }
-
     // Validate selected dates belong to selected FY (based on Hijri date conversion)
     $this->load->model('HijriCalendar');
     $computeFy = function ($iso) {
@@ -3274,30 +3265,35 @@ HTML;
       return $y1 . '-' . $y2;
     };
 
-    foreach ($thaali_dates as $d) {
-      $fy = $computeFy($d);
-      if (!$fy || (string)$fy !== (string)$fmb_takhmeen_year) {
-        $this->session->set_flashdata('error', 'Selected date ' . date('d-m-Y', strtotime($d)) . ' does not belong to FY ' . $fmb_takhmeen_year . '.');
-        redirect('admin/managefmbtakhmeen');
-        return;
+    if (!empty($thaali_dates)) {
+      foreach ($thaali_dates as $d) {
+        $fy = $computeFy($d);
+        if (!$fy || (string)$fy !== (string)$fmb_takhmeen_year) {
+          $this->session->set_flashdata('error', 'Selected date ' . date('d-m-Y', strtotime($d)) . ' does not belong to FY ' . $fmb_takhmeen_year . '.');
+          redirect('admin/managefmbtakhmeen');
+          return;
+        }
       }
     }
 
     // Validate selected count does not exceed allowed days from amount/per-day cost (if cost configured)
-    $this->load->model('PerDayThaaliCostM');
-    $cost = $this->PerDayThaaliCostM->get_by_year((string)$fmb_takhmeen_year);
-    $per_day = $cost && isset($cost['amount']) ? (float)$cost['amount'] : 0;
-    if ($per_day > 0) {
-      $allowed = (int)floor(((float)$fmb_takhmeen_amount) / $per_day);
-      if (count($thaali_dates) > $allowed) {
-        $this->session->set_flashdata('error', 'Selected thaali dates (' . count($thaali_dates) . ') exceed allowed days (' . $allowed . ') for FY ' . $fmb_takhmeen_year . '.');
-        redirect('admin/managefmbtakhmeen');
-        return;
+    // Only applicable when admin is explicitly selecting thaali dates.
+    if (!empty($thaali_dates)) {
+      $this->load->model('PerDayThaaliCostM');
+      $cost = $this->PerDayThaaliCostM->get_by_year((string)$fmb_takhmeen_year);
+      $per_day = $cost && isset($cost['amount']) ? (float)$cost['amount'] : 0;
+      if ($per_day > 0) {
+        $allowed = (int)floor(((float)$fmb_takhmeen_amount) / $per_day);
+        if (count($thaali_dates) > $allowed) {
+          $this->session->set_flashdata('error', 'Selected thaali dates (' . count($thaali_dates) . ') exceed allowed days (' . $allowed . ') for FY ' . $fmb_takhmeen_year . '.');
+          redirect('admin/managefmbtakhmeen');
+          return;
+        }
       }
     }
 
-    // Prevent overlapping: same date cannot be assigned to two different members.
-    if ($this->db->table_exists('fmb_thaali_day_assignment')) {
+        // Prevent overlapping: same date cannot be assigned to two different members.
+        if (!empty($thaali_dates) && $this->db->table_exists('fmb_thaali_day_assignment')) {
       $placeholders = implode(',', array_fill(0, count($thaali_dates), '?'));
       $params = array_merge([(string)$fmb_takhmeen_year], $thaali_dates, [(int)$user_id]);
       $sql = "SELECT DATE(a.menu_date) AS d, a.user_id, u.Full_Name
@@ -3329,7 +3325,7 @@ HTML;
 
     $result = $this->AdminM->addfmbtakhmeenamount($data);
 
-    if ($result && $this->db->table_exists('fmb_thaali_day_assignment')) {
+    if ($result && !empty($thaali_dates) && $this->db->table_exists('fmb_thaali_day_assignment')) {
       foreach ($thaali_dates as $d) {
         $ok = $this->CommonM->upsert_day_assignment_by_date($d, (int)$user_id, (string)$fmb_takhmeen_year, null);
         if (!$ok) {
@@ -4118,7 +4114,7 @@ HTML;
   // ================= Member Update =================
   public function editmember($its_id = null)
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
       redirect('/accounts');
     }
     if (!$its_id) {
@@ -4149,13 +4145,18 @@ HTML;
 
     $data['sector_map'] = $this->AdminM->get_sector_hierarchy();
     $data['sector_list'] = array_keys($data['sector_map']);
+    $this->load->model('MemberStatusM');
+    $data['deeni_status_options']       = MemberStatusM::deeni_status_options();
+    $data['residential_status_options'] = MemberStatusM::residential_status_options();
+    $data['health_status_options']      = MemberStatusM::health_status_options();
+    $data['activity_status_options']    = MemberStatusM::activity_status_options();
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/EditMember', $data);
   }
 
   public function updatemember()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
       redirect('/accounts');
     }
     $its_id = $this->input->post('its_id');
@@ -4176,6 +4177,7 @@ HTML;
 
     // Collect all allowed fields (whitelist) from POST
     $fields = [
+      // ── Identity & Contact ──
       'Full_Name',
       'Full_Name_Arabic',
       'First_Name',
@@ -4192,38 +4194,47 @@ HTML;
       'Mobile',
       'Email',
       'WhatsApp_No',
+      // ── Portal-managed / Jamaat-internal ──
       'HOF_FM_TYPE',
       'HOF_ID',
       'Member_Type',
       'Registered_Family_Mobile',
+      'Family_ID',
+      'TanzeemFile_No',
+      // ── Family relationships ──
       'Father_ITS_ID',
       'Mother_ITS_ID',
       'Spouse_ITS_ID',
-      'Family_ID',
-      'TanzeemFile_No',
+      // ── Marital & Personal ──
       'Misaq',
       'Marital_Status',
       'Blood_Group',
       'Warakatul_Tarkhis',
+      // ── Nikah & Religious Dates ──
       'Date_Of_Nikah',
       'Date_Of_Nikah_Hijri',
+      // ── Origin & Community ──
       'Organisation',
       'Organisation_CSV',
       'Vatan',
       'Nationality',
       'Jamaat',
       'Jamiaat',
+      // ── Education & Skills ──
       'Qualification',
       'Languages',
       'Hunars',
+      // ── Occupation ──
       'Occupation',
       'Sub_Occupation',
       'Sub_Occupation2',
+      // ── Religious Milestones ──
       'Quran_Sanad',
       'Qadambosi_Sharaf',
       'Raudat_Tahera_Ziyarat',
       'Karbala_Ziyarat',
       'Ashara_Mubaraka',
+      // ── Housing & Address ──
       'Housing',
       'Type_of_House',
       'Address',
@@ -4233,6 +4244,7 @@ HTML;
       'State',
       'City',
       'Pincode',
+      // ── Sector Hierarchy ──
       'Sector',
       'Sub_Sector',
       'Sector_Incharge_ITSID',
@@ -4243,6 +4255,7 @@ HTML;
       'Sub_Sector_Incharge_Name',
       'Sub_Sector_Incharge_Female_ITSID',
       'Sub_Sector_Incharge_Female_Name',
+      // ── Verification & Scan ──
       'Data_Verifcation_Status',
       'Data_Verification_Date',
       'Photo_Verifcation_Status',
@@ -4252,7 +4265,7 @@ HTML;
       'Title',
       'Category',
       'Idara',
-      'Inactive_Status'
+      'Inactive_Status',
     ];
 
     $payload = [];
@@ -4272,20 +4285,24 @@ HTML;
     }
 
     // Guard: normalize empties (empty string -> omit so DB keeps NULL)
-    foreach (['Sector', 'Sub_Sector', 'Inactive_Status'] as $nullableField) {
+    foreach (['Sector', 'Sub_Sector', 'Inactive_Status', 'Age'] as $nullableField) {
       if (array_key_exists($nullableField, $payload) && $payload[$nullableField] === '') {
         unset($payload[$nullableField]);
       }
     }
 
+
     // Enumerated validation for member_type
     if (isset($payload['Member_Type']) && $payload['Member_Type'] !== '') {
       $allowed_member_types = [
+        '',
         'Resident Mumineen',
         'External Sabeel Payers',
         'Moved-Out Mumineen',
         'Non-Sabeel Residents',
-        'Temporary Mumineen/Visitors'
+        'Temporary Mumineen/Visitors',
+        'Permanent',
+        'Temporary'
       ];
       if (!in_array($payload['Member_Type'], $allowed_member_types, true)) {
         echo json_encode([
@@ -4299,8 +4316,31 @@ HTML;
       }
     }
 
+    // Save living-status fields separately (these are always portal-managed)
+    $livingFields = [
+      'activity_status'    => $this->input->post('activity_status'),
+      'deeni_status'       => $this->input->post('deeni_status'),
+      'residential_status' => $this->input->post('residential_status'),
+      'health_status'      => $this->input->post('health_status'),
+    ];
+    // Filter out nulls (not submitted)
+    $livingFields = array_filter($livingFields, fn($v) => $v !== null);
+    // Nullify empty string = clear the status
+    $livingFields = array_map(fn($v) => (trim($v) === '') ? null : trim($v), $livingFields);
+
     $updated = $this->AdminM->update_member($its_id, $payload);
-    if ($updated) {
+
+    // Save living statuses + recompute activity_status
+    if (!empty($livingFields)) {
+      $this->load->model('MemberStatusM');
+      $this->MemberStatusM->update_living_status((int)$its_id, $livingFields);
+    } elseif ($updated) {
+      // Even if no living status changed, recompute in case Member_Type changed
+      $this->load->model('MemberStatusM');
+      $this->MemberStatusM->recalculate_activity((int)$its_id);
+    }
+
+    if ($updated || !empty($livingFields)) {
       // If member_type not explicitly in payload (unchanged), fetch existing value
       $mt_value = isset($payload['Member_Type']) ? $payload['Member_Type'] : null;
       if ($mt_value === null) {
@@ -4310,13 +4350,53 @@ HTML;
         }
       }
       echo json_encode([
-        'status' => 'success',
-        'message' => 'Member updated',
+        'status'      => 'success',
+        'message'     => 'Member updated',
         'Member_Type' => $mt_value
       ]);
     } else {
       echo json_encode(['status' => 'error', 'message' => 'No changes or update failed']);
     }
+  }
+
+  // ── Living Status AJAX endpoint ───────────────────────────────────────────
+  public function update_living_status()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      http_response_code(403);
+      echo json_encode(['status' => 'error', 'message' => 'Unauthorised']);
+      return;
+    }
+    $its_id = (int)$this->input->post('its_id');
+    if (!$its_id) {
+      echo json_encode(['status' => 'error', 'message' => 'Missing ITS ID']);
+      return;
+    }
+    $this->load->model('MemberStatusM');
+    $ok = $this->MemberStatusM->update_living_status($its_id, [
+      'activity_status'    => $this->input->post('activity_status'),
+      'Member_Type'        => $this->input->post('Member_Type'),
+      'deeni_status'       => $this->input->post('deeni_status'),
+      'residential_status' => $this->input->post('residential_status'),
+      'health_status'      => $this->input->post('health_status'),
+    ]);
+    echo json_encode(['status' => $ok ? 'success' : 'error']);
+  }
+
+  // ── Recalculate all statuses (Admin action) ───────────────────────────────
+  public function recalculate_all_statuses()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      http_response_code(403);
+      echo json_encode(['status' => 'error', 'message' => 'Unauthorised']);
+      return;
+    }
+    $this->load->model('MemberStatusM');
+    $result = $this->MemberStatusM->recalculate_all();
+    $this->session->set_flashdata('success',
+      'Status recalculation complete. Updated: ' . $result['updated'] .
+      ', Errors: ' . $result['errors']);
+    redirect('admin/preferences');
   }
 
   // ================= Member Create =================
@@ -4338,7 +4418,7 @@ HTML;
   // View single member details (read-only)
   public function viewmember($its_id = null)
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
       redirect('/accounts');
     }
     if (!$its_id) {
@@ -4350,8 +4430,11 @@ HTML;
       redirect('admin/managemembers');
       return;
     }
-    $data['user_name'] = $_SESSION['user']['username'];
-    $data['member'] = $member;
+    $hof_id = !empty($member['HOF_ID']) ? $member['HOF_ID'] : $its_id;
+    $data['user_name']         = $_SESSION['user']['username'];
+    $data['member']            = $member;
+    $data['family_members']    = $this->AdminM->get_family_members_by_hof_id($hof_id);
+    $data['family_financials'] = $this->AdminM->get_family_financial_data($hof_id);
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/ViewMember', $data);
   }
@@ -4359,7 +4442,7 @@ HTML;
   // JSON endpoint for modal view
   public function memberjson($its_id = null)
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
       http_response_code(403);
       echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
       return;
@@ -4380,7 +4463,7 @@ HTML;
 
   public function savemember()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
       redirect('/accounts');
     }
     $its_id = $this->input->post('ITS_ID');
@@ -4396,11 +4479,14 @@ HTML;
     $payload = $this->input->post(NULL, true); // all sanitized
     if (isset($payload['Member_Type']) && $payload['Member_Type'] !== '') {
       $allowed_member_types = [
+        '',
         'Resident Mumineen',
         'External Sabeel Payers',
         'Moved-Out Mumineen',
         'Non-Sabeel Residents',
-        'Temporary Mumineen/Visitors'
+        'Temporary Mumineen/Visitors',
+        'Permanent',
+        'Temporary'
       ];
       if (!in_array($payload['Member_Type'], $allowed_member_types, true)) {
         echo json_encode([
@@ -4580,5 +4666,96 @@ HTML;
       $this->output->set_content_type('application/json')->set_output(json_encode($resp));
     }
     return;
+  }
+  // AJAX: member search autocomplete (name or ITS ID)
+  public function searchmembers()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      http_response_code(403);
+      echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+      return;
+    }
+    $q = trim((string)$this->input->get('q'));
+    if ($q === '' || strlen($q) < 2) {
+      echo json_encode(['status' => 'ok', 'results' => []]);
+      return;
+    }
+    $this->db->select('ITS_ID, Full_Name, First_Name, Surname, Sector, Sub_Sector, Gender, HOF_FM_TYPE, Member_Type, Mobile');
+    $this->db->from('user');
+    $this->db->group_start();
+    $this->db->like('Full_Name', $q);
+    $this->db->or_like('ITS_ID', $q);
+    $this->db->group_end();
+    $this->db->where('Inactive_Status IS NULL', null, false);
+    $this->db->order_by('Full_Name', 'ASC');
+    $this->db->limit(15);
+    $rows = $this->db->get()->result_array();
+    $results = [];
+    foreach ($rows as $r) {
+      $name = trim((string)($r['Full_Name'] ?? ''));
+      if ($name === '') {
+        $name = trim((string)($r['First_Name'] ?? '') . ' ' . (string)($r['Surname'] ?? ''));
+      }
+      $results[] = [
+        'its_id'    => $r['ITS_ID'],
+        'name'      => $name,
+        'sector'    => trim((string)($r['Sector'] ?? '') . ($r['Sub_Sector'] ? ' - ' . $r['Sub_Sector'] : '')),
+        'gender'    => $r['Gender'] ?? '',
+        'hof_type'  => $r['HOF_FM_TYPE'] ?? '',
+        'member_type' => $r['Member_Type'] ?? '',
+        'mobile'    => $r['Mobile'] ?? '',
+      ];
+    }
+    $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'ok', 'results' => $results]));
+  }
+
+  public function preferences()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->model('SettingsM');
+
+    if ($this->input->server('REQUEST_METHOD') === 'POST') {
+      $jamaat_name = $this->input->post('jamaat_name', true);
+      $jamaat_place = $this->input->post('jamaat_place', true);
+      $address_line = $this->input->post('address_line', true);
+      $city_state = $this->input->post('city_state', true);
+      $pincode = $this->input->post('pincode', true);
+      $support_email = $this->input->post('support_email', true);
+      $receipt_jamaat_name = $this->input->post('receipt_jamaat_name', true);
+      $trust_regn_no = $this->input->post('trust_regn_no', true);
+      $managed_by = $this->input->post('managed_by', true);
+      $admin_emails = $this->input->post('admin_emails', true);
+
+      if ($jamaat_name !== null) $this->SettingsM->set('jamaat_name', $jamaat_name);
+      if ($jamaat_place !== null) $this->SettingsM->set('jamaat_place', $jamaat_place);
+      if ($address_line !== null) $this->SettingsM->set('address_line', $address_line);
+      if ($city_state !== null) $this->SettingsM->set('city_state', $city_state);
+      if ($pincode !== null) $this->SettingsM->set('pincode', $pincode);
+      if ($support_email !== null) $this->SettingsM->set('support_email', $support_email);
+      if ($receipt_jamaat_name !== null) $this->SettingsM->set('receipt_jamaat_name', $receipt_jamaat_name);
+      if ($trust_regn_no !== null) $this->SettingsM->set('trust_regn_no', $trust_regn_no);
+      if ($managed_by !== null) $this->SettingsM->set('managed_by', $managed_by);
+      if ($admin_emails !== null) $this->SettingsM->set('admin_emails', $admin_emails);
+
+      $this->session->set_flashdata('success', 'Preferences updated successfully.');
+      redirect('admin/preferences');
+      return;
+    }
+
+    $data['jamaat_name'] = $this->SettingsM->get('jamaat_name', jamaat_name());
+    $data['jamaat_place'] = $this->SettingsM->get('jamaat_place', jamaat_place());
+    $data['address_line'] = $this->SettingsM->get('address_line', '');
+    $data['city_state'] = $this->SettingsM->get('city_state', '');
+    $data['pincode'] = $this->SettingsM->get('pincode', '');
+    $data['support_email'] = $this->SettingsM->get('support_email', '');
+    $data['receipt_jamaat_name'] = $this->SettingsM->get('receipt_jamaat_name', 'Anjuman-e-Saifee Dawoodi Bohra Jamaat, KHAR');
+    $data['trust_regn_no'] = $this->SettingsM->get('trust_regn_no', 'E/24158 (Mumbai)');
+    $data['managed_by'] = $this->SettingsM->get('managed_by', 'Anjuman-e-Saifee');
+    $data['admin_emails'] = $this->SettingsM->get('admin_emails', "amilsaheb@kharjamaat.in,\n3042@carmelnmh.in,\nkharjamaat@gmail.com,\nkharamilsaheb@gmail.com,\nkharjamaat786@gmail.com,\nkhozemtopiwalla@gmail.com,\nybookwala@gmail.com");
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/Preferences', $data);
   }
 }

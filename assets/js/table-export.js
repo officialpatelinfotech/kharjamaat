@@ -244,6 +244,12 @@
         return;
       }
 
+      var exportUrl = selected.getAttribute('data-export-url');
+      if (exportUrl) {
+        window.location.href = exportUrl;
+        return;
+      }
+
       var csv = tableToCsv(selected);
       if (!csv) {
         alert('Table has no exportable rows.');

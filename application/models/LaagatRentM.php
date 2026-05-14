@@ -574,9 +574,10 @@ class LaagatRentM extends CI_Model
             $this->db->where('lr.charge_type', $filters['charge_type']);
         }
 
-        $this->db->select('COALESCE(SUM(p.amount), 0) as paid_amount', false);
-        $this->db->join('laagat_rent_payments p', 'p.invoice_id = i.id', 'left');
-        $this->db->group_by('i.id');
+        // Avoid ONLY_FULL_GROUP_BY by joining a pre-aggregated payments subquery.
+        $paymentsAggSql = '(SELECT invoice_id, SUM(amount) AS paid_amount FROM laagat_rent_payments GROUP BY invoice_id) p';
+        $this->db->join($paymentsAggSql, 'p.invoice_id = i.id', 'left', false);
+        $this->db->select('COALESCE(p.paid_amount, 0) as paid_amount', false);
 
         $this->db->order_by('i.id DESC');
         return $this->db->get()->result_array();

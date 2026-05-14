@@ -95,8 +95,13 @@ if (php_sapi_name() === 'cli' || defined('STDIN')) {
   }
 } else {
   $host = $_SERVER['HTTP_HOST'] ?? 'production';
+  $hostOnly = strtolower(trim((string)$host));
+  // HTTP_HOST may include port (e.g. localhost:8888). Strip it for env detection.
+  if (strpos($hostOnly, ':') !== false) {
+    $hostOnly = explode(':', $hostOnly, 2)[0];
+  }
 
-  if ($host === 'localhost' || $host === '127.0.0.1' || $host === '::1') {
+  if ($hostOnly === 'localhost' || $hostOnly === '127.0.0.1' || $hostOnly === '::1') {
     define('ENVIRONMENT', 'development');
   } else {
     define('ENVIRONMENT', 'production');

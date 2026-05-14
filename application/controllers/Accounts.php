@@ -1112,15 +1112,7 @@ class Accounts extends CI_Controller
         }
       }
 
-      $admins = [
-        'amilsaheb@kharjamaat.in',
-        '3042@carmelnmh.in',
-        'kharjamaat@gmail.com',
-        'kharamilsaheb@gmail.com',
-        'kharjamaat786@gmail.com',
-        'khozemtopiwalla@gmail.com',
-        'ybookwala@gmail.com'
-      ];
+      $admins = admin_email_recipients();
 
       // Admin notification: include submitter, raza id and miqaat details
       $adminSubject = 'New Miqaat Raza submitted by ' . $user_full;
@@ -3011,15 +3003,7 @@ class Accounts extends CI_Controller
       }
 
       // Admin notifications (enqueue to full admin list)
-      $admins = [
-        'amilsaheb@kharjamaat.in',
-        '3042@carmelnmh.in',
-        'kharjamaat@gmail.com',
-        'kharamilsaheb@gmail.com',
-        'kharjamaat786@gmail.com',
-        'khozemtopiwalla@gmail.com',
-        'ybookwala@gmail.com'
-      ];
+      $admins = admin_email_recipients();
       foreach ($admins as $a) {
         $this->NotificationM->insert_notification([
           'channel' => 'email',
@@ -3359,12 +3343,15 @@ class Accounts extends CI_Controller
     $email_template = file_get_contents($file_path);
 
     $dynamic_data = array(
-      'todayDate' => $weekDateTime,
-      'name' => $user_data['Full_Name'],
-      'its' => $user_data['ITS_ID'],
-      'table' => $table,
-      'razaname' => $razatype['name'],
-      'jamaat_name' => jamaat_name()
+      'todayDate'     => $weekDateTime,
+      'name'          => $user_data['Full_Name'],
+      'its'           => $user_data['ITS_ID'],
+      'table'         => $table,
+      'razaname'      => $razatype['name'],
+      'jamaat_name'   => jamaat_name(),
+      'jamaat_place'  => jamaat_place(),
+      'support_email' => app_setting('support_email', 'anjuman@' . ($_SERVER['HTTP_HOST'] ?? 'kharjamaat.in')),
+      'accounts_url'  => base_url('accounts'),
     );
 
     foreach ($dynamic_data as $key => $value) {
@@ -3388,15 +3375,7 @@ class Accounts extends CI_Controller
       $this->EmailQueueM->enqueue($memberEmail, 'Raza Submission Successful', $email_template, null, 'html');
     }
 
-    $admins = [
-      'amilsaheb@kharjamaat.in',
-      '3042@carmelnmh.in',
-      'kharjamaat@gmail.com',
-      'kharamilsaheb@gmail.com',
-      'kharjamaat786@gmail.com',
-      'khozemtopiwalla@gmail.com',
-      'ybookwala@gmail.com'
-    ];
+    $admins = admin_email_recipients();
 
     $userId = $_SESSION['user_data']['ITS_ID'];
     unset($_POST['raza-type']);
@@ -4112,10 +4091,7 @@ class Accounts extends CI_Controller
       }
 
       // Admin emails
-      $admins = [
-        'amilsaheb@kharjamaat.in',
-        'kharamilsaheb@gmail.com',
-      ];
+      $admins = admin_email_recipients();
 
       foreach ($admins as $adminEmail) {
         $this->NotificationM->insert_notification([

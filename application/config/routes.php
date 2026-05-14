@@ -124,6 +124,7 @@ $route['madresa/classes/delete/(:num)'] = 'madresa/classes_delete/$1';
 $route['madresa/student-details'] = 'madresa/student_details';
 $route['madresa/get-payment-history'] = 'madresa/get_payment_history';
 $route['madresa/ajax-receive-payment'] = 'madresa/ajax_receive_payment';
+$route['madresa/delete-payment'] = 'madresa/delete_payment';
 
 // Admin alias for Madresa module
 $route['admin/madresa'] = 'madresa/index';
@@ -140,6 +141,7 @@ $route['admin/madresa/classes/delete/(:num)'] = 'madresa/classes_delete/$1';
 $route['admin/madresa/student-details'] = 'madresa/student_details';
 $route['admin/madresa/get-payment-history'] = 'madresa/get_payment_history';
 $route['admin/madresa/ajax-receive-payment'] = 'madresa/ajax_receive_payment';
+$route['admin/madresa/delete-payment'] = 'madresa/delete_payment';
 $route['admin/madresa/ajax-get-enrolled-students'] = 'madresa/ajax_get_enrolled_students';
 
 $route['madresa/ajax-get-enrolled-students'] = 'madresa/ajax_get_enrolled_students';

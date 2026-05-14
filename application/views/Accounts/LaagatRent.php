@@ -143,9 +143,9 @@ function showHistory(invoiceId, title) {
                             '<td class="align-middle"><span class="badge badge-light px-2 py-1">' + (item.payment_method || 'Cash') + '</span></td>' +
                             '<td class="align-middle text-right font-weight-bold text-success">₹' + parseFloat(item.amount).toLocaleString('en-IN', {minimumFractionDigits: 0}) + '</td>' +
                             '<td class="align-middle text-center">' +
-                            '  <a href="' + receiptUrl + '" class="btn btn-outline-primary btn-xs rounded-pill" target="_blank">' +
-                            '    <i class="fa fa-file-invoice"></i>' +
-                            '  </a>' +
+                            '  <button type="button" class="btn btn-outline-secondary btn-xs rounded-pill ml-1 view-invoice" data-payment-id="' + item.id + '" title="PDF">' +
+                            '    <i class="fa fa-file-pdf"></i>' +
+                            '  </button>' +
                             '</td>' +
                             '</tr>';
                 });
@@ -159,4 +159,25 @@ function showHistory(invoiceId, title) {
         }
     });
 }
+
+$(document).on('click', '.view-invoice', function(e) {
+    e.preventDefault();
+    const paymentId = $(this).data('payment-id');
+    if (!paymentId) return;
+
+    $.ajax({
+        url: "<?php echo base_url('common/generate_pdf'); ?>",
+        type: "POST",
+        data: { id: paymentId, for: 8 },
+        xhrFields: { responseType: 'blob' },
+        success: function(response) {
+            var blob = new Blob([response], { type: "application/pdf" });
+            var url = window.URL.createObjectURL(blob);
+            window.open(url, "_blank");
+        },
+        error: function() {
+            alert('Failed to generate receipt PDF');
+        }
+    });
+});
 </script>

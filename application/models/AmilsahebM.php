@@ -3,10 +3,15 @@
 
 class AmilsahebM extends CI_Model
 {
+  /** @var bool Whether user table has the activity_status column (may not exist on older DBs) */
+  private $has_activity_status = false;
+
   function __construct()
   {
     // Call the Model constructor
     parent::__construct();
+    // Detect if activity_status column exists (graceful degradation for older DB schemas)
+    $this->has_activity_status = $this->db->field_exists('activity_status', 'user');
   }
   function get_raza_event($event_type = null)
   {
@@ -167,9 +172,17 @@ class AmilsahebM extends CI_Model
     if (!empty($params['status'])) {
       $status = strtolower(trim($params['status']));
       if ($status === 'active') {
-        $this->db->where('inactive_status IS NULL', null, false);
+        if ($this->has_activity_status) {
+          $this->db->where("((inactive_status IS NULL OR inactive_status = '') AND (activity_status = 'active' OR activity_status IS NULL OR activity_status = ''))", null, false);
+        } else {
+          $this->db->where("(inactive_status IS NULL OR inactive_status = '')", null, false);
+        }
       } elseif ($status === 'inactive') {
-        $this->db->where('inactive_status IS NOT NULL', null, false);
+        if ($this->has_activity_status) {
+          $this->db->where("((inactive_status IS NOT NULL AND inactive_status != '') OR (activity_status != 'active' AND activity_status IS NOT NULL AND activity_status != ''))", null, false);
+        } else {
+          $this->db->where("(inactive_status IS NOT NULL AND inactive_status != '')", null, false);
+        }
       }
     }
     if (!empty($params['hof'])) {
@@ -393,7 +406,8 @@ class AmilsahebM extends CI_Model
   {
     $this->db->select('u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector');
     $this->db->from('user u');
-    $this->db->where('u.sector is not null and u.sub_sector is not null and u.inactive_status is null', null, false); // Exclude umoor fmb users
+    $actFilter = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
+    $this->db->where("u.sector is not null and u.sub_sector is not null and ((u.inactive_status is null or u.inactive_status = '')$actFilter)", null, false); // Exclude umoor fmb users
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'ao.ITS = u.ITS_ID AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -432,6 +446,8 @@ class AmilsahebM extends CI_Model
       'SUM(CASE WHEN LOWER(u.Gender) = "female" THEN 1 ELSE 0 END) as female_count',
       'SUM(CASE WHEN u.Age BETWEEN 0 AND 4 THEN 1 ELSE 0 END) as age_0_4',
       'SUM(CASE WHEN u.Age BETWEEN 5 AND 15 THEN 1 ELSE 0 END) as age_5_15',
+      'SUM(CASE WHEN u.Age BETWEEN 16 AND 25 THEN 1 ELSE 0 END) as age_16_25',
+      'SUM(CASE WHEN u.Age BETWEEN 26 AND 65 THEN 1 ELSE 0 END) as age_26_65',
       'SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) as seniors_count',
       'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
     ]);
@@ -458,11 +474,14 @@ class AmilsahebM extends CI_Model
       'SUM(CASE WHEN LOWER(u.Gender) = "female" THEN 1 ELSE 0 END) as female_count',
       'SUM(CASE WHEN u.Age BETWEEN 0 AND 4 THEN 1 ELSE 0 END) as age_0_4',
       'SUM(CASE WHEN u.Age BETWEEN 5 AND 15 THEN 1 ELSE 0 END) as age_5_15',
+      'SUM(CASE WHEN u.Age BETWEEN 16 AND 25 THEN 1 ELSE 0 END) as age_16_25',
+      'SUM(CASE WHEN u.Age BETWEEN 26 AND 65 THEN 1 ELSE 0 END) as age_26_65',
       'SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) as seniors_count',
       'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
     ]);
     $this->db->from('user u');
-    $this->db->where('u.sector is not null and u.sub_sector is not null and u.inactive_status is null');
+    $actFilter2 = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
+    $this->db->where("u.sector is not null and u.sub_sector is not null and ((u.inactive_status is null or u.inactive_status = '')$actFilter2)", null, false);
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -482,14 +501,15 @@ class AmilsahebM extends CI_Model
   {
     $sql = "
       SELECT
-        SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'resident%' THEN 1 ELSE 0 END) AS resident,
+        SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'resident%' OR LOWER(TRIM(member_type)) LIKE 'permanent%' THEN 1 ELSE 0 END) AS resident,
         SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'external%' THEN 1 ELSE 0 END) AS external,
         SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'moved%' THEN 1 ELSE 0 END) AS moved_out,
-        SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'non-sabeel%' THEN 1 ELSE 0 END) AS non_sabeel,
+        SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'non-sabeel%' OR LOWER(TRIM(member_type)) LIKE 'non sabeel%' THEN 1 ELSE 0 END) AS non_sabeel,
         SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'temporary%' OR LOWER(TRIM(member_type)) LIKE 'visitor%' THEN 1 ELSE 0 END) AS temporary,
         COUNT(*) AS total
       FROM user
-      WHERE sector IS NOT NULL AND sub_sector IS NOT NULL AND inactive_status IS NULL
+      WHERE sector IS NOT NULL AND sub_sector IS NOT NULL AND ((inactive_status IS NULL OR inactive_status = '')
+        " . ($this->has_activity_status ? "AND (activity_status = 'active' OR activity_status IS NULL OR activity_status = '')" : "") . ")
     ";
     $row = $this->db->query($sql)->row_array();
     // Ensure integer values and defaults
@@ -517,10 +537,13 @@ class AmilsahebM extends CI_Model
         SUM(CASE WHEN LOWER(u.Gender) = 'female' THEN 1 ELSE 0 END) AS female,
         SUM(CASE WHEN u.Age BETWEEN 0 AND 4 THEN 1 ELSE 0 END) AS age_0_4,
         SUM(CASE WHEN u.Age BETWEEN 5 AND 15 THEN 1 ELSE 0 END) AS age_5_15,
+        SUM(CASE WHEN u.Age BETWEEN 16 AND 25 THEN 1 ELSE 0 END) AS age_16_25,
+        SUM(CASE WHEN u.Age BETWEEN 26 AND 65 THEN 1 ELSE 0 END) AS age_26_65,
         SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) AS seniors,
         COUNT(*) AS total
       FROM user u
-      WHERE LOWER(TRIM(u.member_type)) LIKE 'resident%' AND u.sector IS NOT NULL AND u.sub_sector IS NOT NULL AND u.inactive_status IS NULL
+      WHERE (LOWER(TRIM(u.member_type)) LIKE 'resident%' OR LOWER(TRIM(u.member_type)) LIKE 'permanent%') AND u.sector IS NOT NULL AND u.sub_sector IS NOT NULL AND ((u.inactive_status IS NULL OR u.inactive_status = '')
+        " . ($this->has_activity_status ? "AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . ")
     ";
     $row = $this->db->query($sql)->row_array();
     return [
@@ -530,6 +553,8 @@ class AmilsahebM extends CI_Model
       'female' => (int)($row['female'] ?? 0),
       'age_0_4' => (int)($row['age_0_4'] ?? 0),
       'age_5_15' => (int)($row['age_5_15'] ?? 0),
+      'age_16_25' => (int)($row['age_16_25'] ?? 0),
+      'age_26_65' => (int)($row['age_26_65'] ?? 0),
       'seniors' => (int)($row['seniors'] ?? 0),
       'total' => (int)($row['total'] ?? 0),
     ];
@@ -546,19 +571,45 @@ class AmilsahebM extends CI_Model
         u.Sector,
         COUNT(*) AS total,
         SUM(CASE WHEN u.HOF_FM_TYPE = 'HOF' THEN 1 ELSE 0 END) AS hof_count,
-        SUM(CASE WHEN u.HOF_FM_TYPE = 'FM' THEN 1 ELSE 0 END) AS fm_count
+        SUM(CASE WHEN u.HOF_FM_TYPE = 'FM' THEN 1 ELSE 0 END) AS fm_count,
+        MAX(u.Sector_Incharge_Name) AS Sector_Incharge_Name,
+        MAX(u.Sector_Incharge_Female_Name) AS Sector_Incharge_Female_Name
       FROM user u
-      WHERE LOWER(TRIM(u.member_type)) LIKE 'resident%'
+      WHERE (LOWER(TRIM(u.member_type)) LIKE 'resident%' OR LOWER(TRIM(u.member_type)) LIKE 'permanent%')
+        AND u.sector IS NOT NULL AND u.sub_sector IS NOT NULL 
+        AND ((u.inactive_status IS NULL OR u.inactive_status = '')
+        " . ($this->has_activity_status ? "AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . ")
       GROUP BY u.Sector
       ORDER BY u.Sector
     ";
     $rows = $this->db->query($sql)->result_array();
-    // Normalize keys/types to match existing view expectations
+
+    // Fetch subsectors to attach their incharges
+    $subSql = "
+      SELECT Sector, Sub_Sector, MAX(Sub_Sector_Incharge_Name) as Sub_Sector_Incharge_Name, MAX(Sub_Sector_Incharge_Female_Name) as Sub_Sector_Incharge_Female_Name
+      FROM user
+      WHERE Sector IS NOT NULL AND Sub_Sector IS NOT NULL
+      GROUP BY Sector, Sub_Sector
+    ";
+    $subRows = $this->db->query($subSql)->result_array();
+
+    $subMap = [];
+    foreach($subRows as $sr) {
+        $sec = $sr['Sector'];
+        if (!isset($subMap[$sec])) $subMap[$sec] = [];
+        // Only include if there is an incharge
+        if (!empty(trim($sr['Sub_Sector_Incharge_Name'] ?? '')) || !empty(trim($sr['Sub_Sector_Incharge_Female_Name'] ?? ''))) {
+            $subMap[$sec][] = $sr;
+        }
+    }
+
+    // Normalize keys/types to match existing view expectations and attach sub_sectors
     foreach ($rows as &$r) {
       $r['Sector'] = isset($r['Sector']) ? $r['Sector'] : null;
       $r['total'] = (int)($r['total'] ?? 0);
       $r['hof_count'] = (int)($r['hof_count'] ?? 0);
       $r['fm_count'] = (int)($r['fm_count'] ?? 0);
+      $r['sub_sectors'] = isset($subMap[$r['Sector']]) ? $subMap[$r['Sector']] : [];
     }
     unset($r);
     return $rows;

@@ -1,23 +1,5 @@
 <?php
-// Show only upcoming miqaats in the assigned list
-if (isset($miqaats) && is_array($miqaats)) {
-  $today = strtotime('today');
-  $miqaats = array_values(array_filter($miqaats, function ($m) use ($today) {
-    $dateStr = null;
-    if (is_array($m)) {
-      $dateStr = $m['date'] ?? $m['miqaat_date'] ?? $m['event_date'] ?? $m['start_date'] ?? null;
-    } elseif (is_object($m)) {
-      $dateStr = $m->date ?? $m->miqaat_date ?? $m->event_date ?? $m->start_date ?? null;
-    }
-    if (!empty($dateStr)) {
-      $d = strtotime($dateStr);
-      if ($d !== false) {
-        return ($d >= $today);
-      }
-    }
-    return false;
-  }));
-}
+// NOTE: Show both past and upcoming assigned miqaats.
 ?>
 <style>
   .miqaat-status-badge {

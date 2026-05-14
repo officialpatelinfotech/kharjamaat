@@ -66,7 +66,6 @@
   }
 </style>
 
-
 <div class="margintopcontainer">
   <div class="carousel-back">
     <div class="container">

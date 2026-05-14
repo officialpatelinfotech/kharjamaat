@@ -1080,6 +1080,12 @@
 </style>
 
 <style>
+  @media (min-width: 768px) {
+    .col-md-5th {
+      flex: 0 0 20%;
+      max-width: 20%;
+    }
+  }
   /* Mobile-only: equalize miqaat mini-card heights (avoid desktop grid conflicts) */
   @media (max-width:767.98px) {
     #miqaat-rsvp-block .row {
@@ -1145,8 +1151,7 @@
         <div class="menu-section">Activity</div>
         <ul class="menu-list">
           <li><a class="menu-item" href="<?php echo base_url('anjuman/mumineendirectory') ?>"><span class="menu-icon"><i class="fa-solid fa-group"></i></span><span class="menu-label">Mumineen Directory</span></a></li>
-          <li><a class="menu-item" href="<?php echo base_url('anjuman/asharaohbat') ?>"><span class="menu-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="menu-label">Ashara Ohbat <?php $hijri_year = isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : '1446H';
-                                                                                                                                                                                                      echo $hijri_year . 'H'; ?></span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('anjuman/asharaohbat') ?>"><span class="menu-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="menu-label">Ashara Ohbat</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/ashara_attendance') ?>"><span class="menu-icon"><i class="fa-solid fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=anjuman'); ?>"><span class="menu-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="menu-label">FMB Calendar</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/thaali_signups_breakdown?from=anjuman'); ?>"><span class="menu-icon"><i class="fa-solid fa-chart-column"></i></span><span class="menu-label">FMB Thaali Signups</span></a></li>
@@ -1162,6 +1167,7 @@
           <li><a class="menu-item" href="<?php echo base_url('anjuman/qardanhasana'); ?>"><span class="menu-icon"><i class="fa-solid fa-handshake"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/corpusfunds_receive'); ?>"><span class="menu-icon"><i class="fa-solid fa-donate"></i></span><span class="menu-label">Corpus Funds</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/ekramfunds_receive'); ?>"><span class="menu-icon"><i class="fa-solid fa-hand-holding-heart"></i></span><span class="menu-label">Ekram Fund Module</span></a></li>
+          <li><a class="menu-item" href="<?= base_url('anjuman/payments_report'); ?>"><span class="menu-icon"><i class="fa-solid fa-receipt"></i></span><span class="menu-label">Payments Report</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/financials'); ?>"><span class="menu-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span><span class="menu-label">Individual Financial Details</span></a></li>
           <li><a class="menu-item" href="<?= base_url('anjuman/expense'); ?>"><span class="menu-icon"><i class="fa-solid fa-receipt"></i></span><span class="menu-label">Expense Module</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('anjuman/laagat_rent'); ?>"><span class="menu-icon"><i class="fa-solid fa-file-invoice"></i></span><span class="menu-label">Laagat / Rent</span></a></li>
@@ -1182,6 +1188,189 @@
           <span class="mobile-title">Quick Menu</span>
         </div>
       </div>
+
+      <!-- ===== Member Search Widget ===== -->
+      <div class="chart-container mb-4 member-search-widget" id="member-search-block" style="padding:18px 20px;">
+        <style>
+          /* Override parent overflow:hidden so the dropdown can escape */
+          #member-search-block {
+            overflow: visible !important;
+          }
+          /* Member Search Widget Styles */
+          .msw-label {
+            font-size: .85rem;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 10px;
+          }
+          .msw-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .msw-input-group {
+            position: relative;
+            flex: 1 1 250px;
+            max-width: 500px;
+          }
+          .msw-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9aa0a6;
+            font-size: 15px;
+            pointer-events: none;
+          }
+          #mswInput {
+            width: 100%;
+            padding: 11px 38px 11px 38px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: .97rem;
+            color: #111827;
+            background: #fafbff;
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
+          }
+          #mswInput:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+            background: #fff;
+          }
+          .msw-clear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #f3f4f6;
+            border: none;
+            border-radius: 6px;
+            width: 24px;
+            height: 24px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1;
+          }
+          .msw-clear-btn.visible { display: flex; }
+          .msw-spinner {
+            position: absolute;
+            right: 38px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,.08);
+            border-top-color: #6366f1;
+            animation: msw-spin .7s linear infinite;
+            display: none;
+          }
+          .msw-spinner.active { display: block; }
+          @keyframes msw-spin { to { transform: translateY(-50%) rotate(360deg); } }
+          #mswDropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0,0,0,.12);
+            z-index: 1050;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+          }
+          #mswDropdown.open { display: block; }
+          .msw-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px;
+            cursor: pointer;
+            transition: background .15s ease;
+            border-bottom: 1px solid #f3f4f6;
+          }
+          .msw-result-item:last-child { border-bottom: none; }
+          .msw-result-item:hover { background: #f5f7ff; }
+          .msw-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,#6366f1,#8b5cf6);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: .9rem;
+            flex-shrink: 0;
+          }
+          .msw-avatar.female { background: linear-gradient(135deg,#ec4899,#f43f5e); }
+          .msw-res-name {
+            font-weight: 600;
+            color: #111827;
+            font-size: .92rem;
+          }
+          .msw-res-meta {
+            font-size: .78rem;
+            color: #6b7280;
+            margin-top: 1px;
+          }
+          .msw-its-badge {
+            margin-left: auto;
+            background: #eef2ff;
+            color: #6366f1;
+            font-size: .7rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 20px;
+            white-space: nowrap;
+            flex-shrink: 0;
+          }
+          .msw-no-results {
+            padding: 18px 14px;
+            color: #6b7280;
+            text-align: center;
+            font-size: .9rem;
+          }
+
+        </style>
+
+        <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:15px;">
+          <!-- Left side: Label & Subtitle -->
+          <div class="d-flex align-items-center" style="gap:10px;">
+            <div class="msw-label m-0" style="margin-bottom:0 !important;"><i class="fa fa-search mr-1"></i> Member Search</div>
+            <span class="d-none d-md-inline" style="font-size:.78rem;color:#9ca3af;margin-top:2px;">Search by name or ITS ID</span>
+          </div>
+
+          <!-- Right side: Search Input & Button -->
+          <div class="msw-input-wrap m-0" style="flex: 1 1 auto; justify-content: flex-end;">
+            <div class="msw-input-group">
+              <i class="fa fa-search msw-icon"></i>
+              <input type="text" id="mswInput" placeholder="Type name or ITS ID..." autocomplete="off" aria-label="Search members" />
+              <div class="msw-spinner" id="mswSpinner"></div>
+              <button class="msw-clear-btn" id="mswClear" aria-label="Clear search" title="Clear">&#x2715;</button>
+              <div id="mswDropdown" role="listbox" aria-label="Member search results"></div>
+            </div>
+            <a href="<?php echo base_url('anjuman/mumineendirectory'); ?>" class="btn btn-outline-primary btn-sm" style="white-space:nowrap;border-radius:10px;">
+              <i class="fa fa-users mr-1"></i>All Members
+            </a>
+          </div>
+        </div>
+      </div>
+      <!-- ===== End Member Search Widget ===== -->
+
+
 
       <!-- Member Types (below Sector-wise Members) -->
 
@@ -1212,7 +1401,7 @@
         ?>
         <h4 class="section-title text-center mt-4 mt-md-0">Jamaat Overview</h4>
         <div class="row">
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('anjuman/mumineendirectory?filter=all'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-users"></i></div>
@@ -1223,7 +1412,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('anjuman/mumineendirectory?filter=hof_fm_type&value=HOF'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-user"></i></div>
@@ -1234,7 +1423,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('anjuman/mumineendirectory?filter=hof_fm_type&value=FM'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-user-plus"></i></div>
@@ -1245,7 +1434,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('anjuman/mumineendirectory?filter=gender&value=male'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-male"></i></div>
@@ -1256,7 +1445,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('anjuman/mumineendirectory?filter=gender&value=female'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-female"></i></div>
@@ -1267,7 +1456,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('anjuman/mumineendirectory?filter=age_range&min=0&max=4'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-child"></i></div>
@@ -1278,7 +1467,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('anjuman/mumineendirectory?filter=age_range&min=5&max=15'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-child"></i></div>
@@ -1289,13 +1478,80 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('anjuman/mumineendirectory?filter=age_range&min=65'); ?>" style="text-decoration:none;color:inherit;display:block;">
+          <div class="col-6 col-md-5th mb-3">
+            <a href="<?= base_url('anjuman/mumineendirectory?filter=age_range&min=16&max=25'); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon"><i class="fa fa-user"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">Age 16-25</span>
+                  <span class="overview-value"><?= $stats['Age_16_25'] ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-5th mb-3">
+            <a href="<?= base_url('anjuman/mumineendirectory?filter=age_range&min=26&max=65'); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon"><i class="fa fa-user"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">Age 26-65</span>
+                  <span class="overview-value"><?= $stats['Age_26_65'] ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-5th mb-3">
+            <a href="<?= base_url('anjuman/mumineendirectory?filter=age_range&min=66'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-user-circle"></i></div>
                 <div class="overview-body">
-                  <span class="overview-title">Seniors (65+)</span>
+                  <span class="overview-title">Above 65</span>
                   <span class="overview-value"><?= $stats['Buzurgo'] ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <?php $mt = isset($member_type_counts) ? $member_type_counts : ['resident' => 0, 'external' => 0, 'moved_out' => 0, 'non_sabeel' => 0, 'temporary' => 0, 'total' => 0]; ?>
+          <div class="col-6 col-md-3 mb-3">
+            <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Resident Mumineen')); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon" style="background:#eef2ff; color:#4f46e5;"><i class="fa fa-home"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">Resident Mumineen <i class="fa fa-info-circle text-muted ml-1" title="Living in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, regular Sabeel payer" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)$mt['resident']; ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-3 mb-3">
+            <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('External Sabeel Payers')); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon" style="background:#ecfeff; color:#0891b2;"><i class="fa fa-external-link"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">External Sabeel Payers <i class="fa fa-info-circle text-muted ml-1" title="ITS not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, but a resident and a regular Sabeel payer in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)$mt['external']; ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-3 mb-3">
+            <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Moved-Out Mumineen')); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-sign-out"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">Moved-Out Mumineen <i class="fa fa-info-circle text-muted ml-1" title="ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?> but no longer residing in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)$mt['moved_out']; ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-3 mb-3">
+            <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Non-Sabeel Residents')); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon" style="background:#fff1f2; color:#dc2626;"><i class="fa fa-ban"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">Non-Sabeel Residents <i class="fa fa-info-circle text-muted ml-1" title="Living in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, ITS not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, not a Sabeel payer but attending Masjid/Miqaats silently" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)$mt['non_sabeel']; ?></span>
                 </div>
               </div>
             </a>
@@ -1325,25 +1581,85 @@
               ?>
               <?php if (!empty($sectorRows)) { ?>
                 <div class="row">
-                  <?php foreach ($sectorRows as $row): ?>
+                  <?php foreach ($sectorRows as $idx => $row): ?>
+                    <?php $collapseId = 'collapseSectorIncharge' . $idx; ?>
                     <div class="col-12 col-md-3 mb-3">
-                      <a href="<?= base_url('anjuman/mumineendirectory?filter=sector&value=' . rawurlencode($row['Sector'] ?: '')); ?>" style="text-decoration:none;color:inherit;display:block;">
-                        <div class="overview-card sector-card">
-                          <div class="overview-icon"><i class="fa fa-map-marker"></i></div>
-                          <div class="overview-body">
-                            <span class="overview-title"><?= htmlspecialchars($row['Sector'] ?: 'Unassigned'); ?></span>
-                            <?php
-                            // Fetch HOF/FM directly from backend provided counts
-                            $hof = intval($row['hof_count'] ?? $row['HOF'] ?? $row['hof'] ?? 0);
-                            $fm = intval($row['fm_count'] ?? $row['FM'] ?? $row['fm'] ?? 0);
-                            ?>
-                            <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;">
-                              <span class="overview-value" style="font-size:1.15rem;">HOF: <?= $hof; ?></span>
-                              <span class="overview-value" style="font-size:1.15rem;font-weight:600;">FM: <?= $fm; ?></span>
+                        <div class="overview-card sector-card" style="height:100%; display:flex; flex-direction:column; padding-bottom: 10px;">
+                          
+                          <!-- Top clickable section -->
+                          <a href="<?= base_url('anjuman/mumineendirectory?filter=sector&value=' . rawurlencode($row['Sector'] ?: '')); ?>" style="text-decoration:none;color:inherit;">
+                            <div style="display:flex; align-items:center;">
+                                <div class="overview-icon"><i class="fa fa-map-marker"></i></div>
+                                <div class="overview-body ms-2 ml-3" style="width:100%;">
+                                  <span class="overview-title"><?= htmlspecialchars($row['Sector'] ?: 'Unassigned'); ?></span>
+                                  <?php if (!empty($row['Sector_Incharge_Name']) || !empty($row['Sector_Incharge_Female_Name'])): ?>
+                                  <div style="margin-top:6px; margin-bottom: 6px; font-size:0.78rem; color:#555; line-height:1.5;">
+                                    <?php if (!empty($row['Sector_Incharge_Name'])): ?>
+                                      <span><i class="fa fa-male text-primary" style="margin-right:3px;"></i><?= htmlspecialchars($row['Sector_Incharge_Name']) ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($row['Sector_Incharge_Name']) && !empty($row['Sector_Incharge_Female_Name'])): ?>
+                                      <!-- <span style="color:#ccc; margin:0 4px;">|</span> -->
+                                    <?php endif; ?>
+                                    <!-- <?php if (!empty($row['Sector_Incharge_Female_Name'])): ?>
+                                      <span><i class="fa fa-female text-danger" style="margin-right:3px;"></i><?= htmlspecialchars($row['Sector_Incharge_Female_Name']) ?></span>
+                                    <?php endif; ?> -->
+                                  </div>
+                                  <?php endif; ?>
+                                  <?php
+                                  $hof = intval($row['hof_count'] ?? $row['HOF'] ?? $row['hof'] ?? 0);
+                                  $fm = intval($row['fm_count'] ?? $row['FM'] ?? $row['fm'] ?? 0);
+                                  ?>
+                                  <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;">
+                                    <span class="overview-value" style="font-size:1.15rem;">HOF: <?= $hof; ?></span>
+                                    <span class="overview-value" style="font-size:1.15rem;font-weight:600;">FM: <?= $fm; ?></span>
+                                  </div>
+                                </div>
+                            </div>
+                          </a>
+                          
+                          <!-- Incharges details toggle -->
+                          <?php if (!empty($row['Sector_Incharge_Name']) || !empty($row['Sector_Incharge_Female_Name']) || !empty($row['sub_sectors'])): ?>
+                          <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px; position: relative; z-index: 2;">
+                            <button class="btn btn-sm btn-link text-decoration-none w-100 text-start text-muted p-0 d-flex justify-content-between align-items-center" type="button" data-toggle="collapse" data-bs-toggle="collapse" data-target="#<?= $collapseId ?>" data-bs-target="#<?= $collapseId ?>" aria-expanded="false" aria-controls="<?= $collapseId ?>">
+                              <span><i class="fa fa-info-circle me-1"></i> View Incharges</span>
+                              <i class="fa fa-chevron-down small"></i>
+                            </button>
+
+                            <div class="collapse mt-2" id="<?= $collapseId ?>">
+                              <div style="font-size: 0.85rem; color: #555;">
+                                 <!-- <?php if (!empty($row['Sector_Incharge_Name']) || !empty($row['Sector_Incharge_Female_Name'])): ?>
+                                    <div style="margin-bottom:8px;">
+                                        <strong>Sector Incharge:</strong><br>
+                                        <?php if (!empty($row['Sector_Incharge_Name'])): ?>
+                                            <i class="fa fa-male text-primary me-1"></i> <?= htmlspecialchars($row['Sector_Incharge_Name']) ?><br>
+                                        <?php endif; ?>
+                                        <?php if (!empty($row['Sector_Incharge_Female_Name'])): ?>
+                                            <i class="fa fa-female text-danger me-1"></i> <?= htmlspecialchars($row['Sector_Incharge_Female_Name']) ?>
+                                        <?php endif; ?>
+                                    </div>
+                                 <?php endif; ?> -->
+
+                                 <?php if (!empty($row['sub_sectors'])): ?>
+                                    <strong>Sub Sector Incharges:</strong>
+                                    <ul style="padding-left:0; margin-bottom:0; list-style:none; margin-top:5px;">
+                                    <?php foreach($row['sub_sectors'] as $sub): ?>
+                                        <li style="margin-bottom:6px; background: #f8f9fa; padding: 6px; border-radius: 4px;">
+                                            <strong><?= htmlspecialchars($sub['Sub_Sector']) ?></strong><br>
+                                            <?php if (!empty($sub['Sub_Sector_Incharge_Name'])): ?>
+                                                <i class="fa fa-male text-primary me-1"></i> <?= htmlspecialchars($sub['Sub_Sector_Incharge_Name']) ?><br>
+                                            <?php endif; ?>
+                                            <?php if (!empty($sub['Sub_Sector_Incharge_Female_Name'])): ?>
+                                                <i class="fa fa-female text-danger me-1"></i> <?= htmlspecialchars($sub['Sub_Sector_Incharge_Female_Name']) ?>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                    </ul>
+                                 <?php endif; ?>
+                              </div>
                             </div>
                           </div>
+                          <?php endif; ?>
                         </div>
-                      </a>
                     </div>
                   <?php endforeach; ?>
                 </div>
@@ -1354,71 +1670,7 @@
           </div>
         </div>
 
-        <div class="row">
-          <div class="col-12" style="padding: 0;">
-            <div class="chart-container member-types-block">
-              <h4 class="section-title text-center">Member Types</h4>
-              <?php $mt = isset($member_type_counts) ? $member_type_counts : ['resident' => 0, 'external' => 0, 'moved_out' => 0, 'non_sabeel' => 0, 'temporary' => 0, 'total' => 0]; ?>
-              <div class="row">
-                <div class="col-12 col-md-4 col-lg-3 mb-3">
-                  <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Resident Mumineen')); ?>" style="text-decoration:none;color:inherit;display:block;">
-                    <div class="overview-card">
-                      <div class="overview-icon" style="background:#eef2ff; color:#4f46e5;"><i class="fa fa-home"></i></div>
-                      <div class="overview-body">
-                        <span class="overview-title">Resident Mumineen</span>
-                        <span class="overview-value"><?= (int)$mt['resident']; ?></span>
-                      </div>
-                    </div>
-                  </a>
-                </div>
-                <div class="col-12 col-md-4 col-lg-3 mb-3">
-                  <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('External Sabeel Payers')); ?>" style="text-decoration:none;color:inherit;display:block;">
-                    <div class="overview-card">
-                      <div class="overview-icon" style="background:#ecfeff; color:#0891b2;"><i class="fa fa-external-link"></i></div>
-                      <div class="overview-body">
-                        <span class="overview-title">External Sabeel Payers</span>
-                        <span class="overview-value"><?= (int)$mt['external']; ?></span>
-                      </div>
-                    </div>
-                  </a>
-                </div>
-                <div class="col-12 col-md-4 col-lg-3 mb-3">
-                  <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Moved-Out Mumineen')); ?>" style="text-decoration:none;color:inherit;display:block;">
-                    <div class="overview-card">
-                      <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-sign-out"></i></div>
-                      <div class="overview-body">
-                        <span class="overview-title">Moved-Out Mumineen</span>
-                        <span class="overview-value"><?= (int)$mt['moved_out']; ?></span>
-                      </div>
-                    </div>
-                  </a>
-                </div>
-                <div class="col-12 col-md-4 col-lg-3 mb-3">
-                  <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Non-Sabeel Residents')); ?>" style="text-decoration:none;color:inherit;display:block;">
-                    <div class="overview-card">
-                      <div class="overview-icon" style="background:#fff1f2; color:#dc2626;"><i class="fa fa-ban"></i></div>
-                      <div class="overview-body">
-                        <span class="overview-title">Non-Sabeel Residents</span>
-                        <span class="overview-value"><?= (int)$mt['non_sabeel']; ?></span>
-                      </div>
-                    </div>
-                  </a>
-                </div>
-                <div class="col-12 col-md-4 col-lg-3 mb-3">
-                  <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Temporary Mumineen/Visitors')); ?>" style="text-decoration:none;color:inherit;display:block;">
-                    <div class="overview-card">
-                      <div class="overview-icon" style="background:#f5f3ff; color:#7c3aed;"><i class="fa fa-clock-o"></i></div>
-                      <div class="overview-body">
-                        <span class="overview-title">Temporary/Visitors</span>
-                        <span class="overview-value"><?= (int)$mt['temporary']; ?></span>
-                      </div>
-                    </div>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+
         <!-- Marital Status Distribution -->
         <div class="row">
           <div class="col-12" style="padding: 0;">
@@ -3850,6 +4102,131 @@
       });
     })();
   </script>
+
+  <!-- ===== Member Search Widget JavaScript ===== -->
+  <script>
+  (function(){
+    var baseUrl = '<?php echo base_url(); ?>';
+    var searchUrl = baseUrl + 'admin/searchmembers';
+    var viewMemberUrl = baseUrl + 'admin/viewmember/';
+
+    var $input   = $('#mswInput');
+    var $dropdown= $('#mswDropdown');
+    var $spinner = $('#mswSpinner');
+    var $clear   = $('#mswClear');
+
+    var debounceTimer = null;
+
+    function getInitials(name){
+      if(!name) return '?';
+      var parts = name.trim().split(/\s+/);
+      if(parts.length === 1) return parts[0].charAt(0).toUpperCase();
+      return (parts[0].charAt(0) + parts[parts.length-1].charAt(0)).toUpperCase();
+    }
+
+    function closeDropdown(){
+      $dropdown.removeClass('open').html('');
+    }
+
+    function showDropdown(results){
+      $dropdown.html('');
+      if(!results || results.length === 0){
+        $dropdown.html('<div class="msw-no-results"><i class="fa fa-search mr-1"></i>No members found</div>');
+        $dropdown.addClass('open');
+        return;
+      }
+      results.forEach(function(r){
+        var isF = (String(r.gender||'').toLowerCase() === 'female' || String(r.gender||'').toLowerCase() === 'f');
+        var avatarCls = isF ? 'msw-avatar female' : 'msw-avatar';
+        var initials  = getInitials(r.name);
+        var sector = r.sector ? ('<span>'+escHtml(r.sector)+'</span>') : '';
+        var hof    = r.hof_type ? (' &bull; '+escHtml(r.hof_type)) : '';
+        var item = $('<div class="msw-result-item" role="option" tabindex="0"></div>');
+        item.html(
+          '<div class="'+avatarCls+'">'+initials+'</div>'+
+          '<div style="flex:1;min-width:0;">'+
+            '<div class="msw-res-name">'+escHtml(r.name)+'</div>'+
+            '<div class="msw-res-meta">'+sector+hof+'</div>'+
+          '</div>'+
+          '<div class="msw-its-badge">'+escHtml(String(r.its_id))+'</div>'
+        );
+        item.on('click keydown', function(e){
+          if(e.type === 'keydown' && e.key !== 'Enter') return;
+          window.location.href = viewMemberUrl + r.its_id;
+        });
+        $dropdown.append(item);
+      });
+      $dropdown.addClass('open');
+    }
+
+    function escHtml(s){
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function doSearch(q){
+      $spinner.addClass('active');
+      $.getJSON(searchUrl, {q: q}, function(data){
+        $spinner.removeClass('active');
+        if(data && data.status === 'ok'){
+          showDropdown(data.results);
+        }
+      }).fail(function(){
+        $spinner.removeClass('active');
+        $dropdown.html('<div class="msw-no-results text-danger">Search failed. Please try again.</div>').addClass('open');
+      });
+    }
+
+
+
+    // Input handler
+    $input.on('input', function(){
+      var q = $(this).val().trim();
+      if(q.length > 0) $clear.addClass('visible'); else $clear.removeClass('visible');
+      clearTimeout(debounceTimer);
+      if(q.length < 2){
+        closeDropdown();
+        return;
+      }
+      debounceTimer = setTimeout(function(){ doSearch(q); }, 350);
+    });
+
+    // Clear button
+    $clear.on('click', function(){
+      $input.val('').focus();
+      $clear.removeClass('visible');
+      closeDropdown();
+    });
+
+    // Close dropdown on outside click
+    $(document).on('click', function(e){
+      if(!$(e.target).closest('#member-search-block').length){
+        closeDropdown();
+      }
+    });
+
+    // Keyboard: Escape closes
+    $input.on('keydown', function(e){
+      if(e.key === 'Escape'){ closeDropdown(); }
+    });
+
+    // Keyboard navigation in dropdown
+    $input.on('keydown', function(e){
+      var $items = $dropdown.find('.msw-result-item');
+      if(!$items.length) return;
+      var $focused = $dropdown.find('.msw-result-item:focus');
+      if(e.key === 'ArrowDown'){
+        e.preventDefault();
+        if(!$focused.length){ $items.first().focus(); }
+        else { var next = $items.index($focused)+1; if(next < $items.length) $items.eq(next).focus(); }
+      }
+      if(e.key === 'ArrowUp'){
+        e.preventDefault();
+        if($focused.length){ var prev = $items.index($focused)-1; if(prev >= 0) $items.eq(prev).focus(); else $input.focus(); }
+      }
+    });
+  })();
+  </script>
+  <!-- ===== End Member Search Widget JavaScript ===== -->
   <script>
     // Remove decimal points from currency summary amounts on Anjuman dashboard
     (function() {
@@ -3888,5 +4265,7 @@
           }, 0);
         }
       });
+      // Initialize Bootstrap tooltips for member-type info icons
+      $('[data-toggle="tooltip"]').tooltip({ placement: 'top', html: false });
     })();
   </script>
