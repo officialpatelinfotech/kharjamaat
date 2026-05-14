@@ -56,6 +56,24 @@
             <li>Marked Moved-Out: <strong class="text-danger"><?php echo (int)$summary['moved_out']; ?></strong></li>
           <?php endif; ?>
         </ul>
+        
+        <?php if(!empty($summary['match_distribution'])): ?>
+          <hr class="my-2">
+          <div class="fw-semibold mb-1">ITS-Sabeel Match Distribution:</div>
+          <ul class="mb-2">
+            <?php foreach($summary['match_distribution'] as $key => $count): 
+              $label = '';
+              $color = 'text-dark';
+              if ($key === 'its_sabeel_both_khar') { $label = 'ITS & Sabeel both in Khar'; $color = 'text-success'; }
+              elseif ($key === 'its_khar_sabeel_out') { $label = 'ITS in Khar, Sabeel outside'; $color = 'text-warning'; }
+              elseif ($key === 'sabeel_khar_its_out') { $label = 'Sabeel in Khar, ITS outside'; $color = 'text-info'; }
+              elseif ($key === 'both_not_khar') { $label = 'ITS & Sabeel both not in Khar'; $color = 'text-secondary'; }
+              if ($label):
+            ?>
+              <li><?php echo $label; ?>: <strong class="<?php echo $color; ?>"><?php echo (int)$count; ?></strong></li>
+            <?php endif; endforeach; ?>
+          </ul>
+        <?php endif; ?>
         <?php if(!empty($summary['errors'])): ?>
           <div class="alert alert-danger p-2">
             <div class="fw-semibold mb-1">Errors / Warnings (<?php echo count($summary['errors']); ?>)</div>

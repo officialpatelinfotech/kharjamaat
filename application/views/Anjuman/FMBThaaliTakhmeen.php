@@ -106,7 +106,6 @@
             <th>Sub-Sector</th>
             <th>Thaali Days</th>
             <th>Selected Year Takhmeen</th>
-            <th>Total Paid</th>
             <th>Total Due</th>
             <th>Action</th>
           </tr>
@@ -144,7 +143,6 @@
                     Takhmeen Not Found
                   <?php endif; ?>
                 </td>
-                <td class="takhmeen-amount text-success" data-sort-value="<?php echo (int)$user['overall_total_paid']; ?>" data-raw="<?php echo (int)$user['overall_total_paid']; ?>"><?php echo $user["overall_total_paid"]; ?></td>
                 <td class="takhmeen-amount <?php echo $user["overall_due"] > 0 ? 'text-danger' : ''; ?>" data-sort-value="<?php echo (int)$user['overall_due']; ?>" data-raw="<?php echo (int)$user['overall_due']; ?>"><?php echo $user["overall_due"]; ?></td>
                 <td>
                   <?php if (count($user["all_takhmeen"]) > 0): ?>

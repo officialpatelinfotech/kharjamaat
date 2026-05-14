@@ -23,6 +23,11 @@ function jamaat_name()
 
 function jamaat_place()
 {
+  $place = app_setting('jamaat_place', null);
+  if ($place !== null && trim((string)$place) !== '') {
+    return trim((string)$place);
+  }
+
   $name = trim((string)jamaat_name());
   if ($name === '') return 'Khar';
 
@@ -105,4 +110,39 @@ function admin_whatsapp_recipients()
     if ($norm !== '') $out[] = $norm;
   }
   return array_values(array_unique($out));
+}
+
+/**
+ * Get dynamic list of admin email recipients.
+ * Parses comma or newline separated email addresses configured in preferences.
+ */
+function admin_email_recipients()
+{
+  $raw = app_setting('admin_emails', null);
+  if ($raw === null || trim((string)$raw) === '') {
+    // Fallback default admin emails
+    return [
+      'amilsaheb@kharjamaat.in',
+      '3042@carmelnmh.in',
+      'kharjamaat@gmail.com',
+      'kharamilsaheb@gmail.com',
+      'kharjamaat786@gmail.com',
+      'khozemtopiwalla@gmail.com',
+      'ybookwala@gmail.com'
+    ];
+  }
+
+  // Split by comma or newline
+  $parts = preg_split('/[\n,\r]+/', (string)$raw);
+  $emails = [];
+  if (is_array($parts)) {
+    foreach ($parts as $p) {
+      $p = trim($p);
+      if ($p !== '' && filter_var($p, FILTER_VALIDATE_EMAIL)) {
+        $emails[] = $p;
+      }
+    }
+  }
+
+  return array_values(array_unique($emails));
 }

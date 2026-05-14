@@ -2,6 +2,13 @@
   .hidden {
     display: none;
   }
+  /* Section separators */
+  .section-start-est {
+    border-left: 3px solid #6c4f00 !important;
+  }
+  .section-start-res {
+    border-left: 3px solid #1a4a6b !important;
+  }
 </style>
 <div class="margintopcontainer mx-5 pt-5">
   <div class="p-0">
@@ -10,7 +17,7 @@
   <h4 class="heading text-center mb-4">Manage Sabeel Takhmeen</h4>
   <div class="row mb-4">
     <div class="col-12 col-md-6 d-flex m-0">
-      <form method="POST" action="<?php echo base_url("admin/filteruserinsabeeltakhmeen"); ?>" class="d-flex m-0">
+      <form method="POST" action="<?php echo base_url("admin/filteruserinsabeeltakhmeen"); ?>" class="d-flex m-0 filter-form">
         <input type="text" name="member_name" id="member-name" class="form-control" placeholder="Name or ITS" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
         <?php
           // Build Hijri composite year dropdown (1442-43 to 1457-58) and default to current Hijri FY
@@ -43,7 +50,7 @@
             <option value="<?php echo $yr; ?>" <?php echo ($selectedYear === $yr ? 'selected' : ''); ?>><?php echo $yr; ?></option>
           <?php endforeach; ?>
         </select>
-        <button type="submit" class="btn btn-primary ml-2">Submit</button>
+        <button type="submit" class="btn btn-primary ml-2 d-none">Submit</button>
       </form>
       <a href="<?php echo base_url("admin/sabeeltakhmeendashboard"); ?>">
         <button class="btn btn-outline-secondary ml-2">
@@ -57,8 +64,8 @@
       <thead>
         <tr>
           <th colspan="4" class="text-center">Member Info</th>
-          <th colspan="3" class="text-center">Establishment Sabeel</th>
-          <th colspan="3" class="text-center">Residential Sabeel</th>
+          <th colspan="3" class="text-center section-start-est" style="background-color:#fdf6e3;">Establishment Sabeel</th>
+          <th colspan="3" class="text-center section-start-res" style="background-color:#eaf3fb;">Residential Sabeel</th>
           <th rowspan="2" class="text-center">Current Year Total</th>
           <th rowspan="2" class="text-center">Action</th>
         </tr>
@@ -67,12 +74,12 @@
           <th>ITS ID</th>
           <th>Name</th>
           <th>Sector</th>
-          <th>Grade</th>
-          <th>Takhmeen Per Month</th>
-          <th>Takhmeen Yearly</th>
-          <th>Grade</th>
-          <th>Takhmeen Per Month</th>
-          <th>Takhmeen Yearly</th>
+          <th class="section-start-est" style="background-color:#fdf6e3;">Grade</th>
+          <th style="background-color:#fdf6e3;">Takhmeen Per Month</th>
+          <th style="background-color:#fdf6e3;">Takhmeen Yearly</th>
+          <th class="section-start-res" style="background-color:#eaf3fb;">Grade</th>
+          <th style="background-color:#eaf3fb;">Takhmeen Per Month</th>
+          <th style="background-color:#eaf3fb;">Takhmeen Yearly</th>
         </tr>
       </thead>
       <tbody>
@@ -133,7 +140,7 @@
                 <!-- <br><small class="text-muted">ITS: <?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?></small> -->
               </td>
               <td data-sort-value="<?php echo htmlspecialchars(strtolower(trim((string)($user['Sector'] ?? '') . ' - ' . (string)($user['Sub_Sector'] ?? ''))), ENT_QUOTES); ?>"><?php echo htmlspecialchars(trim((string)($user['Sector'] ?? '') . ' - ' . (string)($user['Sub_Sector'] ?? ''))); ?></td>
-              <td data-sort-value="<?php echo htmlspecialchars(strtolower($estGrade ?? ''), ENT_QUOTES); ?>">
+              <td class="section-start-est" style="background-color:#fdf6e3;" data-sort-value="<?php echo htmlspecialchars(strtolower($estGrade ?? ''), ENT_QUOTES); ?>">
                 <?php 
                   $estGrade = isset($est['grade']) ? trim((string)$est['grade']) : '';
                   $showEstGrade = ($estGrade !== '' && strcasecmp($estGrade,'no grade') !== 0 && strcasecmp($estGrade,'unknown') !== 0);
@@ -141,9 +148,9 @@
                 ?>
                 <br><small class="text-muted"><?php echo $cy ? '(' . htmlspecialchars((string)$cy) . ')' : ''; ?></small>
               </td>
-              <td class="takhmeen-amount" data-sort-value="<?php echo isset($est['monthly']) && is_numeric($est['monthly']) ? (float)$est['monthly'] : 0; ?>"><?php echo (isset($est['monthly']) && is_numeric($est['monthly']) && $est['monthly'] > 0) ? round($est['monthly']) : ''; ?></td>
-              <td class="takhmeen-amount" data-sort-value="<?php echo isset($est['yearly']) && is_numeric($est['yearly']) ? (float)$est['yearly'] : 0; ?>"><?php echo (isset($est['yearly']) && is_numeric($est['yearly']) && $est['yearly'] > 0) ? round($est['yearly']) : ''; ?></td>
-              <td>
+              <td class="takhmeen-amount" style="background-color:#fdf6e3;" data-sort-value="<?php echo isset($est['monthly']) && is_numeric($est['monthly']) ? (float)$est['monthly'] : 0; ?>"><?php echo (isset($est['monthly']) && is_numeric($est['monthly']) && $est['monthly'] > 0) ? round($est['monthly']) : ''; ?></td>
+              <td class="takhmeen-amount" style="background-color:#fdf6e3;" data-sort-value="<?php echo isset($est['yearly']) && is_numeric($est['yearly']) ? (float)$est['yearly'] : 0; ?>"><?php echo (isset($est['yearly']) && is_numeric($est['yearly']) && $est['yearly'] > 0) ? round($est['yearly']) : ''; ?></td>
+              <td class="section-start-res" style="background-color:#eaf3fb;">
                 <?php 
                   $resGrade = isset($res['grade']) ? trim((string)$res['grade']) : '';
                   $showResGrade = ($resGrade !== '' && strcasecmp($resGrade,'no grade') !== 0 && strcasecmp($resGrade,'unknown') !== 0);
@@ -151,8 +158,8 @@
                 ?>
                 <br><small class="text-muted"><?php echo $cy ? '(' . htmlspecialchars((string)$cy) . ')' : ''; ?></small>
               </td>
-              <td class="takhmeen-amount" data-sort-value="<?php echo isset($res['monthly']) && is_numeric($res['monthly']) ? (float)$res['monthly'] : 0; ?>"><?php echo (isset($res['monthly']) && is_numeric($res['monthly']) && $res['monthly'] > 0) ? round($res['monthly']) : ''; ?></td>
-              <td class="takhmeen-amount" data-sort-value="<?php echo isset($res['yearly']) && is_numeric($res['yearly']) ? (float)$res['yearly'] : 0; ?>"><?php echo (isset($res['yearly']) && is_numeric($res['yearly']) && $res['yearly'] > 0) ? round($res['yearly']) : ''; ?></td>
+              <td class="takhmeen-amount" style="background-color:#eaf3fb;" data-sort-value="<?php echo isset($res['monthly']) && is_numeric($res['monthly']) ? (float)$res['monthly'] : 0; ?>"><?php echo (isset($res['monthly']) && is_numeric($res['monthly']) && $res['monthly'] > 0) ? round($res['monthly']) : ''; ?></td>
+              <td class="takhmeen-amount" style="background-color:#eaf3fb;" data-sort-value="<?php echo isset($res['yearly']) && is_numeric($res['yearly']) ? (float)$res['yearly'] : 0; ?>"><?php echo (isset($res['yearly']) && is_numeric($res['yearly']) && $res['yearly'] > 0) ? round($res['yearly']) : ''; ?></td>
               <td class="takhmeen-amount" data-sort-value="<?php echo isset($total_yearly) && is_numeric($total_yearly) ? (float)$total_yearly : 0; ?>"><?php echo (isset($total_yearly) && is_numeric($total_yearly) && $total_yearly > 0) ? round($total_yearly) : ''; ?></td>
               <td class="text-nowrap">
                 <button class="add-takhmeen btn btn-success btn-sm mb-1" data-toggle="modal" data-target="#add-takhmeen-container" data-user-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?>" data-user-name="<?php echo htmlspecialchars($__fullName); ?>">Add</button>
@@ -251,12 +258,12 @@
             <thead class="thead-light">
               <tr>
                 <th>Year</th>
-                <th>Est. Grade</th>
-                <th>Est. Monthly</th>
-                <th>Est. Yearly</th>
-                <th>Res. Grade</th>
-                <th>Res. Monthly</th>
-                <th>Res. Yearly</th>
+                <th class="section-start-est" style="background-color:#fdf6e3;">Est. Grade</th>
+                <th style="background-color:#fdf6e3;">Est. Monthly</th>
+                <th style="background-color:#fdf6e3;">Est. Yearly</th>
+                <th class="section-start-res" style="background-color:#eaf3fb;">Res. Grade</th>
+                <th style="background-color:#eaf3fb;">Res. Monthly</th>
+                <th style="background-color:#eaf3fb;">Res. Yearly</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -283,6 +290,20 @@
   }
   $(function(){
     formatCurrencyCells();
+
+    // Auto-submit form on input text/select, with a small debounce for text to not trigger on every keystroke
+    let typingTimer;
+    const doneTypingInterval = 500; // 500ms
+    $('.filter-form input[type="text"]').on('keyup', function() {
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => {
+        $(this).closest('form').submit();
+      }, doneTypingInterval);
+    });
+    $('.filter-form input[type="text"]').on('keydown', function() {
+      clearTimeout(typingTimer);
+    });
+
     // Auto-submit on year change to refresh table for selected FY
     $('#filter-year').on('change', function(){
       $(this).closest('form').trigger('submit');
@@ -304,14 +325,14 @@
         const rowId = `trow-${t.id}`;
         $tbody.append(`<tr id="${rowId}">
           <td>${t.year}</td>
-          <td>${t.establishment.grade || ''}</td>
-          <td class='takhmeen-amount'>${t.establishment.monthly !== '' ? t.establishment.monthly : ''}</td>
-          <td class='takhmeen-amount'>${t.establishment.yearly !== '' ? t.establishment.yearly : ''}</td>
-          <td>${t.residential.grade || ''}</td>
-          <td class='takhmeen-amount'>${t.residential.monthly !== '' ? t.residential.monthly : ''}</td>
-            <td class='takhmeen-amount'>${t.residential.yearly !== '' ? t.residential.yearly : ''}</td>
+          <td class="section-start-est" style="background-color:#fdf6e3;">${t.establishment.grade || ''}</td>
+          <td class='takhmeen-amount' style="background-color:#fdf6e3;">${t.establishment.monthly !== '' ? t.establishment.monthly : ''}</td>
+          <td class='takhmeen-amount' style="background-color:#fdf6e3;">${t.establishment.yearly !== '' ? t.establishment.yearly : ''}</td>
+          <td class="section-start-res" style="background-color:#eaf3fb;">${t.residential.grade || ''}</td>
+          <td class='takhmeen-amount' style="background-color:#eaf3fb;">${t.residential.monthly !== '' ? t.residential.monthly : ''}</td>
+            <td class='takhmeen-amount' style="background-color:#eaf3fb;">${t.residential.yearly !== '' ? t.residential.yearly : ''}</td>
           <td class='text-nowrap'>
-             <button class="btn btn-sm btn-outline-primary vt-edit" data-tid="${t.id}" data-year="${t.year}" data-user-id="${userId}">Edit</button>
+             <button class="btn btn-sm btn-outline-primary vt-edit" data-tid="${t.id}" data-year="${t.year}" data-user-id="${userId}" data-est-id="${t.establishment.grade_id || ''}" data-res-id="${t.residential.grade_id || ''}">Edit</button>
              <button class="btn btn-sm btn-outline-danger vt-delete" data-tid="${t.id}" data-year="${t.year}" data-user-id="${userId}">Delete</button>
           </td>
         </tr>`);
@@ -471,6 +492,8 @@
     const tid = $(this).data('tid');
     const year = $(this).data('year');
     const userId = $(this).data('user-id');
+    const estId = $(this).data('est-id');
+    const resId = $(this).data('res-id');
     const $editRow = $('#edit-'+tid);
     if(!$editRow.length) return;
     // Populate grade selects
@@ -480,10 +503,10 @@
       const res = grades.filter(g => g.type === 'Residential');
       const $estSel = $editRow.find('.est-grade-select');
       const $resSel = $editRow.find('.res-grade-select');
-      $estSel.empty().append('<option value="">--Establishment--</option>');
-      est.forEach(g => $estSel.append(`<option value="${g.id}">${g.grade}</option>`));
-      $resSel.empty().append('<option value="">--Residential--</option>');
-      res.forEach(g => $resSel.append(`<option value="${g.id}">${g.grade}</option>`));
+      $estSel.empty().append(`<option value="" ${!estId ? 'selected' : ''}>-- None --</option>`);
+      est.forEach(g => $estSel.append(`<option value="${g.id}" ${estId == g.id ? 'selected' : ''}>${g.grade}</option>`));
+      $resSel.empty().append(`<option value="" ${!resId ? 'selected' : ''}>-- None --</option>`);
+      res.forEach(g => $resSel.append(`<option value="${g.id}" ${resId == g.id ? 'selected' : ''}>${g.grade}</option>`));
       $('.vt-edit-row').addClass('d-none'); // hide others
       $editRow.removeClass('d-none');
     });

@@ -254,11 +254,14 @@ class MasoolMusaid extends CI_Controller
       $subsector = strtoupper($matches[2]); // Normalize to uppercase
     }
 
-    // Determine Hijri year selection (default to current Hijri year)
+    // Determine Hijri year selection (default to upcoming year if Hijri month >= 10)
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $hijri_parts = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts[2];
+    $current_hijri_month = (int)$hijri_parts[1];
+    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year);
     // Fetch available Hijri years from calendar (fallback to +/-1 range if empty)
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
@@ -290,6 +293,8 @@ class MasoolMusaid extends CI_Controller
       'Bairo' => 0,
       'Age_0_4' => 0,
       'Age_5_15' => 0,
+      'Age_16_25' => 0,
+      'Age_26_65' => 0,
       'Buzurgo' => 0,
       'LeaveStatus' => [],
       'Sectors' => $sectorsData,
@@ -315,6 +320,10 @@ class MasoolMusaid extends CI_Controller
         $stats['Age_0_4']++;
       if ($age >= 5 && $age <= 15)
         $stats['Age_5_15']++;
+      if ($age >= 16 && $age <= 25)
+        $stats['Age_16_25']++;
+      if ($age >= 26 && $age <= 65)
+        $stats['Age_26_65']++;
       if ($age > 65)
         $stats['Buzurgo']++;
 
@@ -356,13 +365,6 @@ class MasoolMusaid extends CI_Controller
     }
 
     $updateData = [
-      'Type' => $this->input->post('Type'),
-      'HOF' => $this->input->post('HOF'),
-      'Name' => $this->input->post('Full_Name'), // <-- Full_Name used
-      'Age' => $this->input->post('Age'),
-      'Mobile' => $this->input->post('Mobile'),
-      'Sector' => $this->input->post('Sector'),
-      'Sub' => $this->input->post('Sub'),
       'LeaveStatus' => $leaveStatus,
       'Comment' => $this->input->post('Comment')
     ];
@@ -403,8 +405,11 @@ class MasoolMusaid extends CI_Controller
     // Hijri Year selection (UI scope only; attendance table is not year-scoped)
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $hijri_parts_att = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts_att[2];
+    $current_hijri_month_att = (int)$hijri_parts_att[1];
+    $default_year_att = ($current_hijri_month_att >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year_att);
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
     if (empty($year_options)) {

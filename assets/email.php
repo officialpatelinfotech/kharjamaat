@@ -144,12 +144,12 @@
 						</tbody>
 					</table>
 
-					<p style="margin-top:12px;">If you did not submit this request, please contact us at <a href="mailto:kharjamaat786@gmail.com">kharjamaat786@gmail.com</a>.</p>
-					<a class="cta" style="color: white;" href="https://www.kharjamaat.in/accounts">Login to your account</a>
+					<p style="margin-top:12px;">If you did not submit this request, please contact us at <a href="mailto:{%support_email%}">{%support_email%}</a>.</p>
+					<a class="cta" style="color: white;" href="{%accounts_url%}">Login to your account</a>
 				</div>
 			</div>
 			<div class="footer">
-				Anjuman-e-Saifee — {%jamaat_name%} • Bohra Masjid, Khar • <a href="tel:+919372415351">+919372415351</a> • <a href="mailto:kharjamaat786@gmail.com">kharjamaat786@gmail.com</a>
+				Anjuman-e-Saifee — {%jamaat_name%} • Bohra Masjid, {%jamaat_place%} • <a href="mailto:{%support_email%}">{%support_email%}</a>
 			</div>
 		</div>
 	</div>

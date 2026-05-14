@@ -1403,6 +1403,8 @@ class AnjumanM extends CI_Model
       'amount'       => $formData['amount'],
       'payment_date' => $formData['payment_date'] ?? date('Y-m-d'),
       'remarks'      => $formData['remarks'] ?? null,
+      'reference_no' => $formData['reference_no'] ?? null,
+      'bank_name'    => $formData['bank_name'] ?? null,
     ];
     $this->db->insert('sabeel_takhmeen_payments', $insert);
     return $this->db->affected_rows() > 0;
@@ -2253,7 +2255,7 @@ class AnjumanM extends CI_Model
    * Insert a payment record for an FMB General Contribution invoice, validating against remaining balance.
    * Returns array: [success => bool, message => string]
    */
-  public function insert_fmbgc_payment($fmbgc_id, $user_id, $amount, $payment_method, $payment_date, $remarks)
+  public function insert_fmbgc_payment($fmbgc_id, $user_id, $amount, $payment_method, $payment_date, $remarks, $reference_no = null, $bank_name = null)
   {
     $invoice = $this->db->select('gc.id, gc.amount, IFNULL(SUM(p.amount),0) AS total_received')
       ->from('fmb_general_contribution gc')
@@ -2275,6 +2277,8 @@ class AnjumanM extends CI_Model
       'payment_method' => $payment_method,
       'payment_date' => $payment_date,
       'remarks' => $remarks,
+      'reference_no' => $reference_no,
+      'bank_name' => $bank_name,
       'created_at' => date('Y-m-d H:i:s')
     ];
     if (!$this->db->insert('fmb_general_contribution_payments', $insert)) {
@@ -2353,6 +2357,192 @@ class AnjumanM extends CI_Model
       ->where('gc.id', $invoice_id)
       ->group_by('gc.id')
       ->get()->row_array();
+  }
+
+  /**
+   * Unified payments report for a given date range.
+   *
+   * Returns normalized rows with keys:
+   * - source, payment_id, payment_date, amount, payment_method, notes, its_id, full_name, reference
+   */
+  public function get_payments_in_date_range($fromDate, $toDate)
+  {
+    $fromDate = trim((string)$fromDate);
+    $toDate = trim((string)$toDate);
+    if ($fromDate === '' || $toDate === '') return [];
+
+    $fromTs = strtotime($fromDate);
+    $toTs = strtotime($toDate);
+    if (!$fromTs || !$toTs) return [];
+
+    $from = date('Y-m-d', $fromTs);
+    $to = date('Y-m-d', $toTs);
+    $fromDT = $from . ' 00:00:00';
+    $toDT = $to . ' 23:59:59';
+
+    $parts = [];
+    $params = [];
+
+    // Force consistent collation across UNIONed string columns to avoid
+    // "Illegal mix of collations" errors.
+    $collation = 'utf8mb4_general_ci';
+    $c = function ($expr) use ($collation) {
+      return "CONVERT({$expr} USING utf8mb4) COLLATE {$collation}";
+    };
+
+    // Miqaat invoice payments
+    if ($this->db->table_exists('miqaat_payment')) {
+      $parts[] = "SELECT " . $c("'Miqaat'") . " AS source,
+          p.id AS payment_id,
+          p.payment_date AS payment_date,
+          p.amount AS amount,
+          " . $c('p.payment_method') . " AS payment_method,
+          " . $c('p.remarks') . " AS notes,
+          " . $c('u.ITS_ID') . " AS its_id,
+          " . $c('u.Full_Name') . " AS full_name,
+          " . $c("CONCAT('INV:', COALESCE(p.miqaat_invoice_id, ''))") . " AS reference
+        FROM miqaat_payment p
+        LEFT JOIN user u ON u.ITS_ID = p.user_id
+        WHERE p.payment_date >= ? AND p.payment_date <= ?";
+      $params[] = $from;
+      $params[] = $to;
+    }
+
+    // FMB Takhmeen payments
+    if ($this->db->table_exists('fmb_takhmeen_payments')) {
+      $parts[] = "SELECT " . $c("'FMB Takhmeen'") . " AS source,
+          p.id AS payment_id,
+          p.payment_date AS payment_date,
+          p.amount AS amount,
+          " . $c('p.payment_method') . " AS payment_method,
+          " . $c('p.remarks') . " AS notes,
+          " . $c('u.ITS_ID') . " AS its_id,
+          " . $c('u.Full_Name') . " AS full_name,
+          CAST(NULL AS CHAR CHARACTER SET utf8mb4) COLLATE {$collation} AS reference
+        FROM fmb_takhmeen_payments p
+        LEFT JOIN user u ON u.ITS_ID = p.user_id
+        WHERE p.payment_date >= ? AND p.payment_date <= ?";
+      $params[] = $from;
+      $params[] = $to;
+    }
+
+    // Sabeel takhmeen payments
+    if ($this->db->table_exists('sabeel_takhmeen_payments')) {
+      $parts[] = "SELECT " . $c("CONCAT('Sabeel', IF(p.type IS NULL OR p.type = '', '', CONCAT(' (', p.type, ')')))") . " AS source,
+          p.id AS payment_id,
+          p.payment_date AS payment_date,
+          p.amount AS amount,
+          " . $c('p.payment_method') . " AS payment_method,
+          " . $c('p.remarks') . " AS notes,
+          " . $c('u.ITS_ID') . " AS its_id,
+          " . $c('u.Full_Name') . " AS full_name,
+          CAST(NULL AS CHAR CHARACTER SET utf8mb4) COLLATE {$collation} AS reference
+        FROM sabeel_takhmeen_payments p
+        LEFT JOIN user u ON u.ITS_ID = p.user_id
+        WHERE p.payment_date >= ? AND p.payment_date <= ?";
+      $params[] = $from;
+      $params[] = $to;
+    }
+
+    // FMB General Contribution payments
+    if ($this->db->table_exists('fmb_general_contribution_payments')) {
+      $parts[] = "SELECT " . $c("CONCAT('FMB GC', IF(gc.contri_type IS NULL OR gc.contri_type = '', '', CONCAT(' (', gc.contri_type, ')')))") . " AS source,
+          p.id AS payment_id,
+          p.payment_date AS payment_date,
+          p.amount AS amount,
+          " . $c('p.payment_method') . " AS payment_method,
+          " . $c('p.remarks') . " AS notes,
+          " . $c('u.ITS_ID') . " AS its_id,
+          " . $c('u.Full_Name') . " AS full_name,
+          " . $c("CONCAT('GC:', COALESCE(p.fmbgc_id, ''))") . " AS reference
+        FROM fmb_general_contribution_payments p
+        LEFT JOIN fmb_general_contribution gc ON gc.id = p.fmbgc_id
+        LEFT JOIN user u ON u.ITS_ID = p.user_id
+        WHERE p.payment_date >= ? AND p.payment_date <= ?";
+      $params[] = $from;
+      $params[] = $to;
+    }
+
+    // Laagat / Rent payments
+    if ($this->db->table_exists('laagat_rent_payments')) {
+      $parts[] = "SELECT " . $c("CONCAT('Laagat/Rent', IF(lr.charge_type IS NULL OR lr.charge_type = '', '', CONCAT(' (', lr.charge_type, ')')))") . " AS source,
+          p.id AS payment_id,
+          p.payment_date AS payment_date,
+          p.amount AS amount,
+          " . $c('p.payment_method') . " AS payment_method,
+          " . $c('p.remarks') . " AS notes,
+          " . $c('u.ITS_ID') . " AS its_id,
+          " . $c('u.Full_Name') . " AS full_name,
+          " . $c("CONCAT('LR-INV:', COALESCE(p.invoice_id, ''))") . " AS reference
+        FROM laagat_rent_payments p
+        LEFT JOIN laagat_rent_invoices i ON i.id = p.invoice_id
+        LEFT JOIN laagat_rent lr ON lr.id = i.laagat_rent_id
+        LEFT JOIN user u ON u.ITS_ID = i.user_id
+        WHERE p.payment_date >= ? AND p.payment_date <= ?";
+      $params[] = $from;
+      $params[] = $to;
+    }
+
+    // Ekram fund payments
+    if ($this->db->table_exists('ekram_fund_payment')) {
+      $parts[] = "SELECT " . $c("'Ekram Fund'") . " AS source,
+          p.id AS payment_id,
+          p.paid_at AS payment_date,
+          p.amount_paid AS amount,
+          " . $c('p.payment_method') . " AS payment_method,
+          " . $c('p.notes') . " AS notes,
+          " . $c('u.ITS_ID') . " AS its_id,
+          " . $c('u.Full_Name') . " AS full_name,
+          " . $c("CONCAT('FUND:', COALESCE(p.fund_id, ''))") . " AS reference
+        FROM ekram_fund_payment p
+        LEFT JOIN user u ON u.HOF_ID = p.hof_id AND u.HOF_FM_TYPE = 'HOF'
+        WHERE p.paid_at >= ? AND p.paid_at <= ?";
+      $params[] = $fromDT;
+      $params[] = $toDT;
+    }
+
+    // Corpus fund payments
+    if ($this->db->table_exists('corpus_fund_payment')) {
+      $parts[] = "SELECT " . $c("'Corpus Fund'") . " AS source,
+          p.id AS payment_id,
+          p.paid_at AS payment_date,
+          p.amount_paid AS amount,
+          " . $c('p.payment_method') . " AS payment_method,
+          " . $c('p.notes') . " AS notes,
+          " . $c('u.ITS_ID') . " AS its_id,
+          " . $c('u.Full_Name') . " AS full_name,
+          " . $c("CONCAT('FUND:', COALESCE(p.fund_id, ''))") . " AS reference
+        FROM corpus_fund_payment p
+        LEFT JOIN user u ON u.HOF_ID = p.hof_id AND u.HOF_FM_TYPE = 'HOF'
+        WHERE p.paid_at >= ? AND p.paid_at <= ?";
+      $params[] = $fromDT;
+      $params[] = $toDT;
+    }
+
+    // Madresa fee payments
+    if ($this->db->table_exists('madresa_fee_payment')) {
+      $parts[] = "SELECT " . $c("'Madresa Fee'") . " AS source,
+          p.id AS payment_id,
+          p.paid_on AS payment_date,
+          p.amount AS amount,
+          " . $c('p.payment_mode') . " AS payment_method,
+          " . $c('p.notes') . " AS notes,
+          " . $c('u.ITS_ID') . " AS its_id,
+          " . $c('u.Full_Name') . " AS full_name,
+          " . $c("CONCAT('CLASS:', COALESCE(p.m_class_id, ''))") . " AS reference
+        FROM madresa_fee_payment p
+        LEFT JOIN user u ON u.ITS_ID = p.students_its_id
+        WHERE p.paid_on >= ? AND p.paid_on <= ?";
+      $params[] = $from;
+      $params[] = $to;
+    }
+
+    if (empty($parts)) return [];
+
+    $sql = implode("\nUNION ALL\n", $parts) . "\nORDER BY payment_date DESC, source ASC, payment_id DESC";
+    $q = $this->db->query($sql, $params);
+    if (!$q) return [];
+    return $q->result_array();
   }
 
   /**

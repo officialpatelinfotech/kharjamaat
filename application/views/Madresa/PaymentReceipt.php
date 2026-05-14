@@ -74,6 +74,7 @@
 <div class="container-fluid mt-4 page-container">
 	<?php
 		$madresa_base = !empty($madresa_base) ? (string)$madresa_base : 'madresa';
+		$paymentId = (!empty($payment) && is_array($payment)) ? (int)($payment['id'] ?? 0) : 0;
 		$fmtMoney = function ($n) {
 			$n = ($n === '' || $n === null) ? 0 : (float)$n;
 			$formatted = function_exists('format_inr') ? format_inr($n, 2) : number_format($n, 2);
@@ -87,6 +88,7 @@
 		</div>
 		<h3 class="page-title">Payment Receipt</h3>
 		<div class="page-title-right">
+			<button class="btn btn-outline-secondary btn-sm" onclick="downloadMadresaReceiptPdf(<?php echo (int)$paymentId; ?>)" <?php echo $paymentId > 0 ? '' : 'disabled'; ?>>PDF</button>
 			<button class="btn btn-outline-secondary btn-sm" onclick="window.print()">Print</button>
 		</div>
 	</div>
@@ -118,3 +120,26 @@
 		</div>
 	<?php } ?>
 </div>
+
+<script>
+function downloadMadresaReceiptPdf(paymentId) {
+	if (!paymentId) return;
+	const endpoint = "<?php echo base_url('common/generate_pdf'); ?>";
+	const form = new FormData();
+	form.append('id', String(paymentId));
+	form.append('for', '7');
+
+	fetch(endpoint, { method: 'POST', body: form })
+		.then(function(resp) {
+			if (!resp.ok) throw new Error('HTTP ' + resp.status);
+			return resp.blob();
+		})
+		.then(function(blob) {
+			var url = window.URL.createObjectURL(blob);
+			window.open(url, '_blank');
+		})
+		.catch(function() {
+			alert('Failed to generate receipt PDF');
+		});
+}
+</script>

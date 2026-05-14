@@ -479,14 +479,6 @@
     </div>
     <div class="row m-2 mt-md-5">
       <form class="form-inline my-2 my-lg-0 w-100">
-        <div class="input-group">
-          <input class="form-control" type="search" placeholder="Search" aria-label="Search" id="razaSearchInput">
-          <div class="input-group-append">
-            <span class="input-group-text">
-              <i class="fa fa-search"></i>
-            </span>
-          </div>
-        </div>
         <a class="form-control btn btn-success my-2 my-lg-0 ml-auto" onclick="refresh();">Refresh</a>
       </form>
     </div>

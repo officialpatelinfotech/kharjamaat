@@ -52,13 +52,13 @@ function stats_card($st, $day)
             </div>
             <div class='d-flex justify-content-between align-items-center bg-white p-2 rounded border-start border-primary border-3 shadow-sm'>
                 <div class='text-primary'>
-                    <i class='fas fa-map-marker-alt me-1'></i><strong>Khar On Time</strong>
+                    <i class='fas fa-map-marker-alt me-1'></i><strong>" . htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8') . " On Time</strong>
                 </div>
                 <span class='fw-bold text-primary'>" . ($st['khar_on_time'] ?? 0) . "</span>
             </div>
             <div class='d-flex justify-content-between align-items-center bg-white p-2 rounded border-start border-warning border-3 shadow-sm'>
                 <div class='text-warning'>
-                    <i class='fas fa-clock me-1'></i><strong>Khar Late</strong>
+                    <i class='fas fa-clock me-1'></i><strong>" . htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8') . " Late</strong>
                 </div>
                 <span class='fw-bold text-warning'>" . ($st['khar_late'] ?? 0) . "</span>
             </div>

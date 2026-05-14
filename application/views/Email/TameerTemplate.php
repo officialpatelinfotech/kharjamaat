@@ -65,7 +65,7 @@
 
   <p>
     Shukran,<br>
-    <strong>Anjuman e Saifee Jamaat Khar</strong>
+    <strong><?php echo htmlspecialchars(jamaat_name()); ?></strong>
   </p>
 
 </body>

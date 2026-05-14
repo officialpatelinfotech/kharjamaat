@@ -406,12 +406,23 @@
           <p><b>Member Name: <span id="payment-user-name">Member Name</span></b></p>
           <div class="form-group">
             <label for="payment-method">Payment Method</label>
-            <select name="payment_method" id="payment-method" class="form-control" required>
+            <select name="payment_method" id="payment-method" class="form-control" required onchange="togglePaymentFields(this.value)">
               <option value="">-----</option>
               <option value="Cash">Cash</option>
               <option value="Cheque">Cheque</option>
               <option value="NEFT">NEFT</option>
             </select>
+          </div>
+          
+          <div id="extra-payment-fields" style="display: none;">
+            <div class="form-group">
+              <label for="reference_no" class="form-label">Cheque No. / NEFT Ref No.</label>
+              <input type="text" name="reference_no" id="reference_no" class="form-control" placeholder="Enter reference number">
+            </div>
+            <div class="form-group">
+              <label for="bank_name" class="form-label">Drawn on Bank</label>
+              <input type="text" name="bank_name" id="bank_name" class="form-control" placeholder="Enter bank name">
+            </div>
           </div>
           <label for="sabeel-type" class="form-label">Sabeel Type</label>
           <select name="type" id="sabeel-type" class="form-control" required data-e-due="" data-r-due="">
@@ -579,6 +590,9 @@
     $("#sabeel-type").data("e-due-all", est_all_years_due);
     $("#sabeel-type").data("r-due-all", res_all_years_due);
     $("#payment-method").val("");
+    $("#reference_no").val("");
+    $("#bank_name").val("");
+    togglePaymentFields("");
     $("#sabeel-type").val("");
     $("#payment-amount").val("");
     $("#payment-remarks").val("");
@@ -595,6 +609,16 @@
       $("#payment-amount").prop("max", rDue);
     }
   });
+
+  function togglePaymentFields(method) {
+    if (method === 'Cheque' || method === 'NEFT') {
+      $('#extra-payment-fields').show();
+    } else {
+      $('#extra-payment-fields').hide();
+      $('#reference_no').val('');
+      $('#bank_name').val('');
+    }
+  }
 
   let __historyCache = {
     rows: [],

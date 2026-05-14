@@ -259,6 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						const method = p.payment_mode ? escapeHtml(p.payment_mode) : '-';
 						const desc = p.notes ? escapeHtml(p.notes) : '-';
 						const receiptUrl = '<?php echo base_url('madresa/classes/payment-receipt/'); ?>' + p.m_class_id + '?payment_id=' + p.id;
+						const pdfBtn = `<button type="button" class="btn btn-sm btn-outline-secondary ml-2" onclick="openMadresaReceiptPdf(${parseInt(p.id, 10) || 0})" title="PDF"><i class="fas fa-file-pdf"></i> PDF</button>`;
 						
 						html += `<tr>
 							<td>${dateStr}</td>
@@ -269,6 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
 								<a href="${receiptUrl}" class="btn btn-sm btn-outline-primary" target="_blank" title="View Receipt">
 									<i class="fas fa-file-invoice"></i> Receipt
 								</a>
+								${pdfBtn}
 							</td>
 						</tr>`;
 					});
@@ -286,6 +288,25 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	});
 });
+
+function openMadresaReceiptPdf(paymentId) {
+	if (!paymentId) return;
+	const endpoint = '<?php echo base_url('common/generate_pdf'); ?>';
+	const form = new FormData();
+	form.append('id', String(paymentId));
+	form.append('for', '7');
+
+	fetch(endpoint, { method: 'POST', body: form })
+		.then(resp => {
+			if (!resp.ok) throw new Error('HTTP ' + resp.status);
+			return resp.blob();
+		})
+		.then(blob => {
+			const url = window.URL.createObjectURL(blob);
+			window.open(url, '_blank');
+		})
+		.catch(() => alert('Failed to generate receipt PDF'));
+}
 </script>
 			<?php } ?>
 		</div>

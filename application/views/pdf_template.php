@@ -76,8 +76,8 @@
 <body>
 
   <div class="header">
-    <h1>Anjuman-e-Saifee, Dawoodi Bohra Jamaat (Khar)</h1>
-    <h3>Trust Regn No: E / 24158 (Mumbai)<br>Managed by: Anjuman-e-Saifee</h3>
+    <h1><?php echo htmlspecialchars(app_setting('receipt_jamaat_name', 'Anjuman-e-Saifee, Dawoodi Bohra Jamaat (' . ucfirst(jamaat_place()) . ')')); ?></h1>
+    <h3>Trust Regn No: <?php echo htmlspecialchars(app_setting('trust_regn_no', 'E/24158 (Mumbai)')); ?><br>Managed by: <?php echo htmlspecialchars(app_setting('managed_by', 'Anjuman-e-Saifee')); ?></h3>
   </div>
 
   <div class="section">

@@ -61,7 +61,7 @@ class MasoolMusaidM extends CI_Model
   public function get_ashara_by_sector($sector, $subsector, $year = null)
   {
     $this->db->select(
-      'ao.ITS, ao.LeaveStatus, ao.Comment, 
+      'u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, 
          u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, 
          u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector'
     );
@@ -82,7 +82,7 @@ class MasoolMusaidM extends CI_Model
   public function search_ashara_by_sector($keyword, $sector, $subsector, $year = null)
   {
     $this->db->select(
-      'ao.ITS, ao.LeaveStatus, ao.Comment, 
+      'u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, 
          u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, 
          u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector'
     );
@@ -120,6 +120,8 @@ class MasoolMusaidM extends CI_Model
       'SUM(CASE WHEN LOWER(u.Gender) = "female" THEN 1 ELSE 0 END) as female_count',
       'SUM(CASE WHEN u.Age BETWEEN 0 AND 4 THEN 1 ELSE 0 END) as age_0_4',
       'SUM(CASE WHEN u.Age BETWEEN 5 AND 15 THEN 1 ELSE 0 END) as age_5_15',
+      'SUM(CASE WHEN u.Age BETWEEN 16 AND 25 THEN 1 ELSE 0 END) as age_16_25',
+      'SUM(CASE WHEN u.Age BETWEEN 26 AND 65 THEN 1 ELSE 0 END) as age_26_65',
       'SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) as seniors_count',
       'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
     ]);
@@ -157,6 +159,8 @@ class MasoolMusaidM extends CI_Model
       'SUM(CASE WHEN LOWER(u.Gender) = "female" THEN 1 ELSE 0 END) as female_count',
       'SUM(CASE WHEN u.Age BETWEEN 0 AND 4 THEN 1 ELSE 0 END) as age_0_4',
       'SUM(CASE WHEN u.Age BETWEEN 5 AND 15 THEN 1 ELSE 0 END) as age_5_15',
+      'SUM(CASE WHEN u.Age BETWEEN 16 AND 25 THEN 1 ELSE 0 END) as age_16_25',
+      'SUM(CASE WHEN u.Age BETWEEN 26 AND 65 THEN 1 ELSE 0 END) as age_26_65',
       'SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) as seniors_count',
       'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
     ]);

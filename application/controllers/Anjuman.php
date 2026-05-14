@@ -91,6 +91,8 @@ class Anjuman extends CI_Controller
       'Bairo' => (int)($residentOverview['female'] ?? 0),
       'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
       'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
+      'Age_16_25' => (int)($residentOverview['age_16_25'] ?? 0),
+      'Age_26_65' => (int)($residentOverview['age_26_65'] ?? 0),
       'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
       'LeaveStatus' => [],
       'Sectors' => $sectorsData,
@@ -717,6 +719,65 @@ class Anjuman extends CI_Controller
     $data['payment'] = $payment;
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Accounts/LaagatReceipt', $data);
+  }
+
+  public function payments_report()
+  {
+    // Allow only Anjuman role (3)
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['error'] = null;
+
+    $fromRaw = $this->input->get('from');
+    $toRaw = $this->input->get('to');
+
+    // Defaults: current month to today
+    $today = date('Y-m-d');
+    $defaultFrom = date('Y-m-01');
+    $fromRaw = $fromRaw ? trim((string)$fromRaw) : $defaultFrom;
+    $toRaw = $toRaw ? trim((string)$toRaw) : $today;
+
+    $fromTs = strtotime($fromRaw);
+    $toTs = strtotime($toRaw);
+
+    if (!$fromTs || !$toTs) {
+      $data['error'] = 'Invalid date range.';
+      $data['filters'] = ['from' => $defaultFrom, 'to' => $today];
+      $data['payments'] = [];
+      $data['total_amount'] = 0.0;
+      $data['total_count'] = 0;
+      $this->load->view('Anjuman/Header', $data);
+      $this->load->view('Anjuman/PaymentsReport', $data);
+      return;
+    }
+
+    $from = date('Y-m-d', $fromTs);
+    $to = date('Y-m-d', $toTs);
+    if ($from > $to) {
+      $tmp = $from;
+      $from = $to;
+      $to = $tmp;
+    }
+
+    $data['filters'] = ['from' => $from, 'to' => $to];
+
+    $payments = $this->AnjumanM->get_payments_in_date_range($from, $to);
+    $totalAmount = 0.0;
+    if (!empty($payments)) {
+      foreach ($payments as $p) {
+        $totalAmount += (float)($p['amount'] ?? 0);
+      }
+    }
+
+    $data['payments'] = $payments;
+    $data['total_amount'] = $totalAmount;
+    $data['total_count'] = is_array($payments) ? count($payments) : 0;
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/PaymentsReport', $data);
   }
 
   public function laagat_rent_invoice_delete()
@@ -2316,14 +2377,7 @@ class Anjuman extends CI_Controller
       . '<p><strong>Raza ID:</strong> ' . htmlspecialchars($emailRazaId) . '</p>'
       . $remarkHtml
       . $detailsHtml;
-    $notify_recipients = [
-      'kharjamaat@gmail.com',
-      '3042@carmelnmh.in',
-      'kharamilsaheb@gmail.com',
-      'kharjamaat786@gmail.com',
-      'khozemtopiwalla@gmail.com',
-      'ybookwala@gmail.com'
-    ];
+    $notify_recipients = admin_email_recipients();
     foreach ($notify_recipients as $recipient) {
       $this->EmailQueueM->enqueue($recipient, 'Raza Recommended', $msg_html, null, 'html');
     }
@@ -2785,11 +2839,14 @@ class Anjuman extends CI_Controller
   {
     $username = $_SESSION['user']['username'];
 
-    // Year selection (Hijri)
+    // Year selection (Hijri) — default to next year if current Hijri month >= 10
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $hijri_parts = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts[2];
+    $current_hijri_month = (int)$hijri_parts[1];
+    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year);
     // Pull available Hijri years from calendar for the dropdown
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
@@ -2836,6 +2893,8 @@ class Anjuman extends CI_Controller
       'Bairo' => 0,
       'Age_0_4' => 0,
       'Age_5_15' => 0,
+      'Age_16_25' => 0,
+      'Age_26_65' => 0,
       'Buzurgo' => 0,
       'LeaveStatus' => [],
       'Sectors' => $sectorsData,
@@ -2861,6 +2920,10 @@ class Anjuman extends CI_Controller
         $stats['Age_0_4']++;
       if ($age >= 5 && $age <= 15)
         $stats['Age_5_15']++;
+      if ($age >= 16 && $age <= 25)
+        $stats['Age_16_25']++;
+      if ($age >= 26 && $age <= 65)
+        $stats['Age_26_65']++;
       if ($age > 65)
         $stats['Buzurgo']++;
 
@@ -2899,11 +2962,14 @@ class Anjuman extends CI_Controller
     $sel_sector = $this->input->get('sector');
     $sel_sub = $this->input->get('subsector');
 
-    // Hijri Year selection (UI scope only)
+    // Hijri Year selection (UI scope only) — default to next year if Hijri month >= 10
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $hijri_parts_att = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts_att[2];
+    $current_hijri_month_att = (int)$hijri_parts_att[1];
+    $default_year_att = ($current_hijri_month_att >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year_att);
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
     if (empty($year_options)) {
@@ -3508,6 +3574,8 @@ class Anjuman extends CI_Controller
     $amount = (float)$this->input->post('payment_received_amount');
     $pdate = $this->input->post('payment_date');
     $remarks = $this->input->post('payment_remarks');
+    $reference_no = $this->input->post('reference_no');
+    $bank_name = $this->input->post('bank_name');
 
     if (!$fmbgc_id || !$user_id || !$method || !$amount || !$pdate) {
       $this->session->set_flashdata('error', 'Missing required payment fields.');
@@ -3521,7 +3589,7 @@ class Anjuman extends CI_Controller
       $redirectType = 2;
     }
 
-    $result = $this->AnjumanM->insert_fmbgc_payment($fmbgc_id, $user_id, $amount, $method, $pdate, $remarks);
+    $result = $this->AnjumanM->insert_fmbgc_payment($fmbgc_id, $user_id, $amount, $method, $pdate, $remarks, $reference_no, $bank_name);
     if ($result['success']) {
       $this->session->set_flashdata('success', $result['message']);
     } else {
@@ -3775,6 +3843,8 @@ class Anjuman extends CI_Controller
     $amount = $this->input->post("amount");
     $payment_date = $this->input->post("payment_date");
     $remarks = $this->input->post("remarks");
+    $reference_no = $this->input->post("reference_no");
+    $bank_name = $this->input->post("bank_name");
 
     $formData = array(
       "user_id" => $user_id,
@@ -3783,6 +3853,8 @@ class Anjuman extends CI_Controller
       "amount" => $amount,
       "payment_date" => $payment_date,
       "remarks" => $remarks,
+      "reference_no" => $reference_no,
+      "bank_name" => $bank_name,
     );
 
     $result = $this->AnjumanM->update_sabeel_payment($formData);

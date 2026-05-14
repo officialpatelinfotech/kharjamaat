@@ -21,7 +21,6 @@ class MadresaM extends CI_Model
       ->select('ITS_ID, Full_Name, Age')
       ->from('user')
       ->where('Inactive_Status IS NULL')
-      ->where('Sector IS NOT NULL')
       ->where('Age IS NOT NULL')
       ->where('Age <=', (int)$this->maxStudentAge)
       ->order_by('Full_Name ASC')
@@ -45,7 +44,6 @@ class MadresaM extends CI_Model
       ->select('ITS_ID')
       ->from('user')
       ->where('Inactive_Status IS NULL')
-      ->where('Sector IS NOT NULL')
       ->where('Age IS NOT NULL')
       ->where('Age <=', (int)$this->maxStudentAge)
       ->where_in('ITS_ID', $cleanIds)
@@ -77,7 +75,6 @@ class MadresaM extends CI_Model
       ->select('ITS_ID, Full_Name, Age, Sector, Sub_Sector')
       ->from('user')
       ->where('Inactive_Status IS NULL')
-      ->where('Sector IS NOT NULL')
       ->where('Age IS NOT NULL')
       ->where('Age <=', (int)$this->maxStudentAge)
       ->where_in('ITS_ID', $cleanIds)
@@ -411,6 +408,46 @@ class MadresaM extends CI_Model
       $ok = $this->db->insert($this->tablePayments, $data);
       if ($ok) {
         return ['success' => true, 'id' => (int)$this->db->insert_id()];
+      }
+      return ['success' => false, 'error' => $this->db->error()];
+    } catch (Exception $e) {
+      return ['success' => false, 'error' => ['message' => $e->getMessage()]];
+    }
+  }
+
+  public function delete_class_payment($paymentId, $classId, $studentItsId)
+  {
+    try {
+      $paymentId = (int)$paymentId;
+      $classId = (int)$classId;
+      $studentItsId = (int)$studentItsId;
+
+      if ($paymentId <= 0) return ['success' => false, 'error' => ['message' => 'Invalid payment id']];
+      if ($classId <= 0) return ['success' => false, 'error' => ['message' => 'Invalid class id']];
+      if ($studentItsId <= 0) return ['success' => false, 'error' => ['message' => 'Invalid student ITS id']];
+      if (!$this->db->table_exists($this->tablePayments)) {
+        return ['success' => false, 'error' => ['message' => 'Payments table not found']];
+      }
+
+      $row = $this->db
+        ->select('id, m_class_id, students_its_id')
+        ->from($this->tablePayments)
+        ->where('id', $paymentId)
+        ->limit(1)
+        ->get()->row_array();
+
+      if (empty($row)) {
+        return ['success' => false, 'error' => ['message' => 'Payment not found']];
+      }
+
+      if ((int)($row['m_class_id'] ?? 0) !== $classId || (int)($row['students_its_id'] ?? 0) !== $studentItsId) {
+        return ['success' => false, 'error' => ['message' => 'Payment does not belong to this student/class']];
+      }
+
+      $this->db->where('id', $paymentId);
+      $ok = $this->db->delete($this->tablePayments);
+      if ($ok) {
+        return ['success' => true];
       }
       return ['success' => false, 'error' => $this->db->error()];
     } catch (Exception $e) {

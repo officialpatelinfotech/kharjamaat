@@ -754,6 +754,12 @@
   }
 
   /* Beautification enhancements */
+  @media (min-width: 768px) {
+    .col-md-5th {
+      flex: 0 0 20%;
+      max-width: 20%;
+    }
+  }
   .dashboard-title {
     font-weight: 800;
     letter-spacing: -0.02em;
@@ -917,8 +923,7 @@
 
         <div class="menu-section">Activity</div>
         <ul class="menu-list">
-          <li><a class="menu-item" href="<?php echo base_url('Amilsaheb/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat <?php $hijri_year = isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : '1446H';
-                                                                                                                                                                                              echo $hijri_year . 'H'; ?></span></a></li>
+          <li><a class="menu-item" href="<?php echo base_url('Amilsaheb/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('Amilsaheb/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
           <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=amilsaheb'); ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>
         </ul>
@@ -1016,7 +1021,7 @@
       <div class="chart-container grouped-block">
         <h4 class="section-title text-center mt-4 mt-md-0">Jamaat Overview</h4>
         <div class="row">
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('amilsaheb/mumineendirectory?filter=all'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-users"></i></div>
@@ -1027,7 +1032,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('amilsaheb/mumineendirectory?filter=hof_fm_type&value=HOF'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-user"></i></div>
@@ -1038,7 +1043,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('amilsaheb/mumineendirectory?filter=hof_fm_type&value=FM'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-user-plus"></i></div>
@@ -1049,7 +1054,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('amilsaheb/mumineendirectory?filter=gender&value=male'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-male"></i></div>
@@ -1060,7 +1065,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('amilsaheb/mumineendirectory?filter=gender&value=female'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-female"></i></div>
@@ -1071,7 +1076,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('amilsaheb/mumineendirectory?filter=age_range&min=0&max=4'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-child"></i></div>
@@ -1082,7 +1087,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
+          <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('amilsaheb/mumineendirectory?filter=age_range&min=5&max=15'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-child"></i></div>
@@ -1093,12 +1098,34 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('amilsaheb/mumineendirectory?filter=age_range&min=65'); ?>" style="text-decoration:none;color:inherit;display:block;">
+          <div class="col-6 col-md-5th mb-3">
+            <a href="<?= base_url('amilsaheb/mumineendirectory?filter=age_range&min=16&max=25'); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon"><i class="fa fa-user"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">Age 16-25</span>
+                  <span class="overview-value"><?= $stats['Age_16_25'] ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-5th mb-3">
+            <a href="<?= base_url('amilsaheb/mumineendirectory?filter=age_range&min=26&max=65'); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon"><i class="fa fa-user"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">Age 26-65</span>
+                  <span class="overview-value"><?= $stats['Age_26_65'] ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-5th mb-3">
+            <a href="<?= base_url('amilsaheb/mumineendirectory?filter=age_range&min=66'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-user-circle"></i></div>
                 <div class="overview-body">
-                  <span class="overview-title">Seniors (65+)</span>
+                  <span class="overview-title">Above 65</span>
                   <span class="overview-value"><?= $stats['Buzurgo'] ?></span>
                 </div>
               </div>

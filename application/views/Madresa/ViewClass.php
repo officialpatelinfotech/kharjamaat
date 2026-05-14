@@ -613,12 +613,19 @@
 			var itsId = btn.data('its-id');
 			var name = btn.data('student-name');
 
+			$('#historyModal').data('class-id', classId).data('its-id', itsId).data('student-name', name || '');
+
 			$('#history_student_name').text(name || '-');
 			var tbody = $('#history_table_body');
 			tbody.html('<tr><td colspan="5" class="text-center font-italic text-muted py-4"><i class="fa fa-spinner fa-spin mr-2"></i> Loading history...</td></tr>');
 			
 			$('#historyModal').modal('show');
 
+			loadPaymentHistory(classId, itsId);
+		});
+
+		function loadPaymentHistory(classId, itsId) {
+			var tbody = $('#history_table_body');
 			$.ajax({
 				url: '<?php echo base_url($madresa_base . "/get-payment-history"); ?>',
 				type: 'POST',
@@ -634,15 +641,19 @@
 								var parts = dt.split(' ')[0].split('-');
 								if(parts.length === 3) dateStr = parts[2] + '-' + parts[1] + '-' + parts[0];
 							}
-							
-							var receiptUrl = '<?php echo base_url($madresa_base . "/classes/payment-receipt/"); ?>' + item.m_class_id + '?payment_id=' + item.id;
 
-							html += '<tr>' +
+							var pdfBtn = '<button type="button" class="btn btn-sm btn-outline-secondary ml-2 madresa-view-invoice" data-payment-id="' + item.id + '" title="PDF"><i class="fas fa-file-pdf"></i></button>';
+							var delBtn = '';
+							<?php if (!empty($can_receive_payment)) { ?>
+							delBtn = '<button type="button" class="btn btn-sm btn-outline-danger ml-2 madresa-delete-payment" data-payment-id="' + item.id + '" title="Delete"><i class="fas fa-trash"></i></button>';
+							<?php } ?>
+
+							html += '<tr data-payment-id="' + item.id + '">' +
 								'<td class="text-nowrap">' + dateStr + '</td>' +
 								'<td>' + (item.payment_mode || '-') + '</td>' +
 								'<td class="text-end fw-bold">₹' + formatINR(item.amount) + '</td>' +
 								'<td class="small text-muted">' + (item.notes || '-') + '</td>' +
-								'<td class="text-center"><a href="' + receiptUrl + '" class="btn btn-sm btn-outline-primary" target="_blank" title="View Receipt"><i class="fas fa-file-invoice"></i> Receipt</a></td>' +
+								'<td class="text-center">' + pdfBtn + delBtn + '</td>' +
 								'</tr>';
 						});
 					} else {
@@ -652,6 +663,80 @@
 				},
 				error: function() {
 					tbody.html('<tr><td colspan="5" class="text-center text-danger py-4">Error loading history.</td></tr>');
+				}
+			});
+		}
+
+		$(document).on('click', '.madresa-view-invoice', function(e) {
+			e.preventDefault();
+			var paymentId = $(this).data('payment-id');
+			if (!paymentId) return;
+			$.ajax({
+				url: "<?php echo base_url('common/generate_pdf'); ?>",
+				type: "POST",
+				data: { id: paymentId, for: 7 },
+				xhrFields: { responseType: 'blob' },
+				success: function(response) {
+					var blob = new Blob([response], { type: "application/pdf" });
+					var url = window.URL.createObjectURL(blob);
+					window.open(url, "_blank");
+				},
+				error: function() {
+					alert('Failed to generate receipt PDF');
+				}
+			});
+		});
+
+		$(document).on('click', '.madresa-delete-payment', function(e) {
+			e.preventDefault();
+			var paymentId = $(this).data('payment-id');
+			if (!paymentId) return;
+
+			var modal = $('#historyModal');
+			var classId = modal.data('class-id');
+			var itsId = modal.data('its-id');
+			if (!classId || !itsId) {
+				alert('Missing context for deletion');
+				return;
+			}
+
+			if (!confirm('Delete this payment? This cannot be undone.')) return;
+
+			$.ajax({
+				url: '<?php echo base_url($madresa_base . "/delete-payment"); ?>',
+				type: 'POST',
+				dataType: 'json',
+				data: { payment_id: paymentId, class_id: classId, students_its_id: itsId },
+				success: function(res) {
+					if (res && res.success) {
+						// Update student row
+						if (res.student) {
+							var row = $('tr[data-its-id="' + itsId + '"]');
+							if (row.length) {
+								row.find('.js-row-paid').text('₹' + formatINR(res.student.amount_paid));
+								row.find('.js-row-due').text('₹' + formatINR(res.student.amount_due));
+								var rpBtn = row.find('.btn-receive-payment');
+								if (rpBtn.length) {
+									rpBtn.data('paid', parseFloat(res.student.amount_paid));
+									rpBtn.data('due', parseFloat(res.student.amount_due));
+								}
+							}
+						}
+
+						// Update header totals
+						if (res.class_financials) {
+							$('#header-total-collect').text('₹' + formatINR(res.class_financials.amount_to_collect));
+							$('#header-total-paid').text('₹' + formatINR(res.class_financials.amount_paid));
+							$('#header-total-due').text('₹' + formatINR(res.class_financials.amount_due));
+						}
+
+						loadPaymentHistory(classId, itsId);
+					} else {
+						alert((res && res.error) ? res.error : 'Failed to delete payment');
+					}
+				},
+				error: function() {
+					alert('Failed to delete payment');
 				}
 			});
 		});

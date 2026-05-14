@@ -102,4 +102,4 @@
     </div>
   </nav>
 </div>
-<script src="<?php echo base_url('assets/js/table-export.js'); ?>?v=1"></script>
+<script src="<?php echo base_url('assets/js/table-export.js'); ?>?v=2"></script>

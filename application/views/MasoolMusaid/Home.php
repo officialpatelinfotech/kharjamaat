@@ -105,6 +105,97 @@
 </style>
 <div class="container margintopcontainer">
   <h1 class="text-center heading pt-5 mb-4">Welcome to Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
+  
+  <?php
+  if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 16) {
+      $ci =& get_instance();
+      $username_raw = strtoupper(trim($_SESSION['user']['username']));
+
+      $incharge_male   = '';
+      $incharge_female = '';
+      $title           = '';
+
+      $sec = $username_raw;
+      $sub = '';
+
+      // If the username ends in A, B, or C, it's likely a sub-sector login
+      if (in_array(substr($username_raw, -1), ['A', 'B', 'C'])) {
+          // Verify if the prefix is actually a valid sector
+          $sec_candidate = ucfirst(strtolower(substr($username_raw, 0, -1)));
+          $ci->db->where('Sector', $sec_candidate);
+          $count = $ci->db->count_all_results('user');
+          if ($count > 0) {
+              $sec = $sec_candidate;
+              $sub = substr($username_raw, -1);
+          }
+      }
+      
+      $sec = ucfirst(strtolower($sec));
+
+      if ($sub !== '') {
+          // --- SUB-SECTOR LOGIN ---
+          $ci->db->select('Sub_Sector_Incharge_Name, Sub_Sector_Incharge_Female_Name');
+          $ci->db->from('user');
+          $ci->db->where('Sector', $sec);
+          $ci->db->where('Sub_Sector', $sub);
+          $ci->db->group_start();
+          $ci->db->where("Sub_Sector_Incharge_Name != '' AND Sub_Sector_Incharge_Name IS NOT NULL");
+          $ci->db->or_where("Sub_Sector_Incharge_Female_Name != '' AND Sub_Sector_Incharge_Female_Name IS NOT NULL");
+          $ci->db->group_end();
+          $ci->db->limit(1);
+          $row = $ci->db->get()->row_array();
+
+          if ($row) {
+              $incharge_male   = trim($row['Sub_Sector_Incharge_Name'] ?? '');
+              $incharge_female = trim($row['Sub_Sector_Incharge_Female_Name'] ?? '');
+              $title           = htmlspecialchars($sec . ' ' . $sub) . ' Sub-Sector Incharges';
+          }
+      } else {
+          // --- SECTOR LOGIN ---
+          $ci->db->select('Sector_Incharge_Name, Sector_Incharge_Female_Name');
+          $ci->db->from('user');
+          $ci->db->where('Sector', $sec);
+          $ci->db->group_start();
+          $ci->db->where("Sector_Incharge_Name != '' AND Sector_Incharge_Name IS NOT NULL");
+          $ci->db->or_where("Sector_Incharge_Female_Name != '' AND Sector_Incharge_Female_Name IS NOT NULL");
+          $ci->db->group_end();
+          $ci->db->limit(1);
+          $row = $ci->db->get()->row_array();
+
+          if ($row) {
+              $incharge_male   = trim($row['Sector_Incharge_Name'] ?? '');
+              $incharge_female = trim($row['Sector_Incharge_Female_Name'] ?? '');
+              $title           = htmlspecialchars($sec) . ' Sector Incharges';
+          }
+      }
+
+      if ($incharge_male !== '' || $incharge_female !== '') { ?>
+      <div class="row justify-content-center mb-4">
+        <div class="col-12 col-xl-10">
+          <div style="background: #fef7e6; border: 1px solid #f5dec1; border-radius: 16px; padding: 14px 20px; box-shadow: 0 4px 14px rgba(173,126,5,0.1);">
+            <div style="text-align:center; color:#ad7e05; font-weight:700; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">
+              <i class="fa fa-users" style="margin-right:6px;"></i><?= $title ?>
+            </div>
+            <div class="d-flex flex-column flex-md-row justify-content-center align-items-center" style="text-align:center; font-size:0.95rem; font-weight:600; color:#222; gap:8px;">
+              <?php if ($incharge_male !== ''): ?>
+              <span><i class="fa fa-male text-primary" style="margin-right:6px;"></i><?= htmlspecialchars($incharge_male) ?></span>
+              <?php endif; ?>
+              
+              <?php if ($incharge_male !== '' && $incharge_female !== ''): ?>
+              <span class="d-none d-md-inline" style="color:#ccc; margin:0 5px;">|</span>
+              <?php endif; ?>
+              
+              <?php if ($incharge_female !== ''): ?>
+              <span><i class="fa fa-female text-danger" style="margin-right:6px;"></i><?= htmlspecialchars($incharge_female) ?></span>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+      </div>
+      <?php }
+  }
+  ?>
+
   <hr>
   <div class="chart-container compact weekly-summary">
 
@@ -502,7 +593,7 @@
       <a href="<?php echo base_url('MasoolMusaid/asharaohbat') ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
         <div class="card dashboard-card text-center">
           <div class="card-body">
-            <div class="title">Ashara Ohbat 1446</div>
+            <div class="title">Ashara Ohbat</div>
             <i class="fa-solid icon fa-calendar-days"></i>
           </div>
         </div>

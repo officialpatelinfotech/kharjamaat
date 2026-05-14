@@ -42,7 +42,8 @@
     <a href="<?php echo isset($from) ? base_url($from) : base_url("anjuman/fmbthaali"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
   </div>
   <div class="create-menu-btn d-flex">
-    <form method="post" action="<?php echo base_url("common/filter_menu"); ?>" id="filter-form" class="d-flex m-0">
+    <form method="get" action="<?php echo base_url("common/fmbthaalimenu"); ?>" id="filter-form" class="d-flex m-0">
+      <input type="hidden" name="from" value="<?php echo htmlspecialchars((string) $from, ENT_QUOTES); ?>">
       <!-- <div class="form-group mr-3">
           <input type="text" id="daterange" name="daterange" class="form-control" />
           <input type="hidden" id="start_date" name="start_date" value="<?php echo isset($start_date) ? $start_date : ''; ?>">
@@ -57,17 +58,18 @@
           <?php
           if (isset($hijri_months)) {
             foreach ($hijri_months as $key => $value) {
-          ?>
+              ?>
               <option value="<?php echo $value["id"]; ?>" <?php echo isset($value["id"]) ? ($value["id"] == (isset($hijri_month_id) ? $hijri_month_id : 0) ? "selected" : "") : ""; ?>><?php echo $value["hijri_month"]; ?></option>
-          <?php
+              <?php
             }
           }
           ?>
+          <option value="-2" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -2 ? "selected" : ""; ?>>Next Year</option>
         </select>
       </div>
 
       <div class="form-group mx-3" style="min-width:240px;">
-        <input type="text" id="filter-assigned" class="form-control" placeholder="Filter Name or ITS" autocomplete="off" />
+        <input type="text" id="filter-assigned" name="assigned_filter" class="form-control" placeholder="Filter Name or ITS" autocomplete="off" value="<?php echo isset($assigned_filter) ? htmlspecialchars((string) $assigned_filter, ENT_QUOTES) : ''; ?>" />
       </div>
 
       <!-- <div class="sort-options mr-3">
@@ -87,7 +89,7 @@
         </a> -->
 
       <a href="<?php echo base_url("common/add_menu_item?from=" . $from); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-pencil"></i> Edit Items</a>
-      <a href="<?php echo base_url("common/createmenu"); ?>" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Menu</a>
+      <a href="<?php echo base_url("common/createmenu?from=" . urlencode((string) $from) . (isset($hijri_month_id) && $hijri_month_id !== '' ? "&hijri_month=" . urlencode((string) $hijri_month_id) : '') . (!empty($assigned_filter) ? "&assigned_filter=" . urlencode((string) $assigned_filter) : '')); ?>" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Menu</a>
     </div>
   </div>
 
@@ -180,7 +182,7 @@
               if (count($item["items"]) > 0) :
               ?>
                 <td>
-                  <a href="<?php echo base_url("common/edit_menu/" . $item['id'] . "?from=" . $from); ?>" class="btn btn-sm btn-primary mb-2 mb-md-0"><i class="fa fa-edit"></i></a>
+                  <a href="<?php echo base_url("common/edit_menu/" . $item['id'] . "?from=" . urlencode((string) $from) . (isset($hijri_month_id) && $hijri_month_id !== '' ? "&hijri_month=" . urlencode((string) $hijri_month_id) : '') . (!empty($assigned_filter) ? "&assigned_filter=" . urlencode((string) $assigned_filter) : '')); ?>" class="btn btn-sm btn-primary mb-2 mb-md-0"><i class="fa fa-edit"></i></a>
                   <form method="POST" action="<?php echo base_url('common/delete_menu'); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this menu?');">
                     <input type="hidden" name="menu_id" value="<?php echo $item['id']; ?>">
                     <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
@@ -188,7 +190,7 @@
                 </td>
               <?php else : ?>
                 <td>
-                  <a href="<?php echo base_url("common/createmenu?date=" . $item['date']); ?>" class="btn btn-sm btn-primary">
+                  <a href="<?php echo base_url("common/createmenu?date=" . urlencode((string) $item['date']) . "&from=" . urlencode((string) $from) . (isset($hijri_month_id) && $hijri_month_id !== '' ? "&hijri_month=" . urlencode((string) $hijri_month_id) : '') . (!empty($assigned_filter) ? "&assigned_filter=" . urlencode((string) $assigned_filter) : '')); ?>" class="btn btn-sm btn-primary">
                     <i class="fa fa-plus"></i>
                   </a>
                 </td>
@@ -337,6 +339,8 @@
           assignedFilter.addEventListener('input', applyAssignedFilter);
         }
 
+        applyAssignedFilter();
+
         // Eng Date filter (only this column controls filtering)
         const engFilter = document.getElementById('eng-date-filter');
         if (engFilter) {
@@ -410,5 +414,12 @@
 
   $('#hijri-month, #sort-type').on('change', function() {
     $('#filter-form').submit();
+  });
+
+  $('#filter-assigned').on('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $('#filter-form').submit();
+    }
   });
 </script>

@@ -264,6 +264,8 @@ class Amilsaheb extends CI_Controller
       'Bairo' => (int)($residentOverview['female'] ?? 0),
       'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
       'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
+      'Age_16_25' => (int)($residentOverview['age_16_25'] ?? 0),
+      'Age_26_65' => (int)($residentOverview['age_26_65'] ?? 0),
       'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
       'LeaveStatus' => [],
       'Sectors' => $sectorsData,
@@ -1154,15 +1156,7 @@ class Amilsaheb extends CI_Controller
     $detailsHtmlEmail = render_raza_details_table_html($razaNameEmail, $rtFieldsDecodedEmail, $razadataDecodedEmail);
     $remarkHtmlEmail = $remark !== '' ? ('<p><strong>Remark:</strong> ' . nl2br(htmlspecialchars($remark)) . '</p>') : '';
 
-    $admins = [
-      'amilsaheb@kharjamaat.in',
-      '3042@carmelnmh.in',
-      'kharjamaat@gmail.com',
-      'kharamilsaheb@gmail.com',
-      'kharjamaat786@gmail.com',
-      'khozemtopiwalla@gmail.com',
-      'ybookwala@gmail.com'
-    ];
+    $admins = admin_email_recipients();
     foreach ($admins as $a) {
       // Render the member info as a table inside the body so it always shows,
       // even when we append the Raza Details table (body contains <table>, so
@@ -1530,15 +1524,7 @@ class Amilsaheb extends CI_Controller
       ]);
     }
 
-    $admins = [
-      'amilsaheb@kharjamaat.in',
-      '3042@carmelnmh.in',
-      'kharjamaat@gmail.com',
-      'kharamilsaheb@gmail.com',
-      'kharjamaat786@gmail.com',
-      'khozemtopiwalla@gmail.com',
-      'ybookwala@gmail.com'
-    ];
+    $admins = admin_email_recipients();
     $adminDetails = [
       'Member' => (string)($user['Full_Name'] ?? ''),
       'ITS' => (string)($user['ITS_ID'] ?? ''),
@@ -2007,11 +1993,14 @@ class Amilsaheb extends CI_Controller
 
     $username = $_SESSION['user']['username'];
 
-    // Year selection (Hijri)
+    // Year selection (Hijri) — default to next year if current Hijri month >= 10
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $hijri_parts = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts[2];
+    $current_hijri_month = (int)$hijri_parts[1];
+    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year);
     // Fetch years directly from HijriCalendar for the dropdown
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
@@ -2055,6 +2044,8 @@ class Amilsaheb extends CI_Controller
       'Bairo' => 0,
       'Age_0_4' => 0,
       'Age_5_15' => 0,
+      'Age_16_25' => 0,
+      'Age_26_65' => 0,
       'Buzurgo' => 0,
       'LeaveStatus' => [],
       'Sectors' => $sectorsData,
@@ -2079,6 +2070,10 @@ class Amilsaheb extends CI_Controller
         $stats['Age_0_4']++;
       if ($age >= 5 && $age <= 15)
         $stats['Age_5_15']++;
+      if ($age >= 16 && $age <= 25)
+        $stats['Age_16_25']++;
+      if ($age >= 26 && $age <= 65)
+        $stats['Age_26_65']++;
       if ($age > 65)
         $stats['Buzurgo']++;
 
@@ -2115,11 +2110,14 @@ class Amilsaheb extends CI_Controller
     $sel_sector = $this->input->get('sector');
     $sel_sub = $this->input->get('subsector');
 
-    // Hijri Year selection (UI scope only; attendance table not year-scoped)
+    // Hijri Year selection (UI scope only; attendance table not year-scoped) — default to next year if month >= 10
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
-    $current_hijri_year = (int)explode('-', $h['hijri_date'])[2];
-    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $hijri_parts_att = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts_att[2];
+    $current_hijri_month_att = (int)$hijri_parts_att[1];
+    $default_year_att = ($current_hijri_month_att >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year_att);
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
     if (empty($year_options)) {
