@@ -1,4 +1,4 @@
-name: Deploy to cPanel
+name: Deploy Website
 
 on:
   push:
@@ -6,27 +6,26 @@ on:
       - main
 
 jobs:
-  deploy:
+  ftp-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v0.1.7
+      - name: Deploy to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host: ${{ secrets.CPANEL_HOST }}
-          username: ${{ secrets.CPANEL_USER }}
-          key: ${{ secrets.CPANEL_KEY }}
-          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
-          script: |
-            cd ~/public_html
-            if [ ! -d "kharjamaat.patelinfotech.online/.git" ]; then
-              git clone git@github.com:officialpatelinfotech/kharjamaat.git kharjamaat.patelinfotech.online
-            else
-              cd kharjamaat.patelinfotech.online
-              git fetch --all
-              git reset --hard origin/main
-            fi
-            composer install --no-dev --no-scripts --optimize-autoloader
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./
+          server-dir: /public_html/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            .github/**
+            README.md
