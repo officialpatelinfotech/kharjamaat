@@ -1695,7 +1695,7 @@
           <div class="col-12">
             <div class="chart-container member-types-block compact" style="padding: 10px;">
               <div class="section-header-standard">
-                <h4 class="section-title"><i class="fa fa-graduation-cap"></i> Deeni Taamil Stats</h4>
+                <h4 class="section-title"><i class="fa fa-graduation-cap"></i> Deeni Taalim Stats</h4>
                 <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseEduAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
               </div>
               <div class="collapse show" id="collapseEduAnjuman">
@@ -1705,7 +1705,7 @@
                       <div class="overview-card" style="border-left: 4px solid #ea580c;">
                         <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-book-reader"></i></div>
                         <div class="overview-body">
-                          <span class="overview-title">Mehroom Deeni Talim (Age 5-15)</span>
+                          <span class="overview-title">Mehroom Deeni Taalim (Age 5-15)</span>
                           <span class="overview-value"><?= isset($stats['madresa_deprived']) ? (int)$stats['madresa_deprived'] : 0; ?> Farzando</span>
                         </div>
                       </div>

@@ -624,6 +624,7 @@
     const min = params.get('min') ?? params.get('age_min');
     const max = params.get('max') ?? params.get('age_max');
     const itsMatch = params.get('its_sabeel_match') || '';
+    const madresaDeprived = params.get('madresa_deprived') || '';
 
     // If legacy filter provided, handle those cases first
     if (legacyFilter) {
@@ -737,6 +738,10 @@
     if (itsMatch) {
       const f = document.getElementById('filtersForm');
       if (f) f.dataset.itsMatch = itsMatch;
+    }
+    if (madresaDeprived) {
+      const f = document.getElementById('filtersForm');
+      if (f) f.dataset.madresaDeprived = madresaDeprived;
     }
 
     // Apply filters now to reflect any GET-provided values
@@ -880,6 +885,7 @@
     const hofFmType = formEl && formEl.dataset && formEl.dataset.hofFmType ? formEl.dataset.hofFmType.toString().toUpperCase() : '';
     const dsGender = formEl && formEl.dataset && formEl.dataset.gender ? formEl.dataset.gender.toString().toLowerCase() : '';
     const dsItsMatch = formEl && formEl.dataset && formEl.dataset.itsMatch ? formEl.dataset.itsMatch.toString() : '';
+    const dsMadresaDeprived = formEl && formEl.dataset && formEl.dataset.madresaDeprived ? formEl.dataset.madresaDeprived.toString() : '';
     const dsLegacyField = formEl && formEl.dataset && formEl.dataset.legacyField ? formEl.dataset.legacyField.toString().toLowerCase() : '';
     const dsLegacyValue = formEl && formEl.dataset && formEl.dataset.legacyValue !== undefined ? formEl.dataset.legacyValue.toString() : '';
     const ageMinEl = document.getElementById('filterAgeMin');
@@ -891,7 +897,7 @@
     const dsMin = inputMin !== null ? inputMin : dsMinFallback;
     const dsMax = inputMax !== null ? inputMax : dsMaxFallback;
 
-    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || mTypeVal || hofFmType || dsGender || dsItsMatch || dsLegacyField || (dsMin !== null) || (dsMax !== null));
+    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || mTypeVal || hofFmType || dsGender || dsItsMatch || dsMadresaDeprived || dsLegacyField || (dsMin !== null) || (dsMax !== null));
 
     // if no filters set, show all (prefer full dataset when available)
     if (!hasAnyFilter) {
@@ -941,6 +947,10 @@
         const itsSabeel = (u.its_sabeel_match || u.ITS_Sabeel_Match || '').toString();
         preds.push(itsSabeel === dsItsMatch);
       }
+      if (dsMadresaDeprived) {
+        const md = (u.madresa_deprived !== undefined && u.madresa_deprived !== null) ? u.madresa_deprived.toString() : '';
+        preds.push(md === dsMadresaDeprived);
+      }
       // generic legacy field=value filter (health_status, deeni_status, residential_status, Qualification, Occupation, etc.)
       if (dsLegacyField && dsLegacyValue !== '') {
         // find the matching key in the user object (case-insensitive)
@@ -979,6 +989,7 @@
     if (hofFmType) labelParts.push('Type: ' + hofFmType);
     if (dsGender) labelParts.push('Gender: ' + dsGender);
     if (dsMin !== null || dsMax !== null) labelParts.push('Age: ' + (dsMin !== null ? dsMin : '') + '-' + (dsMax !== null ? dsMax : ''));
+    if (dsMadresaDeprived) labelParts.push('Madresa Deprived: Yes');
     if (chip && chipText) {
       if (labelParts.length) {
         chipText.textContent = labelParts.join(' | ');
@@ -1002,6 +1013,10 @@
       delete f.dataset.hofFmType;
       delete f.dataset.min;
       delete f.dataset.max;
+      delete f.dataset.itsMatch;
+      delete f.dataset.madresaDeprived;
+      delete f.dataset.legacyField;
+      delete f.dataset.legacyValue;
     }
     currentData = (originalAllData && originalAllData.length) ? [...originalAllData] : [...originalData];
     renderList(currentData);

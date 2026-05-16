@@ -117,6 +117,7 @@ class AmilsahebM extends CI_Model
   }
   public function get_all_users()
   {
+    $this->db->select('user.*, (CASE WHEN user.ITS_ID NOT IN (SELECT students_its_id FROM madresa_class_admission) THEN 1 ELSE 0 END) as madresa_deprived', false);
     return $this->db->get('user')->result();
   }
 
@@ -127,7 +128,7 @@ class AmilsahebM extends CI_Model
    */
   public function get_users_filtered($params = [])
   {
-    $this->db->select('*')->from('user');
+    $this->db->select('user.*, (CASE WHEN user.ITS_ID NOT IN (SELECT students_its_id FROM madresa_class_admission) THEN 1 ELSE 0 END) as madresa_deprived', false)->from('user');
 
     // Legacy single filter (case-insensitive match to actual DB columns)
     if (!empty($params['filter']) && isset($params['value'])) {
