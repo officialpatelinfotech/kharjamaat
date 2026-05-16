@@ -164,9 +164,9 @@
         }
       ?>
       <a href="<?php echo $back_url; ?>" class="btn btn-default border btn-sm mr-2">Back</a>
-      <?php if(!empty($member['ITS_ID'])): ?>
+      <?php if(!empty($member['ITS_ID']) && in_array($role, [1, 2, 3])): ?>
         <?php $edit_base = ($role === 2) ? 'amilsaheb/editmember/' : 'admin/editmember/'; ?>
-        <!-- <a href="<?php echo base_url($edit_base).$member['ITS_ID']; ?>" class="btn btn-primary btn-sm">Edit</a> -->
+        <a href="<?php echo base_url($edit_base).$member['ITS_ID']; ?>" class="btn btn-primary btn-sm">Edit</a>
       <?php endif; ?>
     </div>
   </div>

@@ -29,6 +29,11 @@
         ?>
         <a href="<?php echo $exportUrl; ?>" class="btn btn-sm btn-outline-success" title="Download current member dataset"><i class="fa fa-download me-1"></i> Export Members</a>
         <a href="<?php echo base_url('admin/importlatest'); ?>" class="btn btn-sm btn-outline-primary" title="Import latest external data source"><i class="fa fa-upload me-1"></i> Import Latest Data</a>
+        <!-- <form method="post" action="<?php echo base_url('admin/bulk_update_living_status'); ?>" class="m-0 p-0" onsubmit="return confirm('Are you sure you want to bulk update ALL members to Deeni Status: Normal, Health Status: Healthy, Residential Status: Residing in Khar?');">
+          <button type="submit" class="btn btn-sm btn-outline-warning" title="Mass update living status for all members" style="border-top-left-radius:0; border-bottom-left-radius:0;">
+            <i class="fa fa-bolt me-1"></i> Bulk Update Living Status
+          </button>
+        </form> -->
       </div>
       <!-- <form method="post" action="<?php echo base_url('admin/reset_all_member_passwords'); ?>" class="mt-4 mr-2" onsubmit="return confirm('Are you absolutely sure? This will reset ALL active non-admin users\' passwords to default (ITS ID).');">
         <input type="hidden" name="confirm" value="1" />

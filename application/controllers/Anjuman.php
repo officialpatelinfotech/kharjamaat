@@ -166,10 +166,11 @@ class Anjuman extends CI_Controller
     // Member types distribution for dashboard (reusing AmilsahebM helper)
     $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
 
-    // Marital status distribution (active members only)
+    // Marital status distribution (active members only, excluding under 21)
     $ms_rows = $this->db->select("COALESCE(NULLIF(TRIM(Marital_Status),''),'Unknown') AS ms, COUNT(*) AS cnt")
       ->from('user')
       ->where('inactive_status IS NULL')
+      ->where('Age >=', 21)
       ->group_by('ms')
       ->get()
       ->result_array();
@@ -323,6 +324,7 @@ class Anjuman extends CI_Controller
     } else {
       $data['users'] = $this->AmilsahebM->get_all_users();
     }
+    $data['all_users'] = $this->AmilsahebM->get_all_users();
     $data['user_name'] = $_SESSION['user']['username'];
     // Provide view params for shared directory view
     $data['back_url'] = base_url('anjuman');

@@ -1648,15 +1648,81 @@
 
         <?php 
         $status_counts = isset($stats['status_counts']) ? $stats['status_counts'] : [];
-        $groups = [
+        $groups1 = [
           'health_status' => ['label' => 'All Health Status', 'icon' => 'fa-heartbeat', 'bg' => '#fff1f2', 'color' => '#e11d48', 'count_key' => 'health', 'id' => 'collapseHealth'],
           'deeni_status' => ['label' => 'All Deeni Status', 'icon' => 'fa-star', 'bg' => '#f5f3ff', 'color' => '#7c3aed', 'count_key' => 'deeni', 'id' => 'collapseDeeni'],
           'residential_status' => ['label' => 'All Residential Status', 'icon' => 'fa-building', 'bg' => '#f0f9ff', 'color' => '#0369a1', 'count_key' => 'residential', 'id' => 'collapseResidential'],
           'Qualification' => ['label' => 'Dunyavi Education', 'icon' => 'fa-graduation-cap', 'bg' => '#f0fdf4', 'color' => '#16a34a', 'count_key' => 'education', 'id' => 'collapseEducation'],
+        ];
+
+        foreach ($groups1 as $filterKey => $g) {
+          $countKey = $g['count_key'];
+          if (!empty($status_counts[$countKey])) {
+            ?>
+            <div class="section-header-standard ml-3 mr-3">
+              <h5 class="section-title"><i class="fa <?= $g['icon'] ?>"></i> <?= $g['label'] ?></h5>
+              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#<?= $g['id'] ?>" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+            </div>
+            <div class="collapse show" id="<?= $g['id'] ?>">
+              <div class="row px-3">
+                <?php
+                foreach ($status_counts[$countKey] as $lbl => $cnt) {
+                  if ($lbl == 'None' || $lbl == '') continue;
+                  ?>
+                  <div class="col-6 col-md-3 mb-3">
+                    <a href="<?= base_url('anjuman/mumineendirectory?filter='.$filterKey.'&value=' . rawurlencode($lbl)); ?>" style="text-decoration:none;color:inherit;display:block;">
+                      <div class="overview-card">
+                        <div class="overview-icon" style="background:<?= $g['bg'] ?>; color:<?= $g['color'] ?>;"><i class="fa <?= $g['icon'] ?>"></i></div>
+                        <div class="overview-body">
+                          <span class="overview-title"><?= htmlspecialchars($lbl) ?></span>
+                          <span class="overview-value"><?= $cnt ?></span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                  <?php
+                }
+                ?>
+              </div>
+            </div>
+          <?php
+          }
+        }
+        ?>
+
+        <!-- Educational Tracking (collapsible) -->
+        <div class="row">
+          <div class="col-12">
+            <div class="chart-container member-types-block compact" style="padding: 10px;">
+              <div class="section-header-standard">
+                <h4 class="section-title"><i class="fa fa-graduation-cap"></i> Deeni Taamil Stats</h4>
+                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseEduAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+              </div>
+              <div class="collapse show" id="collapseEduAnjuman">
+                <div class="row justify-content-center">
+                  <div class="col-12 col-md-6">
+                    <a href="<?= base_url('anjuman/mumineendirectory?status=Active&min=5&max=15&madresa_deprived=1'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                      <div class="overview-card" style="border-left: 4px solid #ea580c;">
+                        <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-book-reader"></i></div>
+                        <div class="overview-body">
+                          <span class="overview-title">Mehroom Deeni Talim (Age 5-15)</span>
+                          <span class="overview-value"><?= isset($stats['madresa_deprived']) ? (int)$stats['madresa_deprived'] : 0; ?> Farzando</span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <?php 
+        $groups2 = [
           'Occupation' => ['label' => 'All Occupation', 'icon' => 'fa-briefcase', 'bg' => '#fafaf9', 'color' => '#57534e', 'count_key' => 'occupation', 'id' => 'collapseOccupation'],
         ];
 
-        foreach ($groups as $filterKey => $g) {
+        foreach ($groups2 as $filterKey => $g) {
           $countKey = $g['count_key'];
           if (!empty($status_counts[$countKey])) {
             ?>
@@ -1810,39 +1876,14 @@
           </div>
         </div>
 
-        <!-- Educational Tracking (collapsible) -->
-        <div class="row">
-          <div class="col-12">
-            <div class="chart-container member-types-block compact" style="padding: 10px;">
-              <div class="section-header-standard">
-                <h4 class="section-title"><i class="fa fa-graduation-cap"></i> Educational Tracking</h4>
-                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseEduAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
-              </div>
-              <div class="collapse show" id="collapseEduAnjuman">
-                <div class="row justify-content-center">
-                  <div class="col-12 col-md-6">
-                    <a href="<?= base_url('anjuman/mumineendirectory?status=Active&min=5&max=15&madresa_deprived=1'); ?>" style="text-decoration:none;color:inherit;display:block;">
-                      <div class="overview-card" style="border-left: 4px solid #ea580c;">
-                        <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-book-reader"></i></div>
-                        <div class="overview-body">
-                          <span class="overview-title">Mehroom Deeni Talim (Age 5-15)</span>
-                          <span class="overview-value"><?= isset($stats['madresa_deprived']) ? (int)$stats['madresa_deprived'] : 0; ?> Farzando</span>
-                        </div>
-                      </div>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         <!-- Marital Status Distribution (collapsible) -->
         <div class="row">
           <div class="col-12">
             <div class="chart-container member-types-block compact" style="padding: 10px;">
               <div class="section-header-standard">
-                <h4 class="section-title"><i class="fa fa-heart"></i> Marital Analytics</h4>
+                <h4 class="section-title"><i class="fa fa-heart"></i> Marital Stats</h4>
                 <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseMaritalAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
               </div>
               <div class="collapse show" id="collapseMaritalAnjuman">
@@ -1854,7 +1895,7 @@
                       <div class="overview-card">
                         <div class="overview-icon" style="background:#eef2ff; color:#4f46e5;"><i class="fa fa-heart"></i></div>
                         <div class="overview-body">
-                          <span class="overview-title">Singles (21-40)</span>
+                          <span class="overview-title">Single</span>
                           <span class="overview-value"><?= isset($stats['singles_21_40']) ? (int)$stats['singles_21_40'] : 0; ?></span>
                         </div>
                       </div>
@@ -1863,17 +1904,18 @@
 
                   <?php if (!empty($ms)) {
                     foreach ($ms as $label => $count) {
-                      if (strtolower(trim((string)$label)) === 'unknown') continue;
+                      if (strtolower(trim((string)$label)) === 'unknown' || strtolower(trim((string)$label)) === 'single') continue;
                       $safeLabel = htmlspecialchars($label);
                       $lbl_l = strtolower(trim($label));
                       $iconClass = 'fa fa-info-circle';
                       $iconBg = '#f5f5f7';
                       $iconColor = '#6b7280';
-                      if (strpos($lbl_l, 'single') !== false) {
-                        $iconClass = 'fa fa-user';
-                        $iconBg = '#eef2ff';
-                        $iconColor = '#4f46e5';
-                      } elseif (strpos($lbl_l, 'married') !== false) {
+                      // if (strpos($lbl_l, 'single') !== false) {
+                      //   $iconClass = 'fa fa-user';
+                      //   $iconBg = '#eef2ff';
+                      //   $iconColor = '#4f46e5';
+                      // } else
+                      if (strpos($lbl_l, 'married') !== false) {
                         $iconClass = 'fa fa-user';
                         $iconBg = '#fff0f6';
                         $iconColor = '#db2777';

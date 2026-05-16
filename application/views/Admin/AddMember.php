@@ -873,6 +873,7 @@ function fval($m, $k)
               <label class="am-label">Select Head of Family</label>
               <select name="HOF_ID">
                 <option value="">-- Choose HOF --</option>
+                <option value="">-- HOF Not Assigned --</option>
                 <?php foreach ($hof_list as $h): ?>
                   <option value="<?php echo htmlspecialchars($h['ITS_ID']); ?>">
                     <?php echo htmlspecialchars($h['Full_Name']) . ' (' . $h['ITS_ID'] . ')'; ?>
@@ -1370,7 +1371,6 @@ function fval($m, $k)
           fd.set('HOF_ID', fd.get('ITS_ID'));
         } else {
           fd.set('HOF_FM_TYPE', 'FM');
-          if (!fd.get('HOF_ID')) { alert('Please select a Head of Family.'); return; }
         }
       }
       document.getElementById('memberTypeError').style.display = 'none';

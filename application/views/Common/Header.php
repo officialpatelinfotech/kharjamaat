@@ -28,8 +28,8 @@
 
   @media (max-width: 768px) {
 
-    .btn,
-    .btn-group {
+    #sj-navbar-collapse .btn,
+    #sj-navbar-collapse .btn-group {
       width: 100%;
     }
   }

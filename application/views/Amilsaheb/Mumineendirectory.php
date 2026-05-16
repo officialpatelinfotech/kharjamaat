@@ -527,6 +527,13 @@
         btnView.title = 'View';
         // btnView.onclick = () => openModal(m);
         actions.appendChild(btnView);
+        <?php if (isset($_SESSION['user']['role']) && ($_SESSION['user']['role'] == 1 || $_SESSION['user']['role'] == 3)): ?>
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'action-btn action-edit ms-1';
+        btnEdit.innerHTML = `<a href="<?php echo base_url('admin/editmember/') ?>${m.ITS_ID}"><i class="fa fa-pencil"></i></a>`;
+        btnEdit.title = 'Edit';
+        actions.appendChild(btnEdit);
+        <?php endif; ?>
 
         row.appendChild(index);
         row.appendChild(nameWrap);
@@ -909,7 +916,8 @@
       if (mTypeVal) preds.push((u.Member_Type || '').toString() === mTypeVal);
       if (status) {
         const inactiveReason = (u.Inactive_Status || u.inactive_status || '').toString().trim();
-        const uStatus = inactiveReason ? 'Inactive' : 'Active';
+        const actStatus = (u.activity_status || u.Activity_Status || '').toString().trim().toLowerCase();
+        const uStatus = (inactiveReason || (actStatus && actStatus !== 'active')) ? 'Inactive' : 'Active';
         preds.push(uStatus.toLowerCase() === status.toLowerCase());
       }
       if (marital) {

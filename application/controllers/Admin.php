@@ -4121,6 +4121,21 @@ HTML;
     echo json_encode($response);
   }
 
+  public function bulk_update_living_status()
+  {
+    if (!isset($_SESSION['user']) || empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+    $this->load->model('MemberStatusM');
+    $this->db->update('user', [
+      'deeni_status' => 'Normal',
+      'health_status' => 'Healthy',
+      'residential_status' => 'Residing in Khar',
+    ]);
+    $this->session->set_flashdata('success', 'Successfully updated all members to Normal, Healthy, and Residing in Khar.');
+    redirect('admin/managemembers');
+  }
+
   // ================= Member Update =================
   public function editmember($its_id = null)
   {
@@ -4314,16 +4329,6 @@ HTML;
 
     $payload['HOF_ID'] = $hofReference
       ?: ($isHof ? $its_id : null);
-
-    if (!$isHof && empty($payload['HOF_ID'])) {
-
-      echo json_encode([
-        'status' => 'error',
-        'message' => 'HOF selection required for family member'
-      ]);
-
-      return;
-    }
 
     // Nullable fields cleanup
     foreach (['Sector', 'Sub_Sector', 'Inactive_Status'] as $nullableField) {

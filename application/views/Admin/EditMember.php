@@ -14,8 +14,8 @@ if (!function_exists('norm_date_input')) {
 ?>
 <div class="container margintopcontainer pt-5 mb-5">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Edit Member</h4>
-    <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-sm btn-outline-secondary">Back</a>
+    <h4 class="mb-0 text-nowrap">Edit Member</h4>
+    <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-sm btn-outline-secondary w-auto text-nowrap">Back</a>
   </div>
   <?php
     $its_match    = $member['its_sabeel_match'] ?? '';
@@ -41,14 +41,11 @@ if (!function_exists('norm_date_input')) {
     }
   </style>
   <div class="mb-3 d-flex flex-wrap gap-2 align-items-center member-badges-wrapper">
-    <?php if ($memberTypeLbl): ?>
-      <span class="badge rounded-pill bg-info text-dark fw-normal"><i class="fa-solid fa-users me-2"></i>Type: <?php echo htmlspecialchars($memberTypeLbl); ?></span>
-    <?php endif; ?>
     <span class="badge rounded-pill bg-<?php echo $matchClass; ?> text-<?php echo in_array($matchClass, ['warning','info','light','secondary']) ? 'dark' : 'white'; ?> fw-normal">
       <i class="fa-solid fa-link me-2"></i>ITS–Sabeel: <?php echo $matchLabel; ?>
     </span>
     <span class="badge rounded-pill bg-<?php echo $actClass; ?> text-white fw-normal">
-      </i>Status: <?php echo ucfirst($actStatus); ?>
+      <i class="fa-solid fa-circle-check me-2"></i>Status: <?php echo ucfirst($actStatus); ?>
     </span>
   </div>
   <?php if (!empty($member)): ?>
@@ -77,7 +74,7 @@ if (!function_exists('norm_date_input')) {
         </style>
         <div class="d-flex flex-wrap gap-2 mb-3">
           <button type="button" id="expandAllGroups" class="btn btn-sm btn-outline-primary">Expand All</button>
-          <button type="button" id="collapseAllGroups" class="ml-2 btn btn-sm btn-outline-secondary">Collapse All</button>
+          <button type="button" id="collapseAllGroups" class="ml-md-2 mt-2 mt-md-0 btn btn-sm btn-outline-secondary">Collapse All</button>
         </div>
 
         <!-- Identity & Contact -->
@@ -232,7 +229,7 @@ if (!function_exists('norm_date_input')) {
                   <?php endforeach; ?>
                 </select>
               </div>
-              
+
               <div class="col-md-3 col-12">
                 <label class="form-label small mb-1 fw-semibold">Health Status</label>
                 <select name="health_status" id="healthStatusSel" class="form-control form-select form-select-sm">
@@ -284,6 +281,7 @@ if (!function_exists('norm_date_input')) {
                 <label class="form-label small mb-1">Select HOF (Family members)</label>
                 <select name="HOF_ID" class="form-control form-select">
                   <option value="">-- Choose family member as HOF --</option>
+                  <option value="" <?php echo (empty($member['HOF_ID'])) ? 'selected' : ''; ?>>-- HOF Not Assigned --</option>
                   <?php foreach ($hof_list as $h):
                     $sel = (isset($member['HOF_ID']) && $member['HOF_ID'] == $h['ITS_ID']) ? 'selected' : '';
                     $note = (isset($h['HOF_FM_TYPE']) && $h['HOF_FM_TYPE'] === 'HOF') ? ' (HOF)' : '';
@@ -451,11 +449,11 @@ if (!function_exists('norm_date_input')) {
           </div>
         </div>
 
-        <!-- Education & Skills -->
+        <!-- Dunyavi Taalim (Education & Skills) -->
         <div class="group-section">
           <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
             data-group-target="group-education">
-            <span class="small fw-semibold text-uppercase">Education & Skills</span><span
+            <span class="small fw-semibold text-uppercase">Dunyavi Taalim (Education & Skills)</span><span
               class="toggle-indicator">+</span>
           </div>
           <div id="group-education" class="group-body collapsed border-start border-end border-bottom p-3">
@@ -478,6 +476,7 @@ if (!function_exists('norm_date_input')) {
             </div>
           </div>
         </div>
+
 
         <!-- Occupation -->
         <div class="group-section">
@@ -766,9 +765,9 @@ if (!function_exists('norm_date_input')) {
         <div class="form-sticky-spacer" style="height:90px"></div>
         <div class="form-sticky-bar">
           <div class="inner d-flex justify-content-center align-items-center gap-2 flex-wrap">
-            <button type="submit" class="btn btn-primary btn-sm mr-2">Save Changes</button>
-            <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-outline-secondary btn-sm">Cancel</a>
-            <button type="button" class="btn btn-outline-danger btn-sm ml-2"
+            <button type="submit" class="btn btn-primary btn-sm mb-md-0 mb-2 mr-0 mr-md-2">Save Changes</button>
+            <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-outline-secondary btn-sm mb-md-0 mb-2 mr-0 mr-md-2">Cancel</a>
+            <button type="button" class="btn btn-outline-danger btn-sm"
               onclick="if(confirm('Reset this member\'s password to their ITS ID?')){ var f=document.createElement('form'); f.method='post'; f.action='<?php echo base_url('admin/reset_member_password'); ?>'; var i=document.createElement('input'); i.type='hidden'; i.name='its_id'; i.value='<?php echo addslashes($member['ITS_ID'] ?? ''); ?>'; f.appendChild(i); document.body.appendChild(f); f.submit(); }">
               <i class="fa fa-key me-1"></i>Reset Password
             </button>
@@ -884,10 +883,6 @@ if (!function_exists('norm_date_input')) {
             fd.set('HOF_ID', fd.get('its_id'));
           } else {
             fd.set('HOF_FM_TYPE', 'FM');
-            if (!fd.get('HOF_ID')) {
-              alert('Please select a HOF for this family member');
-              return;
-            }
           }
           var mtSel = document.getElementById('editMemberTypeSelect');
           var mtErr = document.getElementById('editMemberTypeError');

@@ -1498,14 +1498,6 @@ class AdminM extends CI_Model
       ? $payload['ITS_ID']
       : ($payload['HOF_ID'] ?? null);
 
-    if (!$isHof && empty($payload['HOF_ID'])) {
-
-      return [
-        'status' => 'error',
-        'message' => 'HOF selection required for family member'
-      ];
-    }
-
     // Allowed fields
     $fields = [
       'ITS_ID',

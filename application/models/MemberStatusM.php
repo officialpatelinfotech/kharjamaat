@@ -175,6 +175,7 @@ class MemberStatusM extends CI_Model
     {
         return [
             ''                                                                 => '— None —',
+            'Normal'                                                           => 'Normal',
             'Deen Badli Lidu che'                                              => 'Deen Badli Lidu che',
             'Married Outside'                                                  => 'Married Outside',
             'Misaq Not Given'                                                  => 'Not given Misaq to Syedna Mufaddal Saifuddin AQA tus after Takht Nashini',
