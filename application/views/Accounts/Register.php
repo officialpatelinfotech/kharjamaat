@@ -12,5 +12,5 @@
 <div class="center">
     <h4>Contact Jamaat office</h4>
     <p>or</p>
-    <h4>E-mail at <a href="mailto:anjuman@kharjamaat.in">anjuman@kharjamaat.in</a></h4>
+    <h4>E-mail at <a href="mailto:<?php echo htmlspecialchars($registration_email); ?>"><?php echo htmlspecialchars($registration_email); ?></a></h4>
 </div>

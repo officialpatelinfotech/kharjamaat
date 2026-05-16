@@ -118,7 +118,8 @@ class MemberStatusM extends CI_Model
 
     /**
      * Save manual living-status fields for one member.
-     * activity_status is included here as it is fully manual.
+     * Auto-computes activity_status = 'inactive' if a triggering deeni/health/residential
+     * status is set. The admin-submitted activity_status is used ONLY when no auto-trigger fires.
      * Does NOT touch its_sabeel_match or Member_Type.
      */
     public function update_living_status(int $its_id, array $fields): bool
@@ -133,6 +134,19 @@ class MemberStatusM extends CI_Model
             }
         }
         if (empty($data)) return false;
+
+        // Auto-inactive engine: check if any triggering status should force Inactive
+        $deeni       = (string)($data['deeni_status']       ?? '');
+        $health      = (string)($data['health_status']      ?? '');
+        $residential = (string)($data['residential_status'] ?? '');
+
+        $autoInactive = self::compute_auto_inactive($deeni, $health, $residential);
+        if ($autoInactive !== null) {
+            // Force inactive regardless of what the admin submitted
+            $data['activity_status'] = $autoInactive;
+        }
+        // If no auto-trigger: the admin-provided activity_status (or null) is used as-is.
+
         return (bool) $this->db->update('user', $data, ['ITS_ID' => $its_id]);
     }
 
@@ -160,34 +174,26 @@ class MemberStatusM extends CI_Model
     public static function deeni_status_options(): array
     {
         return [
-            ''                                     => '— None —',
-            'Address / Contact not traceable'      => 'Address / Contact not traceable',
-            'Ashura Attended but Not Scanned'      => 'Ashura Attended but Not Scanned',
-            'Deen Badli Lidu che'                  => 'Deen Badli Lidu che',
-            'Lazimul Firash / Medically unfit'     => 'Lazimul Firash / Medically unfit',
-            'Married Outside'                      => 'Married Outside',
-            'Misaq Not Given'                      => 'Misaq Not Given — Not given Misaq to Syedna Mufaddal Saifuddin Aqa tus after Takht Nashini',
-            'Moved but not taken transfer'         => 'Moved but not taken transfer',
-            'Mustajeeb'                            => 'Mustajeeb',
-            'No Ashara / LQ'                       => 'No Ashara / LQ — Paying Vajebaat Sabeel but not attending Ashara Mubaraka and Lailatul Qadr',
-            'No Vajebaat / Sabeel'                 => 'No Vajebaat / Sabeel — Have not paid Sila Fitra / Vajebaat Sabeel for at least 3 years',
-            'Unapproachable / Prefers not to meet' => 'Unapproachable / Prefers not to meet',
-            'Wafaat'                               => 'Wafaat',
-            'Zero Days Scanned in Ashara Mubaraka' => 'Zero Days Scanned in Ashara Mubaraka',
+            ''                                                                 => '— None —',
+            'Deen Badli Lidu che'                                              => 'Deen Badli Lidu che',
+            'Married Outside'                                                  => 'Married Outside',
+            'Misaq Not Given'                                                  => 'Not given Misaq to Syedna Mufaddal Saifuddin AQA tus after Takht Nashini',
+            'Mustajeeb'                                                        => 'Mustajeeb',
+            'No Ashara / LQ'                                                   => 'No Ashara / LQ attended for past 3 years',
+            'No Vajebaat / Sabeel'                                             => 'Not paid Sila Fitra / Vajeebaat / Sabeel for at least 3 years',
+            'Zero Days Scanned in Ashara Mubaraka'                             => 'Zero Days Scanned in Ashara Mubaraka',
         ];
     }
 
     public static function residential_status_options(): array
     {
         return [
-            ''                             => '— None —',
-            'Residing in Khar'             => 'Residing in Khar',
-            'Moved for Job'                => 'Moved for Job',
-            'Moved for Studies'            => 'Moved for Studies',
-            'Moved but not taken transfer' => 'Moved but not taken transfer',
-            'Shifted Permanently'          => 'Shifted Permanently',
-            'Abroad'                       => 'Abroad',
-            'Unknown'                      => 'Unknown / Not traceable',
+            ''                                           => '— None —',
+            'Residing in Khar'                           => 'Residing in Khar',
+            'Moved for Job'                              => 'Moved for Job',
+            'Moved for Studies'                          => 'Moved for Studies',
+            'Moved Permanently but not taken transfer'   => 'Moved Permanently but not taken transfer',
+            'Unknown or Not Traceable'                   => 'Unknown or Not Traceable',
         ];
     }
 
@@ -199,7 +205,8 @@ class MemberStatusM extends CI_Model
             'Lazimul Firash'       => 'Lazimul Firash / Bedridden',
             'Medically Unfit'      => 'Medically Unfit',
             'Hospitalised'         => 'Hospitalised',
-            'Elderly / Needs care' => 'Elderly / Needs care',
+            'Elderly / Needs Care' => 'Elderly / Needs Care',
+            'Wafaat'               => 'Wafaat',
         ];
     }
 
@@ -209,7 +216,6 @@ class MemberStatusM extends CI_Model
             ''          => '— None —',
             'active'    => 'Active',
             'inactive'  => 'Inactive',
-            'temporary' => 'Temporary',
         ];
     }
 
@@ -217,11 +223,45 @@ class MemberStatusM extends CI_Model
     {
         $map = [
             self::MATCH_BOTH_KHAR     => 'ITS & Sabeel both in Khar',
-            self::MATCH_ITS_KHAR      => 'ITS in Khar, Sabeel outside Khar',
-            self::MATCH_SABEEL_KHAR   => 'Sabeel in Khar, ITS outside Khar',
-            self::MATCH_BOTH_NOT_KHAR => 'ITS & Sabeel both not in Khar',
+            self::MATCH_ITS_KHAR      => 'ITS in Khar, Sabeel not in Khar',
+            self::MATCH_SABEEL_KHAR   => 'Sabeel in Khar, ITS not in Khar',
+            self::MATCH_BOTH_NOT_KHAR => 'Sabeel & ITS both not in Khar',
         ];
         return $map[$val] ?? '—';
+    }
+
+    /**
+     * Compute whether a member should be auto-marked Inactive based on their
+     * deeni_status, health_status, and residential_status.
+     *
+     * Returns 'inactive' if any triggering status is set, null otherwise
+     * (null = do not override manually-set active/temporary status).
+     */
+    public static function compute_auto_inactive(string $deeni = '', string $health = '', string $residential = ''): ?string
+    {
+        // Deeni statuses that trigger Inactive
+        $inactiveDeeni = [
+            'Deen Badli Lidu che',
+            'Married Outside',
+            'Misaq Not Given',
+            'Mustajeeb',
+        ];
+        // Health statuses that trigger Inactive
+        $inactiveHealth = [
+            'Lazimul Firash',
+            'Wafaat',
+        ];
+        // Residential statuses that trigger Inactive
+        $inactiveResidential = [
+            'Moved Permanently but not taken transfer',
+            'Unknown or Not Traceable',
+        ];
+
+        if (in_array($deeni, $inactiveDeeni, true)) return self::ACTIVITY_INACTIVE;
+        if (in_array($health, $inactiveHealth, true)) return self::ACTIVITY_INACTIVE;
+        if (in_array($residential, $inactiveResidential, true)) return self::ACTIVITY_INACTIVE;
+
+        return null; // No auto-inactive trigger
     }
 
     public static function match_status_badge_class(string $val): string

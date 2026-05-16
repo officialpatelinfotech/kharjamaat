@@ -148,13 +148,15 @@
     <div class="d-flex gap-2">
       <?php
         $role = isset($_SESSION['user']['role']) ? (int)$_SESSION['user']['role'] : 0;
-        $back_url = 'javascript:history.back();'; // fallback
+        $back_url = 'javascript:history.back();';
+        $view_member_base = 'admin/viewmember/';
         if ($role === 1) {
-            $back_url = base_url('admin'); // Admin dashboard
+            $back_url = base_url('admin');
         } elseif ($role === 2) {
             $back_url = base_url('amilsaheb');
+            $view_member_base = 'amilsaheb/viewmember/';
         } elseif ($role === 3) {
-            $back_url = base_url('anjuman'); // Jamaat dashboard
+            $back_url = base_url('anjuman');
         } elseif ($role === 16) {
             $back_url = base_url('MasoolMusaid');
         } elseif ($role >= 4 && $role <= 15) {
@@ -163,7 +165,8 @@
       ?>
       <a href="<?php echo $back_url; ?>" class="btn btn-default border btn-sm mr-2">Back</a>
       <?php if(!empty($member['ITS_ID'])): ?>
-        <!-- <a href="<?php echo base_url('admin/editmember/').$member['ITS_ID']; ?>" class="btn btn-primary btn-sm">Edit</a> -->
+        <?php $edit_base = ($role === 2) ? 'amilsaheb/editmember/' : 'admin/editmember/'; ?>
+        <!-- <a href="<?php echo base_url($edit_base).$member['ITS_ID']; ?>" class="btn btn-primary btn-sm">Edit</a> -->
       <?php endif; ?>
     </div>
   </div>
@@ -196,6 +199,24 @@
         return $aHof - $bHof;
       });
 
+      // Role check: only admins (role 1) and amilsaheb (role 2) see sensitive fields
+      $is_admin_or_amilsaheb = in_array($role, [1, 2, 3]);
+      $show_deeni_status = in_array($role, [1, 2, 3]); // NOT shown to member login (role 5 etc)
+
+      // ITS-Sabeel match label map
+      $matchLabels = [
+        'its_sabeel_both_khar' => ['ITS & Sabeel both in Khar',      'success'],
+        'its_khar_sabeel_out'  => ['ITS in Khar, Sabeel not in Khar', 'warning'],
+        'sabeel_khar_its_out'  => ['Sabeel in Khar, ITS not in Khar', 'info'],
+        'both_not_khar'        => ['Sabeel & ITS both not in Khar',   'secondary'],
+      ];
+      $actClasses = ['active' => 'success', 'inactive' => 'danger', 'temporary' => 'warning'];
+      $its_match  = $member['its_sabeel_match'] ?? '';
+      $actStatus  = $member['activity_status']  ?? '';
+      $matchLbl   = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][0] : 'Not calculated';
+      $matchCls   = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][1] : 'secondary';
+      $actCls     = $actClasses[$actStatus] ?? 'secondary';
+
       // Define the groups as requested
       $groups = [
         'My Details' => ['ITS_ID', 'Full_Name', 'Full_Name_Arabic', 'Category', 'Idara', 'Mobile', 'Email', 'WhatsApp'],
@@ -220,6 +241,58 @@
       }
     ?>
 
+    <!-- ====== MEMBER STATUS PANEL (full width, prominent) ====== -->
+    <div class="panel-group" style="break-inside:avoid; border-top: 3px solid #4f46e5;">
+      <div class="panel-heading" style="background: linear-gradient(90deg,#eef2ff,#f5f7ff);">
+        <h3 class="panel-title"><i class="fa fa-shield" style="color:#4f46e5;"></i> &nbsp;Member Status</h3>
+        <div class="d-flex flex-wrap gap-2">
+          <?php if($its_match): ?>
+          <span class="badge badge-<?php echo $matchCls; ?>" style="font-size:0.78rem; padding:4px 10px;">
+            <i class="fa fa-link"></i> <?php echo htmlspecialchars($matchLbl); ?>
+          </span>
+          <?php endif; ?>
+          <?php if($actStatus): ?>
+          <span class="ml-2 badge badge-<?php echo $actCls; ?>" style="font-size:0.78rem; padding:4px 10px;">
+            <i class="fa fa-circle"></i> <?php echo ucfirst(htmlspecialchars($actStatus)); ?>
+          </span>
+          <?php endif; ?>
+        </div>
+      </div>
+      <div class="panel-body" style="padding:12px 15px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px 20px;">
+          <!-- Auto data fields -->
+          <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">ITS–Sabeel Match <span style="font-size:0.65rem;background:#e2e8f0;padding:1px 5px;border-radius:10px;color:#555;">Auto</span></div>
+            <div style="font-weight:600;color:#222;"><?php echo htmlspecialchars($matchLbl ?: '—'); ?></div>
+          </div>
+          <!-- <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">Member Type <span style="font-size:0.65rem;background:#e2e8f0;padding:1px 5px;border-radius:10px;color:#555;">Auto</span></div>
+            <div style="font-weight:600;color:#222;"><?php echo htmlspecialchars($member['Member_Type'] ?? '—'); ?></div>
+          </div> -->
+          <!-- Manual data fields -->
+          <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">Member Status <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span></div>
+            <div style="font-weight:600;" class="text-<?php echo $actCls; ?>"><?php echo $actStatus ? ucfirst(htmlspecialchars($actStatus)) : '—'; ?></div>
+          </div>
+          <?php if($show_deeni_status): ?>
+          <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">Deeni Status <span style="font-size:0.65rem;background:#fee2e2;padding:1px 5px;border-radius:10px;color:#991b1b;">Sensitive</span></div>
+            <div style="font-weight:600;color:#222;"><?php echo htmlspecialchars($member['deeni_status'] ?? '—'); ?></div>
+          </div>
+          <?php endif; ?>
+          <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">Health Status <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span></div>
+            <div style="font-weight:600;color:#222;"><?php echo htmlspecialchars($member['health_status'] ?? '—'); ?></div>
+          </div>
+          <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">Residential Status <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span></div>
+            <div style="font-weight:600;color:#222;"><?php echo htmlspecialchars($member['residential_status'] ?? '—'); ?></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     <!-- ====== FAMILY MEMBERS PANEL (full width, above masonry grid) ====== -->
     <?php if(!empty($family_members)): ?>
     <div class="panel-group" style="break-inside:avoid;">
@@ -238,7 +311,7 @@
               $isHof = (($fm['HOF_FM_TYPE'] ?? '') === 'HOF');
               $isViewed = ($fm['ITS_ID'] == $member['ITS_ID']);
             ?>
-            <a href="<?php echo base_url('admin/viewmember/').$fm['ITS_ID']; ?>" class="family-member-row" style="<?php echo $isViewed ? 'background:#f0f7ff; border: 1px solid #cce5ff;' : ''; ?>">
+            <a href="<?php echo base_url($view_member_base).$fm['ITS_ID']; ?>" class="family-member-row" style="<?php echo $isViewed ? 'background:#f0f7ff; border: 1px solid #cce5ff;' : ''; ?>">
               <div class="<?php echo $avCls; ?>"><?php echo htmlspecialchars($initials); ?></div>
               <div style="flex:1;min-width:0;">
                 <div class="fm-name" style="word-break: break-word;">

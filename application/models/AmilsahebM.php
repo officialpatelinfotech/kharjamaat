@@ -185,6 +185,9 @@ class AmilsahebM extends CI_Model
         }
       }
     }
+    if (!empty($params['its_sabeel_match'])) {
+      $this->db->where('its_sabeel_match', $params['its_sabeel_match']);
+    }
     if (!empty($params['hof'])) {
       // hof can be ITS_ID of hof
       $this->db->where('HOF_ID', $params['hof']);
@@ -211,6 +214,9 @@ class AmilsahebM extends CI_Model
     }
     if (isset($params['max']) && is_numeric($params['max'])) {
       $this->db->where('Age <=', (int)$params['max']);
+    }
+    if (!empty($params['madresa_deprived'])) {
+      $this->db->where("ITS_ID NOT IN (SELECT students_its_id FROM madresa_class_admission)", null, false);
     }
 
     return $this->db->get()->result();
@@ -508,8 +514,6 @@ class AmilsahebM extends CI_Model
         SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'temporary%' OR LOWER(TRIM(member_type)) LIKE 'visitor%' THEN 1 ELSE 0 END) AS temporary,
         COUNT(*) AS total
       FROM user
-      WHERE sector IS NOT NULL AND sub_sector IS NOT NULL AND ((inactive_status IS NULL OR inactive_status = '')
-        " . ($this->has_activity_status ? "AND (activity_status = 'active' OR activity_status IS NULL OR activity_status = '')" : "") . ")
     ";
     $row = $this->db->query($sql)->row_array();
     // Ensure integer values and defaults
@@ -542,8 +546,7 @@ class AmilsahebM extends CI_Model
         SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) AS seniors,
         COUNT(*) AS total
       FROM user u
-      WHERE (LOWER(TRIM(u.member_type)) LIKE 'resident%' OR LOWER(TRIM(u.member_type)) LIKE 'permanent%') AND u.sector IS NOT NULL AND u.sub_sector IS NOT NULL AND ((u.inactive_status IS NULL OR u.inactive_status = '')
-        " . ($this->has_activity_status ? "AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . ")
+      WHERE (u.inactive_status IS NULL OR u.inactive_status = '')
     ";
     $row = $this->db->query($sql)->row_array();
     return [
@@ -575,10 +578,9 @@ class AmilsahebM extends CI_Model
         MAX(u.Sector_Incharge_Name) AS Sector_Incharge_Name,
         MAX(u.Sector_Incharge_Female_Name) AS Sector_Incharge_Female_Name
       FROM user u
-      WHERE (LOWER(TRIM(u.member_type)) LIKE 'resident%' OR LOWER(TRIM(u.member_type)) LIKE 'permanent%')
-        AND u.sector IS NOT NULL AND u.sub_sector IS NOT NULL 
-        AND ((u.inactive_status IS NULL OR u.inactive_status = '')
-        " . ($this->has_activity_status ? "AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . ")
+      WHERE u.sector IS NOT NULL AND u.sub_sector IS NOT NULL 
+        AND (u.inactive_status IS NULL OR u.inactive_status = '')
+        " . ($this->has_activity_status ? "AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . "
       GROUP BY u.Sector
       ORDER BY u.Sector
     ";
@@ -621,5 +623,138 @@ class AmilsahebM extends CI_Model
   {
     $this->db->where('ITS', $ITS);
     return $this->db->update('ashara_ohbat', $data);
+  }
+
+  public function get_madresa_deprived_count()
+  {
+    $sql = "
+      SELECT COUNT(*) as count
+      FROM user u
+      WHERE u.Age BETWEEN 5 AND 15
+        AND ((u.inactive_status IS NULL OR u.inactive_status = '')
+        " . ($this->has_activity_status ? " AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . ")
+        AND u.ITS_ID NOT IN (SELECT students_its_id FROM madresa_class_admission)
+    ";
+    $row = $this->db->query($sql)->row_array();
+    return (int)($row['count'] ?? 0);
+  }
+
+  public function get_singles_21_40_count()
+  {
+    $sql = "
+      SELECT COUNT(*) as count
+      FROM user u
+      WHERE u.Age BETWEEN 21 AND 40
+        AND LOWER(TRIM(u.Marital_Status)) = 'single'
+        AND ((u.inactive_status IS NULL OR u.inactive_status = '')
+        " . ($this->has_activity_status ? " AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . ")
+    ";
+    $row = $this->db->query($sql)->row_array();
+    return (int)($row['count'] ?? 0);
+  }
+
+  public function get_status_counts()
+  {
+    $stats = [
+      'deeni' => [],
+      'health' => [],
+      'residential' => [],
+      'activity' => [],
+      'education' => [],
+      'occupation' => []
+    ];
+    
+    // Use the same 'Active' definition as the directory: no inactive status
+    $baseWhere = "WHERE (u.inactive_status IS NULL OR u.inactive_status = '')";
+    
+    // Deeni Status
+    $qDeeni = $this->db->query("SELECT TRIM(deeni_status) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(deeni_status)")->result_array();
+    foreach($qDeeni as $row) { 
+      $lbl = !empty($row['status']) ? $row['status'] : 'None';
+      $stats['deeni'][$lbl] = ($stats['deeni'][$lbl] ?? 0) + (int)$row['count']; 
+    }
+    
+    // Health Status
+    $qHealth = $this->db->query("SELECT TRIM(health_status) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(health_status)")->result_array();
+    foreach($qHealth as $row) { 
+      $lbl = !empty($row['status']) ? $row['status'] : 'None';
+      $stats['health'][$lbl] = ($stats['health'][$lbl] ?? 0) + (int)$row['count']; 
+    }
+    
+    // Residential Status
+    $qRes = $this->db->query("SELECT TRIM(residential_status) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(residential_status)")->result_array();
+    foreach($qRes as $row) { 
+      $lbl = !empty($row['status']) ? $row['status'] : 'None';
+      $stats['residential'][$lbl] = ($stats['residential'][$lbl] ?? 0) + (int)$row['count']; 
+    }
+    
+    // Activity Status
+    if ($this->has_activity_status) {
+        $qAct = $this->db->query("SELECT TRIM(activity_status) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(activity_status)")->result_array();
+        foreach($qAct as $row) { 
+          $lbl = !empty($row['status']) ? $row['status'] : 'Active';
+          $stats['activity'][$lbl] = ($stats['activity'][$lbl] ?? 0) + (int)$row['count']; 
+        }
+    }
+
+    // Education (Qualification) - Group by trimmed and handled case-insensitive logic
+    $qEdu = $this->db->query("SELECT TRIM(Qualification) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(Qualification)")->result_array();
+    foreach($qEdu as $row) { 
+      $lbl = !empty($row['status']) ? $row['status'] : 'None';
+      // Normalize labels to handle case mismatches (e.g. Graduate vs graduate)
+      $norm = null;
+      foreach(array_keys($stats['education']) as $existing) {
+        if (strtolower($existing) === strtolower($lbl)) { $norm = $existing; break; }
+      }
+      if ($norm) {
+        $stats['education'][$norm] += (int)$row['count'];
+      } else {
+        $stats['education'][$lbl] = (int)$row['count'];
+      }
+    }
+
+    // Occupation
+    $qOcc = $this->db->query("SELECT TRIM(Occupation) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(Occupation)")->result_array();
+    foreach($qOcc as $row) { 
+      $lbl = !empty($row['status']) ? $row['status'] : 'None';
+      $norm = null;
+      foreach(array_keys($stats['occupation']) as $existing) {
+        if (strtolower($existing) === strtolower($lbl)) { $norm = $existing; break; }
+      }
+      if ($norm) {
+        $stats['occupation'][$norm] += (int)$row['count'];
+      } else {
+        $stats['occupation'][$lbl] = (int)$row['count'];
+      }
+    }
+    
+    return $stats;
+  }
+
+  public function get_active_inactive_counts()
+  {
+    $sql = "
+      SELECT 
+        SUM(CASE WHEN (u.inactive_status IS NULL OR u.inactive_status = '') " . ($this->has_activity_status ? " AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . " THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN (u.inactive_status IS NOT NULL AND u.inactive_status != '') " . ($this->has_activity_status ? " OR (u.activity_status != 'active' AND u.activity_status IS NOT NULL AND u.activity_status != '')" : "") . " THEN 1 ELSE 0 END) as inactive,
+        SUM(CASE WHEN u.its_sabeel_match = 'its_sabeel_both_khar' THEN 1 ELSE 0 END) as its_sabeel_both_khar,
+        SUM(CASE WHEN u.its_sabeel_match = 'both_not_khar' THEN 1 ELSE 0 END) as both_not_khar,
+        SUM(CASE WHEN u.its_sabeel_match = 'sabeel_khar_its_out' THEN 1 ELSE 0 END) as sabeel_khar_its_out,
+        SUM(CASE WHEN u.its_sabeel_match = 'its_khar_sabeel_out' THEN 1 ELSE 0 END) as its_khar_sabeel_out
+      FROM user u
+    ";
+    return $this->db->query($sql)->row_array();
+  }
+
+  public function search_members($query)
+  {
+    $this->db->select('ITS_ID as its_id, Full_Name as full_name, Sector as sector, HOF_ID as hof_id, Gender as gender');
+    $this->db->from('user');
+    $this->db->group_start();
+    $this->db->like('Full_Name', $query);
+    $this->db->or_like('ITS_ID', $query);
+    $this->db->group_end();
+    $this->db->limit(10);
+    return $this->db->get()->result_array();
   }
 }

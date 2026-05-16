@@ -99,6 +99,19 @@
       <small class="form-text text-muted">Used in the footer “Contact” section.</small>
     </div>
 
+    <div class="form-group mb-3">
+      <label for="registration_email" class="font-weight-bold">Registration Page Email</label>
+      <input
+        type="email"
+        id="registration_email"
+        name="registration_email"
+        class="form-control"
+        value="<?php echo htmlspecialchars(isset($registration_email) ? $registration_email : app_setting('registration_email', 'anjuman@kharjamaat.in'), ENT_QUOTES, 'UTF-8'); ?>"
+        placeholder="anjuman@example.com"
+      />
+      <small class="form-text text-muted">This email is shown to users on the Register page for registration inquiries.</small>
+    </div>
+
     <hr />
 
     <h5 class="mb-3">Payment Receipt Details</h5>

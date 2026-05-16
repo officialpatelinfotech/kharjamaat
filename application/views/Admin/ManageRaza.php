@@ -150,8 +150,8 @@
 		</div>
 		<div class="table-responsive mt-5 mb-5">
 			<div class="table-container">
-				<table class="table table-bordered text-center">
-					<thead id="table">
+				<table class="table table-bordered text-center" id="razaTable">
+					<thead>
 						<tr>
 							<th class="sno">S.No.
 								<span class="sort-icons" onclick="sortTable(0)">
@@ -183,7 +183,7 @@
 					</thead>
 					<tbody>
 						<?php foreach ($raza_type as $key => $r) { ?>
-							<tr>
+							<tr id="row_<?php echo $r['id']; ?>">
 								<td><?php echo $key + 1 ?></td>
 								<td><?php echo date('D, d M @ g:i a', strtotime($r['timestamp'])) ?></td>
 								<td>
@@ -197,7 +197,6 @@
 										style="display: none;">
 										<option value="Private-Event" <?php echo ($r['umoor'] === 'Private-Event') ? 'selected' : ''; ?>>Private Event</option>
 										<option value="Public-Event" <?php echo ($r['umoor'] === 'Public-Event') ? 'selected' : ''; ?>>Public Event</option>
-										<option value="UmoorDeeniyah" <?php echo ($r['umoor'] === 'UmoorDeeniyah') ? 'selected' : ''; ?>>Umoor Deeniyah</option>
 										<option value="UmoorDeeniyah" <?php echo ($r['umoor'] === 'UmoorDeeniyah') ? 'selected' : ''; ?>>Umoor Deeniyah</option>
 										<option value="UmoorTalimiyah" <?php echo ($r['umoor'] === 'UmoorTalimiyah') ? 'selected' : ''; ?>>Umoor Talimiyah
 										</option>
@@ -220,29 +219,30 @@
 										</option>
 									</select>
 								</td>
-								<td><?php echo ($r['active'] == 1) ? 'Active' : 'Inactive'; ?></td>
+								<td id="status_<?php echo $r['id']; ?>"><?php echo ($r['active'] == 1) ? 'Active' : 'Inactive'; ?></td>
 								<td>
-									<a href="<?php echo base_url('admin/manage_edit_raza/') . $r['id'] ?>">
-										<button type="button" data-toggle="tooltip" data-placement="bottom"
-											title="Modify Raza Fields" class="btn btn-sm btn-primary remove-form-row">
-											<i class="fa-solid fa-pen-to-square"></i></button>
-									</a>
-									<a href="javascript:void(0);" onclick="editRow(<?php echo $r['id']; ?>);">
-										<button type="button" data-toggle="tooltip" data-placement="bottom"
-											title="Edit Raza Name And Umoor" class="btn btn-sm btn-secondary">
+									<div class="d-flex justify-content-center gap-1" id="actionBtns_<?php echo $r['id']; ?>">
+										<a href="<?php echo base_url('admin/manage_edit_raza/') . $r['id'] ?>" class="btn-fields">
+											<button type="button" data-toggle="tooltip" data-placement="bottom"
+												title="Modify Raza Fields" class="btn btn-sm btn-primary mr-1">
+												<i class="fa-solid fa-pen-to-square"></i></button>
+										</a>
+										<button type="button" id="editBtn_<?php echo $r['id']; ?>" data-toggle="tooltip" data-placement="bottom"
+											title="Edit Raza Name And Umoor" class="btn btn-sm btn-secondary mr-1" onclick="editRow(<?php echo $r['id']; ?>);">
 											<i class="fa-solid fa-pencil-alt"></i>
 										</button>
-									</a>
-									<a href="<?php echo base_url('admin/manage_delete_raza/') . $r['id'] ?>">
-										<button type="button" data-toggle="tooltip" data-placement="bottom"
-											title="Delete Raza Type" class="btn btn-sm btn-danger remove-form-row">
-											<i class="fa-solid fa-circle-xmark"></i></button>
-									</a>
-									<button type="button" id="submitBtn_<?php echo $r['id']; ?>"
-										class="btn btn-sm btn-success" style="display: none;"
-										onclick="submitRow(<?php echo $r['id']; ?>);">
-										Submit
-									</button>
+										<button type="button" id="statusBtn_<?php echo $r['id']; ?>" data-toggle="tooltip" data-placement="bottom"
+											title="<?php echo ($r['active'] == 1) ? 'Disable' : 'Enable'; ?> Raza Type" 
+											class="btn btn-sm <?php echo ($r['active'] == 1) ? 'btn-danger' : 'btn-success'; ?> mr-1"
+											onclick="toggleStatus(<?php echo $r['id']; ?>);">
+											<i class="fa-solid <?php echo ($r['active'] == 1) ? 'fa-circle-xmark' : 'fa-circle-check'; ?>"></i>
+										</button>
+										<button type="button" id="submitBtn_<?php echo $r['id']; ?>"
+											class="btn btn-sm btn-success" style="display: none;"
+											onclick="submitRow(<?php echo $r['id']; ?>);">
+											Submit
+										</button>
+									</div>
 								</td>
 							</tr>
 						<?php } ?>
@@ -259,7 +259,7 @@
 
 <script>
 	function addnewrazatype() {
-		let table = document.getElementById('table');
+		let tbody = document.querySelector('#razaTable tbody');
 		let tr = document.createElement('tr');
 		tr.innerHTML = `
             <td></td>
@@ -285,10 +285,10 @@
             </td>
             <td></td>
             <td>
-                <button type="button" class="btn btn-sm btn-success remove-form-row" onclick="submitForm()">Submit</button>
+                <button type="button" class="btn btn-sm btn-success" onclick="submitForm()">Submit</button>
             </td>
         `;
-		table.appendChild(tr);
+		tbody.appendChild(tr);
 	}
 
 	function submitForm() {
@@ -321,16 +321,33 @@
 	}
 
 	function editRow(rowId) {
-		var allButtons = document.querySelectorAll('#row_' + rowId + ' .btn');
-		for (var i = 0; i < allButtons.length; i++) {
-			allButtons[i].style.display = 'none';
-		}
-		document.getElementById('submitBtn_' + rowId).style.display = 'block';
+		const razaNameSpan = document.getElementById('razaName_' + rowId);
+		const umoorSpan = document.getElementById('umoor_' + rowId);
+		const razaNameInput = document.getElementById('editRazaName_' + rowId);
+		const umoorSelect = document.getElementById('editUmoor_' + rowId);
+		const submitBtn = document.getElementById('submitBtn_' + rowId);
+		const actionContainer = document.getElementById('actionBtns_' + rowId);
+		const otherBtns = actionContainer.querySelectorAll('button:not(#submitBtn_' + rowId + '), a');
 
-		document.getElementById('razaName_' + rowId).style.display = 'none';
-		document.getElementById('umoor_' + rowId).style.display = 'none';
-		document.getElementById('editRazaName_' + rowId).style.display = 'block';
-		document.getElementById('editUmoor_' + rowId).style.display = 'block';
+		if (razaNameInput.style.display === 'none') {
+			// Show inputs (Start Editing)
+			razaNameSpan.style.display = 'none';
+			umoorSpan.style.display = 'none';
+			razaNameInput.style.display = 'block';
+			umoorSelect.style.display = 'block';
+			submitBtn.style.display = 'inline-block';
+			otherBtns.forEach(btn => {
+				if (btn.id !== 'editBtn_' + rowId) btn.style.display = 'none';
+			});
+		} else {
+			// Hide inputs (Revert)
+			razaNameSpan.style.display = 'inline';
+			umoorSpan.style.display = 'inline';
+			razaNameInput.style.display = 'none';
+			umoorSelect.style.display = 'none';
+			submitBtn.style.display = 'none';
+			otherBtns.forEach(btn => btn.style.display = 'inline-block');
+		}
 	}
 
 	function submitRow(rowId) {
@@ -348,27 +365,41 @@
 			})
 			.then(response => response.json())
 			.then(data => {
-				// Handle success response
 				console.log('Data updated successfully:', data);
+				document.getElementById('razaName_' + rowId).textContent = newRazaName;
+				document.getElementById('umoor_' + rowId).textContent = newUmoor;
+				editRow(rowId); // Revert UI
 			})
 			.catch(error => {
-				// Handle error
 				console.error('Data update failed:', error);
 			});
+	}
 
-		document.getElementById('razaName_' + rowId).textContent = newRazaName;
-		document.getElementById('umoor_' + rowId).textContent = newUmoor;
+	function toggleStatus(rowId) {
+		fetch('<?php echo base_url('admin/toggle_raza_status/') ?>' + rowId, {
+				method: 'GET'
+			})
+			.then(response => response.json())
+			.then(data => {
+				if (data.status) {
+					const statusTd = document.getElementById('status_' + rowId);
+					const statusBtn = document.getElementById('statusBtn_' + rowId);
+					const isActive = data.new_active == 1;
 
-		document.getElementById('razaName_' + rowId).style.display = 'inline';
-		document.getElementById('umoor_' + rowId).style.display = 'inline';
-		document.getElementById('editRazaName_' + rowId).style.display = 'none';
-		document.getElementById('editUmoor_' + rowId).style.display = 'none';
+					statusTd.textContent = isActive ? 'Active' : 'Inactive';
+					statusBtn.className = 'btn btn-sm ' + (isActive ? 'btn-danger' : 'btn-success');
+					statusBtn.title = (isActive ? 'Disable' : 'Enable') + ' Raza Type';
+					statusBtn.innerHTML = '<i class="fa-solid ' + (isActive ? 'fa-circle-xmark' : 'fa-circle-check') + '"></i>';
 
-		var allButtons = document.querySelectorAll('#row_' + rowId + ' .btn');
-		for (var i = 0; i < allButtons.length; i++) {
-			allButtons[i].style.display = 'block';
-		}
-		document.getElementById('submitBtn_' + rowId).style.display = 'none';
+					// Update tooltips if using Bootstrap
+					if (typeof $ !== 'undefined' && $.fn.tooltip) {
+						$(statusBtn).attr('data-original-title', statusBtn.title).tooltip('show');
+					}
+				}
+			})
+			.catch(error => {
+				console.error('Status toggle failed:', error);
+			});
 	}
 </script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

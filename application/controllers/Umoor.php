@@ -16,7 +16,7 @@ class Umoor extends CI_Controller
   }
   public function index()
   {
-    if (!empty($_SESSION['user']) && ($_SESSION['user']['role'] <= 4 || $_SESSION['user']['role'] >= 15)) {
+    if (!empty($_SESSION['user']) && ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15)) {
       redirect('/accounts');
     }
 
@@ -41,7 +41,7 @@ class Umoor extends CI_Controller
   public function RazaRequest()
   {
     try {
-      if (!empty($_SESSION['user']) && ($_SESSION['user']['role'] <= 4 || $_SESSION['user']['role'] >= 15)) {
+      if (!empty($_SESSION['user']) && ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15)) {
         redirect('/accounts');
       }
 
@@ -132,7 +132,7 @@ class Umoor extends CI_Controller
 
   public function add_menu()
   {
-    if (!empty($_SESSION['user']) && ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role']) > 15) {
+    if (!empty($_SESSION['user']) && ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15)) {
       redirect('/accounts');
     }
 

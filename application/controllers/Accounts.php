@@ -92,8 +92,10 @@ class Accounts extends CI_Controller
   }
   public function register()
   {
+    $this->load->model('SettingsM');
+    $data['registration_email'] = $this->SettingsM->get('registration_email', 'anjuman@kharjamaat.in');
     $this->load->view('Home/Header');
-    $this->load->view('Accounts/Register');
+    $this->load->view('Accounts/Register', $data);
   }
 
   public function logout()

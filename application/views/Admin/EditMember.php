@@ -204,18 +204,7 @@ if (!function_exists('norm_date_input')) {
                 <input type="text" class="form-control form-control-sm bg-light" readonly
                   value="<?php echo htmlspecialchars($matchLabel); ?>">
               </div>
-              <div class="col-md-6 col-12">
-                <label class="form-label small mb-1 fw-semibold">Member Type <span class="badge bg-secondary ms-1" style="font-size:.65rem">Auto</span></label>
-                <input type="text" class="form-control form-control-sm bg-light" readonly
-                  value="<?php echo htmlspecialchars($memberTypeLbl ?: '—'); ?>">
-              </div>
-            </div>
-
-            <hr class="my-2">
-            <!-- Manual living status fields -->
-            <p class="text-muted small mb-2"><i class="fa-solid fa-user-pen me-1"></i>Living Status — manually managed by Admin.</p>
-            <div class="row g-3" id="living-status-fields">
-              <div class="col-md-2 col-12">
+              <div class="col-md-3 col-12">
                 <label class="form-label small mb-1 fw-semibold">Member Status</label>
                 <select name="activity_status" id="activityStatusSel" class="form-control form-select form-select-sm">
                   <?php foreach ($activity_status_options as $val => $label): ?>
@@ -226,6 +215,12 @@ if (!function_exists('norm_date_input')) {
                   <?php endforeach; ?>
                 </select>
               </div>
+            </div>
+
+            <hr class="my-2">
+            <!-- Manual living status fields -->
+            <p class="text-muted small mb-2"><i class="fa-solid fa-user-pen me-1"></i>Living Status — manually managed by Admin.</p>
+            <div class="row g-3" id="living-status-fields">
               <div class="col-md-3 col-12">
                 <label class="form-label small mb-1 fw-semibold">Deeni Status</label>
                 <select name="deeni_status" id="deeniStatusSel" class="form-control form-select form-select-sm">
@@ -237,37 +232,25 @@ if (!function_exists('norm_date_input')) {
                   <?php endforeach; ?>
                 </select>
               </div>
-              <div class="col-md-2 col-12">
-                <label class="form-label small mb-1 fw-semibold">Member Type</label>
-                <?php $mt = $member['Member_Type'] ?? ''; ?>
-                <select name="Member_Type" id="memberTypeSel" class="form-control form-select form-select-sm">
-                  <option value="">-- None --</option>
-                  <option value="Resident Mumineen" <?php echo $mt == 'Resident Mumineen' ? 'selected' : ''; ?>>Resident Mumineen</option>
-                  <option value="External Sabeel Payers" <?php echo $mt == 'External Sabeel Payers' ? 'selected' : ''; ?>>External Sabeel Payers</option>
-                  <option value="Moved-Out Mumineen" <?php echo $mt == 'Moved-Out Mumineen' ? 'selected' : ''; ?>>Moved-Out Mumineen</option>
-                  <option value="Non-Sabeel Residents" <?php echo $mt == 'Non-Sabeel Residents' ? 'selected' : ''; ?>>Non-Sabeel Residents</option>
-                  <option value="Temporary Mumineen/Visitors" <?php echo $mt == 'Temporary Mumineen/Visitors' ? 'selected' : ''; ?>>Temporary Mumineen/Visitors</option>
-                  <option value="Permanent" <?php echo $mt == 'Permanent' ? 'selected' : ''; ?>>Permanent</option>
-                  <option value="Temporary" <?php echo $mt == 'Temporary' ? 'selected' : ''; ?>>Temporary</option>
+              
+              <div class="col-md-3 col-12">
+                <label class="form-label small mb-1 fw-semibold">Health Status</label>
+                <select name="health_status" id="healthStatusSel" class="form-control form-select form-select-sm">
+                  <?php foreach ($health_status_options as $val => $label): ?>
+                    <option value="<?php echo htmlspecialchars($val); ?>"
+                      <?php echo (($member['health_status'] ?? '') === $val) ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($label); ?>
+                    </option>
+                  <?php endforeach; ?>
                 </select>
               </div>
+
               <div class="col-md-3 col-12">
                 <label class="form-label small mb-1 fw-semibold">Residential Status</label>
                 <select name="residential_status" id="residentialStatusSel" class="form-control form-select form-select-sm">
                   <?php foreach ($residential_status_options as $val => $label): ?>
                     <option value="<?php echo htmlspecialchars($val); ?>"
                       <?php echo (($member['residential_status'] ?? '') === $val) ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($label); ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-              <div class="col-md-2 col-12">
-                <label class="form-label small mb-1 fw-semibold">Health Status</label>
-                <select name="health_status" id="healthStatusSel" class="form-control form-select form-select-sm">
-                  <?php foreach ($health_status_options as $val => $label): ?>
-                    <option value="<?php echo htmlspecialchars($val); ?>"
-                      <?php echo (($member['health_status'] ?? '') === $val) ? 'selected' : ''; ?>>
                       <?php echo htmlspecialchars($label); ?>
                     </option>
                   <?php endforeach; ?>

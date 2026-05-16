@@ -221,7 +221,7 @@
               <div id="mswDropdown" role="listbox" aria-label="Member search results"></div>
             </div>
             <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-outline-primary btn-sm" style="white-space:nowrap;border-radius:10px;">
-              <i class="fa fa-users mr-1"></i>All Members
+              <i class="fa fa-users mr-1"></i>Manage Members
             </a>
           </div>
         </div>
@@ -277,14 +277,6 @@
           <div class="card-body d-flex flex-column justify-content-between">
             <div class="title">Manage Sabeel Takhmeen</div>
             <i class="icon fa-solid fa-hand-holding-heart"></i>
-          </div>
-        </div>
-      </a>
-      <a href="<?php echo base_url('admin/managemembers'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
-        <div class="card text-center">
-          <div class="card-body d-flex flex-column justify-content-between">
-            <div class="title">Manage Members</div>
-            <i class="icon fa-solid fa-users-cog"></i>
           </div>
         </div>
       </a>

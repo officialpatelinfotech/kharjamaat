@@ -45,6 +45,16 @@ class AdminM extends CI_Model
     $this->db->update('raza_type', $data);
     return $this->db->affected_rows() > 0;
   }
+  function toggle_raza_status($id)
+  {
+    $raza = $this->db->get_where('raza_type', array('id' => $id))->row_array();
+    if (!$raza) return false;
+
+    $new_status = ($raza['active'] == 1) ? 0 : 1;
+    $this->db->where('id', $id);
+    $this->db->update('raza_type', array('active' => $new_status));
+    return array('status' => true, 'new_active' => $new_status);
+  }
   function add_new_razatype($razaname, $umoor)
   {
     $data = array(

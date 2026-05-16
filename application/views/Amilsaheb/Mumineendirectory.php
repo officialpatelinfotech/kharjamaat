@@ -453,9 +453,14 @@
       if (!groups[key]) groups[key] = {
         hofId: hofId,
         hofName: hofName,
+        tanzeemFileNo: '',
         members: []
       };
       groups[key].members.push(u);
+      // Capture TanzeemFile_No from any member (prefer HOF if found)
+      if (!groups[key].tanzeemFileNo || (u.ITS_ID == hofId || u.ITS == hofId)) {
+        groups[key].tanzeemFileNo = u.TanzeemFile_No || u.TanzeemFileNo || '';
+      }
     });
 
     // convert to sorted array by hofName
@@ -467,6 +472,7 @@
     const container = document.getElementById('membersList');
     container.innerHTML = '';
     const groups = groupByHOF(users);
+    let familyIdx = 1;
     let idx = 1;
     groups.forEach(group => {
       const hofId = group.hofId || '';
@@ -478,7 +484,8 @@
       // HOF header
       const header = document.createElement('div');
       header.className = 'hof-header';
-      header.innerHTML = `<div class="hof-left">HOF: ${escapeHtml(hofName)} <span class="its-small">${hofId?('ID: '+escapeHtml(hofId)):''}</span> <span class="hof-badges"><span class="badge bg-light text-dark">Members: ${members.length}</span></span></div>`;
+      const headerRight = `<div class="hof-right text-muted small" style="font-weight:600; color: #4b5563;">Family #${familyIdx++}</div>`;
+      header.innerHTML = `<div class="hof-left">HOF: ${escapeHtml(hofName)} <span class="its-small">${hofId?('ID: '+escapeHtml(hofId)):''}</span> <span class="hof-badges"><span class="badge bg-light text-dark">Members: ${members.length}</span></span></div>${headerRight}`;
       hofDiv.appendChild(header);
 
       // members
@@ -510,9 +517,15 @@
         actions.className = 'actions';
         const btnView = document.createElement('button');
         btnView.className = 'action-btn action-view';
-        btnView.innerHTML = '<i class="fa fa-eye"></i>';
+        <?php 
+          $view_base = 'admin/viewmember/';
+          if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 2) {
+            $view_base = 'amilsaheb/viewmember/';
+          }
+        ?>
+        btnView.innerHTML = `<a href="<?php echo base_url($view_base) ?>${m.ITS_ID}"><i class="fa fa-eye"></i></a>`;
         btnView.title = 'View';
-        btnView.onclick = () => openModal(m);
+        // btnView.onclick = () => openModal(m);
         actions.appendChild(btnView);
 
         row.appendChild(index);
@@ -603,6 +616,7 @@
     const hof = params.get('hof') || params.get('filterHOF') || '';
     const min = params.get('min') ?? params.get('age_min');
     const max = params.get('max') ?? params.get('age_max');
+    const itsMatch = params.get('its_sabeel_match') || '';
 
     // If legacy filter provided, handle those cases first
     if (legacyFilter) {
@@ -649,6 +663,14 @@
           }
           break;
         default:
+          // generic field=value filter (health_status, deeni_status, residential_status, Qualification, Occupation, etc.)
+          if (legacyValue !== null) {
+            const f = document.getElementById('filtersForm');
+            if (f) {
+              f.dataset.legacyField = legacyFilter;
+              f.dataset.legacyValue = legacyValue;
+            }
+          }
           break;
       }
     }
@@ -668,7 +690,9 @@
     }
     if (status) {
       const el = document.getElementById('filterStatus');
-      if (el) el.value = status;
+      // Capitalize to match option values ('Active'/'Inactive')
+      const statusNorm = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+      if (el) el.value = statusNorm;
     }
     if (mTypeParam) {
       const el = document.getElementById('filterMemberType');
@@ -700,6 +724,12 @@
       if (minEl) minEl.value = min || '';
       const maxEl = document.getElementById('filterAgeMax');
       if (maxEl) maxEl.value = max || '';
+    }
+
+    // its_sabeel_match direct param — store on form dataset
+    if (itsMatch) {
+      const f = document.getElementById('filtersForm');
+      if (f) f.dataset.itsMatch = itsMatch;
     }
 
     // Apply filters now to reflect any GET-provided values
@@ -842,6 +872,9 @@
     const formEl = document.getElementById('filtersForm');
     const hofFmType = formEl && formEl.dataset && formEl.dataset.hofFmType ? formEl.dataset.hofFmType.toString().toUpperCase() : '';
     const dsGender = formEl && formEl.dataset && formEl.dataset.gender ? formEl.dataset.gender.toString().toLowerCase() : '';
+    const dsItsMatch = formEl && formEl.dataset && formEl.dataset.itsMatch ? formEl.dataset.itsMatch.toString() : '';
+    const dsLegacyField = formEl && formEl.dataset && formEl.dataset.legacyField ? formEl.dataset.legacyField.toString().toLowerCase() : '';
+    const dsLegacyValue = formEl && formEl.dataset && formEl.dataset.legacyValue !== undefined ? formEl.dataset.legacyValue.toString() : '';
     const ageMinEl = document.getElementById('filterAgeMin');
     const ageMaxEl = document.getElementById('filterAgeMax');
     const inputMin = ageMinEl && ageMinEl.value !== '' ? parseInt(ageMinEl.value, 10) : null;
@@ -851,7 +884,7 @@
     const dsMin = inputMin !== null ? inputMin : dsMinFallback;
     const dsMax = inputMax !== null ? inputMax : dsMaxFallback;
 
-    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || mTypeVal || hofFmType || dsGender || (dsMin !== null) || (dsMax !== null));
+    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || mTypeVal || hofFmType || dsGender || dsItsMatch || dsLegacyField || (dsMin !== null) || (dsMax !== null));
 
     // if no filters set, show all (prefer full dataset when available)
     if (!hasAnyFilter) {
@@ -894,6 +927,18 @@
       if (dsGender) {
         const ug = ((u.Gender || u.gender || '')).toString().toLowerCase();
         preds.push(ug === dsGender);
+      }
+      // its_sabeel_match filter (ITS & Sabeel cards)
+      if (dsItsMatch) {
+        const itsSabeel = (u.its_sabeel_match || u.ITS_Sabeel_Match || '').toString();
+        preds.push(itsSabeel === dsItsMatch);
+      }
+      // generic legacy field=value filter (health_status, deeni_status, residential_status, Qualification, Occupation, etc.)
+      if (dsLegacyField && dsLegacyValue !== '') {
+        // find the matching key in the user object (case-insensitive)
+        const matchKey = Object.keys(u).find(k => k.toLowerCase() === dsLegacyField);
+        const fieldVal = matchKey ? (u[matchKey] || '').toString().trim().toLowerCase() : '';
+        preds.push(fieldVal === dsLegacyValue.trim().toLowerCase());
       }
       // age range (min/max) stored on dataset
       if (dsMin !== null || dsMax !== null) {

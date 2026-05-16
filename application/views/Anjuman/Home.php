@@ -279,7 +279,7 @@
   .chart-title {
     font-size: 1.15rem;
     font-weight: 600;
-    margin-bottom: 20px;
+    /* margin-bottom: 20px; */
     color: #333;
   }
 
@@ -1086,6 +1086,53 @@
       max-width: 20%;
     }
   }
+  .section-header-standard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 2px solid #f1f5f9;
+  }
+  .section-header-standard .section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #475569;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-header-standard .section-title i {
+    color: #94a3b8;
+    font-size: 0.9rem;
+  }
+  .collapse-toggle-btn {
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    transition: all 0.2s;
+  }
+  .collapse-toggle-btn:hover {
+    background: #f1f5f9;
+    color: #475569;
+  }
+  .collapse-toggle-btn[aria-expanded="true"] i {
+    transform: rotate(0deg);
+  }
+  .collapse-toggle-btn[aria-expanded="false"] i {
+    transform: rotate(-90deg);
+  }
+  .collapse-toggle-btn i {
+    transition: transform 0.2s;
+  }
   /* Mobile-only: equalize miqaat mini-card heights (avoid desktop grid conflicts) */
   @media (max-width:767.98px) {
     #miqaat-rsvp-block .row {
@@ -1399,15 +1446,22 @@
           }
         }
         ?>
-        <h4 class="section-title text-center mt-4 mt-md-0">Jamaat Overview</h4>
-        <div class="row">
+        <h4 class="section-title text-center mt-4 mt-md-0 mb-4">Jamaat Overview</h4>
+
+        <!-- Group 2: Statuses -->
+        <div class="section-header-standard ml-3 mr-3">
+          <h5 class="section-title"><i class="fa fa-info-circle"></i> Statistics</h5>
+          <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseGroupStatuses" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+        </div>
+        <div class="collapse show" id="collapseGroupStatuses">
+          <div class="row px-3">
           <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('anjuman/mumineendirectory?filter=all'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon"><i class="fa fa-users"></i></div>
                 <div class="overview-body">
                   <span class="overview-title">Total Members</span>
-                  <span class="overview-value"><?= isset($member_type_counts['resident']) ? (int)$member_type_counts['resident'] : (isset($stats['HOF']) && isset($stats['FM']) ? ((int)$stats['HOF'] + (int)$stats['FM']) : count($users)) ?></span>
+                  <span class="overview-value"><?= (int)($member_type_counts['total'] ?? 0) ?></span>
                 </div>
               </div>
             </a>
@@ -1512,79 +1566,164 @@
             </a>
           </div>
           <?php $mt = isset($member_type_counts) ? $member_type_counts : ['resident' => 0, 'external' => 0, 'moved_out' => 0, 'non_sabeel' => 0, 'temporary' => 0, 'total' => 0]; ?>
+
           <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Resident Mumineen')); ?>" style="text-decoration:none;color:inherit;display:block;">
+            <a href="<?= base_url('anjuman/mumineendirectory?its_sabeel_match=its_sabeel_both_khar'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon" style="background:#eef2ff; color:#4f46e5;"><i class="fa fa-home"></i></div>
                 <div class="overview-body">
-                  <span class="overview-title">Resident Mumineen <i class="fa fa-info-circle text-muted ml-1" title="Living in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, regular Sabeel payer" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
-                  <span class="overview-value"><?= (int)$mt['resident']; ?></span>
+                  <span class="overview-title">ITS & Sabeel both in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="Living in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, regular Sabeel payer" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)($stats['active_inactive']['its_sabeel_both_khar'] ?? 0); ?></span>
                 </div>
               </div>
             </a>
           </div>
           <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('External Sabeel Payers')); ?>" style="text-decoration:none;color:inherit;display:block;">
+            <a href="<?= base_url('anjuman/mumineendirectory?its_sabeel_match=sabeel_khar_its_out'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon" style="background:#ecfeff; color:#0891b2;"><i class="fa fa-external-link"></i></div>
                 <div class="overview-body">
-                  <span class="overview-title">External Sabeel Payers <i class="fa fa-info-circle text-muted ml-1" title="ITS not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, but a resident and a regular Sabeel payer in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
-                  <span class="overview-value"><?= (int)$mt['external']; ?></span>
+                  <span class="overview-title">Sabeel in <?= htmlspecialchars(jamaat_place()) ?>, ITS not in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="ITS not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, but a resident and a regular Sabeel payer in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)($stats['active_inactive']['sabeel_khar_its_out'] ?? 0); ?></span>
                 </div>
               </div>
             </a>
           </div>
           <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Moved-Out Mumineen')); ?>" style="text-decoration:none;color:inherit;display:block;">
+            <a href="<?= base_url('anjuman/mumineendirectory?its_sabeel_match=its_khar_sabeel_out'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-sign-out"></i></div>
                 <div class="overview-body">
-                  <span class="overview-title">Moved-Out Mumineen <i class="fa fa-info-circle text-muted ml-1" title="ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?> but no longer residing in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
-                  <span class="overview-value"><?= (int)$mt['moved_out']; ?></span>
+                  <span class="overview-title">ITS in <?= htmlspecialchars(jamaat_place()) ?>, Sabeel not in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?> but no longer residing in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)($stats['active_inactive']['its_khar_sabeel_out'] ?? 0); ?></span>
                 </div>
               </div>
             </a>
           </div>
           <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('anjuman/mumineendirectory?filter=member_type&value=' . rawurlencode('Non-Sabeel Residents')); ?>" style="text-decoration:none;color:inherit;display:block;">
+            <a href="<?= base_url('anjuman/mumineendirectory?its_sabeel_match=both_not_khar'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
                 <div class="overview-icon" style="background:#fff1f2; color:#dc2626;"><i class="fa fa-ban"></i></div>
                 <div class="overview-body">
-                  <span class="overview-title">Non-Sabeel Residents <i class="fa fa-info-circle text-muted ml-1" title="Living in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, ITS not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, not a Sabeel payer but attending Masjid/Miqaats silently" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
-                  <span class="overview-value"><?= (int)$mt['non_sabeel']; ?></span>
+                  <span class="overview-title">Sabeel & ITS both not in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="Living in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, ITS not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, not a Sabeel payer but attending Masjid/Miqaats silently" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)($stats['active_inactive']['both_not_khar'] ?? 0); ?></span>
                 </div>
               </div>
             </a>
           </div>
         </div>
 
+        <!-- Group 1: Member Activity -->
+        <div class="section-header-standard ml-3 mr-3">
+          <h5 class="section-title"><i class="fa fa-toggle-on"></i> Member Status</h5>
+          <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseMemberActivity" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+        </div>
+        <div class="collapse show" id="collapseMemberActivity">
+          <div class="row px-3">
+            <div class="col-6 col-md-6 mb-3">
+              <a href="<?= base_url('anjuman/mumineendirectory?status=active'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                <div class="overview-card" style="border: 1px solid #22c55e;">
+                  <div class="overview-icon" style="background:#f0fdf4; color:#22c55e;"><i class="fa fa-check-circle"></i></div>
+                  <div class="overview-body">
+                    <span class="overview-title">Active Members</span>
+                    <span class="overview-value"><?= (int)($stats['active_inactive']['active'] ?? 0); ?></span>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-6 col-md-6 mb-3">
+              <a href="<?= base_url('anjuman/mumineendirectory?status=inactive'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                <div class="overview-card" style="border: 1px solid #ef4444;">
+                  <div class="overview-icon" style="background:#fef2f2; color:#ef4444;"><i class="fa fa-times-circle"></i></div>
+                  <div class="overview-body">
+                    <span class="overview-title">Inactive Members</span>
+                    <span class="overview-value"><?= (int)($stats['active_inactive']['inactive'] ?? 0); ?></span>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+        <?php 
+        $status_counts = isset($stats['status_counts']) ? $stats['status_counts'] : [];
+        $groups = [
+          'health_status' => ['label' => 'All Health Status', 'icon' => 'fa-heartbeat', 'bg' => '#fff1f2', 'color' => '#e11d48', 'count_key' => 'health', 'id' => 'collapseHealth'],
+          'deeni_status' => ['label' => 'All Deeni Status', 'icon' => 'fa-star', 'bg' => '#f5f3ff', 'color' => '#7c3aed', 'count_key' => 'deeni', 'id' => 'collapseDeeni'],
+          'residential_status' => ['label' => 'All Residential Status', 'icon' => 'fa-building', 'bg' => '#f0f9ff', 'color' => '#0369a1', 'count_key' => 'residential', 'id' => 'collapseResidential'],
+          'Qualification' => ['label' => 'Dunyavi Education', 'icon' => 'fa-graduation-cap', 'bg' => '#f0fdf4', 'color' => '#16a34a', 'count_key' => 'education', 'id' => 'collapseEducation'],
+          'Occupation' => ['label' => 'All Occupation', 'icon' => 'fa-briefcase', 'bg' => '#fafaf9', 'color' => '#57534e', 'count_key' => 'occupation', 'id' => 'collapseOccupation'],
+        ];
+
+        foreach ($groups as $filterKey => $g) {
+          $countKey = $g['count_key'];
+          if (!empty($status_counts[$countKey])) {
+            ?>
+            <div class="section-header-standard ml-3 mr-3">
+              <h5 class="section-title"><i class="fa <?= $g['icon'] ?>"></i> <?= $g['label'] ?></h5>
+              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#<?= $g['id'] ?>" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+            </div>
+            <div class="collapse show" id="<?= $g['id'] ?>">
+              <div class="row px-3">
+                <?php
+                foreach ($status_counts[$countKey] as $lbl => $cnt) {
+                  if ($lbl == 'None' || $lbl == '') continue;
+                  ?>
+                  <div class="col-6 col-md-3 mb-3">
+                    <a href="<?= base_url('anjuman/mumineendirectory?filter='.$filterKey.'&value=' . rawurlencode($lbl)); ?>" style="text-decoration:none;color:inherit;display:block;">
+                      <div class="overview-card">
+                        <div class="overview-icon" style="background:<?= $g['bg'] ?>; color:<?= $g['color'] ?>;"><i class="fa <?= $g['icon'] ?>"></i></div>
+                        <div class="overview-body">
+                          <span class="overview-title"><?= htmlspecialchars($lbl) ?></span>
+                          <span class="overview-value"><?= $cnt ?></span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                  <?php
+                }
+                ?>
+              </div>
+            </div>
+          <?php
+          }
+        }
+        ?>
+        </div>
+
+
         <!-- Sector-wise Member Count -->
         <div class="row">
-          <div class="col-12" style="padding: 0;">
+          <div class="col-12">
             <div class="chart-container sector-block">
-              <h4 class="section-title text-center">Sector-wise Members</h4>
-              <?php
-              $sectorRows = isset($stats['Sectors']) ? $stats['Sectors'] : [];
-              // Keep only assigned sectors (non-empty names)
-              if (!empty($sectorRows)) {
-                $sectorRows = array_values(array_filter($sectorRows, function ($row) {
-                  $name = isset($row['Sector']) ? trim($row['Sector']) : '';
-                  return $name !== '' && strtolower($name) !== 'unassigned';
-                }));
-              }
-              // Sort by total members desc for better readability
-              if (!empty($sectorRows)) {
-                usort($sectorRows, function ($a, $b) {
-                  return intval($b['total'] ?? 0) <=> intval($a['total'] ?? 0);
-                });
-              }
-              ?>
-              <?php if (!empty($sectorRows)) { ?>
+              <div class="section-header-standard">
+                <h4 class="section-title"><i class="fa fa-map-marker"></i> Sector-wise Members</h4>
+                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseSectorsAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+              </div>
+              <div class="collapse show" id="collapseSectorsAnjuman">
+                <?php
+                $sectorRows = isset($stats['Sectors']) ? $stats['Sectors'] : [];
+                // Keep only assigned sectors (non-empty names)
+                if (!empty($sectorRows)) {
+                  $sectorRows = array_values(array_filter($sectorRows, function ($row) {
+                    $name = isset($row['Sector']) ? trim($row['Sector']) : '';
+                    return $name !== '' && strtolower($name) !== 'unassigned';
+                  }));
+                }
+                // Sort by total members desc for better readability
+                if (!empty($sectorRows)) {
+                  usort($sectorRows, function ($a, $b) {
+                    return intval($b['total'] ?? 0) <=> intval($a['total'] ?? 0);
+                  });
+                }
+                ?>
+                <?php if (!empty($sectorRows)) { ?>
                 <div class="row">
                   <?php foreach ($sectorRows as $idx => $row): ?>
                     <?php $collapseId = 'collapseSectorIncharge' . $idx; ?>
                     <div class="col-12 col-md-3 mb-3">
-                        <div class="overview-card sector-card" style="height:100%; display:flex; flex-direction:column; padding-bottom: 10px;">
+                        <div class="overview-card sector-card" style="height:100%; display:flex; flex-direction:column;">
                           
                           <!-- Top clickable section -->
                           <a href="<?= base_url('anjuman/mumineendirectory?filter=sector&value=' . rawurlencode($row['Sector'] ?: '')); ?>" style="text-decoration:none;color:inherit;">
@@ -1666,66 +1805,111 @@
               <?php } else { ?>
                 <div class="text-center text-muted">No assigned sectors found.</div>
               <?php } ?>
-            </div>
-          </div>
-        </div>
-
-
-        <!-- Marital Status Distribution -->
-        <div class="row">
-          <div class="col-12" style="padding: 0;">
-            <div class="chart-container member-types-block compact">
-              <h4 class="section-title text-center">Marital Status</h4>
-              <div class="row">
-                <?php $ms = isset($marital_status_counts) ? $marital_status_counts : []; ?>
-                <?php if (empty($ms)) { ?>
-                  <div class="col-12 text-center text-muted">No data available</div>
-                  <?php } else {
-                  foreach ($ms as $label => $count) {
-                    $safeLabel = htmlspecialchars($label);
-                    $lbl_l = strtolower(trim($label));
-                    $iconClass = 'fa fa-info-circle';
-                    $iconBg = '#f5f5f7';
-                    $iconColor = '#6b7280';
-                    if (strpos($lbl_l, 'single') !== false) {
-                      $iconClass = 'fa fa-user';
-                      $iconBg = '#eef2ff';
-                      $iconColor = '#4f46e5';
-                    } elseif (strpos($lbl_l, 'married') !== false) {
-                      $iconClass = 'fa fa-user';
-                      $iconBg = '#fff0f6';
-                      $iconColor = '#db2777';
-                    } elseif (strpos($lbl_l, 'engag') !== false) {
-                      $iconClass = 'fa fa-star';
-                      $iconBg = '#fff7ed';
-                      $iconColor = '#ea580c';
-                    } elseif (strpos($lbl_l, 'divorc') !== false) {
-                      $iconClass = 'fa fa-user';
-                      $iconBg = '#fff1f2';
-                      $iconColor = '#dc2626';
-                    } elseif (strpos($lbl_l, 'widow') !== false) {
-                      $iconClass = 'fa fa-user-secret';
-                      $iconBg = '#ecfeff';
-                      $iconColor = '#0891b2';
-                    }
-                  ?>
-                    <div class="col-6 col-md-3 mb-3">
-                      <a href="<?= base_url('anjuman/mumineendirectory?status=Active&marital_status=' . rawurlencode($label)); ?>" style="text-decoration:none;color:inherit;display:block;">
-                        <div class="overview-card">
-                          <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
-                          <div class="overview-body">
-                            <span class="overview-title"><?php echo $safeLabel; ?></span>
-                            <span class="overview-value"><?php echo (int)$count; ?></span>
-                          </div>
-                        </div>
-                      </a>
-                    </div>
-                <?php }
-                } ?>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- Educational Tracking (collapsible) -->
+        <div class="row">
+          <div class="col-12">
+            <div class="chart-container member-types-block compact" style="padding: 10px;">
+              <div class="section-header-standard">
+                <h4 class="section-title"><i class="fa fa-graduation-cap"></i> Educational Tracking</h4>
+                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseEduAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+              </div>
+              <div class="collapse show" id="collapseEduAnjuman">
+                <div class="row justify-content-center">
+                  <div class="col-12 col-md-6">
+                    <a href="<?= base_url('anjuman/mumineendirectory?status=Active&min=5&max=15&madresa_deprived=1'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                      <div class="overview-card" style="border-left: 4px solid #ea580c;">
+                        <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-book-reader"></i></div>
+                        <div class="overview-body">
+                          <span class="overview-title">Mehroom Deeni Talim (Age 5-15)</span>
+                          <span class="overview-value"><?= isset($stats['madresa_deprived']) ? (int)$stats['madresa_deprived'] : 0; ?> Farzando</span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Marital Status Distribution (collapsible) -->
+        <div class="row">
+          <div class="col-12">
+            <div class="chart-container member-types-block compact" style="padding: 10px;">
+              <div class="section-header-standard">
+                <h4 class="section-title"><i class="fa fa-heart"></i> Marital Analytics</h4>
+                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseMaritalAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+              </div>
+              <div class="collapse show" id="collapseMaritalAnjuman">
+                <?php $ms = isset($marital_status_counts) ? $marital_status_counts : []; ?>
+                <div class="row">
+                  <!-- New Singles 21-40 Insight -->
+                  <div class="col-12 col-md-3 mb-3">
+                    <a href="<?= base_url('anjuman/mumineendirectory?status=Active&marital_status=Single&min=21&max=40'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                      <div class="overview-card">
+                        <div class="overview-icon" style="background:#eef2ff; color:#4f46e5;"><i class="fa fa-heart"></i></div>
+                        <div class="overview-body">
+                          <span class="overview-title">Singles (21-40)</span>
+                          <span class="overview-value"><?= isset($stats['singles_21_40']) ? (int)$stats['singles_21_40'] : 0; ?></span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+
+                  <?php if (!empty($ms)) {
+                    foreach ($ms as $label => $count) {
+                      if (strtolower(trim((string)$label)) === 'unknown') continue;
+                      $safeLabel = htmlspecialchars($label);
+                      $lbl_l = strtolower(trim($label));
+                      $iconClass = 'fa fa-info-circle';
+                      $iconBg = '#f5f5f7';
+                      $iconColor = '#6b7280';
+                      if (strpos($lbl_l, 'single') !== false) {
+                        $iconClass = 'fa fa-user';
+                        $iconBg = '#eef2ff';
+                        $iconColor = '#4f46e5';
+                      } elseif (strpos($lbl_l, 'married') !== false) {
+                        $iconClass = 'fa fa-user';
+                        $iconBg = '#fff0f6';
+                        $iconColor = '#db2777';
+                      } elseif (strpos($lbl_l, 'engag') !== false) {
+                        $iconClass = 'fa fa-star';
+                        $iconBg = '#fff7ed';
+                        $iconColor = '#ea580c';
+                      } elseif (strpos($lbl_l, 'divorc') !== false) {
+                        $iconClass = 'fa fa-user';
+                        $iconBg = '#fff1f2';
+                        $iconColor = '#dc2626';
+                      } elseif (strpos($lbl_l, 'widow') !== false) {
+                        $iconClass = 'fa fa-user-secret';
+                        $iconBg = '#ecfeff';
+                        $iconColor = '#0891b2';
+                      }
+                    ?>
+                      <div class="col-6 col-md-3 mb-3">
+                        <a href="<?= base_url('anjuman/mumineendirectory?status=Active&marital_status=' . rawurlencode($label)); ?>" style="text-decoration:none;color:inherit;display:block;">
+                          <div class="overview-card">
+                            <div class="overview-icon" style="background:<?php echo $iconBg; ?>; color:<?php echo $iconColor; ?>;"><i class="<?php echo $iconClass; ?>"></i></div>
+                            <div class="overview-body">
+                              <span class="overview-title"><?php echo $safeLabel; ?></span>
+                              <span class="overview-value"><?php echo (int)$count; ?></span>
+                            </div>
+                          </div>
+                        </a>
+                      </div>
+                  <?php }
+                  } ?>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
 
         <?php
         // Always show this section; if no signups, display a friendly empty state
@@ -1791,13 +1975,14 @@
         }
         ?>
         <div class="chart-container compact weekly-summary">
-          <div class="d-flex align-items-center justify-content-between" style="gap:12px;">
-            <h4 class="section-title text-center m-0" style="flex:1;">Thaali Signup for Current Month</h4>
+          <div class="section-header-standard">
+            <h4 class="section-title"><i class="fa fa-cutlery"></i> Thaali Signup for Current Month</h4>
+            <div class="d-flex align-items-center">
+              <a id="thaali-details-btn" href="#" class="btn btn-sm btn-primary text-white mr-2" style="white-space:nowrap;">View details</a>
+              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseThaaliAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+            </div>
           </div>
-          <div style="min-width:140px;text-align:right;">
-            <!-- View details button (computes dates after hijri vars are set below) -->
-            <a id="thaali-details-btn" href="#" class="btn btn-sm btn-primary text-white my-3 my-md-0" style="white-space:nowrap;">View details</a>
-          </div>
+          <div class="collapse show" id="collapseThaaliAnjuman">
           <?php
           // Show current Hijri month using a chevron-style prev/next switcher
           $this->load->model('HijriCalendar');
@@ -2178,10 +2363,15 @@
                   if (newBlock) {
                     var cur = document.querySelector('#thaali-month-block');
                     cur.parentNode.replaceChild(newBlock, cur);
-                  }
-                  if (newTitle) {
-                    var curTitle = document.getElementById('hijri-current-title');
-                    if (curTitle) curTitle.innerHTML = newTitle.innerHTML;
+                    if (newTitle) {
+                      var curTitle = document.getElementById('hijri-current-title');
+                      if (curTitle) curTitle.innerHTML = newTitle.innerHTML;
+                    }
+                    var newDetailsBtn = doc.getElementById('thaali-details-btn');
+                    var curDetailsBtn = document.getElementById('thaali-details-btn');
+                    if (newDetailsBtn && curDetailsBtn) {
+                      curDetailsBtn.setAttribute('href', newDetailsBtn.getAttribute('href'));
+                    }
                   }
                   // Locate nav buttons by index (first = prev, second = next).
                   var navBtns = doc.querySelectorAll('.hijri-switcher .hijri-nav-btn');
@@ -2236,6 +2426,7 @@
               });
             })();
           </script>
+          </div>
         </div>
 
         <?php
@@ -2254,9 +2445,11 @@
         ?>
 
         <div class="chart-container compact" id="miqaat-rsvp-block" data-initial-index="<?= $initial_index; ?>">
-          <div class="d-flex align-items-center justify-content-between" style="gap:12px;">
-            <h4 class="section-title text-center m-0" style="flex:1;">RSVP for Next Miqaat</h4>
+          <div class="section-header-standard">
+            <h4 class="section-title"><i class="fa fa-calendar-check-o"></i> RSVP for Next Miqaat</h4>
+            <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseRsvpAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
           </div>
+          <div class="collapse show" id="collapseRsvpAnjuman">
           <div style="min-width:140px;text-align:right;">
             <!-- View details button (computes dates after hijri vars are set below) -->
             <a href="#" class="btn btn-sm btn-primary text-white my-2" id="miqaat-view-details">View details</a>
@@ -2898,12 +3091,17 @@
               }
             })();
           </script>
+          </div>
         </div>
 
         <?php if (!empty($year_daytype_stats)) { ?>
           <div class="chart-container calendar-overview">
-            <h4 class="section-title">FMB Calendar Overview (Hijri <?= htmlspecialchars($year_daytype_stats['hijri_year']); ?>)</h4>
-            <div class="row">
+            <div class="section-header-standard">
+              <h4 class="section-title"><i class="fa fa-calendar"></i> FMB Calendar Overview (Hijri <?= htmlspecialchars($year_daytype_stats['hijri_year']); ?>)</h4>
+              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseCalendarAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+            </div>
+            <div class="collapse show" id="collapseCalendarAnjuman">
+              <div class="row">
               <a href="<?= base_url('common/fmbcalendar?from=anjuman'); ?>" class="col-12 col-md-4">
                 <div class="stats-card bg-light">
                   <div class="text-center">
@@ -2928,6 +3126,7 @@
                   </div>
                 </div>
               </a>
+              </div>
             </div>
           </div>
         <?php } ?>
@@ -2935,11 +3134,15 @@
         <div class="row mb-2">
           <div class="col-md-12">
             <div class="chart-container" data-toggle="takhmeen">
-              <h5 class="chart-title">FMB Takhmeen <?php
-                                                    $__fmbYearTitle = isset($dashboard_data['fmb_takhmeen_year']) ? $dashboard_data['fmb_takhmeen_year'] : (isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : null);
-                                                    ?></h5>
+              <div class="section-header-standard">
+                <h5 class="section-title"><i class="fa fa-money"></i> FMB Takhmeen <?php
+                                                      $__fmbYearTitle = isset($dashboard_data['fmb_takhmeen_year']) ? $dashboard_data['fmb_takhmeen_year'] : (isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : null);
+                                                      ?></h5>
+                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseFmbTakhmeen" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+              </div>
+              <div class="collapse show" id="collapseFmbTakhmeen">
               <?php if ($__fmbYearTitle): ?>
-                <div class="container-year">Hijri <?= htmlspecialchars($__fmbYearTitle); ?></div>
+                <div class="container-year mr-5">Hijri <?= htmlspecialchars($__fmbYearTitle); ?></div>
               <?php endif; ?>
               <?php
               $fmbSectorRows = isset($dashboard_data['fmb_takhmeen_sector']) ? $dashboard_data['fmb_takhmeen_sector'] : [];
@@ -3074,15 +3277,20 @@
                 </div>
               <?php } // end if displayFmb 
               ?>
+              </div>
             </div>
           </div>
           <div class="col-md-12">
             <div class="chart-container" data-toggle="takhmeen">
-              <h5 class="chart-title">Sabeel Takhmeen <?php
+              <div class="section-header-standard">
+                <h5 class="section-title"><i class="fa fa-credit-card"></i> Sabeel Takhmeen <?php
                                                       $__sabYearTitle = isset($dashboard_data['sabeel_takhmeen_year']) ? $dashboard_data['sabeel_takhmeen_year'] : (isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : null);
                                                       ?></h5>
+                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseSabTakhmeen" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+              </div>
+              <div class="collapse show" id="collapseSabTakhmeen">
               <?php if ($__sabYearTitle): ?>
-                <div class="container-year">Hijri <?= htmlspecialchars($__sabYearTitle); ?></div>
+                <div class="container-year mr-5">Hijri <?= htmlspecialchars($__sabYearTitle); ?></div>
               <?php endif; ?>
               <?php
               $sabSectorRows = isset($dashboard_data['sabeel_takhmeen_sector']) ? $dashboard_data['sabeel_takhmeen_sector'] : [];
@@ -3216,6 +3424,7 @@
                 </div>
               <?php } // end if displaySab 
               ?>
+              </div>
             </div>
           </div>
         </div>
@@ -3245,14 +3454,16 @@
         $rz = isset($dashboard_data['raza_summary']) ? $dashboard_data['raza_summary'] : ['pending' => 0, 'approved' => 0, 'rejected' => 0];
         ?>
         <div class="row mt-2 align-items-stretch mb-4">
-          <div class="col-md-12 mb-3 mb-md-3">
-            <div class="chart-container compact h-100 corpus-summary clickable"
+          <div class="col-12 mb-3 mb-md-3">
+            <div class="chart-container compact corpus-summary clickable"
               data-total="<?= format_inr($sumAmount); ?>"
               data-assigned="<?= format_inr($sumReceived); ?>"
               data-outstanding="<?= format_inr($sumPending); ?>">
-              <div class="d-flex align-items-center mb-2">
-                <h5 class="chart-title m-0">Corpus Funds</h5>
+              <div class="section-header-standard">
+                <h5 class="section-title"><i class="fa fa-university"></i> Corpus Funds</h5>
+                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseCorpusAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
               </div>
+              <div class="collapse show" id="collapseCorpusAnjuman">
               <div class="row text-center g-2">
                 <div class="col-12 col-md-4">
                   <a href="<?= base_url('anjuman/corpusfunds_receive'); ?>" style="text-decoration:none;color:inherit;display:block;">
@@ -3285,6 +3496,7 @@
                   <a href="<?= base_url('anjuman/corpusfunds_receive'); ?>" class="btn btn-sm btn-outline-secondary">View All</a>
                 </div>
               </div>
+              </div>
             </div>
 
           </div>
@@ -3304,13 +3516,15 @@
           $esumPending = max(0, (int)round($esumAssigned - $esumPaid));
           ?>
           <div class="col-md-12 mb-3 mb-md-3">
-            <div class="chart-container compact h-100 ekram-summary clickable"
+            <div class="chart-container compact ekram-summary clickable"
               data-total="<?= format_inr($esumAssigned); ?>"
               data-assigned="<?= format_inr($esumPaid); ?>"
               data-outstanding="<?= format_inr($esumPending); ?>">
-              <div class="d-flex align-items-center mb-2">
-                <h5 class="chart-title m-0">Ekram Funds</h5>
+              <div class="section-header-standard">
+                <h5 class="section-title"><i class="fa fa-gift"></i> Ekram Funds</h5>
+                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseEkramAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
               </div>
+              <div class="collapse show" id="collapseEkramAnjuman">
               <div class="row text-center g-2">
                 <div class="col-12 col-md-4">
                   <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" style="text-decoration:none;color:inherit;display:block;">
@@ -3343,6 +3557,7 @@
                   <a href="<?= base_url('anjuman/ekramfunds_receive'); ?>" class="btn btn-sm btn-outline-secondary">View All</a>
                 </div>
               </div>
+              </div>
             </div>
           </div>
 
@@ -3355,10 +3570,12 @@
             <div class="row g-2">
               <div class="col-12 mb-3">
                 <a href="<?= base_url('anjuman/wajebaat'); ?>" class="text-decoration-none d-block">
-                  <div class="chart-container compact h-100 clickable wq-summary-card">
-                    <div class="d-flex align-items-center mb-2">
-                      <h5 class="chart-title m-0">Wajebaat</h5>
+                  <div class="chart-container compact clickable wq-summary-card">
+                    <div class="section-header-standard">
+                      <h5 class="section-title"><i class="fa fa-university"></i> Wajebaat</h5>
+                      <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseWajebaatAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
                     </div>
+                    <div class="collapse show" id="collapseWajebaatAnjuman">
                     <div class="row text-center g-2">
                       <div class="col-12 col-md-4">
                         <div class="mini-card" style="margin-bottom:8px;">
@@ -3382,6 +3599,7 @@
                         <span class="btn btn-sm btn-outline-secondary">View All</span>
                       </div>
                     </div>
+                    </div>
                   </div>
                 </a>
               </div>
@@ -3394,11 +3612,15 @@
             : ['mohammedi' => 0, 'taher' => 0, 'husain' => 0, 'total' => 0];
           ?>
           <div class="col-md-12 mb-3 mb-md-3">
-            <div class="chart-container compact h-100">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <h5 class="chart-title m-0">Qardan Hasana Schemes</h5>
-                <a href="<?= base_url('anjuman/qardanhasana'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
+            <div class="chart-container compact">
+              <div class="section-header-standard">
+                <h5 class="section-title"><i class="fa fa-leaf"></i> Qardan Hasana Schemes</h5>
+                <div class="d-flex align-items-center">
+                  <a href="<?= base_url('anjuman/qardanhasana'); ?>" class="btn btn-sm btn-outline-secondary mr-2">View</a>
+                  <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseQHAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+                </div>
               </div>
+              <div class="collapse show" id="collapseQHAnjuman">
               <div class="row text-center g-2">
                 <div class="col-12 col-md-3">
                   <a href="<?= base_url('anjuman/qardanhasana/mohammedi'); ?>" style="text-decoration:none;color:inherit;display:block;">
@@ -3433,6 +3655,7 @@
                   </a>
                 </div>
               </div>
+              </div>
             </div>
           </div>
 
@@ -3446,20 +3669,25 @@
           $dashboard_madresa_hijri_year = isset($year_daytype_stats['hijri_year']) ? (int)$year_daytype_stats['hijri_year'] : null;
           ?>
           <div class="col-md-12 mb-3 mb-md-3">
-            <div class="chart-container compact h-100">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <h5 class="chart-title m-0">Madresa</h5>
-                <a href="<?= base_url('madresa'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
+            <div class="chart-container compact">
+              <div class="section-header-standard">
+                <h5 class="section-title"><i class="fa fa-book"></i> Madresa</h5>
+                <div class="d-flex align-items-center">
+                  <a href="<?= base_url('madresa'); ?>" class="btn btn-sm btn-outline-secondary mr-2">View</a>
+                  <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseMadresaAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+                </div>
               </div>
-              <div class="text-center py-3">
-                <div class="row justify-content-center">
-                  <div class="col-12 col-md-4">
-                    <div class="mini-card">
-                      <div class="stats-value">
-                        <?= $dashboard_madresa_hijri_year ? ((int)$dashboard_madresa_hijri_year . 'H') : 'Classes'; ?>
-                      </div>
-                      <div class="stats-label">
-                        Madresa Classes<?= $dashboard_madresa_hijri_year ? ' (Current Year)' : ''; ?>
+              <div class="collapse show" id="collapseMadresaAnjuman">
+                <div class="text-center py-3">
+                  <div class="row justify-content-center">
+                    <div class="col-12 col-md-4">
+                      <div class="mini-card">
+                        <div class="stats-value">
+                          <?= $dashboard_madresa_hijri_year ? ((int)$dashboard_madresa_hijri_year . 'H') : 'Classes'; ?>
+                        </div>
+                        <div class="stats-label">
+                          Madresa Classes<?= $dashboard_madresa_hijri_year ? ' (Current Year)' : ''; ?>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3469,20 +3697,25 @@
           </div>
 
           <div class="col-md-12 mb-3 mb-md-3">
-            <div class="chart-container compact h-100">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <h5 class="chart-title m-0">Expenses</h5>
-                <a href="<?= base_url('anjuman/expense'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
+            <div class="chart-container compact">
+              <div class="section-header-standard">
+                <h5 class="section-title"><i class="fa fa-calculator"></i> Expenses</h5>
+                <div class="d-flex align-items-center">
+                  <a href="<?= base_url('anjuman/expense'); ?>" class="btn btn-sm btn-outline-secondary mr-2">View</a>
+                  <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseExpensesAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+                </div>
               </div>
-              <div class="text-center py-3">
-                <div class="row justify-content-center">
-                  <div class="col-12 col-md-4">
-                    <div class="mini-card">
-                      <div class="stats-value">
-                        ₹<?= number_format($dashboard_expense_total, 0); ?>
-                      </div>
-                      <div class="stats-label">
-                        Expense<?= $dashboard_expense_hijri_year ? ' for ' . $dashboard_expense_hijri_year : ''; ?>
+              <div class="collapse show" id="collapseExpensesAnjuman">
+                <div class="text-center py-3">
+                  <div class="row justify-content-center">
+                    <div class="col-12 col-md-4">
+                      <div class="mini-card">
+                        <div class="stats-value">
+                          ₹<?= number_format($dashboard_expense_total, 0); ?>
+                        </div>
+                        <div class="stats-label">
+                          Expense<?= $dashboard_expense_hijri_year ? ' for ' . $dashboard_expense_hijri_year : ''; ?>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3492,20 +3725,25 @@
           </div>
 
           <div class="col-md-12 mb-3 mb-md-3">
-            <div class="chart-container compact h-100">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <h5 class="chart-title m-0">Laagat & Rent</h5>
-                <a href="<?= base_url('anjuman/laagat_rent'); ?>" class="btn btn-sm btn-outline-secondary">View</a>
+            <div class="chart-container compact">
+              <div class="section-header-standard">
+                <h5 class="section-title"><i class="fa fa-home"></i> Laagat & Rent</h5>
+                <div class="d-flex align-items-center">
+                  <a href="<?= base_url('anjuman/laagat_rent'); ?>" class="btn btn-sm btn-outline-secondary mr-2">View</a>
+                  <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseRentAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+                </div>
               </div>
-              <div class="text-center py-3">
-                <div class="row justify-content-center">
-                  <div class="col-12 col-md-4">
-                    <div class="mini-card">
-                      <div class="stats-value">
-                        ₹<?= number_format($dashboard_laagat_rent_total, 0); ?>
-                      </div>
-                      <div class="stats-label">
-                        Invoiced for <?= $dashboard_laagat_rent_hijri_year ? $dashboard_laagat_rent_hijri_year . 'H' : ''; ?>
+              <div class="collapse show" id="collapseRentAnjuman">
+                <div class="text-center py-3">
+                  <div class="row justify-content-center">
+                    <div class="col-12 col-md-4">
+                      <div class="mini-card">
+                        <div class="stats-value">
+                          ₹<?= number_format($dashboard_laagat_rent_total, 0); ?>
+                        </div>
+                        <div class="stats-label">
+                          Invoiced for <?= $dashboard_laagat_rent_hijri_year ? $dashboard_laagat_rent_hijri_year . 'H' : ''; ?>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3515,32 +3753,37 @@
           </div>
 
           <div class="col-md-12">
-            <div class="chart-container h-100">
-              <h5 class="chart-title">Raza Summary</h5>
-              <div class="row text-center mb-2">
-                <div class="col-12 col-md-4 mb-2">
-                  <div class="mini-card">
-                    <div class="stats-value"><?= (int)$rz['pending']; ?></div>
-                    <div class="stats-label">Pending</div>
-                  </div>
-                </div>
-                <div class="col-12 col-md-4 mb-2">
-                  <div class="mini-card">
-                    <div class="stats-value"><?= (int)$rz['approved']; ?></div>
-                    <div class="stats-label">Approved</div>
-                  </div>
-                </div>
-                <div class="col-12 col-md-4 mb-2">
-                  <div class="mini-card">
-                    <div class="stats-value"><?= (int)$rz['rejected']; ?></div>
-                    <div class="stats-label">Rejected</div>
-                  </div>
-                </div>
+            <div class="chart-container">
+              <div class="section-header-standard">
+                <h5 class="section-title"><i class="fa fa-file-text-o"></i> Raza Summary</h5>
+                <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseRazaAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
               </div>
-              <div class="text-center">
-                <a class="btn btn-sm btn-outline-primary" href="<?= base_url('anjuman/EventRazaRequest?event_type=1'); ?>">Miqaat Raza</a>
-                <a class="btn btn-sm btn-outline-primary mt-2 mt-md-0" href="<?= base_url('anjuman/EventRazaRequest?event_type=2'); ?>">Kaaraj Raza</a>
-                <a class="btn btn-sm btn-outline-secondary mt-2 mt-md-0" href="<?= base_url('anjuman/UmoorRazaRequest'); ?>">Umoor Raza</a>
+              <div class="collapse show" id="collapseRazaAnjuman">
+                <div class="row text-center mb-2">
+                  <div class="col-12 col-md-4 mb-2">
+                    <div class="mini-card">
+                      <div class="stats-value"><?= (int)$rz['pending']; ?></div>
+                      <div class="stats-label">Pending</div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-4 mb-2">
+                    <div class="mini-card">
+                      <div class="stats-value"><?= (int)$rz['approved']; ?></div>
+                      <div class="stats-label">Approved</div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-4 mb-2">
+                    <div class="mini-card">
+                      <div class="stats-value"><?= (int)$rz['rejected']; ?></div>
+                      <div class="stats-label">Rejected</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-center">
+                  <a class="btn btn-sm btn-outline-primary" href="<?= base_url('anjuman/EventRazaRequest?event_type=1'); ?>">Miqaat Raza</a>
+                  <a class="btn btn-sm btn-outline-primary mt-2 mt-md-0" href="<?= base_url('anjuman/EventRazaRequest?event_type=2'); ?>">Kaaraj Raza</a>
+                  <a class="btn btn-sm btn-outline-secondary mt-2 mt-md-0" href="<?= base_url('anjuman/UmoorRazaRequest'); ?>">Umoor Raza</a>
+                </div>
               </div>
             </div>
           </div>

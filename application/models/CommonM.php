@@ -3384,8 +3384,6 @@ class CommonM extends CI_Model
     $allHofs = $this->db->select('ITS_ID, Full_Name, Sector, Sub_Sector, Mobile, HOF_FM_TYPE, Inactive_Status')
       ->from('user')
       ->where('HOF_FM_TYPE', 'HOF')
-      ->where('Sector != ""', null, false)
-      ->where("(Inactive_Status IS NULL OR Inactive_Status = '')", null, false)
       ->get()->result_array();
     $no = [];
     $yes = [];
@@ -3414,6 +3412,58 @@ class CommonM extends CI_Model
    * - breakdown: [ [sector, sub_sector, total_families, signed_up, not_signed, percent] ... ]
    * - totals: [ 'families' => int, 'signed_up' => int, 'not_signed' => int, 'percent' => float ]
    */
+  public function getsignupcount_by_sector_range($start_date, $end_date)
+  {
+    $start_esc = $this->db->escape($start_date);
+    $end_esc = $this->db->escape($end_date);
+    $families_with_signup = "
+      SELECT u.HOF_ID AS hof_id, fs.signup_date
+      FROM fmb_weekly_signup fs
+      JOIN user u ON u.ITS_ID = fs.user_id
+      WHERE fs.signup_date BETWEEN $start_esc AND $end_esc
+        AND fs.want_thali = 1
+      GROUP BY u.HOF_ID, fs.signup_date
+    ";
+    $sql = "
+      SELECT 
+        hof.Sector AS Sector,
+        COUNT(*) AS hof_signup_count
+      FROM ($families_with_signup) f
+      JOIN user hof ON hof.ITS_ID = f.hof_id
+      WHERE hof.Inactive_Status IS NULL
+        AND hof.Sector IS NOT NULL
+      GROUP BY hof.Sector
+      ORDER BY hof_signup_count DESC, hof.Sector ASC
+    ";
+    return $this->db->query($sql)->result_array();
+  }
+
+  public function get_signed_up_hofs_range($start_date, $end_date)
+  {
+    $start_esc = $this->db->escape($start_date);
+    $end_esc = $this->db->escape($end_date);
+    $sql = "
+      SELECT DISTINCT u.HOF_ID
+      FROM fmb_weekly_signup fs
+      JOIN user u ON u.ITS_ID = fs.user_id
+      WHERE fs.signup_date BETWEEN $start_esc AND $end_esc
+        AND fs.want_thali = 1
+    ";
+    $rows = $this->db->query($sql)->result_array();
+    $hofs = [];
+    foreach ($rows as $r) {
+      if ($r['HOF_ID']) $hofs[$r['HOF_ID']] = true;
+    }
+    return $hofs;
+  }
+
+  /**
+   * Sector/sub-sector wise HOF signup breakdown for a single date.
+   * Returns:
+   * - date: Y-m-d
+   * - breakdown: [ [sector, sub_sector, total_families, signed_up, not_signed, percent] ... ]
+   * - totals: [ 'families' => int, 'signed_up' => int, 'not_signed' => int, 'percent' => float ]
+   */
   public function get_thaali_signup_breakdown($date)
   {
     if (empty($date))
@@ -3425,7 +3475,7 @@ class CommonM extends CI_Model
       SELECT u.ITS_ID, u.HOF_ID, MAX(CASE WHEN fs.signup_date = {$escDate} THEN fs.want_thali END) AS want_thali
       FROM user u
       LEFT JOIN fmb_weekly_signup fs ON fs.user_id = u.ITS_ID AND fs.signup_date = {$escDate}
-      WHERE u.Inactive_Status IS NULL AND u.Sector IS NOT NULL
+      WHERE 1=1
       GROUP BY u.ITS_ID, u.HOF_ID
     ";
 
@@ -3435,7 +3485,7 @@ class CommonM extends CI_Model
              MAX(ms.want_thali) AS family_want_thali
       FROM ({$member_signups_sql}) ms
       JOIN user hof_u ON hof_u.ITS_ID = ms.HOF_ID
-      WHERE hof_u.HOF_FM_TYPE = 'HOF' AND hof_u.Inactive_Status IS NULL AND hof_u.Sector IS NOT NULL
+      WHERE hof_u.HOF_FM_TYPE = 'HOF'
       GROUP BY hof_u.ITS_ID, hof_u.Sector, hof_u.Sub_Sector
     ";
 
@@ -3443,7 +3493,7 @@ class CommonM extends CI_Model
     $families_all_sql = "
       SELECT u.Sector AS sector, u.Sub_Sector AS sub_sector, COUNT(*) AS total_families
       FROM user u
-      WHERE u.HOF_FM_TYPE = 'HOF' AND u.Inactive_Status IS NULL AND u.Sector IS NOT NULL
+      WHERE u.HOF_FM_TYPE = 'HOF'
       GROUP BY u.Sector, u.Sub_Sector
     ";
 
@@ -3523,7 +3573,7 @@ class CommonM extends CI_Model
              MAX(CASE WHEN fs.signup_date BETWEEN {$escStart} AND {$escEnd} THEN fs.want_thali END) AS want_thali
       FROM user u
       LEFT JOIN fmb_weekly_signup fs ON fs.user_id = u.ITS_ID AND fs.signup_date BETWEEN {$escStart} AND {$escEnd}
-      WHERE u.Inactive_Status IS NULL AND u.Sector IS NOT NULL
+      WHERE 1=1
       GROUP BY u.ITS_ID, u.HOF_ID
     ";
 
@@ -3533,7 +3583,7 @@ class CommonM extends CI_Model
              MAX(ms.want_thali) AS family_want_thali
       FROM ({$member_signups_sql}) ms
       JOIN user hof_u ON hof_u.ITS_ID = ms.HOF_ID
-      WHERE hof_u.HOF_FM_TYPE = 'HOF' AND hof_u.Inactive_Status IS NULL AND hof_u.Sector IS NOT NULL
+      WHERE hof_u.HOF_FM_TYPE = 'HOF'
       GROUP BY hof_u.ITS_ID, hof_u.Sector, hof_u.Sub_Sector
     ";
 
@@ -3541,7 +3591,7 @@ class CommonM extends CI_Model
     $families_all_sql = "
       SELECT u.Sector AS sector, u.Sub_Sector AS sub_sector, COUNT(*) AS total_families
       FROM user u
-      WHERE u.HOF_FM_TYPE = 'HOF' AND u.Inactive_Status IS NULL AND u.Sector IS NOT NULL
+      WHERE u.HOF_FM_TYPE = 'HOF'
       GROUP BY u.Sector, u.Sub_Sector
     ";
 
@@ -3612,7 +3662,7 @@ class CommonM extends CI_Model
       FROM user u
       LEFT JOIN fmb_weekly_signup fs
         ON fs.user_id = u.ITS_ID AND fs.signup_date = {$escDate}
-      WHERE u.Inactive_Status IS NULL
+      WHERE 1=1
         AND u.Sector = {$escSector}
       GROUP BY u.ITS_ID, u.HOF_ID
     ";
@@ -3626,7 +3676,6 @@ class CommonM extends CI_Model
       FROM ({$member_signups_sql}) ms
       JOIN user hof_u ON hof_u.ITS_ID = ms.HOF_ID
       WHERE hof_u.HOF_FM_TYPE = 'HOF'
-        AND hof_u.Inactive_Status IS NULL
         AND hof_u.Sector = {$escSector}
       GROUP BY hof_u.ITS_ID, hof_u.Sector, hof_u.Sub_Sector
     ";
@@ -3636,7 +3685,6 @@ class CommonM extends CI_Model
       SELECT Sub_Sector AS sub_sector, COUNT(*) AS total_families
       FROM user
       WHERE HOF_FM_TYPE='HOF'
-        AND Inactive_Status IS NULL
         AND Sector = {$escSector}
       GROUP BY Sub_Sector
     ";
@@ -3719,7 +3767,7 @@ class CommonM extends CI_Model
       LEFT JOIN fmb_weekly_signup fs
         ON fs.user_id = u.ITS_ID
        AND fs.signup_date BETWEEN {$escStart} AND {$escEnd}
-      WHERE u.Inactive_Status IS NULL
+      WHERE 1=1
         AND u.Sector = {$escSector}
       GROUP BY u.ITS_ID, u.HOF_ID
     ";
@@ -3730,7 +3778,6 @@ class CommonM extends CI_Model
       FROM ({$member_sql}) ms
       JOIN user hof_u ON hof_u.ITS_ID = ms.HOF_ID
       WHERE hof_u.HOF_FM_TYPE = 'HOF'
-        AND hof_u.Inactive_Status IS NULL
         AND hof_u.Sector = {$escSector}
       GROUP BY hof_u.Sub_Sector
     ";
@@ -3739,7 +3786,6 @@ class CommonM extends CI_Model
       SELECT u.Sub_Sector AS sub_sector, COUNT(*) AS total_families
       FROM user u
       WHERE u.HOF_FM_TYPE = 'HOF'
-        AND u.Inactive_Status IS NULL
         AND u.Sector = {$escSector}
       GROUP BY u.Sub_Sector
     ";

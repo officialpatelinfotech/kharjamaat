@@ -77,7 +77,7 @@ class Anjuman extends CI_Controller
       return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unknown request']));
     }
 
-    $users = $this->AmilsahebM->get_all_ashara();
+    $users = []; // Not used on main dashboard, search is AJAX-based
 
     // Resident-only sector and overview stats for Jamaat cards
     $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
@@ -96,7 +96,11 @@ class Anjuman extends CI_Controller
       'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
       'LeaveStatus' => [],
       'Sectors' => $sectorsData,
-      'SubSectors' => $subSectorsData
+      'SubSectors' => $subSectorsData,
+      'madresa_deprived' => $this->AmilsahebM->get_madresa_deprived_count(),
+      'singles_21_40' => $this->AmilsahebM->get_singles_21_40_count(),
+      'status_counts' => $this->AmilsahebM->get_status_counts(),
+      'active_inactive' => $this->AmilsahebM->get_active_inactive_counts(),
     ];
 
     // Determine if frontend requested a specific hijri month/year (AJAX or direct)
@@ -310,10 +314,12 @@ class Anjuman extends CI_Controller
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
-    // Load users list (support simple search like Amilsaheb)
+    // Load users list (support filtering via GET or POST search)
     if ($this->input->post('search')) {
       $keyword = $this->input->post('search');
       $data['users'] = $this->AmilsahebM->search_users($keyword);
+    } elseif (!empty($this->input->get())) {
+      $data['users'] = $this->AmilsahebM->get_users_filtered($this->input->get());
     } else {
       $data['users'] = $this->AmilsahebM->get_all_users();
     }
@@ -1333,14 +1339,7 @@ class Anjuman extends CI_Controller
     }
 
     // Collect HOF ids who signed up on any day in the week
-    $signedHofs = [];
-    foreach ($dates as $d) {
-      $rows = $this->CommonM->getsignupforaday_aggregated(['date' => $d, 'thali_taken' => 1]);
-      foreach ($rows as $r) {
-        $hofId = isset($r['ITS_ID']) ? $r['ITS_ID'] : (isset($r['HOF_ID']) ? $r['HOF_ID'] : null);
-        if ($hofId) $signedHofs[$hofId] = true;
-      }
-    }
+    $signedHofs = $this->CommonM->get_signed_up_hofs_range($start, $end);
 
     // Get all HOF families and filter those not present in $signedHofs
     $allHofs = $this->CommonM->get_all_users();
@@ -1949,15 +1948,13 @@ class Anjuman extends CI_Controller
 
     // Aggregate totals per sector across the week
     $agg = [];
-    foreach ($dates as $d) {
-      $rows = $this->CommonM->getsignupcount_by_sector($d);
-      foreach ($rows as $r) {
-        $sector = isset($r['Sector']) ? trim($r['Sector']) : '';
-        if ($sector === '' || strtolower($sector) === 'unassigned') continue;
-        $cnt = (int)($r['hof_signup_count'] ?? 0);
-        if (!isset($agg[$sector])) $agg[$sector] = 0;
-        $agg[$sector] += $cnt;
-      }
+    $rangeRows = $this->CommonM->getsignupcount_by_sector_range($start, $end);
+    foreach ($rangeRows as $r) {
+      $sector = isset($r['Sector']) ? trim($r['Sector']) : '';
+      if ($sector === '' || strtolower($sector) === 'unassigned') continue;
+      $cnt = (int)($r['hof_signup_count'] ?? 0);
+      if (!isset($agg[$sector])) $agg[$sector] = 0;
+      $agg[$sector] += $cnt;
     }
 
     // Build display array with averages

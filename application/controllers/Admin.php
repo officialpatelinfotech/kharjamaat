@@ -2729,6 +2729,16 @@ class Admin extends CI_Controller
       redirect('/admin/error/razalist');
     }
   }
+  public function toggle_raza_status($id)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      http_response_code(403);
+      echo json_encode(['status' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+    $res = $this->AdminM->toggle_raza_status($id);
+    echo json_encode($res);
+  }
   public function update_raza_details()
   {
     $rowId = $this->input->post('rowId');
@@ -4798,6 +4808,7 @@ HTML;
       $city_state = $this->input->post('city_state', true);
       $pincode = $this->input->post('pincode', true);
       $support_email = $this->input->post('support_email', true);
+      $registration_email = $this->input->post('registration_email', true);
       $receipt_jamaat_name = $this->input->post('receipt_jamaat_name', true);
       $trust_regn_no = $this->input->post('trust_regn_no', true);
       $managed_by = $this->input->post('managed_by', true);
@@ -4809,6 +4820,7 @@ HTML;
       if ($city_state !== null) $this->SettingsM->set('city_state', $city_state);
       if ($pincode !== null) $this->SettingsM->set('pincode', $pincode);
       if ($support_email !== null) $this->SettingsM->set('support_email', $support_email);
+      if ($registration_email !== null) $this->SettingsM->set('registration_email', $registration_email);
       if ($receipt_jamaat_name !== null) $this->SettingsM->set('receipt_jamaat_name', $receipt_jamaat_name);
       if ($trust_regn_no !== null) $this->SettingsM->set('trust_regn_no', $trust_regn_no);
       if ($managed_by !== null) $this->SettingsM->set('managed_by', $managed_by);
@@ -4825,6 +4837,7 @@ HTML;
     $data['city_state'] = $this->SettingsM->get('city_state', '');
     $data['pincode'] = $this->SettingsM->get('pincode', '');
     $data['support_email'] = $this->SettingsM->get('support_email', '');
+    $data['registration_email'] = $this->SettingsM->get('registration_email', 'anjuman@kharjamaat.in');
     $data['receipt_jamaat_name'] = $this->SettingsM->get('receipt_jamaat_name', 'Anjuman-e-Saifee Dawoodi Bohra Jamaat, KHAR');
     $data['trust_regn_no'] = $this->SettingsM->get('trust_regn_no', 'E/24158 (Mumbai)');
     $data['managed_by'] = $this->SettingsM->get('managed_by', 'Anjuman-e-Saifee');

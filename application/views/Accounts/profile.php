@@ -1,430 +1,566 @@
-<head>
+<?php /* Member Profile View (My Profile) */ ?>
+<?php
+  // The controller may pass different variable names; keep the view resilient.
+  $member = $user_data ?? ($_SESSION['user_data'] ?? []);
+?>
 
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background-color: #61A0B1;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-      background-image: url('<?php echo base_url('assets/background.png'); ?>');
-      background-attachment: fixed;
-    }
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
-    .profile-container {
-      max-width: 1100px;
-      margin: 0px auto;
-    }
+<style>
+  body {
+    background: #f5f7fb;
+    font-family: Arial, sans-serif;
+    background-attachment: fixed;
+  }
 
-    .profile-card {
-      margin-bottom: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      text-align: left;
-      padding: 20px;
-    }
+  .vm-wrapper { max-width: 1300px; margin: 0 auto; }
 
-    h2 {
-      color: goldenrod;
-      border-bottom: 2px solid goldenrod;
-      padding-bottom: 10px;
-    }
+  .vm-header-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin: 20px 0;
+    border-bottom: 1px dashed #eee;
+    padding-bottom: 15px;
+  }
 
-    .detail-box {
-      margin-bottom: 10px;
-      border-radius: 8px;
-      padding: 10px;
-      border: 2px solid goldenrod;
-    }
+  .vm-page-title {
+    font-size: 1.6rem;
+    color: #4a82a6;
+    font-weight: 300;
+    margin: 0;
+  }
 
-    .user-details {
-      background-color: #ffff;
-    }
+  .vm-page-title small { font-size: 0.9rem; color: #888; }
 
-    .family-details {
-      background-color: #ffff;
-    }
+  .profile-summary {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-    .family-members {
-      background-color: #ffff;
-    }
+  .profile-avatar {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
 
-    .incharge-details {
-      background-color: #ffff;
-    }
+  .profile-name { font-size: 1.25rem; font-weight: 600; color: #222; }
+  .profile-sub { color: #777; margin-top: 4px; font-size: 0.95rem; }
 
-    @media (max-width: 768px) {
-      .profile-card {
-        width: 80%;
-        margin: 20px auto;
-      }
-    }
+  .panel-group {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    break-inside: avoid;
+    display: inline-block;
+    width: 100%;
+    overflow: hidden;
+  }
 
-    strong {
-      color: #AD7E05;
-    }
-  </style>
-</head>
+  .panel-heading {
+    background-color: #fcfcfc;
+    border-bottom: 1px solid #ddd;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
 
-<body>
-  <div class="d-flex align-items-center container margintopcontainer pt-5">
-    <a href="<?php echo base_url('accounts/home'); ?>" class="mt-4 btn btn-secondary me-2"><i class="fa-solid fa-arrow-left"></i></a>
+  .panel-title {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #6398b9;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-body { padding: 15px; }
+
+  .detail-table { width: 100%; border-collapse: collapse; margin: 0; }
+  .detail-table th, .detail-table td {
+    border: 1px solid #e0e0e0;
+    padding: 10px 15px;
+    font-size: 0.88rem;
+  }
+  .detail-table th {
+    background-color: #f9f9f9;
+    color: #555;
+    width: 35%;
+    font-weight: 400;
+    text-align: left;
+  }
+  .detail-table td { color: #333; width: 65%; }
+  .detail-table td.empty { color: #aaa; }
+
+  .masonry-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (min-width: 992px) {
+    .masonry-grid { grid-template-columns: 1fr; }
+  }
+
+  .two-col-layout { display: block; }
+  @media (min-width: 992px) {
+    .two-col-layout { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
+  }
+
+  @media (max-width: 768px) {
+    .two-col-layout { grid-template-columns: 1fr; }
+  }
+
+  /* Family list */
+  .family-members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px 20px;
+  }
+
+  .family-member-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 6px;
+  }
+
+  a.family-member-row {
+    text-decoration: none !important;
+    color: inherit;
+    transition: background-color 0.2s, transform 0.1s;
+  }
+
+  a.family-member-row:hover {
+    background-color: #f8fafc !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+  }
+
+  .family-member-row:last-child { border-bottom: none; }
+
+  .fm-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .fm-name { font-weight: 500; font-size: 0.9rem; color: #222; line-height: 1.3; }
+  .fm-its { font-size: 0.78rem; color: #888; }
+
+  /* Optional "member status panel" spacing to match screenshot */
+  .member-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px 20px;
+  }
+
+  .badge-soft {
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .sticky-right { position: sticky; top: 20px; }
+  .edit-hint { font-size: 0.72rem; color: #888; margin-top: 6px; }
+
+  /* Keep your edit-section behavior */
+  .edit-section { display: none; }
+
+  .btn-xs { padding: 2px 8px; font-size: 0.75rem; }
+
+  /* Remove the old custom masonry layout; use panels instead */
+</style>
+
+<div class="container margintopcontainer pt-4 mb-5 vm-wrapper">
+
+  <!-- HEADER -->
+  <div class="vm-header-wrap pt-5 mt-5">
+    <div>
+      <h2 class="vm-page-title">
+        My Profile
+        <small>» Dashboard</small>
+      </h2>
+    </div>
+
+    <div>
+      <a href="<?php echo base_url('accounts/home'); ?>" class="btn btn-outline-secondary btn-sm">
+        Back
+      </a>
+    </div>
   </div>
-  <div class="profile-container mt-3 mb-5">
-    <div class="row">
-      <!-- User Profile Card (Left) -->
-      <div class="col-md-6">
-        <div class="profile-card user-details">
-          <h2>PERSONAL DETAILS</h2>
-          <div class="detail-box">
-            <strong>ITS ID:</strong> <?php echo $user_data['ITS_ID']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Full Name:</strong> <?php echo $user_data['Full_Name']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Full Name (Arabic):</strong> <?php echo $user_data['Full_Name_Arabic']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Vatan:</strong> <?php echo $user_data['Vatan']; ?>
-          </div>
-          <div class="detail-box" id="mobile-row">
-            <strong>Mobile:</strong>
-            <span id="mobile-display"><?php echo htmlspecialchars($user_data['Mobile'] ?? ''); ?></span>
-            <button class="btn btn-sm btn-outline-primary ml-2" id="edit-mobile">Edit</button>
-            <div id="mobile-edit" style="display:none; margin-top:8px;">
-              <input type="text" id="mobile-input" class="form-control" value="<?php echo htmlspecialchars($user_data['Mobile'] ?? ''); ?>" placeholder="Enter mobile">
-              <div style="margin-top:6px;">
-                <button class="btn btn-sm btn-success" id="save-mobile">Save</button>
-                <button class="btn btn-sm btn-secondary" id="cancel-mobile">Cancel</button>
-              </div>
-            </div>
-          </div>
-          <div class="detail-box" id="family-mobile-row">
-            <strong>Registered Family Mobile:</strong>
-            <span id="family-mobile-display"><?php echo htmlspecialchars($user_data['Registered_Family_Mobile'] ?? ''); ?></span>
-            <button class="btn btn-sm btn-outline-primary ml-2" id="edit-family-mobile">Edit</button>
-            <div id="family-mobile-edit" style="display:none; margin-top:8px;">
-              <input type="text" id="family-mobile-input" class="form-control" value="<?php echo htmlspecialchars($user_data['Registered_Family_Mobile'] ?? ''); ?>" placeholder="Enter family mobile">
-              <div style="margin-top:6px;">
-                <button class="btn btn-sm btn-success" id="save-family-mobile">Save</button>
-                <button class="btn btn-sm btn-secondary" id="cancel-family-mobile">Cancel</button>
-              </div>
-            </div>
-          </div>
 
-          <div class="detail-box" id="email-row">
-            <strong>Email:</strong>
-            <span id="email-display"><?php echo htmlspecialchars($user_data['Email'] ?? ''); ?></span>
-            <button class="btn btn-sm btn-outline-primary ml-2" id="edit-email">Edit</button>
-            <div id="email-edit" style="display:none; margin-top:8px;">
-              <input type="email" id="email-input" class="form-control" value="<?php echo htmlspecialchars($user_data['Email'] ?? ''); ?>" placeholder="Enter email">
-              <div style="margin-top:6px;">
-                <button class="btn btn-sm btn-success" id="save-email">Save</button>
-                <button class="btn btn-sm btn-secondary" id="cancel-email">Cancel</button>
-              </div>
-            </div>
-          </div>
-          <div class="detail-box">
-            <strong>Age:</strong> <?php echo $user_data['Age']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Gender:</strong> <?php echo $user_data['Gender']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Misaq:</strong> <?php echo $user_data['Misaq']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Marital Status:</strong> <?php echo $user_data['Marital_Status']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Blood Group:</strong> <?php echo $user_data['Blood_Group']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Organisation(s):</strong> <?php echo $user_data['Organisation']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>TanzeemFile No:</strong> <?php echo $user_data['TanzeemFile_No']; ?>
-          </div>
-        </div>
-        <div class="profile-card user-details">
-          <h2>RESIDENTIAL ADDRESS</h2>
-          <div class="detail-box">
-            <strong>Address:</strong> <?php echo $user_data['Address']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>City:</strong> <?php echo $user_data['City']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Pincode:</strong> <?php echo $user_data['Pincode']; ?>
-          </div>
-        </div>
-        <div class="profile-card user-details">
-          <h2>JAMAAT DETAILS</h2>
-          <div class="detail-box">
-            <strong>Jamaat:</strong> <?php echo $user_data['Jamaat']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Jamiaat:</strong> <?php echo $user_data['Jamiaat']; ?>
-          </div>
-        </div>
+  <!-- PROFILE SUMMARY -->
+  <div class="profile-summary">
+    <div class="profile-avatar">
+      <?php echo strtoupper(substr($member['Full_Name'], 0, 1)); ?>
+    </div>
+
+    <div>
+      <div class="profile-name">
+        <?php echo htmlspecialchars($member['Full_Name']); ?>
       </div>
 
-      <!-- Other Details Card (Right) -->
-      <div class="col-md-6">
-        <!-- Family Details Card -->
-        <div class="profile-card family-details">
-          <h2>PARENTS</h2>
-          <div class="detail-box">
-            <strong>Father's ITS ID:</strong> <?php echo $father_data['ITS_ID']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Father's Name:</strong> <?php echo $father_data['Full_Name']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Mother's ITS ID:</strong> <?php echo $mother_data['ITS_ID']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Mother's Name:</strong> <?php echo $mother_data['Full_Name']; ?>
-          </div>
-        </div>
-
-        <div class="profile-card family-details">
-          <h2>HEAD OF FAMILY</h2>
-          <div class="detail-box">
-            <strong>HOF ITS ID:</strong> <?php echo $hof_data['ITS_ID']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>HOF Name:</strong> <?php echo $hof_data['Full_Name']; ?>
-          </div>
-        </div>
-
-        <!-- Family Members Card -->
-        <div class="profile-card family-members">
-          <h2>FAMILY MEMBERS</h2>
-          <?php foreach ($family_members as $member): ?>
-            <div class="detail-box">
-              <strong>ITS ID:</strong> <?php echo '<span style="border-right: 2px solid goldenrod; padding-right: 5px">' . $member['ITS_ID'] . '</span>'; ?> <strong>Full Name:</strong> <?php echo $member['Full_Name']; ?>
-            </div>
-          <?php endforeach; ?>
-        </div>
-
-        <!-- Incharge Details Card -->
-        <div class="profile-card incharge-details">
-          <h2>MASOOL / MUSAID</h2>
-          <div class="detail-box">
-            <strong>Sector:</strong> <?php echo $user_data['Sector']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Sub Sector:</strong> <?php echo $user_data['Sub_Sector']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Sector Incharge (Masool):</strong> <?php echo $incharge_data['Sector_Incharge_Name']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Sector Incharge Female (Masool):</strong> <?php echo $incharge_data['Sector_Incharge_Female_Name']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Sub Sector Incharge (Musaid):</strong> <?php echo $incharge_data['Sub_Sector_Incharge_Name']; ?>
-          </div>
-          <div class="detail-box">
-            <strong>Sub Sector Incharge Female (Musaid):</strong> <?php echo $incharge_data['Sub_Sector_Incharge_Female_Name']; ?>
-          </div>
-        </div>
+      <div class="profile-sub">
+        ITS ID:
+        <?php echo htmlspecialchars($member['ITS_ID']); ?>
       </div>
     </div>
   </div>
 
+  <!-- MEMBER STATUS PANEL (optional, only if fields exist) -->
   <?php
-  // Show only the user-table fields that are NOT already displayed above.
-  $shown_user_keys = [
-    // Personal Details
-    'ITS_ID',
-    'Full_Name',
-    'Full_Name_Arabic',
-    'Vatan',
-    'Mobile',
-    'Registered_Family_Mobile',
-    'Email',
-    'Age',
-    'Gender',
-    'Misaq',
-    'Marital_Status',
-    'Blood_Group',
-    'Organisation',
-    'TanzeemFile_No',
-    // Address
-    'Address',
-    'City',
-    'Pincode',
-    // Jamaat
-    'Jamaat',
-    'Jamiaat',
-    // Incharge section fields shown from user_data
-    'Sector',
-    'Sub_Sector',
-  ];
-  $other_fields = [];
-  if (!empty($user_data) && is_array($user_data)) {
-    foreach ($user_data as $k => $v) {
-      if (in_array($k, $shown_user_keys, true)) continue;
-      if (strtolower((string)$k) === 'id') continue;
-      $other_fields[$k] = $v;
-    }
-  }
-  ?>
+    $itsMatch = $member['its_sabeel_match'] ?? '';
+    $actStatus = $member['activity_status'] ?? '';
+    $healthStatus = $member['health_status'] ?? '';
+    $residentialStatus = $member['residential_status'] ?? '';
+    $showDeeni = false;
+    $deeniStatus = $member['deeni_status'] ?? '';
 
-  <?php if (!empty($other_fields)): ?>
-    <div class="profile-container mt-3 mb-5">
-      <div class="row">
-        <div class="col-12">
-          <div class="profile-card user-details">
-            <h2>OTHER DETAILS</h2>
-            <?php foreach ($other_fields as $key => $value): ?>
-              <?php
-              $label = ucwords(str_replace('_', ' ', (string)$key));
-              if ($value === null || $value === '') {
-                $display = '---';
-              } elseif (is_scalar($value)) {
-                $display = (string)$value;
-              } else {
-                $display = json_encode($value);
-              }
-              ?>
-              <div class="detail-box">
-                <strong><?php echo htmlspecialchars($label); ?>:</strong>
-                <?php echo nl2br(htmlspecialchars($display)); ?>
-              </div>
-            <?php endforeach; ?>
+    $matchLabels = [
+      'its_sabeel_both_khar' => ['ITS & Sabeel both in Khar', 'success'],
+      'its_khar_sabeel_out'  => ['ITS in Khar, Sabeel not in Khar', 'warning'],
+      'sabeel_khar_its_out'  => ['Sabeel in Khar, ITS not in Khar', 'info'],
+      'both_not_khar'        => ['Sabeel & ITS both not in Khar', 'secondary'],
+    ];
+    $actClasses = ['active' => 'success', 'inactive' => 'danger', 'temporary' => 'warning'];
+
+    $matchLbl = isset($matchLabels[$itsMatch]) ? $matchLabels[$itsMatch][0] : '';
+    $matchCls = isset($matchLabels[$itsMatch]) ? $matchLabels[$itsMatch][1] : 'secondary';
+    $actCls = isset($actClasses[$actStatus]) ? $actClasses[$actStatus] : 'secondary';
+  ?>
+  <?php if (!empty($itsMatch) || !empty($actStatus) || !empty($healthStatus) || !empty($residentialStatus)): ?>
+    <div class="panel-group" style="break-inside:avoid; border-top: 3px solid #4f46e5;">
+      <div class="panel-heading" style="background-color: #f5f7ff;">
+        <h3 class="panel-title">
+          <i class="fa fa-shield" style="color:#4f46e5;"></i> &nbsp;Member Status
+        </h3>
+        <div class="d-flex flex-wrap gap-2">
+          <?php if (!empty($matchLbl)): ?>
+            <span class="badge badge-<?php echo $matchCls; ?> badge-soft">
+              <i class="fa fa-link"></i> <?php echo htmlspecialchars($matchLbl); ?>
+            </span>
+          <?php endif; ?>
+          <?php if (!empty($actStatus)): ?>
+            <span class="ml-md-2 mt-1 mt-md-0 badge badge-<?php echo $actCls; ?> badge-soft">
+              <i class="fa fa-circle"></i> <?php echo ucfirst(htmlspecialchars($actStatus)); ?>
+            </span>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <div class="panel-body" style="padding:12px 15px;">
+        <div class="member-status-grid">
+          <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">
+              ITS–Sabeel Match
+              <span style="font-size:0.65rem;background:#e2e8f0;padding:1px 5px;border-radius:10px;color:#555;">Auto</span>
+            </div>
+            <div style="font-weight:600;color:#222;">
+              <?php echo !empty($matchLbl) ? htmlspecialchars($matchLbl) : '—'; ?>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">
+              Member Status
+              <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span>
+            </div>
+            <div style="font-weight:600;" class="text-<?php echo $actCls; ?>">
+              <?php echo !empty($actStatus) ? ucfirst(htmlspecialchars($actStatus)) : '—'; ?>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">
+              Health Status
+              <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span>
+            </div>
+            <div style="font-weight:600;color:#222;">
+              <?php echo !empty($healthStatus) ? htmlspecialchars($healthStatus) : '—'; ?>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">
+              Residential Status
+              <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span>
+            </div>
+            <div style="font-weight:600;color:#222;">
+              <?php echo !empty($residentialStatus) ? htmlspecialchars($residentialStatus) : '—'; ?>
+            </div>
           </div>
         </div>
       </div>
     </div>
   <?php endif; ?>
 
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-  <script>
-    // Inline edit handlers for Mobile, Email, Registered Family Mobile
-    (function() {
-      function show(el) {
-        el.style.display = 'block';
+  <!-- FAMILY MEMBERS -->
+  <?php if (!empty($family_members)): ?>
+    <div class="panel-group">
+      <div class="panel-heading">
+        <h3 class="panel-title">
+          <i class="fa fa-angle-double-right" style="color:#6398b9;"></i>
+          Family Members
+        </h3>
+        <span class="badge badge-secondary" style="font-size:0.75rem;">
+          <?php echo count($family_members); ?> members
+        </span>
+      </div>
+
+      <div class="panel-body" style="padding: 10px 15px;">
+        <div class="family-members-grid">
+          <?php foreach ($family_members as $fm): ?>
+            <?php
+              $name = $fm['Full_Name'] ?? '';
+              $initial = $name ? strtoupper(substr($name, 0, 1)) : '?';
+            ?>
+            <div class="family-member-row">
+              <div class="fm-avatar">
+                <?php echo htmlspecialchars($initial); ?>
+              </div>
+
+              <div style="flex:1; min-width:0;">
+                <div class="fm-name" style="word-break: break-word;">
+                  <?php echo htmlspecialchars($name); ?>
+                </div>
+                <div class="fm-its">
+                  ITS: <?php echo htmlspecialchars($fm['ITS_ID'] ?? ''); ?>
+                </div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    </div>
+  <?php endif; ?>
+
+  <!-- MAIN DETAILS GRID -->
+  <div class="details-grid">
+    <?php
+      $groups = [
+        'Personal Details' => [
+          'ITS_ID', 'Full_Name', 'Full_Name_Arabic', 'Vatan', 'Mobile', 
+          'Registered_Family_Mobile', 'Email', 'Age', 'Gender', 'Misaq', 
+          'Marital_Status', 'Blood_Group'
+        ],
+        'Residential Address' => [
+          'Address', 'City', 'Pincode'
+        ],
+        'Jamaat Details' => [
+          'Jamaat', 'Jamiaat', 'Sector', 'Sub_Sector'
+        ],
+      ];
+
+      function humanize($key) {
+        return ucwords(str_replace('_', ' ', $key));
       }
 
-      function hide(el) {
-        el.style.display = 'none';
+      // Helper to render a panel
+      $renderPanel = function($group_name, $fields, $member) {
+    ?>
+      <div class="panel-group">
+        <div class="panel-heading">
+          <h3 class="panel-title"><i class="fa fa-angle-double-right"></i> <?php echo htmlspecialchars($group_name); ?></h3>
+        </div>
+        <div class="panel-body">
+          <table class="detail-table">
+            <tbody>
+              <?php foreach ($fields as $field): ?>
+                <?php $value = $member[$field] ?? ''; ?>
+                <tr>
+                  <th><?php echo htmlspecialchars(humanize($field)); ?></th>
+                  <td>
+                    <?php if ($field === 'Mobile'): ?>
+                      <span id="mobile-display"><?php echo htmlspecialchars($value); ?></span>
+                      <button class="btn btn-outline-primary btn-xs ml-2" id="edit-mobile">Edit</button>
+                      <div class="edit-section" id="mobile-edit">
+                        <input type="text" id="mobile-input" class="form-control" value="<?php echo htmlspecialchars($value); ?>">
+                        <div class="mt-2">
+                          <button class="btn btn-success btn-sm" id="save-mobile">Save</button>
+                          <button class="btn btn-secondary btn-sm" id="cancel-mobile">Cancel</button>
+                        </div>
+                      </div>
+                    <?php elseif ($field === 'Email'): ?>
+                      <span id="email-display"><?php echo htmlspecialchars($value); ?></span>
+                      <button class="btn btn-outline-primary btn-xs ml-2" id="edit-email">Edit</button>
+                      <div class="edit-section" id="email-edit">
+                        <input type="email" id="email-input" class="form-control" value="<?php echo htmlspecialchars($value); ?>">
+                        <div class="mt-2">
+                          <button class="btn btn-success btn-sm" id="save-email">Save</button>
+                          <button class="btn btn-secondary btn-sm" id="cancel-email">Cancel</button>
+                        </div>
+                      </div>
+                    <?php elseif ($field === 'Registered_Family_Mobile'): ?>
+                      <span id="family-mobile-display"><?php echo htmlspecialchars($value); ?></span>
+                      <button class="btn btn-outline-primary btn-xs ml-2" id="edit-family-mobile">Edit</button>
+                      <div class="edit-section" id="family-mobile-edit">
+                        <input type="text" id="family-mobile-input" class="form-control" value="<?php echo htmlspecialchars($value); ?>">
+                        <div class="mt-2">
+                          <button class="btn btn-success btn-sm" id="save-family-mobile">Save</button>
+                          <button class="btn btn-secondary btn-sm" id="cancel-family-mobile">Cancel</button>
+                        </div>
+                      </div>
+                    <?php else: ?>
+                      <?php if ($value === ''): ?>
+                        <span class="empty">-</span>
+                      <?php else: ?>
+                        <?php echo nl2br(htmlspecialchars((string)$value)); ?>
+                      <?php endif; ?>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <?php }; ?>
+
+    <style>
+      .details-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        align-items: start;
       }
-
-      // Mobile
-      var editMobileBtn = document.getElementById('edit-mobile');
-      var mobileEdit = document.getElementById('mobile-edit');
-      var mobileDisplay = document.getElementById('mobile-display');
-      var mobileInput = document.getElementById('mobile-input');
-      var saveMobile = document.getElementById('save-mobile');
-      var cancelMobile = document.getElementById('cancel-mobile');
-      editMobileBtn && editMobileBtn.addEventListener('click', function() {
-        show(mobileEdit);
-        editMobileBtn.style.display = 'none';
-      });
-      cancelMobile && cancelMobile.addEventListener('click', function() {
-        hide(mobileEdit);
-        editMobileBtn.style.display = 'inline-block';
-      });
-      saveMobile && saveMobile.addEventListener('click', function() {
-        var v = mobileInput.value.trim();
-        saveField({
-          mobile: v
-        }, function(success) {
-          if (success) {
-            mobileDisplay.textContent = v;
-            hide(mobileEdit);
-            editMobileBtn.style.display = 'inline-block';
-          }
-        });
-      });
-
-      // Email
-      var editEmailBtn = document.getElementById('edit-email');
-      var emailEdit = document.getElementById('email-edit');
-      var emailDisplay = document.getElementById('email-display');
-      var emailInput = document.getElementById('email-input');
-      var saveEmail = document.getElementById('save-email');
-      var cancelEmail = document.getElementById('cancel-email');
-      editEmailBtn && editEmailBtn.addEventListener('click', function() {
-        show(emailEdit);
-        editEmailBtn.style.display = 'none';
-      });
-      cancelEmail && cancelEmail.addEventListener('click', function() {
-        hide(emailEdit);
-        editEmailBtn.style.display = 'inline-block';
-      });
-      saveEmail && saveEmail.addEventListener('click', function() {
-        var v = emailInput.value.trim();
-        saveField({
-          email: v
-        }, function(success) {
-          if (success) {
-            emailDisplay.textContent = v;
-            hide(emailEdit);
-            editEmailBtn.style.display = 'inline-block';
-          }
-        });
-      });
-
-      // Family mobile
-      var editFamilyBtn = document.getElementById('edit-family-mobile');
-      var familyEdit = document.getElementById('family-mobile-edit');
-      var familyDisplay = document.getElementById('family-mobile-display');
-      var familyInput = document.getElementById('family-mobile-input');
-      var saveFamily = document.getElementById('save-family-mobile');
-      var cancelFamily = document.getElementById('cancel-family-mobile');
-      editFamilyBtn && editFamilyBtn.addEventListener('click', function() {
-        show(familyEdit);
-        editFamilyBtn.style.display = 'none';
-      });
-      cancelFamily && cancelFamily.addEventListener('click', function() {
-        hide(familyEdit);
-        editFamilyBtn.style.display = 'inline-block';
-      });
-      saveFamily && saveFamily.addEventListener('click', function() {
-        var v = familyInput.value.trim();
-        saveField({
-          registered_family_mobile: v
-        }, function(success) {
-          if (success) {
-            familyDisplay.textContent = v;
-            hide(familyEdit);
-            editFamilyBtn.style.display = 'inline-block';
-          }
-        });
-      });
-
-      function saveField(payload, cb) {
-        var form = new FormData();
-        for (var k in payload) form.append(k, payload[k]);
-        fetch('<?php echo base_url("accounts/update_profile_contact"); ?>', {
-          method: 'POST',
-          credentials: 'same-origin',
-          body: form
-        }).then(function(r) {
-          return r.json();
-        }).then(function(json) {
-          if (json && json.success) {
-            if (cb) cb(true);
-          } else {
-            alert('Save failed: ' + (json && json.error ? json.error : 'Unknown'));
-            if (cb) cb(false);
-          }
-        }).catch(function(e) {
-          console.error(e);
-          alert('Save failed');
-          if (cb) cb(false);
-        });
+      @media (min-width: 992px) {
+        .details-grid {
+          grid-template-columns: 1.2fr 1fr;
+        }
       }
-    })();
-  </script>
-</body>
+    </style>
 
-</html>
+    <div class="details-left">
+      <?php $renderPanel('Personal Details', $groups['Personal Details'], $member); ?>
+    </div>
+
+    <div class="details-right">
+      <?php $renderPanel('Residential Address', $groups['Residential Address'], $member); ?>
+      <?php $renderPanel('Jamaat Details', $groups['Jamaat Details'], $member); ?>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+
+  function saveField(payload, callback) {
+    var form = new FormData();
+    for (var key in payload) {
+      form.append(key, payload[key]);
+    }
+
+    fetch('<?php echo base_url("accounts/update_profile_contact"); ?>', {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: form
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(json) {
+      if (json && json.success) callback(true);
+      else {
+        alert((json && json.error) ? json.error : 'Save failed');
+        callback(false);
+      }
+    })
+    .catch(function() {
+      alert('Save failed');
+      callback(false);
+    });
+  }
+
+  // MOBILE
+  document.getElementById('edit-mobile')?.addEventListener('click', function() {
+    document.getElementById('mobile-edit').style.display = 'block';
+    this.style.display = 'none';
+  });
+
+  document.getElementById('cancel-mobile')?.addEventListener('click', function() {
+    document.getElementById('mobile-edit').style.display = 'none';
+    document.getElementById('edit-mobile').style.display = 'inline-block';
+  });
+
+  document.getElementById('save-mobile')?.addEventListener('click', function() {
+    var value = document.getElementById('mobile-input').value.trim();
+    saveField({ mobile: value }, function(success) {
+      if (!success) return;
+      document.getElementById('mobile-display').textContent = value;
+      document.getElementById('mobile-edit').style.display = 'none';
+      document.getElementById('edit-mobile').style.display = 'inline-block';
+    });
+  });
+
+  // EMAIL
+  document.getElementById('edit-email')?.addEventListener('click', function() {
+    document.getElementById('email-edit').style.display = 'block';
+    this.style.display = 'none';
+  });
+
+  document.getElementById('cancel-email')?.addEventListener('click', function() {
+    document.getElementById('email-edit').style.display = 'none';
+    document.getElementById('edit-email').style.display = 'inline-block';
+  });
+
+  document.getElementById('save-email')?.addEventListener('click', function() {
+    var value = document.getElementById('email-input').value.trim();
+    saveField({ email: value }, function(success) {
+      if (!success) return;
+      document.getElementById('email-display').textContent = value;
+      document.getElementById('email-edit').style.display = 'none';
+      document.getElementById('edit-email').style.display = 'inline-block';
+    });
+  });
+
+  // REGISTERED FAMILY MOBILE
+  document.getElementById('edit-family-mobile')?.addEventListener('click', function() {
+    document.getElementById('family-mobile-edit').style.display = 'block';
+    this.style.display = 'none';
+  });
+
+  document.getElementById('cancel-family-mobile')?.addEventListener('click', function() {
+    document.getElementById('family-mobile-edit').style.display = 'none';
+    document.getElementById('edit-family-mobile').style.display = 'inline-block';
+  });
+
+  document.getElementById('save-family-mobile')?.addEventListener('click', function() {
+    var value = document.getElementById('family-mobile-input').value.trim();
+    saveField({ registered_family_mobile: value }, function(success) {
+      if (!success) return;
+      document.getElementById('family-mobile-display').textContent = value;
+      document.getElementById('family-mobile-edit').style.display = 'none';
+      document.getElementById('edit-family-mobile').style.display = 'inline-block';
+    });
+  });
+
+})();
+</script>
