@@ -167,18 +167,7 @@ class Anjuman extends CI_Controller
     $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
 
     // Marital status distribution (active members only, excluding under 21)
-    $ms_rows = $this->db->select("COALESCE(NULLIF(TRIM(Marital_Status),''),'Unknown') AS ms, COUNT(*) AS cnt")
-      ->from('user')
-      ->where('inactive_status IS NULL')
-      ->where('Age >=', 21)
-      ->group_by('ms')
-      ->get()
-      ->result_array();
-    $marital_status_counts = [];
-    foreach ($ms_rows as $r) {
-      $marital_status_counts[$r['ms']] = (int)($r['cnt'] ?? 0);
-    }
-    $data['marital_status_counts'] = $marital_status_counts;
+    $data['marital_status_counts'] = $this->AmilsahebM->get_marital_status_distribution();
 
     $data['year_daytype_stats'] = $this->CommonM->get_year_calendar_daytypes();
 

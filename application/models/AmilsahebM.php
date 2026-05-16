@@ -654,6 +654,24 @@ class AmilsahebM extends CI_Model
     return (int)($row['count'] ?? 0);
   }
 
+  public function get_marital_status_distribution()
+  {
+    $sql = "
+      SELECT COALESCE(NULLIF(TRIM(u.Marital_Status),''),'Unknown') AS ms, COUNT(*) AS cnt
+      FROM user u
+      WHERE u.Age >= 21
+        AND ((u.inactive_status IS NULL OR u.inactive_status = '')
+        " . ($this->has_activity_status ? " AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . ")
+      GROUP BY ms
+    ";
+    $rows = $this->db->query($sql)->result_array();
+    $counts = [];
+    foreach ($rows as $r) {
+      $counts[$r['ms']] = (int)($r['cnt'] ?? 0);
+    }
+    return $counts;
+  }
+
   public function get_status_counts()
   {
     $stats = [

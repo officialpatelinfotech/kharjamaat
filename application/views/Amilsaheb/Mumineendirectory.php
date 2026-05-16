@@ -708,7 +708,10 @@
     }
     if (marital) {
       const el = document.getElementById('filterMaritalStatus');
-      if (el) el.value = marital;
+      if (el) {
+        const maritalNorm = marital.charAt(0).toUpperCase() + marital.slice(1).toLowerCase();
+        el.value = maritalNorm;
+      }
     }
     if (hof) {
       const el = document.getElementById('filterHOF');
@@ -762,7 +765,10 @@
       if (u.Sector) sectors.add(u.Sector);
       if (u.Sub_Sector) subSectors.add(u.Sub_Sector);
       const ms = (u.Marital_Status || u.MaritalStatus || u.Marital || '').toString().trim();
-      if (ms) maritalStatuses.add(ms);
+      if (ms) {
+        const msNorm = ms.charAt(0).toUpperCase() + ms.slice(1).toLowerCase();
+        maritalStatuses.add(msNorm);
+      }
       const its = String(u.ITS_ID || u.ITS || '');
       if (its) itsMap[its] = u.Full_Name || u.FullName || u.Name || '';
       const hofId = u.HOF_ID || u.HOF || u.hof_id || '';
@@ -927,8 +933,8 @@
         preds.push(uStatus.toLowerCase() === status.toLowerCase());
       }
       if (marital) {
-        const ms = (u.Marital_Status || u.MaritalStatus || '').toString();
-        preds.push(ms === marital);
+        const ms = (u.Marital_Status || u.MaritalStatus || '').toString().trim().toLowerCase();
+        preds.push(ms === marital.trim().toLowerCase());
       }
       if (hof) {
         const hofId = (u.HOF_ID || u.HOF || u.hof_id || '').toString();

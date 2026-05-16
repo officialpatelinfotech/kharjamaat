@@ -1845,7 +1845,7 @@
           <div class="row px-3">
             <!-- New Singles 21-40 Insight -->
                   <div class="col-12 col-md-3 mb-3">
-                    <a href="<?= base_url('anjuman/mumineendirectory?status=Active&marital_status=Single&min=21&max=40'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                    <a href="<?= base_url('amilsaheb/mumineendirectory?status=Active&marital_status=Single&min=21&max=40'); ?>" style="text-decoration:none;color:inherit;display:block;">
                       <div class="overview-card">
                         <div class="overview-icon" style="background:#eef2ff; color:#4f46e5;"><i class="fa fa-heart"></i></div>
                         <div class="overview-body">
