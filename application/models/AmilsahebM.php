@@ -683,44 +683,43 @@ class AmilsahebM extends CI_Model
       'occupation' => []
     ];
     
-    // Use the same 'Active' definition as the directory: no inactive status
-    $baseWhere = "WHERE (u.inactive_status IS NULL OR u.inactive_status = '')";
+    // No filter — count ALL 452 members
+    $baseWhere = "";
     
     // Deeni Status
-    $qDeeni = $this->db->query("SELECT TRIM(deeni_status) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(deeni_status)")->result_array();
+    $qDeeni = $this->db->query("SELECT COALESCE(NULLIF(TRIM(deeni_status),''), 'Not Set') as status, COUNT(*) as count FROM user u $baseWhere GROUP BY COALESCE(NULLIF(TRIM(deeni_status),''), 'Not Set')")->result_array();
     foreach($qDeeni as $row) { 
-      $lbl = !empty($row['status']) ? $row['status'] : 'None';
+      $lbl = $row['status'];
       $stats['deeni'][$lbl] = ($stats['deeni'][$lbl] ?? 0) + (int)$row['count']; 
     }
     
     // Health Status
-    $qHealth = $this->db->query("SELECT TRIM(health_status) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(health_status)")->result_array();
+    $qHealth = $this->db->query("SELECT COALESCE(NULLIF(TRIM(health_status),''), 'Not Set') as status, COUNT(*) as count FROM user u $baseWhere GROUP BY COALESCE(NULLIF(TRIM(health_status),''), 'Not Set')")->result_array();
     foreach($qHealth as $row) { 
-      $lbl = !empty($row['status']) ? $row['status'] : 'None';
+      $lbl = $row['status'];
       $stats['health'][$lbl] = ($stats['health'][$lbl] ?? 0) + (int)$row['count']; 
     }
     
     // Residential Status
-    $qRes = $this->db->query("SELECT TRIM(residential_status) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(residential_status)")->result_array();
+    $qRes = $this->db->query("SELECT COALESCE(NULLIF(TRIM(residential_status),''), 'Not Set') as status, COUNT(*) as count FROM user u $baseWhere GROUP BY COALESCE(NULLIF(TRIM(residential_status),''), 'Not Set')")->result_array();
     foreach($qRes as $row) { 
-      $lbl = !empty($row['status']) ? $row['status'] : 'None';
+      $lbl = $row['status'];
       $stats['residential'][$lbl] = ($stats['residential'][$lbl] ?? 0) + (int)$row['count']; 
     }
     
     // Activity Status
     if ($this->has_activity_status) {
-        $qAct = $this->db->query("SELECT TRIM(activity_status) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(activity_status)")->result_array();
+        $qAct = $this->db->query("SELECT COALESCE(NULLIF(TRIM(activity_status),''), 'Not Set') as status, COUNT(*) as count FROM user u $baseWhere GROUP BY COALESCE(NULLIF(TRIM(activity_status),''), 'Not Set')")->result_array();
         foreach($qAct as $row) { 
-          $lbl = !empty($row['status']) ? $row['status'] : 'Active';
+          $lbl = $row['status'];
           $stats['activity'][$lbl] = ($stats['activity'][$lbl] ?? 0) + (int)$row['count']; 
         }
     }
 
-    // Education (Qualification) - Group by trimmed and handled case-insensitive logic
-    $qEdu = $this->db->query("SELECT TRIM(Qualification) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(Qualification)")->result_array();
+    // Education (Qualification)
+    $qEdu = $this->db->query("SELECT COALESCE(NULLIF(TRIM(Qualification),''), 'Not Set') as status, COUNT(*) as count FROM user u $baseWhere GROUP BY COALESCE(NULLIF(TRIM(Qualification),''), 'Not Set')")->result_array();
     foreach($qEdu as $row) { 
-      $lbl = !empty($row['status']) ? $row['status'] : 'None';
-      // Normalize labels to handle case mismatches (e.g. Graduate vs graduate)
+      $lbl = $row['status'];
       $norm = null;
       foreach(array_keys($stats['education']) as $existing) {
         if (strtolower($existing) === strtolower($lbl)) { $norm = $existing; break; }
@@ -733,9 +732,9 @@ class AmilsahebM extends CI_Model
     }
 
     // Occupation
-    $qOcc = $this->db->query("SELECT TRIM(Occupation) as status, COUNT(*) as count FROM user u $baseWhere GROUP BY TRIM(Occupation)")->result_array();
+    $qOcc = $this->db->query("SELECT COALESCE(NULLIF(TRIM(Occupation),''), 'Not Set') as status, COUNT(*) as count FROM user u $baseWhere GROUP BY COALESCE(NULLIF(TRIM(Occupation),''), 'Not Set')")->result_array();
     foreach($qOcc as $row) { 
-      $lbl = !empty($row['status']) ? $row['status'] : 'None';
+      $lbl = $row['status'];
       $norm = null;
       foreach(array_keys($stats['occupation']) as $existing) {
         if (strtolower($existing) === strtolower($lbl)) { $norm = $existing; break; }
@@ -748,14 +747,14 @@ class AmilsahebM extends CI_Model
     }
     
     return $stats;
-  }
+}
 
   public function get_active_inactive_counts()
   {
     $sql = "
       SELECT 
-        SUM(CASE WHEN (u.inactive_status IS NULL OR u.inactive_status = '') " . ($this->has_activity_status ? " AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . " THEN 1 ELSE 0 END) as active,
-        SUM(CASE WHEN (u.inactive_status IS NOT NULL AND u.inactive_status != '') " . ($this->has_activity_status ? " OR (u.activity_status != 'active' AND u.activity_status IS NOT NULL AND u.activity_status != '')" : "") . " THEN 1 ELSE 0 END) as inactive,
+        SUM(CASE WHEN u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '' THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN u.activity_status = 'inactive' OR u.activity_status = 'temporary' THEN 1 ELSE 0 END) as inactive,
         SUM(CASE WHEN u.its_sabeel_match = 'its_sabeel_both_khar' THEN 1 ELSE 0 END) as its_sabeel_both_khar,
         SUM(CASE WHEN u.its_sabeel_match = 'both_not_khar' THEN 1 ELSE 0 END) as both_not_khar,
         SUM(CASE WHEN u.its_sabeel_match = 'sabeel_khar_its_out' THEN 1 ELSE 0 END) as sabeel_khar_its_out,
