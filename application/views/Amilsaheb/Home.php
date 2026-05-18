@@ -49,7 +49,7 @@
   }
 
   .dashboard-header {
-    margin-bottom: 30px;
+      margin-bottom: 12px;
   }
 
   .dashboard-title {
@@ -63,8 +63,10 @@
   }
 
   .dashboard-subtitle {
-    color: #666;
-    font-size: 1rem;
+      font-size: 1rem;
+      font-weight: normal;
+      color: #666;
+      margin-left: 6px;
   }
 
   /* Mobile toolbar and menu button styling (restores original compact Menu button) */
@@ -1181,14 +1183,15 @@
 <div class="container-fluid margintopcontainer mt-5 pt-5">
   <!-- Dashboard Header -->
   <div class="dashboard-header text-center">
-    <h1 class="dashboard-title">Amilsaheb Dashboard</h1>
-    <p class="dashboard-subtitle">
-      <?php
-      // Get current Hijri year
-      $hijri_year = isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : '1446H';
-      echo $hijri_year . 'H / ' . date('Y');
-      ?>
-    </p>
+      <h1 class="dashboard-title">
+          Amilsaheb Dashboard
+          <span class="dashboard-subtitle">
+              <?php
+              $hijri_year = isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : '1446H';
+              echo '— ' . $hijri_year . 'H / ' . date('Y');
+              ?>
+          </span>
+      </h1>
   </div>
 
   <div class="row">
@@ -1467,6 +1470,38 @@
         ?>
         <h4 class="section-title text-center mt-4 mt-md-0 mb-4">Jamaat Overview</h4>
 
+        <!-- Member Status (Active / Inactive) -->
+        <div class="section-header-standard ml-3 mr-3 mt-4">
+          <h4 class="section-title"><i class="fa fa-toggle-on"></i> Member Status</h4>
+          <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseAmilMemberActivity" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+        </div>
+        <div class="collapse show" id="collapseAmilMemberActivity">
+          <div class="row px-3">
+            <div class="col-6 mb-3">
+              <a href="<?= base_url('amilsaheb/mumineendirectory?status=active'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                <div class="overview-card" style="border: 1px solid #22c55e;">
+                  <div class="overview-icon" style="background:#f0fdf4; color:#22c55e;"><i class="fa fa-check-circle"></i></div>
+                  <div class="overview-body">
+                    <span class="overview-title">Active Members</span>
+                    <span class="overview-value"><?= (int)($stats['active_inactive']['active'] ?? 0); ?></span>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="col-6 mb-3">
+              <a href="<?= base_url('amilsaheb/mumineendirectory?status=inactive'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                <div class="overview-card" style="border: 1px solid #ef4444;">
+                  <div class="overview-icon" style="background:#fef2f2; color:#ef4444;"><i class="fa fa-times-circle"></i></div>
+                  <div class="overview-body">
+                    <span class="overview-title">Inactive Members</span>
+                    <span class="overview-value"><?= (int)($stats['active_inactive']['inactive'] ?? 0); ?></span>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
         <!-- Group 2: Statuses -->
         <div class="section-header-standard ml-3 mr-3">
           <h5 class="section-title"><i class="fa fa-info-circle"></i> Statistics</h5>
@@ -1474,6 +1509,50 @@
         </div>
         <div class="collapse show" id="collapseGroupStatuses">
           <div class="row px-3">
+            <div class="col-6 col-md-3 mb-3">
+            <a href="<?= base_url('amilsaheb/mumineendirectory?its_sabeel_match=its_sabeel_both_khar'); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon" style="background:#eef2ff; color:#4f46e5;"><i class="fa fa-home"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">ITS & Sabeel both in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="Living in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, regular Sabeel payer" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)($stats['active_inactive']['its_sabeel_both_khar'] ?? 0); ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-3 mb-3">
+            <a href="<?= base_url('amilsaheb/mumineendirectory?its_sabeel_match=sabeel_khar_its_out'); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon" style="background:#ecfeff; color:#0891b2;"><i class="fa fa-external-link"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">Sabeel in <?= htmlspecialchars(jamaat_place()) ?>, ITS not in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="ITS not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, but a resident and a regular Sabeel payer in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)($stats['active_inactive']['sabeel_khar_its_out'] ?? 0); ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-3 mb-3">
+            <a href="<?= base_url('amilsaheb/mumineendirectory?its_sabeel_match=its_khar_sabeel_out'); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-sign-out"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">ITS in <?= htmlspecialchars(jamaat_place()) ?>, Sabeel not in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?> but no longer residing in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)($stats['active_inactive']['its_khar_sabeel_out'] ?? 0); ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
+          <div class="col-6 col-md-3 mb-3">
+            <a href="<?= base_url('amilsaheb/mumineendirectory?its_sabeel_match=both_not_khar'); ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card">
+                <div class="overview-icon" style="background:#fff1f2; color:#dc2626;"><i class="fa fa-ban"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">ITS & Sabeel both not in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="A resident but ITS and regular Sabeel payment both not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
+                  <span class="overview-value"><?= (int)($stats['active_inactive']['both_not_khar'] ?? 0); ?></span>
+                </div>
+              </div>
+            </a>
+          </div>
           <div class="col-6 col-md-5th mb-3">
             <a href="<?= base_url('amilsaheb/mumineendirectory?filter=all'); ?>" style="text-decoration:none;color:inherit;display:block;">
               <div class="overview-card">
@@ -1586,91 +1665,19 @@
           </div>
           <?php $mt = isset($member_type_counts) ? $member_type_counts : ['resident' => 0, 'external' => 0, 'moved_out' => 0, 'non_sabeel' => 0, 'temporary' => 0, 'total' => 0]; ?>
 
-          <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('amilsaheb/mumineendirectory?its_sabeel_match=its_sabeel_both_khar'); ?>" style="text-decoration:none;color:inherit;display:block;">
-              <div class="overview-card">
-                <div class="overview-icon" style="background:#eef2ff; color:#4f46e5;"><i class="fa fa-home"></i></div>
-                <div class="overview-body">
-                  <span class="overview-title">ITS & Sabeel both in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="Living in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, regular Sabeel payer" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
-                  <span class="overview-value"><?= (int)($stats['active_inactive']['its_sabeel_both_khar'] ?? 0); ?></span>
-                </div>
-              </div>
-            </a>
-          </div>
-          <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('amilsaheb/mumineendirectory?its_sabeel_match=sabeel_khar_its_out'); ?>" style="text-decoration:none;color:inherit;display:block;">
-              <div class="overview-card">
-                <div class="overview-icon" style="background:#ecfeff; color:#0891b2;"><i class="fa fa-external-link"></i></div>
-                <div class="overview-body">
-                  <span class="overview-title">Sabeel in <?= htmlspecialchars(jamaat_place()) ?>, ITS not in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="ITS not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>, but a resident and a regular Sabeel payer in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
-                  <span class="overview-value"><?= (int)($stats['active_inactive']['sabeel_khar_its_out'] ?? 0); ?></span>
-                </div>
-              </div>
-            </a>
-          </div>
-          <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('amilsaheb/mumineendirectory?its_sabeel_match=its_khar_sabeel_out'); ?>" style="text-decoration:none;color:inherit;display:block;">
-              <div class="overview-card">
-                <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-sign-out"></i></div>
-                <div class="overview-body">
-                  <span class="overview-title">ITS in <?= htmlspecialchars(jamaat_place()) ?>, Sabeel not in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="ITS in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?> but no longer residing in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
-                  <span class="overview-value"><?= (int)($stats['active_inactive']['its_khar_sabeel_out'] ?? 0); ?></span>
-                </div>
-              </div>
-            </a>
-          </div>
-          <div class="col-6 col-md-3 mb-3">
-            <a href="<?= base_url('amilsaheb/mumineendirectory?its_sabeel_match=both_not_khar'); ?>" style="text-decoration:none;color:inherit;display:block;">
-              <div class="overview-card">
-                <div class="overview-icon" style="background:#fff1f2; color:#dc2626;"><i class="fa fa-ban"></i></div>
-                <div class="overview-body">
-                  <span class="overview-title">ITS & Sabeel both not in <?= htmlspecialchars(jamaat_place()) ?> <i class="fa fa-info-circle text-muted ml-1" title="A resident but ITS and regular Sabeel payment both not in <?php echo htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>" style="cursor:help; font-size:11px;" data-toggle="tooltip"></i></span>
-                  <span class="overview-value"><?= (int)($stats['active_inactive']['both_not_khar'] ?? 0); ?></span>
-                </div>
-              </div>
-            </a>
-          </div>
+          
           </div>
         </div>
 
-        <!-- Member Status (Active / Inactive) -->
-        <div class="section-header-standard ml-3 mr-3 mt-4">
-          <h4 class="section-title"><i class="fa fa-toggle-on"></i> Member Status</h4>
-          <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseAmilMemberActivity" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
-        </div>
-        <div class="collapse show" id="collapseAmilMemberActivity">
-          <div class="row px-3">
-            <div class="col-6 mb-3">
-              <a href="<?= base_url('amilsaheb/mumineendirectory?status=active'); ?>" style="text-decoration:none;color:inherit;display:block;">
-                <div class="overview-card" style="border: 1px solid #22c55e;">
-                  <div class="overview-icon" style="background:#f0fdf4; color:#22c55e;"><i class="fa fa-check-circle"></i></div>
-                  <div class="overview-body">
-                    <span class="overview-title">Active Members</span>
-                    <span class="overview-value"><?= (int)($stats['active_inactive']['active'] ?? 0); ?></span>
-                  </div>
-                </div>
-              </a>
-            </div>
-            <div class="col-6 mb-3">
-              <a href="<?= base_url('amilsaheb/mumineendirectory?status=inactive'); ?>" style="text-decoration:none;color:inherit;display:block;">
-                <div class="overview-card" style="border: 1px solid #ef4444;">
-                  <div class="overview-icon" style="background:#fef2f2; color:#ef4444;"><i class="fa fa-times-circle"></i></div>
-                  <div class="overview-body">
-                    <span class="overview-title">Inactive Members</span>
-                    <span class="overview-value"><?= (int)($stats['active_inactive']['inactive'] ?? 0); ?></span>
-                  </div>
-                </div>
-              </a>
-            </div>
-          </div>
-        </div>
+        
 
         <?php
         $status_counts = isset($stats['status_counts']) ? $stats['status_counts'] : [];
         $amilGroups1 = [
-          'health_status'      => ['label' => 'All Health Status',      'icon' => 'fa-heartbeat',       'bg' => '#fff1f2', 'color' => '#e11d48', 'count_key' => 'health',     'id' => 'collapseAmilHealth'],
-          'deeni_status'       => ['label' => 'All Deeni Status',       'icon' => 'fa-star',             'bg' => '#f5f3ff', 'color' => '#7c3aed', 'count_key' => 'deeni',      'id' => 'collapseAmilDeeni'],
-          'residential_status' => ['label' => 'All Residential Status', 'icon' => 'fa-building',         'bg' => '#f0f9ff', 'color' => '#0369a1', 'count_key' => 'residential','id' => 'collapseAmilResidential'],
+          'health_status'      => ['label' => 'Health Status',      'icon' => 'fa-heartbeat',       'bg' => '#fff1f2', 'color' => '#e11d48', 'count_key' => 'health',     'id' => 'collapseAmilHealth'],
+          'deeni_status'       => ['label' => 'Deeni Status',       'icon' => 'fa-star',             'bg' => '#f5f3ff', 'color' => '#7c3aed', 'count_key' => 'deeni',      'id' => 'collapseAmilDeeni'],
+          'residential_status' => ['label' => 'Residential Status', 'icon' => 'fa-building',         'bg' => '#f0f9ff', 'color' => '#0369a1', 'count_key' => 'residential','id' => 'collapseAmilResidential'],
+          'residential_status' => ['label' => 'Residential Status', 'icon' => 'fa-building',         'bg' => '#f0f9ff', 'color' => '#0369a1', 'count_key' => 'residential','id' => 'collapseAmilResidential'],
           'Qualification'      => ['label' => 'Dunyavi Education',       'icon' => 'fa-graduation-cap',  'bg' => '#f0fdf4', 'color' => '#16a34a', 'count_key' => 'education',  'id' => 'collapseAmilEducation'],
         ];
         foreach ($amilGroups1 as $filterKey => $g) {
