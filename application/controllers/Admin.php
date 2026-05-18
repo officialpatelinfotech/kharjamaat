@@ -1874,15 +1874,35 @@ class Admin extends CI_Controller
       if (empty($_FILES['data_file']['tmp_name'])) {
         $summary['errors'][] = 'No file uploaded';
       } else {
-        $fh = fopen($_FILES['data_file']['tmp_name'], 'r');
-        if (!$fh) {
-          $summary['errors'][] = 'Cannot open uploaded file';
+        $ext = strtolower(pathinfo($_FILES['data_file']['name'], PATHINFO_EXTENSION));
+        $rows = [];
+        if ($ext === 'xlsx') {
+          $this->load->library('SimpleXLSX');
+          if ($xlsx = SimpleXLSX::parse($_FILES['data_file']['tmp_name'])) {
+            $rows = $xlsx->rows();
+          } else {
+            $summary['errors'][] = SimpleXLSX::parseError();
+          }
         } else {
-          $header = fgetcsv($fh);
-          if (!$header) {
+          $fh = fopen($_FILES['data_file']['tmp_name'], 'r');
+          if (!$fh) {
+            $summary['errors'][] = 'Cannot open uploaded file';
+          } else {
+            while (($row = fgetcsv($fh)) !== false) {
+              $rows[] = $row;
+            }
+            fclose($fh);
+          }
+        }
+
+        if (empty($summary['errors'])) {
+          if (empty($rows)) {
             $summary['errors'][] = 'Empty file';
           } else {
+            $header = array_shift($rows);
             $normalizedHeader = array_map(function ($h) {
+              $h = is_string($h) ? $h : '';
+              $h = preg_replace('/^\xEF\xBB\xBF/', '', $h);
               return trim($h);
             }, $header);
             $colIndex = array_flip($normalizedHeader);
@@ -1893,12 +1913,12 @@ class Admin extends CI_Controller
             if (empty($summary['errors'])) {
               $createdSectorLogins = [];
               $createdSubSectorLogins = [];
-              while (($row = fgetcsv($fh)) !== false) {
+              foreach ($rows as $row) {
                 $summary['processed']++;
                 $assoc = [];
                 foreach ($normalizedHeader as $idxName) {
                   $idx = $colIndex[$idxName];
-                  $assoc[$idxName] = isset($row[$idx]) ? trim($row[$idx]) : '';
+                  $assoc[$idxName] = isset($row[$idx]) ? trim((string)$row[$idx]) : '';
                 }
                 if ($assoc['ITS_ID'] === '' || $assoc['Full_Name'] === '') {
                   $summary['skipped']++;
@@ -1984,7 +2004,6 @@ class Admin extends CI_Controller
               }
             }
           }
-          fclose($fh);
           // After processing, do not automatically mark members as moved-out based on import file.
           // Previously we marked members not present in the import as 'Moved-Out Mumineen'.
           // This behavior has been disabled to avoid unintended state changes.
@@ -2028,7 +2047,7 @@ class Admin extends CI_Controller
       }
       // Recalculate ITS–Sabeel match and Member_Type for all members after import
       $this->load->model('MemberStatusM');
-      $statusResult = $this->MemberStatusM->recalculate_all();
+      $statusResult = $this->MemberStatusM->recalculate_all($importedIds);
       $summary['status_updated'] = $statusResult['updated'];
       $summary['status_errors']  = $statusResult['errors'];
       // Fetch distribution breakdown to show in summary
@@ -4390,7 +4409,7 @@ HTML;
     } elseif ($updated) {
       // Even if no living status changed, recompute in case Member_Type changed
       $this->load->model('MemberStatusM');
-      $this->MemberStatusM->recalculate_activity((int)$its_id);
+      $this->MemberStatusM->recalculate_one((int)$its_id);
     }
 
     if ($updated || !empty($livingFields)) {

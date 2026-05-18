@@ -18,15 +18,15 @@
     </div>
   </div>
   <div class="alert alert-info py-2 px-3 small mb-3">
-    Provide a CSV file. Required columns: <code>ITS_ID</code>, <code>Full_Name</code>. Non-empty cells update existing data, empty cells leave existing values untouched.
+    Provide a CSV or XLSX file. Required columns: <code>ITS_ID</code>, <code>Full_Name</code>. Non-empty cells update existing data, empty cells leave existing values untouched.
   </div>
   <div class="card shadow-sm mb-4">
     <div class="card-body p-3">
       <form id="importForm" method="post" enctype="multipart/form-data" class="">
         <div class="drop-zone mb-3" id="dropZone">
-          <input id="csvInput" type="file" name="data_file" accept=".csv,text/csv" required>
-          <p class="m-0"><strong>Select or Drop CSV Here</strong></p>
-          <div class="dz-instructions">Click to browse or drag a .csv file (UTF-8 recommended)</div>
+          <input id="csvInput" type="file" name="data_file" accept=".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" required>
+          <p class="m-0"><strong>Select or Drop CSV / XLSX Here</strong></p>
+          <div class="dz-instructions">Click to browse or drag a .csv or .xlsx file</div>
           <div id="dzFileName" class="small text-primary mt-2" style="display:none;"></div>
         </div>
         <div class="d-flex flex-wrap gap-2 align-items-center mb-3">

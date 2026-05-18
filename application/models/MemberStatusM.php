@@ -41,14 +41,24 @@ class MemberStatusM extends CI_Model
     public function recalculate_one(int $its_id): bool
     {
         $row = $this->db
-            ->select('ITS_ID, HOF_ID')
+            ->select('ITS_ID, HOF_ID, in_its_csv')
             ->from('user')
             ->where('ITS_ID', $its_id)
             ->get()->row_array();
 
         if (empty($row)) return false;
 
-        $match = $this->_compute_match_for_family((int)($row['HOF_ID'] ?: $its_id));
+        $hof_id = (int)($row['HOF_ID'] ?: $its_id);
+        $sabeelYear    = $this->_current_sabeel_year();
+        $sabeelHofIds  = $this->_hof_ids_with_sabeel($sabeelYear);
+
+        $its_exists    = (bool)$row['in_its_csv'];
+        $sabeel_exists = isset($sabeelHofIds[$hof_id]);
+
+        if ($its_exists && $sabeel_exists)   $match = self::MATCH_BOTH_KHAR;
+        elseif ($its_exists)                 $match = self::MATCH_ITS_KHAR;
+        elseif ($sabeel_exists)              $match = self::MATCH_SABEEL_KHAR;
+        else                                 $match = self::MATCH_BOTH_NOT_KHAR;
 
         return (bool) $this->db->update('user', [
             'its_sabeel_match' => $match,
@@ -65,18 +75,34 @@ class MemberStatusM extends CI_Model
      *
      * Returns ['updated' => N, 'errors' => N, 'match_distribution' => [...]]
      */
-    public function recalculate_all(): array
+    public function recalculate_all(array $importedIds = []): array
     {
         $updated = 0;
         $errors  = 0;
+
+        // If importedIds is provided, update the in_its_csv column in user table first!
+        if (!empty($importedIds)) {
+            $cleanIds = array_values(array_filter(array_map('trim', $importedIds), function ($v) {
+                return $v !== '';
+            }));
+            if (!empty($cleanIds)) {
+                // Set in_its_csv = 1 for imported IDs
+                $this->db->where_in('ITS_ID', $cleanIds);
+                $this->db->update('user', ['in_its_csv' => 1]);
+
+                // Set in_its_csv = 0 for IDs not in imported list
+                $this->db->where_not_in('ITS_ID', $cleanIds);
+                $this->db->update('user', ['in_its_csv' => 0]);
+            }
+        }
 
         // Pre-build a set of HOF_IDs that have Sabeel (family-level check)
         $sabeelYear    = $this->_current_sabeel_year();
         $sabeelHofIds  = $this->_hof_ids_with_sabeel($sabeelYear);
 
-        // Fetch all members with their HOF_ID
+        // Fetch all members with their HOF_ID and in_its_csv status
         $rows = $this->db
-            ->select('ITS_ID, HOF_ID')
+            ->select('ITS_ID, HOF_ID, in_its_csv')
             ->from('user')
             ->get()->result_array();
 
@@ -91,8 +117,8 @@ class MemberStatusM extends CI_Model
             $its_id  = (int)$row['ITS_ID'];
             $hof_id  = (int)($row['HOF_ID'] ?: $its_id);
 
-            // ITS always present (row exists in user table)
-            $its_exists    = true;
+            // ITS presence is determined by whether they are in the ITS CSV
+            $its_exists    = (bool)$row['in_its_csv'];
             $sabeel_exists = isset($sabeelHofIds[$hof_id]);
 
             if ($its_exists && $sabeel_exists)   $match = self::MATCH_BOTH_KHAR;
@@ -159,12 +185,33 @@ class MemberStatusM extends CI_Model
         $sabeelYear   = $this->_current_sabeel_year();
         $sabeelHofIds = $this->_hof_ids_with_sabeel($sabeelYear);
         $sabeel_exists = isset($sabeelHofIds[$hof_id]);
-        $match         = $sabeel_exists ? self::MATCH_BOTH_KHAR : self::MATCH_ITS_KHAR;
 
-        // Update all members of this family
-        return (bool) $this->db->update('user', [
-            'its_sabeel_match' => $match,
-        ], ['HOF_ID' => $hof_id]);
+        // Fetch all members of this family to check their individual in_its_csv status
+        $members = $this->db
+            ->select('ITS_ID, in_its_csv')
+            ->from('user')
+            ->where('HOF_ID', $hof_id)
+            ->or_where('ITS_ID', $hof_id)
+            ->get()->result_array();
+
+        $success = true;
+        foreach ($members as $m) {
+            $its_id = (int)$m['ITS_ID'];
+            $its_exists = (bool)$m['in_its_csv'];
+
+            if ($its_exists && $sabeel_exists)   $match = self::MATCH_BOTH_KHAR;
+            elseif ($its_exists)                 $match = self::MATCH_ITS_KHAR;
+            elseif ($sabeel_exists)              $match = self::MATCH_SABEEL_KHAR;
+            else                                 $match = self::MATCH_BOTH_NOT_KHAR;
+
+            $ok = $this->db->update('user', [
+                'its_sabeel_match' => $match,
+            ], ['ITS_ID' => $its_id]);
+
+            if (!$ok) $success = false;
+        }
+
+        return $success;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -290,19 +337,7 @@ class MemberStatusM extends CI_Model
     // Private helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Compute ITS–Sabeel match for a single HOF family.
-     * Used by recalculate_one() and recalculate_family().
-     */
-    private function _compute_match_for_family(int $hof_id): string
-    {
-        $year          = $this->_current_sabeel_year();
-        $sabeelHofIds  = $this->_hof_ids_with_sabeel($year);
-        $sabeel_exists = isset($sabeelHofIds[$hof_id]);
 
-        // ITS presence: member exists in user table (always true when called)
-        return $sabeel_exists ? self::MATCH_BOTH_KHAR : self::MATCH_ITS_KHAR;
-    }
 
     /**
      * Returns a hash-map of HOF_IDs that have at least one Sabeel record

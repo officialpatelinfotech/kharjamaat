@@ -271,7 +271,7 @@
           </div> -->
           <!-- Manual data fields -->
           <div>
-            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">Member Status <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span></div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">Member Status <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Auto</span></div>
             <div style="font-weight:600;" class="text-<?php echo $actCls; ?>"><?php echo $actStatus ? ucfirst(htmlspecialchars($actStatus)) : '—'; ?></div>
           </div>
           <?php if($show_deeni_status): ?>
