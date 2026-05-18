@@ -236,12 +236,14 @@ class MemberStatusM extends CI_Model
     public static function residential_status_options(): array
     {
         return [
-            ''                                           => '— None —',
-            'Residing in Khar'                           => 'Residing in Khar',
-            'Moved for Job'                              => 'Moved for Job',
-            'Moved for Studies'                          => 'Moved for Studies',
-            'Moved Permanently but not taken transfer'   => 'Moved Permanently but not taken transfer',
-            'Unknown or Not Traceable'                   => 'Unknown or Not Traceable',
+            ''                                            => '— None —',
+            'Residing in Local Jamaat'                    => 'Residing in Local Jamaat',
+            'Moved for Job'                               => 'Moved for Job',
+            'Moved for Studies'                           => 'Moved for Studies',
+            'Moved after Marriage'                        => 'Moved after Marriage',
+            'Permanently moved but ITS not Transferred'   => 'Permanently moved but ITS not Transferred',
+            'Permanently Moved and ITS also Transferred'  => 'Permanently Moved and ITS also Transferred',
+            'Unknown or Not Traceable'                    => 'Unknown or Not Traceable',
         ];
     }
 
@@ -301,7 +303,8 @@ class MemberStatusM extends CI_Model
         ];
         // Residential statuses that trigger Inactive
         $inactiveResidential = [
-            'Moved Permanently but not taken transfer',
+            'Permanently moved but ITS not Transferred',
+            'Permanently Moved and ITS also Transferred',
             'Unknown or Not Traceable',
         ];
 
