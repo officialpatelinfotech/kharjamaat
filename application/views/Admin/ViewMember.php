@@ -159,6 +159,7 @@
             $back_url = base_url('anjuman');
         } elseif ($role === 16) {
             $back_url = base_url('MasoolMusaid');
+            $view_member_base = 'MasoolMusaid/viewmember/';
         } elseif ($role >= 4 && $role <= 15) {
             $back_url = base_url('Umoor');
         }

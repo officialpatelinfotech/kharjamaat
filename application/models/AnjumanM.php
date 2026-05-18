@@ -1771,6 +1771,12 @@ class AnjumanM extends CI_Model
     u.Full_Name,
     u.Sector,
     u.Sub_Sector,
+    u.activity_status,
+    u.inactive_status,
+    u.Inactive_Status,
+    u.deeni_status,
+    u.health_status,
+    u.residential_status,
 
     st.id AS takhmeen_id,
     st.year AS takhmeen_year,
@@ -1832,6 +1838,24 @@ class AnjumanM extends CI_Model
     foreach ($rows as $row) {
       $itsId = $row['ITS_ID'];
       if (!isset($users[$itsId])) {
+        $actStatus = $row['activity_status'] ?? 'active';
+        $reason = '';
+        if ($actStatus === 'inactive') {
+          if (!empty($row['Inactive_Status'])) {
+            $reason = trim((string)$row['Inactive_Status']);
+          } elseif (!empty($row['inactive_status'])) {
+            $reason = trim((string)$row['inactive_status']);
+          } elseif (!empty($row['deeni_status']) && in_array($row['deeni_status'], ['Deen Badli Lidu che', 'Married Outside', 'Misaq Not Given', 'Mustajeeb'])) {
+            $reason = trim((string)$row['deeni_status']);
+          } elseif (!empty($row['health_status']) && in_array($row['health_status'], ['Lazimul Firash', 'Wafaat'])) {
+            $reason = trim((string)$row['health_status']);
+          } elseif (!empty($row['residential_status']) && in_array($row['residential_status'], ['Permanently moved but ITS not Transferred', 'Permanently Moved and ITS also Transferred', 'Unknown or Not Traceable'])) {
+            $reason = trim((string)$row['residential_status']);
+          } else {
+            $reason = 'Manually marked Inactive';
+          }
+        }
+
         $users[$itsId] = [
           'ITS_ID' => $row['ITS_ID'],
           'Full_Name' => $row['Full_Name'],
@@ -1839,6 +1863,8 @@ class AnjumanM extends CI_Model
           'Sub_Sector' => $row['Sub_Sector'],
           'First_Name' => $row['First_Name'],
           'Surname' => $row['Surname'],
+          'activity_status' => $actStatus,
+          'inactive_reason' => $reason,
           // We'll build takhmeens via an index first to avoid duplicates caused by payment join
           '_takhmeens_index' => [],
           'takhmeens' => [],

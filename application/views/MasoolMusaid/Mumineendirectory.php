@@ -285,7 +285,7 @@
             const btn = document.createElement('button');
             btn.className = 'btn btn-sm btn-primary view-details-btn';
             btn.textContent = 'View Details';
-            btn.onclick = () => openModal(user);
+            btn.onclick = () => { window.location.href = '<?php echo base_url('MasoolMusaid/viewmember/'); ?>' + user.ITS_ID; };
             actionCell.appendChild(btn);
         });
     }

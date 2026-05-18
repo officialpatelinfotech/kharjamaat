@@ -4515,7 +4515,11 @@ HTML;
     $data['member']            = $member;
     $data['family_members']    = $this->AdminM->get_family_members_by_hof_id($hof_id);
     $data['family_financials'] = $this->AdminM->get_family_financial_data($hof_id);
-    $this->load->view('Admin/Header', $data);
+    if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 3) {
+      $this->load->view('Anjuman/Header', $data);
+    } else {
+      $this->load->view('Admin/Header', $data);
+    }
     $this->load->view('Admin/ViewMember', $data);
   }
 

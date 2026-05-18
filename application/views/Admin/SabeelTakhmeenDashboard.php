@@ -162,7 +162,7 @@
               <td class="takhmeen-amount" style="background-color:#eaf3fb;" data-sort-value="<?php echo isset($res['yearly']) && is_numeric($res['yearly']) ? (float)$res['yearly'] : 0; ?>"><?php echo (isset($res['yearly']) && is_numeric($res['yearly']) && $res['yearly'] > 0) ? round($res['yearly']) : ''; ?></td>
               <td class="takhmeen-amount" data-sort-value="<?php echo isset($total_yearly) && is_numeric($total_yearly) ? (float)$total_yearly : 0; ?>"><?php echo (isset($total_yearly) && is_numeric($total_yearly) && $total_yearly > 0) ? round($total_yearly) : ''; ?></td>
               <td class="text-nowrap">
-                <button class="add-takhmeen btn btn-success btn-sm mb-1" data-toggle="modal" data-target="#add-takhmeen-container" data-user-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?>" data-user-name="<?php echo htmlspecialchars($__fullName); ?>">Add</button>
+                <button class="add-takhmeen btn btn-success btn-sm mb-1" <?php echo (($user['activity_status'] ?? '') !== 'inactive') ? 'data-toggle="modal" data-target="#add-takhmeen-container"' : ''; ?> data-user-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?>" data-user-name="<?php echo htmlspecialchars($__fullName); ?>" data-inactive="<?php echo (($user['activity_status'] ?? '') === 'inactive') ? 'true' : 'false'; ?>" data-inactive-reason="<?php echo htmlspecialchars($user['inactive_reason'] ?? ''); ?>" <?php echo (($user['activity_status'] ?? '') === 'inactive') ? 'style="opacity:0.5; cursor:not-allowed;" title="Inactive Member"' : ''; ?>>Add</button>
                 <?php /* Edit feature removed */ ?>
                 <button type="button" class="btn btn-outline-secondary btn-sm view-takhmeen mb-1" data-user-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?>" data-user-name="<?php echo htmlspecialchars($__fullName); ?>" data-takhmeens='<?php echo htmlspecialchars(json_encode($user['takhmeens'] ?? []), ENT_QUOTES, "UTF-8"); ?>' <?php echo empty($user['takhmeens']) ? 'disabled' : ''; ?>>View Takhmeen</button>
               </td>
@@ -363,6 +363,12 @@
   });
 
   $(".add-takhmeen").on("click", function(e) {
+    if ($(this).attr("data-inactive") === "true") {
+      e.preventDefault();
+      e.stopPropagation();
+      alert("This member is inactive. Reason: " + ($(this).attr("data-inactive-reason") || "Inactive"));
+      return false;
+    }
     $userId = $(this).data("user-id");
     $userName = $(this).data("user-name");
     $("#user-id").val($userId);

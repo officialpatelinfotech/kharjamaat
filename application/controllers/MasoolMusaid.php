@@ -995,4 +995,27 @@ class MasoolMusaid extends CI_Controller
     $this->session->set_flashdata('success', 'Attendance updated successfully.');
     redirect('/MasoolMusaid/miqaat_attendance_details/' . $miqaat_id);
   }
+
+  public function viewmember($its_id = null)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      redirect('/accounts');
+    }
+    if (!$its_id) {
+      redirect('MasoolMusaid/mumineendirectory');
+      return;
+    }
+    $member = $this->AdminM->get_member_by_its($its_id);
+    if (!$member) {
+      redirect('MasoolMusaid/mumineendirectory');
+      return;
+    }
+    $hof_id = !empty($member['HOF_ID']) ? $member['HOF_ID'] : $its_id;
+    $data['user_name']         = $_SESSION['user']['username'];
+    $data['member']            = $member;
+    $data['family_members']    = $this->AdminM->get_family_members_by_hof_id($hof_id);
+    $data['family_financials'] = $this->AdminM->get_family_financial_data($hof_id);
+    $this->load->view('MasoolMusaid/Header', $data);
+    $this->load->view('Admin/ViewMember', $data);
+  }
 }

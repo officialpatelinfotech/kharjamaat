@@ -392,6 +392,13 @@
     </div>
   </div> -->
 
+  <div id="dynamicDashboardTitleContainer" style="display:none;" class="mb-3">
+    <div class="p-3 bg-light border rounded d-flex justify-content-between align-items-center" style="border-left: 5px solid #0d6efd !important;">
+      <h4 id="dynamicDashboardTitleText" class="m-0" style="color: #0d6efd; font-weight: 600;"></h4>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.location.href=window.location.pathname;">Clear Filter</button>
+    </div>
+  </div>
+
   <div id="membersList"></div>
 </div>
 
@@ -1002,6 +1009,55 @@
         chip.style.display = 'inline-block';
       } else {
         chip.style.display = 'none';
+      }
+    }
+
+    const dynContainer = document.getElementById('dynamicDashboardTitleContainer');
+    const dynText = document.getElementById('dynamicDashboardTitleText');
+    if (dynContainer && dynText) {
+      const params = new URLSearchParams(window.location.search);
+      const titleParam = params.get('title');
+      if (titleParam) {
+        dynText.textContent = titleParam;
+        dynContainer.style.display = 'block';
+      } else if (hasAnyFilter) {
+        // Fallback mapping for standard dashboard card filters
+        let cardTitle = labelParts.join(' | ');
+        const st = params.get('status') || '';
+        const filt = (params.get('filter') || '').toLowerCase();
+        const val = params.get('value') || '';
+        const minP = params.get('min') || '';
+        const maxP = params.get('max') || '';
+        const itsM = params.get('its_sabeel_match') || '';
+        const madD = params.get('madresa_deprived') || '';
+        const marP = params.get('marital_status') || '';
+
+        if (st.toLowerCase() === 'active' && marP.toLowerCase() === 'single' && minP === '21' && maxP === '40') cardTitle = 'Singles (21-40 yrs)';
+        else if (st.toLowerCase() === 'active' && minP === '5' && maxP === '15' && madD === '1') cardTitle = 'Madresa Deprived (5-15 yrs)';
+        else if (st.toLowerCase() === 'active' && marP) cardTitle = 'Active Members - ' + marP;
+        else if (st.toLowerCase() === 'active') cardTitle = 'Active Members';
+        else if (st.toLowerCase() === 'inactive') cardTitle = 'Inactive Members';
+        else if (filt === 'hof_fm_type' && val.toUpperCase() === 'HOF') cardTitle = 'HOF Members';
+        else if (filt === 'hof_fm_type' && val.toUpperCase() === 'FM') cardTitle = 'Family Members';
+        else if (filt === 'gender' && val.toLowerCase() === 'male') cardTitle = 'Gents';
+        else if (filt === 'gender' && val.toLowerCase() === 'female') cardTitle = 'Ladies';
+        else if (filt === 'age_range' && minP === '0' && maxP === '4') cardTitle = 'Age 0 to 4 yrs';
+        else if (filt === 'age_range' && minP === '5' && maxP === '15') cardTitle = 'Age 5 to 15 yrs';
+        else if (filt === 'age_range' && minP === '16' && maxP === '25') cardTitle = 'Age 16 to 25 yrs';
+        else if (filt === 'age_range' && minP === '26' && maxP === '65') cardTitle = 'Age 26 to 65 yrs';
+        else if (filt === 'age_range' && minP === '66') cardTitle = 'Above 65 yrs';
+        else if (filt === 'sector' && val) cardTitle = 'Sector: ' + val;
+        else if (filt === 'all') cardTitle = 'All Members';
+        else if (itsM === 'its_sabeel_both_khar') cardTitle = 'ITS & Sabeel both in Khar';
+        else if (itsM === 'sabeel_khar_its_out') cardTitle = 'Sabeel in Khar, ITS Outside';
+        else if (itsM === 'its_khar_sabeel_out') cardTitle = 'ITS in Khar, Sabeel Outside';
+        else if (itsM === 'both_not_khar') cardTitle = 'Both ITS & Sabeel not in Khar';
+        else if (filt && val) cardTitle = filt.charAt(0).toUpperCase() + filt.slice(1) + ': ' + val;
+
+        dynText.textContent = cardTitle;
+        dynContainer.style.display = 'block';
+      } else {
+        dynContainer.style.display = 'none';
       }
     }
 
