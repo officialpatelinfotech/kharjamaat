@@ -1,1065 +1,783 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
 <style>
-  body {
-    background-color: #fff7e6;
+  :root {
+    --gold:        #b8860b;
+    --gold-light:  #e6c84a;
+    --gold-muted:  #f5e9c0;
+    --bg:          #faf7f0;
+    --surface:     #ffffff;
+    --surface-2:   #f7f4ec;
+    --border:      #e8e0cc;
+    --text-1:      #1a1610;
+    --text-2:      #5a5244;
+    --text-3:      #9c8f7a;
+    --green:       #1a6645;
+    --green-bg:    #eaf4ee;
+    --red:         #b91c1c;
+    --red-bg:      #fef2f2;
+    --blue:        #1d4ed8;
+    --blue-bg:     #eff6ff;
+    --amber:       #b45309;
+    --amber-bg:    #fffbeb;
+    --radius-sm:   8px;
+    --radius:      14px;
+    --radius-lg:   20px;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow:      0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
   }
 
-  .icon {
-    font-size: 40pt;
-    margin: 10px 0;
-    color: #ffffff;
-  }
+  body { background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-1); }
 
-  .title {
-    color: white;
-    font-size: 0.8rem;
-  }
+  /* ── Page heading ── */
+  .page-heading { font-family: 'Literata', Georgia, serif; color: var(--gold); font-size: 1.6rem; font-weight: 600; letter-spacing: -.3px; }
+  .hijri-label  { font-size: 0.85rem; color: var(--text-3); font-weight: 500; letter-spacing: .5px; }
 
-  .heading {
-    color: #ad7e05;
-    font-family: 'Amita', cursive;
-  }
-
-  .row a {
-    text-decoration: none;
-    color: inherit;
-  }
-
+  /* ── Action buttons ── */
   .action-btn {
-    height: 68px;
-    /* increased from 50px */
-    color: black;
-    border-radius: 5px;
+    position: relative; display: flex; flex-direction: row;
+    align-items: center; justify-content: flex-start;
+    gap: 10px; padding: 10px 12px; border-radius: 10px;
+    text-decoration: none; overflow: hidden; height: 52px;
+    transition: transform .15s ease, box-shadow .15s ease;
+    box-shadow: var(--shadow);
   }
-
-  .action-btn:hover {
-    text-decoration: none;
-    transform: translate(0, -2px);
-    transition: all 0.2s ease-in-out;
+  .action-btn::after {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,255,255,0); transition: background .2s;
   }
-
-  .action-btn:hover {
-    opacity: 0.8;
+  .action-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); text-decoration: none; }
+  .action-btn:hover::after { background: rgba(255,255,255,0.08); }
+  .action-btn .stat-icon-wrap {
+    position: relative; flex-shrink: 0;
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.22); backdrop-filter: blur(4px);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
   }
-
-  .abi {
-    font-size: 12pt;
+  .action-btn .stat-icon-wrap .fa { font-size: 0.85rem; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .action-btn .count-badge {
+    position: absolute; top: -5px; right: -8px;
+    background: #fff; color: #222; padding: 1px 5px;
+    font-size: 0.52rem; font-weight: 700; border-radius: 40px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.06);
+    letter-spacing: .3px; text-transform: uppercase;
   }
-
-  .action-btn-title {
-    font-size: 0.8rem;
-  }
-
-  /* New dashboard design */
-
-  .dashboard-card {
-    background: #ffffff;
-    padding: 15px;
-    border-radius: 5px;
-    margin-top: 12px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .card-header {
-    font-weight: bold;
-    margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .card-body {
-    font-size: 14px;
-    height: 150px;
-    overflow-y: auto;
-    padding: 5px;
-  }
-
-  .creation_datetime {
-    font-size: 10pt;
-  }
-
-  @media screen and (max-width: 767px) {
-    .rsvp-card {
-      height: 120px;
-    }
-
-    .rsvp-stat-number {
-      font-size: 1.6rem !important;
-      font-weight: 700;
-    }
-
-    .rsvp-items {
-      font-size: 0.6rem !important;
-      font-weight: 600;
-    }
-  }
-
-  /* New dashboard design  */
-  /* Modernized Assigned Miqaats stat button */
-  .action-stat {
-    position: relative;
-    flex-direction: column !important;
-    gap: 2px;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
-  .action-stat .stat-icon-wrap {
-    position: relative;
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.18);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-    transition: transform .25s ease;
-  }
-
-  .action-stat .fa {
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  }
-
-  .action-stat:hover .stat-icon-wrap {
-    transform: translateY(-3px);
-  }
-
-  .action-stat .count-badge {
-    position: absolute;
-    top: -6px;
-    right: -10px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.65));
-    color: #222;
-    padding: 2px 7px 3px;
-    font-size: 0.6rem;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: .5px;
-    border-radius: 40px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    text-transform: uppercase;
-  }
-
-  .action-stat .stat-empty {
-    font-weight: 500;
-  }
+  .action-btn-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .action-btn-title { font-size: 0.6rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: #fff; line-height: 1.25; }
+  .action-btn .stat-empty { font-size: 0.52rem; color: rgba(255,255,255,0.65); letter-spacing: .3px; }
 
   @media (max-width: 575px) {
-    .action-stat .stat-icon-wrap {
-      width: 38px;
-      height: 38px;
-    }
+    .action-btn { height: 48px; padding: 8px 10px; gap: 8px; }
+    .action-btn .stat-icon-wrap { width: 28px; height: 28px; }
+    .action-btn-title { font-size: 0.55rem; }
   }
 
-  /* Corpus card typography tweaks */
-  .mini-card .stats-value {
-    font-size: 1.1rem;
-    font-weight: 700;
+  /* ── Dashboard cards ── */
+  .dash-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: box-shadow .2s;
   }
+  .dash-card:hover { box-shadow: var(--shadow-lg); }
 
-  .mini-card .stats-label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    letter-spacing: .3px;
+  .dash-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
   }
-
-  .dashboard-card .card-header span {
-    font-size: 1rem;
+  .dash-card-header .card-title {
+    font-size: 0.82rem; font-weight: 700; letter-spacing: .6px;
+    text-transform: uppercase; color: var(--text-2);
+    display: flex; align-items: center; gap: 8px;
   }
-
-  /* Compact height for small stat cards in Sabeel/FMB sections */
-  .mini-stat-card .card-body {
-    height: 95px;
-    overflow-y: hidden;
+  .dash-card-header .card-title .fa {
+    width: 26px; height: 26px; border-radius: 7px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; background: var(--gold-muted); color: var(--gold);
   }
-
-  /* Ensure dues cards don't show internal scrollbars */
-  .dashboard-card.dues .card-body {
-    height: auto;
-    overflow: visible;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    flex: 1 1 auto;
+  .dash-card-header .badge-pill {
+    font-size: 0.65rem; font-weight: 700; padding: 3px 10px;
+    border-radius: 40px; letter-spacing: .4px;
   }
+  .badge-danger  { background: var(--red-bg);   color: var(--red);   border: 1px solid #fecaca; }
+  .badge-success { background: var(--green-bg); color: var(--green); border: 1px solid #bbf7d0; }
+  .badge-link    { background: var(--blue-bg);  color: var(--blue);  border: 1px solid #bfdbfe; text-decoration: none; }
+  .badge-link:hover { opacity: .8; }
 
-  /* Tighten spacing inside dues containers */
-  .dashboard-card.dues .mini-stat-card .card-body {
-    padding-top: .5rem;
-    padding-bottom: .5rem;
+  .dash-card-body { padding: 18px 20px; flex: 1; }
+
+  /* ── Stat tiles ── */
+  .stat-tile {
+    background: var(--surface-2); border-radius: var(--radius);
+    border: 1px solid var(--border); padding: 14px 12px;
+    text-align: center; transition: background .15s;
   }
+  .stat-tile:hover { background: var(--gold-muted); }
+  .stat-tile .tile-label { font-size: 0.68rem; font-weight: 600; color: var(--text-3); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-tile .tile-value { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+  .tile-value.green  { color: var(--green); }
+  .tile-value.red    { color: var(--red); }
+  .tile-value.blue   { color: var(--blue); }
+  .tile-value.amber  { color: var(--amber); }
+  .tile-value.gold   { color: var(--gold); }
 
-  .dashboard-card.dues h6,
-  .dashboard-card.dues .h4,
-  .dashboard-card.dues .h5 {
-    margin-bottom: .25rem;
+  /* ── Amount display ── */
+  .amount-big { font-size: 1.6rem; font-weight: 800; letter-spacing: -1px; }
+
+  /* ── View details btn ── */
+  .btn-view {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: .5px;
+    text-transform: uppercase; padding: 7px 16px;
+    border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+    color: var(--text-2); background: var(--surface); text-decoration: none;
+    transition: all .15s;
   }
+  .btn-view:hover { background: var(--gold-muted); border-color: var(--gold); color: var(--gold); text-decoration: none; }
 
-  /* Disable scrollbars explicitly where needed */
-  .dashboard-card .card-body.no-scroll {
-    height: auto !important;
-    overflow: hidden !important;
+  /* ── No dues state ── */
+  .no-dues { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+  .no-dues .fa { font-size: 1.3rem; color: var(--green); }
+  .no-dues span { font-size: 0.85rem; color: var(--text-3); font-weight: 500; }
+
+  /* ── RSVP cards ── */
+  .rsvp-tile {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 10px; text-align: center;
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: space-between; gap: 6px;
+  }
+  .rsvp-tile .rsvp-label { font-size: 0.65rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .5px; }
+  .rsvp-tile .rsvp-num  { font-size: 2rem; font-weight: 800; line-height: 1; text-decoration: none; }
+
+  /* ── Raza table ── */
+  .dash-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
+  .dash-table th { font-size: 0.65rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-3); padding: 0 0 10px; border-bottom: 1px solid var(--border); }
+  .dash-table td { padding: 10px 0; border-bottom: 1px solid var(--border); color: var(--text-1); vertical-align: middle; }
+  .dash-table tr:last-child td { border-bottom: none; }
+  .dash-table .date-sub { font-size: 0.68rem; color: var(--text-3); margin-top: 3px; }
+  .status-badge { display: inline-block; padding: 3px 9px; border-radius: 40px; font-size: 0.65rem; font-weight: 700; letter-spacing: .3px; }
+  .s-pending  { background: #eff6ff; color: #1d4ed8; }
+  .s-approved { background: #eaf4ee; color: #1a6645; }
+  .s-rejected { background: #fef2f2; color: #b91c1c; }
+  .s-recommended   { background: #fffbeb; color: #b45309; }
+  .s-not-recommended { background: #f5f3ff; color: #6d28d9; }
+
+  /* ── FMB Signup table ── */
+  .signup-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
+  .signup-table td { padding: 10px 0; }
+  .signup-table td:first-child { color: var(--text-2); font-weight: 500; }
+
+  /* ── Info row (small text line) ── */
+  .info-row { font-size: 0.72rem; color: var(--text-3); margin-top: 12px; text-align: center; }
+
+  /* ── Separator ── */
+  .section-sep { border: none; border-top: 1px solid var(--border); margin: 4px 0 14px; }
+
+  /* ── Breakdown row (Sabeel) ── */
+  .breakdown-row { display: flex; gap: 10px; margin-top: 12px; }
+  .breakdown-row .stat-tile { flex: 1; }
+
+  /* ── Responsive ── */
+  @media (max-width: 767px) {
+    .amount-big { font-size: 1.3rem; }
+    .rsvp-tile .rsvp-num { font-size: 1.6rem; }
   }
 </style>
-<?php
-// `format_inr()` is provided by the autoloaded `inr_helper`.
-?>
+
 <div class="container margintopcontainer pt-5">
-  <h1 class="text-center heading pt-5 mb-3">Welcome to Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
-  <p class="hirji-date text-center mb-4"><b><?php echo $hijri_date ?></b></p>
-  <hr>
+  <h1 class="text-center page-heading mb-1">Welcome to Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></h1>
+  <p class="hijri-label text-center mb-4"><?php echo $hijri_date ?></p>
+  <hr style="border-color:var(--border);">
+
+  <!-- ── Quick Action Buttons ── -->
   <div class="row justify-content-center">
-    <!-- <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/Umoor') ?>" class="action-btn d-flex justify-content-center align-items-center text-center py-3 text-decoration-none">
-        <i class="abi fa-solid fa-edit fa-2x mr-2"></i>
-        <span class="action-btn-title">New Raza</span>
-      </a>
-    </div> -->
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/assigned_miqaats') ?>" aria-label="Miqaat Public Event Raza: <?php echo $assigned_miqaats_count; ?>" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/assigned_miqaats') ?>" class="action-btn">
+        <div class="stat-icon-wrap">
           <i class="fa fa-calendar-check-o"></i>
           <?php if (isset($assigned_miqaats_count) && (int)$assigned_miqaats_count > 0): ?>
             <span class="count-badge"><?php echo $assigned_miqaats_count; ?></span>
           <?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Miqaat Public Event Raza</span>
-        <?php if (!isset($assigned_miqaats_count) || (int)$assigned_miqaats_count === 0): ?>
-          <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">None yet</span>
-        <?php endif; ?>
-      </a>
-    </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?= base_url('Umoor12/MyRazaRequest?value=Private-Event') ?>" aria-label="Kaaraj Private Event Raza" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-calendar-plus"></i>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Miqaat Public Event Raza</span>
+          <?php if (!isset($assigned_miqaats_count) || (int)$assigned_miqaats_count === 0): ?>
+            <span class="stat-empty">None yet</span>
+          <?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Kaaraj Private Event Raza</span>
-        <!-- <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Create</span> -->
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/Umoor') ?>" aria-label="Other Non Event Raza" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-edit"></i>
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?= base_url('Umoor12/MyRazaRequest?value=Private-Event') ?>" class="action-btn">
+        <div class="stat-icon-wrap"><i class="fa fa-calendar-plus"></i></div>
+        <div class="action-btn-text"><span class="action-btn-title">Kaaraj Private Event Raza</span></div>
+      </a>
+    </div>
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/Umoor') ?>" class="action-btn">
+        <div class="stat-icon-wrap"><i class="fa fa-edit"></i></div>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Other Non Event Raza</span>
+          <span class="stat-empty">Create</span>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Other Non Event Raza</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Create</span>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/MyRazaRequest') ?>" aria-label="My Applications" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-files-o"></i>
-        </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Submitted Applications</span>
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/MyRazaRequest') ?>" class="action-btn">
+        <div class="stat-icon-wrap"><i class="fa fa-files-o"></i></div>
+        <div class="action-btn-text"><span class="action-btn-title">Submitted Applications</span></div>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/viewfmbtakhmeen') ?>" aria-label="FMB Due" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/viewfmbtakhmeen') ?>" class="action-btn">
+        <div class="stat-icon-wrap">
           <i class="fa fa-cutlery"></i>
-          <?php if (!empty($fmb_due_badge)): ?>
-            <span class="count-badge">Due</span>
-          <?php endif; ?>
+          <?php if (!empty($fmb_due_badge)): ?><span class="count-badge">Due</span><?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">FMB Due</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Overview</span>
+        <div class="action-btn-text">
+          <span class="action-btn-title">FMB Due</span>
+          <span class="stat-empty">Overview</span>
+        </div>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/viewsabeeltakhmeen') ?>" aria-label="Sabeel Due" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/viewsabeeltakhmeen') ?>" class="action-btn">
+        <div class="stat-icon-wrap">
           <i class="fa fa-money"></i>
-          <?php if (isset($sabeel_takhmeen_details["total_due"]) && (int)$sabeel_takhmeen_details["total_due"] > 0): ?>
-            <span class="count-badge">Due</span>
-          <?php endif; ?>
+          <?php if (isset($sabeel_takhmeen_details["total_due"]) && (int)$sabeel_takhmeen_details["total_due"] > 0): ?><span class="count-badge">Due</span><?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Sabeel Due</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Sabeel Due</span>
+          <span class="stat-empty">View</span>
+        </div>
       </a>
     </div>
-
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/laagat_rent') ?>" aria-label="Laagat & Rent" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/laagat_rent') ?>" class="action-btn">
+        <div class="stat-icon-wrap">
           <i class="fa fa-calculator"></i>
-          <?php if (isset($laagat_summary['total_due']) && (float)$laagat_summary['total_due'] > 0): ?>
-            <span class="count-badge">Due</span>
-          <?php endif; ?>
+          <?php if (isset($laagat_summary['total_due']) && (float)$laagat_summary['total_due'] > 0): ?><span class="count-badge">Due</span><?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Laagat & Rent</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Invoices</span>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Laagat &amp; Rent</span>
+          <span class="stat-empty">Invoices</span>
+        </div>
       </a>
     </div>
-
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/qardanhasana') ?>" aria-label="Qardan Hasana" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-handshake-o"></i>
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/qardanhasana') ?>" class="action-btn">
+        <div class="stat-icon-wrap"><i class="fa fa-handshake-o"></i></div>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Qardan Hasana</span>
+          <span class="stat-empty">View</span>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Qardan Hasana</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
       </a>
     </div>
-
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/madresa') ?>" aria-label="Madresa Fees & Dues" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/madresa') ?>" class="action-btn">
+        <div class="stat-icon-wrap">
           <i class="fa fa-graduation-cap"></i>
-          <?php if (isset($madresa_summary['total_due']) && (float)$madresa_summary['total_due'] > 0): ?>
-            <span class="count-badge">Due</span>
-          <?php endif; ?>
+          <?php if (isset($madresa_summary['total_due']) && (float)$madresa_summary['total_due'] > 0): ?><span class="count-badge">Due</span><?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Madresa</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Fees &amp; Dues</span>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Madresa</span>
+          <span class="stat-empty">Fees &amp; Dues</span>
+        </div>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/rsvp_list') ?>" aria-label="Event RSVP" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-calendar"></i>
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/rsvp_list') ?>" class="action-btn">
+        <div class="stat-icon-wrap"><i class="fa fa-calendar"></i></div>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Miqaat &amp; RSVP</span>
+          <span class="stat-empty">Events</span>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Miqaat & RSVP</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Events</span>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/fmbweeklysignup') ?>" aria-label="FMB Thaali Signup" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/fmbweeklysignup') ?>" class="action-btn">
+        <div class="stat-icon-wrap">
           <i class="fa fa-spoon"></i>
           <?php
           $weekly_signup_days = 0;
           if (isset($signup_data) && is_array($signup_data)) {
-            $weekly_signup_days = count(array_filter($signup_data, function ($d) {
-              return isset($d['want_thali']) && (string)$d['want_thali'] === '1';
-            }));
+            $weekly_signup_days = count(array_filter($signup_data, fn($d) => isset($d['want_thali']) && (string)$d['want_thali'] === '1'));
           }
-          if (isset($signup_days) && is_array($signup_days)) {
-            $signup_days = count($signup_days);
-          } else {
-            $signup_days = 0;
-          }
+          $signup_days = isset($signup_days) && is_array($signup_days) ? count($signup_days) : 0;
           if ($weekly_signup_days > 0): ?>
             <span class="count-badge"><?php echo $weekly_signup_days . "/" . $signup_days; ?></span>
           <?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Thaali Signup</span>
-        <?php if ($weekly_signup_days === 0): ?>
-          <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Start now</span>
-        <?php else: ?>
-          <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Days chosen</span>
-        <?php endif; ?>
-      </a>
-    </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/viewmenu') ?>" aria-label="Thaali Menu" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-list"></i>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Thaali Signup</span>
+          <span class="stat-empty"><?php echo $weekly_signup_days === 0 ? 'Start now' : 'Days chosen'; ?></span>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Thaali Menu</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">FMB</span>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/FMBFeedback') ?>" aria-label="FMB Feedback" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-comments"></i>
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/viewmenu') ?>" class="action-btn">
+        <div class="stat-icon-wrap"><i class="fa fa-list"></i></div>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Thaali Menu</span>
+          <span class="stat-empty">FMB</span>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Thaali Feedback</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">Give Feedback</span>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/corpusfunds') ?>" aria-label="Corpus Funds" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/FMBFeedback') ?>" class="action-btn">
+        <div class="stat-icon-wrap"><i class="fa fa-comments"></i></div>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Thaali Feedback</span>
+          <span class="stat-empty">Give Feedback</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/corpusfunds') ?>" class="action-btn">
+        <div class="stat-icon-wrap">
           <i class="fa fa-donate"></i>
-          <?php
-          $cf_due_badge = 0;
-          if (isset($corpus_summary) && is_array($corpus_summary)) {
-            $cf_due_badge = (float)($corpus_summary['outstanding'] ?? 0);
-          }
-          if ($cf_due_badge > 0): ?>
-            <span class="count-badge">Due</span>
-          <?php endif; ?>
+          <?php $cf_due_badge = (float)($corpus_summary['outstanding'] ?? 0); if ($cf_due_badge > 0): ?><span class="count-badge">Due</span><?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Corpus Funds</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Corpus Funds</span>
+          <span class="stat-empty">View</span>
+        </div>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/ekramfunds') ?>" aria-label="Ekram Funds" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/ekramfunds') ?>" class="action-btn">
+        <div class="stat-icon-wrap">
           <i class="fa fa-gift"></i>
-          <?php
-          $ef_due_badge = 0;
-          if (isset($ekram_summary) && is_array($ekram_summary)) {
-            $ef_due_badge = (float)($ekram_summary['outstanding'] ?? 0);
-          }
-          if ($ef_due_badge > 0): ?>
-            <span class="count-badge">Due</span>
-          <?php endif; ?>
+          <?php $ef_due_badge = (float)($ekram_summary['outstanding'] ?? 0); if ($ef_due_badge > 0): ?><span class="count-badge">Due</span><?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Ekram Funds</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Ekram Funds</span>
+          <span class="stat-empty">View</span>
+        </div>
       </a>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/wajebaat') ?>" aria-label="Wajebaat" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/wajebaat') ?>" class="action-btn">
+        <div class="stat-icon-wrap">
           <i class="fa fa-coins"></i>
-          <?php if (isset($wajebaat['due']) && (float)$wajebaat['due'] > 0): ?>
-            <span class="count-badge">Due</span>
+          <?php if (isset($wajebaat['due']) && (float)$wajebaat['due'] > 0): ?><span class="count-badge">Due</span><?php endif; ?>
+        </div>
+        <div class="action-btn-text"><span class="action-btn-title">Wajebaat</span></div>
+      </a>
+    </div>
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/appointment') ?>" class="action-btn">
+        <div class="stat-icon-wrap"><i class="fa fa-calendar"></i></div>
+        <div class="action-btn-text">
+          <span class="action-btn-title">Appointments</span>
+          <span class="stat-empty">View</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 mt-2 col-md-4 col-xl-3">
+      <a href="<?php echo base_url('accounts/profile') ?>" class="action-btn">
+        <div class="stat-icon-wrap"><i class="fa fa-user"></i></div>
+        <div class="action-btn-text">
+          <span class="action-btn-title">My Profile</span>
+          <span class="stat-empty">View</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Dashboard Cards Grid ── -->
+  <div class="row mt-4">
+
+    <!-- FMB Dues -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-cutlery"></i> FMB Dues</span>
+          <?php if (isset($fmb_takhmeen_details["total_due"]) && (float)$fmb_takhmeen_details["total_due"] > 0): ?>
+            <span class="badge-pill badge-danger">Pending</span>
+          <?php else: ?>
+            <span class="badge-pill badge-success">Clear</span>
           <?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Wajebaat</span>
-      </a>
+        <div class="dash-card-body">
+          <?php if (isset($fmb_takhmeen_details["total_due"]) && (float)$fmb_takhmeen_details["total_due"] > 0): ?>
+            <div class="stat-tile mb-3">
+              <div class="tile-label">Total Due</div>
+              <div class="tile-value red amount-big">&#8377;<?php echo format_inr_no_decimals($fmb_takhmeen_details['total_due'] ?? 0); ?></div>
+            </div>
+            <a href="<?php echo base_url('accounts/viewfmbtakhmeen'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a>
+          <?php else: ?>
+            <div class="no-dues"><i class="fa fa-check-circle"></i><span>No FMB dues pending</span></div>
+          <?php endif; ?>
+        </div>
+      </div>
     </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/appointment') ?>" aria-label="Appointments" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-calendar"></i>
+
+    <!-- Sabeel Dues -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-money"></i> Sabeel Dues</span>
+          <?php if (isset($sabeel_takhmeen_details["total_due"]) && $sabeel_takhmeen_details["total_due"] > 0): ?>
+            <span class="badge-pill badge-danger">Pending</span>
+          <?php else: ?>
+            <span class="badge-pill badge-success">Clear</span>
+          <?php endif; ?>
         </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">Appointments</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
-      </a>
-    </div>
-    <div class="col-6 mt-3 col-md-3 col-xl-2">
-      <a href="<?php echo base_url('accounts/profile') ?>" aria-label="My Profile" class="action-btn action-stat d-flex justify-content-center align-items-center text-center py-4 text-decoration-none">
-        <div class="stat-icon-wrap mb-1">
-          <i class="fa fa-user"></i>
-        </div>
-        <span class="action-btn-title d-block" style="font-weight:600; font-size:0.65rem; letter-spacing:.5px; text-transform:uppercase;">My Profile</span>
-        <span class="stat-empty text-white-50" style="font-size:0.55rem; letter-spacing:.5px;">View</span>
-      </a>
-    </div>
-    <!-- New action buttons requested -->
-  </div>
-  <div class="justify-content-center">
-    <div class="row">
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1">
-          <div class="card-header">
-            <span>Pending Raza Request</span>
-            <!-- <a href="<?php echo base_url("accounts/Umoor") ?>" class="text-primary">+ Submit a New Raza</a> -->
-          </div>
-          <div class="card-body">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th class="raza">Raza For</th>
-                  <th class="approval_status">Status</th>
-                  <th class="action">Action</th>
-                </tr>
-                <?php
-                foreach ($raza as $key => $r) { ?>
-                  <tr>
-                    <td>
-                      <?php echo $r['razaType'] ?>
-                      <p class="creation_datetime mt-2 m-0"><?php echo date('D, d M', strtotime($r['time-stamp'])) ?> <br><?php echo date('@ g:i a', strtotime($r['time-stamp'])) ?></p>
-                    </td>
-                    <td class="status">
-                      <?php if ($r['status'] == 0) {
-                        echo '<div><strong style="color: darkblue;">Pending</strong></div>';
-                      } elseif ($r['status'] == 1) {
-                        echo '<div><strong style="color: blue;">Recommended</strong></div>';
-                      } elseif ($r['status'] == 2) {
-                        echo '<div><strong style="color: limegreen;">Approved</strong></div>';
-                      } elseif ($r['status'] == 3) {
-                        echo '<div><strong style="color: red;">Rejected</strong></div>';
-                      } elseif ($r['status'] == 4) {
-                        echo '<div><strong style="color: blue;">Not Recommended</strong></div>';
-                      } ?>
-                    </td>
-                    <td class="text-center">
-                      <a href="<?php echo base_url("accounts/MyRazaRequest") ?>" title="View all my applications"><i class="vaa text-primary fa-solid fa-eye"></i></a>
-                    </td>
-                  </tr>
-                <?php } ?>
-              </thead>
-              <tbody></tbody>
-              <tfoot></tfoot>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card">
-          <div class="card-header">RSVP
-            <a href="<?php echo base_url("accounts/rsvp_list"); ?>" class="text-primary">Event RSVP</a>
-          </div>
-          <div class="card-body">
-            <?php
-            $approved_miqaats_count = 0;
-            if (isset($miqaats) && is_array($miqaats)) {
-              $today = strtotime('today');
-              $approved_miqaats = array_filter($miqaats, function ($m) use ($today) {
-                $status = null;
-                $dateStr = null;
-                if (is_array($m)) {
-                  $status = $m['Janab-status'] ?? $m['janab_status'] ?? $m['status'] ?? null;
-                  $dateStr = $m['date'] ?? $m['miqaat_date'] ?? $m['event_date'] ?? $m['start_date'] ?? null;
-                } elseif (is_object($m)) {
-                  $status = isset($m->{'Janab-status'}) ? $m->{'Janab-status'} : ($m->janab_status ?? $m->status ?? null);
-                  $dateStr = $m->date ?? $m->miqaat_date ?? $m->event_date ?? $m->start_date ?? null;
-                }
-                $isApproved = false;
-                if (is_string($status)) $isApproved = trim($status) === '1';
-                elseif (is_numeric($status)) $isApproved = ((int)$status === 1);
-                elseif (is_bool($status)) $isApproved = ($status === true);
-
-                $isUpcoming = false;
-                if (!empty($dateStr)) {
-                  $d = strtotime($dateStr);
-                  if ($d !== false) {
-                    $isUpcoming = ($d >= $today);
-                  }
-                }
-                return $isApproved && $isUpcoming;
-              });
-              $approved_miqaats_count = count($approved_miqaats);
-            }
-            $submitted_rsvps_count = (isset($rsvp_overview) && is_array($rsvp_overview)) ? count($rsvp_overview) : 0;
-            $pending_rsvps_count = max(0, $approved_miqaats_count - $submitted_rsvps_count);
-            ?>
-            <div class="row text-center m-0 m-md-0">
-              <div class="rsvp-card col-4 col-md-4 mb-3 mb-md-0 d-flex">
-                <div class="card shadow-sm border-0 flex-fill d-flex flex-column justify-content-between" style="min-height:120px;">
-                  <div class="card-body d-flex flex-column justify-content-between p-3">
-                    <div class="rsvp-items text-dark" style="font-size: 0.9rem;">Approved Miqaats to RSVP</div>
-                    <div class="rsvp-stat-number text-primary mt-auto" style="font-size:2.2rem; font-weight:700; line-height:1;"><a href="<?php echo base_url("accounts/rsvp_list"); ?>"><?php echo $approved_miqaats_count; ?></a></div>
-                  </div>
-                </div>
-              </div>
-              <div class="rsvp-card col-4 col-md-4 mb-3 mb-md-0 d-flex">
-                <div class="card shadow-sm border-0 flex-fill d-flex flex-column justify-content-between" style="min-height:120px;">
-                  <div class="card-body d-flex flex-column justify-content-between p-3">
-                    <div class="rsvp-items text-dark" style="font-size: 0.9rem;">Pending RSVPs</div>
-                    <div class="rsvp-stat-number text-warning mt-auto" style="font-size:2.2rem; font-weight:700; line-height:1;"><a href="<?php echo base_url("accounts/rsvp_list"); ?>"><?php echo $pending_rsvps_count; ?></a></div>
-                  </div>
-                </div>
-              </div>
-              <div class="rsvp-card col-4 col-md-4 d-flex">
-                <div class="card shadow-sm border-0 flex-fill d-flex flex-column justify-content-between" style="min-height:120px;">
-                  <div class="card-body d-flex flex-column justify-content-between p-3">
-                    <div class="rsvp-items text-dark" style="font-size: 0.9rem;">Submitted RSVPs</div>
-                    <div class="rsvp-stat-number text-success mt-auto" style="font-size:2.2rem; font-weight:700; line-height:1;"><a href="<?php echo base_url("accounts/rsvp_list"); ?>"><?php echo $submitted_rsvps_count; ?></a></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1">
-          <div class="card-header">
-            FMB Thaali Signup
-            <a href="<?php echo base_url("accounts/viewmenu"); ?>" target="_blank" class="text-primary">View Menu <i class="fa-solid fa-external-link"></i></a>
-          </div>
-          <div class="card-body">
-            <table class="table table-bordered table-striped">
-              <thead>
-                <tr>
-                  <th>Dates</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <?php echo isset($current_hijri_month_label) ? $current_hijri_month_label : ''; ?>
-                    <div class="mt-2">
-                      <small>Today's Thaali:
-                        <?php if (isset($fmb_today_status)): ?>
-                          <?php
-                          $badgeText = isset($fmb_today_status['badge_text']) ? strtolower($fmb_today_status['badge_text']) : '';
-                          ?>
-                          <!-- Do not show a 'closed' badge on this dashboard; only show menu items if present -->
-                          <?php if (!empty($fmb_today_status['menu_items'])): ?>
-                            <span class="text-muted ml-1" style="font-size: 0.8rem;">(<?php echo htmlspecialchars(implode(', ', $fmb_today_status['menu_items'])); ?>)</span>
-                          <?php endif; ?>
-                        <?php endif; ?>
-                      </small>
-                    </div>
-                  </td>
-                  <td>
-                    <?php
-                    $signup_day_count = 0;
-                    $signup_status_class = '';
-                    $signup_status_text = '';
-                    if (isset($signup_data) && !empty($signup_data)) {
-                      $filtered = array_filter($signup_data, function ($item) {
-                        return $item['want_thali'] == '1';
-                      });
-                      if (count($filtered) == 0) {
-                        $signup_status_class = "primary";
-                        $signup_status_text = "Sign-up Now";
-                      } else if (count($filtered) < $signup_days) {
-                        $signup_day_count = count($filtered);
-                        $signup_status_class = "primary";
-                        $signup_status_text = "Partially Signed Up";
-                      } else {
-                        $signup_status_class = "success";
-                        $signup_status_text = "Signed up";
-                      }
-                    } else {
-                      $signup_status_class = "primary";
-                      $signup_status_text = "Sign-up Now";
-                    }
-                    ?>
-                    <a href="<?php echo base_url("accounts/fmbweeklysignup"); ?>" class="btn btn-sm btn-<?php echo $signup_status_class; ?> text-white">
-                      <?php echo $signup_status_text;
-                      echo ($signup_day_count > 0 && $signup_day_count < $signup_days) ? " (" . $signup_day_count . " / " . $signup_days . ")" : ""; ?>
-                    </a>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1">
-          <div class="card-header">
-            FMB Feedback
-          </div>
-          <div class="card-body">
-            <table class="table table-bordered table-striped">
-              <thead>
-                <tr>
-                  <th>Dates</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <?php echo isset($month_feedback_range) ? htmlspecialchars($month_feedback_range) : ''; ?>
-                  </td>
-                  <td>
-                    <?php
-                    $mf_class = isset($month_feedback_status_class) ? $month_feedback_status_class : 'secondary';
-                    $mf_text  = isset($month_feedback_status_text) ? $month_feedback_status_text : 'No Sign Ups';
-                    $mf_signed = isset($month_feedback_signed) ? (int)$month_feedback_signed : 0;
-                    $mf_given  = isset($month_feedback_given) ? (int)$month_feedback_given : 0;
-                    $show_counts = ($mf_signed > 0 && $mf_given > 0 && $mf_given < $mf_signed && $mf_text === 'Partially Given');
-                    ?>
-                    <a href="<?php echo base_url("accounts/FMBFeedback"); ?>" class="btn btn-sm btn-<?php echo $mf_class; ?> text-white">
-                      <?php echo $mf_text; ?>
-                      <?php if ($show_counts): ?> (<?php echo $mf_given; ?> / <?php echo $mf_signed; ?>)<?php endif; ?>
-                    </a>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1 dues h-100 d-flex flex-column">
-          <div class="card-header">
-            <span>FMB Dues</span>
-            <?php if (isset($fmb_takhmeen_details["total_due"]) && (float)$fmb_takhmeen_details["total_due"] > 0): ?>
-              <a href="<?php echo base_url("accounts/viewfmbtakhmeen"); ?>" class="overall-due text-danger"><span class="badge bg-danger text-white">Pending</span></a>
-            <?php endif; ?>
-          </div>
-          <div class="card-body p-3">
-            <?php if (isset($fmb_takhmeen_details["total_due"]) && (float)$fmb_takhmeen_details["total_due"] > 0): ?>
-              <div class="row g-2">
-                <div class="col-12 col-md-12">
-                  <a href="<?php echo base_url('accounts/viewfmbtakhmeen'); ?>" class="text-decoration-none d-block">
-                    <div class="card shadow-sm text-center h-100 mini-stat-card">
-                      <div class="card-body py-1 d-flex align-items-center justify-content-center flex-column">
-                        <h6 class="text-muted mb-2">Total Years Due</h6>
-                        <div class="h4 text-danger mb-0">&#8377;<?php echo format_inr_no_decimals($fmb_takhmeen_details['total_due'] ?? 0); ?></div>
-                      </div>
-                    </div>
-                  </a>
-                </div>
-              </div>
-              <div class="text-left mt-3">
-                <a href="<?php echo base_url("accounts/viewfmbtakhmeen"); ?>" class="btn btn-primary text-white" style="font-size:0.8rem; padding:.25rem .6rem; width:auto; min-width:140px; display:inline-block;">View Details</a>
-              </div>
-            <?php else: ?>
-              <h6 class="m-1">No dues</h6>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1 dues h-100 d-flex flex-column">
-          <div class="card-header">
-            <span>Sabeel Dues</span>
-            <?php if (isset($sabeel_takhmeen_details["total_due"]) && $sabeel_takhmeen_details["total_due"] > 0): ?>
-              <a href="<?php echo base_url("accounts/viewsabeeltakhmeen"); ?>" class="overall-due text-danger"><span class="badge bg-danger text-white">Pending</span></a>
-            <?php endif; ?>
-          </div>
-          <div class="card-body p-3">
-            <?php
-            // Use values computed in AccountM::get_member_total_sabeel_due
-            $hasDue = isset($sabeel_takhmeen_details["total_due"]) && (float)$sabeel_takhmeen_details["total_due"] > 0;
-            $currentCompositeYear = isset($sabeel_takhmeen_details['current_year']) ? (string)$sabeel_takhmeen_details['current_year'] : '';
-            $cy_total = (float)($sabeel_takhmeen_details['current_year_total'] ?? 0);
-            $cy_paid  = (float)($sabeel_takhmeen_details['current_year_paid'] ?? 0);
-            $cy_due   = (float)($sabeel_takhmeen_details['current_year_due'] ?? max(0, $cy_total - $cy_paid));
-            ?>
-            <div class="row g-2">
-              <div class="col-12 col-md-12">
-                <a href="<?php echo base_url('accounts/viewsabeeltakhmeen'); ?>" class="text-decoration-none d-block">
-                  <div class="card shadow-sm text-center h-100 mini-stat-card">
-                    <div class="card-body py-1 d-flex align-items-center justify-content-center flex-column">
-                      <h6 class="text-muted mb-2">Total Year Due</h6>
-                      <div class="h4 text-danger mb-0">&#8377;<?php echo format_inr_no_decimals($sabeel_takhmeen_details['total_due'] ?? 0); ?></div>
-                    </div>
-                  </div>
-                </a>
-              </div>
-            </div>
-            <?php if (!empty($currentCompositeYear)): ?>
-              <div class="mt-2"><small class="text-muted">Current Year: <?php echo htmlspecialchars($currentCompositeYear); ?></small></div>
-            <?php endif; ?>
-            <div class="row g-2 mt-1">
-              <div class="col-6 col-md-4">
-                <a href="<?php echo base_url('accounts/viewsabeeltakhmeen'); ?>" class="text-decoration-none d-block">
-                  <div class="card shadow-sm text-center h-100 mini-stat-card">
-                    <div class="card-body py-1 d-flex align-items-center justify-content-center flex-column">
-                      <h6 class="text-muted mb-2">Takhmeen</h6>
-                      <div class="h5 text-primary mb-0">&#8377;<?php echo format_inr_no_decimals($cy_total); ?></div>
-                    </div>
-                  </div>
-                </a>
-              </div>
-              <div class="col-6 col-md-4">
-                <a href="<?php echo base_url('accounts/viewsabeeltakhmeen'); ?>" class="text-decoration-none d-block">
-                  <div class="card shadow-sm text-center h-100 mini-stat-card">
-                    <div class="card-body py-1 d-flex align-items-center justify-content-center flex-column">
-                      <h6 class="text-muted mb-2">Paid</h6>
-                      <div class="h5 text-success mb-0">&#8377;<?php echo format_inr_no_decimals($cy_paid); ?></div>
-                    </div>
-                  </div>
-                </a>
-              </div>
-              <div class="col-6 col-md-4 mt-3 mt-md-0">
-                <a href="<?php echo base_url('accounts/viewsabeeltakhmeen'); ?>" class="text-decoration-none d-block">
-                  <div class="card shadow-sm text-center h-100 mini-stat-card">
-                    <div class="card-body py-1 d-flex align-items-center justify-content-center flex-column">
-                      <h6 class="text-muted mb-2">Pending</h6>
-                      <div class="h5 text-danger mb-0">&#8377;<?php echo format_inr_no_decimals($cy_due); ?></div>
-                    </div>
-                  </div>
-                </a>
-              </div>
-            </div>
-            <div class="text-left mt-3">
-              <a href="<?php echo base_url("accounts/viewsabeeltakhmeen"); ?>" class="btn btn-primary text-white" style="font-size:0.8rem; padding:.25rem .6rem; width:auto; min-width:140px; display:inline-block;">View Details</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1 mb-3">
-          <div class="card-header">
-            <span>Corpus Funds</span>
-          </div>
+        <div class="dash-card-body">
           <?php
-          $cf_total   = isset($corpus_summary['total_per_family']) ? (float)$corpus_summary['total_per_family'] : 0;
-          $cf_assgn   = isset($corpus_summary['assigned_total']) ? (float)$corpus_summary['assigned_total'] : 0;
-          $cf_out     = isset($corpus_summary['outstanding']) ? (float)$corpus_summary['outstanding'] : 0;
-          $fundsCnt   = isset($corpus_summary['funds_count']) ? (int)$corpus_summary['funds_count'] : 0;
-          $fmt = function ($n) { return format_inr_no_decimals($n); };
+          $cy_total = (float)($sabeel_takhmeen_details['current_year_total'] ?? 0);
+          $cy_paid  = (float)($sabeel_takhmeen_details['current_year_paid'] ?? 0);
+          $cy_due   = (float)($sabeel_takhmeen_details['current_year_due'] ?? max(0, $cy_total - $cy_paid));
+          $currentCompositeYear = isset($sabeel_takhmeen_details['current_year']) ? (string)$sabeel_takhmeen_details['current_year'] : '';
           ?>
-          <div class="card-body no-scroll" style="height:auto;">
-            <div class="row mb-2 text-center">
-              <div class="col-4 mb-2">
-                <div class="mini-card">
-                  <div class="stats-value text-success">₹<?php echo $fmt($cf_assgn); ?></div>
-                  <div class="stats-label">Total Assigned</div>
-                </div>
-              </div>
-              <div class="col-4 mb-2">
-                <div class="mini-card">
-                  <div class="stats-value text-danger">₹<?php echo $fmt($cf_out); ?></div>
-                  <div class="stats-label">Outstanding</div>
-                </div>
-              </div>
+          <div class="stat-tile mb-3">
+            <div class="tile-label">Total Due <?php echo $currentCompositeYear ? '— ' . htmlspecialchars($currentCompositeYear) : ''; ?></div>
+            <div class="tile-value red amount-big">&#8377;<?php echo format_inr_no_decimals($sabeel_takhmeen_details['total_due'] ?? 0); ?></div>
+          </div>
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Takhmeen</div>
+              <div class="tile-value blue">&#8377;<?php echo format_inr_no_decimals($cy_total); ?></div>
             </div>
-            <p class="text-center text-muted mb-2" style="font-size:0.8rem;">Funds: <?php echo $fundsCnt; ?></p>
-            <div class="text-center"><a href="<?php echo base_url('accounts/corpusfunds'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
+            <div class="stat-tile">
+              <div class="tile-label">Paid</div>
+              <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($cy_paid); ?></div>
+            </div>
+            <div class="stat-tile">
+              <div class="tile-label">Pending</div>
+              <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($cy_due); ?></div>
+            </div>
+          </div>
+          <a href="<?php echo base_url('accounts/viewsabeeltakhmeen'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Raza -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-files-o"></i> Pending Raza Requests</span>
+        </div>
+        <div class="dash-card-body" style="overflow-y:auto; max-height:260px;">
+          <?php if (!empty($raza)): ?>
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>Raza For</th>
+                <th>Status</th>
+                <th style="text-align:center;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($raza as $r): ?>
+              <tr>
+                <td>
+                  <?php echo htmlspecialchars($r['razaType']); ?>
+                  <div class="date-sub"><?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])); ?></div>
+                </td>
+                <td>
+                  <?php
+                  $sMap = [0=>'s-pending|Pending', 1=>'s-recommended|Recommended', 2=>'s-approved|Approved', 3=>'s-rejected|Rejected', 4=>'s-not-recommended|Not Recommended'];
+                  [$cls, $lbl] = explode('|', $sMap[$r['status']] ?? 's-pending|Pending');
+                  echo '<span class="status-badge '.$cls.'">'.$lbl.'</span>';
+                  ?>
+                </td>
+                <td style="text-align:center;">
+                  <a href="<?php echo base_url('accounts/MyRazaRequest'); ?>" title="View"><i class="fa fa-eye" style="color:var(--blue);"></i></a>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+          <?php else: ?>
+            <div class="no-dues"><i class="fa fa-check-circle"></i><span>No pending applications</span></div>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+
+    <!-- RSVP -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-calendar"></i> RSVP</span>
+          <a href="<?php echo base_url('accounts/rsvp_list'); ?>" class="badge-pill badge-link">All Events &rarr;</a>
+        </div>
+        <div class="dash-card-body">
+          <?php
+          $approved_miqaats_count = 0;
+          if (isset($miqaats) && is_array($miqaats)) {
+            $today = strtotime('today');
+            $approved_miqaats = array_filter($miqaats, function($m) use ($today) {
+              $status = is_array($m) ? ($m['Janab-status'] ?? $m['janab_status'] ?? $m['status'] ?? null) : ($m->{'Janab-status'} ?? $m->janab_status ?? $m->status ?? null);
+              $dateStr = is_array($m) ? ($m['date'] ?? $m['miqaat_date'] ?? $m['event_date'] ?? $m['start_date'] ?? null) : ($m->date ?? $m->miqaat_date ?? $m->event_date ?? $m->start_date ?? null);
+              $isApproved = is_string($status) ? trim($status)==='1' : (is_numeric($status) ? (int)$status===1 : ($status===true));
+              $isUpcoming = !empty($dateStr) && ($d = strtotime($dateStr)) !== false && $d >= $today;
+              return $isApproved && $isUpcoming;
+            });
+            $approved_miqaats_count = count($approved_miqaats);
+          }
+          $submitted_rsvps_count = (isset($rsvp_overview) && is_array($rsvp_overview)) ? count($rsvp_overview) : 0;
+          $pending_rsvps_count = max(0, $approved_miqaats_count - $submitted_rsvps_count);
+          ?>
+          <div class="d-flex gap-3" style="gap:12px;">
+            <a href="<?php echo base_url('accounts/rsvp_list'); ?>" class="rsvp-tile" style="text-decoration:none;">
+              <div class="rsvp-label">Approved Miqaats</div>
+              <div class="rsvp-num" style="color:var(--blue);"><?php echo $approved_miqaats_count; ?></div>
+            </a>
+            <a href="<?php echo base_url('accounts/rsvp_list'); ?>" class="rsvp-tile" style="text-decoration:none;">
+              <div class="rsvp-label">Pending RSVPs</div>
+              <div class="rsvp-num" style="color:var(--amber);"><?php echo $pending_rsvps_count; ?></div>
+            </a>
+            <a href="<?php echo base_url('accounts/rsvp_list'); ?>" class="rsvp-tile" style="text-decoration:none;">
+              <div class="rsvp-label">Submitted</div>
+              <div class="rsvp-num" style="color:var(--green);"><?php echo $submitted_rsvps_count; ?></div>
+            </a>
           </div>
         </div>
-                </div>
-
-                <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-
-        <?php
-        // Ekram Funds summary for Accounts dashboard (mirrors Corpus Funds display)
-        $ef_total   = isset($ekram_summary['total_per_family']) ? (float)$ekram_summary['total_per_family'] : 0;
-        $ef_assgn   = isset($ekram_summary['assigned_total']) ? (float)$ekram_summary['assigned_total'] : 0;
-        $ef_out     = isset($ekram_summary['outstanding']) ? (float)$ekram_summary['outstanding'] : 0;
-        $ef_count   = isset($ekram_summary['funds_count']) ? (int)$ekram_summary['funds_count'] : 0;
-        $ef_fmt = function ($n) { return format_inr_no_decimals($n); };
-        ?>
-        <!-- <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6"> -->
-          <div class="dashboard-card mx-1 mb-3">
-            <div class="card-header">
-              <span>Ekram Funds</span>
-            </div>
-            <div class="card-body no-scroll" style="height:auto;">
-              <div class="row mb-2 text-center">
-                <div class="col-4 mb-2">
-                  <div class="mini-card">
-                    <div class="stats-value text-success">₹<?php echo $ef_fmt($ef_assgn); ?></div>
-                    <div class="stats-label">Total Assigned</div>
-                  </div>
-                </div>
-                <div class="col-4 mb-2">
-                  <div class="mini-card">
-                    <div class="stats-value text-danger">₹<?php echo $ef_fmt($ef_out); ?></div>
-                    <div class="stats-label">Outstanding</div>
-                  </div>
-                </div>
-              </div>
-              <p class="text-center text-muted mb-2" style="font-size:0.8rem;">Funds: <?php echo $ef_count; ?></p>
-              <div class="text-center"><a href="<?php echo base_url('accounts/ekramfunds'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
-            </div>
-          </div>
-        <!-- </div> -->
       </div>
+    </div>
 
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-            <div class="dashboard-card mx-1">
-              <div class="card-header">
-                <span>Wajebaat</span>
-              </div>
+    <!-- FMB Thaali Signup -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-spoon"></i> FMB Thaali Signup</span>
+          <a href="<?php echo base_url('accounts/viewmenu'); ?>" target="_blank" class="badge-pill badge-link">Menu &rarr;</a>
+        </div>
+        <div class="dash-card-body">
+          <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+            <div>
+              <div style="font-size:0.8rem; font-weight:600; color:var(--text-2);"><?php echo isset($current_hijri_month_label) ? $current_hijri_month_label : ''; ?></div>
+              <?php if (!empty($fmb_today_status['menu_items'])): ?>
+                <div style="font-size:0.72rem; color:var(--text-3); margin-top:4px;">Today: <?php echo htmlspecialchars(implode(', ', $fmb_today_status['menu_items'])); ?></div>
+              <?php endif; ?>
+            </div>
+            <div>
               <?php
-              $w = isset($wajebaat) ? $wajebaat : null;
-              $wa_fmt = function ($n) { return format_inr_no_decimals($n ?? 0); };
+              $signup_day_count = 0; $signup_status_class = 'primary'; $signup_status_text = 'Sign-up Now';
+              if (isset($signup_data) && !empty($signup_data)) {
+                $filtered = array_filter($signup_data, fn($item) => $item['want_thali'] == '1');
+                if (count($filtered) == 0) { $signup_status_class = 'primary'; $signup_status_text = 'Sign-up Now'; }
+                elseif (count($filtered) < $signup_days) { $signup_day_count = count($filtered); $signup_status_class = 'warning'; $signup_status_text = 'Partially Signed Up'; }
+                else { $signup_status_class = 'success'; $signup_status_text = 'Signed Up'; }
+              }
+              $btnColors = ['primary'=>'var(--blue)', 'warning'=>'var(--amber)', 'success'=>'var(--green)'];
+              $col = $btnColors[$signup_status_class] ?? 'var(--blue)';
               ?>
-              <div class="card-body no-scroll" style="height:auto;">
-                <div class="row mb-2 text-center">
-                  <div class="col-6 mb-2">
-                    <div class="mini-card">
-                      <div class="stats-value text-success">₹<?php echo $wa_fmt($w['amount'] ?? 0); ?></div>
-                      <div class="stats-label">Total Assigned</div>
-                    </div>
-                  </div>
-                  <div class="col-6 mb-2">
-                    <div class="mini-card">
-                      <div class="stats-value text-danger">₹<?php echo $wa_fmt($w['due'] ?? 0); ?></div>
-                      <div class="stats-label">Outstanding</div>
-                    </div>
-                  </div>
-                </div>
-                <p class="text-center text-muted mb-2" style="font-size:0.8rem;">Last updated: <?php
-                    $last = '';
-                    if (!empty($w['updated_at'])) $last = $w['updated_at'];
-                    elseif (!empty($w['created_at'])) $last = $w['created_at'];
-                    echo $last ? date('d-m-Y', strtotime($last)) : 'Not available';
-                  ?></p>
-                <div class="text-center"><a href="<?php echo base_url('accounts/wajebaat'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
-              </div>
+              <a href="<?php echo base_url('accounts/fmbweeklysignup'); ?>" class="btn-view" style="border-color:<?php echo $col; ?>; color:<?php echo $col; ?>;">
+                <?php echo $signup_status_text; ?>
+                <?php if ($signup_day_count > 0 && $signup_day_count < $signup_days): ?> (<?php echo $signup_day_count; ?>/<?php echo $signup_days; ?>)<?php endif; ?>
+              </a>
             </div>
-
-      </div>
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1">
-          <div class="card-header">
-            <span>Qardan Hasana</span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FMB Feedback -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-comments"></i> FMB Feedback</span>
+        </div>
+        <div class="dash-card-body">
           <?php
-          $qh = isset($qardan_summary) && is_array($qardan_summary) ? $qardan_summary : [];
-          $qh_fmt = function ($n) { return format_inr_no_decimals($n ?? 0); };
-          $qh_total = (float)($qh['total'] ?? 0);
-          $qh_due = (float)($qh['due'] ?? 0);
-          $qh_taher = (float)($qh['taher'] ?? 0);
-          $qh_husain = (float)($qh['husain'] ?? 0);
+          $mf_class = isset($month_feedback_status_class) ? $month_feedback_status_class : 'secondary';
+          $mf_text  = isset($month_feedback_status_text) ? $month_feedback_status_text : 'No Sign Ups';
+          $mf_signed = (int)($month_feedback_signed ?? 0);
+          $mf_given  = (int)($month_feedback_given ?? 0);
+          $show_counts = $mf_signed > 0 && $mf_given > 0 && $mf_given < $mf_signed && $mf_text === 'Partially Given';
+          $fbColors = ['success'=>'var(--green)', 'warning'=>'var(--amber)', 'primary'=>'var(--blue)', 'secondary'=>'var(--text-3)'];
+          $fbc = $fbColors[$mf_class] ?? 'var(--text-3)';
           ?>
-          <div class="card-body no-scroll" style="height:auto;">
-            <div class="row mb-2 text-center">
-              <div class="col-6 mb-2">
-                <div class="mini-card">
-                  <div class="stats-value text-success">₹<?php echo $qh_fmt($qh_total); ?></div>
-                  <div class="stats-label">Total</div>
-                </div>
-              </div>
-              <div class="col-6 mb-2">
-                <div class="mini-card">
-                  <div class="stats-value text-danger">₹<?php echo $qh_fmt($qh_due); ?></div>
-                  <div class="stats-label">Due</div>
-                </div>
-              </div>
-            </div>
-            <p class="text-center text-muted mb-2" style="font-size:0.8rem;">Taher: ₹<?php echo $qh_fmt($qh_taher); ?> | Husain: ₹<?php echo $qh_fmt($qh_husain); ?></p>
-            <div class="text-center"><a href="<?php echo base_url('accounts/qardanhasana'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1">
-          <div class="card-header">
-            <span>Laagat & Rent</span>
-          </div>
-          <div class="card-body no-scroll" style="height:auto;">
-            <div class="row mb-2 text-center">
-              <div class="col-6 mb-2">
-                <div class="mini-card">
-                  <div class="stats-value text-success">₹<?php echo format_inr_no_decimals($laagat_summary['total_amount'] ?? 0); ?></div>
-                  <div class="stats-label">Total</div>
-                </div>
-              </div>
-              <div class="col-6 mb-2">
-                <div class="mini-card">
-                  <div class="stats-value text-danger">₹<?php echo format_inr_no_decimals($laagat_summary['total_due'] ?? 0); ?></div>
-                  <div class="stats-label">Due</div>
-                </div>
-              </div>
-            </div>
-            <div class="text-center"><a href="<?php echo base_url('accounts/laagat_rent'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-0 p-md-2 col-12 col-md-6 col-xl-6">
-        <div class="dashboard-card mx-1">
-          <div class="card-header">
-            <span>Madresa</span>
-          </div>
-          <div class="card-body no-scroll" style="height:auto;">
-            <div class="row mb-2 text-center">
-              <div class="col-6 mb-2">
-                <div class="mini-card">
-                  <div class="stats-value text-success">₹<?php echo format_inr_no_decimals($madresa_summary['total_fees'] ?? 0); ?></div>
-                  <div class="stats-label">Total Fees</div>
-                </div>
-              </div>
-              <div class="col-6 mb-2">
-                <div class="mini-card">
-                  <div class="stats-value text-danger">₹<?php echo format_inr_no_decimals($madresa_summary['total_due'] ?? 0); ?></div>
-                  <div class="stats-label">Due</div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="text-center"><a href="<?php echo base_url('accounts/madresa'); ?>" class="btn btn-sm btn-outline-secondary">View Details</a></div>
+          <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+            <div style="font-size:0.8rem; color:var(--text-2); font-weight:500;"><?php echo isset($month_feedback_range) ? htmlspecialchars($month_feedback_range) : ''; ?></div>
+            <a href="<?php echo base_url('accounts/FMBFeedback'); ?>" class="btn-view" style="border-color:<?php echo $fbc; ?>; color:<?php echo $fbc; ?>;">
+              <?php echo $mf_text; ?><?php if ($show_counts): ?> (<?php echo $mf_given; ?>/<?php echo $mf_signed; ?>)<?php endif; ?>
+            </a>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  <div class="continer d-flex justify-content-center">
-    <div class="row mt-4">
-      <!-- <a class="col-6 col-md-3 col-xxl-2 py-2" href="<?php echo base_url('accounts/Umoor') ?>">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="title">12 Umoor & Event Raza</div>
-            <i class="fa-solid icon fa-clipboard-list"></i>
-          </div>
+
+    <!-- Corpus Funds -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-donate"></i> Corpus Funds</span>
+          <?php $cf_out = (float)($corpus_summary['outstanding'] ?? 0); if ($cf_out > 0): ?><span class="badge-pill badge-danger">Pending</span><?php else: ?><span class="badge-pill badge-success">Clear</span><?php endif; ?>
         </div>
-      </a>
-      <a class="col-6 col-md-3 col-xxl-2 py-2" href="<?php echo base_url('accounts/MyRazaRequest') ?>">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="title">My Applications</div>
-            <i class="fa-solid icon fa-hands-holding"></i>
+        <div class="dash-card-body">
+          <?php $cf_assgn = (float)($corpus_summary['assigned_total'] ?? 0); $fundsCnt = (int)($corpus_summary['funds_count'] ?? 0); ?>
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Total Assigned</div>
+              <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($cf_assgn); ?></div>
+            </div>
+            <div class="stat-tile">
+              <div class="tile-label">Outstanding</div>
+              <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($cf_out); ?></div>
+            </div>
           </div>
-        </div>
-      </a>
-      <a href="<?php echo base_url('accounts/miqaat') ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="title">Event RSVP</div>
-            <i class="fa-solid icon fa-calendar-days"></i>
-          </div>
-        </div>
-      </a>
-      <div class="col-6 col-md-3 col-xxl-2 py-2 ">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="title">FMB Menu & Feedback</div>
-            <i class="fa-solid icon fa-comments"></i>
-          </div>
+          <div class="info-row">Funds: <?php echo $fundsCnt; ?></div>
+          <div class="text-center mt-3"><a href="<?php echo base_url('accounts/corpusfunds'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a></div>
         </div>
       </div>
-      <a href="<?php echo base_url('accounts/profile') ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="title">My Profile</div>
-            <i class="fa-solid icon fa-clipboard-user"></i>
-          </div>
-        </div>
-      </a>
-      <?php
-      if ($user_name == $hof_data) {
-        echo '<a href="' . base_url('accounts/appointment') . '" class="col-6 col-md-3 col-xxl-2 py-2 ">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <div class="title">Amil Saheb\'s Appointment</div>
-                        <i class="fa-solid icon fa-calendar-days"></i>
-                    </div>
-                </div>
-            </a>';
-      }
-      ?> -->
-
-      <!-- <div class="col-6 col-md-3 col-xxl-2 py-2 ">
-        <div class="card text-center">
-          <div class="card-body">
-            <div class="title">Finance</div>
-            <i class="fa-solid icon fa-money-check-alt"></i>
-          </div>
-        </div>
-      </div> -->
     </div>
-  </div>
-</div>
+
+    <!-- Ekram Funds -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-gift"></i> Ekram Funds</span>
+          <?php $ef_out = (float)($ekram_summary['outstanding'] ?? 0); if ($ef_out > 0): ?><span class="badge-pill badge-danger">Pending</span><?php else: ?><span class="badge-pill badge-success">Clear</span><?php endif; ?>
+        </div>
+        <div class="dash-card-body">
+          <?php $ef_assgn = (float)($ekram_summary['assigned_total'] ?? 0); $ef_count = (int)($ekram_summary['funds_count'] ?? 0); ?>
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Total Assigned</div>
+              <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($ef_assgn); ?></div>
+            </div>
+            <div class="stat-tile">
+              <div class="tile-label">Outstanding</div>
+              <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($ef_out); ?></div>
+            </div>
+          </div>
+          <div class="info-row">Funds: <?php echo $ef_count; ?></div>
+          <div class="text-center mt-3"><a href="<?php echo base_url('accounts/ekramfunds'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wajebaat -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-coins"></i> Wajebaat</span>
+          <?php if (isset($wajebaat['due']) && (float)$wajebaat['due'] > 0): ?><span class="badge-pill badge-danger">Pending</span><?php else: ?><span class="badge-pill badge-success">Clear</span><?php endif; ?>
+        </div>
+        <div class="dash-card-body">
+          <?php $w = $wajebaat ?? null; ?>
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Total Assigned</div>
+              <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($w['amount'] ?? 0); ?></div>
+            </div>
+            <div class="stat-tile">
+              <div class="tile-label">Outstanding</div>
+              <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($w['due'] ?? 0); ?></div>
+            </div>
+          </div>
+          <?php $last = !empty($w['updated_at']) ? $w['updated_at'] : ($w['created_at'] ?? ''); ?>
+          <div class="info-row">Last updated: <?php echo $last ? date('d M Y', strtotime($last)) : 'Not available'; ?></div>
+          <div class="text-center mt-3"><a href="<?php echo base_url('accounts/wajebaat'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Qardan Hasana -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-handshake-o"></i> Qardan Hasana</span>
+          <?php $qh_due = (float)($qardan_summary['due'] ?? 0); if ($qh_due > 0): ?><span class="badge-pill badge-danger">Pending</span><?php else: ?><span class="badge-pill badge-success">Clear</span><?php endif; ?>
+        </div>
+        <div class="dash-card-body">
+          <?php $qh = $qardan_summary ?? []; ?>
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Total</div>
+              <div class="tile-value gold">&#8377;<?php echo format_inr_no_decimals($qh['total'] ?? 0); ?></div>
+            </div>
+            <div class="stat-tile">
+              <div class="tile-label">Due</div>
+              <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($qh['due'] ?? 0); ?></div>
+            </div>
+          </div>
+          <div class="info-row">Taher: &#8377;<?php echo format_inr_no_decimals($qh['taher'] ?? 0); ?> &nbsp;|&nbsp; Husain: &#8377;<?php echo format_inr_no_decimals($qh['husain'] ?? 0); ?></div>
+          <div class="text-center mt-3"><a href="<?php echo base_url('accounts/qardanhasana'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Laagat & Rent -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-calculator"></i> Laagat &amp; Rent</span>
+          <?php $lr_due = (float)($laagat_summary['total_due'] ?? 0); if ($lr_due > 0): ?><span class="badge-pill badge-danger">Pending</span><?php else: ?><span class="badge-pill badge-success">Clear</span><?php endif; ?>
+        </div>
+        <div class="dash-card-body">
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Total</div>
+              <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($laagat_summary['total_amount'] ?? 0); ?></div>
+            </div>
+            <div class="stat-tile">
+              <div class="tile-label">Due</div>
+              <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($laagat_summary['total_due'] ?? 0); ?></div>
+            </div>
+          </div>
+          <div class="text-center mt-3"><a href="<?php echo base_url('accounts/laagat_rent'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Madresa -->
+    <div class="col-12 col-md-6 p-2">
+      <div class="dash-card h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-graduation-cap"></i> Madresa</span>
+          <?php $md_due = (float)($madresa_summary['total_due'] ?? 0); if ($md_due > 0): ?><span class="badge-pill badge-danger">Pending</span><?php else: ?><span class="badge-pill badge-success">Clear</span><?php endif; ?>
+        </div>
+        <div class="dash-card-body">
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Total Fees</div>
+              <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($madresa_summary['total_fees'] ?? 0); ?></div>
+            </div>
+            <div class="stat-tile">
+              <div class="tile-label">Due</div>
+              <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($madresa_summary['total_due'] ?? 0); ?></div>
+            </div>
+          </div>
+          <div class="text-center mt-3"><a href="<?php echo base_url('accounts/madresa'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.row cards -->
+</div><!-- /.container -->
+
 <script>
-  const colors = [
-    ["rgb(0, 106, 63)", "rgb(255, 255, 255)"],
-    ["rgb(39, 174, 96)", "rgb(255, 255, 255)"],
-    ["rgb(142, 68, 173)", "rgb(255, 255, 255)"],
-    ["rgb(243, 156, 18)", "rgb(255, 255, 255)"],
-    ["rgb(192, 57, 43)", "rgb(255, 255, 255)"],
-    ["rgb(41, 128, 185)", "rgb(255, 255, 255)"],
-    ["rgb(142, 68, 173)", "rgb(255, 255, 255)"],
-    ["rgb(243, 156, 18)", "rgb(255, 255, 255)"],
-    ["rgb(211, 84, 0)", "rgb(255, 255, 255)"],
-    ["rgb(0, 106, 63)", "rgb(255, 255, 255)"],
-    ["rgb(41, 128, 185)", "rgb(255, 255, 255)"],
-    ["rgb(39, 174, 96)", "rgb(255, 255, 255)"],
-    ["rgb(142, 68, 173)", "rgb(255, 255, 255)"],
-    ["rgb(135, 0, 0)", "rgb(255, 255, 255)"],
-    ["rgb(211, 84, 0)", "rgb(255, 255, 255)"],
-    ["rgb(41, 128, 185)", "rgb(255, 255, 255)"],
-    ["rgb(192, 57, 43)", "rgb(255, 255, 255)"],
-    ["rgb(135, 0, 0)", "rgb(255, 255, 255)"],
-    ["rgb(192, 57, 43)", "rgb(255, 255, 255)"],
-    ["rgb(255, 247, 230)", "rgb(0, 0, 0)"],
-    ["rgb(243, 156, 18)", "rgb(255, 255, 255)"],
-    ["rgb(135, 0, 0)", "rgb(255, 255, 255)"],
-    ["rgb(211, 84, 0)", "rgb(255, 255, 255)"],
-    ["rgb(0, 106, 63)", "rgb(255, 255, 255)"],
-    ["rgb(39, 174, 96)", "rgb(255, 255, 255)"],
-  ]
-  $(document).ready(function() {
-    $(".action-btn").each(function(i, el) {
+const colors = [
+  ["#006a3f","#fff"],["#27ae60","#fff"],["#8e44ad","#fff"],["#f39c12","#fff"],
+  ["#c0392b","#fff"],["#2980b9","#fff"],["#8e44ad","#fff"],["#f39c12","#fff"],
+  ["#d35400","#fff"],["#006a3f","#fff"],["#2980b9","#fff"],["#27ae60","#fff"],
+  ["#8e44ad","#fff"],["#870000","#fff"],["#d35400","#fff"],["#2980b9","#fff"],
+  ["#c0392b","#fff"],["#870000","#fff"],["#c0392b","#fff"],["#f5e9c0","#000"],
+  ["#f39c12","#fff"],["#870000","#fff"],["#d35400","#fff"],["#006a3f","#fff"],
+  ["#27ae60","#fff"],
+];
+$(document).ready(function () {
+  $(".action-btn").each(function (i) {
+    if (colors[i]) {
       this.style.backgroundColor = colors[i][0];
       this.style.color = colors[i][1];
-    });
-  })
+    }
+  });
+});
 </script>
