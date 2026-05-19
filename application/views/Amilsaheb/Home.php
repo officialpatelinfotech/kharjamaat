@@ -1731,7 +1731,7 @@
 
         <?php
         $amilGroups2 = [
-          'Occupation'         => ['label' => 'All Occupation',          'icon' => 'fa-briefcase',        'bg' => '#fafaf9', 'color' => '#57534e', 'count_key' => 'occupation', 'id' => 'collapseAmilOccupation'],
+          'Occupation'         => ['label' => 'Occupation',          'icon' => 'fa-briefcase',        'bg' => '#fafaf9', 'color' => '#57534e', 'count_key' => 'occupation', 'id' => 'collapseAmilOccupation'],
         ];
         foreach ($amilGroups2 as $filterKey => $g) {
           $countKey = $g['count_key'];
