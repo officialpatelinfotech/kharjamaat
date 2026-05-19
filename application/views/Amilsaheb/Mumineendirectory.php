@@ -126,7 +126,8 @@ th.sortable.desc .sort-icon { opacity:1; }
 
         <!-- Section 1: Search & Location -->
         <div class="filter-section-label"><i class="fa fa-search" style="color:#3b82f6;"></i> Search & Location</div>
-        <div class="frow frow-6">
+        <!-- In dashboard mode this row becomes 5-col (Marital hidden) + injected filter fills slot 6 -->
+        <div class="frow frow-6" id="baseFilterRow">
           <div>
             <label class="flabel">Name or ITS</label>
             <input type="text" id="fName" class="finput" placeholder="Burhanuddin / 12345678">
@@ -150,10 +151,13 @@ th.sortable.desc .sort-icon { opacity:1; }
               <input type="number" id="fAgeMax" class="finput" placeholder="Max" min="0">
             </div>
           </div>
-          <div>
+          <!-- Marital Status: hidden in dashboard mode, shown in normal mode -->
+          <div id="maritalCol">
             <label class="flabel">Marital Status</label>
             <select id="fMarital" class="fselect"><option value="">All</option></select>
           </div>
+          <!-- Dashboard injected filter slot (empty in normal mode) -->
+          <div id="dashInlineSlot" style="display:none;"></div>
         </div>
 
         <!-- Section 2: Member Status & Type -->
@@ -238,9 +242,6 @@ th.sortable.desc .sort-icon { opacity:1; }
             </select>
           </div>
         </div>
-
-        <!-- Dashboard single-filter injection here -->
-        <div id="dashRow" style="display:none;" class="frow frow-4"></div>
 
         <div class="filters-actions">
           <button id="btnReset" class="btn btn-outline-secondary btn-sm">&#8635; Reset All</button>
@@ -385,13 +386,17 @@ function readURLAndApply() {
     form.dataset.legacyValue = legValue;
   }
 
-  // Dashboard mode
+  // ── Dashboard mode ────────────────────────────────────────────────────────
   if (isDash) {
     // Hide the two extended sections (Member Details + Status Filters)
     document.querySelectorAll('#filterBody .frow-4').forEach(el => el.style.display = 'none');
     document.querySelectorAll('#filterBody .filter-section-label').forEach((el, i) => { if (i > 0) el.style.display = 'none'; });
 
-    // Which filter to show alongside the 5 base filters
+    // Hide Marital Status so row stays single-line, show inline slot instead
+    document.getElementById('maritalCol').style.display = 'none';
+    document.getElementById('dashInlineSlot').style.display = '';
+
+    // Which select to inject into the 6th slot
     const dashMap = {
       'status': 'fStatus', 'activity_status': 'fStatus',
       'health_status': 'fHealth', 'deeni_status': 'fDeeni',
@@ -401,23 +406,24 @@ function readURLAndApply() {
     let injectId = statusP ? 'fStatus' : itsMatchP ? 'fItsMatch' : (dashMap[legFilter] || null);
 
     if (injectId) {
-      // Rename original so getElementById finds only the injected clone
+      // Move the original select element (with its label) into the inline slot
       const orig = document.getElementById(injectId);
       if (orig) {
-        orig.id = injectId + '_hidden';
         const parentDiv = orig.closest('div');
-        const clone     = parentDiv.cloneNode(true);
-        const cloneSel  = clone.querySelector('select');
+        const slot = document.getElementById('dashInlineSlot');
+        // Clone the label + select into the slot
+        const clone = parentDiv.cloneNode(true);
+        const cloneSel = clone.querySelector('select');
         if (cloneSel) {
+          // Give clone a new id, hide original to avoid duplicate ids
+          orig.id = injectId + '_hidden';
           cloneSel.id = injectId;
-          // Set value on clone
+          // Set the pre-selected value
           const val = statusP ? cap(statusP) : itsMatchP ? itsMatchP : legValue;
           cloneSel.value = val;
           cloneSel.addEventListener('change', run);
         }
-        const dashRow = document.getElementById('dashRow');
-        dashRow.appendChild(clone);
-        dashRow.style.display = '';
+        slot.appendChild(clone);
       }
     }
 
@@ -474,7 +480,6 @@ function run() {
   const ageMin  = minVal !== '' ? parseInt(minVal) : null;
   const ageMax  = maxVal !== '' ? parseInt(maxVal) : null;
 
-  // Extended (may be in extRow OR dashRow — getElementById finds the live one)
   const status    = gv('fStatus');
   const gender    = gv('fGender').toLowerCase();
   const mType     = gv('fMemberType');
@@ -529,7 +534,6 @@ function run() {
     return true;
   });
 
-  // Re-apply sort if one is active
   if (sortCol) {
     applySortToFiltered();
   }
@@ -624,7 +628,6 @@ function renderTable() {
     if (!groups[hid]) { groups[hid] = { hid, hname: itsMap[hid] || u.HOF_Name || hid, members: [] }; order.push(hid); }
     groups[hid].members.push(u);
   });
-  // Remove duplicate HOF keys
   const seen = new Set();
   const sortedGroups = order.filter(k => { if (seen.has(k)) return false; seen.add(k); return true; })
     .map(k => groups[k])
@@ -723,8 +726,13 @@ function resetAll() {
   // Restore all hidden filter sections
   document.querySelectorAll('#filterBody .frow-4').forEach(el => el.style.display = '');
   document.querySelectorAll('#filterBody .filter-section-label').forEach(el => el.style.display = '');
-  const dr = document.getElementById('dashRow');
-  dr.style.display = 'none'; dr.innerHTML = '';
+
+  // Restore marital column, clear inline slot
+  document.getElementById('maritalCol').style.display = '';
+  const slot = document.getElementById('dashInlineSlot');
+  slot.style.display = 'none';
+  slot.innerHTML = '';
+
   document.getElementById('dashTitle').style.display = 'none';
   document.getElementById('chipRow').innerHTML = '';
 
@@ -785,12 +793,8 @@ document.querySelectorAll('th.sortable').forEach(th => {
       sortCol = col;
       sortDir = 'asc';
     }
-
-    // Update header classes
     document.querySelectorAll('th.sortable').forEach(t => t.classList.remove('asc','desc'));
     this.classList.add(sortDir);
-
-    // Sort and re-render
     applySortToFiltered();
     renderTable();
   });
