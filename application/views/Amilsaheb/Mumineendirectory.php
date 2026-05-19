@@ -1,1124 +1,792 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
-  .mumineen-container {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 1.5rem;
-  }
+.mumineen-container { max-width:1200px; margin:0 auto; padding:1.5rem; }
+.top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
 
-  .top-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: .5rem;
-    margin-bottom: 1rem
-  }
+/* Filter card */
+.filters-bar {
+  background:linear-gradient(135deg,#1e293b,#334155);
+  color:#fff; padding:.6rem 1rem; border-radius:6px 6px 0 0;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.filters-bar-title { display:flex; align-items:center; gap:.5rem; font-weight:700; font-size:.82rem; letter-spacing:.5px; }
+.filters-card { background:#fff; border:1px solid #dee2e6; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,.07); margin-bottom:1rem; overflow:hidden; }
+.filters-body { padding:1rem; }
 
-  .filters-bar {
-    background: #343a40;
-    color: #fff;
-    padding: .5rem .75rem;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
+/* Filter section label */
+.filter-section-label {
+  font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.8px;
+  color:#94a3b8; margin-bottom:.5rem; margin-top:.25rem;
+  display:flex; align-items:center; gap:.4rem;
+}
+.filter-section-label::after { content:''; flex:1; height:1px; background:#e2e8f0; }
 
-  .filters-card {
-    background: #fff;
-    border: 1px solid #e9ecef;
-    border-radius: 6px;
-    box-shadow: 0 1px 4px rgba(16, 24, 40, 0.03);
-    margin-bottom: 1rem;
-    overflow: hidden
-  }
+.frow { display:grid; gap:.6rem; align-items:end; margin-bottom:.6rem; }
+.frow-6 { grid-template-columns: 2fr 1fr 1fr 1fr 1.1fr 1fr; }
+.frow-4 { grid-template-columns: repeat(4,1fr); }
 
-  .filters-form {
-    padding: 1rem;
-  }
+.flabel { font-size:.72rem; font-weight:700; color:#64748b; margin-bottom:.2rem; display:block; letter-spacing:.2px; }
+.finput, .fselect {
+  font-size:.82rem; height:36px; padding:.3rem .6rem;
+  border:1.5px solid #e2e8f0; border-radius:6px; background:#f8fafc;
+  color:#1e293b; outline:none; width:100%; transition:border-color .15s,box-shadow .15s;
+}
+.finput:focus, .fselect:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.12); background:#fff; }
+.age-row { display:flex; gap:.4rem; }
+.age-row .finput { flex:1; }
 
-  .filters-form .form-label {
-    font-size: .9rem;
-    margin-bottom: .35rem;
-  }
+/* Chips */
+#chipRow { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:.75rem; }
+.chip { display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:40px; padding:3px 10px; font-size:.72rem; font-weight:700; }
+.chip-x { cursor:pointer; margin-left:2px; opacity:.6; } .chip-x:hover { opacity:1; }
+.chip-clear { display:inline-flex; align-items:center; background:#fff1f2; color:#be123c; border:1px solid #fecdd3; border-radius:40px; padding:3px 10px; font-size:.72rem; font-weight:700; cursor:pointer; }
+.chip-clear:hover { background:#ffe4e6; }
 
-  .filters-form .form-control,
-  .filters-form .form-select {
-    min-height: 42px;
-    height: 44px;
-    padding: .5rem .75rem;
-  }
+/* Dashboard title */
+.dash-title { border-left:4px solid #2563eb; background:linear-gradient(90deg,#eff6ff,#fff); padding:.65rem 1rem; border-radius:4px; margin-bottom:.75rem; display:flex; align-items:center; justify-content:space-between; }
+.dash-title h5 { margin:0; color:#1d4ed8; font-weight:700; font-size:.9rem; }
 
-  .filters-form .form-control::placeholder {
-    color: #9aa0a6
-  }
+/* Table */
+.table-wrap { overflow-x:auto; border-radius:8px; border:1px solid #e2e8f0; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+table.dir { width:100%; border-collapse:collapse; font-size:.82rem; }
+table.dir thead th {
+  background:#f8fafc; padding:10px 12px; font-size:.67rem; font-weight:800;
+  text-transform:uppercase; letter-spacing:.5px; color:#64748b;
+  border-bottom:2px solid #e2e8f0; white-space:nowrap;
+  position:sticky; top:0; z-index:1; user-select:none;
+}
+th.sortable { cursor:pointer; }
+th.sortable:hover { background:#f1f5f9; color:#1e293b; }
+th.sortable .sort-icon { margin-left:4px; font-size:.6rem; }
+th.sortable.asc  .sort-icon::after { content:'▲'; }
+th.sortable.desc .sort-icon::after { content:'▼'; }
+th.sortable:not(.asc):not(.desc) .sort-icon::after { content:'⇅'; opacity:.4; }
 
-  /* Filter grid: one row on wide screens, wraps cleanly into a 2nd row on smaller screens */
-  .filters-grid {
-    display: grid;
-    grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr 1fr;
-    gap: .75rem;
-    align-items: end;
-    margin: 0;
-  }
+table.dir tbody tr { border-bottom:1px solid #f1f5f9; transition:background .1s; }
+table.dir tbody tr:hover { background:#f8fbff; }
+table.dir td { padding:8px 12px; vertical-align:middle; }
+tr.hof-row td { background:#eff6ff; font-weight:700; border-top:2px solid #bfdbfe; }
+tr.hof-row td:first-child { border-left:3px solid #2563eb; }
+tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
 
-  .filters-grid>div {
-    min-width: 0;
-  }
+.pill-hof { display:inline-block; background:#2563eb; color:#fff; font-size:.55rem; font-weight:800; padding:1px 6px; border-radius:40px; margin-left:4px; vertical-align:middle; }
+.pill-fm  { display:inline-block; background:#e0e7ff; color:#3730a3; font-size:.55rem; font-weight:700; padding:1px 6px; border-radius:40px; margin-left:4px; vertical-align:middle; }
+.badge-its { display:inline-block; background:#0369a1; color:#fff; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:4px; }
+.badge-active   { display:inline-block; background:#dcfce7; color:#15803d; border:1px solid #86efac; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
+.badge-inactive { display:inline-block; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
+.badge-temp     { display:inline-block; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
 
-  .filters-grid .form-label {
-    display: block;
-  }
+.act-btn { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; border:none; cursor:pointer; font-size:.78rem; text-decoration:none; transition:opacity .15s; }
+.act-btn:hover { opacity:.75; }
+.act-view { background:#dbeafe; color:#1d4ed8; }
+.act-edit { background:#fef9c3; color:#92400e; }
 
-  .filters-grid .form-control,
-  .filters-grid .form-select {
-    width: 100%;
-  }
+.empty-row td { text-align:center; padding:3rem; color:#94a3b8; font-size:.9rem; }
+.results-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
+.results-count { font-size:.8rem; color:#64748b; font-weight:600; }
 
-  .filters-actions {
-    display: flex;
-    gap: .5rem;
-    margin-top: .75rem;
-  }
-
-  @media (max-width: 992px) {
-    .filters-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  /* Mobile layout */
-  @media (max-width: 576px) {
-    .mumineen-container {
-      padding: 1rem;
-    }
-
-    .filters-form {
-      padding: .75rem;
-    }
-
-    .filters-grid {
-      grid-template-columns: 1fr;
-      gap: .65rem;
-    }
-
-    .filters-actions {
-      flex-direction: column;
-      gap: .5rem;
-    }
-
-    .filters-actions .btn {
-      width: 100%;
-    }
-
-    .filters-bar {
-      gap: .5rem;
-    }
-
-    #toggleFiltersBtn {
-      padding: .25rem .5rem;
-      width: auto;
-    }
-
-    .hof-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: .25rem;
-    }
-
-    .hof-left {
-      width: 100%;
-    }
-
-    .member-row {
-      flex-wrap: wrap;
-      gap: .5rem;
-    }
-
-    .member-index {
-      width: auto;
-    }
-
-    .member-name {
-      flex: 1 1 100%;
-      min-width: 0;
-    }
-
-    .actions {
-      width: auto;
-      margin-left: auto;
-    }
-  }
-
-  .hof-header {
-    background: #cfe8ff;
-    padding: .5rem .75rem;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: .6rem
-  }
-
-  .hof-left {
-    font-weight: 700;
-    color: #023e8a
-  }
-
-  .hof-badges {
-    margin-left: .5rem
-  }
-
-  .member-row {
-    background: #fff;
-    padding: .7rem;
-    border: 1px solid #e6eef8;
-    border-left: 6px solid #6fb0ff;
-    display: flex;
-    align-items: center;
-    gap: 1rem
-  }
-
-  .member-index {
-    width: 40px;
-    color: #666
-  }
-
-  .member-name {
-    flex: 1
-  }
-
-  .its-badge {
-    background: #1c7bd3;
-    color: #fff;
-    padding: .15rem .45rem;
-    border-radius: 6px;
-    font-size: .8rem;
-    margin-left: .5rem
-  }
-
-  .its-small {
-    color: #9aa7b2;
-    font-size: .85rem
-  }
-
-  .age,
-  .relation {
-    width: 80px;
-    text-align: center
-  }
-
-  .actions {
-    width: 140px;
-    text-align: right;
-    display: flex;
-    gap: .4rem;
-    justify-content: flex-end
-  }
-
-  .action-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 0
-  }
-
-  .action-view {
-    background: #f8f9fa;
-    color: #333
-  }
-
-  .action-edit {
-    background: #ffd966;
-    color: #333
-  }
-
-  .action-pass {
-    background: #ff6b6b;
-    color: #fff
-  }
-
-  .edit-hof {
-    background: #ffffff;
-    border: 1px solid #9fb9db;
-    color: #0b66a3;
-    padding: .25rem .6rem;
-    border-radius: .25rem
-  }
-
-  .member-card {
-    margin-bottom: .6rem
-  }
-
-  .search-row {
-    display: flex;
-    gap: .5rem;
-    margin-bottom: 0.8rem
-  }
-
-  /* legacy responsive tweaks no longer needed with CSS grid */
-
-  /* Modal scrollability fixes */
-  .modal-dialog {
-    max-width: 960px;
-  }
-
-  .modal-body {
-    max-height: 70vh;
-    overflow-y: auto;
-  }
-
-  .modal-content {
-    overflow: hidden;
-  }
-
-  pre {
-    max-width: 100%;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-  }
-
-  textarea.form-control {
-    resize: vertical;
-  }
-
-  @media (max-width:760px) {
-    .top-actions {
-      flex-direction: column;
-      align-items: flex-end
-    }
-
-    .age,
-    .relation {
-      display: none
-    }
-
-    .its-small {
-      display: none
-    }
-
-    .modal-body {
-      max-height: 60vh;
-    }
-  }
+@media(max-width:992px) { .frow-6,.frow-4 { grid-template-columns:1fr 1fr 1fr; } }
+@media(max-width:768px)  { .frow-6,.frow-4 { grid-template-columns:1fr 1fr; } }
+@media(max-width:576px)  { .frow-6,.frow-4 { grid-template-columns:1fr; } .mumineen-container { padding:.75rem; } }
 </style>
 
+<?php
+  $view_base = 'admin/viewmember/';
+  if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 2) {
+    $view_base = 'amilsaheb/viewmember/';
+  }
+  $can_edit = isset($_SESSION['user']['role']) && in_array($_SESSION['user']['role'], [1, 3]);
+?>
+
 <div class="mumineen-container pt-5">
-  <div class="row mb-2 align-items-center pt-5">
-    <div class="col-6">
-      <a href="<?php echo isset($back_url) ? $back_url : base_url('amilsaheb'); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
-    </div>
-    <div class="col-6">
-      <div class="top-actions">
-        <button type="button" onclick="exportCurrentDataToCSV()" class="btn btn-outline-success"><i class="fa fa-file-excel-o px-1"></i>Export Excel</button>
-      </div>
-    </div>
+
+  <!-- Top bar -->
+  <div class="top-bar pt-3">
+    <a href="<?php echo isset($back_url) ? $back_url : base_url('amilsaheb'); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa fa-arrow-left"></i></a>
+    <button class="btn btn-outline-success btn-sm" onclick="exportCSV()"><i class="fa fa-file-excel-o"></i> Export Excel</button>
   </div>
 
+  <!-- Filter card -->
   <div class="filters-card">
-    <div class="filters-bar d-flex justify-content-between align-items-center">
-      <div class="fw-bold">FILTERS</div>
-      <button id="toggleFiltersBtn" class="btn btn-sm btn-outline-light" type="button" aria-expanded="true"><i class="fa fa-sliders"></i> Hide</button>
+    <div class="filters-bar">
+      <div class="filters-bar-title">
+        <i class="fa fa-sliders"></i> FILTERS
+        <span id="countBadge" style="margin-left:10px;font-size:.72rem;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-weight:600;"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <button id="btnReset" class="btn btn-sm btn-outline-light" type="button"><i class="fa fa-refresh"></i> Reset</button>
+        <button id="btnToggle" class="btn btn-sm btn-outline-light" type="button"><i class="fa fa-chevron-down"></i> Show Filters</button>
+      </div>
     </div>
 
-    <form id="filtersForm" class="filters-form" onsubmit="return false;">
-      <div class="filters-grid">
-        <div>
-          <label class="form-label">Name or ITS</label>
-          <input type="text" id="filterName" class="form-control" placeholder="e.g. Burhanuddin / 12345678">
+    <div id="filterBody" class="d-none">
+      <form id="filtersForm" onsubmit="return false;" class="filters-body">
+
+        <!-- Section 1: Search & Location -->
+        <div class="filter-section-label"><i class="fa fa-search" style="color:#3b82f6;"></i> Search &amp; Location</div>
+        <div class="frow frow-6" id="baseFilterRow">
+          <div>
+            <label class="flabel">Name or ITS</label>
+            <input type="text" id="fName" class="finput" placeholder="Burhanuddin / 12345678">
+          </div>
+          <div>
+            <label class="flabel">Sector</label>
+            <select id="fSector" class="fselect"><option value="">All</option></select>
+          </div>
+          <div>
+            <label class="flabel">Sub Sector</label>
+            <select id="fSubSector" class="fselect"><option value="">All</option></select>
+          </div>
+          <div>
+            <label class="flabel">HOF</label>
+            <select id="fHOF" class="fselect"><option value="">All HOFs</option></select>
+          </div>
+          <div>
+            <label class="flabel">Age Range</label>
+            <div class="age-row">
+              <input type="number" id="fAgeMin" class="finput" placeholder="Min" min="0">
+              <input type="number" id="fAgeMax" class="finput" placeholder="Max" min="0">
+            </div>
+          </div>
+          <!-- Marital: hidden in dashboard mode -->
+          <div id="maritalCol">
+            <label class="flabel">Marital Status</label>
+            <select id="fMarital" class="fselect"><option value="">All</option></select>
+          </div>
+          <!-- Dashboard injected filter appears here (hidden in normal mode) -->
+          <div id="dashInlineSlot" style="display:none;"></div>
         </div>
-        <div>
-          <label class="form-label">Sector</label>
-          <select id="filterSector" class="form-select">
-            <option value="">All</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label">Sub Sector</label>
-          <select id="filterSubSector" class="form-select">
-            <option value="">All</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label">Status</label>
-          <select id="filterStatus" class="form-select">
-            <option value="">All (Default)</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label">Marital Status</label>
-          <select id="filterMaritalStatus" class="form-select">
-            <option value="">All</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label">Age Range</label>
-          <div class="d-flex gap-2">
-            <input type="number" id="filterAgeMin" class="form-control" placeholder="Min" min="0" step="1">
-            <input type="number" id="filterAgeMax" class="form-control" placeholder="Max" min="0" step="1">
+
+        <!-- Section 2: Member Details -->
+        <div class="filter-section-label" id="secLabel2"><i class="fa fa-user" style="color:#8b5cf6;"></i> Member Details</div>
+        <div class="frow frow-4" id="secRow2">
+          <div>
+            <label class="flabel">Member Status</label>
+            <select id="fStatus" class="fselect">
+              <option value="">All</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Gender</label>
+            <select id="fGender" class="fselect">
+              <option value="">All</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Member Type</label>
+            <select id="fMemberType" class="fselect"><option value="">All</option></select>
+          </div>
+          <div>
+            <label class="flabel">HOF / FM</label>
+            <select id="fHOFType" class="fselect">
+              <option value="">All</option>
+              <option value="HOF">HOF Only</option>
+              <option value="FM">FM Only</option>
+            </select>
           </div>
         </div>
-        <div>
-          <label class="form-label">HOF</label>
-          <select id="filterHOF" class="form-select">
-            <option value="">All HOFs</option>
-          </select>
+
+        <!-- Section 3: Status Filters -->
+        <div class="filter-section-label" id="secLabel3"><i class="fa fa-heartbeat" style="color:#ef4444;"></i> Status Filters</div>
+        <div class="frow frow-4" id="secRow3">
+          <div>
+            <label class="flabel">Health Status</label>
+            <select id="fHealth" class="fselect">
+              <option value="">All</option>
+              <option value="Healthy">Healthy</option>
+              <option value="Lazimul Firash">Lazimul Firash</option>
+              <option value="Wafaat">Wafaat</option>
+              <option value="Medically Unfit">Medically Unfit</option>
+              <option value="Hospitalised">Hospitalised</option>
+              <option value="Elderly / Needs Care">Elderly / Needs Care</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Deeni Status</label>
+            <select id="fDeeni" class="fselect">
+              <option value="">All</option>
+              <option value="Normal">Normal</option>
+              <option value="No Ashara / LQ">No Ashara / LQ</option>
+              <option value="Mustajeeb">Mustajeeb</option>
+              <option value="Misaq Not Given">Misaq Not Given</option>
+              <option value="Married Outside">Married Outside</option>
+              <option value="Deen Badli Lidu che">Deen Badli Lidu che</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Residential Status</label>
+            <select id="fResidential" class="fselect">
+              <option value="">All</option>
+              <option value="Residing in Khar">Residing in Khar</option>
+              <option value="Moved for Job">Moved for Job</option>
+              <option value="Moved for Studies">Moved for Studies</option>
+              <option value="Moved Permanently but not taken transfer">Moved Permanently</option>
+              <option value="Unknown or Not Traceable">Unknown / Not Traceable</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">ITS-Sabeel Match</label>
+            <select id="fItsMatch" class="fselect">
+              <option value="">All</option>
+              <option value="its_sabeel_both_khar">ITS &amp; Sabeel both in Khar</option>
+              <option value="its_khar_sabeel_out">ITS in Khar, Sabeel out</option>
+              <option value="sabeel_khar_its_out">Sabeel in Khar, ITS out</option>
+              <option value="both_not_khar">Both not in Khar</option>
+            </select>
+          </div>
         </div>
-        <div class="filters-actions">
-          <button id="resetFiltersBtn" class="btn btn-outline-secondary btn-sm">↺ Reset</button>
-          <!-- <div class="filters-actions">
-          </div> -->
-        </div>
-      </div>
-    </form>
+
+      </form>
+    </div>
   </div>
 
-  <!-- <div class="search-row">
-    <input type="text" id="searchInput" placeholder="Search..." oninput="performSearch()" class="form-control">
-    <div id="activeFilter" style="display:none" class="align-self-center">
-      <span id="activeFilterText" class="badge bg-secondary"></span>
-      <button id="clearFilterLink" type="button" class="btn btn-sm btn-outline-secondary ms-2">Clear</button>
-    </div>
-  </div> -->
+  <!-- Chips -->
+  <div id="chipRow"></div>
 
-  <div id="dynamicDashboardTitleContainer" style="display:none;" class="mb-3">
-    <div class="p-3 bg-light border rounded d-flex justify-content-between align-items-center" style="border-left: 5px solid #0d6efd !important;">
-      <h4 id="dynamicDashboardTitleText" class="m-0" style="color: #0d6efd; font-weight: 600;"></h4>
-      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.location.href=window.location.pathname;">Clear Filter</button>
-    </div>
+  <!-- Dashboard title -->
+  <div id="dashTitle" style="display:none;" class="dash-title mb-3">
+    <h5 id="dashTitleText"></h5>
+    <button class="btn btn-sm btn-outline-secondary" onclick="resetAll()">Clear Filter</button>
   </div>
 
-  <div id="membersList"></div>
+  <!-- Results bar -->
+  <div class="results-bar mb-2">
+    <span class="results-count" id="resultsCount"></span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="dir">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th class="sortable" data-col="Full_Name">Name <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="ITS_ID">ITS ID <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="Age">Age <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="Gender">Gender <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="Sector">Sector / Sub Sector <span class="sort-icon"></span></th>
+          <th>Mobile</th>
+          <th class="sortable" data-col="_status">Status <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="health_status">Health <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="deeni_status">Deeni <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="residential_status">Residential <span class="sort-icon"></span></th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
 </div>
 
-<!-- Modal -->
-<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div id="userDetailsForm">
-        <div class="modal-header">
-          <h5 class="modal-title" id="userDetailsModalLabel">User Details</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div id="userDetailsFields" class="row row-cols-1 row-cols-md-2 g-3"></div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const originalData = <?= json_encode($users) ?>;
-  // full user list provided by controller (falls back to originalData when not available)
-  const originalAllData = <?= json_encode(isset($all_users) ? $all_users : $users) ?>;
-  let currentData = [...originalData];
+// ── Data ──────────────────────────────────────────────────────────────────────
+const ALL_DATA = <?= json_encode(isset($all_users) ? $all_users : $users) ?>;
+const VIEW_URL = '<?= base_url($view_base) ?>';
+const EDIT_URL = '<?= base_url('admin/editmember/') ?>';
+const CAN_EDIT = <?= $can_edit ? 'true' : 'false' ?>;
 
-  // populate selects first so initial filters can set select values (use full dataset)
-  populateFilterOptions();
-  applyInitialFilterFromQuery();
-  renderList(currentData);
+let filtered = [...ALL_DATA];
+let sortCol  = null, sortDir = 'asc';
 
-  function performSearch() {
-    const keyword = document.getElementById('searchInput').value.toLowerCase();
-    const filtered = currentData.filter(user => Object.values(user).some(v => v && v.toString().toLowerCase().includes(keyword)));
-    renderList(filtered);
-  }
+// ITS → name map for HOF resolution
+const itsMap = {};
+ALL_DATA.forEach(u => { const k = String(u.ITS_ID || u.ITS || ''); if (k) itsMap[k] = u.Full_Name || ''; });
 
-  function groupByHOF(users) {
-    const groups = {};
-    // build ITS -> name map from full dataset (so HOF_ID referencing ITS can be resolved)
-    const itsMap = {};
-    (originalAllData || originalData).forEach(m => {
-      const its = String(m.ITS_ID || m.ITS || '');
-      if (its) itsMap[its] = m.Full_Name || m.FullName || m.Name || '';
-    });
+// ── Boot ──────────────────────────────────────────────────────────────────────
+fillSelects();
+readURLAndApply();
 
-    users.forEach(u => {
-      const hofId = (u.HOF_ID || u.HOF || u.hof_id || '').toString();
-      let hofName = (u.HOF_Name || u.hof_name || '').toString();
-      // if hofName not present, try resolving from ITS map
-      if (!hofName && hofId && itsMap[hofId]) hofName = itsMap[hofId];
-      if (!hofName) hofName = (u.HOF || '') || 'Unknown HOF';
+// ── Fill selects ──────────────────────────────────────────────────────────────
+function fillSelects() {
+  const sectors = new Set(), subs = new Set(), hofs = new Map(), marital = new Set(), mTypes = new Set();
+  ALL_DATA.forEach(u => {
+    if (u.Sector)     sectors.add(u.Sector);
+    if (u.Sub_Sector) subs.add(u.Sub_Sector);
+    const ms = (u.Marital_Status || '').trim();
+    if (ms) marital.add(ms.charAt(0).toUpperCase() + ms.slice(1).toLowerCase());
+    if (u.Member_Type) mTypes.add(u.Member_Type);
+    const hid = (u.HOF_ID || u.HOF || '').toString();
+    if (hid) hofs.set(hid, itsMap[hid] || u.HOF_Name || hid);
+  });
 
-      const key = hofId || '__NO_HOF__';
-      if (!groups[key]) groups[key] = {
-        hofId: hofId,
-        hofName: hofName,
-        tanzeemFileNo: '',
-        members: []
-      };
-      groups[key].members.push(u);
-      // Capture TanzeemFile_No from any member (prefer HOF if found)
-      if (!groups[key].tanzeemFileNo || (u.ITS_ID == hofId || u.ITS == hofId)) {
-        groups[key].tanzeemFileNo = u.TanzeemFile_No || u.TanzeemFileNo || '';
-      }
-    });
+  const fill = (id, items) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    items.forEach(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; el.appendChild(o); });
+  };
+  fill('fSector',     Array.from(sectors).sort().map(v => [v,v]));
+  fill('fSubSector',  Array.from(subs).sort().map(v => [v,v]));
+  fill('fMemberType', Array.from(mTypes).sort().map(v => [v,v]));
+  fill('fHOF',        Array.from(hofs.entries()).sort((a,b) => (a[1]||'').localeCompare(b[1]||'')));
 
-    // convert to sorted array by hofName
-    const arr = Object.values(groups).sort((a, b) => (a.hofName || '').toString().localeCompare((b.hofName || '').toString()));
-    return arr;
-  }
+  const pref = ['Single','Married','Engaged','Separated','Divorced','Widowed'];
+  const rem  = new Set(marital);
+  const mEl  = document.getElementById('fMarital');
+  pref.forEach(v => { if (rem.has(v)) { const o = document.createElement('option'); o.value = v; o.textContent = v; mEl.appendChild(o); rem.delete(v); } });
+  Array.from(rem).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; mEl.appendChild(o); });
 
-  function renderList(users) {
-    const container = document.getElementById('membersList');
-    container.innerHTML = '';
-    const groups = groupByHOF(users);
-    let familyIdx = 1;
-    let idx = 1;
-    groups.forEach(group => {
-      const hofId = group.hofId || '';
-      const hofName = group.hofName || 'Unknown HOF';
-      const members = group.members;
-      const hofDiv = document.createElement('div');
-      hofDiv.className = 'member-card';
-
-      // HOF header
-      const header = document.createElement('div');
-      header.className = 'hof-header';
-      const headerRight = `<div class="hof-right text-muted small" style="font-weight:600; color: #4b5563;">Family #${familyIdx++}</div>`;
-      header.innerHTML = `<div class="hof-left">HOF: ${escapeHtml(hofName)} <span class="its-small">${hofId?('ID: '+escapeHtml(hofId)):''}</span> <span class="hof-badges"><span class="badge bg-light text-dark">Members: ${members.length}</span></span></div>${headerRight}`;
-      hofDiv.appendChild(header);
-
-      // members
-      members.forEach(m => {
-        const row = document.createElement('div');
-        row.className = 'member-row';
-
-        const index = document.createElement('div');
-        index.className = 'member-index';
-        index.textContent = idx++;
-        const nameWrap = document.createElement('div');
-        nameWrap.className = 'member-name';
-        const name = document.createElement('div');
-        name.innerHTML = `<strong>${escapeHtml(m.Full_Name||'')}</strong> <span class="its-badge">ITS: ${escapeHtml(m.ITS_ID||m.ITS||'')}</span>`;
-        const sub = document.createElement('div');
-        sub.className = 'its-small';
-        sub.textContent = m.Sector ? m.Sector : '';
-        nameWrap.appendChild(name);
-        nameWrap.appendChild(sub);
-
-        const age = document.createElement('div');
-        age.className = 'age';
-        age.textContent = m.Age || '';
-        const relation = document.createElement('div');
-        relation.className = 'relation';
-        relation.innerHTML = `<span class="badge bg-light text-dark">${escapeHtml(m.Relation || m.RelationShip || 'Member')}</span>`;
-
-        const actions = document.createElement('div');
-        actions.className = 'actions';
-        const btnView = document.createElement('button');
-        btnView.className = 'action-btn action-view';
-        <?php 
-          $view_base = 'admin/viewmember/';
-          if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 2) {
-            $view_base = 'amilsaheb/viewmember/';
-          }
-        ?>
-        btnView.innerHTML = `<a href="<?php echo base_url($view_base) ?>${m.ITS_ID}"><i class="fa fa-eye"></i></a>`;
-        btnView.title = 'View';
-        // btnView.onclick = () => openModal(m);
-        actions.appendChild(btnView);
-        <?php if (isset($_SESSION['user']['role']) && ($_SESSION['user']['role'] == 1 || $_SESSION['user']['role'] == 3)): ?>
-        const btnEdit = document.createElement('button');
-        btnEdit.className = 'action-btn action-edit ms-1';
-        btnEdit.innerHTML = `<a href="<?php echo base_url('admin/editmember/') ?>${m.ITS_ID}"><i class="fa fa-pencil"></i></a>`;
-        btnEdit.title = 'Edit';
-        actions.appendChild(btnEdit);
-        <?php endif; ?>
-
-        row.appendChild(index);
-        row.appendChild(nameWrap);
-        row.appendChild(age);
-        row.appendChild(relation);
-        row.appendChild(actions);
-        hofDiv.appendChild(row);
-      });
-
-      container.appendChild(hofDiv);
-    });
-  }
-
-  function openModal(user) {
-    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
-    const container = document.getElementById('userDetailsFields');
-    container.innerHTML = '';
-
-    // Render all keys from user object in a readable way
-    Object.keys(user).forEach(key => {
-      // hide internal id field from modal
-      if (String(key).toLowerCase() === 'id') return;
-      let val = user[key];
-      if (val === null || val === undefined) val = '';
-
-      const col = document.createElement('div');
-      col.className = 'col';
-      const label = document.createElement('label');
-      label.className = 'form-label';
-      label.textContent = key.replace(/_/g, ' ');
-
-      // If value is object/array, pretty-print JSON
-      if (typeof val === 'object') {
-        const pre = document.createElement('pre');
-        pre.style.whiteSpace = 'pre-wrap';
-        pre.style.background = '#f8f9fa';
-        pre.style.padding = '8px';
-        pre.style.borderRadius = '4px';
-        pre.textContent = JSON.stringify(val, null, 2);
-        col.appendChild(label);
-        col.appendChild(pre);
-      } else {
-        const s = String(val);
-        if (s.length > 120 || s.indexOf('\n') !== -1) {
-          const ta = document.createElement('textarea');
-          ta.className = 'form-control';
-          ta.rows = 4;
-          ta.value = s;
-          ta.readOnly = true;
-          col.appendChild(label);
-          col.appendChild(ta);
-        } else {
-          const input = document.createElement('input');
-          input.className = 'form-control';
-          input.value = s;
-          input.readOnly = true;
-          col.appendChild(label);
-          col.appendChild(input);
-        }
-      }
-
-      container.appendChild(col);
-    });
-
-    modal.show();
-  }
-
-  function escapeHtml(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  function applyInitialFilterFromQuery() {
-    const params = new URLSearchParams(window.location.search);
-
-    // Support legacy / filter=value pattern
-    const legacyFilter = (params.get('filter') || '').toLowerCase();
-    const legacyValue = params.get('value');
-
-    // Also support direct GET params: name, sector, sub_sector, status, hof, min, max
-    const name = params.get('name') || params.get('filterName') || '';
-    const sector = params.get('sector') || params.get('filterSector') || '';
-    const sub = params.get('sub_sector') || params.get('sub') || params.get('filterSubSector') || '';
-    const status = params.get('status') || params.get('filterStatus') || '';
-    const marital = params.get('marital_status') || params.get('marital') || params.get('ms') || '';
-    const hof = params.get('hof') || params.get('filterHOF') || '';
-    const min = params.get('min') ?? params.get('age_min');
-    const max = params.get('max') ?? params.get('age_max');
-    const itsMatch = params.get('its_sabeel_match') || '';
-    const madresaDeprived = params.get('madresa_deprived') || '';
-
-    // If legacy filter provided, handle those cases first
-    if (legacyFilter) {
-      switch (legacyFilter) {
-        case 'all':
-          currentData = [...originalData];
-          break;
-        case 'sector':
-          // set select if option exists
-          if (legacyValue) {
-            const sel = document.getElementById('filterSector');
-            if (sel) sel.value = legacyValue;
-          }
-          break;
-        case 'gender':
-          // store gender on form dataset instead of abusing name field
-          if (legacyValue) {
-            const f = document.getElementById('filtersForm');
-            if (f) f.dataset.gender = legacyValue;
-          }
-          break;
-        case 'hof_fm_type':
-          // legacy filter that specifies whether record is HOF or FM; store on form dataset and show chip
-          if (legacyValue) {
-            const f = document.getElementById('filtersForm');
-            if (f) f.dataset.hofFmType = legacyValue;
-            const chip = document.getElementById('activeFilter');
-            const chipText = document.getElementById('activeFilterText');
-            if (chip && chipText) {
-              chipText.textContent = 'Type: ' + legacyValue;
-              chip.style.display = 'inline-block';
-            }
-          }
-          break;
-        case 'age_range':
-          if (min !== null || max !== null) {
-            /* handled below */
-          }
-          break;
-        default:
-          // generic field=value filter (health_status, deeni_status, residential_status, Qualification, Occupation, etc.)
-          if (legacyValue !== null) {
-            const f = document.getElementById('filtersForm');
-            if (f) {
-              f.dataset.legacyField = legacyFilter;
-              f.dataset.legacyValue = legacyValue;
-            }
-          }
-          break;
-      }
-    }
-
-    // If any direct params exist, set form fields
-    if (name) {
-      const el = document.getElementById('filterName');
-      if (el) el.value = name;
-    }
-    if (sector) {
-      const el = document.getElementById('filterSector');
-      if (el) el.value = sector;
-    }
-    if (sub) {
-      const el = document.getElementById('filterSubSector');
-      if (el) el.value = sub;
-    }
-    if (status) {
-      const el = document.getElementById('filterStatus');
-      // Capitalize to match option values ('Active'/'Inactive')
-      const statusNorm = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-      if (el) el.value = statusNorm;
-    }
-    if (marital) {
-      const el = document.getElementById('filterMaritalStatus');
-      if (el) {
-        const maritalNorm = marital.charAt(0).toUpperCase() + marital.slice(1).toLowerCase();
-        el.value = maritalNorm;
-      }
-    }
-    if (hof) {
-      const el = document.getElementById('filterHOF');
-      if (el) el.value = hof;
-    }
-    // direct gender param support (store on form dataset)
-    const directGender = params.get('gender');
-    if (directGender) {
-      const f = document.getElementById('filtersForm');
-      if (f) f.dataset.gender = directGender;
-    }
-
-    // If min/max specified, we will apply an age_range style filter by storing them on the form element dataset
-    if (min !== null || max !== null) {
-      const f = document.getElementById('filtersForm');
-      if (f) {
-        f.dataset.min = min || '';
-        f.dataset.max = max || '';
-      }
-      const minEl = document.getElementById('filterAgeMin');
-      if (minEl) minEl.value = min || '';
-      const maxEl = document.getElementById('filterAgeMax');
-      if (maxEl) maxEl.value = max || '';
-    }
-
-    // its_sabeel_match direct param — store on form dataset
-    if (itsMatch) {
-      const f = document.getElementById('filtersForm');
-      if (f) f.dataset.itsMatch = itsMatch;
-    }
-    if (madresaDeprived) {
-      const f = document.getElementById('filtersForm');
-      if (f) f.dataset.madresaDeprived = madresaDeprived;
-    }
-
-    // Apply filters now to reflect any GET-provided values
-    applyFilters();
-  }
-
-  // Populate filter selects from data
-  function populateFilterOptions() {
-    const sectors = new Set();
-    const subSectors = new Set();
-    const hofs = new Map();
-    const statuses = new Set();
-    const memberTypes = new Set();
-    const maritalStatuses = new Set();
-    // ITS -> name map to resolve HOF names (use full dataset)
-    const itsMap = {};
-    (originalAllData || originalData).forEach(u => {
-      if (u.Sector) sectors.add(u.Sector);
-      if (u.Sub_Sector) subSectors.add(u.Sub_Sector);
-      const ms = (u.Marital_Status || u.MaritalStatus || u.Marital || '').toString().trim();
-      if (ms) {
-        const msNorm = ms.charAt(0).toUpperCase() + ms.slice(1).toLowerCase();
-        maritalStatuses.add(msNorm);
-      }
-      const its = String(u.ITS_ID || u.ITS || '');
-      if (its) itsMap[its] = u.Full_Name || u.FullName || u.Name || '';
-      const hofId = u.HOF_ID || u.HOF || u.hof_id || '';
-      const hofName = u.HOF_Name || u.hof_name || '';
-      // prefer explicit HOF name, else try resolving from ITS map, else fallback to Full_Name
-      let resolved = hofName || (hofId && itsMap[hofId]) || '';
-      if (!resolved && u.Full_Name && hofId && (u.ITS_ID == hofId || u.ITS == hofId)) resolved = u.Full_Name;
-      if (hofId) hofs.set(hofId, resolved);
-      if (u.Status) statuses.add(u.Status);
-    });
-    const sectorEl = document.getElementById('filterSector');
-    const subEl = document.getElementById('filterSubSector');
-    const hofEl = document.getElementById('filterHOF');
-    const maritalEl = document.getElementById('filterMaritalStatus');
-
-    // clear existing (keep default option)
-    sectorEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
+  // Sub-sector cascades with sector
+  document.getElementById('fSector').addEventListener('change', function() {
+    const sel = this.value;
+    const subEl = document.getElementById('fSubSector');
     subEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
-    hofEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
-    if (maritalEl) maritalEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
+    const subSet = new Set();
+    ALL_DATA.forEach(u => { if ((!sel || u.Sector === sel) && u.Sub_Sector) subSet.add(u.Sub_Sector); });
+    Array.from(subSet).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; subEl.appendChild(o); });
+  });
+}
 
-    Array.from(sectors).sort().forEach(s => {
-      const o = document.createElement('option');
-      o.value = s;
-      o.textContent = s;
-      sectorEl.appendChild(o);
-    });
-    Array.from(subSectors).sort().forEach(s => {
-      const o = document.createElement('option');
-      o.value = s;
-      o.textContent = s;
-      subEl.appendChild(o);
-    });
-    Array.from(hofs.entries()).forEach(([id, name]) => {
-      const o = document.createElement('option');
-      o.value = id;
-      o.textContent = name || id;
-      hofEl.appendChild(o);
-    });
+// ── Read URL & apply dashboard mode ──────────────────────────────────────────
+function readURLAndApply() {
+  const p         = new URLSearchParams(window.location.search);
+  const legFilter = (p.get('filter') || '').toLowerCase();
+  const legValue  = p.get('value')  || '';
+  const statusP   = p.get('status') || '';
+  const itsMatchP = p.get('its_sabeel_match') || '';
+  const minP      = p.get('min') || p.get('age_min') || '';
+  const maxP      = p.get('max') || p.get('age_max') || '';
+  const madresaP  = p.get('madresa_deprived') || '';
 
-    if (maritalEl) {
-      const preferred = ['Single', 'Married', 'Engaged', 'Separated', 'Divorced', 'Widowed'];
-      const remaining = new Set(maritalStatuses);
-      preferred.forEach(v => {
-        if (remaining.has(v)) {
-          const o = document.createElement('option');
-          o.value = v;
-          o.textContent = v;
-          maritalEl.appendChild(o);
-          remaining.delete(v);
-        }
-      });
-      Array.from(remaining).sort().forEach(v => {
-        const o = document.createElement('option');
-        o.value = v;
-        o.textContent = v;
-        maritalEl.appendChild(o);
-      });
-    }
+  const isDash = !!(
+    (legFilter && legFilter !== 'all') || statusP || itsMatchP || madresaP || minP || maxP
+  );
 
-    // when sector changes, filter sub-sector options to matching ones
-    sectorEl.addEventListener('change', () => {
-      const selected = sectorEl.value;
-      const subSet = new Set();
-      if (!selected) {
-        // if sector cleared, show all sub sectors (use full dataset)
-        (originalAllData || originalData).forEach(u => {
-          if (u.Sub_Sector) subSet.add(u.Sub_Sector);
-        });
-      } else {
-        (originalAllData || originalData).forEach(u => {
-          if ((u.Sector || '') === selected && u.Sub_Sector) subSet.add(u.Sub_Sector);
-        });
-      }
-      // repopulate subEl
-      subEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
-      Array.from(subSet).sort().forEach(s => {
-        const o = document.createElement('option');
-        o.value = s;
-        o.textContent = s;
-        subEl.appendChild(o);
-      });
-    });
+  // Set base field values
+  setv('fName',   p.get('name')   || '');
+  setv('fSector', p.get('sector') || '');
+  if (statusP)   setv('fStatus',   cap(statusP));
+  if (itsMatchP) setv('fItsMatch', itsMatchP);
+  if (minP) document.getElementById('fAgeMin').value = minP;
+  if (maxP) document.getElementById('fAgeMax').value = maxP;
+
+  // Store dataset filters
+  const form = document.getElementById('filtersForm');
+  if (legFilter === 'gender')      form.dataset.gender    = legValue;
+  if (legFilter === 'hof_fm_type') form.dataset.hofFmType = legValue;
+  if (madresaP)                    form.dataset.madresa   = madresaP;
+
+  if (legFilter === 'health_status')      setv('fHealth',      legValue);
+  if (legFilter === 'deeni_status')       setv('fDeeni',       legValue);
+  if (legFilter === 'residential_status') setv('fResidential', legValue);
+  if (legFilter === 'sector')             setv('fSector',      legValue);
+
+  if (!['','all','age_range','sector','gender','hof_fm_type','health_status','deeni_status','residential_status','its_sabeel_match'].includes(legFilter) && legValue) {
+    form.dataset.legacyField = legFilter;
+    form.dataset.legacyValue = legValue;
   }
 
-  function applyFilters(e) {
-    if (e) e.preventDefault();
-    const name = (document.getElementById('filterName').value || '').toLowerCase();
-    const sector = document.getElementById('filterSector').value;
-    const sub = document.getElementById('filterSubSector').value;
-    const status = document.getElementById('filterStatus').value;
-    const marital = document.getElementById('filterMaritalStatus') ? document.getElementById('filterMaritalStatus').value : '';
-    const hof = document.getElementById('filterHOF').value;
+  // ── Dashboard mode ────────────────────────────────────────────────────────
+  if (isDash) {
+    // Hide sections 2 and 3
+    document.getElementById('secLabel2').style.display = 'none';
+    document.getElementById('secRow2').style.display   = 'none';
+    document.getElementById('secLabel3').style.display = 'none';
+    document.getElementById('secRow3').style.display   = 'none';
 
-    // dataset-based filters (legacy/direct)
-    const formEl = document.getElementById('filtersForm');
-    const hofFmType = formEl && formEl.dataset && formEl.dataset.hofFmType ? formEl.dataset.hofFmType.toString().toUpperCase() : '';
-    const dsGender = formEl && formEl.dataset && formEl.dataset.gender ? formEl.dataset.gender.toString().toLowerCase() : '';
-    const dsItsMatch = formEl && formEl.dataset && formEl.dataset.itsMatch ? formEl.dataset.itsMatch.toString() : '';
-    const dsMadresaDeprived = formEl && formEl.dataset && formEl.dataset.madresaDeprived ? formEl.dataset.madresaDeprived.toString() : '';
-    const dsLegacyField = formEl && formEl.dataset && formEl.dataset.legacyField ? formEl.dataset.legacyField.toString().toLowerCase() : '';
-    const dsLegacyValue = formEl && formEl.dataset && formEl.dataset.legacyValue !== undefined ? formEl.dataset.legacyValue.toString() : '';
-    const ageMinEl = document.getElementById('filterAgeMin');
-    const ageMaxEl = document.getElementById('filterAgeMax');
-    const inputMin = ageMinEl && ageMinEl.value !== '' ? parseInt(ageMinEl.value, 10) : null;
-    const inputMax = ageMaxEl && ageMaxEl.value !== '' ? parseInt(ageMaxEl.value, 10) : null;
-    const dsMinFallback = formEl && formEl.dataset && formEl.dataset.min !== undefined && formEl.dataset.min !== '' ? parseInt(formEl.dataset.min, 10) : null;
-    const dsMaxFallback = formEl && formEl.dataset && formEl.dataset.max !== undefined && formEl.dataset.max !== '' ? parseInt(formEl.dataset.max, 10) : null;
-    const dsMin = inputMin !== null ? inputMin : dsMinFallback;
-    const dsMax = inputMax !== null ? inputMax : dsMaxFallback;
+    // Hide marital, show inline slot
+    document.getElementById('maritalCol').style.display    = 'none';
+    document.getElementById('dashInlineSlot').style.display = '';
 
-    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || hofFmType || dsGender || dsItsMatch || dsMadresaDeprived || dsLegacyField || (dsMin !== null) || (dsMax !== null));
+    // Which select to inject
+    const dashMap = {
+      'status':'fStatus', 'activity_status':'fStatus',
+      'health_status':'fHealth', 'deeni_status':'fDeeni',
+      'residential_status':'fResidential', 'gender':'fGender',
+      'hof_fm_type':'fHOFType', 'its_sabeel_match':'fItsMatch',
+    };
+    const injectId = statusP ? 'fStatus' : itsMatchP ? 'fItsMatch' : (dashMap[legFilter] || null);
 
-    // if no filters set, show all (prefer full dataset when available)
-    if (!hasAnyFilter) {
-      currentData = (originalAllData && originalAllData.length) ? [...originalAllData] : [...originalData];
-      renderList(currentData);
-      const chip = document.getElementById('activeFilter');
-      if (chip) chip.style.display = 'none';
-      return;
-    }
-
-    const source = (originalAllData && originalAllData.length) ? originalAllData : originalData;
-    const filtered = source.filter(u => {
-      const preds = [];
-      if (name) {
-        const nm = (u.Full_Name || u.FullName || '').toString().toLowerCase();
-        const its = (u.ITS_ID || u.ITS || '').toString().toLowerCase();
-        const mob = (u.Mobile || '').toString().toLowerCase();
-        preds.push(nm.includes(name) || its.includes(name) || mob.includes(name));
-      }
-      if (sector) preds.push((u.Sector || '').toString() === sector);
-      if (sub) preds.push((u.Sub_Sector || '').toString() === sub);
-      if (status) {
-        const inactiveReason = (u.Inactive_Status || u.inactive_status || '').toString().trim();
-        const actStatus = (u.activity_status || u.Activity_Status || '').toString().trim().toLowerCase();
-        const uStatus = (inactiveReason || (actStatus && actStatus !== 'active')) ? 'Inactive' : 'Active';
-        preds.push(uStatus.toLowerCase() === status.toLowerCase());
-      }
-      if (marital) {
-        const ms = (u.Marital_Status || u.MaritalStatus || '').toString().trim().toLowerCase();
-        preds.push(ms === marital.trim().toLowerCase());
-      }
-      if (hof) {
-        const hofId = (u.HOF_ID || u.HOF || u.hof_id || '').toString();
-        preds.push(hofId === hof);
-      }
-      if (hofFmType) {
-        const t = ((u.HOF_FM_TYPE || u.hof_fm_type || u.HOF_FM || '')).toString().toUpperCase();
-        preds.push(t === hofFmType);
-      }
-      if (dsGender) {
-        const ug = ((u.Gender || u.gender || '')).toString().toLowerCase();
-        preds.push(ug === dsGender);
-      }
-      // its_sabeel_match filter (ITS & Sabeel cards)
-      if (dsItsMatch) {
-        const itsSabeel = (u.its_sabeel_match || u.ITS_Sabeel_Match || '').toString();
-        preds.push(itsSabeel === dsItsMatch);
-      }
-      if (dsMadresaDeprived) {
-        const md = (u.madresa_deprived !== undefined && u.madresa_deprived !== null) ? u.madresa_deprived.toString() : '';
-        preds.push(md === dsMadresaDeprived);
-      }
-      // generic legacy field=value filter (health_status, deeni_status, residential_status, Qualification, Occupation, etc.)
-      if (dsLegacyField && dsLegacyValue !== '') {
-        // find the matching key in the user object (case-insensitive)
-        const matchKey = Object.keys(u).find(k => k.toLowerCase() === dsLegacyField);
-        const fieldVal = matchKey ? (u[matchKey] || '').toString().trim().toLowerCase() : '';
-        preds.push(fieldVal === dsLegacyValue.trim().toLowerCase());
-      }
-      // age range (min/max) stored on dataset
-      if (dsMin !== null || dsMax !== null) {
-        const ageVal = parseInt((u.Age || '').toString(), 10);
-        if (!Number.isNaN(ageVal)) {
-          if (dsMin !== null && dsMax !== null) preds.push(ageVal >= dsMin && ageVal <= dsMax);
-          else if (dsMin !== null) preds.push(ageVal >= dsMin);
-          else if (dsMax !== null) preds.push(ageVal <= dsMax);
-        } else {
-          preds.push(false);
+    if (injectId) {
+      const orig = document.getElementById(injectId);
+      if (orig) {
+        const parentDiv = orig.closest('div');
+        if (parentDiv) {
+          const clone    = parentDiv.cloneNode(true);
+          const cloneSel = clone.querySelector('select');
+          if (cloneSel) {
+            // BUG FIX: rename original ID so getElementById always finds the visible clone
+            orig.id      = injectId + '_hidden';
+            cloneSel.id  = injectId;
+            const val    = statusP ? cap(statusP) : itsMatchP ? itsMatchP : legValue;
+            cloneSel.value = val;
+            cloneSel.addEventListener('change', run);
+          }
+          document.getElementById('dashInlineSlot').appendChild(clone);
         }
       }
-      // AND behaviour: include if all predicates are true
-      return preds.length > 0 && preds.every(Boolean);
-    });
-
-    // show active filter chip (optional; markup may be removed)
-    const chip = document.getElementById('activeFilter');
-    const chipText = document.getElementById('activeFilterText');
-    let labelParts = [];
-    if (name) labelParts.push('Name: ' + name);
-    if (sector) labelParts.push('Sector: ' + sector);
-    if (sub) labelParts.push('Sub: ' + sub);
-    if (status) labelParts.push('Status: ' + status);
-    if (marital) labelParts.push('Marital: ' + marital);
-    if (hof) {
-      const hofSelect = document.getElementById('filterHOF');
-      labelParts.push('HOF: ' + (hofSelect.options[hofSelect.selectedIndex].text || hof));
-    }
-    if (hofFmType) labelParts.push('Type: ' + hofFmType);
-    if (dsGender) labelParts.push('Gender: ' + dsGender);
-    if (dsMin !== null || dsMax !== null) labelParts.push('Age: ' + (dsMin !== null ? dsMin : '') + '-' + (dsMax !== null ? dsMax : ''));
-    if (dsMadresaDeprived) labelParts.push('Madresa Deprived: Yes');
-    if (chip && chipText) {
-      if (labelParts.length) {
-        chipText.textContent = labelParts.join(' | ');
-        chip.style.display = 'inline-block';
-      } else {
-        chip.style.display = 'none';
-      }
     }
 
-    const dynContainer = document.getElementById('dynamicDashboardTitleContainer');
-    const dynText = document.getElementById('dynamicDashboardTitleText');
-    if (dynContainer && dynText) {
-      const params = new URLSearchParams(window.location.search);
-      const titleParam = params.get('title');
-      if (titleParam) {
-        dynText.textContent = titleParam;
-        dynContainer.style.display = 'block';
-      } else if (hasAnyFilter) {
-        // Fallback mapping for standard dashboard card filters
-        let cardTitle = labelParts.join(' | ');
-        const st = params.get('status') || '';
-        const filt = (params.get('filter') || '').toLowerCase();
-        const val = params.get('value') || '';
-        const minP = params.get('min') || '';
-        const maxP = params.get('max') || '';
-        const itsM = params.get('its_sabeel_match') || '';
-        const madD = params.get('madresa_deprived') || '';
-        const marP = params.get('marital_status') || '';
-
-        if (st.toLowerCase() === 'active' && marP.toLowerCase() === 'single' && minP === '21' && maxP === '40') cardTitle = 'Singles (21-40 yrs)';
-        else if (st.toLowerCase() === 'active' && minP === '5' && maxP === '15' && madD === '1') cardTitle = 'Madresa Deprived (5-15 yrs)';
-        else if (st.toLowerCase() === 'active' && marP) cardTitle = 'Active Members - ' + marP;
-        else if (st.toLowerCase() === 'active') cardTitle = 'Active Members';
-        else if (st.toLowerCase() === 'inactive') cardTitle = 'Inactive Members';
-        else if (filt === 'hof_fm_type' && val.toUpperCase() === 'HOF') cardTitle = 'HOF Members';
-        else if (filt === 'hof_fm_type' && val.toUpperCase() === 'FM') cardTitle = 'Family Members';
-        else if (filt === 'gender' && val.toLowerCase() === 'male') cardTitle = 'Gents';
-        else if (filt === 'gender' && val.toLowerCase() === 'female') cardTitle = 'Ladies';
-        else if (filt === 'age_range' && minP === '0' && maxP === '4') cardTitle = 'Age 0 to 4 yrs';
-        else if (filt === 'age_range' && minP === '5' && maxP === '15') cardTitle = 'Age 5 to 15 yrs';
-        else if (filt === 'age_range' && minP === '16' && maxP === '25') cardTitle = 'Age 16 to 25 yrs';
-        else if (filt === 'age_range' && minP === '26' && maxP === '65') cardTitle = 'Age 26 to 65 yrs';
-        else if (filt === 'age_range' && minP === '66') cardTitle = 'Above 65 yrs';
-        else if (filt === 'sector' && val) cardTitle = 'Sector: ' + val;
-        else if (filt === 'all') cardTitle = 'All Members';
-        else if (itsM === 'its_sabeel_both_khar') cardTitle = 'ITS & Sabeel both in Khar';
-        else if (itsM === 'sabeel_khar_its_out') cardTitle = 'Sabeel in Khar, ITS Outside';
-        else if (itsM === 'its_khar_sabeel_out') cardTitle = 'ITS in Khar, Sabeel Outside';
-        else if (itsM === 'both_not_khar') cardTitle = 'Both ITS & Sabeel not in Khar';
-        else if (filt && val) cardTitle = filt.charAt(0).toUpperCase() + filt.slice(1) + ': ' + val;
-
-        dynText.textContent = cardTitle;
-        dynContainer.style.display = 'block';
-      } else {
-        dynContainer.style.display = 'none';
-      }
-    }
-
-    currentData = filtered;
-    renderList(filtered);
+    setDashTitle(p);
   }
 
-  function resetFilters(e) {
-    if (e) e.preventDefault();
-    const f = document.getElementById('filtersForm');
-    f.reset();
-    // clear dataset-based filters too
-    if (f && f.dataset) {
-      delete f.dataset.gender;
-      delete f.dataset.hofFmType;
-      delete f.dataset.min;
-      delete f.dataset.max;
-      delete f.dataset.itsMatch;
-      delete f.dataset.madresaDeprived;
-      delete f.dataset.legacyField;
-      delete f.dataset.legacyValue;
-    }
-    currentData = (originalAllData && originalAllData.length) ? [...originalAllData] : [...originalData];
-    renderList(currentData);
-    const chip = document.getElementById('activeFilter');
-    if (chip) chip.style.display = 'none';
+  run();
+}
+
+function setDashTitle(p) {
+  const lf = (p.get('filter') || '').toLowerCase();
+  const lv = p.get('value')  || '';
+  const st = p.get('status') || '';
+  const im = p.get('its_sabeel_match') || '';
+  const mn = p.get('min') || '', mx = p.get('max') || '';
+  const map = {
+    'active':'Active Members','inactive':'Inactive Members',
+    'its_sabeel_both_khar':'ITS & Sabeel both in Khar',
+    'its_khar_sabeel_out':'ITS in Khar, Sabeel Outside',
+    'sabeel_khar_its_out':'Sabeel in Khar, ITS Outside',
+    'both_not_khar':'Both not in Khar',
+  };
+  const t = map[st.toLowerCase()] || map[im]
+    || (lf==='all'?'All Members':'')
+    || (lf==='hof_fm_type'&&lv.toUpperCase()==='HOF'?'HOF Members':'')
+    || (lf==='hof_fm_type'&&lv.toUpperCase()==='FM'?'Family Members':'')
+    || (lf==='gender'&&lv.toLowerCase()==='male'?'Gents':'')
+    || (lf==='gender'&&lv.toLowerCase()==='female'?'Ladies':'')
+    || (lf==='age_range'&&mn==='0' &&mx==='4' ?'Age 0-4 yrs':'')
+    || (lf==='age_range'&&mn==='5' &&mx==='15'?'Age 5-15 yrs':'')
+    || (lf==='age_range'&&mn==='16'&&mx==='25'?'Age 16-25 yrs':'')
+    || (lf==='age_range'&&mn==='26'&&mx==='65'?'Age 26-65 yrs':'')
+    || (lf==='age_range'&&mn==='66'?'Above 65 yrs':'')
+    || (lf==='health_status'     &&lv?'Health: '+lv:'')
+    || (lf==='deeni_status'      &&lv?'Deeni: '+lv:'')
+    || (lf==='residential_status'&&lv?'Residential: '+lv:'')
+    || (lf&&lv?lf.replace(/_/g,' ')+': '+lv:'');
+  if (t) {
+    document.getElementById('dashTitleText').textContent = t;
+    document.getElementById('dashTitle').style.display = '';
   }
+}
 
-  function exportCurrentDataToCSV() {
-    if (!currentData || currentData.length === 0) {
-      alert("No data to export.");
-      return;
+// ── Core filter ───────────────────────────────────────────────────────────────
+function run() {
+  const name    = (document.getElementById('fName').value || '').toLowerCase().trim();
+  const sector  = document.getElementById('fSector').value;
+  const sub     = document.getElementById('fSubSector').value;
+  const marital = document.getElementById('fMarital').value;
+  const hof     = document.getElementById('fHOF').value;
+  const ageMin  = document.getElementById('fAgeMin').value !== '' ? parseInt(document.getElementById('fAgeMin').value) : null;
+  const ageMax  = document.getElementById('fAgeMax').value !== '' ? parseInt(document.getElementById('fAgeMax').value) : null;
+
+  // These may live in secRow2/3 (normal) OR in dashInlineSlot (dashboard)
+  // getElementById finds whichever has the real ID (original renamed to _hidden in dash mode)
+  const status   = gv('fStatus');
+  const gender   = gv('fGender').toLowerCase();
+  const mType    = gv('fMemberType');
+  const hofType  = gv('fHOFType').toUpperCase();
+  const health   = gv('fHealth');
+  const deeni    = gv('fDeeni');
+  const resi     = gv('fResidential');
+  const itsMatch = gv('fItsMatch');
+
+  const form       = document.getElementById('filtersForm');
+  const dsGender   = (form.dataset.gender    || '').toLowerCase();
+  const dsHofType  = (form.dataset.hofFmType || '').toUpperCase();
+  const dsMadresa  = form.dataset.madresa    || '';
+  const dsLegField = (form.dataset.legacyField || '').toLowerCase();
+  const dsLegValue =  form.dataset.legacyValue || '';
+
+  filtered = ALL_DATA.filter(u => {
+    // Name / ITS / Mobile search
+    if (name) {
+      const nm  = (u.Full_Name || '').toLowerCase();
+      const its = String(u.ITS_ID || u.ITS || '').toLowerCase();
+      const mob = (u.Mobile || '').toLowerCase();
+      if (!nm.includes(name) && !its.includes(name) && !mob.includes(name)) return false;
     }
-    
-    let headers = new Set();
-    currentData.forEach(row => {
-      Object.keys(row).forEach(k => headers.add(k));
-    });
-    headers = Array.from(headers);
-    
-    let csv = '"' + headers.join('","') + '"\n';
-    
-    currentData.forEach(row => {
-      let line = headers.map(h => {
-        let val = row[h] !== null && row[h] !== undefined ? String(row[h]) : "";
-        return '"' + val.replace(/"/g, '""') + '"';
-      });
-      csv += line.join(',') + '\n';
-    });
-    
-    let bom = '\uFEFF';
-    let blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
-    let link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    let dateStr = new Date().toISOString().slice(0, 10);
-    link.download = "mumineen_directory_" + dateStr + ".csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+    if (sector  && u.Sector     !== sector)  return false;
+    if (sub     && u.Sub_Sector !== sub)      return false;
+    if (marital && (u.Marital_Status || '').trim().toLowerCase() !== marital.toLowerCase()) return false;
+    if (hof     && String(u.HOF_ID || u.HOF || '') !== hof) return false;
+    if (ageMin !== null && (parseInt(u.Age) || 0) < ageMin) return false;
+    if (ageMax !== null && (parseInt(u.Age) || 0) > ageMax) return false;
 
-  document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
+    // Active / Inactive
+    if (status) {
+      const inact = (u.Inactive_Status || u.inactive_status || '').trim();
+      const act   = (u.activity_status || '').toLowerCase();
+      const isAct = !inact && (!act || act === 'active');
+      if (status === 'Active'   && !isAct) return false;
+      if (status === 'Inactive' &&  isAct) return false;
+    }
 
-  // Apply filters immediately when any select changes
-  ['filterSector', 'filterSubSector', 'filterStatus', 'filterMaritalStatus', 'filterHOF'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('change', applyFilters);
+    // Gender (UI select OR dataset from URL)
+    const wg = gender || dsGender;
+    if (wg && (u.Gender || '').toLowerCase() !== wg) return false;
+
+    if (mType && u.Member_Type !== mType) return false;
+
+    // HOF/FM type (UI select OR dataset from URL)
+    const wh = hofType || dsHofType;
+    if (wh && (u.HOF_FM_TYPE || '').toUpperCase() !== wh) return false;
+
+    if (health && (u.health_status      || '').trim() !== health)  return false;
+    if (deeni  && (u.deeni_status       || '').trim() !== deeni)   return false;
+    if (resi   && (u.residential_status || '').trim() !== resi)    return false;
+    if (itsMatch && (u.its_sabeel_match || '')         !== itsMatch) return false;
+
+    if (dsMadresa && String(u.madresa_deprived ?? '') !== dsMadresa) return false;
+
+    // Generic legacy field=value (e.g. Qualification, Occupation)
+    if (dsLegField && dsLegValue) {
+      const k = Object.keys(u).find(x => x.toLowerCase() === dsLegField);
+      if (!k || (u[k] || '').toString().trim().toLowerCase() !== dsLegValue.toLowerCase()) return false;
+    }
+
+    return true;
   });
 
-  // Apply filters immediately on text/number input
-  ['filterName', 'filterAgeMin', 'filterAgeMax'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', applyFilters);
-  });
+  // Re-apply sort if active
+  if (sortCol) applySortToFiltered();
 
-  const clearFilterEl = document.getElementById('clearFilterLink');
-  if (clearFilterEl) {
-    clearFilterEl.addEventListener('click', function(e) {
-      e.preventDefault();
-      history.replaceState(null, '', window.location.pathname);
-      currentData = [...originalData];
-      const si = document.getElementById('searchInput');
-      if (si) si.value = '';
-      renderList(currentData);
-      const af = document.getElementById('activeFilter');
-      if (af) af.style.display = 'none';
-    });
+  renderTable();
+  renderChips();
+
+  const n = filtered.length;
+  document.getElementById('countBadge').textContent  = n + ' result' + (n !== 1 ? 's' : '');
+  document.getElementById('resultsCount').textContent = n + ' member' + (n !== 1 ? 's' : '') + ' found';
+}
+
+// ── Sort helper ───────────────────────────────────────────────────────────────
+function applySortToFiltered() {
+  filtered.sort((a, b) => {
+    let va, vb;
+    if (sortCol === '_status') {
+      const st = u => {
+        const inact = (u.Inactive_Status || u.inactive_status || '').trim();
+        const act   = (u.activity_status || '').toLowerCase();
+        return (!inact && (!act || act === 'active')) ? 'Active' : 'Inactive';
+      };
+      va = st(a); vb = st(b);
+    } else if (sortCol === 'Age') {
+      return sortDir === 'asc'
+        ? (parseInt(a.Age) || 0) - (parseInt(b.Age) || 0)
+        : (parseInt(b.Age) || 0) - (parseInt(a.Age) || 0);
+    } else {
+      va = (a[sortCol] || '').toString().toLowerCase();
+      vb = (b[sortCol] || '').toString().toLowerCase();
+    }
+    if (va < vb) return sortDir === 'asc' ? -1 :  1;
+    if (va > vb) return sortDir === 'asc' ?  1 : -1;
+    return 0;
+  });
+}
+
+// ── Render table ──────────────────────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="12"><i class="fa fa-search"></i> No members found.</td></tr>';
+    return;
   }
 
-  // Toggle filters visibility
-  (function() {
-    const btn = document.getElementById('toggleFiltersBtn');
-    if (!btn) return;
-    const filtersBar = document.querySelector('.filters-bar');
-    const filtersForm = document.getElementById('filtersForm');
-    const searchRow = document.querySelector('.search-row');
-    btn.addEventListener('click', function() {
-      const hidden = filtersForm.classList.toggle('d-none');
-      if (filtersBar) filtersBar.classList.toggle('d-none', hidden);
-      if (searchRow) searchRow.classList.toggle('d-none', hidden);
-      btn.innerHTML = hidden ? '<i class="fa fa-sliders"></i> Show' : '<i class="fa fa-sliders"></i> Hide';
-      btn.setAttribute('aria-expanded', (!hidden).toString());
+  // Helper to build a row's innerHTML
+  function rowHTML(u, rowNum) {
+    const isHOF = (u.HOF_FM_TYPE || '').toUpperCase() === 'HOF';
+    const act   = (u.activity_status || '').toLowerCase();
+    const inact = (u.Inactive_Status || u.inactive_status || '').trim();
+    const isAct = !inact && (!act || act === 'active');
+    const badge = isAct ? '<span class="badge-active">Active</span>'
+      : act === 'temporary' ? '<span class="badge-temp">Temporary</span>'
+      : '<span class="badge-inactive">Inactive</span>';
+
+    return `<td style="color:#9ca3af;font-weight:600;font-size:.78rem;">${rowNum}</td>` +
+      `<td><div style="font-weight:${isHOF?700:500};">${esc(u.Full_Name||'')}` +
+        (isHOF ? '<span class="pill-hof">HOF</span>' : '<span class="pill-fm">FM</span>') +
+      `</div></td>` +
+      `<td><span class="badge-its">${esc(String(u.ITS_ID||u.ITS||''))}</span></td>` +
+      `<td>${esc(u.Age||'—')}</td>` +
+      `<td style="text-transform:capitalize;">${esc(u.Gender||'—')}</td>` +
+      `<td><div style="font-size:.78rem;">${esc(u.Sector||'—')}</div><div style="font-size:.7rem;color:#9ca3af;">${esc(u.Sub_Sector||'')}</div></td>` +
+      `<td style="font-size:.78rem;">${esc(u.Mobile||'—')}</td>` +
+      `<td>${badge}</td>` +
+      `<td style="font-size:.75rem;">${esc(u.health_status||'—')}</td>` +
+      `<td style="font-size:.75rem;">${esc(u.deeni_status||'—')}</td>` +
+      `<td style="font-size:.75rem;">${esc(u.residential_status||'—')}</td>` +
+      `<td>` +
+        `<a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>` +
+        (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}" class="act-btn act-edit ms-1" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
+      `</td>`;
+  }
+
+  // Sorted mode: flat list (no HOF grouping, as order would conflict)
+  if (sortCol) {
+    filtered.forEach((u, i) => {
+      const tr = tbody.insertRow();
+      if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') tr.className = 'hof-row';
+      tr.innerHTML = rowHTML(u, i + 1);
     });
-  })();
+    return;
+  }
+
+  // Default mode: grouped by HOF family
+  const groups = {}, order = [];
+  filtered.forEach(u => {
+    const hid = (u.HOF_ID || u.HOF || u.ITS_ID || '').toString();
+    if (!groups[hid]) { groups[hid] = { hid, hname: itsMap[hid] || u.HOF_Name || hid, members:[] }; order.push(hid); }
+    groups[hid].members.push(u);
+  });
+  const seen = new Set();
+  const sortedGroups = order
+    .filter(k => { if (seen.has(k)) return false; seen.add(k); return true; })
+    .map(k => groups[k])
+    .sort((a, b) => (a.hname||'').localeCompare(b.hname||''));
+
+  let idx = 1;
+  sortedGroups.forEach((grp, gi) => {
+    if (gi > 0) {
+      const sep = tbody.insertRow();
+      sep.className = 'family-sep';
+      sep.innerHTML = '<td colspan="12"></td>';
+    }
+    grp.members.forEach(u => {
+      const tr = tbody.insertRow();
+      if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') tr.className = 'hof-row';
+      tr.innerHTML = rowHTML(u, idx++);
+    });
+  });
+}
+
+// ── Chips ─────────────────────────────────────────────────────────────────────
+function renderChips() {
+  const ITS_L = {
+    its_sabeel_both_khar:'ITS & Sabeel in Khar', its_khar_sabeel_out:'ITS in Khar',
+    sabeel_khar_its_out:'Sabeel in Khar', both_not_khar:'Both Not in Khar',
+  };
+  const defs = [
+    ['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],
+    ['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],
+    ['fStatus','Status'],['fGender','Gender'],['fMemberType','Member Type'],
+    ['fHOFType','HOF/FM'],['fHealth','Health'],['fDeeni','Deeni'],
+    ['fResidential','Residential'],['fItsMatch','ITS Match'],
+  ];
+  const row = document.getElementById('chipRow');
+  row.innerHTML = '';
+  let any = false;
+
+  defs.forEach(([id, label]) => {
+    const el = document.getElementById(id);
+    if (!el || !el.value) return;
+    any = true;
+    const display = id === 'fHOF'      ? (el.options[el.selectedIndex]?.text || el.value)
+                  : id === 'fItsMatch' ? (ITS_L[el.value] || el.value)
+                  : el.value;
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `<b>${esc(label)}:</b>&nbsp;${esc(display)} <span class="chip-x" data-id="${id}">&times;</span>`;
+    row.appendChild(chip);
+  });
+
+  if (any) {
+    const cl = document.createElement('span');
+    cl.className = 'chip-clear';
+    cl.innerHTML = '&times; Clear all';
+    cl.onclick = resetAll;
+    row.appendChild(cl);
+  }
+
+  // BUG FIX: re-attach chip-x listeners after every render
+  row.querySelectorAll('.chip-x').forEach(x => {
+    x.addEventListener('click', () => {
+      const el = document.getElementById(x.dataset.id);
+      if (el) { el.value = ''; run(); }
+    });
+  });
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function resetAll() {
+  document.getElementById('filtersForm').reset();
+  const form = document.getElementById('filtersForm');
+  ['gender','hofFmType','madresa','legacyField','legacyValue'].forEach(k => delete form.dataset[k]);
+
+  // BUG FIX: restore renamed _hidden IDs back to originals
+  document.querySelectorAll('[id$="_hidden"]').forEach(el => { el.id = el.id.replace('_hidden', ''); });
+
+  // Restore hidden sections
+  ['secLabel2','secRow2','secLabel3','secRow3','maritalCol'].forEach(id => {
+    document.getElementById(id).style.display = '';
+  });
+  const slot = document.getElementById('dashInlineSlot');
+  slot.style.display = 'none';
+  slot.innerHTML = '';
+
+  document.getElementById('dashTitle').style.display = 'none';
+  document.getElementById('chipRow').innerHTML = '';
+
+  sortCol = null; sortDir = 'asc';
+  document.querySelectorAll('th.sortable').forEach(th => th.classList.remove('asc','desc'));
+
+  history.replaceState(null, '', window.location.pathname);
+  filtered = [...ALL_DATA];
+  renderTable();
+  const n = filtered.length;
+  document.getElementById('resultsCount').textContent = n + ' members';
+  document.getElementById('countBadge').textContent   = '';
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!filtered.length) { alert('No data to export.'); return; }
+  const preferred = ['ITS_ID','Full_Name','Age','Gender','Sector','Sub_Sector','Mobile','Email',
+    'Marital_Status','HOF_FM_TYPE','Member_Type','activity_status','health_status',
+    'deeni_status','residential_status','its_sabeel_match','Qualification','Occupation','Address','Vatan'];
+  const extra = new Set();
+  filtered.forEach(r => Object.keys(r).forEach(k => { if (!preferred.includes(k)) extra.add(k); }));
+  const headers = [...preferred, ...Array.from(extra)];
+  let csv = headers.map(h => '"' + h + '"').join(',') + '\n';
+  filtered.forEach(row => {
+    csv += headers.map(h => '"' + (row[h] ?? '').toString().replace(/"/g, '""') + '"').join(',') + '\n';
+  });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'}));
+  link.download = 'mumineen_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function gv(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+function setv(id, val) { const el = document.getElementById(id); if (el && val !== null && val !== undefined) el.value = val; }
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''; }
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+['fSector','fSubSector','fMarital','fHOF','fStatus','fGender','fMemberType',
+ 'fHOFType','fHealth','fDeeni','fResidential','fItsMatch'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', run);
+});
+['fName','fAgeMin','fAgeMax'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', run);
+});
+
+document.getElementById('btnReset').addEventListener('click', resetAll);
+
+document.getElementById('btnToggle').addEventListener('click', function() {
+  const body     = document.getElementById('filterBody');
+  const willHide = !body.classList.contains('d-none');
+  body.classList.toggle('d-none');
+  this.innerHTML = willHide
+    ? '<i class="fa fa-chevron-down"></i> Show Filters'
+    : '<i class="fa fa-chevron-up"></i> Hide Filters';
+});
+
+// ── Column sorting ────────────────────────────────────────────────────────────
+document.querySelectorAll('th.sortable').forEach(th => {
+  th.addEventListener('click', function() {
+    const col = this.dataset.col;
+    sortDir = (sortCol === col && sortDir === 'asc') ? 'desc' : 'asc';
+    sortCol = col;
+    document.querySelectorAll('th.sortable').forEach(t => t.classList.remove('asc','desc'));
+    this.classList.add(sortDir);
+    applySortToFiltered();
+    renderTable();
+  });
+});
 </script>

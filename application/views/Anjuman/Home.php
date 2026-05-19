@@ -1725,7 +1725,7 @@
 
         <?php 
         $groups2 = [
-          'Occupation' => ['label' => 'All Occupation', 'icon' => 'fa-briefcase', 'bg' => '#fafaf9', 'color' => '#57534e', 'count_key' => 'occupation', 'id' => 'collapseOccupation'],
+          'Occupation' => ['label' => 'Occupation', 'icon' => 'fa-briefcase', 'bg' => '#fafaf9', 'color' => '#57534e', 'count_key' => 'occupation', 'id' => 'collapseOccupation'],
         ];
 
         foreach ($groups2 as $filterKey => $g) {
