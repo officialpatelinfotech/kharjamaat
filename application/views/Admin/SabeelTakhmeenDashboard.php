@@ -170,10 +170,13 @@
               <!-- Current Year Total -->
               <td class="takhmeen-amount section-start-total" style="background-color:#e8f5e9; font-weight:bold;" data-sort-value="<?php echo isset($total_yearly) && is_numeric($total_yearly) ? (float)$total_yearly : 0; ?>"><?php echo (isset($total_yearly) && is_numeric($total_yearly) && $total_yearly > 0) ? '<b>' . round($total_yearly) . '</b>' : ''; ?></td>
 
-              <!-- Action -->
               <td class="text-nowrap section-start-action">
-                <button class="add-takhmeen btn btn-success btn-sm mb-1" <?php echo (($user['activity_status'] ?? '') !== 'inactive') ? 'data-toggle="modal" data-target="#add-takhmeen-container"' : ''; ?> data-user-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?>" data-user-name="<?php echo htmlspecialchars($__fullName); ?>" data-inactive="<?php echo (($user['activity_status'] ?? '') === 'inactive') ? 'true' : 'false'; ?>" data-inactive-reason="<?php echo htmlspecialchars($user['inactive_reason'] ?? ''); ?>" <?php echo (($user['activity_status'] ?? '') === 'inactive') ? 'style="opacity:0.5; cursor:not-allowed;" title="Inactive Member"' : ''; ?>>Add</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm view-takhmeen mb-1" data-user-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?>" data-user-name="<?php echo htmlspecialchars($__fullName); ?>" data-takhmeens='<?php echo htmlspecialchars(json_encode($user['takhmeens'] ?? []), ENT_QUOTES, "UTF-8"); ?>' <?php echo empty($user['takhmeens']) ? 'disabled' : ''; ?>>View Takhmeen</button>
+                <?php
+                  $allFamilyInactive = (($user['activity_status'] ?? '') === 'inactive' && ($user['active_family_count'] ?? 0) === 0);
+                  $inactiveReason = $allFamilyInactive ? 'All family members are inactive' : '';
+                ?>
+                <button class="add-takhmeen btn btn-success btn-sm mb-1" <?php echo !$allFamilyInactive ? 'data-toggle="modal" data-target="#add-takhmeen-container"' : ''; ?> data-user-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?>" data-user-name="<?php echo htmlspecialchars($__fullName, ENT_QUOTES); ?>" data-inactive="<?php echo $allFamilyInactive ? 'true' : 'false'; ?>" data-inactive-reason="<?php echo htmlspecialchars($inactiveReason); ?>" <?php echo $allFamilyInactive ? 'style="opacity:0.5; cursor:not-allowed;" title="All family members are inactive"' : ''; ?>>Add</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm view-takhmeen mb-1" data-user-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?>" data-user-name="<?php echo htmlspecialchars($__fullName, ENT_QUOTES); ?>" data-takhmeens='<?php echo htmlspecialchars(json_encode($user['takhmeens'] ?? []), ENT_QUOTES, "UTF-8"); ?>' <?php echo empty($user['takhmeens']) ? 'disabled' : ''; ?>>View Takhmeen</button>
               </td>
             </tr>
           <?php endforeach; ?>

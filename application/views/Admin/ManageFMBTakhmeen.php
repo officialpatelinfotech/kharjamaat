@@ -147,7 +147,11 @@
                 </a>
               </td>
               <td>
-                <button id="add-takhmeen" class="add-takhmeen mb-2 btn btn-sm btn-success" <?php echo (($user['activity_status'] ?? '') !== 'inactive') ? 'data-toggle="modal" data-target="#add-takhmeen-container"' : ''; ?> data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo $user["Full_Name"]; ?>" data-inactive="<?php echo (($user['activity_status'] ?? '') === 'inactive') ? 'true' : 'false'; ?>" data-inactive-reason="<?php echo htmlspecialchars($user['inactive_reason'] ?? ''); ?>" <?php echo (($user['activity_status'] ?? '') === 'inactive') ? 'style="opacity:0.5; cursor:not-allowed;" title="Inactive Member"' : ''; ?>><i class="fa-solid fa-plus"></i></button>
+                <?php
+                  $allFamilyInactive = (($user['activity_status'] ?? '') === 'inactive' && ($user['active_family_count'] ?? 0) === 0);
+                  $inactiveReason = $allFamilyInactive ? 'All family members are inactive' : '';
+                ?>
+                <button id="add-takhmeen" class="add-takhmeen mb-2 btn btn-sm btn-success" <?php echo !$allFamilyInactive ? 'data-toggle="modal" data-target="#add-takhmeen-container"' : ''; ?> data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?>" data-inactive="<?php echo $allFamilyInactive ? 'true' : 'false'; ?>" data-inactive-reason="<?php echo htmlspecialchars($inactiveReason); ?>" <?php echo $allFamilyInactive ? 'style="opacity:0.5; cursor:not-allowed;" title="All family members are inactive"' : ''; ?>><i class="fa-solid fa-plus"></i></button>
 
                 <button id="view-takhmeen" class="view-takhmeen mb-2 btn btn-sm btn-primary" data-toggle="modal" data-target="#view-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo $user["Full_Name"]; ?>" data-takhmeens="<?php echo htmlspecialchars(json_encode($user["takhmeens"]), ENT_QUOTES, 'UTF-8'); ?>"><i class="fa-solid fa-eye"></i></button>
 

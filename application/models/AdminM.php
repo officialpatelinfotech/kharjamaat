@@ -355,6 +355,14 @@ class AdminM extends CI_Model
     u.deeni_status,
     u.health_status,
     u.residential_status,
+    (
+      SELECT COUNT(*)
+      FROM user u_fam
+      WHERE u_fam.HOF_ID = u.ITS_ID
+        AND (u_fam.activity_status != 'inactive' OR u_fam.activity_status IS NULL)
+        AND (u_fam.Inactive_Status IS NULL OR u_fam.Inactive_Status = '')
+        AND (u_fam.inactive_status IS NULL OR u_fam.inactive_status = '')
+    ) AS active_family_count,
     fmb_t.id AS takhmeen_id,
     fmb_t.year AS takhmeen_year,
     IFNULL(fmb_t.total_amount, 0) AS total_fmb_takhmeen,
@@ -419,6 +427,7 @@ class AdminM extends CI_Model
           'Surname' => $row['Surname'],
           'activity_status' => $actStatus,
           'inactive_reason' => $reason,
+          'active_family_count' => (int)($row['active_family_count'] ?? 0),
           'takhmeens' => [],
           'current_year_takhmeen' => null,
           'hijri_year' => $takhmeen_year,
@@ -555,8 +564,6 @@ class AdminM extends CI_Model
       $current_hijri_year = null;
     }
 
-  // 🔹 Step 2: Fetch all raw rows (without duplicate payment join)
-  // Coalesce numeric grade amounts to 0 so PHP receives numeric values (no NULLs)
   $this->db->select("
     u.ITS_ID,
     u.First_Name,
@@ -570,6 +577,14 @@ class AdminM extends CI_Model
     u.deeni_status,
     u.health_status,
     u.residential_status,
+    (
+      SELECT COUNT(*)
+      FROM user u_fam
+      WHERE u_fam.HOF_ID = u.ITS_ID
+        AND (u_fam.activity_status != 'inactive' OR u_fam.activity_status IS NULL)
+        AND (u_fam.Inactive_Status IS NULL OR u_fam.Inactive_Status = '')
+        AND (u_fam.inactive_status IS NULL OR u_fam.inactive_status = '')
+    ) AS active_family_count,
 
     st.id AS takhmeen_id,
     st.year AS takhmeen_year,
@@ -673,6 +688,7 @@ class AdminM extends CI_Model
           'Surname' => $row['Surname'],
           'activity_status' => $actStatus,
           'inactive_reason' => $reason,
+          'active_family_count' => (int)($row['active_family_count'] ?? 0),
           'takhmeens' => [],
           'current_year_takhmeen' => null,
           'hijri_year' => null,
