@@ -20,7 +20,6 @@ if (!function_exists('norm_date_input')) {
   <?php
     $its_match    = $member['its_sabeel_match'] ?? '';
     $actStatus    = $member['activity_status']  ?? 'active';
-    $memberTypeLbl = $member['Member_Type']      ?? '';
     $matchLabels  = [
       'its_sabeel_both_khar'  => ['ITS & Sabeel both in Khar',      'success'],
       'its_khar_sabeel_out'   => ['ITS in Khar, Sabeel outside',         'warning'],
@@ -884,10 +883,6 @@ if (!function_exists('norm_date_input')) {
           } else {
             fd.set('HOF_FM_TYPE', 'FM');
           }
-          var mtSel = document.getElementById('editMemberTypeSelect');
-          var mtErr = document.getElementById('editMemberTypeError');
-          if (mtErr) mtErr.style.display = 'none';
-          console.log('Submitting edit member_type:', mtSel ? mtSel.value : undefined);
           fetch(form.action, {
             method: 'POST',
             body: fd
@@ -904,10 +899,6 @@ if (!function_exists('norm_date_input')) {
               } else {
                 statusEl.textContent = json.message || 'Update failed';
                 statusEl.className = 'small text-danger';
-                if (json.field === 'member_type' && mtErr) {
-                  mtErr.textContent = 'Invalid member type. Allowed: ' + (json.allowed_values ? json.allowed_values.join(', ') : '');
-                  mtErr.style.display = 'block';
-                }
               }
             })
             .catch(() => {

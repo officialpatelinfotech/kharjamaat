@@ -1375,8 +1375,6 @@ class AdminM extends CI_Model
       'WhatsApp_No',
       'HOF_FM_TYPE',
       'HOF_ID',
-      'Member_Type',
-      'member_type',
       'Registered_Family_Mobile',
       'Father_ITS_ID',
       'Mother_ITS_ID',
@@ -1502,44 +1500,6 @@ class AdminM extends CI_Model
       ];
     }
 
-    // Direct member type validation
-    $allowed_member_types = [
-      'Resident Mumineen',
-      'Moved-Out Mumineen',
-      'Transfer Out',
-      'Wafat',
-      'Married Outcast',
-      'External Sabeel Payers',
-      'Non-Sabeel Residents',
-      'Temporary Mumineen/Visitors',
-    ];
-
-    // Support both Member_Type and member_type
-    $memberType = null;
-
-    if (isset($payload['Member_Type'])) {
-      $memberType = $payload['Member_Type'];
-    } elseif (isset($payload['member_type'])) {
-      $memberType = $payload['member_type'];
-    }
-
-    if ($memberType !== null && $memberType !== '') {
-
-      if (!in_array($memberType, $allowed_member_types, true)) {
-
-        return [
-          'status' => 'error',
-          'field' => 'Member_Type',
-          'allowed_values' => $allowed_member_types,
-          'received' => $memberType,
-          'message' => 'Invalid member type'
-        ];
-      }
-
-      // Normalize to single DB field
-      $payload['Member_Type'] = $memberType;
-    }
-
     $isHof = isset($payload['hof_type'])
       && $payload['hof_type'] === 'HOF';
 
@@ -1571,7 +1531,6 @@ class AdminM extends CI_Model
       'WhatsApp_No',
       'HOF_FM_TYPE',
       'HOF_ID',
-      'Member_Type',
       'Registered_Family_Mobile',
       'Father_ITS_ID',
       'Mother_ITS_ID',

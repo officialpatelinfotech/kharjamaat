@@ -266,10 +266,6 @@
             <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">ITS–Sabeel Match <span style="font-size:0.65rem;background:#e2e8f0;padding:1px 5px;border-radius:10px;color:#555;">Auto</span></div>
             <div style="font-weight:600;color:#222;"><?php echo htmlspecialchars($matchLbl ?: '—'); ?></div>
           </div>
-          <!-- <div>
-            <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">Member Type <span style="font-size:0.65rem;background:#e2e8f0;padding:1px 5px;border-radius:10px;color:#555;">Auto</span></div>
-            <div style="font-weight:600;color:#222;"><?php echo htmlspecialchars($member['Member_Type'] ?? '—'); ?></div>
-          </div> -->
           <!-- Manual data fields -->
           <div>
             <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">Member Status <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Auto</span></div>

@@ -343,12 +343,6 @@
           </select>
         </div>
         <div>
-          <label class="form-label">Member Type</label>
-          <select id="filterMemberType" class="form-select">
-            <option value="">All</option>
-          </select>
-        </div>
-        <div>
           <label class="form-label">Status</label>
           <select id="filterStatus" class="form-select">
             <option value="">All (Default)</option>
@@ -624,7 +618,6 @@
     const name = params.get('name') || params.get('filterName') || '';
     const sector = params.get('sector') || params.get('filterSector') || '';
     const sub = params.get('sub_sector') || params.get('sub') || params.get('filterSubSector') || '';
-    const mTypeParam = params.get('member_type') || params.get('filterMemberType') || '';
     const status = params.get('status') || params.get('filterStatus') || '';
     const marital = params.get('marital_status') || params.get('marital') || params.get('ms') || '';
     const hof = params.get('hof') || params.get('filterHOF') || '';
@@ -643,12 +636,6 @@
           // set select if option exists
           if (legacyValue) {
             const sel = document.getElementById('filterSector');
-            if (sel) sel.value = legacyValue;
-          }
-          break;
-        case 'member_type':
-          if (legacyValue) {
-            const sel = document.getElementById('filterMemberType');
             if (sel) sel.value = legacyValue;
           }
           break;
@@ -708,10 +695,6 @@
       // Capitalize to match option values ('Active'/'Inactive')
       const statusNorm = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
       if (el) el.value = statusNorm;
-    }
-    if (mTypeParam) {
-      const el = document.getElementById('filterMemberType');
-      if (el) el.value = mTypeParam;
     }
     if (marital) {
       const el = document.getElementById('filterMaritalStatus');
@@ -785,20 +768,16 @@
       if (!resolved && u.Full_Name && hofId && (u.ITS_ID == hofId || u.ITS == hofId)) resolved = u.Full_Name;
       if (hofId) hofs.set(hofId, resolved);
       if (u.Status) statuses.add(u.Status);
-      if (u.Member_Type) memberTypes.add(u.Member_Type);
     });
-
     const sectorEl = document.getElementById('filterSector');
     const subEl = document.getElementById('filterSubSector');
     const hofEl = document.getElementById('filterHOF');
-    const mTypeEl = document.getElementById('filterMemberType');
     const maritalEl = document.getElementById('filterMaritalStatus');
 
     // clear existing (keep default option)
     sectorEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
     subEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
     hofEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
-    if (mTypeEl) mTypeEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
     if (maritalEl) maritalEl.querySelectorAll('option:not([value=""])').forEach(n => n.remove());
 
     Array.from(sectors).sort().forEach(s => {
@@ -819,24 +798,6 @@
       o.textContent = name || id;
       hofEl.appendChild(o);
     });
-
-    if (mTypeEl) {
-      const preferredMTypes = ['Resident Mumineen', 'External Sabeel Payers', 'Moved-Out Mumineen', 'Non-Sabeel Residents'];
-      const remainingMTypes = new Set(memberTypes);
-      preferredMTypes.forEach(v => {
-        const o = document.createElement('option');
-        o.value = v;
-        o.textContent = v;
-        mTypeEl.appendChild(o);
-        remainingMTypes.delete(v);
-      });
-      Array.from(remainingMTypes).sort().forEach(v => {
-        const o = document.createElement('option');
-        o.value = v;
-        o.textContent = v;
-        mTypeEl.appendChild(o);
-      });
-    }
 
     if (maritalEl) {
       const preferred = ['Single', 'Married', 'Engaged', 'Separated', 'Divorced', 'Widowed'];
@@ -888,7 +849,6 @@
     const name = (document.getElementById('filterName').value || '').toLowerCase();
     const sector = document.getElementById('filterSector').value;
     const sub = document.getElementById('filterSubSector').value;
-    const mTypeVal = document.getElementById('filterMemberType') ? document.getElementById('filterMemberType').value : '';
     const status = document.getElementById('filterStatus').value;
     const marital = document.getElementById('filterMaritalStatus') ? document.getElementById('filterMaritalStatus').value : '';
     const hof = document.getElementById('filterHOF').value;
@@ -910,7 +870,7 @@
     const dsMin = inputMin !== null ? inputMin : dsMinFallback;
     const dsMax = inputMax !== null ? inputMax : dsMaxFallback;
 
-    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || mTypeVal || hofFmType || dsGender || dsItsMatch || dsMadresaDeprived || dsLegacyField || (dsMin !== null) || (dsMax !== null));
+    const hasAnyFilter = !!(name || sector || sub || status || marital || hof || hofFmType || dsGender || dsItsMatch || dsMadresaDeprived || dsLegacyField || (dsMin !== null) || (dsMax !== null));
 
     // if no filters set, show all (prefer full dataset when available)
     if (!hasAnyFilter) {
@@ -932,7 +892,6 @@
       }
       if (sector) preds.push((u.Sector || '').toString() === sector);
       if (sub) preds.push((u.Sub_Sector || '').toString() === sub);
-      if (mTypeVal) preds.push((u.Member_Type || '').toString() === mTypeVal);
       if (status) {
         const inactiveReason = (u.Inactive_Status || u.inactive_status || '').toString().trim();
         const actStatus = (u.activity_status || u.Activity_Status || '').toString().trim().toLowerCase();
@@ -1122,7 +1081,7 @@
   document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
 
   // Apply filters immediately when any select changes
-  ['filterSector', 'filterSubSector', 'filterMemberType', 'filterStatus', 'filterMaritalStatus', 'filterHOF'].forEach(id => {
+  ['filterSector', 'filterSubSector', 'filterStatus', 'filterMaritalStatus', 'filterHOF'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', applyFilters);
   });

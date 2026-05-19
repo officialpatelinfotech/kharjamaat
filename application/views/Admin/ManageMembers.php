@@ -236,9 +236,6 @@
                   <?php if(!empty($hofRec['Sub_Sector'])): ?>
                     <span class="text-white badge bg-secondary ms-1">Sub: <?php echo htmlspecialchars($hofRec['Sub_Sector']); ?></span>
                   <?php endif; ?>
-                  <?php if(!empty($hofRec['member_type'])): ?>
-                    <span class="badge bg-warning text-dark ms-1"><?php echo htmlspecialchars($hofRec['member_type']); ?></span>
-                  <?php endif; ?>
                 </div>
                 <div>
                   <a href="<?php echo base_url('admin/editmember/') . ($hofRec['ITS_ID'] ?? ''); ?>" class="btn btn-sm btn-outline-primary">Edit HOF</a>

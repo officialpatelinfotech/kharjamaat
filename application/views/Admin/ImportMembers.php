@@ -37,7 +37,7 @@
         <details class="mb-2">
           <summary class="small fw-semibold">Show Common Optional Columns</summary>
           <div class="import-meta-list mt-2">
-            ITS_ID, Full_Name, Full_Name_Arabic, First_Name, Surname, Member_Type, member_type, Mobile, Email, WhatsApp_No, Gender, Age, Sector, Sub_Sector, Marital_Status, Blood_Group, Address, City, Pincode, Housing, Occupation, Qualification, Languages, Hunars, Misaq, Warakatul_Tarkhis, Date_Of_Nikah, Inactive_Status
+            ITS_ID, Full_Name, Full_Name_Arabic, First_Name, Surname, Mobile, Email, WhatsApp_No, Gender, Age, Sector, Sub_Sector, Marital_Status, Blood_Group, Address, City, Pincode, Housing, Occupation, Qualification, Languages, Hunars, Misaq, Warakatul_Tarkhis, Date_Of_Nikah, Inactive_Status
           </div>
         </details>
       </form>

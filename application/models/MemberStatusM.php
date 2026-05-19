@@ -150,7 +150,7 @@ class MemberStatusM extends CI_Model
      */
     public function update_living_status(int $its_id, array $fields): bool
     {
-        $allowed = ['deeni_status', 'residential_status', 'health_status', 'activity_status', 'Member_Type'];
+        $allowed = ['deeni_status', 'residential_status', 'health_status', 'activity_status'];
         $data = [];
         foreach ($allowed as $col) {
             if (array_key_exists($col, $fields)) {

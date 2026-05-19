@@ -748,67 +748,6 @@ function fval($m, $k)
               <input type="text" name="Registered_Family_Mobile"
                 value="<?php echo fval($m, 'Registered_Family_Mobile'); ?>">
             </div>
-
-            <!-- Member Type — all options always visible -->
-            <div class="am-field wide">
-              <label class="am-label">Member Type</label>
-              <?php $jp = htmlspecialchars(jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>
-              <select name="Member_Type" id="memberTypeSelect">
-
-                <option value="">-- Select member type --</option>
-
-                <!-- Permanent Members -->
-                <optgroup label="── Permanent Residents ──" id="permMemberTypes">
-
-                  <option value="Resident Mumineen" <?php if (fval($m, 'Member_Type') === 'Resident Mumineen')
-                    echo 'selected'; ?>>
-                    Resident Mumineen — Lives in <?php echo $jp; ?>, ITS registered here, regular Sabeel payer
-                  </option>
-
-                  <option value="Moved-Out Mumineen" <?php if (fval($m, 'Member_Type') === 'Moved-Out Mumineen')
-                    echo 'selected'; ?>>
-                    Moved-Out Mumineen — ITS registered in <?php echo $jp; ?>, but no longer residing
-                  </option>
-
-                  <option value="Transfer Out" <?php if (fval($m, 'Member_Type') === 'Transfer Out')
-                    echo 'selected'; ?>>
-                    Transfer Out — Old member, ITS transferred to another Jamaat
-                  </option>
-
-                  <option value="Wafat" <?php if (fval($m, 'Member_Type') === 'Wafat')
-                    echo 'selected'; ?>>
-                    Wafat — Member of <?php echo $jp; ?> who has passed away
-                  </option>
-
-                  <option value="Married Outcast" <?php if (fval($m, 'Member_Type') === 'Married Outcast')
-                    echo 'selected'; ?>>
-                    Married Outcast — Married outside Jamaat, ITS transferred elsewhere
-                  </option>
-
-                  <option value="External Sabeel Payers" <?php if (fval($m, 'Member_Type') === 'External Sabeel Payers')
-                    echo 'selected'; ?>>
-                    External Sabeel Payers — ITS not in <?php echo $jp; ?>, resident &amp; regular Sabeel payer
-                  </option>
-
-                </optgroup>
-
-                <!-- Temporary Members -->
-                <optgroup label="── Temporary / Non-Sabeel ──" id="tempMemberTypes">
-
-                  <option value="Non-Sabeel Residents" <?php if (fval($m, 'Member_Type') === 'Non-Sabeel Residents')
-                    echo 'selected'; ?>>
-                    Non-Sabeel Residents — Living in <?php echo $jp; ?>, ITS not here, not a Sabeel payer
-                  </option>
-
-                  <option value="Temporary Mumineen/Visitors" <?php if (fval($m, 'Member_Type') === 'Temporary Mumineen/Visitors')
-                    echo 'selected'; ?>>
-                    Temporary Mumineen / Visitors — Temporary presence for events or short stay
-                  </option>
-
-                </optgroup>
-
-              </select>
-              <div id="memberTypeError" class="am-err"></div>
             </div>
           </div>
         </div>
@@ -1238,37 +1177,6 @@ function fval($m, $k)
       document.getElementById('bannerPerm').style.display =
         mode === 'permanent' ? '' : 'none';
 
-      // Member Type filtering
-      var permGroup = document.getElementById('permMemberTypes');
-      var tempGroup = document.getElementById('tempMemberTypes');
-      var memberTypeSelect = document.getElementById('memberTypeSelect');
-
-      if (mode === 'temporary') {
-
-        if (permGroup) {
-          permGroup.style.display = 'none';
-        }
-
-        if (tempGroup) {
-          tempGroup.style.display = '';
-        }
-
-      } else {
-
-        if (permGroup) {
-          permGroup.style.display = '';
-        }
-
-        if (tempGroup) {
-          tempGroup.style.display = 'none';
-        }
-      }
-
-      // reset selection when switching mode
-      if (memberTypeSelect) {
-        memberTypeSelect.value = '';
-      }
-
       if (mode === 'temporary') {
 
         var ab = document.getElementById('body-address');
@@ -1373,7 +1281,6 @@ function fval($m, $k)
           fd.set('HOF_FM_TYPE', 'FM');
         }
       }
-      document.getElementById('memberTypeError').style.display = 'none';
       var st = document.getElementById('addMemberStatus');
       st.textContent = 'Saving...';
       st.className = 'am-status';
@@ -1387,11 +1294,6 @@ function fval($m, $k)
           } else {
             st.textContent = '✗ ' + (json.message || 'Error saving member');
             st.className = 'am-status err';
-            var mtErr = document.getElementById('memberTypeError');
-            if (json.field === 'member_type' && mtErr) {
-              mtErr.textContent = 'Invalid type. Allowed: ' + (json.allowed_values ? json.allowed_values.join(', ') : '');
-              mtErr.style.display = 'block';
-            }
           }
         })
         .catch(function () {

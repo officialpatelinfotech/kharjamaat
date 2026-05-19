@@ -4170,11 +4170,6 @@ HTML;
       redirect('admin/managemembers');
       return;
     }
-    // Debug log for diagnosing member_type fetch issues
-    if (function_exists('log_message')) {
-      $mt_dbg = isset($member['member_type']) ? $member['member_type'] : '(null)';
-      log_message('debug', 'EditMember load: ITS_ID=' . $its_id . ' member_type=' . $mt_dbg);
-    }
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member'] = $member;
     // Populate HOF select with family members for this member (family-scoped HOF candidates).
@@ -4259,7 +4254,6 @@ HTML;
       // ── Portal-managed / Jamaat-internal ──
       'HOF_FM_TYPE',
       'HOF_ID',
-      'Member_Type',
       'Registered_Family_Mobile',
       'Family_ID',
       'TanzeemFile_No',
@@ -4360,34 +4354,6 @@ HTML;
       }
     }
 
-    // Direct member type validation
-    $allowed_member_types = [
-      'Resident Mumineen',
-      'Moved-Out Mumineen',
-      'Transfer Out',
-      'Wafat',
-      'Married Outcast',
-      'External Sabeel Payers',
-      'Non-Sabeel Residents',
-      'Temporary Mumineen/Visitors',
-    ];
-
-    if (isset($payload['Member_Type']) && $payload['Member_Type'] !== '') {
-
-      if (!in_array($payload['Member_Type'], $allowed_member_types, true)) {
-
-        echo json_encode([
-          'status' => 'error',
-          'field' => 'Member_Type',
-          'allowed_values' => $allowed_member_types,
-          'received' => $payload['Member_Type'],
-          'message' => 'Invalid member type',
-        ]);
-
-        return;
-      }
-    }
-
     // Save living-status fields separately (these are always portal-managed)
     $livingFields = [
       'activity_status'    => $this->input->post('activity_status'),
@@ -4407,27 +4373,14 @@ HTML;
       $this->load->model('MemberStatusM');
       $this->MemberStatusM->update_living_status((int)$its_id, $livingFields);
     } elseif ($updated) {
-      // Even if no living status changed, recompute in case Member_Type changed
       $this->load->model('MemberStatusM');
       $this->MemberStatusM->recalculate_one((int)$its_id);
     }
 
     if ($updated || !empty($livingFields)) {
-      // If member_type not explicitly in payload (unchanged), fetch existing value
-      $mt_value = isset($payload['Member_Type']) ? $payload['Member_Type'] : null;
-      if ($mt_value === null) {
-
-        $existing_row = $this->AdminM->get_member_by_its($its_id);
-
-        if ($existing_row && isset($existing_row['Member_Type'])) {
-          $mt_value = $existing_row['Member_Type'];
-        }
-      }
-
       echo json_encode([
         'status' => 'success',
         'message' => 'Member updated',
-        'Member_Type' => $mt_value,
       ]);
 
     } else {
@@ -4455,7 +4408,6 @@ HTML;
     $this->load->model('MemberStatusM');
     $ok = $this->MemberStatusM->update_living_status($its_id, [
       'activity_status'    => $this->input->post('activity_status'),
-      'Member_Type'        => $this->input->post('Member_Type'),
       'deeni_status'       => $this->input->post('deeni_status'),
       'residential_status' => $this->input->post('residential_status'),
       'health_status'      => $this->input->post('health_status'),
@@ -4573,48 +4525,7 @@ HTML;
 
     $payload = $this->input->post(NULL, true);
 
-    // Direct member type validation
-    $allowed_member_types = [
-      'Resident Mumineen',
-      'Moved-Out Mumineen',
-      'Transfer Out',
-      'Wafat',
-      'Married Outcast',
-      'External Sabeel Payers',
-      'Non-Sabeel Residents',
-      'Temporary Mumineen/Visitors',
-    ];
-
-    if (isset($payload['Member_Type']) && $payload['Member_Type'] !== '') {
-      $allowed_member_types = [
-        '',
-        'Resident Mumineen',
-        'External Sabeel Payers',
-        'Moved-Out Mumineen',
-        'Non-Sabeel Residents',
-        'Temporary Mumineen/Visitors',
-        'Permanent',
-        'Temporary'
-      ];
-      if (!in_array($payload['Member_Type'], $allowed_member_types, true)) {
-
-        echo json_encode([
-          'status' => 'error',
-          'field' => 'Member_Type',
-          'allowed_values' => $allowed_member_types,
-          'received' => $payload['Member_Type'],
-          'message' => 'Invalid member type',
-        ]);
-
-        return;
-      }
-    }
-
     $result = $this->AdminM->create_member($payload);
-
-    if ($result['status'] === 'success') {
-      $result['Member_Type'] = $payload['Member_Type'] ?? null;
-    }
 
     echo json_encode($result);
   }
@@ -4793,7 +4704,7 @@ HTML;
       echo json_encode(['status' => 'ok', 'results' => []]);
       return;
     }
-    $this->db->select('ITS_ID, Full_Name, First_Name, Surname, Sector, Sub_Sector, Gender, HOF_FM_TYPE, Member_Type, Mobile');
+    $this->db->select('ITS_ID, Full_Name, First_Name, Surname, Sector, Sub_Sector, Gender, HOF_FM_TYPE, Mobile');
     $this->db->from('user');
     $this->db->group_start();
     $this->db->like('Full_Name', $q);
@@ -4815,7 +4726,6 @@ HTML;
         'sector'    => trim((string)($r['Sector'] ?? '') . ($r['Sub_Sector'] ? ' - ' . $r['Sub_Sector'] : '')),
         'gender'    => $r['Gender'] ?? '',
         'hof_type'  => $r['HOF_FM_TYPE'] ?? '',
-        'member_type' => $r['Member_Type'] ?? '',
         'mobile'    => $r['Mobile'] ?? '',
       ];
     }

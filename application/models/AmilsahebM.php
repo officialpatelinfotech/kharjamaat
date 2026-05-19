@@ -506,25 +506,14 @@ class AmilsahebM extends CI_Model
    */
   public function get_member_type_distribution()
   {
-    $sql = "
-      SELECT
-        SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'resident%' OR LOWER(TRIM(member_type)) LIKE 'permanent%' THEN 1 ELSE 0 END) AS resident,
-        SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'external%' THEN 1 ELSE 0 END) AS external,
-        SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'moved%' THEN 1 ELSE 0 END) AS moved_out,
-        SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'non-sabeel%' OR LOWER(TRIM(member_type)) LIKE 'non sabeel%' THEN 1 ELSE 0 END) AS non_sabeel,
-        SUM(CASE WHEN LOWER(TRIM(member_type)) LIKE 'temporary%' OR LOWER(TRIM(member_type)) LIKE 'visitor%' THEN 1 ELSE 0 END) AS temporary,
-        COUNT(*) AS total
-      FROM user
-    ";
-    $row = $this->db->query($sql)->row_array();
-    // Ensure integer values and defaults
+    $total = $this->db->count_all('user');
     return [
-      'resident'   => (int)($row['resident'] ?? 0),
-      'external'   => (int)($row['external'] ?? 0),
-      'moved_out'  => (int)($row['moved_out'] ?? 0),
-      'non_sabeel' => (int)($row['non_sabeel'] ?? 0),
-      'temporary'  => (int)($row['temporary'] ?? 0),
-      'total'      => (int)($row['total'] ?? 0),
+      'resident'   => 0,
+      'external'   => 0,
+      'moved_out'  => 0,
+      'non_sabeel' => 0,
+      'temporary'  => 0,
+      'total'      => $total,
     ];
   }
 
