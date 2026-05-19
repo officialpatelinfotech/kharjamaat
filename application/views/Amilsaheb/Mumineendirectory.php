@@ -55,13 +55,12 @@ table.dir thead th {
   border-bottom:2px solid #e2e8f0; white-space:nowrap;
   position:sticky; top:0; z-index:1; user-select:none;
 }
-/* Sortable header */
 th.sortable { cursor:pointer; }
 th.sortable:hover { background:#f1f5f9; color:#1e293b; }
-th.sortable .sort-icon { margin-left:4px; opacity:.35; font-size:.6rem; }
-th.sortable.asc  .sort-icon::after { content:'▲'; opacity:1; }
-th.sortable.desc .sort-icon::after { content:'▼'; opacity:1; }
-th.sortable:not(.asc):not(.desc) .sort-icon::after { content:'⇅'; }
+th.sortable .sort-icon { margin-left:4px; font-size:.6rem; }
+th.sortable.asc  .sort-icon::after { content:'▲'; }
+th.sortable.desc .sort-icon::after { content:'▼'; }
+th.sortable:not(.asc):not(.desc) .sort-icon::after { content:'⇅'; opacity:.4; }
 
 table.dir tbody tr { border-bottom:1px solid #f1f5f9; transition:background .1s; }
 table.dir tbody tr:hover { background:#f8fbff; }
@@ -72,7 +71,7 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
 
 .pill-hof { display:inline-block; background:#2563eb; color:#fff; font-size:.55rem; font-weight:800; padding:1px 6px; border-radius:40px; margin-left:4px; vertical-align:middle; }
 .pill-fm  { display:inline-block; background:#e0e7ff; color:#3730a3; font-size:.55rem; font-weight:700; padding:1px 6px; border-radius:40px; margin-left:4px; vertical-align:middle; }
-.badge-its { display:inline-block;  font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:4px; }
+.badge-its { display:inline-block; background:#0369a1; color:#fff; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:4px; }
 .badge-active   { display:inline-block; background:#dcfce7; color:#15803d; border:1px solid #86efac; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
 .badge-inactive { display:inline-block; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
 .badge-temp     { display:inline-block; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
@@ -83,14 +82,8 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
 .act-edit { background:#fef9c3; color:#92400e; }
 
 .empty-row td { text-align:center; padding:3rem; color:#94a3b8; font-size:.9rem; }
-
-/* Results bar */
 .results-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
 .results-count { font-size:.8rem; color:#64748b; font-weight:600; }
-
-/* Sort active indicator on th when sorting is active */
-th.sortable.asc .sort-icon,
-th.sortable.desc .sort-icon { opacity:1; }
 
 @media(max-width:992px) { .frow-6,.frow-4 { grid-template-columns:1fr 1fr 1fr; } }
 @media(max-width:768px)  { .frow-6,.frow-4 { grid-template-columns:1fr 1fr; } }
@@ -116,30 +109,21 @@ th.sortable.desc .sort-icon { opacity:1; }
   <!-- Filter card -->
   <div class="filters-card">
     <div class="filters-bar">
-  <div class="filters-bar-title">
-    <i class="fa fa-sliders"></i> FILTERS
-    <span id="countBadge"
-      style="margin-left:10px;font-size:.72rem;background:rgba(255,255,255,.15);
-      padding:3px 10px;border-radius:20px;font-weight:600;">
-    </span>
-  </div>
+      <div class="filters-bar-title">
+        <i class="fa fa-sliders"></i> FILTERS
+        <span id="countBadge" style="margin-left:10px;font-size:.72rem;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-weight:600;"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <button id="btnReset" class="btn btn-sm btn-outline-light" type="button"><i class="fa fa-refresh"></i> Reset</button>
+        <button id="btnToggle" class="btn btn-sm btn-outline-light" type="button"><i class="fa fa-chevron-down"></i> Show Filters</button>
+      </div>
+    </div>
 
-  <div style="display:flex;align-items:center;gap:.5rem;">
-    <button id="btnReset" class="btn btn-sm btn-outline-light" type="button">
-      <i class="fa fa-refresh"></i> Reset
-    </button>
-
-    <button id="btnToggle" class="btn btn-sm btn-outline-light" type="button">
-      <i class="fa fa-chevron-down"></i> Show Filters
-    </button>
-  </div>
-</div>
     <div id="filterBody" class="d-none">
       <form id="filtersForm" onsubmit="return false;" class="filters-body">
 
         <!-- Section 1: Search & Location -->
-        <div class="filter-section-label"><i class="fa fa-search" style="color:#3b82f6;"></i> Search & Location</div>
-        <!-- In dashboard mode this row becomes 5-col (Marital hidden) + injected filter fills slot 6 -->
+        <div class="filter-section-label"><i class="fa fa-search" style="color:#3b82f6;"></i> Search &amp; Location</div>
         <div class="frow frow-6" id="baseFilterRow">
           <div>
             <label class="flabel">Name or ITS</label>
@@ -164,18 +148,18 @@ th.sortable.desc .sort-icon { opacity:1; }
               <input type="number" id="fAgeMax" class="finput" placeholder="Max" min="0">
             </div>
           </div>
-          <!-- Marital Status: hidden in dashboard mode, shown in normal mode -->
+          <!-- Marital: hidden in dashboard mode -->
           <div id="maritalCol">
             <label class="flabel">Marital Status</label>
             <select id="fMarital" class="fselect"><option value="">All</option></select>
           </div>
-          <!-- Dashboard injected filter slot (empty in normal mode) -->
+          <!-- Dashboard injected filter appears here (hidden in normal mode) -->
           <div id="dashInlineSlot" style="display:none;"></div>
         </div>
 
-        <!-- Section 2: Member Status & Type -->
-        <div class="filter-section-label"><i class="fa fa-user" style="color:#8b5cf6;"></i> Member Details</div>
-        <div class="frow frow-4">
+        <!-- Section 2: Member Details -->
+        <div class="filter-section-label" id="secLabel2"><i class="fa fa-user" style="color:#8b5cf6;"></i> Member Details</div>
+        <div class="frow frow-4" id="secRow2">
           <div>
             <label class="flabel">Member Status</label>
             <select id="fStatus" class="fselect">
@@ -207,8 +191,8 @@ th.sortable.desc .sort-icon { opacity:1; }
         </div>
 
         <!-- Section 3: Status Filters -->
-        <div class="filter-section-label"><i class="fa fa-heartbeat" style="color:#ef4444;"></i> Status Filters</div>
-        <div class="frow frow-4">
+        <div class="filter-section-label" id="secLabel3"><i class="fa fa-heartbeat" style="color:#ef4444;"></i> Status Filters</div>
+        <div class="frow frow-4" id="secRow3">
           <div>
             <label class="flabel">Health Status</label>
             <select id="fHealth" class="fselect">
@@ -256,7 +240,6 @@ th.sortable.desc .sort-icon { opacity:1; }
           </div>
         </div>
 
-        
       </form>
     </div>
   </div>
@@ -302,16 +285,15 @@ th.sortable.desc .sort-icon { opacity:1; }
 
 <script>
 // ── Data ──────────────────────────────────────────────────────────────────────
-const ALL_DATA  = <?= json_encode(isset($all_users) ? $all_users : $users) ?>;
-const PAGE_DATA = <?= json_encode($users) ?>;
-const VIEW_URL  = '<?= base_url($view_base) ?>';
-const EDIT_URL  = '<?= base_url('admin/editmember/') ?>';
-const CAN_EDIT  = <?= $can_edit ? 'true' : 'false' ?>;
+const ALL_DATA = <?= json_encode(isset($all_users) ? $all_users : $users) ?>;
+const VIEW_URL = '<?= base_url($view_base) ?>';
+const EDIT_URL = '<?= base_url('admin/editmember/') ?>';
+const CAN_EDIT = <?= $can_edit ? 'true' : 'false' ?>;
 
 let filtered = [...ALL_DATA];
-let sortCol = null, sortDir = 'asc';
+let sortCol  = null, sortDir = 'asc';
 
-// ── ITS → Name map for HOF resolution ────────────────────────────────────────
+// ITS → name map for HOF resolution
 const itsMap = {};
 ALL_DATA.forEach(u => { const k = String(u.ITS_ID || u.ITS || ''); if (k) itsMap[k] = u.Full_Name || ''; });
 
@@ -319,7 +301,7 @@ ALL_DATA.forEach(u => { const k = String(u.ITS_ID || u.ITS || ''); if (k) itsMap
 fillSelects();
 readURLAndApply();
 
-// ── Fill selects from data ────────────────────────────────────────────────────
+// ── Fill selects ──────────────────────────────────────────────────────────────
 function fillSelects() {
   const sectors = new Set(), subs = new Set(), hofs = new Map(), marital = new Set(), mTypes = new Set();
   ALL_DATA.forEach(u => {
@@ -334,6 +316,7 @@ function fillSelects() {
 
   const fill = (id, items) => {
     const el = document.getElementById(id);
+    if (!el) return;
     items.forEach(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; el.appendChild(o); });
   };
   fill('fSector',     Array.from(sectors).sort().map(v => [v,v]));
@@ -347,7 +330,7 @@ function fillSelects() {
   pref.forEach(v => { if (rem.has(v)) { const o = document.createElement('option'); o.value = v; o.textContent = v; mEl.appendChild(o); rem.delete(v); } });
   Array.from(rem).sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; mEl.appendChild(o); });
 
-  // Sub-sector filters by sector
+  // Sub-sector cascades with sector
   document.getElementById('fSector').addEventListener('change', function() {
     const sel = this.value;
     const subEl = document.getElementById('fSubSector');
@@ -358,25 +341,24 @@ function fillSelects() {
   });
 }
 
-// ── Read URL params and set up dashboard mode ─────────────────────────────────
+// ── Read URL & apply dashboard mode ──────────────────────────────────────────
 function readURLAndApply() {
-  const p          = new URLSearchParams(window.location.search);
-  const legFilter  = (p.get('filter') || '').toLowerCase();
-  const legValue   = p.get('value') || '';
-  const statusP    = p.get('status') || '';
-  const itsMatchP  = p.get('its_sabeel_match') || '';
-  const minP       = p.get('min') || p.get('age_min') || '';
-  const maxP       = p.get('max') || p.get('age_max') || '';
-  const madresaP   = p.get('madresa_deprived') || '';
+  const p         = new URLSearchParams(window.location.search);
+  const legFilter = (p.get('filter') || '').toLowerCase();
+  const legValue  = p.get('value')  || '';
+  const statusP   = p.get('status') || '';
+  const itsMatchP = p.get('its_sabeel_match') || '';
+  const minP      = p.get('min') || p.get('age_min') || '';
+  const maxP      = p.get('max') || p.get('age_max') || '';
+  const madresaP  = p.get('madresa_deprived') || '';
 
-  // Detect dashboard origin
   const isDash = !!(
     (legFilter && legFilter !== 'all') || statusP || itsMatchP || madresaP || minP || maxP
   );
 
-  // Set filter values
-  setv('fName',    p.get('name')   || '');
-  setv('fSector',  p.get('sector') || '');
+  // Set base field values
+  setv('fName',   p.get('name')   || '');
+  setv('fSector', p.get('sector') || '');
   if (statusP)   setv('fStatus',   cap(statusP));
   if (itsMatchP) setv('fItsMatch', itsMatchP);
   if (minP) document.getElementById('fAgeMin').value = minP;
@@ -386,11 +368,13 @@ function readURLAndApply() {
   const form = document.getElementById('filtersForm');
   if (legFilter === 'gender')      form.dataset.gender    = legValue;
   if (legFilter === 'hof_fm_type') form.dataset.hofFmType = legValue;
-  if (madresaP) form.dataset.madresa = madresaP;
+  if (madresaP)                    form.dataset.madresa   = madresaP;
+
   if (legFilter === 'health_status')      setv('fHealth',      legValue);
   if (legFilter === 'deeni_status')       setv('fDeeni',       legValue);
   if (legFilter === 'residential_status') setv('fResidential', legValue);
   if (legFilter === 'sector')             setv('fSector',      legValue);
+
   if (!['','all','age_range','sector','gender','hof_fm_type','health_status','deeni_status','residential_status','its_sabeel_match'].includes(legFilter) && legValue) {
     form.dataset.legacyField = legFilter;
     form.dataset.legacyValue = legValue;
@@ -398,46 +382,45 @@ function readURLAndApply() {
 
   // ── Dashboard mode ────────────────────────────────────────────────────────
   if (isDash) {
-    // Hide the two extended sections (Member Details + Status Filters)
-    document.querySelectorAll('#filterBody .frow-4').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('#filterBody .filter-section-label').forEach((el, i) => { if (i > 0) el.style.display = 'none'; });
+    // Hide sections 2 and 3
+    document.getElementById('secLabel2').style.display = 'none';
+    document.getElementById('secRow2').style.display   = 'none';
+    document.getElementById('secLabel3').style.display = 'none';
+    document.getElementById('secRow3').style.display   = 'none';
 
-    // Hide Marital Status so row stays single-line, show inline slot instead
-    document.getElementById('maritalCol').style.display = 'none';
+    // Hide marital, show inline slot
+    document.getElementById('maritalCol').style.display    = 'none';
     document.getElementById('dashInlineSlot').style.display = '';
 
-    // Which select to inject into the 6th slot
+    // Which select to inject
     const dashMap = {
-      'status': 'fStatus', 'activity_status': 'fStatus',
-      'health_status': 'fHealth', 'deeni_status': 'fDeeni',
-      'residential_status': 'fResidential', 'gender': 'fGender',
-      'hof_fm_type': 'fHOFType', 'its_sabeel_match': 'fItsMatch',
+      'status':'fStatus', 'activity_status':'fStatus',
+      'health_status':'fHealth', 'deeni_status':'fDeeni',
+      'residential_status':'fResidential', 'gender':'fGender',
+      'hof_fm_type':'fHOFType', 'its_sabeel_match':'fItsMatch',
     };
-    let injectId = statusP ? 'fStatus' : itsMatchP ? 'fItsMatch' : (dashMap[legFilter] || null);
+    const injectId = statusP ? 'fStatus' : itsMatchP ? 'fItsMatch' : (dashMap[legFilter] || null);
 
     if (injectId) {
-      // Move the original select element (with its label) into the inline slot
       const orig = document.getElementById(injectId);
       if (orig) {
         const parentDiv = orig.closest('div');
-        const slot = document.getElementById('dashInlineSlot');
-        // Clone the label + select into the slot
-        const clone = parentDiv.cloneNode(true);
-        const cloneSel = clone.querySelector('select');
-        if (cloneSel) {
-          // Give clone a new id, hide original to avoid duplicate ids
-          orig.id = injectId + '_hidden';
-          cloneSel.id = injectId;
-          // Set the pre-selected value
-          const val = statusP ? cap(statusP) : itsMatchP ? itsMatchP : legValue;
-          cloneSel.value = val;
-          cloneSel.addEventListener('change', run);
+        if (parentDiv) {
+          const clone    = parentDiv.cloneNode(true);
+          const cloneSel = clone.querySelector('select');
+          if (cloneSel) {
+            // BUG FIX: rename original ID so getElementById always finds the visible clone
+            orig.id      = injectId + '_hidden';
+            cloneSel.id  = injectId;
+            const val    = statusP ? cap(statusP) : itsMatchP ? itsMatchP : legValue;
+            cloneSel.value = val;
+            cloneSel.addEventListener('change', run);
+          }
+          document.getElementById('dashInlineSlot').appendChild(clone);
         }
-        slot.appendChild(clone);
       }
     }
 
-    // Dashboard title
     setDashTitle(p);
   }
 
@@ -445,11 +428,11 @@ function readURLAndApply() {
 }
 
 function setDashTitle(p) {
-  const lf  = (p.get('filter') || '').toLowerCase();
-  const lv  = p.get('value')  || '';
-  const st  = p.get('status') || '';
-  const im  = p.get('its_sabeel_match') || '';
-  const mn  = p.get('min') || '', mx = p.get('max') || '';
+  const lf = (p.get('filter') || '').toLowerCase();
+  const lv = p.get('value')  || '';
+  const st = p.get('status') || '';
+  const im = p.get('its_sabeel_match') || '';
+  const mn = p.get('min') || '', mx = p.get('max') || '';
   const map = {
     'active':'Active Members','inactive':'Inactive Members',
     'its_sabeel_both_khar':'ITS & Sabeel both in Khar',
@@ -457,19 +440,19 @@ function setDashTitle(p) {
     'sabeel_khar_its_out':'Sabeel in Khar, ITS Outside',
     'both_not_khar':'Both not in Khar',
   };
-  let t = map[st.toLowerCase()] || map[im]
+  const t = map[st.toLowerCase()] || map[im]
     || (lf==='all'?'All Members':'')
     || (lf==='hof_fm_type'&&lv.toUpperCase()==='HOF'?'HOF Members':'')
     || (lf==='hof_fm_type'&&lv.toUpperCase()==='FM'?'Family Members':'')
     || (lf==='gender'&&lv.toLowerCase()==='male'?'Gents':'')
     || (lf==='gender'&&lv.toLowerCase()==='female'?'Ladies':'')
-    || (lf==='age_range'&&mn==='0'&&mx==='4'?'Age 0-4 yrs':'')
-    || (lf==='age_range'&&mn==='5'&&mx==='15'?'Age 5-15 yrs':'')
+    || (lf==='age_range'&&mn==='0' &&mx==='4' ?'Age 0-4 yrs':'')
+    || (lf==='age_range'&&mn==='5' &&mx==='15'?'Age 5-15 yrs':'')
     || (lf==='age_range'&&mn==='16'&&mx==='25'?'Age 16-25 yrs':'')
     || (lf==='age_range'&&mn==='26'&&mx==='65'?'Age 26-65 yrs':'')
     || (lf==='age_range'&&mn==='66'?'Above 65 yrs':'')
-    || (lf==='health_status'&&lv?'Health: '+lv:'')
-    || (lf==='deeni_status'&&lv?'Deeni: '+lv:'')
+    || (lf==='health_status'     &&lv?'Health: '+lv:'')
+    || (lf==='deeni_status'      &&lv?'Deeni: '+lv:'')
     || (lf==='residential_status'&&lv?'Residential: '+lv:'')
     || (lf&&lv?lf.replace(/_/g,' ')+': '+lv:'');
   if (t) {
@@ -485,100 +468,110 @@ function run() {
   const sub     = document.getElementById('fSubSector').value;
   const marital = document.getElementById('fMarital').value;
   const hof     = document.getElementById('fHOF').value;
-  const minVal  = document.getElementById('fAgeMin').value;
-  const maxVal  = document.getElementById('fAgeMax').value;
-  const ageMin  = minVal !== '' ? parseInt(minVal) : null;
-  const ageMax  = maxVal !== '' ? parseInt(maxVal) : null;
+  const ageMin  = document.getElementById('fAgeMin').value !== '' ? parseInt(document.getElementById('fAgeMin').value) : null;
+  const ageMax  = document.getElementById('fAgeMax').value !== '' ? parseInt(document.getElementById('fAgeMax').value) : null;
 
-  const status    = gv('fStatus');
-  const gender    = gv('fGender').toLowerCase();
-  const mType     = gv('fMemberType');
-  const hofType   = gv('fHOFType').toUpperCase();
-  const health    = gv('fHealth');
-  const deeni     = gv('fDeeni');
-  const resi      = gv('fResidential');
-  const itsMatch  = gv('fItsMatch');
+  // These may live in secRow2/3 (normal) OR in dashInlineSlot (dashboard)
+  // getElementById finds whichever has the real ID (original renamed to _hidden in dash mode)
+  const status   = gv('fStatus');
+  const gender   = gv('fGender').toLowerCase();
+  const mType    = gv('fMemberType');
+  const hofType  = gv('fHOFType').toUpperCase();
+  const health   = gv('fHealth');
+  const deeni    = gv('fDeeni');
+  const resi     = gv('fResidential');
+  const itsMatch = gv('fItsMatch');
 
-  const form = document.getElementById('filtersForm');
-  const dsGender    = (form.dataset.gender    || '').toLowerCase();
-  const dsHofFmType = (form.dataset.hofFmType || '').toUpperCase();
-  const dsMadresa   = form.dataset.madresa || '';
-  const dsLegField  = (form.dataset.legacyField || '').toLowerCase();
-  const dsLegValue  = form.dataset.legacyValue || '';
+  const form       = document.getElementById('filtersForm');
+  const dsGender   = (form.dataset.gender    || '').toLowerCase();
+  const dsHofType  = (form.dataset.hofFmType || '').toUpperCase();
+  const dsMadresa  = form.dataset.madresa    || '';
+  const dsLegField = (form.dataset.legacyField || '').toLowerCase();
+  const dsLegValue =  form.dataset.legacyValue || '';
 
   filtered = ALL_DATA.filter(u => {
+    // Name / ITS / Mobile search
     if (name) {
       const nm  = (u.Full_Name || '').toLowerCase();
       const its = String(u.ITS_ID || u.ITS || '').toLowerCase();
       const mob = (u.Mobile || '').toLowerCase();
       if (!nm.includes(name) && !its.includes(name) && !mob.includes(name)) return false;
     }
-    if (sector  && u.Sector    !== sector)    return false;
-    if (sub     && u.Sub_Sector !== sub)       return false;
+    if (sector  && u.Sector     !== sector)  return false;
+    if (sub     && u.Sub_Sector !== sub)      return false;
     if (marital && (u.Marital_Status || '').trim().toLowerCase() !== marital.toLowerCase()) return false;
     if (hof     && String(u.HOF_ID || u.HOF || '') !== hof) return false;
     if (ageMin !== null && (parseInt(u.Age) || 0) < ageMin) return false;
     if (ageMax !== null && (parseInt(u.Age) || 0) > ageMax) return false;
 
+    // Active / Inactive
     if (status) {
-      const inact  = (u.Inactive_Status || u.inactive_status || '').trim();
-      const act    = (u.activity_status || '').toLowerCase();
-      const isAct  = !inact && (!act || act === 'active');
+      const inact = (u.Inactive_Status || u.inactive_status || '').trim();
+      const act   = (u.activity_status || '').toLowerCase();
+      const isAct = !inact && (!act || act === 'active');
       if (status === 'Active'   && !isAct) return false;
       if (status === 'Inactive' &&  isAct) return false;
     }
+
+    // Gender (UI select OR dataset from URL)
     const wg = gender || dsGender;
     if (wg && (u.Gender || '').toLowerCase() !== wg) return false;
-    if (mType  && u.Member_Type !== mType) return false;
-    const wh = hofType || dsHofFmType;
+
+    if (mType && u.Member_Type !== mType) return false;
+
+    // HOF/FM type (UI select OR dataset from URL)
+    const wh = hofType || dsHofType;
     if (wh && (u.HOF_FM_TYPE || '').toUpperCase() !== wh) return false;
-    if (health  && (u.health_status      || '').trim() !== health)  return false;
-    if (deeni   && (u.deeni_status       || '').trim() !== deeni)   return false;
-    if (resi    && (u.residential_status || '').trim() !== resi)    return false;
-    if (itsMatch && (u.its_sabeel_match  || '')        !== itsMatch) return false;
-    if (dsMadresa && String(u.madresa_deprived || '') !== dsMadresa) return false;
+
+    if (health && (u.health_status      || '').trim() !== health)  return false;
+    if (deeni  && (u.deeni_status       || '').trim() !== deeni)   return false;
+    if (resi   && (u.residential_status || '').trim() !== resi)    return false;
+    if (itsMatch && (u.its_sabeel_match || '')         !== itsMatch) return false;
+
+    if (dsMadresa && String(u.madresa_deprived ?? '') !== dsMadresa) return false;
+
+    // Generic legacy field=value (e.g. Qualification, Occupation)
     if (dsLegField && dsLegValue) {
       const k = Object.keys(u).find(x => x.toLowerCase() === dsLegField);
-      if ((u[k] || '').toString().trim().toLowerCase() !== dsLegValue.toLowerCase()) return false;
+      if (!k || (u[k] || '').toString().trim().toLowerCase() !== dsLegValue.toLowerCase()) return false;
     }
+
     return true;
   });
 
-  if (sortCol) {
-    applySortToFiltered();
-  }
+  // Re-apply sort if active
+  if (sortCol) applySortToFiltered();
 
   renderTable();
   renderChips();
-  document.getElementById('countBadge').textContent = filtered.length + ' result' + (filtered.length !== 1 ? 's' : '');
-  document.getElementById('resultsCount').textContent = filtered.length + ' member' + (filtered.length !== 1 ? 's' : '') + ' found';
+
+  const n = filtered.length;
+  document.getElementById('countBadge').textContent  = n + ' result' + (n !== 1 ? 's' : '');
+  document.getElementById('resultsCount').textContent = n + ' member' + (n !== 1 ? 's' : '') + ' found';
 }
 
-// ── Apply current sort to filtered array (in-place) ───────────────────────────
+// ── Sort helper ───────────────────────────────────────────────────────────────
 function applySortToFiltered() {
   filtered.sort((a, b) => {
     let va, vb;
     if (sortCol === '_status') {
-      const statusOf = u => {
+      const st = u => {
         const inact = (u.Inactive_Status || u.inactive_status || '').trim();
         const act   = (u.activity_status || '').toLowerCase();
         return (!inact && (!act || act === 'active')) ? 'Active' : 'Inactive';
       };
-      va = statusOf(a); vb = statusOf(b);
-      if (va < vb) return sortDir === 'asc' ? -1 : 1;
-      if (va > vb) return sortDir === 'asc' ?  1 : -1;
-      return 0;
+      va = st(a); vb = st(b);
     } else if (sortCol === 'Age') {
-      va = parseInt(a.Age) || 0;
-      vb = parseInt(b.Age) || 0;
-      return sortDir === 'asc' ? va - vb : vb - va;
+      return sortDir === 'asc'
+        ? (parseInt(a.Age) || 0) - (parseInt(b.Age) || 0)
+        : (parseInt(b.Age) || 0) - (parseInt(a.Age) || 0);
     } else {
       va = (a[sortCol] || '').toString().toLowerCase();
       vb = (b[sortCol] || '').toString().toLowerCase();
-      if (va < vb) return sortDir === 'asc' ? -1 : 1;
-      if (va > vb) return sortDir === 'asc' ?  1 : -1;
-      return 0;
     }
+    if (va < vb) return sortDir === 'asc' ? -1 :  1;
+    if (va > vb) return sortDir === 'asc' ?  1 : -1;
+    return 0;
   });
 }
 
@@ -588,59 +581,61 @@ function renderTable() {
   tbody.innerHTML = '';
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="12"><i class="fa fa-search"></i> No members found matching the selected filters.</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="12"><i class="fa fa-search"></i> No members found.</td></tr>';
     return;
   }
 
-  // ── SORTED MODE: flat list, no HOF grouping ──────────────────────────────
+  // Helper to build a row's innerHTML
+  function rowHTML(u, rowNum) {
+    const isHOF = (u.HOF_FM_TYPE || '').toUpperCase() === 'HOF';
+    const act   = (u.activity_status || '').toLowerCase();
+    const inact = (u.Inactive_Status || u.inactive_status || '').trim();
+    const isAct = !inact && (!act || act === 'active');
+    const badge = isAct ? '<span class="badge-active">Active</span>'
+      : act === 'temporary' ? '<span class="badge-temp">Temporary</span>'
+      : '<span class="badge-inactive">Inactive</span>';
+
+    return `<td style="color:#9ca3af;font-weight:600;font-size:.78rem;">${rowNum}</td>` +
+      `<td><div style="font-weight:${isHOF?700:500};">${esc(u.Full_Name||'')}` +
+        (isHOF ? '<span class="pill-hof">HOF</span>' : '<span class="pill-fm">FM</span>') +
+      `</div></td>` +
+      `<td><span class="badge-its">${esc(String(u.ITS_ID||u.ITS||''))}</span></td>` +
+      `<td>${esc(u.Age||'—')}</td>` +
+      `<td style="text-transform:capitalize;">${esc(u.Gender||'—')}</td>` +
+      `<td><div style="font-size:.78rem;">${esc(u.Sector||'—')}</div><div style="font-size:.7rem;color:#9ca3af;">${esc(u.Sub_Sector||'')}</div></td>` +
+      `<td style="font-size:.78rem;">${esc(u.Mobile||'—')}</td>` +
+      `<td>${badge}</td>` +
+      `<td style="font-size:.75rem;">${esc(u.health_status||'—')}</td>` +
+      `<td style="font-size:.75rem;">${esc(u.deeni_status||'—')}</td>` +
+      `<td style="font-size:.75rem;">${esc(u.residential_status||'—')}</td>` +
+      `<td>` +
+        `<a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>` +
+        (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}" class="act-btn act-edit ms-1" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
+      `</td>`;
+  }
+
+  // Sorted mode: flat list (no HOF grouping, as order would conflict)
   if (sortCol) {
-    filtered.forEach((u, idx0) => {
-      const isHOF = (u.HOF_FM_TYPE || '').toUpperCase() === 'HOF';
-      const act   = (u.activity_status || '').toLowerCase();
-      const inact = (u.Inactive_Status || u.inactive_status || '').trim();
-      const isAct = !inact && (!act || act === 'active');
-      const badge = isAct ? '<span class="badge-active">Active</span>'
-        : act === 'temporary' ? '<span class="badge-temp">Temporary</span>'
-        : '<span class="badge-inactive">Inactive</span>';
-
+    filtered.forEach((u, i) => {
       const tr = tbody.insertRow();
-      if (isHOF) tr.className = 'hof-row';
-
-      tr.innerHTML =
-        `<td style="color:#9ca3af;font-weight:600;font-size:.78rem;">${idx0 + 1}</td>` +
-        `<td>` +
-          `<div style="font-weight:${isHOF?700:500};">${esc(u.Full_Name||'')}` +
-          (isHOF ? '<span class="pill-hof">HOF</span>' : '<span class="pill-fm">FM</span>') +
-          `</div>` +
-        `</td>` +
-        `<td><span class="badge-its">${esc(String(u.ITS_ID||u.ITS||''))}</span></td>` +
-        `<td>${esc(u.Age||'—')}</td>` +
-        `<td style="text-transform:capitalize;">${esc(u.Gender||'—')}</td>` +
-        `<td><div style="font-size:.78rem;">${esc(u.Sector||'—')}</div><div style="font-size:.7rem;color:#9ca3af;">${esc(u.Sub_Sector||'')}</div></td>` +
-        `<td style="font-size:.78rem;">${esc(u.Mobile||'—')}</td>` +
-        `<td>${badge}</td>` +
-        `<td style="font-size:.75rem;">${esc(u.health_status||'—')}</td>` +
-        `<td style="font-size:.75rem;">${esc(u.deeni_status||'—')}</td>` +
-        `<td style="font-size:.75rem;">${esc(u.residential_status||'—')}</td>` +
-        `<td>` +
-          `<a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>` +
-          (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}" class="act-btn act-edit ms-1" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
-        `</td>`;
+      if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') tr.className = 'hof-row';
+      tr.innerHTML = rowHTML(u, i + 1);
     });
     return;
   }
 
-  // ── DEFAULT MODE: grouped by HOF family ──────────────────────────────────
+  // Default mode: grouped by HOF family
   const groups = {}, order = [];
   filtered.forEach(u => {
     const hid = (u.HOF_ID || u.HOF || u.ITS_ID || '').toString();
-    if (!groups[hid]) { groups[hid] = { hid, hname: itsMap[hid] || u.HOF_Name || hid, members: [] }; order.push(hid); }
+    if (!groups[hid]) { groups[hid] = { hid, hname: itsMap[hid] || u.HOF_Name || hid, members:[] }; order.push(hid); }
     groups[hid].members.push(u);
   });
   const seen = new Set();
-  const sortedGroups = order.filter(k => { if (seen.has(k)) return false; seen.add(k); return true; })
+  const sortedGroups = order
+    .filter(k => { if (seen.has(k)) return false; seen.add(k); return true; })
     .map(k => groups[k])
-    .sort((a, b) => (a.hname || '').localeCompare(b.hname || ''));
+    .sort((a, b) => (a.hname||'').localeCompare(b.hname||''));
 
   let idx = 1;
   sortedGroups.forEach((grp, gi) => {
@@ -650,43 +645,19 @@ function renderTable() {
       sep.innerHTML = '<td colspan="12"></td>';
     }
     grp.members.forEach(u => {
-      const isHOF = (u.HOF_FM_TYPE || '').toUpperCase() === 'HOF';
-      const act   = (u.activity_status || '').toLowerCase();
-      const inact = (u.Inactive_Status || u.inactive_status || '').trim();
-      const isAct = !inact && (!act || act === 'active');
-      const badge = isAct ? '<span class="badge-active">Active</span>'
-        : act === 'temporary' ? '<span class="badge-temp">Temporary</span>'
-        : '<span class="badge-inactive">Inactive</span>';
-
       const tr = tbody.insertRow();
-      if (isHOF) tr.className = 'hof-row';
-
-      tr.innerHTML =
-        `<td style="color:#9ca3af;font-weight:600;font-size:.78rem;">${idx++}</td>` +
-        `<td>` +
-          `<div style="font-weight:${isHOF?700:500};">${esc(u.Full_Name||'')}` +
-          (isHOF ? '<span class="pill-hof">HOF</span>' : '<span class="pill-fm">FM</span>') +
-          `</div>` +        `</td>` +
-        `<td><span class="badge-its">${esc(String(u.ITS_ID||u.ITS||''))}</span></td>` +
-        `<td>${esc(u.Age||'—')}</td>` +
-        `<td style="text-transform:capitalize;">${esc(u.Gender||'—')}</td>` +
-        `<td><div style="font-size:.78rem;">${esc(u.Sector||'—')}</div><div style="font-size:.7rem;color:#9ca3af;">${esc(u.Sub_Sector||'')}</div></td>` +
-        `<td style="font-size:.78rem;">${esc(u.Mobile||'—')}</td>` +
-        `<td>${badge}</td>` +
-        `<td style="font-size:.75rem;">${esc(u.health_status||'—')}</td>` +
-        `<td style="font-size:.75rem;">${esc(u.deeni_status||'—')}</td>` +
-        `<td style="font-size:.75rem;">${esc(u.residential_status||'—')}</td>` +
-        `<td>` +
-          `<a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>` +
-          (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}" class="act-btn act-edit ms-1" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
-        `</td>`;
+      if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') tr.className = 'hof-row';
+      tr.innerHTML = rowHTML(u, idx++);
     });
   });
 }
 
 // ── Chips ─────────────────────────────────────────────────────────────────────
 function renderChips() {
-  const ITS_L = { its_sabeel_both_khar:'ITS & Sabeel in Khar', its_khar_sabeel_out:'ITS in Khar', sabeel_khar_its_out:'Sabeel in Khar', both_not_khar:'Both Not in Khar' };
+  const ITS_L = {
+    its_sabeel_both_khar:'ITS & Sabeel in Khar', its_khar_sabeel_out:'ITS in Khar',
+    sabeel_khar_its_out:'Sabeel in Khar', both_not_khar:'Both Not in Khar',
+  };
   const defs = [
     ['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],
     ['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],
@@ -697,11 +668,12 @@ function renderChips() {
   const row = document.getElementById('chipRow');
   row.innerHTML = '';
   let any = false;
+
   defs.forEach(([id, label]) => {
     const el = document.getElementById(id);
     if (!el || !el.value) return;
     any = true;
-    const display = id === 'fHOF' ? (el.options[el.selectedIndex]?.text || el.value)
+    const display = id === 'fHOF'      ? (el.options[el.selectedIndex]?.text || el.value)
                   : id === 'fItsMatch' ? (ITS_L[el.value] || el.value)
                   : el.value;
     const chip = document.createElement('span');
@@ -709,6 +681,7 @@ function renderChips() {
     chip.innerHTML = `<b>${esc(label)}:</b>&nbsp;${esc(display)} <span class="chip-x" data-id="${id}">&times;</span>`;
     row.appendChild(chip);
   });
+
   if (any) {
     const cl = document.createElement('span');
     cl.className = 'chip-clear';
@@ -716,8 +689,13 @@ function renderChips() {
     cl.onclick = resetAll;
     row.appendChild(cl);
   }
+
+  // BUG FIX: re-attach chip-x listeners after every render
   row.querySelectorAll('.chip-x').forEach(x => {
-    x.addEventListener('click', () => { const el = document.getElementById(x.dataset.id); if (el) { el.value = ''; run(); } });
+    x.addEventListener('click', () => {
+      const el = document.getElementById(x.dataset.id);
+      if (el) { el.value = ''; run(); }
+    });
   });
 }
 
@@ -727,15 +705,13 @@ function resetAll() {
   const form = document.getElementById('filtersForm');
   ['gender','hofFmType','madresa','legacyField','legacyValue'].forEach(k => delete form.dataset[k]);
 
-  // Restore renamed IDs
-  document.querySelectorAll('[id$="_hidden"]').forEach(el => { el.id = el.id.replace('_hidden',''); });
+  // BUG FIX: restore renamed _hidden IDs back to originals
+  document.querySelectorAll('[id$="_hidden"]').forEach(el => { el.id = el.id.replace('_hidden', ''); });
 
-  // Restore all hidden filter sections
-  document.querySelectorAll('#filterBody .frow-4').forEach(el => el.style.display = '');
-  document.querySelectorAll('#filterBody .filter-section-label').forEach(el => el.style.display = '');
-
-  // Restore marital column, clear inline slot
-  document.getElementById('maritalCol').style.display = '';
+  // Restore hidden sections
+  ['secLabel2','secRow2','secLabel3','secRow3','maritalCol'].forEach(id => {
+    document.getElementById(id).style.display = '';
+  });
   const slot = document.getElementById('dashInlineSlot');
   slot.style.display = 'none';
   slot.innerHTML = '';
@@ -749,20 +725,26 @@ function resetAll() {
   history.replaceState(null, '', window.location.pathname);
   filtered = [...ALL_DATA];
   renderTable();
-  document.getElementById('resultsCount').textContent = filtered.length + ' members';
-  document.getElementById('countBadge').textContent = '';
+  const n = filtered.length;
+  document.getElementById('resultsCount').textContent = n + ' members';
+  document.getElementById('countBadge').textContent   = '';
 }
 
 // ── Export CSV ────────────────────────────────────────────────────────────────
 function exportCSV() {
   if (!filtered.length) { alert('No data to export.'); return; }
-  const preferred = ['ITS_ID','Full_Name','Age','Gender','Sector','Sub_Sector','Mobile','Email','Marital_Status','HOF_FM_TYPE','Member_Type','activity_status','health_status','deeni_status','residential_status','its_sabeel_match','Qualification','Occupation','Address','Vatan'];
-  const extra = new Set(); filtered.forEach(r => Object.keys(r).forEach(k => { if (!preferred.includes(k)) extra.add(k); }));
+  const preferred = ['ITS_ID','Full_Name','Age','Gender','Sector','Sub_Sector','Mobile','Email',
+    'Marital_Status','HOF_FM_TYPE','Member_Type','activity_status','health_status',
+    'deeni_status','residential_status','its_sabeel_match','Qualification','Occupation','Address','Vatan'];
+  const extra = new Set();
+  filtered.forEach(r => Object.keys(r).forEach(k => { if (!preferred.includes(k)) extra.add(k); }));
   const headers = [...preferred, ...Array.from(extra)];
   let csv = headers.map(h => '"' + h + '"').join(',') + '\n';
-  filtered.forEach(row => { csv += headers.map(h => '"' + (row[h] ?? '').toString().replace(/"/g,'""') + '"').join(',') + '\n'; });
+  filtered.forEach(row => {
+    csv += headers.map(h => '"' + (row[h] ?? '').toString().replace(/"/g, '""') + '"').join(',') + '\n';
+  });
   const link = document.createElement('a');
-  link.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}));
+  link.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'}));
   link.download = 'mumineen_' + new Date().toISOString().slice(0,10) + '.csv';
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
@@ -770,36 +752,37 @@ function exportCSV() {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function gv(id) { const el = document.getElementById(id); return el ? el.value : ''; }
-function setv(id, val) { const el = document.getElementById(id); if (el && val) el.value = val; }
+function setv(id, val) { const el = document.getElementById(id); if (el && val !== null && val !== undefined) el.value = val; }
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''; }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
-['fSector','fSubSector','fMarital','fHOF','fStatus','fGender','fMemberType','fHOFType','fHealth','fDeeni','fResidential','fItsMatch']
-  .forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', run); });
-['fName','fAgeMin','fAgeMax']
-  .forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', run); });
+['fSector','fSubSector','fMarital','fHOF','fStatus','fGender','fMemberType',
+ 'fHOFType','fHealth','fDeeni','fResidential','fItsMatch'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', run);
+});
+['fName','fAgeMin','fAgeMax'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', run);
+});
 
 document.getElementById('btnReset').addEventListener('click', resetAll);
 
-// Toggle filter panel (default hidden)
 document.getElementById('btnToggle').addEventListener('click', function() {
-  const body = document.getElementById('filterBody');
-  const willShow = body.classList.toggle('d-none');
-  this.innerHTML = willShow
+  const body     = document.getElementById('filterBody');
+  const willHide = !body.classList.contains('d-none');
+  body.classList.toggle('d-none');
+  this.innerHTML = willHide
     ? '<i class="fa fa-chevron-down"></i> Show Filters'
     : '<i class="fa fa-chevron-up"></i> Hide Filters';
 });
 
-// ── Sorting ───────────────────────────────────────────────────────────────────
+// ── Column sorting ────────────────────────────────────────────────────────────
 document.querySelectorAll('th.sortable').forEach(th => {
   th.addEventListener('click', function() {
     const col = this.dataset.col;
-    if (sortCol === col) {
-      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortCol = col;
-      sortDir = 'asc';
-    }
+    sortDir = (sortCol === col && sortDir === 'asc') ? 'desc' : 'asc';
+    sortCol = col;
     document.querySelectorAll('th.sortable').forEach(t => t.classList.remove('asc','desc'));
     this.classList.add(sortDir);
     applySortToFiltered();
