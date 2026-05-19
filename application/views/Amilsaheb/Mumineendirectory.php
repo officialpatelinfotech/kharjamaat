@@ -35,8 +35,6 @@
 .age-row { display:flex; gap:.4rem; }
 .age-row .finput { flex:1; }
 
-.filters-actions { display:flex; align-items:center; gap:.5rem; padding-top:.25rem; border-top:1px solid #f1f5f9; margin-top:.5rem; }
-
 /* Chips */
 #chipRow { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:.75rem; }
 .chip { display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:40px; padding:3px 10px; font-size:.72rem; font-weight:700; }
@@ -74,7 +72,7 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
 
 .pill-hof { display:inline-block; background:#2563eb; color:#fff; font-size:.55rem; font-weight:800; padding:1px 6px; border-radius:40px; margin-left:4px; vertical-align:middle; }
 .pill-fm  { display:inline-block; background:#e0e7ff; color:#3730a3; font-size:.55rem; font-weight:700; padding:1px 6px; border-radius:40px; margin-left:4px; vertical-align:middle; }
-.badge-its { display:inline-block; background:#0369a1; color:#fff; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:4px; }
+.badge-its { display:inline-block;  font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:4px; }
 .badge-active   { display:inline-block; background:#dcfce7; color:#15803d; border:1px solid #86efac; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
 .badge-inactive { display:inline-block; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
 .badge-temp     { display:inline-block; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
@@ -118,9 +116,24 @@ th.sortable.desc .sort-icon { opacity:1; }
   <!-- Filter card -->
   <div class="filters-card">
     <div class="filters-bar">
-      <div class="filters-bar-title"><i class="fa fa-sliders"></i> FILTERS</div>
-      <button id="btnToggle" class="btn btn-sm btn-outline-light" type="button"><i class="fa fa-chevron-down"></i> Show Filters</button>
-    </div>
+  <div class="filters-bar-title">
+    <i class="fa fa-sliders"></i> FILTERS
+    <span id="countBadge"
+      style="margin-left:10px;font-size:.72rem;background:rgba(255,255,255,.15);
+      padding:3px 10px;border-radius:20px;font-weight:600;">
+    </span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:.5rem;">
+    <button id="btnReset" class="btn btn-sm btn-outline-light" type="button">
+      <i class="fa fa-refresh"></i> Reset
+    </button>
+
+    <button id="btnToggle" class="btn btn-sm btn-outline-light" type="button">
+      <i class="fa fa-chevron-down"></i> Show Filters
+    </button>
+  </div>
+</div>
     <div id="filterBody" class="d-none">
       <form id="filtersForm" onsubmit="return false;" class="filters-body">
 
@@ -243,10 +256,7 @@ th.sortable.desc .sort-icon { opacity:1; }
           </div>
         </div>
 
-        <div class="filters-actions">
-          <button id="btnReset" class="btn btn-outline-secondary btn-sm">&#8635; Reset All</button>
-          <span id="countBadge" style="font-size:.78rem; color:#64748b; font-weight:600;"></span>
-        </div>
+        
       </form>
     </div>
   </div>
@@ -602,7 +612,6 @@ function renderTable() {
           `<div style="font-weight:${isHOF?700:500};">${esc(u.Full_Name||'')}` +
           (isHOF ? '<span class="pill-hof">HOF</span>' : '<span class="pill-fm">FM</span>') +
           `</div>` +
-          `<div style="font-size:.7rem;color:#9ca3af;">${esc(u.Vatan||'')}</div>` +
         `</td>` +
         `<td><span class="badge-its">${esc(String(u.ITS_ID||u.ITS||''))}</span></td>` +
         `<td>${esc(u.Age||'—')}</td>` +
@@ -657,9 +666,7 @@ function renderTable() {
         `<td>` +
           `<div style="font-weight:${isHOF?700:500};">${esc(u.Full_Name||'')}` +
           (isHOF ? '<span class="pill-hof">HOF</span>' : '<span class="pill-fm">FM</span>') +
-          `</div>` +
-          `<div style="font-size:.7rem;color:#9ca3af;">${esc(u.Vatan||'')}</div>` +
-        `</td>` +
+          `</div>` +        `</td>` +
         `<td><span class="badge-its">${esc(String(u.ITS_ID||u.ITS||''))}</span></td>` +
         `<td>${esc(u.Age||'—')}</td>` +
         `<td style="text-transform:capitalize;">${esc(u.Gender||'—')}</td>` +
