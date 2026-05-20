@@ -740,10 +740,18 @@ class AmilsahebM extends CI_Model
 
   public function get_active_inactive_counts()
   {
+    if ($this->has_activity_status) {
+      $active_cond = "((u.inactive_status IS NULL OR u.inactive_status = '') AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = ''))";
+      $inactive_cond = "((u.inactive_status IS NOT NULL AND u.inactive_status != '') OR (u.activity_status != 'active' AND u.activity_status IS NOT NULL AND u.activity_status != ''))";
+    } else {
+      $active_cond = "(u.inactive_status IS NULL OR u.inactive_status = '')";
+      $inactive_cond = "(u.inactive_status IS NOT NULL AND u.inactive_status != '')";
+    }
+
     $sql = "
       SELECT 
-        SUM(CASE WHEN u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '' THEN 1 ELSE 0 END) as active,
-        SUM(CASE WHEN u.activity_status = 'inactive' OR u.activity_status = 'temporary' THEN 1 ELSE 0 END) as inactive,
+        SUM(CASE WHEN {$active_cond} THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN {$inactive_cond} THEN 1 ELSE 0 END) as inactive,
         SUM(CASE WHEN u.its_sabeel_match = 'its_sabeel_both_khar' THEN 1 ELSE 0 END) as its_sabeel_both_khar,
         SUM(CASE WHEN u.its_sabeel_match = 'both_not_khar' THEN 1 ELSE 0 END) as both_not_khar,
         SUM(CASE WHEN u.its_sabeel_match = 'sabeel_khar_its_out' THEN 1 ELSE 0 END) as sabeel_khar_its_out,
