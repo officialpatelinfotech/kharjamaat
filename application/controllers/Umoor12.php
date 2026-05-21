@@ -243,11 +243,12 @@ class Umoor12 extends CI_Controller
           }
 
           if ($laagatRow && !empty($laagatRow['id'])) {
+            $invoiceAmount = $this->LaagatRentM->get_amount_for_user($laagatRow['id'], $userId);
             $invoiceData = [
               'user_id' => $userId,
               'laagat_rent_id' => $laagatRow['id'],
               'raza_id' => $check,
-              'amount' => $laagatRow['amount'],
+              'amount' => $invoiceAmount,
               'created_at' => date('Y-m-d H:i:s')
             ];
             $this->db->insert('laagat_rent_invoices', $invoiceData);

@@ -320,6 +320,18 @@ class LaagatRentM extends CI_Model
             }
         }
 
+        if ($insertId > 0 && isset($payload['grade_amounts']) && is_array($payload['grade_amounts'])) {
+            foreach ($payload['grade_amounts'] as $gradeId => $amount) {
+                if ($amount !== '' && $amount !== null) {
+                    $this->db->insert('laagat_rent_grade_amounts', [
+                        'laagat_rent_id' => $insertId,
+                        'sabeel_takhmeen_grade_id' => (int)$gradeId,
+                        'amount' => (float)$amount
+                    ]);
+                }
+            }
+        }
+
         $this->db->trans_complete();
 
         if ($this->db->trans_status() === FALSE || $insertId <= 0) {
@@ -382,6 +394,20 @@ class LaagatRentM extends CI_Model
                     'laagat_rent_id' => $id,
                     'raza_type_id' => (int)$rid,
                 ]);
+            }
+        }
+
+        $this->db->where('laagat_rent_id', $id);
+        $this->db->delete('laagat_rent_grade_amounts');
+        if (isset($payload['grade_amounts']) && is_array($payload['grade_amounts'])) {
+            foreach ($payload['grade_amounts'] as $gradeId => $amount) {
+                if ($amount !== '' && $amount !== null) {
+                    $this->db->insert('laagat_rent_grade_amounts', [
+                        'laagat_rent_id' => $id,
+                        'sabeel_takhmeen_grade_id' => (int)$gradeId,
+                        'amount' => (float)$amount
+                    ]);
+                }
             }
         }
 
@@ -644,5 +670,57 @@ class LaagatRentM extends CI_Model
         $this->db->join('raza r', 'r.id = i.raza_id', 'left');
         $this->db->where('p.id', $id);
         return $this->db->get()->row_array();
+    }
+
+    public function get_grade_amounts_for_year($year, $laagatRentId = 0)
+    {
+        $this->db->from('sabeel_takhmeen_grade g');
+        if ($laagatRentId > 0) {
+            $this->db->select('g.id as sabeel_takhmeen_grade_id, g.grade, g.amount as default_amount, ga.amount as saved_amount');
+            $this->db->join('laagat_rent_grade_amounts ga', 'ga.sabeel_takhmeen_grade_id = g.id AND ga.laagat_rent_id = ' . (int)$laagatRentId, 'left');
+        } else {
+            $this->db->select('g.id as sabeel_takhmeen_grade_id, g.grade, g.amount as default_amount, NULL as saved_amount', false);
+        }
+        $this->db->where('g.type', 'Residential');
+        $this->db->where('g.year', $year);
+        $this->db->order_by('g.grade ASC');
+        return $this->db->get()->result_array();
+    }
+
+    public function get_amount_for_user($laagatRentId, $userId)
+    {
+        $laagatRentId = (int)$laagatRentId;
+        $userId = (int)$userId;
+        if ($laagatRentId <= 0 || $userId <= 0) return 0.00;
+
+        $lr = $this->db->select('hijri_year, amount')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+        if (!$lr) return 0.00;
+
+        $hijriYear = $lr['hijri_year'];
+        $masterAmount = (float)$lr['amount'];
+
+        $takhmeen = $this->db->select('residential_grade')
+            ->from('sabeel_takhmeen')
+            ->where('user_id', $userId)
+            ->where('year', $hijriYear)
+            ->get()
+            ->row_array();
+
+        if ($takhmeen && !empty($takhmeen['residential_grade'])) {
+            $gradeId = (int)$takhmeen['residential_grade'];
+
+            $gradeAmountRow = $this->db->select('amount')
+                ->from('laagat_rent_grade_amounts')
+                ->where('laagat_rent_id', $laagatRentId)
+                ->where('sabeel_takhmeen_grade_id', $gradeId)
+                ->get()
+                ->row_array();
+
+            if ($gradeAmountRow && $gradeAmountRow['amount'] !== null) {
+                return (float)$gradeAmountRow['amount'];
+            }
+        }
+
+        return $masterAmount;
     }
 }

@@ -81,18 +81,6 @@
           </select>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label" for="lr_amount">Amount:</label>
-          <input
-            type="number"
-            min="0"
-            class="form-control"
-            id="lr_amount"
-            name="amount"
-            value="<?php echo htmlspecialchars(isset($form['amount']) ? (string)$form['amount'] : ''); ?>"
-            required
-          />
-        </div>
 
         <div class="mb-3">
           <label class="form-label" for="lr_raza_type_name">Applicable Raza Categories</label>
@@ -131,6 +119,22 @@
           
         </div>
 
+        <div id="lr_grade_amounts_section" class="mb-3" style="display: none;">
+          <label class="form-label font-weight-bold">Grade-based Amounts (Residential)</label>
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped bg-white shadow-sm">
+              <thead class="thead-light">
+                <tr>
+                  <th scope="col" style="width: 50%;">Grade</th>
+                  <th scope="col" style="width: 50%;">Laagat/Rent Amount</th>
+                </tr>
+              </thead>
+              <tbody id="lr_grade_amounts_tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <button type="submit" class="btn btn-primary">Save</button>
         <?php if (!empty($form['id'])) : ?>
           <a class="btn btn-outline-secondary ml-2" href="<?php echo site_url('admin/laagat/manage'); ?>">Cancel</a>
@@ -159,6 +163,12 @@
     var nameToId = {};
     var currentFetch = null;
     var selectedIds = {};
+    var laagatRentId = (form.querySelector('input[name="id"]').value || '').trim();
+    var gradeAmountsSection = document.getElementById('lr_grade_amounts_section');
+    var gradeAmountsTbody = document.getElementById('lr_grade_amounts_tbody');
+    var isInitializing = true;
+    var lastFetchedYear = '';
+    var activeGrades = [];
 
     function postFormForDupCheck() {
       if (!dupCheckUrl) return Promise.resolve({ success: true, exists: false });
@@ -242,6 +252,9 @@
       selectedIds = {};
       while (selectedWrap.firstChild) selectedWrap.removeChild(selectedWrap.firstChild);
       while (hiddenInputsWrap.firstChild) hiddenInputsWrap.removeChild(hiddenInputsWrap.firstChild);
+      if (!isInitializing) {
+        updateGradeAmounts();
+      }
     }
 
     function addSelected(id, name) {
@@ -273,6 +286,10 @@
       hidden.name = 'raza_type_ids[]';
       hidden.value = String(id);
       hiddenInputsWrap.appendChild(hidden);
+
+      if (!isInitializing) {
+        updateGradeAmounts();
+      }
     }
 
     function removeSelected(id) {
@@ -289,6 +306,10 @@
         if (parseInt(inputs[i].value, 10) === id) {
           inputs[i].parentNode.removeChild(inputs[i]);
         }
+      }
+
+      if (!isInitializing) {
+        updateGradeAmounts();
       }
     }
 
@@ -329,6 +350,91 @@
           .then(function(resp) { if (resp && resp.success) renderOptions(resp.items || []); });
       }
     }
+
+    function updateGradeAmounts() {
+      var year = (hijriYearSelect.value || '').trim();
+      var hasCategories = Object.keys(selectedIds).length > 0;
+
+      if (!year || !hasCategories) {
+        if (gradeAmountsSection) gradeAmountsSection.style.display = 'none';
+        if (gradeAmountsTbody) gradeAmountsTbody.innerHTML = '';
+        activeGrades = [];
+        lastFetchedYear = '';
+        return;
+      }
+
+      // If the year is the same, we just need to ensure the section is visible
+      if (year === lastFetchedYear) {
+        if (gradeAmountsSection) gradeAmountsSection.style.display = 'block';
+        return;
+      }
+
+      var url = '<?php echo site_url('admin/laagat_get_grade_amounts'); ?>' + '?year=' + encodeURIComponent(year) + '&laagat_rent_id=' + encodeURIComponent(laagatRentId);
+      
+      var handleResponse = function(resp) {
+        if (resp && resp.success) {
+          lastFetchedYear = year;
+          activeGrades = resp.grades || [];
+          renderGradeInputs(activeGrades);
+        }
+      };
+
+      if (window.$ && $.getJSON) {
+        $.getJSON(url, handleResponse);
+      } else if (window.fetch) {
+        window.fetch(url, { credentials: 'same-origin' })
+          .then(function(r) { return r.json(); })
+          .then(handleResponse);
+      }
+    }
+
+    function renderGradeInputs(grades) {
+      if (!gradeAmountsTbody) return;
+      gradeAmountsTbody.innerHTML = '';
+
+      if (!grades || grades.length === 0) {
+        gradeAmountsTbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No Residential Grades found for this Hijri Year.</td></tr>';
+        if (gradeAmountsSection) gradeAmountsSection.style.display = 'block';
+        return;
+      }
+
+      for (var i = 0; i < grades.length; i++) {
+        var g = grades[i];
+        var tr = document.createElement('tr');
+
+        // Column 1: Grade
+        var tdGrade = document.createElement('td');
+        tdGrade.className = 'align-middle font-weight-bold';
+        tdGrade.appendChild(document.createTextNode('Grade ' + g.grade));
+        tr.appendChild(tdGrade);
+
+        // Column 2: Amount Input
+        var tdInput = document.createElement('td');
+        var input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.step = '0.01';
+        input.className = 'form-control lr-grade-amount-input';
+        input.id = 'lr_grade_' + g.sabeel_takhmeen_grade_id;
+        input.name = 'grade_amounts[' + g.sabeel_takhmeen_grade_id + ']';
+        input.required = true;
+        
+        var val = (g.saved_amount !== null && g.saved_amount !== undefined) ? g.saved_amount : '';
+        input.value = val;
+        input.placeholder = '0.00';
+
+        tdInput.appendChild(input);
+        tr.appendChild(tdInput);
+
+        gradeAmountsTbody.appendChild(tr);
+      }
+
+      if (gradeAmountsSection) gradeAmountsSection.style.display = 'block';
+    }
+
+    hijriYearSelect.addEventListener('change', function() {
+      updateGradeAmounts();
+    });
 
     typeSelect.addEventListener('change', function() {
       inputName.value = '';
@@ -378,6 +484,8 @@
     } else {
       initSelectedFromDom();
     }
+    isInitializing = false;
+    updateGradeAmounts();
     fetchOptions('');
   })();
 </script>

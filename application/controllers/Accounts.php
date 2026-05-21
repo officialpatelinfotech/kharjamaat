@@ -2739,9 +2739,12 @@ class Accounts extends CI_Controller
       ]));
     }
 
+    $userId = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_ID'] : $_SESSION['user']['username'];
+    $amount = $this->LaagatRentM->get_amount_for_user($row['id'], $userId);
+
     return $this->output->set_content_type('application/json')->set_output(json_encode([
       'success' => true,
-      'amount' => isset($row['amount']) ? (float)$row['amount'] : 0,
+      'amount' => $amount,
       'charge_type' => (string)$row['charge_type'],
       'hijri_year' => (string)$row['hijri_year'],
       'title' => (string)($row['title'] ?? ''),
@@ -3448,11 +3451,12 @@ class Accounts extends CI_Controller
           }
 
           if ($laagatRow && !empty($laagatRow['id'])) {
+            $invoiceAmount = $this->LaagatRentM->get_amount_for_user($laagatRow['id'], $userId);
             $invoiceData = [
               'user_id' => $userId,
               'laagat_rent_id' => $laagatRow['id'],
               'raza_id' => $check,
-              'amount' => $laagatRow['amount'],
+              'amount' => $invoiceAmount,
               'created_at' => date('Y-m-d H:i:s')
             ];
             $this->db->insert('laagat_rent_invoices', $invoiceData);

@@ -191,6 +191,9 @@ class Admin extends CI_Controller
     $hijriYear = trim((string)$this->input->post('hijri_year'));
     $chargeType = strtolower(trim((string)$this->input->post('charge_type')));
     $amountRaw = $this->input->post('amount');
+    if ($amountRaw === null || $amountRaw === '') {
+      $amountRaw = '0.00';
+    }
     $postedRazaTypeIds = $this->input->post('raza_type_ids');
     if (!is_array($postedRazaTypeIds)) {
       $postedRazaTypeIds = [];
@@ -223,10 +226,15 @@ class Admin extends CI_Controller
     }
 
     if (!$valid) {
-      $_SESSION['laagat_flash_error'] = 'Please fill Title, Hijri Year, Charge Type, Amount and Applicable Raza Categories.';
+      $_SESSION['laagat_flash_error'] = 'Please fill Title, Hijri Year, Charge Type and Applicable Raza Categories.';
       $redir = $id > 0 ? ('admin/laagat/create?edit=' . $id) : 'admin/laagat/create';
       redirect($redir);
       return;
+    }
+
+    $gradeAmounts = $this->input->post('grade_amounts');
+    if (!is_array($gradeAmounts)) {
+      $gradeAmounts = [];
     }
 
     $payload = [
@@ -236,6 +244,7 @@ class Admin extends CI_Controller
       'amount' => (float)$amountRaw,
       'raza_type_id' => $razaTypeId,
       'raza_type_ids' => $razaTypeIds,
+      'grade_amounts' => $gradeAmounts,
     ];
 
     if ($id > 0) {
@@ -385,6 +394,35 @@ class Admin extends CI_Controller
         'duplicate_id' => (int)$dupId,
         'message' => $exists ? "Raza already exist. You can't create same Raza." : '',
       ]));
+  }
+
+  // AJAX: Get Residential grades and saved amounts for a Hijri Year
+  public function laagat_get_grade_amounts()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('LaagatRentM');
+
+    $year = (string)$this->input->get('year');
+    $laagatRentId = (int)$this->input->get('laagat_rent_id');
+
+    $grades = [];
+    if ($year !== '') {
+      $grades = $this->LaagatRentM->get_grade_amounts_for_year($year, $laagatRentId);
+    }
+
+    $masterAmount = 0.00;
+    if ($laagatRentId > 0) {
+      $lr = $this->db->select('amount')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+      if ($lr) {
+        $masterAmount = (float)$lr['amount'];
+      }
+    }
+
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => true,
+      'master_amount' => $masterAmount,
+      'grades' => $grades
+    ]));
   }
 
   // Qardan Hasana schemes

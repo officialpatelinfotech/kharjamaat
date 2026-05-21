@@ -85,10 +85,9 @@
               <th data-sort="string">Title</th>
               <th data-sort="string">Hijri Year</th>
               <th data-sort="string">Charge Type</th>
-              <th data-sort="number">Amount</th>
               <th data-sort="string">Applicable Raza Categories</th>
               <th data-sort="string">Status</th>
-              <th style="width: 220px;" data-sort="none">Actions</th>
+              <th style="width: 280px;" data-sort="none">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -100,12 +99,6 @@
                   <td><?php echo htmlspecialchars((string)($r['title'] ?? '')); ?></td>
                   <td><?php echo htmlspecialchars((string)($r['hijri_year'] ?? '')); ?></td>
                   <td><?php echo htmlspecialchars(ucfirst(strtolower((string)($r['charge_type'] ?? '')))); ?></td>
-                  <td>
-                    <?php
-                      $amt = $r['amount'] ?? '';
-                      echo ($amt !== '' && $amt !== null) ? '₹' . format_inr((float)$amt, 0) : '-';
-                    ?>
-                  </td>
                   <td><?php echo htmlspecialchars((string)($r['raza_type_name'] ?? '')); ?></td>
                   <td>
                     <?php if (!empty($r['is_active'])) : ?>
@@ -116,6 +109,7 @@
                   </td>
                   <td>
                     <a class="btn btn-sm btn-outline-primary" href="<?php echo site_url('admin/laagat/create') . '?edit=' . (int)$r['id']; ?>">Edit</a>
+                    <button type="button" class="btn btn-sm btn-outline-info view-grades-btn" data-id="<?php echo (int)$r['id']; ?>" data-year="<?php echo htmlspecialchars((string)($r['hijri_year'] ?? '')); ?>" data-title="<?php echo htmlspecialchars((string)($r['title'] ?? '')); ?>">View</button>
 
                     <form method="post" action="<?php echo site_url('admin/laagat_toggle'); ?>" style="display:inline-block;">
                       <input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>" />
@@ -135,7 +129,7 @@
                 </tr>
               <?php endforeach; ?>
             <?php else : ?>
-              <tr><td colspan="8" class="text-center text-muted">No records found.</td></tr>
+              <tr><td colspan="7" class="text-center text-muted">No records found.</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
@@ -245,3 +239,184 @@
     });
   })();
 </script>
+
+<!-- View Grades Modal -->
+<div class="modal fade" id="lrViewGradesModal" tabindex="-1" role="dialog" aria-labelledby="lrViewGradesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+      <div class="modal-header bg-light border-bottom-0 pt-4 px-4 pb-2">
+        <div>
+          <h5 class="modal-title font-weight-bold text-dark" id="lrViewGradesModalLabel" style="font-family: 'Outfit', 'Inter', sans-serif; letter-spacing: -0.3px;">Grade Amounts</h5>
+          <p class="text-muted mb-0 mt-1 small" id="lrViewGradesModalSubtitle" style="font-size: 0.85rem; font-weight: 500;"></p>
+        </div>
+        <button type="button" class="close text-secondary" data-dismiss="modal" aria-label="Close" style="outline: none; font-size: 1.5rem; margin-top: -10px; border: none; background: transparent;">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body p-0">
+        <div id="lrModalSpinner" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;">
+            <span class="sr-only">Loading...</span>
+          </div>
+          <div class="text-muted mt-3 small" style="font-weight: 500;">Loading grade amount configurations...</div>
+        </div>
+        <div id="lrModalError" class="alert alert-danger m-3" role="alert" style="display: none; border-radius: 8px;">
+          Failed to load grade amount assignments. Please try again.
+        </div>
+        <div id="lrModalContent" style="display: none;">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr class="bg-light text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.8px; font-weight: 700; color: #6c757d;">
+                  <th class="pl-4 border-top-0 border-bottom-0 py-3">Residential Grade</th>
+                  <th class="text-right pr-4 border-top-0 border-bottom-0 py-3">Laagat/Rent Amount</th>
+                </tr>
+              </thead>
+              <tbody id="lrGradesTableBody" style="font-size: 0.95rem;">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="lrModalContentFlat" style="display: none;" class="text-center py-5 px-4">
+          <div class="text-muted small text-uppercase font-weight-bold" style="letter-spacing: 1.2px;">Flat Amount</div>
+          <div class="font-weight-bold text-dark mt-3" id="lrFlatAmountValue" style="font-size: 2.25rem; font-family: 'Outfit', 'Inter', sans-serif;">₹0.00</div>
+        </div>
+      </div>
+      <div class="modal-footer border-top-0 pb-4 px-4 pt-3">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-dismiss="modal" style="border-radius: 6px; font-weight: 500; padding: 0.4rem 1.2rem;">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var modalEl = document.getElementById('lrViewGradesModal');
+  if (!modalEl) return;
+
+  var viewButtons = document.querySelectorAll('.view-grades-btn');
+  var subtitleEl = document.getElementById('lrViewGradesModalSubtitle');
+  var spinnerEl = document.getElementById('lrModalSpinner');
+  var errorEl = document.getElementById('lrModalError');
+  var contentEl = document.getElementById('lrModalContent');
+  var tbodyEl = document.getElementById('lrGradesTableBody');
+
+  function showModal() {
+    if (window.jQuery && typeof jQuery(modalEl).modal === 'function') {
+      jQuery(modalEl).modal('show');
+    } else if (window.bootstrap && typeof bootstrap.Modal === 'function') {
+      new bootstrap.Modal(modalEl).show();
+    } else {
+      modalEl.style.display = 'block';
+      modalEl.classList.add('show');
+      document.body.classList.add('modal-open');
+      
+      // Backdrop element
+      var backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop fade show';
+      backdrop.id = 'lr-modal-backdrop';
+      document.body.appendChild(backdrop);
+    }
+  }
+
+  function hideModal() {
+    if (window.jQuery && typeof jQuery(modalEl).modal === 'function') {
+      jQuery(modalEl).modal('hide');
+    } else if (window.bootstrap && typeof bootstrap.Modal === 'function') {
+      var inst = bootstrap.Modal.getInstance(modalEl);
+      if (inst) inst.hide();
+    } else {
+      modalEl.style.display = 'none';
+      modalEl.classList.remove('show');
+      document.body.classList.remove('modal-open');
+      var backdrop = document.getElementById('lr-modal-backdrop');
+      if (backdrop) {
+        backdrop.parentNode.removeChild(backdrop);
+      }
+    }
+  }
+
+  // Bind close buttons for fallback
+  modalEl.querySelectorAll('[data-dismiss="modal"]').forEach(function(btn) {
+    btn.addEventListener('click', hideModal);
+  });
+
+  viewButtons.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = btn.getAttribute('data-id');
+      var year = btn.getAttribute('data-year');
+      var title = btn.getAttribute('data-title');
+
+      subtitleEl.textContent = title + ' (' + year + ')';
+
+      // Reset modal state
+      spinnerEl.style.display = 'block';
+      errorEl.style.display = 'none';
+      contentEl.style.display = 'none';
+      document.getElementById('lrModalContentFlat').style.display = 'none';
+      tbodyEl.innerHTML = '';
+
+      showModal();
+
+      // Fetch grades
+      var url = '<?php echo site_url("admin/laagat_get_grade_amounts"); ?>?year=' + encodeURIComponent(year) + '&laagat_rent_id=' + encodeURIComponent(id);
+      
+      fetch(url)
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(function(data) {
+          if (data && data.success && Array.isArray(data.grades)) {
+            spinnerEl.style.display = 'none';
+            var masterAmount = (data.master_amount !== null && data.master_amount !== undefined) ? parseFloat(data.master_amount) : 0;
+            
+            // Check if any grade has a saved amount configured
+            var hasCustomGrades = data.grades.some(function(g) {
+              return g.saved_amount !== null && g.saved_amount !== undefined && g.saved_amount !== '';
+            });
+
+            if (!hasCustomGrades) {
+              // Show Flat Amount
+              var flatEl = document.getElementById('lrModalContentFlat');
+              var flatValEl = document.getElementById('lrFlatAmountValue');
+              flatValEl.textContent = '₹' + masterAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              flatEl.style.display = 'block';
+            } else {
+              // Show Grade Table
+              data.grades.forEach(function(g) {
+                var tr = document.createElement('tr');
+                
+                var tdGrade = document.createElement('td');
+                tdGrade.className = 'pl-4 align-middle font-weight-bold text-secondary';
+                tdGrade.textContent = 'Grade ' + g.grade;
+                tr.appendChild(tdGrade);
+
+                var tdAmount = document.createElement('td');
+                tdAmount.className = 'text-right pr-4 font-weight-bold text-dark align-middle';
+                
+                var amountVal = (g.saved_amount !== null && g.saved_amount !== undefined) ? parseFloat(g.saved_amount) : 0;
+                tdAmount.textContent = '₹' + amountVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                tr.appendChild(tdAmount);
+
+                tbodyEl.appendChild(tr);
+              });
+              contentEl.style.display = 'block';
+            }
+          } else {
+            throw new Error('Invalid response format');
+          }
+        })
+        .catch(function(error) {
+          console.error('Error fetching grade amounts:', error);
+          spinnerEl.style.display = 'none';
+          errorEl.style.display = 'block';
+        });
+    });
+  });
+});
+</script>
+
