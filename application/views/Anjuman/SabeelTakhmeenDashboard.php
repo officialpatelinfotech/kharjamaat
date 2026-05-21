@@ -235,6 +235,104 @@
       </form>
     </div>
   </div>
+  <?php
+    $estGradeCounts = [];
+    $resGradeCounts = [];
+    $allUniqueGrades = [];
+    $estNoGradeCount = 0;
+    $resNoGradeCount = 0;
+    $currentCompYear = isset($selected_year) ? $selected_year : (isset($current_year) ? $current_year : '');
+
+    if (!empty($all_user_sabeel_takhmeen)) {
+      foreach ($all_user_sabeel_takhmeen as $user) {
+        $curr = $user['current_year_takhmeen'] ?? null;
+        $estGrade = ($curr && isset($curr['establishment']['grade'])) ? trim((string)$curr['establishment']['grade']) : '';
+        $resGrade = ($curr && isset($curr['residential']['grade'])) ? trim((string)$curr['residential']['grade']) : '';
+        
+        if ($estGrade !== '' && strcasecmp($estGrade, 'no grade') !== 0 && strcasecmp($estGrade, 'unknown') !== 0) {
+          $estGradeCounts[$estGrade] = ($estGradeCounts[$estGrade] ?? 0) + 1;
+          if (!in_array($estGrade, $allUniqueGrades)) {
+            $allUniqueGrades[] = $estGrade;
+          }
+        } else {
+          $estNoGradeCount++;
+        }
+        
+        if ($resGrade !== '' && strcasecmp($resGrade, 'no grade') !== 0 && strcasecmp($resGrade, 'unknown') !== 0) {
+          $resGradeCounts[$resGrade] = ($resGradeCounts[$resGrade] ?? 0) + 1;
+          if (!in_array($resGrade, $allUniqueGrades)) {
+            $allUniqueGrades[] = $resGrade;
+          }
+        } else {
+          $resNoGradeCount++;
+        }
+      }
+    }
+    sort($allUniqueGrades);
+  ?>
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm" style="border-radius: 12px; background: #fafafa; border: 1px solid #e0e0e0 !important;">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+          <h6 class="font-weight-bold m-0" style="color: #333; font-size: 15px;"><i class="fa-solid fa-chart-simple mr-2" style="color: #1a4a6b;"></i> Sabeel Grade Wise Summary (<?php echo htmlspecialchars($currentCompYear); ?>)</h6>
+        </div>
+        <div class="card-body p-3">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered mb-0 text-center" style="font-size: 13px; border-radius: 8px; overflow: hidden;">
+              <thead style="background-color: #f1f3f5; color: #495057;">
+                <tr>
+                  <th class="text-left font-weight-bold" style="background-color: #f8f9fa;">Sabeel Type</th>
+                  <?php foreach ($allUniqueGrades as $g): ?>
+                    <th class="font-weight-bold"><?php echo htmlspecialchars($g); ?></th>
+                  <?php endforeach; ?>
+                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0): ?>
+                    <th class="font-weight-bold" style="font-style: italic;">No Grade</th>
+                  <?php endif; ?>
+                  <th class="font-weight-bold" style="background-color: #e9ecef;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="text-left font-weight-bold" style="background-color: #fdf6e3; color: #6c4f00;">Establishment</td>
+                  <?php 
+                  $totEst = 0;
+                  foreach ($allUniqueGrades as $g): 
+                    $cEst = $estGradeCounts[$g] ?? 0;
+                    $totEst += $cEst;
+                  ?>
+                    <td style="background-color: #fffdf9;"><?php echo $cEst > 0 ? htmlspecialchars((string)$cEst) : '<span class="text-muted">-</span>'; ?></td>
+                  <?php endforeach; ?>
+                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0): 
+                    $totEst += $estNoGradeCount;
+                  ?>
+                    <td style="background-color: #fffdf9;" class="text-muted"><?php echo $estNoGradeCount > 0 ? htmlspecialchars((string)$estNoGradeCount) : '-'; ?></td>
+                  <?php endif; ?>
+                  <td style="background-color: #fcf4dd; color: #6c4f00; font-weight: bold;"><?php echo htmlspecialchars((string)$totEst); ?></td>
+                </tr>
+                <tr>
+                  <td class="text-left font-weight-bold" style="background-color: #eaf3fb; color: #1a4a6b;">Residential</td>
+                  <?php 
+                  $totRes = 0;
+                  foreach ($allUniqueGrades as $g): 
+                    $cRes = $resGradeCounts[$g] ?? 0;
+                    $totRes += $cRes;
+                  ?>
+                    <td style="background-color: #fafdff;"><?php echo $cRes > 0 ? htmlspecialchars((string)$cRes) : '<span class="text-muted">-</span>'; ?></td>
+                  <?php endforeach; ?>
+                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0): 
+                    $totRes += $resNoGradeCount;
+                  ?>
+                    <td style="background-color: #fafdff;" class="text-muted"><?php echo $resNoGradeCount > 0 ? htmlspecialchars((string)$resNoGradeCount) : '-'; ?></td>
+                  <?php endif; ?>
+                  <td style="background-color: #e0eef9; color: #1a4a6b; font-weight: bold;"><?php echo htmlspecialchars((string)$totRes); ?></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="table-scroll-fixed">
     <table class="table table-bordered table-striped">
       <?php

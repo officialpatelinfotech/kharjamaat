@@ -222,7 +222,13 @@
           </tr>
         </thead>
         <tbody>
-        <?php $rowIndex = 1; foreach($groups as $hofId => $rows): $hofRec = $getHofRecord($rows); ?>
+        <?php 
+          $current_uri = $_SERVER['REQUEST_URI'];
+          $redirect_query = '?redirect=' . urlencode($current_uri);
+          $rowIndex = 1; 
+          foreach($groups as $hofId => $rows): 
+            $hofRec = $getHofRecord($rows); 
+        ?>
           <tr class="table-primary" data-hof="<?php echo htmlspecialchars($hofId); ?>" data-hof-name="<?php echo htmlspecialchars($hofRec['Full_Name'] ?? ''); ?>" data-hof-its="<?php echo htmlspecialchars($hofRec['ITS_ID'] ?? ''); ?>" data-hof-sector="<?php echo htmlspecialchars($hofRec['Sector'] ?? ''); ?>" data-hof-sub="<?php echo htmlspecialchars($hofRec['Sub_Sector'] ?? ''); ?>" data-member-count="<?php echo count($rows); ?>" style="--bs-table-bg:#e7f1ff;">
             <td colspan="7" class="py-2">
               <div class="d-flex justify-content-between align-items-center">
@@ -238,7 +244,7 @@
                   <?php endif; ?>
                 </div>
                 <div>
-                  <a href="<?php echo base_url('admin/editmember/') . ($hofRec['ITS_ID'] ?? ''); ?>" class="btn btn-sm btn-outline-primary">Edit HOF</a>
+                  <a href="<?php echo base_url('admin/editmember/') . ($hofRec['ITS_ID'] ?? '') . $redirect_query; ?>" class="btn btn-sm btn-outline-primary">Edit HOF</a>
                 </div>
               </div>
             </td>
@@ -267,7 +273,7 @@
               <td class="text-center">
                 <div class="mm-actions">
                   <a href="<?php echo base_url('admin/viewmember/') . ($r['ITS_ID'] ?? ''); ?>" class="btn btn-outline-secondary" title="View"><i class="fa fa-eye"></i></a>
-                  <a href="<?php echo base_url('admin/editmember/') . ($r['ITS_ID'] ?? ''); ?>" class="mm-edit-btn" title="Edit"><i class="fa fa-pencil"></i></a>
+                  <a href="<?php echo base_url('admin/editmember/') . ($r['ITS_ID'] ?? '') . $redirect_query; ?>" class="mm-edit-btn" title="Edit"><i class="fa fa-pencil"></i></a>
                   <form method="post" action="<?php echo base_url('admin/reset_member_password'); ?>" onsubmit="return confirm('Reset password to MD5 of ITS ID for this member?');" class="mt-3">
                     <input type="hidden" name="its_id" value="<?php echo htmlspecialchars($r['ITS_ID'] ?? ''); ?>">
                     <button type="submit" class="btn btn-outline-danger" title="Reset Password"><i class="fa fa-key"></i></button>

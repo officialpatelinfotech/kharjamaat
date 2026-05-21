@@ -11,11 +11,36 @@ if (!function_exists('norm_date_input')) {
     return $t ? date('Y-m-d', $t) : '';
   }
 }
+
+$redirect = $this->input->get('redirect');
+$role = $_SESSION['user']['role'] ?? null;
+$default_redirect = ($role == 3) ? base_url('anjuman/mumineendirectory') : base_url('admin/managemembers');
+
+if (empty($redirect)) {
+  $redirect = $default_redirect;
+} else {
+  if (strpos($redirect, 'http://') === 0 || strpos($redirect, 'https://') === 0) {
+    if (strpos($redirect, base_url()) !== 0) {
+      $redirect = $default_redirect;
+    }
+  } else if (strpos($redirect, '//') === 0) {
+    $redirect = $default_redirect;
+  } else {
+    if (strpos($redirect, '/') === 0) {
+      $base_path = rtrim(parse_url(base_url(), PHP_URL_PATH), '/');
+      if (!empty($base_path) && strpos($redirect, $base_path) !== 0) {
+        $redirect = $default_redirect;
+      }
+    } else {
+      $redirect = base_url($redirect);
+    }
+  }
+}
 ?>
 <div class="container margintopcontainer pt-5 mb-5">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0 text-nowrap">Edit Member</h4>
-    <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-sm btn-outline-secondary w-auto text-nowrap">Back</a>
+    <a href="<?php echo htmlspecialchars($redirect); ?>" class="btn btn-sm btn-outline-secondary w-auto text-nowrap">Back</a>
   </div>
   <?php
     $its_match    = $member['its_sabeel_match'] ?? '';
@@ -765,7 +790,7 @@ if (!function_exists('norm_date_input')) {
         <div class="form-sticky-bar">
           <div class="inner d-flex justify-content-center align-items-center gap-2 flex-wrap">
             <button type="submit" class="btn btn-primary btn-sm mb-md-0 mb-2 mr-0 mr-md-2">Save Changes</button>
-            <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-outline-secondary btn-sm mb-md-0 mb-2 mr-0 mr-md-2">Cancel</a>
+            <a href="<?php echo htmlspecialchars($redirect); ?>" class="btn btn-outline-secondary btn-sm mb-md-0 mb-2 mr-0 mr-md-2">Cancel</a>
             <button type="button" class="btn btn-outline-danger btn-sm"
               onclick="if(confirm('Reset this member\'s password to their ITS ID?')){ var f=document.createElement('form'); f.method='post'; f.action='<?php echo base_url('admin/reset_member_password'); ?>'; var i=document.createElement('input'); i.type='hidden'; i.name='its_id'; i.value='<?php echo addslashes($member['ITS_ID'] ?? ''); ?>'; f.appendChild(i); document.body.appendChild(f); f.submit(); }">
               <i class="fa fa-key me-1"></i>Reset Password
@@ -894,7 +919,7 @@ if (!function_exists('norm_date_input')) {
                 statusEl.textContent = 'Saved';
                 statusEl.className = 'small text-success';
                 setTimeout(() => {
-                  window.location.href = '<?php echo base_url('admin/managemembers'); ?>';
+                  window.location.href = '<?php echo addslashes($redirect); ?>';
                 }, 600);
               } else {
                 statusEl.textContent = json.message || 'Update failed';

@@ -2253,6 +2253,16 @@ class Accounts extends CI_Controller
           $e_by_year[$y]['total'] += (float)($row['total'] ?? 0);
           $e_by_year[$y]['paid']  += (float)($row['paid'] ?? 0);
           $e_by_year[$y]['due']   += (float)($row['due'] ?? max(0, ((float)($row['total'] ?? 0)) - (float)($row['paid'] ?? 0)));
+          if (!empty($row['grade']) && trim($row['grade']) !== '' && trim($row['grade']) !== '—') {
+            if ($e_by_year[$y]['grade'] === '—') {
+              $e_by_year[$y]['grade'] = $row['grade'];
+            } else {
+              $existing_grades = array_map('trim', explode(',', $e_by_year[$y]['grade']));
+              if (!in_array(trim($row['grade']), $existing_grades)) {
+                $e_by_year[$y]['grade'] .= ', ' . $row['grade'];
+              }
+            }
+          }
         }
       }
 
@@ -2266,6 +2276,16 @@ class Accounts extends CI_Controller
           $r_by_year[$y]['total'] += (float)($row['total'] ?? 0);
           $r_by_year[$y]['paid']  += (float)($row['paid'] ?? 0);
           $r_by_year[$y]['due']   += (float)($row['due'] ?? max(0, ((float)($row['total'] ?? 0)) - (float)($row['paid'] ?? 0)));
+          if (!empty($row['grade']) && trim($row['grade']) !== '' && trim($row['grade']) !== '—') {
+            if ($r_by_year[$y]['grade'] === '—') {
+              $r_by_year[$y]['grade'] = $row['grade'];
+            } else {
+              $existing_grades = array_map('trim', explode(',', $r_by_year[$y]['grade']));
+              if (!in_array(trim($row['grade']), $existing_grades)) {
+                $r_by_year[$y]['grade'] .= ', ' . $row['grade'];
+              }
+            }
+          }
         }
       }
 

@@ -216,8 +216,12 @@ class AmilsahebM extends CI_Model
     if (isset($params['max']) && is_numeric($params['max'])) {
       $this->db->where('Age <=', (int)$params['max']);
     }
-    if (!empty($params['madresa_deprived'])) {
-      $this->db->where("ITS_ID NOT IN (SELECT students_its_id FROM madresa_class_admission)", null, false);
+    if (isset($params['madresa_deprived']) && $params['madresa_deprived'] !== '') {
+      if ($params['madresa_deprived'] == '1') {
+        $this->db->where("ITS_ID NOT IN (SELECT students_its_id FROM madresa_class_admission)", null, false);
+      } elseif ($params['madresa_deprived'] == '0') {
+        $this->db->where("ITS_ID IN (SELECT students_its_id FROM madresa_class_admission)", null, false);
+      }
     }
 
     return $this->db->get()->result();
@@ -613,6 +617,33 @@ class AmilsahebM extends CI_Model
   {
     $this->db->where('ITS', $ITS);
     return $this->db->update('ashara_ohbat', $data);
+  }
+
+  public function get_deeni_eligible_count()
+  {
+    $sql = "
+      SELECT COUNT(*) as count
+      FROM user u
+      WHERE u.Age BETWEEN 5 AND 15
+        AND ((u.inactive_status IS NULL OR u.inactive_status = '')
+        " . ($this->has_activity_status ? " AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . ")
+    ";
+    $row = $this->db->query($sql)->row_array();
+    return (int)($row['count'] ?? 0);
+  }
+
+  public function get_deeni_taking_count()
+  {
+    $sql = "
+      SELECT COUNT(*) as count
+      FROM user u
+      WHERE u.Age BETWEEN 5 AND 15
+        AND ((u.inactive_status IS NULL OR u.inactive_status = '')
+        " . ($this->has_activity_status ? " AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . ")
+        AND u.ITS_ID IN (SELECT students_its_id FROM madresa_class_admission)
+    ";
+    $row = $this->db->query($sql)->row_array();
+    return (int)($row['count'] ?? 0);
   }
 
   public function get_madresa_deprived_count()

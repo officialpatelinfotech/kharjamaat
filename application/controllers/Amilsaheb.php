@@ -323,6 +323,8 @@ class Amilsaheb extends CI_Controller
       'LeaveStatus' => [],
       'Sectors' => $sectorsData,
       'SubSectors' => $subSectorsData,
+      'deeni_eligible' => $this->AmilsahebM->get_deeni_eligible_count(),
+      'deeni_taking' => $this->AmilsahebM->get_deeni_taking_count(),
       'madresa_deprived' => $this->AmilsahebM->get_madresa_deprived_count(),
       'singles_21_40' => $this->AmilsahebM->get_singles_21_40_count(),
       'status_counts' => $this->AmilsahebM->get_status_counts(),

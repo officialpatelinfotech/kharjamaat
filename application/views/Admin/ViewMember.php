@@ -166,8 +166,12 @@
       ?>
       <a href="<?php echo $back_url; ?>" class="btn btn-default border btn-sm mr-2">Back</a>
       <?php if(!empty($member['ITS_ID']) && in_array($role, [1, 2, 3])): ?>
-        <?php $edit_base = ($role === 2) ? 'amilsaheb/editmember/' : 'admin/editmember/'; ?>
-        <a href="<?php echo base_url($edit_base).$member['ITS_ID']; ?>" class="btn btn-primary btn-sm">Edit</a>
+        <?php 
+          $edit_base = ($role === 2) ? 'amilsaheb/editmember/' : 'admin/editmember/'; 
+          $current_uri = $_SERVER['REQUEST_URI'];
+          $redirect_query = '?redirect=' . urlencode($current_uri);
+        ?>
+        <a href="<?php echo base_url($edit_base).$member['ITS_ID'] . $redirect_query; ?>" class="btn btn-primary btn-sm">Edit</a>
       <?php endif; ?>
     </div>
   </div>

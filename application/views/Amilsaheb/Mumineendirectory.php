@@ -440,7 +440,9 @@ function setDashTitle(p) {
     'sabeel_khar_its_out':'Sabeel in Khar, ITS Outside',
     'both_not_khar':'Both not in Khar',
   };
-  const t = map[st.toLowerCase()] || map[im]
+  const md = p.get('madresa_deprived');
+  const t = (mn === '5' && mx === '15' ? (md === '1' ? 'Deeni Taalim Not Taking (Age 5-15)' : (md === '0' ? 'Deeni Taalim Taking (Age 5-15)' : 'Deeni Taalim Eligible (Age 5-15)')) : '')
+    || map[st.toLowerCase()] || map[im]
     || (lf==='all'?'All Members':'')
     || (lf==='hof_fm_type'&&lv.toUpperCase()==='HOF'?'HOF Members':'')
     || (lf==='hof_fm_type'&&lv.toUpperCase()==='FM'?'Family Members':'')
@@ -585,6 +587,8 @@ function renderTable() {
     return;
   }
 
+  const redirectParam = encodeURIComponent(window.location.pathname + window.location.search);
+
   // Helper to build a row's innerHTML
   function rowHTML(u, rowNum) {
     const isHOF = (u.HOF_FM_TYPE || '').toUpperCase() === 'HOF';
@@ -610,7 +614,7 @@ function renderTable() {
       `<td style="font-size:.75rem;">${esc(u.residential_status||'—')}</td>` +
       `<td>` +
         `<a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>` +
-        (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}" class="act-btn act-edit ms-1" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
+        (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}?redirect=${redirectParam}" class="act-btn act-edit ms-1" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
       `</td>`;
   }
 

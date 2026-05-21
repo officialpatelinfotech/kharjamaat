@@ -1705,13 +1705,38 @@
                 <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseEduAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
               </div>
               <div class="collapse show" id="collapseEduAnjuman">
-                <div class="row justify-content-center">
-                  <div class="col-12 col-md-6">
+                <div class="row px-3">
+                  <!-- Total Eligible Card -->
+                  <div class="col-12 col-md-4 mb-3">
+                    <a href="<?= base_url('anjuman/mumineendirectory?status=Active&min=5&max=15'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                      <div class="overview-card">
+                        <div class="overview-icon" style="background:#eff6ff; color:#3b82f6;"><i class="fa fa-child"></i></div>
+                        <div class="overview-body">
+                          <span class="overview-title">Total Eligible (Age 5-15)</span>
+                          <span class="overview-value"><?= isset($stats['deeni_eligible']) ? (int)$stats['deeni_eligible'] : 0; ?> Farzando</span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                  <!-- Deeni Taalim Taking Card -->
+                  <div class="col-12 col-md-4 mb-3">
+                    <a href="<?= base_url('anjuman/mumineendirectory?status=Active&min=5&max=15&madresa_deprived=0'); ?>" style="text-decoration:none;color:inherit;display:block;">
+                      <div class="overview-card">
+                        <div class="overview-icon" style="background:#ecfdf5; color:#10b981;"><i class="fa fa-book"></i></div>
+                        <div class="overview-body">
+                          <span class="overview-title">Deeni Taalim Taking (Age 5-15)</span>
+                          <span class="overview-value"><?= isset($stats['deeni_taking']) ? (int)$stats['deeni_taking'] : 0; ?> Farzando</span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                  <!-- Deeni Taalim Not Taking Card -->
+                  <div class="col-12 col-md-4 mb-3">
                     <a href="<?= base_url('anjuman/mumineendirectory?status=Active&min=5&max=15&madresa_deprived=1'); ?>" style="text-decoration:none;color:inherit;display:block;">
-                      <div class="overview-card" style="border-left: 4px solid #ea580c;">
+                      <div class="overview-card">
                         <div class="overview-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-book-reader"></i></div>
                         <div class="overview-body">
-                          <span class="overview-title">Mehroom Deeni Taalim (Age 5-15)</span>
+                          <span class="overview-title">Deeni Taalim Not Taking (Age 5-15)</span>
                           <span class="overview-value"><?= isset($stats['madresa_deprived']) ? (int)$stats['madresa_deprived'] : 0; ?> Farzando</span>
                         </div>
                       </div>
