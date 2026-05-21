@@ -213,9 +213,10 @@
   display: flex; align-items: center; justify-content: center;
   font-size: .68rem; transition: all .2s; flex-shrink: 0;
 }
-#dashApp .toggle-btn:hover { background: var(--gold-muted); color: var(--gold); border-color: var(--gold); }
-#dashApp .toggle-btn i { transition: transform .25s; }
-#dashApp .toggle-btn[aria-expanded="false"] i { transform: rotate(-90deg); }
+#dashApp .btn-outline-secondary { border-color: var(--border); color: var(--text-2); font-size: .78rem; }
+#dashApp .btn-outline-secondary:hover { background: var(--gold-muted); border-color: var(--gold); color: var(--gold); }
+#dashApp .btn-outline-primary { border-color: var(--blue); color: var(--blue); font-size: .78rem; }
+#dashApp .btn-sm { font-size: .76rem; }
 
 /* ═══════════════════════════════════════════════════
    SURFACE CARD
