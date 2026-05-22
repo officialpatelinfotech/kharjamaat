@@ -876,137 +876,80 @@
       </div>
     </div>
 
-      <!-- Financial Modules: Corpus, Wajebaat, QH, etc -->
-      <div class="row">
-        <!-- Corpus Funds -->
-        <?php
-        $cTot = 0; $cRec = 0; $cPen = 0; $cCount = 0;
-        if (isset($corpus_funds) && is_array($corpus_funds)) {
-          $cCount = count($corpus_funds);
-          foreach ($corpus_funds as $f) { $cTot += (float)($f['assigned_total'] ?? 0); $cRec += (float)($f['paid_total'] ?? 0); }
-        }
-        $cPen = max(0, $cTot - $cRec);
-        ?>
-        <div class="col-md-12 mb-3">
-          <div class="chart-container compact">
-            <div class="section-header-standard px-1">
-              <h4 class="section-title"><i class="fa fa-university"></i> Corpus Funds</h4>
-              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseCorpus" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+    <!-- ── Finance Modules ── -->
+    <div class="row">
+      <?php
+      $cTot=0;$cRec=0;$cCount=0;
+      if (isset($corpus_funds)&&is_array($corpus_funds)){$cCount=count($corpus_funds);foreach($corpus_funds as $f){$cTot+=(float)($f['assigned_total']??0);$cRec+=(float)($f['paid_total']??0);}}
+      $cPen=max(0,$cTot-$cRec);
+      $wa=isset($dashboard_data['wajebaat_summary'])?$dashboard_data['wajebaat_summary']:['total'=>0,'received'=>0,'due'=>0];
+      $qh=isset($qh_all_schemes_totals)?$qh_all_schemes_totals:['mohammedi'=>0,'taher'=>0,'husain'=>0,'total'=>0];
+      $rz=isset($dashboard_data['raza_summary'])?$dashboard_data['raza_summary']:['pending'=>0,'approved'=>0,'rejected'=>0];
+
+      $finCards = [
+        ['id'=>'collapseCorpus',   'icon'=>'fa-university',  'bg'=>'var(--gold-muted)', 'color'=>'var(--gold)',  'title'=>'Corpus Funds',   'url'=>base_url('amilsaheb/corpusfunds_receive'),
+          'rows'=>[['Total','₹'.format_inr($cTot),''],['Received','₹'.format_inr($cRec),'green'],['Pending','₹'.format_inr($cPen),'red']], 'footer'=>'Funds: '.$cCount],
+        ['id'=>'collapseWajebaat', 'icon'=>'fa-coins',       'bg'=>'#fffbeb',           'color'=>'#b45309',     'title'=>'Wajebaat',       'url'=>base_url('amilsaheb/wajebaat'),
+          'rows'=>[['Total','₹'.format_inr($wa['total']),''],['Received','₹'.format_inr($wa['received']),'green'],['Pending','₹'.format_inr($wa['due']),'red']], 'footer'=>''],
+        ['id'=>'collapseRaza',     'icon'=>'fa-file-text-o', 'bg'=>'#eff6ff',           'color'=>'#1d4ed8',     'title'=>'Raza Summary',   'url'=>'',
+          'rows'=>[['Pending',(int)$rz['pending'],''],['Approved',(int)$rz['approved'],'green'],['Rejected',(int)$rz['rejected'],'red']], 'footer'=>''],
+      ];
+      foreach ($finCards as $fc): ?>
+      <div class="col-md-6 mb-3">
+        <div class="surf compact h-100" style="margin-bottom:0;">
+          <div class="section-hd">
+            <h3 class="section-hd-title"><span class="hd-icon" style="background:<?= $fc['bg'] ?>;color:<?= $fc['color'] ?>;"><i class="fa <?= $fc['icon'] ?>"></i></span> <?= $fc['title'] ?></h3>
+            <button class="toggle-btn" data-toggle="collapse" data-target="#<?= $fc['id'] ?>" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+          </div>
+          <div class="collapse show" id="<?= $fc['id'] ?>">
+            <div class="row text-center mb-2">
+              <?php foreach ($fc['rows'] as [$lbl,$val,$cls]): ?>
+              <div class="col-4"><div class="mini-card"><span class="mini-val <?= $cls ?>"><?= $val ?></span><span class="mini-lbl"><?= $lbl ?></span></div></div>
+              <?php endforeach; ?>
             </div>
-            <div class="collapse show" id="collapseCorpus">
-              <div class="row text-center g-2">
-                <div class="col-4"><a href="<?= base_url('amilsaheb/corpusfunds_receive') ?>"><div class="mini-card"><span class="stats-value">₹<?= format_inr($cTot) ?></span><span class="stats-label">Total</span></div></a></div>
-                <div class="col-4"><a href="<?= base_url('amilsaheb/corpusfunds_receive') ?>"><div class="mini-card"><span class="stats-value text-success">₹<?= format_inr($cRec) ?></span><span class="stats-label">Received</span></div></a></div>
-                <div class="col-4"><a href="<?= base_url('amilsaheb/corpusfunds_receive') ?>"><div class="mini-card"><span class="stats-value text-danger">₹<?= format_inr($cPen) ?></span><span class="stats-label">Pending</span></div></a></div>
-                <div class="col-12 mt-2"><small class="text-muted">Funds: <?= $cCount ?></small> | <a href="<?= base_url('amilsaheb/corpusfunds_receive') ?>" class="btn btn-xs btn-outline-secondary py-0">View All</a></div>
-              </div>
-            </div>
+            <?php if ($fc['footer']): ?><p class="tk-hint"><?= $fc['footer'] ?></p><?php endif; ?>
+            <?php if ($fc['url']): ?><div style="text-align:center;margin-top:6px;"><a href="<?= $fc['url'] ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem;border-color:var(--border);color:var(--text-2);">View All</a></div><?php endif; ?>
           </div>
         </div>
+      </div>
+      <?php endforeach; ?>
 
-        <!-- Wajebaat -->
-        <?php $wa = isset($dashboard_data['wajebaat_summary']) ? $dashboard_data['wajebaat_summary'] : ['total'=>0,'received'=>0,'due'=>0]; ?>
-        <div class="col-md-12 mb-3">
-          <div class="chart-container compact">
-            <div class="section-header-standard px-1">
-              <h4 class="section-title"><i class="fa fa-coins"></i> Wajebaat</h4>
-              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseWajebaat" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+      <!-- Qardan Hasana -->
+      <div class="col-md-6 mb-3">
+        <div class="surf compact h-100" style="margin-bottom:0;">
+          <div class="section-hd">
+            <h3 class="section-hd-title"><span class="hd-icon" style="background:#eaf4ee;color:#1a6645;"><i class="fa fa-leaf"></i></span> Qardan Hasana</h3>
+            <button class="toggle-btn" data-toggle="collapse" data-target="#collapseQH" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+          </div>
+          <div class="collapse show" id="collapseQH">
+            <div class="row text-center mb-2">
+              <div class="col-3"><div class="mini-card"><span class="mini-val">₹<?= format_inr($qh['mohammedi']) ?></span><span class="mini-lbl">Mohammedi</span></div></div>
+              <div class="col-3"><div class="mini-card"><span class="mini-val">₹<?= format_inr($qh['taher']) ?></span><span class="mini-lbl">Taher</span></div></div>
+              <div class="col-3"><div class="mini-card"><span class="mini-val">₹<?= format_inr($qh['husain']) ?></span><span class="mini-lbl">Husain</span></div></div>
+              <div class="col-3"><div class="mini-card"><span class="mini-val green">₹<?= format_inr($qh['total']) ?></span><span class="mini-lbl">Total</span></div></div>
             </div>
-            <div class="collapse show" id="collapseWajebaat">
-              <div class="row text-center g-2">
-                <div class="col-4"><div class="mini-card"><span class="stats-value">₹<?= format_inr($wa['total']) ?></span><span class="stats-label">Total</span></div></div>
-                <div class="col-4"><div class="mini-card"><span class="stats-value text-success">₹<?= format_inr($wa['received']) ?></span><span class="stats-label">Received</span></div></div>
-                <div class="col-4"><div class="mini-card"><span class="stats-value text-danger">₹<?= format_inr($wa['due']) ?></span><span class="stats-label">Pending</span></div></div>
-                <div class="col-12 mt-2"><a href="<?= base_url('amilsaheb/wajebaat') ?>" class="btn btn-xs btn-outline-secondary py-0">View All</a></div>
-              </div>
-            </div>
+            <div style="text-align:center;"><a href="<?= base_url('amilsaheb/qardanhasana') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem;border-color:var(--border);color:var(--text-2);">View All</a></div>
           </div>
         </div>
+      </div>
+    </div><!-- /Finance row -->
 
-        <!-- Qardan Hasana -->
-        <?php $qh = isset($qh_all_schemes_totals) ? $qh_all_schemes_totals : ['mohammedi'=>0,'taher'=>0,'husain'=>0,'total'=>0]; ?>
-        <div class="col-md-12 mb-3">
-          <div class="chart-container compact">
-            <div class="section-header-standard px-1">
-              <h4 class="section-title"><i class="fa fa-leaf"></i> Qardan Hasana</h4>
-              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseQH" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
-            </div>
-            <div class="collapse show" id="collapseQH">
-              <div class="row text-center g-2">
-                <div class="col-3"><div class="mini-card p-2"><span class="stats-value" style="font-size:1.1rem;">₹<?= format_inr($qh['mohammedi']) ?></span><span class="stats-label">Mohammedi</span></div></div>
-                <div class="col-3"><div class="mini-card p-2"><span class="stats-value" style="font-size:1.1rem;">₹<?= format_inr($qh['taher']) ?></span><span class="stats-label">Taher</span></div></div>
-                <div class="col-3"><div class="mini-card p-2"><span class="stats-value" style="font-size:1.1rem;">₹<?= format_inr($qh['husain']) ?></span><span class="stats-label">Husain</span></div></div>
-                <div class="col-3"><div class="mini-card p-2"><span class="stats-value text-success" style="font-size:1.1rem;">₹<?= format_inr($qh['total']) ?></span><span class="stats-label">Total</span></div></div>
-                <div class="col-12 mt-2"><a href="<?= base_url('amilsaheb/qardanhasana') ?>" class="btn btn-xs btn-outline-secondary py-0">View All</a></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Laagat & Rent -->
-        <div class="col-md-12 mb-3">
-          <div class="chart-container compact">
-            <div class="section-header-standard px-1">
-              <h4 class="section-title"><i class="fa fa-home"></i> Laagat & Rent</h4>
-              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseRent" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
-            </div>
-            <div class="collapse show" id="collapseRent">
-              <div class="row text-center g-2 justify-content-center">
-                <div class="col-6 col-md-4">
-                  <div class="mini-card">
-                    <span class="stats-value">₹<?= isset($dashboard_laagat_rent_total) ? format_inr($dashboard_laagat_rent_total) : '0' ?></span>
-                    <span class="stats-label">Invoiced for <?= !empty($dashboard_laagat_rent_hijri_year) ? $dashboard_laagat_rent_hijri_year . 'H' : ''; ?></span>
-                  </div>
-                </div>
-                <div class="col-12 mt-2">
-                  <a href="<?= base_url('anjuman/laagat_rent_payments') ?>" class="btn btn-xs btn-outline-secondary py-0">View All</a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Raza Summary -->
-        <?php $rz = isset($dashboard_data['raza_summary']) ? $dashboard_data['raza_summary'] : ['pending'=>0,'approved'=>0,'rejected'=>0]; ?>
-        <div class="col-md-12 mb-3">
-          <div class="chart-container compact">
-            <div class="section-header-standard px-1">
-              <h4 class="section-title"><i class="fa fa-file-text-o"></i> Raza Summary</h4>
-              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseRaza" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
-            </div>
-            <div class="collapse show" id="collapseRaza">
-              <div class="row text-center g-2">
-                <div class="col-4"><div class="mini-card"><span class="stats-value"><?= (int)$rz['pending'] ?></span><span class="stats-label">Pending</span></div></div>
-                <div class="col-4"><div class="mini-card"><span class="stats-value text-success"><?= (int)$rz['approved'] ?></span><span class="stats-label">Approved</span></div></div>
-                <div class="col-4"><div class="mini-card"><span class="stats-value text-danger"><?= (int)$rz['rejected'] ?></span><span class="stats-label">Rejected</span></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- End Finance/Modules row -->
-
-    </div><!-- End Right Content -->
-  </div><!-- End Main Row -->
-</div><!-- End Container -->
-
-
+  </main>
+</div><!-- /dash-root -->
+</div><!-- /#dashApp -->
 
 <script>
-  $(document).ready(function() {
-    // Sidebar Toggle Logic
-    $('#sidebarToggle').on('click', function() {
-      $('.sidebar-menu').addClass('open');
-      if (!$('.sidebar-overlay').length) {
-        $('body').append('<div class="sidebar-overlay"></div>');
-      }
-      $('.sidebar-overlay').fadeIn(200).addClass('show');
-    });
-
-    $(document).on('click', '#sidebarCloseBtn, .sidebar-overlay', function() {
-      $('.sidebar-menu').removeClass('open');
-      $('.sidebar-overlay').fadeOut(200, function() { $(this).remove(); });
-    });
+$(document).ready(function () {
+  /* Sidebar toggle */
+  $('#sidebarToggle').on('click', function () {
+    $('#dashSidebar').addClass('open');
+    if (!$('#sidebarOverlay').length) $('body').append('<div class="sidebar-overlay" id="sidebarOverlay"></div>');
+    $('#sidebarOverlay').fadeIn(200).addClass('show');
+  });
+  $(document).on('click', '#sidebarCloseBtn, #sidebarOverlay', function () {
+    $('#dashSidebar').removeClass('open');
+    $('#sidebarOverlay').fadeOut(200, function () { $(this).remove(); });
+  });
 
   /* Quick menu search */
   $('#quickMenuSearch').on('input', function () {
