@@ -3773,7 +3773,10 @@ class Accounts extends CI_Controller
       if (!empty($check_user)) {
         $new_password = $this->AccountM->change_password_to_default($check_user['ITS_ID'], $check_user['ITS_ID'] . $uniqueNumber);
         if ($new_password) {
-          $msg = 'Your Password Has been Reset.<br/> New Password is ' . $check_user['ITS_ID'] . $uniqueNumber . '.<br/> To Maintain Your Privacy Please Change Your Password After Login';
+          $msg = 'Your Password Has been Reset.<br/>
+          ITS No: ' . $check_user['ITS_ID'] . '<br/>
+          New Password: ' . $check_user['ITS_ID'] . $uniqueNumber . '.<br/>
+          To Maintain Your Privacy Please Change Your Password After Login';
           $this->email->from('admin@kharjamaat.in', 'Admin');
           $this->email->to($check_user['Email']);
           $this->email->subject('Password Reset Request');
@@ -3781,6 +3784,7 @@ class Accounts extends CI_Controller
           $email = $this->email->send();
           $data['user_email'] = $check_user['Email'];
           if (!empty($email)) {
+            $this->load->view('Home/Header');
             $this->load->view('Accounts/PasswordResetConfirm', $data);
           }
         } else {
