@@ -2113,6 +2113,29 @@
           </div>
         </div>
 
+        <!-- Laagat & Rent -->
+        <div class="col-md-12 mb-3">
+          <div class="chart-container compact">
+            <div class="section-header-standard px-1">
+              <h4 class="section-title"><i class="fa fa-home"></i> Laagat & Rent</h4>
+              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseRent" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+            </div>
+            <div class="collapse show" id="collapseRent">
+              <div class="row text-center g-2 justify-content-center">
+                <div class="col-6 col-md-4">
+                  <div class="mini-card">
+                    <span class="stats-value">₹<?= isset($dashboard_laagat_rent_total) ? format_inr($dashboard_laagat_rent_total) : '0' ?></span>
+                    <span class="stats-label">Invoiced for <?= !empty($dashboard_laagat_rent_hijri_year) ? $dashboard_laagat_rent_hijri_year . 'H' : ''; ?></span>
+                  </div>
+                </div>
+                <div class="col-12 mt-2">
+                  <a href="<?= base_url('anjuman/laagat_rent_payments') ?>" class="btn btn-xs btn-outline-secondary py-0">View All</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Raza Summary -->
         <?php $rz = isset($dashboard_data['raza_summary']) ? $dashboard_data['raza_summary'] : ['pending'=>0,'approved'=>0,'rejected'=>0]; ?>
         <div class="col-md-12 mb-3">

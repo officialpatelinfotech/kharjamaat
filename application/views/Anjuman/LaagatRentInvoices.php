@@ -1,9 +1,21 @@
 <div class="container-fluid px-md-5 margintopcontainer pt-5">
     <?php 
+        $total_jmt_amt = 0;
+        $total_sar_amt = 0;
         $total_inv_amt = 0;
         if (!empty($invoices)) {
             foreach($invoices as $inv) {
-                $total_inv_amt += (float)$inv['master_amount'];
+                $tAmt = (float)$inv['master_amount'];
+                if ($inv['charge_type'] !== 'rent') {
+                    $jAmt = (float)$inv['jamaat_amount'];
+                    $sAmt = (float)$inv['sarkaar_amount'];
+                    if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) {
+                        $jAmt = $tAmt;
+                    }
+                    $total_jmt_amt += $jAmt;
+                    $total_sar_amt += $sAmt;
+                }
+                $total_inv_amt += $tAmt;
             }
         }
     ?>
@@ -16,6 +28,8 @@
     <div class="row mb-3">
         <div class="col-12 text-center">
             <div class="d-inline-flex gap-4 p-2 px-4 bg-light rounded-pill shadow-sm border">
+                <div class="text-nowrap"><span class="text-muted small">Total Jamaat:</span> <span class="fw-bold text-success">₹<?= format_inr($total_jmt_amt, 0) ?></span></div>
+                <div class="text-nowrap"><span class="text-muted small">Total Sarkaar:</span> <span class="fw-bold text-info">₹<?= format_inr($total_sar_amt, 0) ?></span></div>
                 <div class="text-nowrap"><span class="text-muted small">Total Amount:</span> <span class="fw-bold text-primary">₹<?= format_inr($total_inv_amt, 0) ?></span></div>
             </div>
         </div>
@@ -86,7 +100,9 @@
                             <th>Charge Type</th>
                             <th>Raza Id</th>
                             <th>Raza</th>
-                            <th class="text-end">Invoice Amount</th>
+                            <th class="text-end">Jmt. Amount</th>
+                            <th class="text-end">Sar. Amount</th>
+                            <th class="text-end">Total Amount</th>
                             <th class="text-center">Action</th>
                         </tr>
                     </thead>
@@ -105,7 +121,18 @@
                                     </td>
                                     <td>R#<?= $inv['generated_raza_id'] ?></td>
                                     <td><?= $inv['title'] ?></td>
-                                    <td class="text-end fw-bold">₹<?= format_inr($inv['master_amount'], 0) ?></td>
+                                    <?php
+                                        $jAmt = (float)$inv['jamaat_amount'];
+                                        $sAmt = (float)$inv['sarkaar_amount'];
+                                        $tAmt = (float)$inv['master_amount'];
+                                        if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) {
+                                            $jAmt = $tAmt;
+                                        }
+                                        $isRent = ($inv['charge_type'] === 'rent');
+                                    ?>
+                                    <td class="text-end text-success fw-bold"><?= $isRent ? '-' : '₹' . format_inr($jAmt, 0) ?></td>
+                                    <td class="text-end text-info fw-bold"><?= $isRent ? '-' : '₹' . format_inr($sAmt, 0) ?></td>
+                                    <td class="text-end text-primary fw-bold">₹<?= format_inr($tAmt, 0) ?></td>
                                     <td class="text-center text-nowrap">
                                         <div class="d-flex justify-content-center align-items-center">
                                             <button type="button" class="btn btn-sm btn-outline-primary mr-2" title="Edit Invoice" 
@@ -124,7 +151,7 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="9" class="text-center py-4 text-muted">No invoices found matching current filters.</td>
+                                <td colspan="11" class="text-center py-4 text-muted">No invoices found matching current filters.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -151,11 +178,27 @@
                         <label class="form-label">Member</label>
                         <p class="form-control-plaintext fw-bold" id="edit_member_name"></p>
                     </div>
+                    <div id="edit_split_amounts_section">
+                        <div class="mb-3">
+                            <label class="form-label text-success">Jamaat Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" step="0.01" name="jamaat_amount" id="edit_jamaat_amount" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-info">Sarkaar Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" step="0.01" name="sarkaar_amount" id="edit_sarkaar_amount" class="form-control">
+                            </div>
+                        </div>
+                    </div>
                     <div class="mb-3">
-                        <label class="form-label">Amount</label>
+                        <label class="form-label text-primary" id="edit_amount_label">Total Amount</label>
                         <div class="input-group">
                             <span class="input-group-text">₹</span>
-                            <input type="number" name="amount" id="edit_invoice_amount" class="form-control" required>
+                            <input type="number" step="0.01" name="amount" id="edit_invoice_amount" class="form-control" readonly style="background-color: #e9ecef;">
                         </div>
                     </div>
                 </div>
@@ -172,7 +215,55 @@
 function editInvoice(data) {
     $('#edit_invoice_id').val(data.id);
     $('#edit_member_name').text(data.Full_Name + ' (' + data.ITS_ID + ')');
-    $('#edit_invoice_amount').val(data.amount);
+    
+    var jAmt = parseFloat(data.jamaat_amount) || 0;
+    var sAmt = parseFloat(data.sarkaar_amount) || 0;
+    var tAmt = parseFloat(data.amount) || 0;
+    
+    if (jAmt === 0 && sAmt === 0 && tAmt > 0) {
+        jAmt = tAmt;
+    }
+    
+    if (data.charge_type === 'rent') {
+        $('#edit_split_amounts_section').hide();
+        $('#edit_amount_label').text('Amount');
+        $('#edit_invoice_amount')
+            .val(tAmt.toFixed(2))
+            .prop('readonly', false)
+            .css('background-color', '');
+    } else {
+        $('#edit_split_amounts_section').show();
+        $('#edit_amount_label').text('Total Amount');
+        $('#edit_jamaat_amount').val(jAmt.toFixed(2));
+        $('#edit_sarkaar_amount').val(sAmt.toFixed(2));
+        $('#edit_invoice_amount')
+            .val((jAmt + sAmt).toFixed(2))
+            .prop('readonly', true)
+            .css('background-color', '#e9ecef');
+    }
+    
+    $('#editInvoiceModal').data('charge_type', data.charge_type);
     $('#editInvoiceModal').modal('show');
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var jmtInput = document.getElementById('edit_jamaat_amount');
+    var sarInput = document.getElementById('edit_sarkaar_amount');
+    var totalInput = document.getElementById('edit_invoice_amount');
+
+    function calculateTotal() {
+        var chargeType = $('#editInvoiceModal').data('charge_type');
+        if (chargeType === 'rent') {
+            return;
+        }
+        var jVal = parseFloat(jmtInput.value) || 0;
+        var sVal = parseFloat(sarInput.value) || 0;
+        totalInput.value = (jVal + sVal).toFixed(2);
+    }
+
+    if (jmtInput && sarInput && totalInput) {
+        jmtInput.addEventListener('input', calculateTotal);
+        sarInput.addEventListener('input', calculateTotal);
+    }
+});
 </script>

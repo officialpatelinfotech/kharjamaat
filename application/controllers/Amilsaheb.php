@@ -456,6 +456,20 @@ class Amilsaheb extends CI_Controller
       'mohammedi' => $qh_moh, 'taher' => $qh_tah, 'husain' => $qh_hus, 'total' => $qh_moh + $qh_tah + $qh_hus,
     ];
 
+    // Laagat & Rent dashboard total
+    $this->load->model('LaagatRentM');
+    $lr_year = $sel_hijri_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446);
+    $lr_year_query = (is_numeric($lr_year) && strlen((string)$lr_year) === 4) 
+        ? (int)$lr_year . '-' . substr((string)((int)$lr_year + 1), -2) 
+        : $lr_year;
+    $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year_query]);
+    $dashboard_laagat_rent_total = 0.0;
+    foreach ($lr_invoices as $lrinv) {
+        $dashboard_laagat_rent_total += (float)($lrinv['master_amount'] ?? 0);
+    }
+    $data['dashboard_laagat_rent_total'] = $dashboard_laagat_rent_total;
+    $data['dashboard_laagat_rent_hijri_year'] = $lr_year_query;
+
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Home', $data);
   }

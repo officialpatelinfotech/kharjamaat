@@ -967,6 +967,40 @@ if (empty($redirect)) {
           }
         }
 
+        // Living status auto-toggle member status
+        var deeniSel = document.getElementById('deeniStatusSel');
+        var healthSel = document.getElementById('healthStatusSel');
+        var residentialSel = document.getElementById('residentialStatusSel');
+        var activitySel = document.getElementById('activityStatusSel');
+
+        function updateMemberStatus() {
+          if (!deeniSel || !healthSel || !residentialSel || !activitySel) return;
+          
+          var deeniText = deeniSel.options[deeniSel.selectedIndex]?.text || '';
+          var healthText = healthSel.options[healthSel.selectedIndex]?.text || '';
+          var residentialText = residentialSel.options[residentialSel.selectedIndex]?.text || '';
+
+          // Check if any selected option contains "(Inactive)"
+          var hasInactive = deeniText.indexOf('(Inactive)') > -1 || 
+                            healthText.indexOf('(Inactive)') > -1 || 
+                            residentialText.indexOf('(Inactive)') > -1;
+                            
+          // Check if any selected option contains "(Active)"
+          var hasActive = deeniText.indexOf('(Active)') > -1 || 
+                          healthText.indexOf('(Active)') > -1 || 
+                          residentialText.indexOf('(Active)') > -1;
+
+          if (hasInactive) {
+            activitySel.value = 'inactive';
+          } else if (hasActive) {
+            activitySel.value = 'active';
+          }
+        }
+
+        if (deeniSel) deeniSel.addEventListener('change', updateMemberStatus);
+        if (healthSel) healthSel.addEventListener('change', updateMemberStatus);
+        if (residentialSel) residentialSel.addEventListener('change', updateMemberStatus);
+
       })();
     </script>
   <?php else: ?>

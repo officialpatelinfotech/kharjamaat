@@ -210,6 +210,85 @@ class Payment extends CI_Controller
   }
 
   /**
+   * Initiate Laagat & Rent payment via CCAvenue.
+   * Captures ITS ID + invoice ID + payment type (laagat/rent) via merchant params.
+   */
+  public function ccavenue_laagat_rent()
+  {
+    $amount = $this->input->post('amount');
+    $order_id = $this->input->post('order_id') ?: ('LAAGAT-RENT-' . date('YmdHis'));
+    $its_id = $this->input->post('its_id');
+    $invoice_id = (int)$this->input->post('invoice_id');
+    $charge_type = strtolower(trim((string) $this->input->post('charge_type')));
+
+    if (empty($amount) || $amount <= 0) {
+      show_error('Invalid amount for payment');
+      return;
+    }
+    if ($invoice_id <= 0) {
+      show_error('Invalid invoice ID');
+      return;
+    }
+    if (empty($its_id)) {
+      show_error('Missing ITS ID');
+      return;
+    }
+
+    // CCAvenue credentials (kept inline as in the integration kit)
+    $working_key = '3192DCC09548EAC34B7492AD528DEABB';
+    $access_code = 'AVPL85MK89BJ83LPJB';
+    $merchant_id = '4411587';
+
+    // Determine return host
+    $currentHost = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+    $isLocalhost = preg_match('/^(localhost|127\.0\.0\.1|::1)$/i', $currentHost);
+    if (!$isLocalhost && !empty($currentHost)) {
+      $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+      $baseReturn = $scheme . '://' . $currentHost;
+    } else {
+      $baseReturn = 'http://kharjamaat.in';
+    }
+
+    $params = [
+      'merchant_id' => $merchant_id,
+      'order_id' => $order_id,
+      'amount' => number_format((float) $amount, 2, '.', ''),
+      'currency' => 'INR',
+      'redirect_url' => rtrim($baseReturn, '/') . '/payment/ccavenue_response',
+      'cancel_url' => rtrim($baseReturn, '/') . '/payment/ccavenue_response',
+      'language' => 'EN',
+      // Merchant params for reconciliation
+      'merchant_param1' => (string) $its_id,
+      'merchant_param2' => (string) $invoice_id,
+      'merchant_param3' => $charge_type,
+      'merchant_param4' => 'LAAGAT_RENT'
+    ];
+    // Preserve current CI session id so the callback doesn't overwrite login
+    $sid = session_id();
+    if (!empty($sid)) {
+      $params['merchant_param5'] = $sid;
+    }
+
+    $merchant_data = '';
+    foreach ($params as $k => $v) {
+      $merchant_data .= $k . '=' . $v . '&';
+    }
+    $merchant_data = rtrim($merchant_data, '&');
+
+    include_once(APPPATH . 'libraries/payment/Crypto.php');
+    $encrypted_data = encrypt($merchant_data, $working_key);
+
+    log_message('info', 'CCAvenue initiate (LaagatRent): order_id=' . $order_id . ' amount=' . $params['amount'] . ' invoice_id=' . $invoice_id);
+
+    echo '<!doctype html><html><head><meta charset="utf-8"><title>Redirecting to Payment</title></head><body>';
+    echo '<form method="post" name="redirect" action="https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction">';
+    echo '<input type="hidden" name="encRequest" value="' . htmlspecialchars($encrypted_data) . '">';
+    echo '<input type="hidden" name="access_code" value="' . htmlspecialchars($access_code) . '">';
+    echo '</form>';
+    echo '<script>document.redirect.submit();</script></body></html>';
+  }
+
+  /**
    * Handle CCAvenue response (decrypt using Crypto.php and show parsed data).
    */
   public function ccavenue_response()
@@ -316,6 +395,39 @@ class Payment extends CI_Controller
 
     if ($order_status === 'Success' && !empty($its_id) && $amount_val !== null) {
       $isSabeel = ($purpose === 'SABEEL') || (isset($data['order_id']) && strpos((string) $data['order_id'], 'SABEEL-') === 0);
+      $isLaagatRent = ($purpose === 'LAAGAT_RENT') || (isset($data['order_id']) && strpos((string) $data['order_id'], 'LAAGAT-RENT-') === 0);
+
+      // Laagat & Rent reconciliation
+      if ($isLaagatRent && $this->db->table_exists('laagat_rent_payments')) {
+        $invoice_id = isset($data['merchant_param2']) ? (int)$data['merchant_param2'] : 0;
+        $remarks = 'Order:' . ($data['order_id'] ?? '')
+          . ' Tracking:' . ($data['tracking_id'] ?? '')
+          . ' Status:' . $order_status;
+
+        $already = false;
+        $oid = (string) ($data['order_id'] ?? '');
+        if ($invoice_id > 0 && $oid !== '') {
+          $q = $this->db->query(
+            "SELECT id FROM laagat_rent_payments WHERE invoice_id = ? AND remarks LIKE ? LIMIT 1",
+            [$invoice_id, '%' . $oid . '%']
+          );
+          $already = ($q && $q->num_rows() > 0);
+        }
+
+        if (!$already && $invoice_id > 0) {
+          $this->load->model('LaagatRentM');
+          $ok = $this->LaagatRentM->add_payment([
+            'invoice_id' => $invoice_id,
+            'amount' => $amount_val,
+            'payment_date' => $payment_dt,
+            'payment_method' => 'Online',
+            'remarks' => $remarks
+          ]);
+          if (!empty($log_id)) {
+            $this->db->where('id', $log_id)->update($log_table, ['reconciled' => $ok ? 1 : 0]);
+          }
+        }
+      }
 
       // Sabeel reconciliation
       if ($isSabeel && ($sabeel_type === 'establishment' || $sabeel_type === 'residential') && $this->db->table_exists('sabeel_takhmeen_payments')) {
@@ -351,7 +463,7 @@ class Payment extends CI_Controller
       }
 
       // FMB reconciliation (existing behavior)
-      if (!$isSabeel && $this->db->table_exists('fmb_takhmeen_payments')) {
+      if (!$isSabeel && !$isLaagatRent && $this->db->table_exists('fmb_takhmeen_payments')) {
         $paymentData = [
           'user_id' => $its_id,
           'payment_method' => 'CCAvenue',
@@ -388,6 +500,8 @@ class Payment extends CI_Controller
     // Decide destination based on purpose/order id
     if ((isset($purpose) && strtoupper($purpose) === 'SABEEL') || (strpos($oid, 'SABEEL-') === 0)) {
       $redirectUrl = base_url('accounts/ViewSabeelTakhmeen');
+    } elseif ($purpose === 'LAAGAT_RENT' || (strpos($oid, 'LAAGAT-RENT-') === 0)) {
+      $redirectUrl = base_url('accounts/laagat_rent');
     } elseif (strpos($oid, 'ADMIN-TAKHMEEN-') === 0) {
       $redirectUrl = base_url('common/takhmeen_pay');
     } else {

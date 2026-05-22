@@ -172,4 +172,152 @@ class Cli extends CI_Controller
             }
             echo "Updated migrations.version to {$version}\n";
         }
+
+    public function verify_laagat_rent_grade()
+    {
+        if (!is_cli()) {
+            echo "This command can only be run from the CLI.\n";
+            return;
+        }
+
+        $this->load->model('LaagatRentM');
+
+        // Let's find a user who has a residential grade in sabeel_takhmeen
+        $takhmeen = $this->db->select('t.*, g.grade, g.year as grade_year')
+            ->from('sabeel_takhmeen t')
+            ->join('sabeel_takhmeen_grade g', 'g.id = t.residential_grade')
+            ->where('t.residential_grade >', 0)
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        if (!$takhmeen) {
+            echo "Error: No sabeel_takhmeen record with residential_grade found.\n";
+            return;
+        }
+
+        $userId = (int)$takhmeen['user_id'];
+        $hijriYear = $takhmeen['year'];
+        $gradeId = (int)$takhmeen['residential_grade'];
+
+        echo "Found test user: ID={$userId}, Year={$hijriYear}, Grade ID={$gradeId}, Grade Name={$takhmeen['grade']}\n";
+
+        // Let's create a temporary Rent configuration
+        $rentPayload = [
+            'title' => 'Temp Rent Test',
+            'hijri_year' => $hijriYear,
+            'charge_type' => 'rent',
+            'amount' => 500.00,
+            'raza_type_id' => 1,
+            'grade_amounts' => [
+                $gradeId => 1000.00
+            ],
+            'grade_jamaat_amounts' => [
+                $gradeId => 800.00
+            ],
+            'grade_sarkaar_amounts' => [
+                $gradeId => 200.00
+            ]
+        ];
+
+        echo "Creating Rent config with grade amounts...\n";
+        $rentRes = $this->LaagatRentM->create($rentPayload);
+        if (!$rentRes['success']) {
+            echo "Failed to create Rent config: " . ($rentRes['error'] ?? '') . "\n";
+            return;
+        }
+        $rentId = $rentRes['id'];
+        echo "Rent config created with ID={$rentId}\n";
+
+        // Check if grade amounts were actually saved in database
+        $savedRentGrades = $this->db->where('laagat_rent_id', $rentId)->get('laagat_rent_grade_amounts')->result_array();
+        echo "Saved grade amounts count for Rent config: " . count($savedRentGrades) . "\n";
+
+        // Query amount and breakdown for Rent
+        $rentAmt = $this->LaagatRentM->get_amount_for_user($rentId, $userId);
+        $rentBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($rentId, $userId);
+        echo "Rent lookup amount: {$rentAmt} (Expected: 500.00)\n";
+        echo "Rent lookup breakdown: " . json_encode($rentBreakdown) . "\n";
+
+        // Let's create a temporary Laagat configuration
+        $laagatPayload = [
+            'title' => 'Temp Laagat Test',
+            'hijri_year' => $hijriYear,
+            'charge_type' => 'laagat',
+            'amount' => 500.00,
+            'raza_type_id' => 1,
+            'grade_amounts' => [
+                $gradeId => 1000.00
+            ],
+            'grade_jamaat_amounts' => [
+                $gradeId => 800.00
+            ],
+            'grade_sarkaar_amounts' => [
+                $gradeId => 200.00
+            ]
+        ];
+
+        echo "\nCreating Laagat config with grade amounts...\n";
+        $laagatRes = $this->LaagatRentM->create($laagatPayload);
+        if (!$laagatRes['success']) {
+            echo "Failed to create Laagat config: " . ($laagatRes['error'] ?? '') . "\n";
+            // cleanup rent
+            $this->db->delete('laagat_rent', ['id' => $rentId]);
+            return;
+        }
+        $laagatId = $laagatRes['id'];
+        echo "Laagat config created with ID={$laagatId}\n";
+
+        // Check if grade amounts were actually saved in database
+        $savedLaagatGrades = $this->db->where('laagat_rent_id', $laagatId)->get('laagat_rent_grade_amounts')->result_array();
+        echo "Saved grade amounts count for Laagat config: " . count($savedLaagatGrades) . "\n";
+
+        // Query amount and breakdown for Laagat
+        $laagatAmt = $this->LaagatRentM->get_amount_for_user($laagatId, $userId);
+        $laagatBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatId, $userId);
+        echo "Laagat lookup amount: {$laagatAmt} (Expected: 1000.00)\n";
+        echo "Laagat lookup breakdown: " . json_encode($laagatBreakdown) . "\n";
+
+        // Cleanup
+        echo "\nCleaning up test records...\n";
+        $this->db->delete('laagat_rent', ['id' => $rentId]);
+        $this->db->delete('laagat_rent_raza_type_map', ['laagat_rent_id' => $rentId]);
+        $this->db->delete('laagat_rent', ['id' => $laagatId]);
+        $this->db->delete('laagat_rent_raza_type_map', ['laagat_rent_id' => $laagatId]);
+        $this->db->delete('laagat_rent_grade_amounts', ['laagat_rent_id' => $laagatId]);
+        echo "Cleanup complete!\n";
+
+        // Assertions for output verification in the test runner
+        $passed = true;
+        if (count($savedRentGrades) !== 0) {
+            echo "ASSERTION FAILED: Saved grade amounts count for Rent is not 0!\n";
+            $passed = false;
+        }
+        if ((float)$rentAmt !== 500.00) {
+            echo "ASSERTION FAILED: Rent lookup amount is not 500.00!\n";
+            $passed = false;
+        }
+        if ((float)$rentBreakdown['jamaat_amount'] !== 500.00 || (float)$rentBreakdown['sarkaar_amount'] !== 0.00 || (float)$rentBreakdown['amount'] !== 500.00) {
+            echo "ASSERTION FAILED: Rent lookup breakdown is incorrect!\n";
+            $passed = false;
+        }
+        if (count($savedLaagatGrades) !== 1) {
+            echo "ASSERTION FAILED: Saved grade amounts count for Laagat is not 1!\n";
+            $passed = false;
+        }
+        if ((float)$laagatAmt !== 1000.00) {
+            echo "ASSERTION FAILED: Laagat lookup amount is not 1000.00!\n";
+            $passed = false;
+        }
+        if ((float)$laagatBreakdown['jamaat_amount'] !== 800.00 || (float)$laagatBreakdown['sarkaar_amount'] !== 200.00 || (float)$laagatBreakdown['amount'] !== 1000.00) {
+            echo "ASSERTION FAILED: Laagat lookup breakdown is incorrect!\n";
+            $passed = false;
+        }
+
+        if ($passed) {
+            echo "\nALL TESTS PASSED SUCCESSFULLY!\n";
+        } else {
+            echo "\nSOME TESTS FAILED!\n";
+        }
+    }
 }

@@ -42,8 +42,16 @@
                                 </div>
                                 <div class="text-right">
                                     <div class="small text-muted">Invoice ID: #<?= $inv['id'] ?></div>
-                                  
                                     <div class="font-weight-bold"> Raza ID : R#<?= htmlspecialchars($inv['generated_raza_id'] ?: 'N/A') ?></div>
+                                    <?php if ($inv['janab_status'] === null): ?>
+                                        <!-- No status badge -->
+                                    <?php elseif ((int)$inv['janab_status'] === 1): ?>
+                                        <span class="badge badge-success px-2 py-1 mt-1 rounded-pill">Raza Approved</span>
+                                    <?php elseif ((int)$inv['janab_status'] === 2): ?>
+                                        <span class="badge badge-danger px-2 py-1 mt-1 rounded-pill">Raza Rejected</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-warning px-2 py-1 mt-1 rounded-pill">Raza Pending Approval</span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             
@@ -62,7 +70,32 @@
                                 </div>
                             </div>
 
+                            <?php
+                                $jAmt = (float)$inv['jamaat_amount'];
+                                $sAmt = (float)$inv['sarkaar_amount'];
+                                $tAmt = (float)$inv['master_amount'];
+                                if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) {
+                                    $jAmt = $tAmt;
+                                }
+                            ?>
+                            <?php if ($inv['charge_type'] !== 'rent'): ?>
+                            <div class="row mt-2 bg-light p-2 rounded mx-0" style="font-size: 0.85rem;">
+                                <div class="col-6 pl-1">
+                                    <span class="text-muted">Jamaat Laagat:</span> <span class="font-weight-bold text-success">₹<?= format_inr($jAmt, 0) ?></span>
+                                </div>
+                                <div class="col-6 text-right pr-1">
+                                    <span class="text-muted">Sarkaar Laagat:</span> <span class="font-weight-bold text-info">₹<?= format_inr($sAmt, 0) ?></span>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+
                             <div class="mt-3 text-center">
+                                <?php if ((int)$inv['janab_status'] === 1 && $due > 0): ?>
+                                    <button type="button" class="btn btn-sm btn-primary mr-2" 
+                                            onclick="payInvoice(<?= $inv['id'] ?>, <?= $due ?>, '<?= htmlspecialchars($inv['title']) ?>', '<?= htmlspecialchars($inv['charge_type']) ?>', '<?= htmlspecialchars($inv['ITS_ID']) ?>')">
+                                        <i class="fa fa-credit-card me-1"></i> Pay Now
+                                    </button>
+                                <?php endif; ?>
                                 <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-4" 
                                         onclick="showHistory(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['title']) ?>')">
                                     <i class="fa fa-history mr-1"></i> Payment History
@@ -180,4 +213,65 @@ $(document).on('click', '.view-invoice', function(e) {
         }
     });
 });
+
+function payInvoice(invoiceId, maxAmount, title, chargeType, itsId) {
+    $('#pay_title').text(title);
+    $('#pay_invoice_id').val(invoiceId);
+    $('#pay_its_id').val(itsId);
+    $('#pay_charge_type').val(chargeType);
+    $('#pay_amount').val(maxAmount).attr('max', maxAmount);
+    $('#pay_due_help').text('Maximum payment allowed: ₹' + parseFloat(maxAmount).toLocaleString('en-IN', {minimumFractionDigits: 0}));
+    $('#pay_order_id').val('LAAGAT-RENT-' + Date.now());
+    $('#payModal').modal('show');
+}
+
+$('#payModal form').on('submit', function(e) {
+    var amt = parseFloat($('#pay_amount').val());
+    var maxAmt = parseFloat($('#pay_amount').attr('max'));
+    if (amt <= 0) {
+        alert('Please enter a valid amount.');
+        e.preventDefault();
+        return false;
+    }
+    if (amt > maxAmt) {
+        alert('Amount cannot exceed outstanding due: ₹' + maxAmt);
+        e.preventDefault();
+        return false;
+    }
+});
 </script>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="payModalLabel">Make Payment</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="post" action="<?= base_url('payment/ccavenue_laagat_rent'); ?>">
+                <div class="modal-body">
+                    <div class="form-group mb-2">
+                        <label class="font-weight-bold">Invoice Title</label>
+                        <div class="form-control-plaintext text-primary font-weight-bold" id="pay_title"></div>
+                    </div>
+                    <div class="form-group mb-2">
+                        <label for="pay_amount" class="font-weight-bold">Amount (₹)</label>
+                        <input type="number" step="0.01" min="0.01" id="pay_amount" name="amount" class="form-control" required />
+                        <div class="form-text text-muted mt-1" id="pay_due_help"></div>
+                    </div>
+                    <input type="hidden" id="pay_invoice_id" name="invoice_id" />
+                    <input type="hidden" id="pay_its_id" name="its_id" />
+                    <input type="hidden" id="pay_charge_type" name="charge_type" />
+                    <input type="hidden" id="pay_order_id" name="order_id" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Proceed to Pay</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

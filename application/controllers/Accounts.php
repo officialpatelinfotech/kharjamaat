@@ -2713,11 +2713,17 @@ class Accounts extends CI_Controller
     }
     $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
 
+    $venueOptionId = $this->input->get('venue_option_id');
+    $venue = '';
+    if ($venueOptionId !== null && $venueOptionId !== '') {
+      $venue = $this->LaagatRentM->get_venue_name_by_id($razaTypeId, $venueOptionId);
+    }
+
     // Year-wise: fetch only for current Hijri year range
     $row = null;
     $chargeType = null;
     foreach ($chargeTypesToTry as $ct) {
-      $row = $this->LaagatRentM->get_active_for_raza_type($ct, $razaTypeId, $hijriRange, false);
+      $row = $this->LaagatRentM->get_active_for_raza_type($ct, $razaTypeId, $hijriRange, false, $venue);
       if ($row) {
         $chargeType = $ct;
         break;
@@ -2740,11 +2746,13 @@ class Accounts extends CI_Controller
     }
 
     $userId = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_ID'] : $_SESSION['user']['username'];
-    $amount = $this->LaagatRentM->get_amount_for_user($row['id'], $userId);
+    $breakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($row['id'], $userId);
 
     return $this->output->set_content_type('application/json')->set_output(json_encode([
       'success' => true,
-      'amount' => $amount,
+      'amount' => $breakdown['amount'],
+      'jamaat_amount' => $breakdown['jamaat_amount'],
+      'sarkaar_amount' => $breakdown['sarkaar_amount'],
       'charge_type' => (string)$row['charge_type'],
       'hijri_year' => (string)$row['hijri_year'],
       'title' => (string)($row['title'] ?? ''),
@@ -3443,20 +3451,38 @@ class Accounts extends CI_Controller
           // e.g. 1446-47
           $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
 
+          // Resolve venue name if any field is Venue
+          $razafields = json_decode($razatype['fields'], true);
+          $venueName = '';
+          if (isset($razafields['fields']) && is_array($razafields['fields'])) {
+            foreach ($razafields['fields'] as $f) {
+              if (isset($f['name']) && strcasecmp(trim($f['name']), 'venue') === 0) {
+                $postKey = preg_replace(['/[\s]/', '/[()]/', '/[\/?]/'], ['-', '_', '-'], strtolower($f['name']));
+                if (isset($_POST[$postKey])) {
+                  $venueOptionId = $_POST[$postKey];
+                  $venueName = $this->LaagatRentM->get_venue_name_by_id($razatypeid, $venueOptionId);
+                }
+                break;
+              }
+            }
+          }
+
           // Flexible fetching with fallback (parity with get_laagat_rent_amount)
-          $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, $hijriRange, false);
+          $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, $hijriRange, false, $venueName);
           if (!$laagatRow) {
             // Fallback: try ANY active record for this type if current year not found
-            $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, null, false);
+            $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, null, false, $venueName);
           }
 
           if ($laagatRow && !empty($laagatRow['id'])) {
-            $invoiceAmount = $this->LaagatRentM->get_amount_for_user($laagatRow['id'], $userId);
+            $invoiceAmountBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRow['id'], $userId);
             $invoiceData = [
               'user_id' => $userId,
               'laagat_rent_id' => $laagatRow['id'],
               'raza_id' => $check,
-              'amount' => $invoiceAmount,
+              'amount' => $invoiceAmountBreakdown['amount'],
+              'jamaat_amount' => $invoiceAmountBreakdown['jamaat_amount'],
+              'sarkaar_amount' => $invoiceAmountBreakdown['sarkaar_amount'],
               'created_at' => date('Y-m-d H:i:s')
             ];
             $this->db->insert('laagat_rent_invoices', $invoiceData);

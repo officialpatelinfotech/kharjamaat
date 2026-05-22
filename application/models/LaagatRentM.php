@@ -218,22 +218,22 @@ class LaagatRentM extends CI_Model
         return true;
     }
 
-    private function find_duplicate_id($hijriYear, $chargeType, $title, $razaTypeIds, $excludeId = 0)
+    private function find_duplicate_id($hijriYear, $chargeType, $title, $razaTypeIds, $excludeId = 0, $venue = null)
     {
         $hijriYear = trim((string)$hijriYear);
         $chargeType = strtolower(trim((string)$chargeType));
         $excludeId = (int)$excludeId;
+        $venue = $venue !== null ? trim((string)$venue) : '';
 
-        // Duplicate definition:
         // Consider it duplicate when ALL of these match:
         //  - Charge Type
-        //  - Any Applicable Raza Category overlaps (across ANY Hijri Year)
-        // Title is NOT part of uniqueness.
+        //  - Venue (case-insensitively, treating NULL/empty as equivalent)
+        //  - Any Applicable Raza Category overlaps
         $needleIds = $this->normalize_raza_type_ids($razaTypeIds);
 
         // Normalize stored values on-the-fly to avoid duplicates slipping through due to
         // legacy data inconsistencies (extra spaces / casing differences).
-        $q = $this->db->select('id')->from('laagat_rent');
+        $q = $this->db->select('id, venue')->from('laagat_rent');
         $q->where('LOWER(TRIM(charge_type)) = ' . $this->db->escape($chargeType), null, false);
         if ($excludeId > 0) $q->where('id !=', $excludeId);
         $rows = $q->get()->result_array();
@@ -241,6 +241,12 @@ class LaagatRentM extends CI_Model
         foreach ($rows as $r) {
             $rid = (int)($r['id'] ?? 0);
             if ($rid <= 0) continue;
+
+            $existingVenue = isset($r['venue']) ? trim((string)$r['venue']) : '';
+            if (strcasecmp($existingVenue, $venue) !== 0) {
+                continue;
+            }
+
             $existingIds = $this->get_raza_type_ids_for_record($rid);
             if ($this->has_any_common_raza_type($existingIds, $needleIds)) {
                 return $rid;
@@ -253,22 +259,22 @@ class LaagatRentM extends CI_Model
     private function duplicate_error_message($chargeType)
     {
         $chargeType = strtolower(trim((string)$chargeType));
-        if ($chargeType === 'laagat') {
-            return 'Raza already exist. You can\'t create same Raza.';
-        }
-        if ($chargeType === 'rent') {
-            return 'Raza already exist. You can\'t create same Raza.';
-        }
         return 'Raza already exist. You can\'t create same Raza.';
     }
 
-    public function check_duplicate_overlap($hijriYear, $chargeType, $razaTypeIds, $excludeId = 0)
+    public function check_duplicate_overlap($hijriYear, $chargeType, $razaTypeIds, $excludeId = 0, $venue = null)
     {
-        return (int)$this->find_duplicate_id($hijriYear, $chargeType, '', $razaTypeIds, $excludeId);
+        return (int)$this->find_duplicate_id($hijriYear, $chargeType, '', $razaTypeIds, $excludeId, $venue);
     }
 
     public function create($payload)
     {
+        if (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') {
+            $payload['grade_amounts'] = [];
+            $payload['grade_jamaat_amounts'] = [];
+            $payload['grade_sarkaar_amounts'] = [];
+        }
+
         $razaTypeIds = [];
         if (isset($payload['raza_type_ids']) && is_array($payload['raza_type_ids'])) {
             foreach ($payload['raza_type_ids'] as $rid) {
@@ -290,7 +296,7 @@ class LaagatRentM extends CI_Model
             return ['success' => false, 'error' => 'Database migration pending for multiple Applicable Raza Categories. Please run migrations and try again.'];
         }
 
-        $dupId = $this->find_duplicate_id((string)($payload['hijri_year'] ?? ''), (string)($payload['charge_type'] ?? ''), (string)($payload['title'] ?? ''), $razaTypeIds, 0);
+        $dupId = $this->find_duplicate_id((string)($payload['hijri_year'] ?? ''), (string)($payload['charge_type'] ?? ''), (string)($payload['title'] ?? ''), $razaTypeIds, 0, $payload['venue'] ?? null);
         if ($dupId > 0) {
             return ['success' => false, 'error' => $this->duplicate_error_message((string)($payload['charge_type'] ?? '')), 'existing_id' => $dupId];
         }
@@ -302,6 +308,7 @@ class LaagatRentM extends CI_Model
             'amount' => (float)($payload['amount'] ?? 0),
             // Keep legacy single column populated with first selected id.
             'raza_type_id' => !empty($razaTypeIds) ? (int)$razaTypeIds[0] : (int)($payload['raza_type_id'] ?? 0),
+            'venue' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent' && isset($payload['venue'])) ? (string)$payload['venue'] : null,
             // Do not auto-activate on create; activation should be explicit from Manage screen.
             'is_active' => isset($payload['is_active']) ? ((int)$payload['is_active'] ? 1 : 0) : 1,
         ];
@@ -326,7 +333,9 @@ class LaagatRentM extends CI_Model
                     $this->db->insert('laagat_rent_grade_amounts', [
                         'laagat_rent_id' => $insertId,
                         'sabeel_takhmeen_grade_id' => (int)$gradeId,
-                        'amount' => (float)$amount
+                        'amount' => (float)$amount,
+                        'jamaat_amount' => isset($payload['grade_jamaat_amounts'][$gradeId]) ? (float)$payload['grade_jamaat_amounts'][$gradeId] : (float)$amount,
+                        'sarkaar_amount' => isset($payload['grade_sarkaar_amounts'][$gradeId]) ? (float)$payload['grade_sarkaar_amounts'][$gradeId] : 0.00,
                     ]);
                 }
             }
@@ -345,6 +354,12 @@ class LaagatRentM extends CI_Model
     {
         $id = (int)$id;
         if ($id <= 0) return ['success' => false, 'error' => 'Invalid ID'];
+
+        if (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') {
+            $payload['grade_amounts'] = [];
+            $payload['grade_jamaat_amounts'] = [];
+            $payload['grade_sarkaar_amounts'] = [];
+        }
 
         $razaTypeIds = [];
         if (isset($payload['raza_type_ids']) && is_array($payload['raza_type_ids'])) {
@@ -367,7 +382,7 @@ class LaagatRentM extends CI_Model
             return ['success' => false, 'error' => 'Database migration pending for multiple Applicable Raza Categories. Please run migrations and try again.'];
         }
 
-        $dupId = $this->find_duplicate_id((string)($payload['hijri_year'] ?? ''), (string)($payload['charge_type'] ?? ''), (string)($payload['title'] ?? ''), $razaTypeIds, $id);
+        $dupId = $this->find_duplicate_id((string)($payload['hijri_year'] ?? ''), (string)($payload['charge_type'] ?? ''), (string)($payload['title'] ?? ''), $razaTypeIds, $id, $payload['venue'] ?? null);
         if ($dupId > 0) {
             return ['success' => false, 'error' => $this->duplicate_error_message((string)($payload['charge_type'] ?? '')), 'existing_id' => $dupId];
         }
@@ -379,6 +394,7 @@ class LaagatRentM extends CI_Model
             'amount' => (float)($payload['amount'] ?? 0),
             // Keep legacy single column populated with first selected id.
             'raza_type_id' => !empty($razaTypeIds) ? (int)$razaTypeIds[0] : (int)($payload['raza_type_id'] ?? 0),
+            'venue' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent' && isset($payload['venue'])) ? (string)$payload['venue'] : null,
         ];
 
         $this->db->trans_start();
@@ -405,14 +421,16 @@ class LaagatRentM extends CI_Model
                     $this->db->insert('laagat_rent_grade_amounts', [
                         'laagat_rent_id' => $id,
                         'sabeel_takhmeen_grade_id' => (int)$gradeId,
-                        'amount' => (float)$amount
+                        'amount' => (float)$amount,
+                        'jamaat_amount' => isset($payload['grade_jamaat_amounts'][$gradeId]) ? (float)$payload['grade_jamaat_amounts'][$gradeId] : (float)$amount,
+                        'sarkaar_amount' => isset($payload['grade_sarkaar_amounts'][$gradeId]) ? (float)$payload['grade_sarkaar_amounts'][$gradeId] : 0.00,
                     ]);
                 }
             }
         }
 
-        // If this record is active, keep only one active per year + charge_type.
-        $row = $this->db->select('hijri_year, charge_type, is_active')
+        // If this record is active, keep only one active per year + charge_type + venue.
+        $row = $this->db->select('hijri_year, charge_type, is_active, venue')
             ->from('laagat_rent')
             ->where('id', $id)
             ->get()
@@ -423,6 +441,12 @@ class LaagatRentM extends CI_Model
             $this->db->where('charge_type', (string)$row['charge_type']);
             $this->db->where('id !=', $id);
             $this->db->where('is_active', 1);
+            $vVal = isset($row['venue']) && $row['charge_type'] === 'rent' ? trim((string)$row['venue']) : '';
+            if ($vVal !== '') {
+                $this->db->where('venue', $vVal);
+            } else {
+                $this->db->where('(venue IS NULL OR venue = \'\')', null, false);
+            }
             $this->db->update('laagat_rent', ['is_active' => 0]);
         }
 
@@ -455,7 +479,7 @@ class LaagatRentM extends CI_Model
         $id = (int)$id;
         if ($id <= 0) return ['success' => false, 'error' => 'Invalid ID'];
 
-        $row = $this->db->select('is_active, hijri_year, charge_type')->from('laagat_rent')->where('id', $id)->get()->row_array();
+        $row = $this->db->select('is_active, hijri_year, charge_type, venue')->from('laagat_rent')->where('id', $id)->get()->row_array();
         if (!$row) return ['success' => false, 'error' => 'Not found'];
 
         $newVal = ((int)$row['is_active'] === 1) ? 0 : 1;
@@ -463,11 +487,17 @@ class LaagatRentM extends CI_Model
         $this->db->trans_start();
 
         if ($newVal === 1) {
-            // Deactivate other active records for the same Hijri Year + Charge Type.
+            // Deactivate other active records for the same Hijri Year + Charge Type + Venue.
             $this->db->where('hijri_year', (string)$row['hijri_year']);
             $this->db->where('charge_type', (string)$row['charge_type']);
             $this->db->where('id !=', $id);
             $this->db->where('is_active', 1);
+            $vVal = isset($row['venue']) && $row['charge_type'] === 'rent' ? trim((string)$row['venue']) : '';
+            if ($vVal !== '') {
+                $this->db->where('venue', $vVal);
+            } else {
+                $this->db->where('(venue IS NULL OR venue = \'\')', null, false);
+            }
             $this->db->update('laagat_rent', ['is_active' => 0]);
         }
 
@@ -515,21 +545,49 @@ class LaagatRentM extends CI_Model
      * - If $hijriYear is provided, filters to that year.
      * - When $fallbackToMaster is true, falls back to any active master for charge type.
      */
-    public function get_active_for_raza_type($chargeType, $razaTypeId, $hijriYear = null, $fallbackToMaster = true)
+    public function get_active_for_raza_type($chargeType, $razaTypeId, $hijriYear = null, $fallbackToMaster = true, $venue = null)
     {
         $chargeType = strtolower(trim((string)$chargeType));
         $razaTypeId = (int)$razaTypeId;
         $hijriYear = $hijriYear !== null ? trim((string)$hijriYear) : null;
         $fallbackToMaster = (bool)$fallbackToMaster;
+        $venue = $venue !== null ? trim((string)$venue) : '';
 
         if ($razaTypeId <= 0) return null;
         if (!in_array($chargeType, ['laagat', 'rent'], true)) return null;
 
-        // 1) Try category-specific match
+        // 1) Try category-specific match with specific venue first (if charge_type is rent and venue is provided)
+        if ($chargeType === 'rent' && $venue !== '') {
+            $this->db->select('lr.id, lr.title, lr.hijri_year, lr.charge_type, lr.amount');
+            $this->db->from('laagat_rent lr');
+            $this->db->where('lr.charge_type', $chargeType);
+            $this->db->where('lr.is_active', 1);
+            $this->db->where('lr.venue', $venue);
+
+            if ($this->db->table_exists('laagat_rent_raza_type_map')) {
+                $this->db->join('laagat_rent_raza_type_map m', 'm.laagat_rent_id = lr.id', 'inner');
+                $this->db->where('m.raza_type_id', $razaTypeId);
+            } else {
+                $this->db->where('lr.raza_type_id', $razaTypeId);
+            }
+
+            if ($hijriYear !== null && $hijriYear !== '') {
+                $this->db->where('lr.hijri_year', $hijriYear);
+            }
+
+            $this->db->order_by('lr.hijri_year DESC');
+            $this->db->order_by('lr.id DESC');
+            $this->db->limit(1);
+            $row = $this->db->get()->row_array();
+            if ($row) return $row;
+        }
+
+        // 2) Try category-specific match with NULL/empty venue
         $this->db->select('lr.id, lr.title, lr.hijri_year, lr.charge_type, lr.amount');
         $this->db->from('laagat_rent lr');
         $this->db->where('lr.charge_type', $chargeType);
         $this->db->where('lr.is_active', 1);
+        $this->db->where('(lr.venue IS NULL OR lr.venue = \'\')', null, false);
 
         if ($this->db->table_exists('laagat_rent_raza_type_map')) {
             $this->db->join('laagat_rent_raza_type_map m', 'm.laagat_rent_id = lr.id', 'inner');
@@ -550,25 +608,41 @@ class LaagatRentM extends CI_Model
 
         if (!$fallbackToMaster) return null;
 
-        // 2) Fallback: any active master for this charge type (+year if provided)
-        return $this->get_active_master($chargeType, $hijriYear);
+        // 3) Fallback to active master
+        return $this->get_active_master($chargeType, $hijriYear, $venue);
     }
 
-    /**
-     * Fetch the active master row for a charge type, optionally limited to a Hijri year range.
-     * This is used as a fallback when no category mapping exists.
-     */
-    public function get_active_master($chargeType, $hijriYear = null)
+    public function get_active_master($chargeType, $hijriYear = null, $venue = null)
     {
         $chargeType = strtolower(trim((string)$chargeType));
         $hijriYear = $hijriYear !== null ? trim((string)$hijriYear) : null;
+        $venue = $venue !== null ? trim((string)$venue) : '';
 
         if (!in_array($chargeType, ['laagat', 'rent'], true)) return null;
 
+        // Try specific venue master first (if charge_type is rent and venue is provided)
+        if ($chargeType === 'rent' && $venue !== '') {
+            $this->db->select('id, title, hijri_year, charge_type, amount');
+            $this->db->from('laagat_rent');
+            $this->db->where('charge_type', $chargeType);
+            $this->db->where('is_active', 1);
+            $this->db->where('venue', $venue);
+            if ($hijriYear !== null && $hijriYear !== '') {
+                $this->db->where('hijri_year', $hijriYear);
+            }
+            $this->db->order_by('hijri_year DESC');
+            $this->db->order_by('id DESC');
+            $this->db->limit(1);
+            $row = $this->db->get()->row_array();
+            if ($row) return $row;
+        }
+
+        // Try NULL/empty venue master
         $this->db->select('id, title, hijri_year, charge_type, amount');
         $this->db->from('laagat_rent');
         $this->db->where('charge_type', $chargeType);
         $this->db->where('is_active', 1);
+        $this->db->where('(venue IS NULL OR venue = \'\')', null, false);
         if ($hijriYear !== null && $hijriYear !== '') {
             $this->db->where('hijri_year', $hijriYear);
         }
@@ -583,7 +657,7 @@ class LaagatRentM extends CI_Model
 
     public function get_invoices($filters = [])
     {
-        $this->db->select('i.*, u.Full_Name, u.ITS_ID, u.Sector, u.Sub_Sector, lr.title, lr.charge_type, lr.hijri_year, i.amount as master_amount, rr.raza_id as generated_raza_id, rt.name as raza_type_name');
+        $this->db->select('i.*, u.Full_Name, u.ITS_ID, u.Sector, u.Sub_Sector, lr.title, lr.charge_type, lr.hijri_year, i.amount as master_amount, rr.raza_id as generated_raza_id, rt.name as raza_type_name, rr.`Janab-status` AS janab_status');
         $this->db->from('laagat_rent_invoices i');
         $this->db->join('user u', 'u.ITS_ID = i.user_id', 'left');
         $this->db->join('laagat_rent lr', 'lr.id = i.laagat_rent_id', 'left');
@@ -611,7 +685,7 @@ class LaagatRentM extends CI_Model
 
     public function get_invoice_by_id($id)
     {
-        $this->db->select('i.*, u.Full_Name, u.ITS_ID, u.Sector, u.Sub_Sector, lr.title, lr.charge_type, lr.hijri_year, i.amount as master_amount, rr.raza_id as generated_raza_id');
+        $this->db->select('i.*, u.Full_Name, u.ITS_ID, u.Sector, u.Sub_Sector, lr.title, lr.charge_type, lr.hijri_year, i.amount as master_amount, rr.raza_id as generated_raza_id, rr.`Janab-status` AS janab_status');
         $this->db->from('laagat_rent_invoices i');
         $this->db->join('user u', 'u.ITS_ID = i.user_id', 'left');
         $this->db->join('laagat_rent lr', 'lr.id = i.laagat_rent_id', 'left');
@@ -676,10 +750,10 @@ class LaagatRentM extends CI_Model
     {
         $this->db->from('sabeel_takhmeen_grade g');
         if ($laagatRentId > 0) {
-            $this->db->select('g.id as sabeel_takhmeen_grade_id, g.grade, g.amount as default_amount, ga.amount as saved_amount');
+            $this->db->select('g.id as sabeel_takhmeen_grade_id, g.grade, g.amount as default_amount, ga.amount as saved_amount, ga.jamaat_amount as saved_jamaat_amount, ga.sarkaar_amount as saved_sarkaar_amount');
             $this->db->join('laagat_rent_grade_amounts ga', 'ga.sabeel_takhmeen_grade_id = g.id AND ga.laagat_rent_id = ' . (int)$laagatRentId, 'left');
         } else {
-            $this->db->select('g.id as sabeel_takhmeen_grade_id, g.grade, g.amount as default_amount, NULL as saved_amount', false);
+            $this->db->select('g.id as sabeel_takhmeen_grade_id, g.grade, g.amount as default_amount, NULL as saved_amount, NULL as saved_jamaat_amount, NULL as saved_sarkaar_amount', false);
         }
         $this->db->where('g.type', 'Residential');
         $this->db->where('g.year', $year);
@@ -693,34 +767,163 @@ class LaagatRentM extends CI_Model
         $userId = (int)$userId;
         if ($laagatRentId <= 0 || $userId <= 0) return 0.00;
 
-        $lr = $this->db->select('hijri_year, amount')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+        $lr = $this->db->select('charge_type, hijri_year, amount')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
         if (!$lr) return 0.00;
 
         $hijriYear = $lr['hijri_year'];
         $masterAmount = (float)$lr['amount'];
+        $chargeType = $lr['charge_type'];
 
-        $takhmeen = $this->db->select('residential_grade')
-            ->from('sabeel_takhmeen')
-            ->where('user_id', $userId)
-            ->where('year', $hijriYear)
-            ->get()
-            ->row_array();
-
-        if ($takhmeen && !empty($takhmeen['residential_grade'])) {
-            $gradeId = (int)$takhmeen['residential_grade'];
-
-            $gradeAmountRow = $this->db->select('amount')
-                ->from('laagat_rent_grade_amounts')
-                ->where('laagat_rent_id', $laagatRentId)
-                ->where('sabeel_takhmeen_grade_id', $gradeId)
+        if ($chargeType !== 'rent') {
+            $takhmeen = $this->db->select('residential_grade')
+                ->from('sabeel_takhmeen')
+                ->where('user_id', $userId)
+                ->where('year', $hijriYear)
                 ->get()
                 ->row_array();
 
-            if ($gradeAmountRow && $gradeAmountRow['amount'] !== null) {
-                return (float)$gradeAmountRow['amount'];
+            if ($takhmeen && !empty($takhmeen['residential_grade'])) {
+                $gradeId = (int)$takhmeen['residential_grade'];
+
+                $gradeAmountRow = $this->db->select('amount')
+                    ->from('laagat_rent_grade_amounts')
+                    ->where('laagat_rent_id', $laagatRentId)
+                    ->where('sabeel_takhmeen_grade_id', $gradeId)
+                    ->get()
+                    ->row_array();
+
+                if ($gradeAmountRow && $gradeAmountRow['amount'] !== null) {
+                    return (float)$gradeAmountRow['amount'];
+                }
             }
         }
 
         return $masterAmount;
+    }
+
+    public function get_amounts_breakdown_for_user($laagatRentId, $userId)
+    {
+        $laagatRentId = (int)$laagatRentId;
+        $userId = (int)$userId;
+        if ($laagatRentId <= 0 || $userId <= 0) {
+            return [
+                'jamaat_amount' => 0.00,
+                'sarkaar_amount' => 0.00,
+                'amount' => 0.00
+            ];
+        }
+
+        $lr = $this->db->select('charge_type, hijri_year, amount')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+        if (!$lr) {
+            return [
+                'jamaat_amount' => 0.00,
+                'sarkaar_amount' => 0.00,
+                'amount' => 0.00
+            ];
+        }
+
+        $hijriYear = $lr['hijri_year'];
+        $masterAmount = (float)$lr['amount'];
+        $chargeType = $lr['charge_type'];
+
+        if ($chargeType !== 'rent') {
+            $takhmeen = $this->db->select('residential_grade')
+                ->from('sabeel_takhmeen')
+                ->where('user_id', $userId)
+                ->where('year', $hijriYear)
+                ->get()
+                ->row_array();
+
+            if ($takhmeen && !empty($takhmeen['residential_grade'])) {
+                $gradeId = (int)$takhmeen['residential_grade'];
+
+                $gradeAmountRow = $this->db->select('amount, jamaat_amount, sarkaar_amount')
+                    ->from('laagat_rent_grade_amounts')
+                    ->where('laagat_rent_id', $laagatRentId)
+                    ->where('sabeel_takhmeen_grade_id', $gradeId)
+                    ->get()
+                    ->row_array();
+
+                if ($gradeAmountRow) {
+                    $jAmt = (float)$gradeAmountRow['jamaat_amount'];
+                    $sAmt = (float)$gradeAmountRow['sarkaar_amount'];
+                    $totalAmt = (float)$gradeAmountRow['amount'];
+
+                    // Fallback for legacy database rows where columns were added but not populated
+                    if ($jAmt == 0.00 && $sAmt == 0.00 && $totalAmt > 0.00) {
+                        $jAmt = $totalAmt;
+                    }
+
+                    return [
+                        'jamaat_amount' => $jAmt,
+                        'sarkaar_amount' => $sAmt,
+                        'amount' => $totalAmt
+                    ];
+                }
+            }
+        }
+
+        return [
+            'jamaat_amount' => $masterAmount,
+            'sarkaar_amount' => 0.00,
+            'amount' => $masterAmount
+        ];
+    }
+
+    public function get_all_venues_from_raza_forms()
+    {
+        $types = $this->db->select('fields')
+            ->from('raza_type')
+            ->where('active', 1)
+            ->where('umoor', 'Private-Event')
+            ->get()
+            ->result_array();
+
+        $venues = [];
+        foreach ($types as $t) {
+            if (empty($t['fields'])) continue;
+            $fields = json_decode($t['fields'], true);
+            if (isset($fields['fields']) && is_array($fields['fields'])) {
+                foreach ($fields['fields'] as $f) {
+                    if (isset($f['name']) && strcasecmp(trim($f['name']), 'venue') === 0) {
+                        if (isset($f['options']) && is_array($f['options'])) {
+                            foreach ($f['options'] as $o) {
+                                if (isset($o['name'])) {
+                                    $vName = trim($o['name']);
+                                    if ($vName !== '') {
+                                        $venues[strtolower($vName)] = $vName;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $out = array_values($venues);
+        sort($out);
+        return $out;
+    }
+
+    public function get_venue_name_by_id($razaTypeId, $optionId)
+    {
+        $razaTypeId = (int)$razaTypeId;
+        $row = $this->db->select('fields')->from('raza_type')->where('id', $razaTypeId)->get()->row_array();
+        if (!$row || empty($row['fields'])) return '';
+        $fields = json_decode($row['fields'], true);
+        if (isset($fields['fields']) && is_array($fields['fields'])) {
+            foreach ($fields['fields'] as $f) {
+                if (isset($f['name']) && strcasecmp(trim($f['name']), 'venue') === 0) {
+                    if (isset($f['options']) && is_array($f['options'])) {
+                        foreach ($f['options'] as $o) {
+                            if (isset($o['id']) && (string)$o['id'] === (string)$optionId) {
+                                return isset($o['name']) ? trim($o['name']) : '';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return '';
     }
 }

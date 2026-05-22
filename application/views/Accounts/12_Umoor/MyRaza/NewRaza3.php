@@ -208,7 +208,7 @@
     return null;
   }
 
-  function renderLaagatRentInfo(groupEl, rawFieldName, chargeType, title, amount) {
+  function renderLaagatRentInfo(groupEl, rawFieldName, chargeType, title, amount, jamaatAmount, sarkaarAmount) {
     if (!groupEl) return;
     rawFieldName = (rawFieldName || '').toString();
     var displayLabel = (chargeType === 'laagat') ? 'Laagat Details' : 'Rent Details';
@@ -250,6 +250,32 @@
       box.appendChild(v);
     }
 
+    if (chargeType !== 'rent') {
+      // Add bifurcation if present
+      var jAmt = Number(jamaatAmount);
+      var sAmt = Number(sarkaarAmount);
+      if (!isFinite(jAmt)) jAmt = 0;
+      if (!isFinite(sAmt)) sAmt = 0;
+
+      // Default jAmt fallback to n if both are 0 but total amount > 0
+      if (jAmt === 0 && sAmt === 0 && n > 0) {
+        jAmt = n;
+      }
+
+      var splitDiv = document.createElement('div');
+      splitDiv.className = 'd-flex justify-content-between align-items-center mt-2 p-2 bg-light rounded border text-muted small';
+
+      var jmtPart = document.createElement('div');
+      jmtPart.innerHTML = '<strong>Jmt. Laagat:</strong> ' + formatInrCurrency(jAmt);
+      splitDiv.appendChild(jmtPart);
+
+      var sarPart = document.createElement('div');
+      sarPart.innerHTML = '<strong>Sar. Laagat:</strong> ' + formatInrCurrency(sAmt);
+      splitDiv.appendChild(sarPart);
+
+      box.appendChild(splitDiv);
+    }
+
     // Add invoice creation text
     var invoiceNote = document.createElement('div');
     invoiceNote.className = 'small text-muted mt-2 font-italic';
@@ -273,12 +299,81 @@
     return (label || '').toString().toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
   }
 
-  function fetchLaagatRentAmount(razaTypeId) {
-    return fetch('<?= base_url('accounts/get_laagat_rent_amount') ?>' + '?raza_type_id=' + encodeURIComponent(razaTypeId), {
+  function fetchLaagatRentAmount(razaTypeId, venueOptionId = '') {
+    let url = '<?= base_url('accounts/get_laagat_rent_amount') ?>' + '?raza_type_id=' + encodeURIComponent(razaTypeId);
+    if (venueOptionId) {
+      url += '&venue_option_id=' + encodeURIComponent(venueOptionId);
+    }
+    return fetch(url, {
         credentials: 'same-origin'
       })
       .then(function(r) {
         return r.json();
+      });
+  }
+
+  function updateLaagatRentCard() {
+    let selectedRazaType = document.getElementById('raza-type').value;
+    if (!selectedRazaType) return;
+
+    let venueEl = document.querySelector('[name="venue"]');
+    let venueOptionId = venueEl ? venueEl.value : '';
+
+    fetchLaagatRentAmount(selectedRazaType, venueOptionId)
+      .then(function(resp) {
+        // Try to find laagatRentInput in container
+        let laagatRentInput = null;
+        let selectedRaza = razas.find(raza => raza.id == selectedRazaType);
+        if (selectedRaza) {
+          selectedRaza.fields.forEach(field => {
+            if (isLaagatRentAmountField(field.name)) {
+              let fieldName1 = field.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+              let fieldName2 = field.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+              laagatRentInput = document.querySelector(`[name="${fieldName1}"]`) || document.querySelector(`[name="${fieldName2}"]`);
+            }
+          });
+        }
+
+        let grp;
+        let rawName;
+        if (laagatRentInput) {
+          grp = closestFormGroup(laagatRentInput) || laagatRentInput.parentNode;
+          rawName = laagatRentInput.getAttribute('name') || normalizeFieldName('Laagat /Rent Amount');
+        } else {
+          grp = document.getElementById('laagat-rent-card-group');
+          if (!grp) {
+            grp = document.createElement('div');
+            grp.className = 'form-group';
+            grp.id = 'laagat-rent-card-group';
+          }
+          rawName = normalizeFieldName('Laagat /Rent Amount');
+        }
+
+        if (!resp || !resp.success || resp.amount === null || resp.amount === undefined) {
+          if (grp) {
+            grp.style.display = 'none';
+            while (grp.firstChild) grp.removeChild(grp.firstChild);
+          }
+          if (laagatRentInput) {
+            laagatRentInput.value = '0';
+          }
+          return;
+        }
+
+        if (grp) {
+          grp.style.display = '';
+          if (!laagatRentInput) {
+            let dynamicFieldsContainer = document.getElementById('dynamic-fields-container');
+            if (dynamicFieldsContainer && !dynamicFieldsContainer.contains(grp)) {
+              dynamicFieldsContainer.appendChild(grp);
+            }
+          }
+        }
+
+        renderLaagatRentInfo(grp, rawName, resp.charge_type, resp.title || '', resp.amount, resp.jamaat_amount, resp.sarkaar_amount);
+      })
+      .catch(function(err) {
+        console.error('Error fetching rent amount:', err);
       });
   }
 
@@ -447,32 +542,15 @@
         laagatRentInput.readOnly = true;
       }
 
-      if (selectedRazaType) {
-        fetchLaagatRentAmount(selectedRazaType)
-          .then(function(resp) {
-            if (!resp || !resp.success) return;
-            if (resp.amount === null || resp.amount === undefined) return;
-
-            if (laagatRentInput) {
-              var grp = closestFormGroup(laagatRentInput) || laagatRentInput.parentNode;
-              var rawName = laagatRentInput.getAttribute('name') || normalizeFieldName('Laagat /Rent Amount');
-              renderLaagatRentInfo(grp, rawName, resp.charge_type, resp.title || '', resp.amount);
-              return;
-            }
-
-            // Field not present in DB-defined form; append it so it shows.
-            var rawFieldName = normalizeFieldName('Laagat /Rent Amount');
-            var group = document.createElement('div');
-            group.className = 'form-group';
-            renderLaagatRentInfo(group, rawFieldName, resp.charge_type, resp.title || '', resp.amount);
-            container.appendChild(group);
-          })
-          .catch(function() {
-            // ignore
-          });
-      }
+      updateLaagatRentCard();
     }
   }
+
+  document.addEventListener('change', function(e) {
+    if (e.target && e.target.name === 'venue') {
+      updateLaagatRentCard();
+    }
+  });
 
   <?php if (!empty($razaId)): ?>
     window.addEventListener('DOMContentLoaded', function() {

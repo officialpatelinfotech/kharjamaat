@@ -222,14 +222,14 @@ class MemberStatusM extends CI_Model
     {
         return [
             ''                                                                 => '— None —',
-            'Normal'                                                           => 'Normal',
-            'Deen Badli Lidu che'                                              => 'Deen Badli Lidu che',
-            'Married Outside'                                                  => 'Married Outside',
-            'Misaq Not Given'                                                  => 'Not given Misaq to Syedna Mufaddal Saifuddin AQA tus after Takht Nashini',
-            'Mustajeeb'                                                        => 'Mustajeeb',
-            'No Ashara / LQ'                                                   => 'No Ashara / LQ attended for past 3 years',
-            'No Vajebaat / Sabeel'                                             => 'Not paid Sila Fitra / Vajeebaat / Sabeel for at least 3 years',
-            'Zero Days Scanned in Ashara Mubaraka'                             => 'Zero Days Scanned in Ashara Mubaraka',
+            'Normal'                                                           => 'Normal (Active)',
+            'Deen Badli Lidu che'                                              => 'Deen Badli Lidu che (Inactive)',
+            'Married Outside'                                                  => 'Married Outside (Inactive)',
+            'Misaq Not Given'                                                  => 'Not given Misaq to Syedna Mufaddal Saifuddin AQA tus after Takht Nashini (Inactive)',
+            'Mustajeeb'                                                        => 'Mustajeeb (Inactive)',
+            'No Ashara / LQ'                                                   => 'No Ashara / LQ attended for past 3 years (Active)',
+            'No Vajebaat / Sabeel'                                             => 'Not paid Sila Fitra / Vajeebaat / Sabeel for at least 3 years (Active)',
+            'Zero Days Scanned in Ashara Mubaraka'                             => 'Zero Days Scanned in Ashara Mubaraka (Active)',
         ];
     }
 
@@ -237,13 +237,13 @@ class MemberStatusM extends CI_Model
     {
         return [
             ''                                            => '— None —',
-            'Residing in Local Jamaat'                    => 'Residing in Local Jamaat',
-            'Moved for Job'                               => 'Moved for Job',
-            'Moved for Studies'                           => 'Moved for Studies',
-            'Moved after Marriage'                        => 'Moved after Marriage',
-            'Permanently moved but ITS not Transferred'   => 'Permanently moved but ITS not Transferred',
-            'Permanently Moved and ITS also Transferred'  => 'Permanently Moved and ITS also Transferred',
-            'Unknown or Not Traceable'                    => 'Unknown or Not Traceable',
+            'Residing in Local Jamaat'                    => 'Residing in Local Jamaat (Active)',
+            'Moved for Job'                               => 'Moved for Job (Active)',
+            'Moved for Studies'                           => 'Moved for Studies (Active)',
+            'Moved after Marriage'                        => 'Moved after Marriage (Active)',
+            'Permanently moved but ITS not Transferred'   => 'Permanently moved but ITS not Transferred (Inactive)',
+            'Permanently Moved and ITS also Transferred'  => 'Permanently Moved and ITS also Transferred (Inactive)',
+            'Unknown or Not Traceable'                    => 'Unknown or Not Traceable (Inactive)',
         ];
     }
 
@@ -251,12 +251,12 @@ class MemberStatusM extends CI_Model
     {
         return [
             ''                     => '— None —',
-            'Healthy'              => 'Healthy',
-            'Lazimul Firash'       => 'Lazimul Firash / Bedridden',
-            'Medically Unfit'      => 'Medically Unfit',
-            'Hospitalised'         => 'Hospitalised',
-            'Elderly / Needs Care' => 'Elderly / Needs Care',
-            'Wafaat'               => 'Wafaat',
+            'Healthy'              => 'Healthy (Active)',
+            'Lazimul Firash'       => 'Lazimul Firash / Bedridden (Inactive)',
+            'Medically Unfit'      => 'Medically Unfit (Active)',
+            'Hospitalised'         => 'Hospitalised (Active)',
+            'Elderly / Needs Care' => 'Elderly / Needs Care (Active)',
+            'Wafaat'               => 'Wafaat (Inactive)',
         ];
     }
 

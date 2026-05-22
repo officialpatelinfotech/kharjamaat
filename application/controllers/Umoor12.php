@@ -236,19 +236,36 @@ class Umoor12 extends CI_Controller
           $hijriYearNum = (int)$hijri_year;
           $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
 
+          // Resolve venue name if any field is Venue
+          $venueName = '';
+          if (isset($razafields['fields']) && is_array($razafields['fields'])) {
+            foreach ($razafields['fields'] as $f) {
+              if (isset($f['name']) && strcasecmp(trim($f['name']), 'venue') === 0) {
+                $postKey = preg_replace(['/[\s]/', '/[()]/', '/[\/?]/'], ['-', '_', '-'], strtolower($f['name']));
+                if (isset($_POST[$postKey])) {
+                  $venueOptionId = $_POST[$postKey];
+                  $venueName = $this->LaagatRentM->get_venue_name_by_id($razatypeid, $venueOptionId);
+                }
+                break;
+              }
+            }
+          }
+
           // Flexible fetching with fallback
-          $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, $hijriRange, false);
+          $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, $hijriRange, false, $venueName);
           if (!$laagatRow) {
-            $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, null, false);
+            $laagatRow = $this->LaagatRentM->get_active_for_raza_type($chargeType, $razatypeid, null, false, $venueName);
           }
 
           if ($laagatRow && !empty($laagatRow['id'])) {
-            $invoiceAmount = $this->LaagatRentM->get_amount_for_user($laagatRow['id'], $userId);
+            $invoiceAmountBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRow['id'], $userId);
             $invoiceData = [
               'user_id' => $userId,
               'laagat_rent_id' => $laagatRow['id'],
               'raza_id' => $check,
-              'amount' => $invoiceAmount,
+              'amount' => $invoiceAmountBreakdown['amount'],
+              'jamaat_amount' => $invoiceAmountBreakdown['jamaat_amount'],
+              'sarkaar_amount' => $invoiceAmountBreakdown['sarkaar_amount'],
               'created_at' => date('Y-m-d H:i:s')
             ];
             $this->db->insert('laagat_rent_invoices', $invoiceData);

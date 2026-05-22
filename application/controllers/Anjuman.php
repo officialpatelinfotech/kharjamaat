@@ -288,13 +288,16 @@ class Anjuman extends CI_Controller
     // Laagat & Rent dashboard total
     $this->load->model('LaagatRentM');
     $lr_year = $sel_hijri_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446);
-    $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year]);
+    $lr_year_query = (is_numeric($lr_year) && strlen((string)$lr_year) === 4) 
+        ? (int)$lr_year . '-' . substr((string)((int)$lr_year + 1), -2) 
+        : $lr_year;
+    $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year_query]);
     $dashboard_laagat_rent_total = 0.0;
     foreach ($lr_invoices as $lrinv) {
         $dashboard_laagat_rent_total += (float)($lrinv['master_amount'] ?? 0);
     }
     $data['dashboard_laagat_rent_total'] = $dashboard_laagat_rent_total;
-    $data['dashboard_laagat_rent_hijri_year'] = $lr_year;
+    $data['dashboard_laagat_rent_hijri_year'] = $lr_year_query;
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/Home', $data);
@@ -682,15 +685,20 @@ class Anjuman extends CI_Controller
       $remarks = $this->input->post('remarks');
 
       if ($invoice_id > 0 && $amount > 0) {
-        $payload = [
-          'invoice_id' => $invoice_id,
-          'amount' => $amount,
-          'payment_date' => $payment_date,
-          'payment_method' => $payment_method,
-          'remarks' => $remarks
-        ];
-        $this->LaagatRentM->add_payment($payload);
-        $this->session->set_flashdata('laagat_flash_success', 'Payment recorded successfully.');
+        $inv = $this->LaagatRentM->get_invoice_by_id($invoice_id);
+        if ($inv && $inv['charge_type'] === 'rent' && (int)$inv['janab_status'] !== 1) {
+          $this->session->set_flashdata('laagat_flash_error', 'Cannot collect payment: corresponding Raza is not approved yet.');
+        } else {
+          $payload = [
+            'invoice_id' => $invoice_id,
+            'amount' => $amount,
+            'payment_date' => $payment_date,
+            'payment_method' => $payment_method,
+            'remarks' => $remarks
+          ];
+          $this->LaagatRentM->add_payment($payload);
+          $this->session->set_flashdata('laagat_flash_success', 'Payment recorded successfully.');
+        }
       } else {
         $this->session->set_flashdata('laagat_flash_error', 'Invalid payment data.');
       }
@@ -820,19 +828,41 @@ class Anjuman extends CI_Controller
 
       if ($id > 0) {
         $this->load->model('LaagatRentM');
-        $manual_amount = $this->input->post('amount');
-        
-        $updateData = [];
+        $invoice = $this->LaagatRentM->get_invoice_by_id($id);
+        if ($invoice) {
+          $updateData = [];
+          if ($invoice['charge_type'] === 'rent') {
+            $amt = $this->input->post('amount');
+            if ($amt !== null && $amt !== '') {
+              $updateData['amount'] = (float)$amt;
+              $updateData['jamaat_amount'] = (float)$amt;
+              $updateData['sarkaar_amount'] = 0.00;
+            }
+          } else {
+            $jAmt = $this->input->post('jamaat_amount');
+            $sAmt = $this->input->post('sarkaar_amount');
+            
+            if ($jAmt !== null && $jAmt !== '') {
+              $updateData['jamaat_amount'] = (float)$jAmt;
+            }
+            if ($sAmt !== null && $sAmt !== '') {
+              $updateData['sarkaar_amount'] = (float)$sAmt;
+            }
 
-        if ($manual_amount !== null && $manual_amount !== '') {
-          $updateData['amount'] = (float)$manual_amount;
-        }
+            if (isset($updateData['jamaat_amount']) || isset($updateData['sarkaar_amount'])) {
+              $jAmtVal = isset($updateData['jamaat_amount']) ? $updateData['jamaat_amount'] : 0.00;
+              $sAmtVal = isset($updateData['sarkaar_amount']) ? $updateData['sarkaar_amount'] : 0.00;
+              $updateData['amount'] = $jAmtVal + $sAmtVal;
+            }
+          }
 
-        if (!empty($updateData)) {
-          $this->LaagatRentM->update_invoice($id, $updateData);
-          $invoice = $this->LaagatRentM->get_invoice_by_id($id);
-          $ctLabel = ucfirst(($invoice['charge_type'] ?? 'Invoice'));
-          $this->session->set_flashdata('laagat_flash_success', $ctLabel . ' invoice updated successfully.');
+          if (!empty($updateData)) {
+            $this->LaagatRentM->update_invoice($id, $updateData);
+            $ctLabel = ucfirst(($invoice['charge_type'] ?? 'Invoice'));
+            $this->session->set_flashdata('laagat_flash_success', $ctLabel . ' invoice updated successfully.');
+          }
+        } else {
+          $this->session->set_flashdata('laagat_flash_error', 'Invoice not found.');
         }
       } else {
         $this->session->set_flashdata('laagat_flash_error', 'Invalid data.');

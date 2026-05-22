@@ -1,13 +1,25 @@
 <div class="container-fluid px-md-5 margintopcontainer pt-5">
   <?php
+  $total_jmt_amt = 0;
+  $total_sar_amt = 0;
   $total_inv_amt = 0;
   $total_paid_amt = 0;
   $total_due_amt = 0;
   if (!empty($invoices)) {
     foreach ($invoices as $inv) {
-      $total_inv_amt += (float)$inv['master_amount'];
+      $tAmt = (float)$inv['master_amount'];
+      if ($inv['charge_type'] !== 'rent') {
+        $jAmt = (float)$inv['jamaat_amount'];
+        $sAmt = (float)$inv['sarkaar_amount'];
+        if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) {
+          $jAmt = $tAmt;
+        }
+        $total_jmt_amt += $jAmt;
+        $total_sar_amt += $sAmt;
+      }
+      $total_inv_amt += $tAmt;
       $total_paid_amt += (float)$inv['paid_amount'];
-      $total_due_amt += ((float)$inv['master_amount'] - (float)$inv['paid_amount']);
+      $total_due_amt += ($tAmt - (float)$inv['paid_amount']);
     }
   }
   ?>
@@ -27,12 +39,16 @@
 
   <div class="row mb-3">
     <div class="col-12 text-center">
-      <div class="d-inline-flex align-items-center p-2 px-4 bg-light rounded-pill shadow-sm border">
-        <div class="text-nowrap mx-3"><span class="text-muted small">Total Amount:</span> <span class="fw-bold text-primary">₹<?= format_inr($total_inv_amt, 0) ?></span></div>
-        <div class="text-muted">|</div>
-        <div class="text-nowrap mx-3"><span class="text-muted small">Total Paid:</span> <span class="fw-bold text-success">₹<?= format_inr($total_paid_amt, 0) ?></span></div>
-        <div class="text-muted">|</div>
-        <div class="text-nowrap mx-3"><span class="text-muted small">Total Due:</span> <span class="fw-bold text-danger">₹<?= format_inr($total_due_amt, 0) ?></span></div>
+      <div class="d-inline-flex align-items-center p-2 px-4 bg-light rounded-pill shadow-sm border flex-wrap justify-content-center">
+        <div class="text-nowrap mx-2"><span class="text-muted small">Total Jamaat:</span> <span class="fw-bold text-success">₹<?= format_inr($total_jmt_amt, 0) ?></span></div>
+        <div class="text-muted mx-1">|</div>
+        <div class="text-nowrap mx-2"><span class="text-muted small">Total Sarkaar:</span> <span class="fw-bold text-info">₹<?= format_inr($total_sar_amt, 0) ?></span></div>
+        <div class="text-muted mx-1">|</div>
+        <div class="text-nowrap mx-2"><span class="text-muted small">Total Amount:</span> <span class="fw-bold text-primary">₹<?= format_inr($total_inv_amt, 0) ?></span></div>
+        <div class="text-muted mx-1">|</div>
+        <div class="text-nowrap mx-2"><span class="text-muted small">Total Paid:</span> <span class="fw-bold text-success">₹<?= format_inr($total_paid_amt, 0) ?></span></div>
+        <div class="text-muted mx-1">|</div>
+        <div class="text-nowrap mx-2"><span class="text-muted small">Total Due:</span> <span class="fw-bold text-danger">₹<?= format_inr($total_due_amt, 0) ?></span></div>
       </div>
     </div>
   </div>
@@ -102,7 +118,9 @@
               <th>Charge Type</th>
               <th>Raza Id</th>
               <th>Raza</th>
-              <th class="text-end">Invoice Amount</th>
+              <th class="text-end">Jmt. Amount</th>
+              <th class="text-end">Sar. Amount</th>
+              <th class="text-end">Total Amount</th>
               <th class="text-end">Paid Amount</th>
               <th class="text-end">Due Amount</th>
               <th class="text-center">Action</th>
@@ -127,7 +145,18 @@
                   </td>
                   <td>R#<?= $inv['generated_raza_id'] ?></td>
                   <td><?= $inv['title'] ?></td>
-                  <td class="text-end">₹<?= format_inr($inv['master_amount'], 0) ?></td>
+                  <?php
+                  $jAmt = (float)$inv['jamaat_amount'];
+                  $sAmt = (float)$inv['sarkaar_amount'];
+                  $tAmt = (float)$inv['master_amount'];
+                  if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) {
+                    $jAmt = $tAmt;
+                  }
+                  $isRent = ($inv['charge_type'] === 'rent');
+                  ?>
+                  <td class="text-end text-success fw-bold"><?= $isRent ? '-' : '₹' . format_inr($jAmt, 0) ?></td>
+                  <td class="text-end text-info fw-bold"><?= $isRent ? '-' : '₹' . format_inr($sAmt, 0) ?></td>
+                  <td class="text-end text-primary fw-bold">₹<?= format_inr($tAmt, 0) ?></td>
                   <td class="text-end text-success">₹<?= format_inr($inv['paid_amount'], 0) ?></td>
                   <td class="text-end fw-bold <?= ($balance > 0) ? 'text-danger' : 'text-muted' ?>">
                     ₹<?= format_inr($balance, 0) ?>
@@ -136,9 +165,17 @@
                     <div class="d-flex flex-column align-items-center p-2">
                       <?php if (empty($_SESSION['user']['role']) || $_SESSION['user']['role'] != 2): ?>
                         <?php if ($balance > 0): ?>
-                          <button type="button" class="btn btn-success btn-sm w-100 mb-2" title="Receive Payment" data-toggle="modal" data-target="#paymentModal<?= $inv['id'] ?>">
-                            Receive Payment
-                          </button>
+                          <?php if ($inv['charge_type'] === 'rent' && (int)$inv['janab_status'] !== 1): ?>
+                            <?php if ((int)$inv['janab_status'] === 2): ?>
+                              <button type="button" class="btn btn-danger btn-sm w-100 mb-2" disabled>Raza Rejected</button>
+                            <?php else: ?>
+                              <button type="button" class="btn btn-warning btn-sm w-100 mb-2 text-dark" disabled>Raza Pending Approval</button>
+                            <?php endif; ?>
+                          <?php else: ?>
+                            <button type="button" class="btn btn-success btn-sm w-100 mb-2" title="Receive Payment" data-toggle="modal" data-target="#paymentModal<?= $inv['id'] ?>">
+                              Receive Payment
+                            </button>
+                          <?php endif; ?>
                         <?php else: ?>
                           <button class="btn btn-outline-secondary btn-sm w-100 mb-2" disabled>Paid</button>
                         <?php endif; ?>
@@ -151,7 +188,7 @@
               <?php endforeach; ?>
             <?php else: ?>
               <tr>
-                <td colspan="11" class="text-center py-5 text-muted">
+                <td colspan="13" class="text-center py-5 text-muted">
                   <i class="fa-solid fa-magnifying-glass fa-2x mb-3 opacity-25"></i><br>
                   Search for a member ITS ID to record payments
                 </td>
@@ -243,10 +280,33 @@
                     <label class="form-label text-muted mb-0">Raza</label>
                     <div class="text-dark"><?= $inv['title'] ?></div>
                   </div>
-                  <div class="col-6">
-                    <label class="form-label text-muted mb-0">Invoice Amount</label>
-                    <div class="fw-bold text-dark">₹<?= format_inr($inv['master_amount'], 0) ?></div>
-                  </div>
+                  <?php if ($inv['charge_type'] === 'rent'): ?>
+                    <div class="col-6">
+                      <label class="form-label text-muted mb-0">Invoice Amount</label>
+                      <div class="fw-bold text-dark">₹<?= format_inr($inv['master_amount'], 0) ?></div>
+                    </div>
+                  <?php else: ?>
+                    <?php
+                    $jAmt = (float)$inv['jamaat_amount'];
+                    $sAmt = (float)$inv['sarkaar_amount'];
+                    $tAmt = (float)$inv['master_amount'];
+                    if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) {
+                      $jAmt = $tAmt;
+                    }
+                    ?>
+                    <div class="col-6">
+                      <label class="form-label text-muted mb-0">Jmt. Amount</label>
+                      <div class="fw-bold text-success">₹<?= format_inr($jAmt, 0) ?></div>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label text-muted mb-0">Sar. Amount</label>
+                      <div class="fw-bold text-info">₹<?= format_inr($sAmt, 0) ?></div>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label text-muted mb-0">Total Amount</label>
+                      <div class="fw-bold text-primary">₹<?= format_inr($tAmt, 0) ?></div>
+                    </div>
+                  <?php endif; ?>
                 </div>
 
                 <div class="alert alert-light border-0 bg-light py-2 mb-3">

@@ -81,6 +81,19 @@
           </select>
         </div>
 
+        <div class="mb-3" id="lr_venue_section" style="display: none;">
+          <label class="form-label" for="lr_venue">Venue Selection</label>
+          <select class="custom-select" id="lr_venue" name="venue">
+            <option value="">All/Any Venue (Default)</option>
+            <?php if (!empty($venue_options) && is_array($venue_options)) : ?>
+              <?php foreach ($venue_options as $vo) : ?>
+                <?php $selected = (isset($form['venue']) && (string)$form['venue'] === (string)$vo) ? 'selected' : ''; ?>
+                <option value="<?php echo htmlspecialchars((string)$vo); ?>" <?php echo $selected; ?>><?php echo htmlspecialchars((string)$vo); ?></option>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </select>
+        </div>
+
 
         <div class="mb-3">
           <label class="form-label" for="lr_raza_type_name">Applicable Raza Categories</label>
@@ -119,14 +132,30 @@
           
         </div>
 
+        <div class="mb-3" id="lr_amount_section" style="display: none;">
+          <label class="form-label font-weight-bold" for="lr_amount">Amount</label>
+          <input
+            type="number"
+            class="form-control shadow-sm"
+            id="lr_amount"
+            name="amount"
+            min="0"
+            step="0.01"
+            value="<?php echo htmlspecialchars(isset($form['amount']) ? (string)$form['amount'] : ''); ?>"
+            placeholder="0.00"
+          />
+        </div>
+
         <div id="lr_grade_amounts_section" class="mb-3" style="display: none;">
           <label class="form-label font-weight-bold">Grade-based Amounts (Residential)</label>
           <div class="table-responsive">
             <table class="table table-bordered table-striped bg-white shadow-sm">
               <thead class="thead-light">
                 <tr>
-                  <th scope="col" style="width: 50%;">Grade</th>
-                  <th scope="col" style="width: 50%;">Laagat/Rent Amount</th>
+                  <th scope="col" style="width: 40%;">Grade</th>
+                  <th scope="col" style="width: 20%;">Jmt. Laagat</th>
+                  <th scope="col" style="width: 20%;">Sar. Laagat</th>
+                  <th scope="col" style="width: 20%;">Total Amount</th>
                 </tr>
               </thead>
               <tbody id="lr_grade_amounts_tbody">
@@ -354,8 +383,9 @@
     function updateGradeAmounts() {
       var year = (hijriYearSelect.value || '').trim();
       var hasCategories = Object.keys(selectedIds).length > 0;
+      var ct = (typeSelect.value || '').trim();
 
-      if (!year || !hasCategories) {
+      if (ct === 'rent' || !year || !hasCategories) {
         if (gradeAmountsSection) gradeAmountsSection.style.display = 'none';
         if (gradeAmountsTbody) gradeAmountsTbody.innerHTML = '';
         activeGrades = [];
@@ -393,7 +423,7 @@
       gradeAmountsTbody.innerHTML = '';
 
       if (!grades || grades.length === 0) {
-        gradeAmountsTbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No Residential Grades found for this Hijri Year.</td></tr>';
+        gradeAmountsTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No Residential Grades found for this Hijri Year.</td></tr>';
         if (gradeAmountsSection) gradeAmountsSection.style.display = 'block';
         return;
       }
@@ -408,23 +438,52 @@
         tdGrade.appendChild(document.createTextNode('Grade ' + g.grade));
         tr.appendChild(tdGrade);
 
-        // Column 2: Amount Input
-        var tdInput = document.createElement('td');
-        var input = document.createElement('input');
-        input.type = 'number';
-        input.min = '0';
-        input.step = '0.01';
-        input.className = 'form-control lr-grade-amount-input';
-        input.id = 'lr_grade_' + g.sabeel_takhmeen_grade_id;
-        input.name = 'grade_amounts[' + g.sabeel_takhmeen_grade_id + ']';
-        input.required = true;
-        
-        var val = (g.saved_amount !== null && g.saved_amount !== undefined) ? g.saved_amount : '';
-        input.value = val;
-        input.placeholder = '0.00';
+        // Column 2: Jmt. Laagat Input
+        var tdJmt = document.createElement('td');
+        var inputJmt = document.createElement('input');
+        inputJmt.type = 'number';
+        inputJmt.min = '0';
+        inputJmt.step = '0.01';
+        inputJmt.className = 'form-control lr-grade-jmt-input';
+        inputJmt.id = 'lr_grade_jmt_' + g.sabeel_takhmeen_grade_id;
+        inputJmt.name = 'grade_jamaat_amounts[' + g.sabeel_takhmeen_grade_id + ']';
+        var jVal = (g.saved_jamaat_amount !== null && g.saved_jamaat_amount !== undefined) ? g.saved_jamaat_amount : '';
+        // If legacy amount is saved and jamaat amount is empty/null, default it to saved_amount
+        if (jVal === '' && g.saved_amount !== null && g.saved_amount !== undefined) {
+          jVal = g.saved_amount;
+        }
+        inputJmt.value = jVal;
+        inputJmt.placeholder = '0.00';
+        tdJmt.appendChild(inputJmt);
+        tr.appendChild(tdJmt);
 
-        tdInput.appendChild(input);
-        tr.appendChild(tdInput);
+        // Column 3: Sar. Laagat Input
+        var tdSar = document.createElement('td');
+        var inputSar = document.createElement('input');
+        inputSar.type = 'number';
+        inputSar.min = '0';
+        inputSar.step = '0.01';
+        inputSar.className = 'form-control lr-grade-sar-input';
+        inputSar.id = 'lr_grade_sar_' + g.sabeel_takhmeen_grade_id;
+        inputSar.name = 'grade_sarkaar_amounts[' + g.sabeel_takhmeen_grade_id + ']';
+        var sVal = (g.saved_sarkaar_amount !== null && g.saved_sarkaar_amount !== undefined) ? g.saved_sarkaar_amount : '';
+        inputSar.value = sVal;
+        inputSar.placeholder = '0.00';
+        tdSar.appendChild(inputSar);
+        tr.appendChild(tdSar);
+
+        // Column 4: Total Amount Read-only Input
+        var tdTotal = document.createElement('td');
+        var inputTotal = document.createElement('input');
+        inputTotal.type = 'number';
+        inputTotal.className = 'form-control lr-grade-total-input';
+        inputTotal.id = 'lr_grade_total_' + g.sabeel_takhmeen_grade_id;
+        inputTotal.readOnly = true;
+        var tVal = (g.saved_amount !== null && g.saved_amount !== undefined) ? g.saved_amount : '';
+        inputTotal.value = tVal;
+        inputTotal.placeholder = '0.00';
+        tdTotal.appendChild(inputTotal);
+        tr.appendChild(tdTotal);
 
         gradeAmountsTbody.appendChild(tr);
       }
@@ -432,14 +491,55 @@
       if (gradeAmountsSection) gradeAmountsSection.style.display = 'block';
     }
 
+    if (gradeAmountsTbody) {
+      gradeAmountsTbody.addEventListener('input', function(e) {
+        var target = e.target;
+        if (target && (target.classList.contains('lr-grade-jmt-input') || target.classList.contains('lr-grade-sar-input'))) {
+          var tr = target.closest('tr');
+          if (tr) {
+            var jmtInput = tr.querySelector('.lr-grade-jmt-input');
+            var sarInput = tr.querySelector('.lr-grade-sar-input');
+            var totalInput = tr.querySelector('.lr-grade-total-input');
+            if (jmtInput && sarInput && totalInput) {
+              var jVal = parseFloat(jmtInput.value) || 0;
+              var sVal = parseFloat(sarInput.value) || 0;
+              totalInput.value = (jVal + sVal).toFixed(2);
+            }
+          }
+        }
+      });
+    }
+
     hijriYearSelect.addEventListener('change', function() {
       updateGradeAmounts();
     });
+
+    var venueSection = document.getElementById('lr_venue_section');
+    var venueSelect = document.getElementById('lr_venue');
+    var amountSection = document.getElementById('lr_amount_section');
+    var amountInput = document.getElementById('lr_amount');
+
+    function toggleRentFields() {
+      if (typeSelect && typeSelect.value === 'rent') {
+        if (venueSection) venueSection.style.display = 'block';
+        if (amountSection) amountSection.style.display = 'block';
+        if (amountInput) amountInput.setAttribute('required', 'required');
+      } else {
+        if (venueSection) venueSection.style.display = 'none';
+        if (venueSelect) venueSelect.value = '';
+        if (amountSection) amountSection.style.display = 'none';
+        if (amountInput) {
+          amountInput.removeAttribute('required');
+          amountInput.value = '';
+        }
+      }
+    }
 
     typeSelect.addEventListener('change', function() {
       inputName.value = '';
       clearSelected();
       fetchOptions('');
+      toggleRentFields();
     });
 
     inputName.addEventListener('input', function() {
@@ -487,6 +587,7 @@
     isInitializing = false;
     updateGradeAmounts();
     fetchOptions('');
+    toggleRentFields();
   })();
 </script>
 

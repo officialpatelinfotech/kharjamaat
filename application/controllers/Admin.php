@@ -73,6 +73,8 @@ class Admin extends CI_Controller
     $data['flash_error'] = isset($_SESSION['laagat_flash_error']) ? (string)$_SESSION['laagat_flash_error'] : null;
     unset($_SESSION['laagat_flash_success'], $_SESSION['laagat_flash_error']);
 
+    $data['venue_options'] = $this->LaagatRentM->get_all_venues_from_raza_forms();
+
     $defaultYear = !empty($year_ranges) ? $year_ranges[count($year_ranges) - 1] : '';
     $data['form'] = [
       'id' => null,
@@ -80,6 +82,7 @@ class Admin extends CI_Controller
       'hijri_year' => $defaultYear,
       'charge_type' => '',
       'amount' => '',
+      'venue' => '',
       'raza_type_id' => '',
       'raza_type_name' => '',
       'raza_types' => []
@@ -97,6 +100,7 @@ class Admin extends CI_Controller
           'hijri_year' => (string)$row['hijri_year'],
           'charge_type' => (string)$row['charge_type'],
           'amount' => isset($row['amount']) ? (string)$row['amount'] : '',
+          'venue' => isset($row['venue']) ? (string)$row['venue'] : '',
           'raza_type_id' => isset($row['raza_type_id']) ? (string)$row['raza_type_id'] : '',
           'raza_type_name' => isset($row['raza_type_name']) ? (string)$row['raza_type_name'] : '',
           'raza_types' => is_array($razaTypes) ? $razaTypes : []
@@ -232,9 +236,32 @@ class Admin extends CI_Controller
       return;
     }
 
-    $gradeAmounts = $this->input->post('grade_amounts');
-    if (!is_array($gradeAmounts)) {
+    $gradeJamaatAmounts = $this->input->post('grade_jamaat_amounts');
+    if (!is_array($gradeJamaatAmounts)) {
+      $gradeJamaatAmounts = [];
+    }
+    $gradeSarkaarAmounts = $this->input->post('grade_sarkaar_amounts');
+    if (!is_array($gradeSarkaarAmounts)) {
+      $gradeSarkaarAmounts = [];
+    }
+
+    $gradeAmounts = [];
+    $allGradeIds = array_unique(array_merge(array_keys($gradeJamaatAmounts), array_keys($gradeSarkaarAmounts)));
+    foreach ($allGradeIds as $gradeId) {
+      $jAmt = isset($gradeJamaatAmounts[$gradeId]) ? (float)$gradeJamaatAmounts[$gradeId] : 0.00;
+      $sAmt = isset($gradeSarkaarAmounts[$gradeId]) ? (float)$gradeSarkaarAmounts[$gradeId] : 0.00;
+      $gradeAmounts[$gradeId] = $jAmt + $sAmt;
+    }
+
+    if ($chargeType === 'rent') {
+      $gradeJamaatAmounts = [];
+      $gradeSarkaarAmounts = [];
       $gradeAmounts = [];
+    }
+
+    $venue = ($chargeType === 'rent') ? trim((string)$this->input->post('venue')) : null;
+    if ($venue === '') {
+      $venue = null;
     }
 
     $payload = [
@@ -242,9 +269,12 @@ class Admin extends CI_Controller
       'hijri_year' => $hijriYear,
       'charge_type' => $chargeType,
       'amount' => (float)$amountRaw,
+      'venue' => $venue,
       'raza_type_id' => $razaTypeId,
       'raza_type_ids' => $razaTypeIds,
       'grade_amounts' => $gradeAmounts,
+      'grade_jamaat_amounts' => $gradeJamaatAmounts,
+      'grade_sarkaar_amounts' => $gradeSarkaarAmounts,
     ];
 
     if ($id > 0) {
@@ -383,7 +413,12 @@ class Admin extends CI_Controller
     }
     $razaTypeIds = array_values($razaTypeIds);
 
-    $dupId = $this->LaagatRentM->check_duplicate_overlap($hijriYear, $chargeType, $razaTypeIds, $excludeId);
+    $venue = ($chargeType === 'rent') ? trim((string)$this->input->post('venue')) : null;
+    if ($venue === '') {
+      $venue = null;
+    }
+
+    $dupId = $this->LaagatRentM->check_duplicate_overlap($hijriYear, $chargeType, $razaTypeIds, $excludeId, $venue);
     $exists = $dupId > 0;
 
     $this->output
@@ -405,8 +440,20 @@ class Admin extends CI_Controller
     $year = (string)$this->input->get('year');
     $laagatRentId = (int)$this->input->get('laagat_rent_id');
 
+    $isRent = false;
+    $chargeType = 'laagat';
+    if ($laagatRentId > 0) {
+      $lrType = $this->db->select('charge_type')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+      if ($lrType) {
+        $chargeType = $lrType['charge_type'];
+        if ($chargeType === 'rent') {
+          $isRent = true;
+        }
+      }
+    }
+
     $grades = [];
-    if ($year !== '') {
+    if ($year !== '' && !$isRent) {
       $grades = $this->LaagatRentM->get_grade_amounts_for_year($year, $laagatRentId);
     }
 
@@ -421,6 +468,7 @@ class Admin extends CI_Controller
     $this->output->set_content_type('application/json')->set_output(json_encode([
       'success' => true,
       'master_amount' => $masterAmount,
+      'charge_type' => $chargeType,
       'grades' => $grades
     ]));
   }

@@ -85,6 +85,7 @@
               <th data-sort="string">Title</th>
               <th data-sort="string">Hijri Year</th>
               <th data-sort="string">Charge Type</th>
+              <th data-sort="string">Venue</th>
               <th data-sort="string">Applicable Raza Categories</th>
               <th data-sort="string">Status</th>
               <th style="width: 280px;" data-sort="none">Actions</th>
@@ -99,6 +100,7 @@
                   <td><?php echo htmlspecialchars((string)($r['title'] ?? '')); ?></td>
                   <td><?php echo htmlspecialchars((string)($r['hijri_year'] ?? '')); ?></td>
                   <td><?php echo htmlspecialchars(ucfirst(strtolower((string)($r['charge_type'] ?? '')))); ?></td>
+                  <td><?php echo (isset($r['venue']) && $r['venue'] !== '') ? htmlspecialchars((string)$r['venue']) : '-'; ?></td>
                   <td><?php echo htmlspecialchars((string)($r['raza_type_name'] ?? '')); ?></td>
                   <td>
                     <?php if (!empty($r['is_active'])) : ?>
@@ -110,7 +112,7 @@
                   <td>
                     <a class="btn btn-sm btn-outline-primary" href="<?php echo site_url('admin/laagat/create') . '?edit=' . (int)$r['id']; ?>">Edit</a>
                     <button type="button" class="btn btn-sm btn-outline-info view-grades-btn" data-id="<?php echo (int)$r['id']; ?>" data-year="<?php echo htmlspecialchars((string)($r['hijri_year'] ?? '')); ?>" data-title="<?php echo htmlspecialchars((string)($r['title'] ?? '')); ?>">View</button>
-
+ 
                     <form method="post" action="<?php echo site_url('admin/laagat_toggle'); ?>" style="display:inline-block;">
                       <input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>" />
                       <?php $isActive = !empty($r['is_active']); ?>
@@ -118,7 +120,7 @@
                         <?php echo $isActive ? 'Deactivate' : 'Activate'; ?>
                       </button>
                     </form>
-
+ 
                     <?php $hasInvoices = !empty($r['has_invoices']); ?>
                     <form method="post" action="<?php echo site_url('admin/laagat_delete'); ?>" style="display:inline-block;" 
                           onsubmit="<?php echo $hasInvoices ? "alert('This Laagat/Rent Cannot deleted beacuase invoice exist for this record .'); return false;" : "return confirm('Delete this record?');"; ?>">
@@ -129,7 +131,7 @@
                 </tr>
               <?php endforeach; ?>
             <?php else : ?>
-              <tr><td colspan="7" class="text-center text-muted">No records found.</td></tr>
+              <tr><td colspan="8" class="text-center text-muted">No records found.</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
@@ -269,7 +271,9 @@
               <thead>
                 <tr class="bg-light text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.8px; font-weight: 700; color: #6c757d;">
                   <th class="pl-4 border-top-0 border-bottom-0 py-3">Residential Grade</th>
-                  <th class="text-right pr-4 border-top-0 border-bottom-0 py-3">Laagat/Rent Amount</th>
+                  <th class="text-right border-top-0 border-bottom-0 py-3">Jmt. Laagat</th>
+                  <th class="text-right border-top-0 border-bottom-0 py-3">Sar. Laagat</th>
+                  <th class="text-right pr-4 border-top-0 border-bottom-0 py-3">Total Amount</th>
                 </tr>
               </thead>
               <tbody id="lrGradesTableBody" style="font-size: 0.95rem;">
@@ -278,9 +282,25 @@
             </table>
           </div>
         </div>
-        <div id="lrModalContentFlat" style="display: none;" class="text-center py-5 px-4">
-          <div class="text-muted small text-uppercase font-weight-bold" style="letter-spacing: 1.2px;">Flat Amount</div>
-          <div class="font-weight-bold text-dark mt-3" id="lrFlatAmountValue" style="font-size: 2.25rem; font-family: 'Outfit', 'Inter', sans-serif;">₹0.00</div>
+        <div id="lrModalContentFlat" style="display: none;" class="py-4 px-4">
+          <div class="row text-center">
+            <div class="col-4">
+              <div class="text-muted small text-uppercase font-weight-bold" style="letter-spacing: 1.2px;">Jmt. Laagat</div>
+              <div class="font-weight-bold text-success mt-2" id="lrFlatJmtValue" style="font-size: 1.5rem; font-family: 'Outfit', 'Inter', sans-serif;">₹0.00</div>
+            </div>
+            <div class="col-4">
+              <div class="text-muted small text-uppercase font-weight-bold" style="letter-spacing: 1.2px;">Sar. Laagat</div>
+              <div class="font-weight-bold text-info mt-2" id="lrFlatSarValue" style="font-size: 1.5rem; font-family: 'Outfit', 'Inter', sans-serif;">₹0.00</div>
+            </div>
+            <div class="col-4">
+              <div class="text-muted small text-uppercase font-weight-bold" style="letter-spacing: 1.2px;">Total Amount</div>
+              <div class="font-weight-bold text-dark mt-2" id="lrFlatAmountValue" style="font-size: 1.5rem; font-family: 'Outfit', 'Inter', sans-serif;">₹0.00</div>
+            </div>
+          </div>
+        </div>
+        <div id="lrModalContentFlatRent" style="display: none;" class="py-4 px-4 text-center">
+          <div class="text-muted small text-uppercase font-weight-bold" style="letter-spacing: 1.2px;">Amount</div>
+          <div class="font-weight-bold text-primary mt-2" id="lrFlatRentAmountValue" style="font-size: 2.2rem; font-family: 'Outfit', 'Inter', sans-serif;">₹0.00</div>
         </div>
       </div>
       <div class="modal-footer border-top-0 pb-4 px-4 pt-3">
@@ -295,7 +315,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var modalEl = document.getElementById('lrViewGradesModal');
   if (!modalEl) return;
 
-  var viewButtons = document.querySelectorAll('.view-grades-btn');
   var subtitleEl = document.getElementById('lrViewGradesModalSubtitle');
   var spinnerEl = document.getElementById('lrModalSpinner');
   var errorEl = document.getElementById('lrModalError');
@@ -316,6 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var backdrop = document.createElement('div');
       backdrop.className = 'modal-backdrop fade show';
       backdrop.id = 'lr-modal-backdrop';
+      backdrop.addEventListener('click', hideModal);
       document.body.appendChild(backdrop);
     }
   }
@@ -342,80 +362,124 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', hideModal);
   });
 
-  viewButtons.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var id = btn.getAttribute('data-id');
-      var year = btn.getAttribute('data-year');
-      var title = btn.getAttribute('data-title');
+  document.addEventListener('click', function(e) {
+    var btn = e.target && e.target.closest && e.target.closest('.view-grades-btn');
+    if (!btn) return;
 
-      subtitleEl.textContent = title + ' (' + year + ')';
+    var id = btn.getAttribute('data-id');
+    var year = btn.getAttribute('data-year');
+    var title = btn.getAttribute('data-title');
 
-      // Reset modal state
-      spinnerEl.style.display = 'block';
-      errorEl.style.display = 'none';
-      contentEl.style.display = 'none';
-      document.getElementById('lrModalContentFlat').style.display = 'none';
-      tbodyEl.innerHTML = '';
+    subtitleEl.textContent = title + ' (' + year + ')';
 
-      showModal();
+    // Reset modal state
+    spinnerEl.style.display = 'block';
+    errorEl.style.display = 'none';
+    contentEl.style.display = 'none';
+    document.getElementById('lrModalContentFlat').style.display = 'none';
+    document.getElementById('lrModalContentFlatRent').style.display = 'none';
+    tbodyEl.innerHTML = '';
 
-      // Fetch grades
-      var url = '<?php echo site_url("admin/laagat_get_grade_amounts"); ?>?year=' + encodeURIComponent(year) + '&laagat_rent_id=' + encodeURIComponent(id);
-      
-      fetch(url)
-        .then(function(response) {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.json();
-        })
-        .then(function(data) {
-          if (data && data.success && Array.isArray(data.grades)) {
-            spinnerEl.style.display = 'none';
-            var masterAmount = (data.master_amount !== null && data.master_amount !== undefined) ? parseFloat(data.master_amount) : 0;
-            
-            // Check if any grade has a saved amount configured
-            var hasCustomGrades = data.grades.some(function(g) {
-              return g.saved_amount !== null && g.saved_amount !== undefined && g.saved_amount !== '';
+    showModal();
+
+    // Fetch grades
+    var url = '<?php echo site_url("admin/laagat_get_grade_amounts"); ?>?year=' + encodeURIComponent(year) + '&laagat_rent_id=' + encodeURIComponent(id);
+    
+    var handleResponse = function(data) {
+      if (data && data.success && Array.isArray(data.grades)) {
+        spinnerEl.style.display = 'none';
+        var masterAmount = (data.master_amount !== null && data.master_amount !== undefined) ? parseFloat(data.master_amount) : 0;
+        
+        if (data.charge_type === 'rent') {
+          // Change modal title dynamically
+          document.getElementById('lrViewGradesModalLabel').textContent = 'Rent Details';
+          // Show Flat Rent
+          var flatRentEl = document.getElementById('lrModalContentFlatRent');
+          var flatRentValEl = document.getElementById('lrFlatRentAmountValue');
+          flatRentValEl.textContent = '₹' + masterAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          flatRentEl.style.display = 'block';
+        } else {
+          // Change modal title dynamically
+          document.getElementById('lrViewGradesModalLabel').textContent = 'Grade Amounts';
+          
+          var hasSavedGrades = data.grades && data.grades.length > 0 && data.grades.some(function(g) {
+            return g.saved_amount !== null && g.saved_amount !== undefined;
+          });
+          
+          if (hasSavedGrades) {
+            // Show Grade Table
+            data.grades.forEach(function(g) {
+              var tr = document.createElement('tr');
+              
+              var tdGrade = document.createElement('td');
+              tdGrade.className = 'pl-4 align-middle font-weight-bold text-secondary';
+              tdGrade.textContent = 'Grade ' + g.grade;
+              tr.appendChild(tdGrade);
+
+              var savedJ = (g.saved_jamaat_amount !== null && g.saved_jamaat_amount !== undefined) ? parseFloat(g.saved_jamaat_amount) : null;
+              var savedS = (g.saved_sarkaar_amount !== null && g.saved_sarkaar_amount !== undefined) ? parseFloat(g.saved_sarkaar_amount) : null;
+              var amountVal = (g.saved_amount !== null && g.saved_amount !== undefined) ? parseFloat(g.saved_amount) : 0;
+
+              if ((savedJ === null || savedJ === 0) && (savedS === null || savedS === 0) && amountVal > 0) {
+                savedJ = amountVal;
+                savedS = 0;
+              } else {
+                if (savedJ === null) savedJ = 0;
+                if (savedS === null) savedS = 0;
+              }
+
+              var tdJmt = document.createElement('td');
+              tdJmt.className = 'text-right font-weight-bold text-success align-middle';
+              tdJmt.textContent = '₹' + savedJ.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              tr.appendChild(tdJmt);
+
+              var tdSar = document.createElement('td');
+              tdSar.className = 'text-right font-weight-bold text-info align-middle';
+              tdSar.textContent = '₹' + savedS.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              tr.appendChild(tdSar);
+
+              var tdAmount = document.createElement('td');
+              tdAmount.className = 'text-right pr-4 font-weight-bold text-dark align-middle';
+              tdAmount.textContent = '₹' + amountVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              tr.appendChild(tdAmount);
+
+              tbodyEl.appendChild(tr);
             });
-
-            if (!hasCustomGrades) {
-              // Show Flat Amount
-              var flatEl = document.getElementById('lrModalContentFlat');
-              var flatValEl = document.getElementById('lrFlatAmountValue');
-              flatValEl.textContent = '₹' + masterAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-              flatEl.style.display = 'block';
-            } else {
-              // Show Grade Table
-              data.grades.forEach(function(g) {
-                var tr = document.createElement('tr');
-                
-                var tdGrade = document.createElement('td');
-                tdGrade.className = 'pl-4 align-middle font-weight-bold text-secondary';
-                tdGrade.textContent = 'Grade ' + g.grade;
-                tr.appendChild(tdGrade);
-
-                var tdAmount = document.createElement('td');
-                tdAmount.className = 'text-right pr-4 font-weight-bold text-dark align-middle';
-                
-                var amountVal = (g.saved_amount !== null && g.saved_amount !== undefined) ? parseFloat(g.saved_amount) : 0;
-                tdAmount.textContent = '₹' + amountVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                tr.appendChild(tdAmount);
-
-                tbodyEl.appendChild(tr);
-              });
-              contentEl.style.display = 'block';
-            }
+            contentEl.style.display = 'block';
           } else {
-            throw new Error('Invalid response format');
+            // Fallback: Show Flat Amount
+            var flatEl = document.getElementById('lrModalContentFlat');
+            var flatJmtEl = document.getElementById('lrFlatJmtValue');
+            var flatSarEl = document.getElementById('lrFlatSarValue');
+            var flatValEl = document.getElementById('lrFlatAmountValue');
+            flatJmtEl.textContent = '₹' + masterAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            flatSarEl.textContent = '₹' + (0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            flatValEl.textContent = '₹' + masterAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            flatEl.style.display = 'block';
           }
+        }
+      } else {
+        showError('Invalid data payload');
+      }
+    };
+
+    var showError = function(error) {
+      console.error('Error fetching grade amounts:', error);
+      spinnerEl.style.display = 'none';
+      errorEl.style.display = 'block';
+    };
+
+    if (window.$ && $.getJSON) {
+      $.getJSON(url, handleResponse).fail(showError);
+    } else if (window.fetch) {
+      window.fetch(url, { credentials: 'same-origin' })
+        .then(function(r) {
+          if (!r.ok) throw new Error('Network response was not ok');
+          return r.json();
         })
-        .catch(function(error) {
-          console.error('Error fetching grade amounts:', error);
-          spinnerEl.style.display = 'none';
-          errorEl.style.display = 'block';
-        });
-    });
+        .then(handleResponse)
+        .catch(showError);
+    }
   });
 });
 </script>
