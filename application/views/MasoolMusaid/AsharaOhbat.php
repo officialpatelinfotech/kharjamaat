@@ -1,6 +1,6 @@
 <?php 
   $users = $users ?? []; 
-  $role_segment = strtolower($this->uri->segment(1));
+  $role_segment = $this->uri->segment(1);
   $directory_url = base_url($role_segment . '/mumineendirectory');
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
