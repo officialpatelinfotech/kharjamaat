@@ -456,7 +456,7 @@ function setDashTitle(p) {
     || (lf==='health_status'     &&lv?'Health: '+lv:'')
     || (lf==='deeni_status'      &&lv?'Deeni: '+lv:'')
     || (lf==='residential_status'&&lv?'Residential: '+lv:'')
-    || (lf&&lv?lf.replace(/_/g,' ')+': '+lv:'');
+    || (lf&&lv?(lf==='leavestatus'?'Ohbat Status':lf.replace(/_/g,' '))+': '+lv:'');
   if (t) {
     document.getElementById('dashTitleText').textContent = t;
     document.getElementById('dashTitle').style.display = '';

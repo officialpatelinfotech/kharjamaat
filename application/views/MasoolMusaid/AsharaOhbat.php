@@ -1,40 +1,72 @@
-<?php $users = $users ?? []; ?>
+<?php 
+  $users = $users ?? []; 
+  $role_segment = strtolower($this->uri->segment(1));
+  $directory_url = base_url($role_segment . '/mumineendirectory');
+?>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --gold:        #b8860b;
+    --gold-light:  #e6c84a;
+    --gold-muted:  #f5e9c0;
+    --bg:          #faf7f0;
+    --surface:     #ffffff;
+    --surface-2:   #f7f4ec;
+    --border:      #e8e0cc;
+    --border-light:#f0ece0;
+    --text-1:      #1a1610;
+    --text-2:      #5a5244;
+    --text-3:      #9c8f7a;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow:      0 4px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04);
+  }
+
   body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #f8f9fa;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--bg);
+    color: var(--text-1);
   }
 
   .header-section {
-    background-color: #2c3e50;
+    background: linear-gradient(135deg, #78520a 0%, #b8860b 50%, #c9a227 100%);
     color: white;
     padding: 1.5rem;
-    border-radius: 8px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
   }
 
   .stats-card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 15px;
     margin-bottom: 15px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s, box-shadow 0.2s;
     height: 100%;
   }
 
   .stats-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+    cursor: pointer;
   }
 
   .stats-card h5 {
-    font-size: 1rem;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .4px;
+    color: var(--text-3);
+    text-transform: uppercase;
     margin-bottom: 10px;
-    color: #495057;
   }
 
   .stats-value {
     font-size: 1.5rem;
-    font-weight: bold;
-    color: #212529;
+    font-weight: 800;
+    color: var(--text-1);
   }
 
   .stats-grid {
@@ -74,7 +106,7 @@
   }
 
   .table th {
-    background-color: #2c3e50;
+    background-color: var(--gold);
     color: white;
     position: sticky;
     top: 0;
@@ -106,10 +138,12 @@
   }
 
   .section-title {
-    border-bottom: 2px solid #2c3e50;
-    padding-bottom: 8px;
-    margin: 20px 0 15px;
-    color: #2c3e50;
+    border-bottom: 1.5px solid var(--border-light);
+    padding-bottom: 10px;
+    margin: 24px 0 16px;
+    color: var(--text-2);
+    font-size: 1.1rem;
+    font-weight: 800;
   }
 
   .filter-section {
@@ -159,6 +193,26 @@
   .pl-4 {
     padding-left: 1.5rem !important;
   }
+
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-primary {
+    background-color: var(--gold);
+    border-color: var(--gold);
+  }
+  .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background-color: #78520a !important;
+    border-color: #78520a !important;
+  }
+
+  .modal-header.bg-primary {
+    background-color: var(--gold) !important;
+  }
 </style>
 <div class="container-fluid pt-5 p-3 p-md-4">
   <!-- Header Section -->
@@ -193,46 +247,66 @@
   <!-- Stats Section -->
   <h4 class="section-title">Overview Statistics</h4>
   <div class="stats-grid">
-    <div class="stats-card bg-light">
-      <h5>Total Members</h5>
-      <div class="stats-value"><?= count($users) ?></div>
-    </div>
-    <div class="stats-card bg-light">
-      <h5>HOF (Head of Family)</h5>
-      <div class="stats-value"><?= $stats['HOF'] ?></div>
-    </div>
-    <div class="stats-card bg-light">
-      <h5>FM (Family Members)</h5>
-      <div class="stats-value"><?= $stats['FM'] ?></div>
-    </div>
-    <div class="stats-card bg-light">
-      <h5>Males</h5>
-      <div class="stats-value"><?= $stats['Mardo'] ?></div>
-    </div>
-    <div class="stats-card bg-light">
-      <h5>Females</h5>
-      <div class="stats-value"><?= $stats['Bairo'] ?></div>
-    </div>
-    <div class="stats-card bg-light">
-      <h5>Age 0-4</h5>
-      <div class="stats-value"><?= $stats['Age_0_4'] ?></div>
-    </div>
-    <div class="stats-card bg-light">
-      <h5>Age 5-15</h5>
-      <div class="stats-value"><?= $stats['Age_5_15'] ?></div>
-    </div>
-    <div class="stats-card bg-light">
-      <h5>Age 16-25</h5>
-      <div class="stats-value"><?= $stats['Age_16_25'] ?></div>
-    </div>
-    <div class="stats-card bg-light">
-      <h5>Age 26-65</h5>
-      <div class="stats-value"><?= $stats['Age_26_65'] ?></div>
-    </div>
-    <div class="stats-card bg-light">
-      <h5>Above 65</h5>
-      <div class="stats-value"><?= $stats['Buzurgo'] ?></div>
-    </div>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=all' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>Total Members</h5>
+        <div class="stats-value"><?= count($users) ?></div>
+      </div>
+    </a>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=hof_fm_type&value=HOF' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>HOF (Head of Family)</h5>
+        <div class="stats-value"><?= $stats['HOF'] ?></div>
+      </div>
+    </a>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=hof_fm_type&value=FM' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>FM (Family Members)</h5>
+        <div class="stats-value"><?= $stats['FM'] ?></div>
+      </div>
+    </a>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=gender&value=male' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>Males</h5>
+        <div class="stats-value"><?= $stats['Mardo'] ?></div>
+      </div>
+    </a>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=gender&value=female' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>Females</h5>
+        <div class="stats-value"><?= $stats['Bairo'] ?></div>
+      </div>
+    </a>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=0&max=4' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>Age 0-4</h5>
+        <div class="stats-value"><?= $stats['Age_0_4'] ?></div>
+      </div>
+    </a>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=5&max=15' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>Age 5-15</h5>
+        <div class="stats-value"><?= $stats['Age_5_15'] ?></div>
+      </div>
+    </a>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=16&max=25' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>Age 16-25</h5>
+        <div class="stats-value"><?= $stats['Age_16_25'] ?></div>
+      </div>
+    </a>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=26&max=65' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>Age 26-65</h5>
+        <div class="stats-value"><?= $stats['Age_26_65'] ?></div>
+      </div>
+    </a>
+    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=66' ?>" style="text-decoration: none; color: inherit; display: block;">
+      <div class="stats-card bg-light">
+        <h5>Above 65</h5>
+        <div class="stats-value"><?= $stats['Buzurgo'] ?></div>
+      </div>
+    </a>
   </div>
 
   <!-- Leave Status Section -->
@@ -242,10 +316,12 @@
       $statusLabel = $status ?: 'No Status';
       $statusClass = str_replace(' ', '-', strtolower($statusLabel));
     ?>
-      <div class="stats-card bg-light">
-        <h5><?= $statusLabel ?></h5>
-        <div class="stats-value"><?= $count ?></div>
-      </div>
+      <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=LeaveStatus&value=' . urlencode($statusLabel) ?>" style="text-decoration: none; color: inherit; display: block;">
+        <div class="stats-card bg-light">
+          <h5><?= $statusLabel ?></h5>
+          <div class="stats-value"><?= $count ?></div>
+        </div>
+      </a>
     <?php endforeach; ?>
 
     <?php if (empty($stats['LeaveStatus'])): ?>
@@ -272,11 +348,7 @@
           <option value="Musaaid didn't Contacted Yet">Musaaid didn't Contacted Yet</option>
           <option value="Will attend few Days only">Will attend few Days only</option>
           <option value="Will not attend any Day">Will not attend any Day</option>
-          <option value="Bed Ridden">Bed Ridden</option>
-          <option value="Not in Town">Not in Town</option>
           <option value="Ashara with Maula tus">Ashara with Maula tus</option>
-          <option value="Married Outcaste">Married Outcaste</option>
-          <option value="Wafaat">Wafaat</option>
         </select>
       </div>
     </div>
@@ -637,11 +709,7 @@
       "Musaaid didn't Contacted Yet",
       'Will attend few Days only',
       'Will not attend any Day',
-      'Bed Ridden',
-      'Not in Town',
       'Ashara with Maula tus',
-      'Married Outcaste',
-      'Wafaat',
     ];
 
     const leaveCol = document.createElement('div');

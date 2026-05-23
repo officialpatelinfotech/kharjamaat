@@ -206,6 +206,27 @@ class MasoolMusaid extends CI_Controller
       $data['users'] = $this->MasoolMusaidM->get_users_by_sector($sector, $subsector);
     }
 
+    // Fetch and merge LeaveStatus for the current/selected Hijri Year
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $hijri_parts = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts[2];
+    $current_hijri_month = (int)$hijri_parts[1];
+    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year);
+
+    $ohbat_rows = $this->db->where('year', $selected_year)->get('ashara_ohbat')->result_array();
+    $ohbat_map = [];
+    foreach ($ohbat_rows as $row) {
+      $ohbat_map[$row['ITS']] = $row['LeaveStatus'];
+    }
+
+    foreach ($data['users'] as &$u) {
+      $its = $u['ITS_ID'] ?? $u['ITS'] ?? null;
+      $u['LeaveStatus'] = isset($ohbat_map[$its]) && !empty($ohbat_map[$its]) ? $ohbat_map[$its] : "Musaaid didn't Contacted Yet";
+    }
+    unset($u);
+
     $data['user_name'] = $username;
 
     $this->load->view('MasoolMusaid/Header', $data);
@@ -280,6 +301,14 @@ class MasoolMusaid extends CI_Controller
     } else {
       $users = $this->MasoolMusaidM->get_ashara_by_sector($sector, $subsector, $selected_year);
     }
+
+    // Default empty/null/Unknown LeaveStatus to "Musaaid didn't Contacted Yet"
+    foreach ($users as &$u) {
+      if (empty($u['LeaveStatus']) || $u['LeaveStatus'] === 'Unknown') {
+        $u['LeaveStatus'] = "Musaaid didn't Contacted Yet";
+      }
+    }
+    unset($u);
 
     // Get all sectors and sub-sectors data for the logged-in user's scope
     $sectorsData = $this->MasoolMusaidM->get_sectors_stats($sector, $subsector, $selected_year);

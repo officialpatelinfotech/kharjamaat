@@ -373,8 +373,15 @@
       </div>
       <div class="action-grid">
         <?php
+        $username_raw = $_SESSION['user']['username'] ?? '';
+        $is_sub_sector = false;
+        if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z])$/i', $username_raw)) {
+            $is_sub_sector = true;
+        }
+        $directory_label = $is_sub_sector ? 'Mumineen in your Sub Mohalla' : 'Mumineen in your Mohalla';
+
         $actions = [
-          ['url' => base_url('MasoolMusaid/mumineendirectory'), 'icon' => 'fa fa-users',           'label' => 'Mumineen Directory'],
+          ['url' => base_url('MasoolMusaid/mumineendirectory'), 'icon' => 'fa fa-users',           'label' => $directory_label],
           ['url' => base_url('MasoolMusaid/asharaohbat'),       'icon' => 'fa fa-calendar',         'label' => 'Ashara Ohbat'],
           ['url' => base_url('MasoolMusaid/ashara_attendance'), 'icon' => 'fa fa-user-check',       'label' => 'Ashara Attendance'],
           ['url' => base_url('MasoolMusaid/rsvp_list'),         'icon' => 'fa fa-calendar-check-o', 'label' => 'Miqaat RSVP'],

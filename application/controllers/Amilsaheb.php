@@ -1710,6 +1710,42 @@ class Amilsaheb extends CI_Controller
     }
     // Always provide full user list for lookups (HOF name resolution, filters)
     $data['all_users'] = $this->AmilsahebM->get_all_users();
+
+    // Fetch and merge LeaveStatus for the current/selected Hijri Year
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $hijri_parts = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts[2];
+    $current_hijri_month = (int)$hijri_parts[1];
+    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year);
+
+    $ohbat_rows = $this->db->where('year', $selected_year)->get('ashara_ohbat')->result_array();
+    $ohbat_map = [];
+    foreach ($ohbat_rows as $row) {
+      $ohbat_map[$row['ITS']] = $row['LeaveStatus'];
+    }
+
+    if (isset($data['users']) && is_array($data['users'])) {
+      foreach ($data['users'] as &$u) {
+        $its = isset($u->ITS_ID) ? $u->ITS_ID : (isset($u['ITS_ID']) ? $u['ITS_ID'] : (isset($u['ITS']) ? $u['ITS'] : null));
+        $val = isset($ohbat_map[$its]) && !empty($ohbat_map[$its]) ? $ohbat_map[$its] : "Musaaid didn't Contacted Yet";
+        if (is_object($u)) $u->LeaveStatus = $val;
+        else $u['LeaveStatus'] = $val;
+      }
+      unset($u);
+    }
+
+    if (isset($data['all_users']) && is_array($data['all_users'])) {
+      foreach ($data['all_users'] as &$u) {
+        $its = isset($u->ITS_ID) ? $u->ITS_ID : (isset($u['ITS_ID']) ? $u['ITS_ID'] : (isset($u['ITS']) ? $u['ITS'] : null));
+        $val = isset($ohbat_map[$its]) && !empty($ohbat_map[$its]) ? $ohbat_map[$its] : "Musaaid didn't Contacted Yet";
+        if (is_object($u)) $u->LeaveStatus = $val;
+        else $u['LeaveStatus'] = $val;
+      }
+      unset($u);
+    }
+
     $data['user_name'] = $_SESSION['user']['username'];
 
     $this->load->view('Amilsaheb/Header', $data);
@@ -2027,6 +2063,14 @@ class Amilsaheb extends CI_Controller
       }
       unset($u);
     }
+
+    // Default empty/null/Unknown LeaveStatus to "Musaaid didn't Contacted Yet"
+    foreach ($users as &$u) {
+      if (empty($u['LeaveStatus']) || $u['LeaveStatus'] === 'Unknown') {
+        $u['LeaveStatus'] = "Musaaid didn't Contacted Yet";
+      }
+    }
+    unset($u);
 
     // Fetch overall sector and sub-sector stats
     $sectorsData = $this->AmilsahebM->get_all_sector_stats($selected_year);
