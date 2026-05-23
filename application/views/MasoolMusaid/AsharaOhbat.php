@@ -54,6 +54,11 @@
     cursor: pointer;
   }
 
+  .stats-card.active {
+    border-color: var(--gold) !important;
+    background-color: var(--gold-muted) !important;
+  }
+
   .stats-card h5 {
     font-size: .7rem;
     font-weight: 700;
@@ -314,18 +319,19 @@
   <div class="stats-grid">
     <?php foreach ($stats['LeaveStatus'] as $status => $count):
       $statusLabel = $status ?: 'No Status';
+      if (in_array(strtolower(trim($statusLabel)), ['bed ridden', 'not in town', 'married outcaste', 'wafaat'])) {
+        continue;
+      }
       $statusClass = str_replace(' ', '-', strtolower($statusLabel));
     ?>
-      <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=LeaveStatus&value=' . urlencode($statusLabel) ?>" style="text-decoration: none; color: inherit; display: block;">
-        <div class="stats-card bg-light">
-          <h5><?= $statusLabel ?></h5>
-          <div class="stats-value"><?= $count ?></div>
-        </div>
-      </a>
+      <div class="stats-card status-card-btn" data-status="<?= htmlspecialchars($statusLabel) ?>" onclick="clickStatusCard('<?= addslashes($statusLabel) ?>')" style="cursor: pointer;">
+        <h5><?= $statusLabel ?></h5>
+        <div class="stats-value"><?= $count ?></div>
+      </div>
     <?php endforeach; ?>
 
     <?php if (empty($stats['LeaveStatus'])): ?>
-      <div class="stats-card bg-light">
+      <div class="stats-card">
         <h5 class="text-muted">No leave status</h5>
         <div class="stats-value">0</div>
       </div>
@@ -478,7 +484,36 @@
   function filterByStatus() {
     const status = document.getElementById('statusFilter').value;
     currentStatusFilter = status || null;
+
+    // Synchronize active style on cards
+    document.querySelectorAll('.status-card-btn').forEach(card => {
+      const cardStatus = card.dataset.status;
+      const mappedVal = (cardStatus === "No Status") ? "no-status" : cardStatus;
+      if (mappedVal === status) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+    });
+
     performSearch();
+  }
+
+  function clickStatusCard(statusValue) {
+    const filterSelect = document.getElementById('statusFilter');
+    const targetValue = (statusValue === "No Status") ? "no-status" : statusValue;
+
+    if (filterSelect.value === targetValue) {
+      filterSelect.value = "";
+    } else {
+      filterSelect.value = targetValue;
+    }
+    filterByStatus();
+
+    const target = document.getElementById('statusFilter');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 
   function updateSectorCount(users) {
