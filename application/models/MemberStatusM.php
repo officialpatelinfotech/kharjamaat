@@ -227,9 +227,9 @@ class MemberStatusM extends CI_Model
             'Married Outside'                                                  => 'Married Outside (Inactive)',
             'Misaq Not Given'                                                  => 'Not given Misaq to Syedna Mufaddal Saifuddin AQA tus after Takht Nashini (Inactive)',
             'Mustajeeb'                                                        => 'Mustajeeb (Inactive)',
-            'No Ashara / LQ'                                                   => 'No Ashara / LQ attended for past 3 years (Active)',
-            'No Vajebaat / Sabeel'                                             => 'Not paid Sila Fitra / Vajeebaat / Sabeel for at least 3 years (Active)',
-            'Zero Days Scanned in Ashara Mubaraka'                             => 'Zero Days Scanned in Ashara Mubaraka (Active)',
+            'No Ashara / LQ'                                                   => 'No Ashara / LQ attended for past 3 years (Inactive)',
+            'No Vajebaat / Sabeel'                                             => 'Not paid Sila Fitra / Vajeebaat / Sabeel for last 3 years (Inactive)',
+            'Zero Days Scanned in Ashara Mubaraka'                             => 'Zero Days Scanned in Ashara Mubaraka (Inactive)',
         ];
     }
 
@@ -238,11 +238,10 @@ class MemberStatusM extends CI_Model
         return [
             ''                                            => '— None —',
             'Residing in Local Jamaat'                    => 'Residing in Local Jamaat (Active)',
-            'Moved for Job'                               => 'Moved for Job (Active)',
-            'Moved for Studies'                           => 'Moved for Studies (Active)',
-            'Moved after Marriage'                        => 'Moved after Marriage (Active)',
-            'Permanently moved but ITS not Transferred'   => 'Permanently moved but ITS not Transferred (Inactive)',
-            'Permanently Moved and ITS also Transferred'  => 'Permanently Moved and ITS also Transferred (Inactive)',
+            'Moved for Job'                               => 'Moved for Job (Inactive)',
+            'Moved for Studies'                           => 'Moved for Studies (Inactive)',
+            'Moved after Marriage'                        => 'Permanently moved after Marriage (Inactive)',
+            'Permanently Migrated'                        => 'Permanently Migrated (Inactive)',
             'Unknown or Not Traceable'                    => 'Unknown or Not Traceable (Inactive)',
         ];
     }
@@ -251,11 +250,10 @@ class MemberStatusM extends CI_Model
     {
         return [
             ''                     => '— None —',
-            'Healthy'              => 'Healthy (Active)',
+            'Healthy'              => 'Fit & Healthy (Active)',
+            'Medically Unfit'      => 'Handicapped Medically Unfit (Active)',
+            'Hospitalised'         => 'Major Disease Patient (Active)',
             'Lazimul Firash'       => 'Lazimul Firash / Bedridden (Inactive)',
-            'Medically Unfit'      => 'Medically Unfit (Active)',
-            'Hospitalised'         => 'Hospitalised (Active)',
-            'Elderly / Needs Care' => 'Elderly / Needs Care (Active)',
             'Wafaat'               => 'Wafaat (Inactive)',
         ];
     }
@@ -289,22 +287,29 @@ class MemberStatusM extends CI_Model
      */
     public static function compute_auto_inactive(string $deeni = '', string $health = '', string $residential = ''): ?string
     {
-        // Deeni statuses that trigger Inactive
+        // Deeni statuses that trigger Inactive (any status except Normal and None/empty)
         $inactiveDeeni = [
             'Deen Badli Lidu che',
             'Married Outside',
             'Misaq Not Given',
             'Mustajeeb',
+            'No Ashara / LQ',
+            'No Vajebaat / Sabeel',
+            'Zero Days Scanned in Ashara Mubaraka',
         ];
         // Health statuses that trigger Inactive
         $inactiveHealth = [
             'Lazimul Firash',
             'Wafaat',
         ];
-        // Residential statuses that trigger Inactive
+        // Residential statuses that trigger Inactive (any status except Residing in Local Jamaat and None/empty)
         $inactiveResidential = [
+            'Moved for Job',
+            'Moved for Studies',
+            'Moved after Marriage',
             'Permanently moved but ITS not Transferred',
             'Permanently Moved and ITS also Transferred',
+            'Permanently Migrated',
             'Unknown or Not Traceable',
         ];
 

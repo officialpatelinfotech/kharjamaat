@@ -117,6 +117,48 @@ class MasoolMusaid extends CI_Controller
     ================================ */
     if ($this->input->get('format') === 'json') {
 
+      // Extract sector and optional sub-sector from username
+      $sector = '';
+      $subsector = '';
+      if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+        $sector = $matches[1];
+        $subsector = $matches[2];
+      }
+
+      $miqaat_prev = $this->input->get('miqaat_prev');
+      if ($miqaat_prev) {
+        $before = $this->input->get('before_date');
+        $prev_miqaat = $this->db->query("SELECT m.id, m.name, m.type, m.date, m.assigned_to
+            FROM miqaat m
+            JOIN raza r ON r.miqaat_id = m.id AND r.`Janab-status` = 1
+            WHERE m.date < ?
+            ORDER BY m.date DESC
+            LIMIT 1", [$before])->row_array();
+        if ($prev_miqaat) {
+          $hijri_date = $this->HijriCalendar->get_hijri_parts_by_greg_date($prev_miqaat['date']);
+          $hijri_month = $this->db->where('id', $hijri_date['hijri_month'])->get('hijri_month')->row_array()['hijri_month'] ?? '';
+          $prev_miqaat['hijri_date'] = ($hijri_date['hijri_date'] ?? '') . ' ' . $hijri_month;
+          return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(['success' => true, 'miqaat' => $prev_miqaat]));
+        } else {
+          return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode(['success' => false]));
+        }
+      }
+
+      if ($this->input->get('miqaat_rsvp') == 1) {
+        $miqaat_id = $this->input->get('miqaat_id');
+        $m = $this->MasoolMusaidM->get_scoped_next_miqaat_rsvp_stats($sector, $subsector, $miqaat_id);
+        return $this->output
+          ->set_content_type('application/json')
+          ->set_output(json_encode([
+            'success' => true,
+            'miqaat_rsvp' => $m
+          ]));
+      }
+
       $hijri_year = (int) $this->input->get('hijri_year');
       $hijri_month = (int) $this->input->get('hijri_month');
 
@@ -179,8 +221,123 @@ class MasoolMusaid extends CI_Controller
         $data['selected_hijri_parts']['hijri_year']
       );
 
-    $this->load->view('MasoolMusaid/Header', $data);
-    $this->load->view('MasoolMusaid/Home', $data);
+    // Extract sector and optional sub-sector from username
+    $sector = '';
+    $subsector = '';
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+      $sector = $matches[1];
+      $subsector = $matches[2];
+    }
+
+    $sectorsData = $this->MasoolMusaidM->get_sectors_stats($sector, $subsector);
+    $subSectorsData = $this->MasoolMusaidM->get_sub_sectors_stats($sector, $subsector);
+
+    $residentOverview = $this->MasoolMusaidM->get_resident_overview_counts($sector, $subsector, true);
+    $stats = [
+      'HOF' => (int)($residentOverview['hof'] ?? 0),
+      'FM' => (int)($residentOverview['fm'] ?? 0),
+      'Mardo' => (int)($residentOverview['male'] ?? 0),
+      'Bairo' => (int)($residentOverview['female'] ?? 0),
+      'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
+      'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
+      'Age_16_25' => (int)($residentOverview['age_16_25'] ?? 0),
+      'Age_26_65' => (int)($residentOverview['age_26_65'] ?? 0),
+      'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
+      'Sectors' => $sectorsData,
+      'SubSectors' => $subSectorsData,
+      'deeni_eligible' => $this->MasoolMusaidM->get_deeni_eligible_count($sector, $subsector),
+      'deeni_taking' => $this->MasoolMusaidM->get_deeni_taking_count($sector, $subsector),
+      'madresa_deprived' => $this->MasoolMusaidM->get_madresa_deprived_count($sector, $subsector),
+      'singles_21_40' => $this->MasoolMusaidM->get_singles_21_40_count($sector, $subsector),
+      'status_counts' => $this->MasoolMusaidM->get_status_counts($sector, $subsector),
+      'active_inactive' => $this->MasoolMusaidM->get_active_inactive_counts($sector, $subsector),
+    ];
+
+    // RSVP stats
+    $upcoming_miqaats = $this->db->query("SELECT m.id, m.name, m.type, m.date, m.assigned_to 
+                                          FROM miqaat m 
+                                          JOIN raza r ON r.miqaat_id = m.id AND r.`Janab-status` = 1
+                                          WHERE m.date >= CURDATE() AND m.status = 1
+                                          ORDER BY m.date ASC 
+                                          LIMIT 5")->result_array();
+    if (!empty($upcoming_miqaats)) {
+      foreach ($upcoming_miqaats as &$um) {
+        $hijri_date = $this->HijriCalendar->get_hijri_parts_by_greg_date($um['date']);
+        $hijri_month = $this->db->where('id', $hijri_date['hijri_month'])->get('hijri_month')->row_array()['hijri_month'] ?? '';
+        $um['hijri_label'] = ($hijri_date['hijri_date'] ?? '') . ' ' . $hijri_month;
+      }
+    }
+    $data['upcoming_miqaats'] = $upcoming_miqaats;
+    
+    // Seed initial index of target miqaat
+    $miq_rsvp = $this->MasoolMusaidM->get_scoped_next_miqaat_rsvp_stats($sector, $subsector);
+    $data['miqaat_rsvp'] = $miq_rsvp;
+    
+    $initial_index = 0;
+    $initial_id = isset($miq_rsvp['next_miqaat']['id']) ? $miq_rsvp['next_miqaat']['id'] : (isset($upcoming_miqaats[0]['id']) ? $upcoming_miqaats[0]['id'] : '');
+    foreach ($upcoming_miqaats as $k => $m) {
+      if (isset($m['id']) && $m['id'] == $initial_id) {
+        $initial_index = $k;
+        break;
+      }
+    }
+    $data['initial_index'] = $initial_index;
+
+    $data['stats'] = $stats;
+    $data['current_sector'] = $sector;
+    $data['current_sub_sector'] = $subsector;
+    $data['marital_status_counts'] = $this->MasoolMusaidM->get_marital_status_distribution($sector, $subsector);
+    $data['year_daytype_stats'] = $this->CommonM->get_year_calendar_daytypes();
+ 
+     $this->load->view('MasoolMusaid/Header', $data);
+     $this->load->view('MasoolMusaid/Home', $data);
+   }
+ 
+   public function search_members_json()
+   {
+     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+       echo json_encode([]);
+       return;
+     }
+     $username = $_SESSION['user']['username'];
+     $sector = '';
+     $subsector = '';
+     if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+       $sector = $matches[1];
+       $subsector = $matches[2];
+     }
+     $query = $this->input->get('query');
+     $results = $this->MasoolMusaidM->search_members($query, $sector, $subsector);
+     echo json_encode($results);
+   }
+
+  public function miqaat_rsvp_user_counts()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+      return;
+    }
+    $username = $_SESSION['user']['username'];
+    $sector = ''; $subsector = '';
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $matches)) {
+      $sector = $matches[1];
+      $subsector = $matches[2];
+    }
+    $miqaat_id = (int)$this->input->get('miqaat_id');
+    $this->output->set_content_type('application/json');
+    if (!$miqaat_id) {
+      echo json_encode(['success' => false, 'message' => 'miqaat_id required']);
+      return;
+    }
+
+    $m = $this->MasoolMusaidM->get_scoped_next_miqaat_rsvp_stats($sector, $subsector, $miqaat_id);
+    echo json_encode([
+      'success' => true,
+      'miqaat_id' => $miqaat_id,
+      'will_attend' => $m['combined_summary']['total'],
+      'will_not_attend' => $m['will_not_attend'],
+      'rsvp_not_submitted' => $m['rsvp_not_submitted']
+    ]);
   }
 
   public function mumineendirectory()

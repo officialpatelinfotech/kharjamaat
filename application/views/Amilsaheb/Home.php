@@ -588,12 +588,12 @@
         </div>
       </div>
 
-      <!-- Statistics -->
+      <!-- ITS Sabeel Match -->
       <div class="section-hd mt-1">
-        <h3 class="section-hd-title"><span class="hd-icon"><i class="fa fa-info-circle"></i></span> Statistics</h3>
-        <button class="toggle-btn" data-toggle="collapse" data-target="#collapseGroupStatuses" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+        <h3 class="section-hd-title"><span class="hd-icon"><i class="fa fa-exchange"></i></span> ITS Sabeel Match</h3>
+        <button class="toggle-btn" data-toggle="collapse" data-target="#collapseItsSabeelMatch" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
       </div>
-      <div class="collapse show" id="collapseGroupStatuses">
+      <div class="collapse show" id="collapseItsSabeelMatch">
         <div class="row mb-3">
           <?php
           $statCards = [
@@ -612,14 +612,24 @@
             </a>
           </div>
           <?php endforeach; ?>
-          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?filter=all') ?>"><div class="ov-card"><div class="ov-icon" style="background:var(--gold-muted);color:var(--gold);"><i class="fa fa-users"></i></div><div class="ov-body"><span class="ov-label">Total Members</span><span class="ov-value"><?= (int)($member_type_counts['total'] ?? 0) ?></span></div></div></a></div>
-          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?filter=hof_fm_type&value=HOF') ?>"><div class="ov-card"><div class="ov-icon" style="background:var(--gold-muted);color:var(--gold);"><i class="fa fa-user"></i></div><div class="ov-body"><span class="ov-label">HOF</span><span class="ov-value"><?= $stats['HOF'] ?></span></div></div></a></div>
-          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?filter=hof_fm_type&value=FM') ?>"><div class="ov-card"><div class="ov-icon" style="background:var(--gold-muted);color:var(--gold);"><i class="fa fa-user-plus"></i></div><div class="ov-body"><span class="ov-label">FM</span><span class="ov-value"><?= $stats['FM'] ?></span></div></div></a></div>
-          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?filter=gender&value=male') ?>"><div class="ov-card"><div class="ov-icon" style="background:#eff6ff;color:#1d4ed8;"><i class="fa fa-male"></i></div><div class="ov-body"><span class="ov-label">Males</span><span class="ov-value"><?= $stats['Mardo'] ?></span></div></div></a></div>
-          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?filter=gender&value=female') ?>"><div class="ov-card"><div class="ov-icon" style="background:#fdf2f8;color:#9d174d;"><i class="fa fa-female"></i></div><div class="ov-body"><span class="ov-label">Females</span><span class="ov-value"><?= $stats['Bairo'] ?></span></div></div></a></div>
+        </div>
+      </div>
+
+      <!-- General Overall Stats -->
+      <div class="section-hd mt-1">
+        <h3 class="section-hd-title"><span class="hd-icon"><i class="fa fa-info-circle"></i></span> General Overall Stats</h3>
+        <button class="toggle-btn" data-toggle="collapse" data-target="#collapseGeneralOverallStats" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+      </div>
+      <div class="collapse show" id="collapseGeneralOverallStats">
+        <div class="row mb-3">
+          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?status=active') ?>"><div class="ov-card"><div class="ov-icon" style="background:var(--gold-muted);color:var(--gold);"><i class="fa fa-users"></i></div><div class="ov-body"><span class="ov-label">Total Members</span><span class="ov-value"><?= (int)($stats['active_inactive']['active'] ?? 0) ?></span></div></div></a></div>
+          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?status=active&filter=hof_fm_type&value=HOF') ?>"><div class="ov-card"><div class="ov-icon" style="background:var(--gold-muted);color:var(--gold);"><i class="fa fa-user"></i></div><div class="ov-body"><span class="ov-label">HOF</span><span class="ov-value"><?= $stats['HOF'] ?></span></div></div></a></div>
+          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?status=active&filter=hof_fm_type&value=FM') ?>"><div class="ov-card"><div class="ov-icon" style="background:var(--gold-muted);color:var(--gold);"><i class="fa fa-user-plus"></i></div><div class="ov-body"><span class="ov-label">FM</span><span class="ov-value"><?= $stats['FM'] ?></span></div></div></a></div>
+          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?status=active&filter=gender&value=male') ?>"><div class="ov-card"><div class="ov-icon" style="background:#eff6ff;color:#1d4ed8;"><i class="fa fa-male"></i></div><div class="ov-body"><span class="ov-label">Males</span><span class="ov-value"><?= $stats['Mardo'] ?></span></div></div></a></div>
+          <div class="col-6 col-md-5th mb-3"><a href="<?= base_url('amilsaheb/mumineendirectory?status=active&filter=gender&value=female') ?>"><div class="ov-card"><div class="ov-icon" style="background:#fdf2f8;color:#9d174d;"><i class="fa fa-female"></i></div><div class="ov-body"><span class="ov-label">Females</span><span class="ov-value"><?= $stats['Bairo'] ?></span></div></div></a></div>
           <?php
           $ageGroups=[['0','4','Age 0-4',$stats['Age_0_4']],['5','15','Age 5-15',$stats['Age_5_15']],['16','25','Age 16-25',$stats['Age_16_25']],['26','65','Age 26-65',$stats['Age_26_65']],['66','','Above 65',$stats['Buzurgo']]];
-          foreach($ageGroups as[$mn,$mx,$lbl,$val]):$url=$mx?base_url("amilsaheb/mumineendirectory?filter=age_range&min=$mn&max=$mx"):base_url("amilsaheb/mumineendirectory?filter=age_range&min=$mn");?>
+          foreach($ageGroups as[$mn,$mx,$lbl,$val]):$url=$mx?base_url("amilsaheb/mumineendirectory?status=active&filter=age_range&min=$mn&max=$mx"):base_url("amilsaheb/mumineendirectory?status=active&filter=age_range&min=$mn");?>
           <div class="col-6 col-md-5th mb-3"><a href="<?= $url ?>"><div class="ov-card"><div class="ov-icon" style="background:var(--green-bg);color:var(--green);"><i class="fa fa-child"></i></div><div class="ov-body"><span class="ov-label"><?= $lbl ?></span><span class="ov-value"><?= $val ?></span></div></div></a></div>
           <?php endforeach; ?>
         </div>

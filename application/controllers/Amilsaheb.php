@@ -309,7 +309,7 @@ class Amilsaheb extends CI_Controller
     $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
     $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
 
-    $residentOverview = $this->AmilsahebM->get_resident_overview_counts();
+    $residentOverview = $this->AmilsahebM->get_resident_overview_counts(true);
     $stats = [
       'HOF' => (int)($residentOverview['hof'] ?? 0),
       'FM' => (int)($residentOverview['fm'] ?? 0),

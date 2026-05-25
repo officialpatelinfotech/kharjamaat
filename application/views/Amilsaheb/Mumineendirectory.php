@@ -197,12 +197,11 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
             <label class="flabel">Health Status</label>
             <select id="fHealth" class="fselect">
               <option value="">All</option>
-              <option value="Healthy">Healthy</option>
-              <option value="Lazimul Firash">Lazimul Firash</option>
+              <option value="Healthy">Fit &amp; Healthy</option>
+              <option value="Medically Unfit">Handicapped Medically Unfit</option>
+              <option value="Hospitalised">Major Disease Patient</option>
+              <option value="Lazimul Firash">Lazimul Firash / Bedridden</option>
               <option value="Wafaat">Wafaat</option>
-              <option value="Medically Unfit">Medically Unfit</option>
-              <option value="Hospitalised">Hospitalised</option>
-              <option value="Elderly / Needs Care">Elderly / Needs Care</option>
             </select>
           </div>
           <div>
@@ -210,22 +209,25 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
             <select id="fDeeni" class="fselect">
               <option value="">All</option>
               <option value="Normal">Normal</option>
-              <option value="No Ashara / LQ">No Ashara / LQ</option>
-              <option value="Mustajeeb">Mustajeeb</option>
-              <option value="Misaq Not Given">Misaq Not Given</option>
-              <option value="Married Outside">Married Outside</option>
               <option value="Deen Badli Lidu che">Deen Badli Lidu che</option>
+              <option value="Married Outside">Married Outside</option>
+              <option value="Misaq Not Given">Not given Misaq to Syedna Mufaddal Saifuddin AQA tus after Takht Nashini</option>
+              <option value="Mustajeeb">Mustajeeb</option>
+              <option value="No Ashara / LQ">No Ashara / LQ attended for past 3 years</option>
+              <option value="No Vajebaat / Sabeel">Not paid Sila Fitra / Vajeebaat / Sabeel for last 3 years</option>
+              <option value="Zero Days Scanned in Ashara Mubaraka">Zero Days Scanned in Ashara Mubaraka</option>
             </select>
           </div>
           <div>
             <label class="flabel">Residential Status</label>
             <select id="fResidential" class="fselect">
               <option value="">All</option>
-              <option value="Residing in Khar">Residing in Khar</option>
+              <option value="Residing in Local Jamaat">Residing in Local Jamaat</option>
               <option value="Moved for Job">Moved for Job</option>
               <option value="Moved for Studies">Moved for Studies</option>
-              <option value="Moved Permanently but not taken transfer">Moved Permanently</option>
-              <option value="Unknown or Not Traceable">Unknown / Not Traceable</option>
+              <option value="Moved after Marriage">Permanently moved after Marriage</option>
+              <option value="Permanently Migrated">Permanently Migrated</option>
+              <option value="Unknown or Not Traceable">Unknown or Not Traceable</option>
             </select>
           </div>
           <div>

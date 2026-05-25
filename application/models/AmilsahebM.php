@@ -525,8 +525,12 @@ class AmilsahebM extends CI_Model
    * Resident-only overview counts for dashboard (HOF/FM/Gender/Age/Seniors/Total).
    * Returns keys: hof, fm, male, female, age_0_4, age_5_15, seniors, total
    */
-  public function get_resident_overview_counts()
+  public function get_resident_overview_counts($active_only = false)
   {
+    $where = "WHERE (u.inactive_status IS NULL OR u.inactive_status = '')";
+    if ($active_only && $this->has_activity_status) {
+      $where .= " AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')";
+    }
     $sql = "
       SELECT
         SUM(CASE WHEN u.HOF_FM_TYPE = 'HOF' THEN 1 ELSE 0 END) AS hof,
@@ -540,7 +544,7 @@ class AmilsahebM extends CI_Model
         SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) AS seniors,
         COUNT(*) AS total
       FROM user u
-      WHERE (u.inactive_status IS NULL OR u.inactive_status = '')
+      $where
     ";
     $row = $this->db->query($sql)->row_array();
     return [

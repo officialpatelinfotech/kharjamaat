@@ -227,14 +227,9 @@ if (empty($redirect)) {
               </div>
               <div class="col-md-3 col-12">
                 <label class="form-label small mb-1 fw-semibold">Member Status</label>
-                <select name="activity_status" id="activityStatusSel" class="form-control form-select form-select-sm">
-                  <?php foreach ($activity_status_options as $val => $label): ?>
-                    <option value="<?php echo htmlspecialchars($val); ?>"
-                      <?php echo (($member['activity_status'] ?? '') === $val) ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($label); ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
+                <input type="hidden" name="activity_status" id="activityStatusSel" value="<?php echo htmlspecialchars($actStatus); ?>">
+                <input type="text" id="activityStatusDisplay" class="form-control form-control-sm bg-light" readonly
+                  value="<?php echo htmlspecialchars($activity_status_options[$actStatus] ?? ucfirst($actStatus)); ?>">
               </div>
             </div>
 
@@ -251,6 +246,11 @@ if (empty($redirect)) {
                       <?php echo htmlspecialchars($label); ?>
                     </option>
                   <?php endforeach; ?>
+                  <?php if (!empty($member['deeni_status']) && !array_key_exists($member['deeni_status'], $deeni_status_options)): ?>
+                    <option value="<?php echo htmlspecialchars($member['deeni_status']); ?>" selected>
+                      <?php echo htmlspecialchars($member['deeni_status']); ?> (Legacy)
+                    </option>
+                  <?php endif; ?>
                 </select>
               </div>
 
@@ -263,6 +263,11 @@ if (empty($redirect)) {
                       <?php echo htmlspecialchars($label); ?>
                     </option>
                   <?php endforeach; ?>
+                  <?php if (!empty($member['health_status']) && !array_key_exists($member['health_status'], $health_status_options)): ?>
+                    <option value="<?php echo htmlspecialchars($member['health_status']); ?>" selected>
+                      <?php echo htmlspecialchars($member['health_status']); ?> (Legacy)
+                    </option>
+                  <?php endif; ?>
                 </select>
               </div>
 
@@ -275,6 +280,11 @@ if (empty($redirect)) {
                       <?php echo htmlspecialchars($label); ?>
                     </option>
                   <?php endforeach; ?>
+                  <?php if (!empty($member['residential_status']) && !array_key_exists($member['residential_status'], $residential_status_options)): ?>
+                    <option value="<?php echo htmlspecialchars($member['residential_status']); ?>" selected>
+                      <?php echo htmlspecialchars($member['residential_status']); ?> (Legacy)
+                    </option>
+                  <?php endif; ?>
                 </select>
               </div>
             </div>
@@ -900,6 +910,9 @@ if (empty($redirect)) {
         form.addEventListener('submit', function (e) {
           e.preventDefault();
           var fd = new FormData(form);
+          // Set activity_status explicitly because the select is disabled
+          var activitySelVal = document.getElementById('activityStatusSel') ? document.getElementById('activityStatusSel').value : '';
+          fd.set('activity_status', activitySelVal);
           // Leave Inactive_Status empty (controller maps empty to NULL)
           var hofType = fd.get('hof_type');
           if (hofType === 'HOF') {
@@ -995,11 +1008,27 @@ if (empty($redirect)) {
           } else if (hasActive) {
             activitySel.value = 'active';
           }
+
+          var displayInput = document.getElementById('activityStatusDisplay');
+          if (displayInput) {
+            if (activitySel.value === 'active') {
+              displayInput.value = 'Active';
+            } else if (activitySel.value === 'inactive') {
+              displayInput.value = 'Inactive';
+            } else if (!activitySel.value) {
+              displayInput.value = '— None —';
+            } else {
+              displayInput.value = activitySel.value.charAt(0).toUpperCase() + activitySel.value.slice(1);
+            }
+          }
         }
 
         if (deeniSel) deeniSel.addEventListener('change', updateMemberStatus);
         if (healthSel) healthSel.addEventListener('change', updateMemberStatus);
         if (residentialSel) residentialSel.addEventListener('change', updateMemberStatus);
+
+        // Run once on load to initialize status correctly
+        updateMemberStatus();
 
       })();
     </script>

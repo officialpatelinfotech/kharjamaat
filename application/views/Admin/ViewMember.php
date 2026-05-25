@@ -430,7 +430,7 @@
 
     <div class="row">
       <!-- Left Column (My Details etc) -->
-      <div class="col-lg-8 col-md-7 mb-4">
+      <div class="<?php echo ($role === 16) ? 'col-12 mb-4' : 'col-lg-8 col-md-7 mb-4'; ?>">
         <div class="masonry-grid">
       <?php foreach($groups as $groupName => $fields): ?>
       <?php 
@@ -468,7 +468,7 @@
         </div>
       <?php endif; ?>
       
-      <?php if ($groupName === 'My Details'): ?>
+      <?php if ($groupName === 'My Details' && $role !== 16): ?>
         <!-- Mobile Financial Panel -->
         <div class="d-block d-md-none mb-4 mt-2">
            <?php echo $financial_panel_html; ?>
@@ -515,9 +515,11 @@
       </div><!-- /col-lg-8 -->
 
       <!-- Right Sidebar (Financials) -->
+      <?php if ($role !== 16): ?>
       <div class="col-lg-4 col-md-5 mb-4 d-none d-md-block">
         <?php echo $financial_panel_html; ?>
       </div>
+      <?php endif; ?>
       
     </div><!-- /row -->
 

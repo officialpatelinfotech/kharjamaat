@@ -155,8 +155,13 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
 
 <?php
   $view_base = 'admin/viewmember/';
+  $back_fallback = 'amilsaheb';
   if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 2) {
     $view_base = 'amilsaheb/viewmember/';
+    $back_fallback = 'amilsaheb';
+  } else if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 16) {
+    $view_base = 'MasoolMusaid/viewmember/';
+    $back_fallback = 'MasoolMusaid';
   }
   $can_edit = isset($_SESSION['user']['role']) && in_array($_SESSION['user']['role'], [1, 3]);
 ?>
@@ -165,7 +170,7 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
 
   <!-- Top bar -->
   <div class="top-bar pt-3">
-    <a href="<?php echo isset($back_url) ? $back_url : base_url('amilsaheb'); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa fa-arrow-left"></i></a>
+    <a href="<?php echo isset($back_url) ? $back_url : base_url($back_fallback); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa fa-arrow-left"></i></a>
     <button class="btn btn-outline-success btn-sm" onclick="exportCSV()"><i class="fa fa-file-excel-o"></i> Export Excel</button>
   </div>
 
@@ -260,12 +265,11 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
             <label class="flabel">Health Status</label>
             <select id="fHealth" class="fselect">
               <option value="">All</option>
-              <option value="Healthy">Healthy</option>
-              <option value="Lazimul Firash">Lazimul Firash</option>
+              <option value="Healthy">Fit &amp; Healthy</option>
+              <option value="Medically Unfit">Handicapped Medically Unfit</option>
+              <option value="Hospitalised">Major Disease Patient</option>
+              <option value="Lazimul Firash">Lazimul Firash / Bedridden</option>
               <option value="Wafaat">Wafaat</option>
-              <option value="Medically Unfit">Medically Unfit</option>
-              <option value="Hospitalised">Hospitalised</option>
-              <option value="Elderly / Needs Care">Elderly / Needs Care</option>
             </select>
           </div>
           <div>
@@ -273,22 +277,25 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
             <select id="fDeeni" class="fselect">
               <option value="">All</option>
               <option value="Normal">Normal</option>
-              <option value="No Ashara / LQ">No Ashara / LQ</option>
-              <option value="Mustajeeb">Mustajeeb</option>
-              <option value="Misaq Not Given">Misaq Not Given</option>
-              <option value="Married Outside">Married Outside</option>
               <option value="Deen Badli Lidu che">Deen Badli Lidu che</option>
+              <option value="Married Outside">Married Outside</option>
+              <option value="Misaq Not Given">Not given Misaq to Syedna Mufaddal Saifuddin AQA tus after Takht Nashini</option>
+              <option value="Mustajeeb">Mustajeeb</option>
+              <option value="No Ashara / LQ">No Ashara / LQ attended for past 3 years</option>
+              <option value="No Vajebaat / Sabeel">Not paid Sila Fitra / Vajeebaat / Sabeel for last 3 years</option>
+              <option value="Zero Days Scanned in Ashara Mubaraka">Zero Days Scanned in Ashara Mubaraka</option>
             </select>
           </div>
           <div>
             <label class="flabel">Residential Status</label>
             <select id="fResidential" class="fselect">
               <option value="">All</option>
-              <option value="Residing in Khar">Residing in Khar</option>
+              <option value="Residing in Local Jamaat">Residing in Local Jamaat</option>
               <option value="Moved for Job">Moved for Job</option>
               <option value="Moved for Studies">Moved for Studies</option>
-              <option value="Moved Permanently but not taken transfer">Moved Permanently</option>
-              <option value="Unknown or Not Traceable">Unknown / Not Traceable</option>
+              <option value="Moved after Marriage">Permanently moved after Marriage</option>
+              <option value="Permanently Migrated">Permanently Migrated</option>
+              <option value="Unknown or Not Traceable">Unknown or Not Traceable</option>
             </select>
           </div>
           <div>
