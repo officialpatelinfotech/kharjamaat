@@ -27,6 +27,13 @@
       padding: .25rem .5rem;
     }
   }
+  tr.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  tr.clickable-row:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
 </style>
 <div class="container margintopcontainer pt-5">
   <div class="d-flex justify-content-between mb-3">
@@ -94,7 +101,8 @@
               foreach ($hofs as $h): $hid = (int)$h['HOF_ID'];
                 $total = isset($h['corpus_total']) ? (float)$h['corpus_total'] : 0;
                 $years = isset($hof_hijri_years[$hid]) ? implode(',', $hof_hijri_years[$hid]) : ''; ?>
-                <tr
+                <tr class="clickable-row"
+                  data-its="<?php echo htmlspecialchars($h['ITS_ID']); ?>"
                   data-name="<?php echo strtolower(htmlspecialchars($h['Full_Name'])); ?>"
                   data-sector="<?php echo strtolower(htmlspecialchars($h['Sector'])); ?>"
                   data-subsector="<?php echo strtolower(htmlspecialchars($h['Sub_Sector'])); ?>"
@@ -489,6 +497,21 @@
     const summaryEl = document.getElementById('filterSummary');
     const tbody = document.querySelector('#hofCorpusTable tbody');
 
+    if (tbody) {
+      tbody.addEventListener('click', function(e) {
+        if (e.target.closest('button, input, select, a, textarea')) {
+          return;
+        }
+        var row = e.target.closest('tr.clickable-row');
+        if (row) {
+          var its = row.getAttribute('data-its');
+          if (its) {
+            window.location.href = "<?php echo base_url('admin/viewmember/'); ?>" + its;
+          }
+        }
+      });
+    }
+
     function applyFilters() {
       const nameVal = nameInput.value.trim().toLowerCase();
       const sectorVal = sectorSelect.value.trim().toLowerCase();
@@ -546,6 +569,14 @@
       subSectorSelect.innerHTML = '<option value="">All</option>';
       applyFilters();
     });
+
+    // Check for its_id or its in the URL and populate filter input
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlIts = urlParams.get('its_id') || urlParams.get('its');
+    if (urlIts) {
+      nameInput.value = urlIts.trim();
+    }
+
     applyFilters();
   })();
   // Simple client-side sorting for main table

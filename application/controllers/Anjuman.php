@@ -3415,7 +3415,7 @@ class Anjuman extends CI_Controller
     }
 
     // Server-side filtering (optional) via GET params: its, sector, sub_sector
-    $filter_its = trim($this->input->get('its') ?? '');
+    $filter_its = trim($this->input->get('its') ?? $this->input->get('its_id') ?? '');
     $filter_sector = trim($this->input->get('sector') ?? '');
     $filter_sub_sector = trim($this->input->get('sub_sector') ?? '');
 
@@ -3823,16 +3823,21 @@ class Anjuman extends CI_Controller
         }
       }
     }
-    // Default strictly to current Hijri FY (no table fallback)
     $selectedYear = $this->input->post('sabeel_year') ?: $currentCompositeYear;
-
-    // Fetch data for selected year
-    $data["all_user_sabeel_takhmeen"] = $this->AnjumanM->get_user_sabeel_takhmeen_details([
+    $its_id = $this->input->get('its_id');
+    $filter_params = [
       'year' => $selectedYear,
       // Include HOF even if they have no takhmeen for selected year
       'require_current_year' => false,
       'allow_latest_when_missing' => false,
-    ]);
+    ];
+    if ($its_id) {
+      $filter_params['its_id'] = $its_id;
+      $data['its_id'] = $its_id;
+    }
+
+    // Fetch data for selected year
+    $data["all_user_sabeel_takhmeen"] = $this->AnjumanM->get_user_sabeel_takhmeen_details($filter_params);
 
     $data["user_name"] = $username;
     $data['hijri_years'] = $yearOptions;
@@ -4730,7 +4735,11 @@ class Anjuman extends CI_Controller
     $filters = [];
     $filters['name'] = ($this->input->get('name') !== null) ? trim((string)$this->input->get('name')) : null;
     // Avoid trim(null) deprecation by casting to string when input may be null
-    $filters['its_id'] = ($this->input->get('its_id') !== null) ? trim((string)$this->input->get('its_id')) : null;
+    $raw_its_id = ($this->input->get('its_id') !== null) ? trim((string)$this->input->get('its_id')) : null;
+    if ($raw_its_id === null || $raw_its_id === '') {
+      $raw_its_id = ($this->input->get('its') !== null) ? trim((string)$this->input->get('its')) : null;
+    }
+    $filters['its_id'] = $raw_its_id;
     $filters['sector'] = ($this->input->get('sector') !== null) ? trim((string)$this->input->get('sector')) : null;
     $filters['sub_sector'] = ($this->input->get('sub_sector') !== null) ? trim((string)$this->input->get('sub_sector')) : null;
     $filters['fund_id'] = $this->input->get('fund_id') ? (int)$this->input->get('fund_id') : null;

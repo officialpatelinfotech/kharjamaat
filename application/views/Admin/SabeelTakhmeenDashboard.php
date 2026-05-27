@@ -19,6 +19,13 @@
   td.section-start-action {
     border-left: 3px solid #555 !important;
   }
+  
+  tr.clickable-row {
+    cursor: pointer;
+  }
+  tr.clickable-row:hover td {
+    background-color: #f1f5f9 !important;
+  }
 </style>
 <div class="margintopcontainer mx-5 pt-5">
   <div class="p-0">
@@ -246,7 +253,7 @@
             $__fullName = trim((string)($user['Full_Name'] ?? ''));
             if ($__fullName === '') { $__fullName = trim((string)($user['First_Name'] ?? '') . ' ' . (string)($user['Surname'] ?? '')); }
           ?>
-            <tr data-its-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? ''), ENT_QUOTES); ?>" data-current-year="<?php echo htmlspecialchars((string)$cy, ENT_QUOTES); ?>">
+            <tr class="clickable-row" data-its-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? ''), ENT_QUOTES); ?>" data-current-year="<?php echo htmlspecialchars((string)$cy, ENT_QUOTES); ?>">
               <td><?php echo $key + 1; ?></td>
               <td data-sort-value="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? ''), ENT_QUOTES); ?>"><?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?></td>
               <td data-sort-value="<?php echo htmlspecialchars(strtolower($__fullName), ENT_QUOTES); ?>">
@@ -806,4 +813,16 @@
       });
     }
   })();
+
+  $(document).ready(function() {
+    $(document).on('click', 'tr.clickable-row', function(e) {
+      if ($(e.target).is('button, a, input, select, option, i') || $(e.target).closest('button, a, input, select, option').length) {
+        return;
+      }
+      var itsId = $(this).data('its-id');
+      if (itsId) {
+        window.location.href = '<?php echo base_url("admin/viewmember/"); ?>' + itsId;
+      }
+    });
+  });
 </script>

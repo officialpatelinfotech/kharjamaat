@@ -51,6 +51,13 @@ $rows = isset($wajebaat_rows) && is_array($wajebaat_rows) ? $wajebaat_rows : [];
   .details-table thead th .sort-indicator {
     font-size: 0.85em;
   }
+  tr.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  tr.clickable-row:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
 </style>
 
 <div class="container-fluid margintopcontainer pt-5">
@@ -141,7 +148,7 @@ $rows = isset($wajebaat_rows) && is_array($wajebaat_rows) ? $wajebaat_rows : [];
                 $paid = max(0, $assigned - $due);
                 $itsSort = is_numeric($its) ? (int)$its : 0;
             ?>
-              <tr data-its="<?= htmlspecialchars($its); ?>" data-name="<?= htmlspecialchars(strtolower($name)); ?>">
+              <tr class="clickable-row" data-its="<?= htmlspecialchars($its); ?>" data-name="<?= htmlspecialchars(strtolower($name)); ?>">
                 <td data-raw="<?= (int)$i; ?>"><?= $i++; ?></td>
                 <td data-raw="<?= (int)$itsSort; ?>"><?= htmlspecialchars($its); ?></td>
                 <td><?= htmlspecialchars($name !== '' ? $name : '—'); ?></td>
@@ -165,6 +172,29 @@ $rows = isset($wajebaat_rows) && is_array($wajebaat_rows) ? $wajebaat_rows : [];
     var table = document.getElementById('wajebaatTable');
     if (!input || !btnClear || !table) return;
 
+    var tbody = table.querySelector('tbody');
+    if (tbody) {
+      tbody.addEventListener('click', function(e) {
+        if (e.target.closest('button, input, select, a, textarea')) {
+          return;
+        }
+        var row = e.target.closest('tr.clickable-row');
+        if (row) {
+          var its = row.getAttribute('data-its');
+          if (its) {
+            window.location.href = "<?= base_url('admin/viewmember/'); ?>" + its;
+          }
+        }
+      });
+    }
+
+    // Check for its_id or its in the URL and populate filter input
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlIts = urlParams.get('its_id') || urlParams.get('its');
+    if(urlIts){
+      input.value = urlIts.trim();
+    }
+
     function applyFilter() {
       var q = (input.value || '').trim().toLowerCase();
       var rows = table.querySelectorAll('tbody tr');
@@ -182,6 +212,8 @@ $rows = isset($wajebaat_rows) && is_array($wajebaat_rows) ? $wajebaat_rows : [];
       input.value = '';
       applyFilter();
     });
+
+    applyFilter();
   })();
 </script>
 

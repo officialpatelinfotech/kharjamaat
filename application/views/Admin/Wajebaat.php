@@ -19,6 +19,13 @@
     .wajebaat-table thead th .sort-indicator {
       font-size: 0.85em;
     }
+    tr.clickable-row {
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    tr.clickable-row:hover {
+      background-color: rgba(0, 0, 0, 0.05) !important;
+    }
   </style>
   <div class="row align-items-center pt-3 mb-2">
     <div class="col-3 text-left">
@@ -68,7 +75,7 @@
                 $itsAttr = isset($row['ITS_ID']) ? (string)$row['ITS_ID'] : '';
                 $nameAttr = isset($row['Full_Name']) ? (string)$row['Full_Name'] : '';
               ?>
-              <tr data-its="<?php echo htmlspecialchars($itsAttr); ?>" data-name="<?php echo htmlspecialchars(strtolower($nameAttr)); ?>">
+              <tr class="clickable-row" data-its="<?php echo htmlspecialchars($itsAttr); ?>" data-name="<?php echo htmlspecialchars(strtolower($nameAttr)); ?>">
                 <td><?php echo htmlspecialchars($row['id']); ?></td>
                 <td><?php echo htmlspecialchars($row['ITS_ID']); ?></td>
                 <td><?php echo htmlspecialchars($row['Full_Name'] ?? ''); ?></td>
@@ -189,10 +196,31 @@
     var tbody = table.querySelector('tbody');
     if(!tbody) return;
 
+    // Handle row click redirection to view member details
+    tbody.addEventListener('click', function(e) {
+      if (e.target.closest('button, input, select, a, textarea')) {
+        return;
+      }
+      var row = e.target.closest('tr.clickable-row');
+      if (row) {
+        var its = row.getAttribute('data-its');
+        if (its) {
+          window.location.href = "<?php echo base_url('admin/viewmember/'); ?>" + its;
+        }
+      }
+    });
+
     var textInput = document.getElementById('waFilterText');
     var clearBtn  = document.getElementById('waClearFilters');
     var summaryEl = document.getElementById('waFilterSummary');
     if(!textInput || !clearBtn || !summaryEl) return;
+
+    // Check for its_id or its in the URL and populate filter input
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlIts = urlParams.get('its_id') || urlParams.get('its');
+    if(urlIts){
+      textInput.value = urlIts.trim();
+    }
 
     function applyFilters(){
       var q = (textInput.value || '').trim().toLowerCase();

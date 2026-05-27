@@ -132,13 +132,25 @@
   /* Corpus summary row */
   .corpus-summary-block { margin-top: 12px; }
   .corpus-row { display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem; }
+    padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem; transition: background-color 0.2s, padding 0.2s; }
   .corpus-row:last-child { border-bottom: none; }
   .corpus-title { color: #4a5568; font-weight: 500; }
   .corpus-amounts span { margin-left: 10px; font-size: 0.95rem; }
   .amt-assigned { color: #1e40af; font-weight: 700; }
   .amt-paid     { color: #065f46; font-weight: 700; }
   .amt-due      { color: #991b1b; font-weight: 700; }
+
+  a.corpus-row-link {
+    text-decoration: none !important;
+    color: inherit;
+    display: block;
+  }
+  a.corpus-row-link:hover .corpus-row {
+    background-color: #f8fafc;
+    border-radius: 4px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
 </style>
 
 <div class="container margintopcontainer pt-4 mb-5 vm-wrapper">
@@ -368,6 +380,26 @@
               $husain_tot += $husain_map[$fmId]['amount'];
           }
       }
+
+      $sabeel_link = '';
+      $fmb_link = '';
+      $waj_link = '';
+      $husain_link = '';
+      $corpus_link = '';
+
+      if ($role === 1) { // Admin
+          $sabeel_link = base_url("admin/sabeeltakhmeendashboard?its_id={$hof_id}");
+          $fmb_link    = base_url("admin/managefmbtakhmeen?its_id={$hof_id}");
+          $waj_link    = base_url("admin/wajebaat?its_id={$hof_id}");
+          $husain_link = base_url("admin/qardanhasana/husain?its={$hof_id}");
+          $corpus_link = base_url("admin/corpusfunds_hofs?its_id={$hof_id}");
+      } elseif ($role === 3) { // Anjuman
+          $sabeel_link = base_url("anjuman/sabeeltakhmeendashboard?its_id={$hof_id}");
+          $fmb_link    = base_url("anjuman/fmbthaalitakhmeen?its={$hof_id}");
+          $waj_link    = base_url("anjuman/wajebaat?its_id={$hof_id}");
+          $husain_link = base_url("anjuman/qardanhasana/husain?its={$hof_id}");
+          $corpus_link = base_url("anjuman/corpusfunds_receive?its_id={$hof_id}");
+      }
     ?>
         <div class="panel-group" style="position: sticky; top: 20px;">
           <div class="panel-heading">
@@ -376,16 +408,31 @@
           <div class="panel-body p-0">
             <div style="padding: 12px 16px;">
               <!-- Sabeel -->
+              <?php if ($sabeel_link): ?>
+              <a href="<?php echo $sabeel_link; ?>" class="corpus-row-link">
+              <?php endif; ?>
               <div class="corpus-row">
                 <span class="corpus-title">Sabeel Takhmeen <?php echo $sabeel_year ? "($sabeel_year)" : ""; ?></span>
                 <span class="corpus-amounts"><span class="amt-assigned">₹<?php echo number_format($tot_sabeel,0); ?></span></span>
               </div>
+              <?php if ($sabeel_link): ?>
+              </a>
+              <?php endif; ?>
               <!-- FMB -->
+              <?php if ($fmb_link): ?>
+              <a href="<?php echo $fmb_link; ?>" class="corpus-row-link">
+              <?php endif; ?>
               <div class="corpus-row">
                 <span class="corpus-title">FMB Takhmeen <?php echo $fmb_year ? "($fmb_year)" : ""; ?></span>
                 <span class="corpus-amounts"><span class="amt-assigned">₹<?php echo number_format($tot_fmb,0); ?></span></span>
               </div>
+              <?php if ($fmb_link): ?>
+              </a>
+              <?php endif; ?>
               <!-- Wajebaat -->
+              <?php if ($waj_link): ?>
+              <a href="<?php echo $waj_link; ?>" class="corpus-row-link">
+              <?php endif; ?>
               <div class="corpus-row">
                 <span class="corpus-title">Wajebaat</span>
                 <span class="corpus-amounts">
@@ -395,25 +442,43 @@
                   <?php endif; ?>
                 </span>
               </div>
+              <?php if ($waj_link): ?>
+              </a>
+              <?php endif; ?>
               <!-- Thaali -->
+              <?php if ($fmb_link): ?>
+              <a href="<?php echo $fmb_link; ?>" class="corpus-row-link">
+              <?php endif; ?>
               <div class="corpus-row">
                 <span class="corpus-title">Thaali Taking</span>
                 <span class="corpus-amounts">
                   <?php echo $thaali_active ? '<span class="badge-yes" style="font-size:0.85rem; padding: 4px 10px;">Yes</span>' : '<span class="badge-no" style="font-size:0.85rem; padding: 4px 10px;">No</span>'; ?>
                 </span>
               </div>
+              <?php if ($fmb_link): ?>
+              </a>
+              <?php endif; ?>
               <!-- Husain -->
+              <?php if ($husain_link): ?>
+              <a href="<?php echo $husain_link; ?>" class="corpus-row-link">
+              <?php endif; ?>
               <div class="corpus-row">
                 <span class="corpus-title">Husain Scheme</span>
                 <span class="corpus-amounts">
                   <?php echo $husain_active ? '<span class="badge-yes" style="font-size:0.85rem; padding: 4px 10px;">Yes (₹'.number_format($husain_tot,0).')</span>' : '<span class="badge-no" style="font-size:0.85rem; padding: 4px 10px;">No</span>'; ?>
                 </span>
               </div>
+              <?php if ($husain_link): ?>
+              </a>
+              <?php endif; ?>
               <!-- Corpus -->
               <?php if(!empty($corpus_rows)): ?>
               <div style="margin-top: 15px; padding-top: 10px; border-top: 2px dashed #e2e8f0;">
                 <div style="font-size:0.95rem;font-weight:600;color:#4a5568;margin-bottom:6px;"><i class="fa fa-bank mr-1"></i> Corpus Funds</div>
                 <?php foreach($corpus_rows as $cf): $due = max(0, $cf['amount_assigned'] - $cf['paid']); ?>
+                  <?php if ($corpus_link): ?>
+                  <a href="<?php echo $corpus_link; ?>" class="corpus-row-link">
+                  <?php endif; ?>
                   <div class="corpus-row" style="padding-left: 10px;">
                     <span class="corpus-title"><?php echo htmlspecialchars($cf['title']); ?></span>
                     <span class="corpus-amounts">
@@ -422,6 +487,9 @@
                       <span class="amt-due">₹<?php echo number_format($due,0); ?> due</span>
                     </span>
                   </div>
+                  <?php if ($corpus_link): ?>
+                  </a>
+                  <?php endif; ?>
                 <?php endforeach; ?>
               </div>
               <?php endif; ?>

@@ -194,6 +194,13 @@
   .table-scroll-fixed table td:nth-child(12) {
     border-right: 2px solid #343a40;
   }
+  
+  tr.clickable-row {
+    cursor: pointer;
+  }
+  tr.clickable-row:hover td {
+    background-color: #f1f5f9 !important;
+  }
 </style>
 <div class="margintopcontainer mx-2 mx-md-5 pt-5">
   <div class="p-0">
@@ -407,7 +414,7 @@
             $allEstDue = $user['total_establishment_due'] ?? null;
             $allResDue = $user['total_residential_due'] ?? null;
         ?>
-            <tr>
+            <tr class="clickable-row" data-its-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? ''), ENT_QUOTES); ?>">
               <td><?php echo $idx + 1; ?></td>
               <td><?php echo htmlspecialchars((string)($user['ITS_ID'] ?? '')); ?></td>
               <td><?php
@@ -1097,4 +1104,16 @@
       });
     });
   }
+
+  $(document).ready(function() {
+    $(document).on('click', 'tr.clickable-row', function(e) {
+      if ($(e.target).is('button, a, input, select, option, i') || $(e.target).closest('button, a, input, select, option').length) {
+        return;
+      }
+      var itsId = $(this).data('its-id');
+      if (itsId) {
+        window.location.href = '<?php echo base_url("admin/viewmember/"); ?>' + itsId;
+      }
+    });
+  });
 </script>

@@ -1223,7 +1223,7 @@ class AdminM extends CI_Model
       SELECT st.user_id,
              stg_est.grade AS est_grade, stg_est.amount AS est_amount,
              stg_res.grade AS res_grade, stg_res.amount AS res_amount,
-             (IFNULL(stg_est.amount,0) + IFNULL(stg_res.amount,0)) AS total_sabeel,
+             (COALESCE(stg_est.amount,0) + COALESCE(stg_res.yearly_amount, COALESCE(stg_res.amount,0) * 12, 0)) AS total_sabeel,
              st.year
       FROM sabeel_takhmeen st
       LEFT JOIN sabeel_takhmeen_grade stg_est ON stg_est.id = st.establishment_grade

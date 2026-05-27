@@ -3039,7 +3039,14 @@ class Admin extends CI_Controller
       }
     }
 
-    $data["all_user_fmb_takhmeen"] = $this->AdminM->get_user_fmb_takhmeen_details();
+    $its_id = trim($this->input->get('its_id') ?? $this->input->get('its') ?? '');
+    if ($its_id !== '') {
+      $filter_data = ["member_name" => $its_id];
+      $data["all_user_fmb_takhmeen"] = $this->AdminM->get_user_fmb_takhmeen_details($filter_data);
+      $data['member_name'] = $its_id;
+    } else {
+      $data["all_user_fmb_takhmeen"] = $this->AdminM->get_user_fmb_takhmeen_details();
+    }
     // Provide full filter meta so dropdowns don't collapse after filter
     $data['filter_meta'] = $this->AdminM->get_member_filter_meta();
 
@@ -3706,7 +3713,14 @@ HTML;
       redirect('/accounts');
     }
 
-    $data["all_user_sabeel_takhmeen"] = $this->AdminM->get_user_sabeel_takhmeen_details();
+    $its_id = $this->input->get('its_id');
+    if ($its_id) {
+      $filter_data = ["member_name" => $its_id];
+      $data["all_user_sabeel_takhmeen"] = $this->AdminM->get_user_sabeel_takhmeen_details($filter_data);
+      $data['member_name'] = $its_id;
+    } else {
+      $data["all_user_sabeel_takhmeen"] = $this->AdminM->get_user_sabeel_takhmeen_details();
+    }
 
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);

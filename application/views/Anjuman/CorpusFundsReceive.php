@@ -1,3 +1,12 @@
+<style>
+  tr.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  tr.clickable-row:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+</style>
 <div class="container-fluid margintopcontainer pt-5">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <a href="<?= base_url('anjuman'); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i></a>
@@ -171,7 +180,7 @@
             $fundIdsCsv = implode(',', array_keys($h['fund_ids']));
         ?>
             <?php $rowIts = isset($h['its_id']) && $h['its_id'] !== null ? $h['its_id'] : ''; ?>
-            <tr data-hof-id="<?= (int)$h['hof_id']; ?>" data-fund-ids="<?= htmlspecialchars($fundIdsCsv); ?>" data-its="<?= htmlspecialchars($rowIts); ?>">
+            <tr class="clickable-row" data-hof-id="<?= (int)$h['hof_id']; ?>" data-fund-ids="<?= htmlspecialchars($fundIdsCsv); ?>" data-its="<?= htmlspecialchars($rowIts); ?>">
               <td class="td-idx"><?= $i++; ?></td>
               <td class="td-its" data-val="<?= htmlspecialchars($rowIts !== '' ? $rowIts : (int)$h['hof_id']); ?>"><?= $rowIts !== '' ? htmlspecialchars($rowIts) : (int)$h['hof_id']; ?></td>
               <td class="td-hofname"><?= htmlspecialchars($h['hof_name']); ?></td>
@@ -289,6 +298,17 @@
 
 <script>
   (function() {
+    // Handle row click redirection to view member details
+    $('#hofTable tbody').on('click', 'tr.clickable-row', function(e) {
+      if ($(e.target).closest('button, input, select, a, textarea').length) {
+        return;
+      }
+      var its = $(this).data('its');
+      if (its) {
+        window.location.href = '<?= base_url('admin/viewmember/'); ?>' + its;
+      }
+    });
+
     // Handle multiple modals overlay stacking (Bootstrap 4)
     // Ensures newer modals appear above older ones and backdrops stack correctly.
     $(document).on('show.bs.modal', '.modal', function() {
@@ -396,6 +416,8 @@
     $('#filterFund').on('change', applyFilters);
     $('#filterSector').on('change', applyFilters);
     $('#filterSubSector').on('change', applyFilters);
+
+    applyFilters();
 
     // Apply: if only name is set, use client-side filter for snappy UX; otherwise redirect with GET params
     $('#applyFiltersBtn').on('click', function() {

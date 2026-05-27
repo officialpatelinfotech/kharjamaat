@@ -61,6 +61,14 @@ $is_member_view = ($qh_prefix === 'accounts');
       display: none;
     }
   }
+
+  tr.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  tr.clickable-row:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
 </style>
 
 <div class="container margintopcontainer pt-5">
@@ -280,7 +288,15 @@ $is_member_view = ($qh_prefix === 'accounts');
               <?php if (!empty($records)): ?>
                 <?php $sr = 0;
                 foreach ($records as $r): $sr++; ?>
-                  <tr>
+                  <?php 
+                    $rowClass = '';
+                    $dataIts = '';
+                    if (isset($scheme_key) && in_array($scheme_key, ['taher', 'husain'], true)) {
+                      $rowClass = 'clickable-row';
+                      $dataIts = ' data-its="' . htmlspecialchars((string)($r['ITS'] ?? '')) . '"';
+                    }
+                  ?>
+                  <tr class="<?php echo $rowClass; ?>"<?php echo $dataIts; ?>>
                     <?php if (isset($scheme_key) && $scheme_key === 'taher'): ?>
                       <td style="white-space:nowrap;"><?php echo (int)$sr; ?></td>
                       <td style="white-space:nowrap;"><?php echo htmlspecialchars((string)($r['ITS'] ?? '')); ?></td>
@@ -683,3 +699,23 @@ $is_member_view = ($qh_prefix === 'accounts');
     </div>
   <?php endif; ?>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var tbody = document.querySelector('.table tbody');
+  if (tbody) {
+    tbody.addEventListener('click', function(e) {
+      if (e.target.closest('button, input, select, a, textarea')) {
+        return;
+      }
+      var row = e.target.closest('tr.clickable-row');
+      if (row) {
+        var its = row.getAttribute('data-its');
+        if (its) {
+          window.location.href = "<?php echo base_url('admin/viewmember/'); ?>" + its;
+        }
+      }
+    });
+  }
+});
+</script>

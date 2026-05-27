@@ -15,6 +15,9 @@
     #thaali-hijri-calendar .hijri-cell { min-height: 38px; display: flex; align-items: center; justify-content: center; }
     #thaali-hijri-calendar .hijri-cell.empty { background: transparent; }
     #thaali-hijri-calendar .hijri-head-cell { font-size: 0.75rem; text-transform: uppercase; }
+    
+    tr.clickable-row { cursor: pointer; }
+    tr.clickable-row:hover td { background-color: #f1f5f9 !important; }
   </style>
   <?php if ($this->session->flashdata('error')): ?>
     <div class="alert alert-danger">
@@ -108,7 +111,7 @@
         if (isset($all_user_fmb_takhmeen)) {
           foreach ($all_user_fmb_takhmeen as $key => $user) {
         ?>
-            <tr>
+            <tr class="clickable-row" data-its-id="<?php echo htmlspecialchars((string)($user["ITS_ID"] ?? ''), ENT_QUOTES); ?>">
               <td><?php echo $key + 1; ?></td>
               <td data-sort-value="<?php echo htmlspecialchars(strtolower($user["ITS_ID"]), ENT_QUOTES); ?>"><?php echo htmlspecialchars($user["ITS_ID"]); ?></td>
               <td data-sort-value="<?php echo htmlspecialchars(strtolower($user["Full_Name"]), ENT_QUOTES); ?>"><?php echo $user["Full_Name"]; ?></td>
@@ -1506,5 +1509,17 @@
     const year = $(this).data('year');
 
     openAssignedThaaliDaysModal(userId, userName, year);
+  });
+
+  $(document).ready(function() {
+    $(document).on('click', 'tr.clickable-row', function(e) {
+      if ($(e.target).is('button, a, input, select, option, i') || $(e.target).closest('button, a, input, select, option').length) {
+        return;
+      }
+      var itsId = $(this).data('its-id');
+      if (itsId) {
+        window.location.href = '<?php echo base_url("admin/viewmember/"); ?>' + itsId;
+      }
+    });
   });
 </script>

@@ -33,6 +33,9 @@
       background: #f8fafc;
       /* match card header */
     }
+    
+    tr.clickable-row { cursor: pointer; }
+    tr.clickable-row:hover td { background-color: #f1f5f9 !important; }
   </style>
   <?php
   $unique_sectors = [];
@@ -115,7 +118,7 @@
           if (isset($all_user_fmb_takhmeen)) {
             foreach ($all_user_fmb_takhmeen as $key => $user) {
           ?>
-              <tr>
+              <tr class="clickable-row" data-its-id="<?php echo htmlspecialchars((string)($user['ITS_ID'] ?? ''), ENT_QUOTES); ?>">
                 <td class="row-index" data-sort-value="<?php echo $key + 1; ?>"><?php echo $key + 1; ?></td>
                 <td data-sort-value="<?php echo htmlspecialchars($user['ITS_ID'], ENT_QUOTES); ?>"><?php echo $user["ITS_ID"]; ?></td>
                 <td data-sort-value="<?php echo htmlspecialchars($user['Full_Name'], ENT_QUOTES); ?>"><?php echo $user["Full_Name"]; ?></td>
@@ -767,4 +770,16 @@
     });
     renumberVisible();
   })();
+
+  $(document).ready(function() {
+    $(document).on('click', 'tr.clickable-row', function(e) {
+      if ($(e.target).is('button, a, input, select, option, i') || $(e.target).closest('button, a, input, select, option').length) {
+        return;
+      }
+      var itsId = $(this).data('its-id');
+      if (itsId) {
+        window.location.href = '<?php echo base_url("admin/viewmember/"); ?>' + itsId;
+      }
+    });
+  });
 </script>
