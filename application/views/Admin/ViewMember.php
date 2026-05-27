@@ -45,6 +45,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
   }
   .panel-title {
     margin: 0;
@@ -525,3 +527,33 @@
 
   <?php endif; ?>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  $('.panel-group').each(function() {
+    var $panel = $(this);
+    var $heading = $panel.find('.panel-heading');
+    var $body = $panel.find('.panel-body');
+    if (!$heading.length || !$body.length) return;
+
+    // Ensure chevron exists
+    var $chevron = $heading.find('.fa-chevron-up, .fa-chevron-down');
+    if (!$chevron.length) {
+      $chevron = $('<i class="fa fa-chevron-up text-muted" style="font-size:0.8em;"></i>');
+      $heading.append($chevron);
+    }
+
+    $heading.on('click', function(e) {
+      if ($(e.target).closest('a, button').length) return;
+
+      var isVisible = $body.is(':visible');
+      if (isVisible) {
+        $chevron.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+      } else {
+        $chevron.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+      }
+      $body.slideToggle(200);
+    });
+  });
+});
+</script>

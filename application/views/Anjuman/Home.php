@@ -586,6 +586,12 @@ if (!function_exists('format_inr')) {
         'residential_status' => ['label'=>'Residential Status', 'icon'=>'fa-building',      'bg'=>'#eff6ff','color'=>'#1d4ed8','count_key'=>'residential', 'id'=>'collapseResidential'],
         'Qualification'      => ['label'=>'Dunyavi Education',  'icon'=>'fa-graduation-cap','bg'=>'#eaf4ee','color'=>'#1a6645','count_key'=>'education',   'id'=>'collapseEducation'],
       ];
+      $CI =& get_instance();
+      $CI->load->model('MemberStatusM');
+      $deeni_map = MemberStatusM::deeni_status_options();
+      $health_map = MemberStatusM::health_status_options();
+      $res_map = MemberStatusM::residential_status_options();
+
       foreach ($groups1 as $filterKey => $g):
         if (empty($status_counts[$g['count_key']])) continue; ?>
       <div class="section-header-standard ml-3 mr-3">
@@ -594,10 +600,21 @@ if (!function_exists('format_inr')) {
       </div>
       <div class="collapse show" id="<?= $g['id'] ?>">
         <div class="row px-3">
-          <?php foreach ($status_counts[$g['count_key']] as $lbl => $cnt): if ($lbl==='None'||$lbl==='') continue; ?>
+          <?php foreach ($status_counts[$g['count_key']] as $lbl => $cnt): 
+            if ($lbl==='None'||$lbl==='') continue; 
+            $display_lbl = $lbl;
+            if ($g['count_key'] === 'deeni' && isset($deeni_map[$lbl])) {
+              $display_lbl = $deeni_map[$lbl];
+            } elseif ($g['count_key'] === 'health' && isset($health_map[$lbl])) {
+              $display_lbl = $health_map[$lbl];
+            } elseif ($g['count_key'] === 'residential' && isset($res_map[$lbl])) {
+              $display_lbl = $res_map[$lbl];
+            }
+            $display_lbl = preg_replace('/\s*\((Active|Inactive)\)$/i', '', $display_lbl);
+          ?>
           <div class="col-6 col-md-3 mb-3">
             <a href="<?= base_url('anjuman/mumineendirectory?filter='.$filterKey.'&value='.rawurlencode($lbl)) ?>" style="text-decoration:none;color:inherit;display:block;">
-              <div class="overview-card"><div class="overview-icon" style="background:<?= $g['bg'] ?>;color:<?= $g['color'] ?>;"><i class="fa <?= $g['icon'] ?>"></i></div><div class="overview-body"><span class="overview-title"><?= htmlspecialchars($lbl) ?></span><span class="overview-value"><?= $cnt ?></span></div></div>
+              <div class="overview-card"><div class="overview-icon" style="background:<?= $g['bg'] ?>;color:<?= $g['color'] ?>;"><i class="fa <?= $g['icon'] ?>"></i></div><div class="overview-body"><span class="overview-title"><?= htmlspecialchars($display_lbl) ?></span><span class="overview-value"><?= $cnt ?></span></div></div>
             </a>
           </div>
           <?php endforeach; ?>

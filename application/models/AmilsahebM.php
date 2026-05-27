@@ -418,7 +418,7 @@ class AmilsahebM extends CI_Model
     $this->db->select('u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector');
     $this->db->from('user u');
     $actFilter = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
-    $this->db->where("u.sector is not null and u.sub_sector is not null and ((u.inactive_status is null or u.inactive_status = '')$actFilter)", null, false); // Exclude umoor fmb users
+    $this->db->where("((u.inactive_status is null or u.inactive_status = '')$actFilter)", null, false);
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'ao.ITS = u.ITS_ID AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -431,6 +431,8 @@ class AmilsahebM extends CI_Model
   {
     $this->db->select('u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector');
     $this->db->from('user u');
+    $actFilter = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
+    $this->db->where("((u.inactive_status is null or u.inactive_status = '')$actFilter)", null, false);
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'ao.ITS = u.ITS_ID AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -463,6 +465,8 @@ class AmilsahebM extends CI_Model
       'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
     ]);
     $this->db->from('user u');
+    $actFilter = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
+    $this->db->where("((u.inactive_status is null or u.inactive_status = '')$actFilter)", null, false);
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -492,7 +496,7 @@ class AmilsahebM extends CI_Model
     ]);
     $this->db->from('user u');
     $actFilter2 = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
-    $this->db->where("u.sector is not null and u.sub_sector is not null and ((u.inactive_status is null or u.inactive_status = '')$actFilter2)", null, false);
+    $this->db->where("((u.inactive_status is null or u.inactive_status = '')$actFilter2)", null, false);
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -577,8 +581,6 @@ class AmilsahebM extends CI_Model
         MAX(u.Sector_Incharge_Female_Name) AS Sector_Incharge_Female_Name
       FROM user u
       WHERE u.sector IS NOT NULL AND u.sub_sector IS NOT NULL 
-        AND (u.inactive_status IS NULL OR u.inactive_status = '')
-        " . ($this->has_activity_status ? "AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = '')" : "") . "
       GROUP BY u.Sector
       ORDER BY u.Sector
     ";

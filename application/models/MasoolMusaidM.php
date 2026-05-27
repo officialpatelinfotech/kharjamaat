@@ -72,6 +72,11 @@ class MasoolMusaidM extends CI_Model
     } else {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
     }
+
+    // Add active filter
+    $active_cond = "((u.inactive_status IS NULL OR u.inactive_status = '') AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = ''))";
+    $this->db->where($active_cond, null, false);
+
     $this->db->where('u.Sector', $sector);
     if (!empty($subsector)) {
       $this->db->where('u.Sub_Sector', $subsector);
@@ -92,6 +97,10 @@ class MasoolMusaidM extends CI_Model
     } else {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
     }
+
+    // Add active filter
+    $active_cond = "((u.inactive_status IS NULL OR u.inactive_status = '') AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = ''))";
+    $this->db->where($active_cond, null, false);
 
     $this->db->group_start();
     $this->db->like('ao.ITS', $keyword);

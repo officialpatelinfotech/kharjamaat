@@ -234,6 +234,7 @@ class LaagatRentM extends CI_Model
         // Normalize stored values on-the-fly to avoid duplicates slipping through due to
         // legacy data inconsistencies (extra spaces / casing differences).
         $q = $this->db->select('id, venue')->from('laagat_rent');
+        $q->where('hijri_year', $hijriYear);
         $q->where('LOWER(TRIM(charge_type)) = ' . $this->db->escape($chargeType), null, false);
         if ($excludeId > 0) $q->where('id !=', $excludeId);
         $rows = $q->get()->result_array();
@@ -429,7 +430,7 @@ class LaagatRentM extends CI_Model
             }
         }
 
-        // If this record is active, keep only one active per year + charge_type + venue.
+        // If this record is active, deactivate conflicting records (same Year + Charge Type + Venue + overlapping category / both master).
         $row = $this->db->select('hijri_year, charge_type, is_active, venue')
             ->from('laagat_rent')
             ->where('id', $id)
@@ -437,17 +438,7 @@ class LaagatRentM extends CI_Model
             ->row_array();
 
         if ($row && (int)$row['is_active'] === 1) {
-            $this->db->where('hijri_year', (string)$row['hijri_year']);
-            $this->db->where('charge_type', (string)$row['charge_type']);
-            $this->db->where('id !=', $id);
-            $this->db->where('is_active', 1);
-            $vVal = isset($row['venue']) && $row['charge_type'] === 'rent' ? trim((string)$row['venue']) : '';
-            if ($vVal !== '') {
-                $this->db->where('venue', $vVal);
-            } else {
-                $this->db->where('(venue IS NULL OR venue = \'\')', null, false);
-            }
-            $this->db->update('laagat_rent', ['is_active' => 0]);
+            $this->deactivate_conflicting_records($id, $row['hijri_year'], $row['charge_type'], $row['venue']);
         }
 
         $this->db->trans_complete();
@@ -487,18 +478,7 @@ class LaagatRentM extends CI_Model
         $this->db->trans_start();
 
         if ($newVal === 1) {
-            // Deactivate other active records for the same Hijri Year + Charge Type + Venue.
-            $this->db->where('hijri_year', (string)$row['hijri_year']);
-            $this->db->where('charge_type', (string)$row['charge_type']);
-            $this->db->where('id !=', $id);
-            $this->db->where('is_active', 1);
-            $vVal = isset($row['venue']) && $row['charge_type'] === 'rent' ? trim((string)$row['venue']) : '';
-            if ($vVal !== '') {
-                $this->db->where('venue', $vVal);
-            } else {
-                $this->db->where('(venue IS NULL OR venue = \'\')', null, false);
-            }
-            $this->db->update('laagat_rent', ['is_active' => 0]);
+            $this->deactivate_conflicting_records($id, $row['hijri_year'], $row['charge_type'], $row['venue']);
         }
 
         $this->db->where('id', $id);
@@ -511,6 +491,50 @@ class LaagatRentM extends CI_Model
         }
 
         return ['success' => true, 'is_active' => $newVal, 'charge_type' => $row['charge_type']];
+    }
+
+    private function deactivate_conflicting_records($id, $hijriYear, $chargeType, $venue)
+    {
+        $id = (int)$id;
+        $hijriYear = trim((string)$hijriYear);
+        $chargeType = strtolower(trim((string)$chargeType));
+        $venue = $venue !== null ? trim((string)$venue) : '';
+
+        $aIds = $this->get_raza_type_ids_for_record($id);
+        $isAMaster = empty($aIds);
+
+        $this->db->select('id');
+        $this->db->from('laagat_rent');
+        $this->db->where('hijri_year', $hijriYear);
+        $this->db->where('charge_type', $chargeType);
+        $this->db->where('id !=', $id);
+        $this->db->where('is_active', 1);
+
+        if ($chargeType === 'rent' && $venue !== '') {
+            $this->db->where('venue', $venue);
+        } else {
+            $this->db->where('(venue IS NULL OR venue = \'\')', null, false);
+        }
+
+        $otherActive = $this->db->get()->result_array();
+
+        foreach ($otherActive as $r) {
+            $otherId = (int)$r['id'];
+            $bIds = $this->get_raza_type_ids_for_record($otherId);
+            $isBMaster = empty($bIds);
+
+            $shouldDeactivate = false;
+            if ($isAMaster && $isBMaster) {
+                $shouldDeactivate = true;
+            } else if ($this->has_any_common_raza_type($aIds, $bIds)) {
+                $shouldDeactivate = true;
+            }
+
+            if ($shouldDeactivate) {
+                $this->db->where('id', $otherId);
+                $this->db->update('laagat_rent', ['is_active' => 0]);
+            }
+        }
     }
 
     public function search_raza_categories($chargeType, $term)

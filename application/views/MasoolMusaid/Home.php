@@ -663,6 +663,12 @@
         'residential_status' => ['label'=>'Residential Status', 'icon'=>'fa-building',       'bg'=>'#eff6ff','color'=>'#1d4ed8','key'=>'residential', 'id'=>'collapseMMPResidential'],
         'Qualification'      => ['label'=>'Dunyavi Education',  'icon'=>'fa-graduation-cap', 'bg'=>'#eaf4ee','color'=>'#1a6645','key'=>'education',   'id'=>'collapseMMPEducation'],
       ];
+      $CI =& get_instance();
+      $CI->load->model('MemberStatusM');
+      $deeni_map = MemberStatusM::deeni_status_options();
+      $health_map = MemberStatusM::health_status_options();
+      $res_map = MemberStatusM::residential_status_options();
+
       foreach ($statusGroups as $filterKey => $g):
         if (empty($status_counts[$g['key']])) continue; ?>
       <div class="section-hd mt-1">
@@ -671,10 +677,21 @@
       </div>
       <div class="collapse show" id="<?= $g['id'] ?>">
         <div class="row mb-3">
-          <?php foreach ($status_counts[$g['key']] as $lbl => $cnt): if ($lbl==='None'||$lbl==='') continue; ?>
+          <?php foreach ($status_counts[$g['key']] as $lbl => $cnt): 
+            if ($lbl==='None'||$lbl==='') continue; 
+            $display_lbl = $lbl;
+            if ($g['key'] === 'deeni' && isset($deeni_map[$lbl])) {
+              $display_lbl = $deeni_map[$lbl];
+            } elseif ($g['key'] === 'health' && isset($health_map[$lbl])) {
+              $display_lbl = $health_map[$lbl];
+            } elseif ($g['key'] === 'residential' && isset($res_map[$lbl])) {
+              $display_lbl = $res_map[$lbl];
+            }
+            $display_lbl = preg_replace('/\s*\((Active|Inactive)\)$/i', '', $display_lbl);
+          ?>
           <div class="col-6 col-md-3 mb-3">
             <a href="<?= base_url('MasoolMusaid/mumineendirectory?filter='.$filterKey.'&value='.rawurlencode($lbl)) ?>">
-              <div class="ov-card"><div class="ov-icon" style="background:<?= $g['bg'] ?>;color:<?= $g['color'] ?>;"><i class="fa <?= $g['icon'] ?>"></i></div><div class="ov-body"><span class="ov-label"><?= htmlspecialchars($lbl) ?></span><span class="ov-value"><?= $cnt ?></span></div></div>
+              <div class="ov-card"><div class="ov-icon" style="background:<?= $g['bg'] ?>;color:<?= $g['color'] ?>;"><i class="fa <?= $g['icon'] ?>"></i></div><div class="ov-body"><span class="ov-label"><?= htmlspecialchars($display_lbl) ?></span><span class="ov-value"><?= $cnt ?></span></div></div>
             </a>
           </div>
           <?php endforeach; ?>
