@@ -132,7 +132,9 @@ class MasoolMusaidM extends CI_Model
       'SUM(CASE WHEN u.Age BETWEEN 16 AND 25 THEN 1 ELSE 0 END) as age_16_25',
       'SUM(CASE WHEN u.Age BETWEEN 26 AND 65 THEN 1 ELSE 0 END) as age_26_65',
       'SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) as seniors_count',
-      'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
+      'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count',
+      'MAX(u.Sector_Incharge_Name) as Sector_Incharge_Name',
+      'MAX(u.Sector_Incharge_Female_Name) as Sector_Incharge_Female_Name'
     ]);
 
     $this->db->from('user u');
@@ -145,15 +147,37 @@ class MasoolMusaidM extends CI_Model
     if ($sector) {
       $this->db->where('u.Sector', $sector);
     }
-    // Optional year filter if column exists
-    if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
-      $this->db->where('ao.year', (int)$year);
-    }
+
 
     $this->db->group_by('u.Sector');
     $this->db->order_by('u.Sector');
 
-    return $this->db->get()->result_array();
+    $rows = $this->db->get()->result_array();
+
+    // Fetch subsectors to attach their incharges
+    $subSql = "
+      SELECT Sector, Sub_Sector, MAX(Sub_Sector_Incharge_Name) as Sub_Sector_Incharge_Name, MAX(Sub_Sector_Incharge_Female_Name) as Sub_Sector_Incharge_Female_Name
+      FROM user
+      WHERE Sector IS NOT NULL AND Sub_Sector IS NOT NULL
+      GROUP BY Sector, Sub_Sector
+    ";
+    $subRows = $this->db->query($subSql)->result_array();
+
+    $subMap = [];
+    foreach($subRows as $sr) {
+        $sec = $sr['Sector'];
+        if (!isset($subMap[$sec])) $subMap[$sec] = [];
+        if (!empty(trim($sr['Sub_Sector_Incharge_Name'] ?? '')) || !empty(trim($sr['Sub_Sector_Incharge_Female_Name'] ?? ''))) {
+            $subMap[$sec][] = $sr;
+        }
+    }
+
+    foreach ($rows as &$r) {
+      $r['sub_sectors'] = isset($subMap[$r['Sector']]) ? $subMap[$r['Sector']] : [];
+    }
+    unset($r);
+
+    return $rows;
   }
 
   public function get_sub_sectors_stats($sector = null, $subsector = null, $year = null)
@@ -189,10 +213,7 @@ class MasoolMusaidM extends CI_Model
       $this->db->where('u.Sub_Sector', $subsector);
     }
 
-    // Optional year filter if column exists
-    if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
-      $this->db->where('ao.year', (int)$year);
-    }
+
 
     $this->db->group_by('u.Sector, u.Sub_Sector');
     $this->db->order_by('u.Sector, u.Sub_Sector');

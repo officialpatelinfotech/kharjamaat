@@ -462,7 +462,9 @@ class AmilsahebM extends CI_Model
       'SUM(CASE WHEN u.Age BETWEEN 16 AND 25 THEN 1 ELSE 0 END) as age_16_25',
       'SUM(CASE WHEN u.Age BETWEEN 26 AND 65 THEN 1 ELSE 0 END) as age_26_65',
       'SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) as seniors_count',
-      'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
+      'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count',
+      'MAX(u.Sector_Incharge_Name) as Sector_Incharge_Name',
+      'MAX(u.Sector_Incharge_Female_Name) as Sector_Incharge_Female_Name'
     ]);
     $this->db->from('user u');
     $actFilter = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
@@ -474,7 +476,33 @@ class AmilsahebM extends CI_Model
     }
     $this->db->group_by('u.Sector');
     $this->db->order_by('u.Sector');
-    return $this->db->get()->result_array();
+    $rows = $this->db->get()->result_array();
+
+    // Fetch sub-sectors and attach their incharges to each sector row
+    $subSql = "
+      SELECT Sector, Sub_Sector, MAX(Sub_Sector_Incharge_Name) as Sub_Sector_Incharge_Name, MAX(Sub_Sector_Incharge_Female_Name) as Sub_Sector_Incharge_Female_Name
+      FROM user
+      WHERE Sector IS NOT NULL AND Sub_Sector IS NOT NULL
+      GROUP BY Sector, Sub_Sector
+    ";
+    $subRows = $this->db->query($subSql)->result_array();
+
+    $subMap = [];
+    foreach ($subRows as $sr) {
+      $sec = $sr['Sector'];
+      if (!isset($subMap[$sec])) $subMap[$sec] = [];
+      // Only include sub-sectors that have at least one incharge assigned
+      if (!empty(trim($sr['Sub_Sector_Incharge_Name'] ?? '')) || !empty(trim($sr['Sub_Sector_Incharge_Female_Name'] ?? ''))) {
+        $subMap[$sec][] = $sr;
+      }
+    }
+
+    foreach ($rows as &$r) {
+      $r['sub_sectors'] = isset($subMap[$r['Sector']]) ? $subMap[$r['Sector']] : [];
+    }
+    unset($r);
+
+    return $rows;
   }
 
   public function get_all_sub_sector_stats($year = null)

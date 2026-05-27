@@ -81,33 +81,33 @@
     margin-bottom: 20px;
   }
 
-  .sector-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
+  /* ── Overview cards ── */
+  .overview-card {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; display: flex; align-items: center; gap: 11px; height: 100%;
+    transition: border-color .2s, box-shadow .2s, transform .2s; position: relative; overflow: hidden;
   }
-
-  .sector-card {
-    background-color: #e7f1ff;
-    padding: 10px 15px;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
+  .overview-card:hover { border-color: var(--gold); box-shadow: var(--shadow); transform: translateY(-2px); }
+  .overview-card::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: var(--gold); transform: scaleX(0); transition: transform .2s; transform-origin: left;
   }
-
-  .sector-card:hover {
-    background-color: #d0e2ff;
-    transform: scale(1.02);
+  .overview-card:hover::after { transform: scaleX(1); }
+  .overview-card.active {
+    border-color: var(--gold) !important;
   }
-
-  .sector-card.active {
-    background-color: #2c3e50;
-    color: white;
+  .overview-card.active::after {
+    transform: scaleX(1) !important;
+  }
+  .overview-icon {
+    width: 36px; height: 36px; border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--gold-muted); color: var(--gold); font-size: .95rem; flex-shrink: 0;
+  }
+  .overview-body { display: flex; flex-direction: column; min-width: 0; }
+  .overview-title { font-size: .72rem; color: var(--text-3); font-weight: 600; margin: 0; line-height: 1.3; }
+  .overview-value {
+    font-size: 1.2rem; font-weight: 800; color: var(--text-1); line-height: 1.1; margin: 3px 0 0;
   }
 
   .table th {
@@ -218,6 +218,42 @@
   .modal-header.bg-primary {
     background-color: var(--gold) !important;
   }
+
+  /* ── Surface card ── */
+  .chart-container {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    position: relative; overflow: hidden;
+    transition: box-shadow .2s;
+  }
+  .chart-container:hover { box-shadow: var(--shadow); }
+  .chart-container.compact { padding: 14px 16px; }
+
+  /* ── Section header ── */
+  .section-header-standard {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 10px; margin-bottom: 14px;
+    border-bottom: 1.5px solid var(--border-light);
+  }
+  .section-header-standard .section-title {
+    font-size: .87rem; font-weight: 800; color: var(--text-2);
+    margin: 0 !important; display: flex; align-items: center; gap: 8px;
+  }
+  .section-header-standard .section-title i { color: var(--gold); font-size: .82rem; }
+
+  .collapse-toggle-btn {
+    border-radius: 50%; width: 28px; height: 28px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); border: 1.5px solid var(--border); color: var(--text-3);
+    transition: all .2s; flex-shrink: 0; cursor: pointer;
+  }
+  .collapse-toggle-btn:hover { background: var(--gold-muted); color: var(--gold); border-color: var(--gold); }
+  .collapse-toggle-btn i { transition: transform .22s; }
+  .collapse-toggle-btn[aria-expanded="false"] i { transform: rotate(-90deg); }
 </style>
 <div class="container-fluid pt-5 p-3 p-md-4">
   <!-- Header Section -->
@@ -361,10 +397,19 @@
   </div>
 
   <!-- Sector Cards -->
-  <div class="card p-3 shadow-sm mb-4">
-    <h5 class="section-title">Sector Overview</h5>
-    <div class="mb-2 fw-bold" id="totalSectorCard"></div>
-    <div id="sectorCardsContainer"></div>
+  <div class="mb-2 fw-bold" id="totalSectorCard"></div>
+  <div class="row">
+    <div class="col-12">
+      <div class="chart-container sector-block">
+        <div class="section-header-standard">
+          <h4 class="section-title"><i class="fa fa-map-marker"></i> Sector-wise Members</h4>
+          <button class="collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSectorsAshara" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+        </div>
+        <div class="collapse show" id="collapseSectorsAshara">
+          <div id="sectorCardsContainer" class="row"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Main Data Table -->
@@ -432,13 +477,27 @@
   })();
 
   const originalData = <?= json_encode($users) ?>;
+  const sectorIncharges = <?= json_encode($stats['Sectors'] ?? []) ?>;
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"]/g, function(s) {
+      return ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;'
+      } [s]);
+    });
+  }
   let sortDirection = {};
   let currentSectorFilter = null;
   let currentStatusFilter = null;
 
   // Initialize the page
   document.addEventListener('DOMContentLoaded', function() {
-    updateSectorCount(originalData);
+    initSectorCards();
+    updateMemberSummary(originalData);
     updateUserTable(originalData);
   });
 
@@ -477,7 +536,7 @@
       });
     }
 
-    updateSectorCount(filtered);
+    updateMemberSummary(filtered);
     updateUserTable(filtered);
   }
 
@@ -516,25 +575,156 @@
     }
   }
 
-  function updateSectorCount(users) {
-    const sectorStats = {};
-    users.forEach(u => {
-      const sector = u.Sector || 'Unknown';
-      if (!sectorStats[sector]) {
-        sectorStats[sector] = {
-          HOF: 0,
-          FM: 0,
-          noLeave: 0
-        };
-      }
-      if (u.HOF_FM_TYPE === 'HOF') sectorStats[sector].HOF++;
-      else if (u.HOF_FM_TYPE === 'FM') sectorStats[sector].FM++;
+  function initSectorCards() {
+    const container = document.getElementById('sectorCardsContainer');
+    if (!container) return;
+    container.className = 'row';
+    container.innerHTML = '';
 
-      if (!u.LeaveStatus || u.LeaveStatus.trim() === "Musaaid didn't Contacted Yet") {
-        sectorStats[sector].noLeave++;
-      }
+    const inchargeMap = {};
+    sectorIncharges.forEach(item => {
+      const secName = item.Sector || 'Unknown';
+      inchargeMap[secName.toLowerCase()] = item;
     });
 
+    // Sort sectors by total count descending
+    const sortedSectors = sectorIncharges.filter(item => {
+      const sec = (item.Sector || '').trim();
+      return sec !== '' && sec.toLowerCase() !== 'unassigned';
+    });
+    sortedSectors.sort((a, b) => {
+      const totalA = parseInt(a.total || 0);
+      const totalB = parseInt(b.total || 0);
+      return totalB - totalA;
+    });
+
+    sortedSectors.forEach(itemData => {
+      const sector = itemData.Sector || 'Unknown';
+      const inchargeName = itemData.Sector_Incharge_Name || '';
+      const subSectors = itemData.sub_sectors || [];
+      const hof = parseInt(itemData.hof_count || 0);
+      const fm = parseInt(itemData.fm_count || 0);
+      const cid = 'collapseSectorIncharge_' + sector.replace(/[^a-zA-Z0-9]/g, '_');
+
+      const colDiv = document.createElement('div');
+      colDiv.className = 'col-12 col-md-3 mb-3';
+
+      const cardDiv = document.createElement('div');
+      cardDiv.className = `overview-card ${currentSectorFilter === sector ? 'active' : ''}`;
+      cardDiv.dataset.sector = sector;
+      cardDiv.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        height: 100%;
+        cursor: pointer;
+      `;
+
+      const mainLink = document.createElement('div');
+      mainLink.style.cssText = 'display:flex;align-items:center;gap:10px;flex:1;text-decoration:none;color:inherit;';
+      
+      const iconDiv = document.createElement('div');
+      iconDiv.className = 'overview-icon';
+      iconDiv.style.cssText = 'background:#eaf4ee;color:#1a6645;';
+      iconDiv.innerHTML = '<i class="fa fa-map-marker"></i>';
+
+      const bodyDiv = document.createElement('div');
+      bodyDiv.className = 'overview-body';
+      bodyDiv.style.cssText = 'width:100%;';
+
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'overview-title';
+      titleSpan.textContent = sector;
+
+      let inchargeHtml = '';
+      if (inchargeName) {
+        inchargeHtml = `<div style="font-size:.74rem;color:var(--text-3);margin:4px 0;"><i class="fa fa-male" style="color:#1d4ed8;margin-right:3px;"></i>${escapeHtml(inchargeName)}</div>`;
+      }
+
+      const valueSpan = document.createElement('span');
+      valueSpan.className = 'overview-value';
+      valueSpan.style.cssText = 'font-size:.95rem; font-weight: 800; color: var(--text-1); margin-top: 4px;';
+      valueSpan.innerHTML = `HOF ${hof} &nbsp;·&nbsp; FM ${fm}`;
+
+      bodyDiv.appendChild(titleSpan);
+      if (inchargeName) {
+        const temp = document.createElement('div');
+        temp.innerHTML = inchargeHtml;
+        bodyDiv.appendChild(temp.firstElementChild);
+      }
+      bodyDiv.appendChild(valueSpan);
+
+      mainLink.appendChild(iconDiv);
+      mainLink.appendChild(bodyDiv);
+      cardDiv.appendChild(mainLink);
+
+      mainLink.onclick = (e) => {
+        e.stopPropagation();
+        currentSectorFilter = currentSectorFilter === sector ? null : sector;
+        
+        // Toggle active style on cards
+        document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(card => {
+          if (card.dataset.sector === currentSectorFilter) {
+            card.classList.add('active');
+          } else {
+            card.classList.remove('active');
+          }
+        });
+
+        performSearch();
+      };
+
+      if (subSectors.length > 0 || inchargeName) {
+        const collapseWrapper = document.createElement('div');
+        collapseWrapper.style.cssText = 'margin-top:8px;border-top:1px solid var(--border-light);padding-top:5px;width:100%;';
+        
+        const collapseBtn = document.createElement('button');
+        collapseBtn.className = 'btn btn-sm btn-link text-decoration-none w-100 text-start p-0 d-flex justify-content-between align-items-center';
+        collapseBtn.style.cssText = 'color:var(--text-3);font-size:.74rem;';
+        collapseBtn.type = 'button';
+        collapseBtn.setAttribute('data-bs-toggle', 'collapse');
+        collapseBtn.setAttribute('data-bs-target', '#' + cid);
+        collapseBtn.innerHTML = '<span><i class="fa fa-info-circle"></i> View Incharges</span><i class="fa fa-chevron-down" style="font-size:.62rem;"></i>';
+        
+        const collapseContent = document.createElement('div');
+        collapseContent.className = 'collapse';
+        collapseContent.id = cid;
+
+        let listHtml = '<ul style="list-style:none;padding:5px 0 0;margin:0;font-size:.75rem;color:var(--text-2);">';
+        subSectors.forEach(sub => {
+          listHtml += `<li style="padding:5px 6px;background:var(--bg);border-radius:6px;margin-bottom:3px;text-align:left;">
+            <strong>${escapeHtml(sub.Sub_Sector)}</strong><br>`;
+          if (sub.Sub_Sector_Incharge_Name) {
+            listHtml += `<i class="fa fa-male" style="color:#1d4ed8;margin-right:3px;"></i>${escapeHtml(sub.Sub_Sector_Incharge_Name)}<br>`;
+          }
+          if (sub.Sub_Sector_Incharge_Female_Name) {
+            listHtml += `<i class="fa fa-female" style="color:#9d174d;margin-right:3px;"></i>${escapeHtml(sub.Sub_Sector_Incharge_Female_Name)}`;
+          }
+          listHtml += '</li>';
+        });
+        listHtml += '</ul>';
+        collapseContent.innerHTML = listHtml;
+
+        collapseWrapper.appendChild(collapseBtn);
+        collapseWrapper.appendChild(collapseContent);
+        cardDiv.appendChild(collapseWrapper);
+
+        collapseContent.addEventListener('show.bs.collapse', (e) => {
+          e.stopPropagation();
+          collapseBtn.querySelector('.fa-chevron-down').style.transform = 'rotate(180deg)';
+        });
+        collapseContent.addEventListener('hide.bs.collapse', (e) => {
+          e.stopPropagation();
+          collapseBtn.querySelector('.fa-chevron-down').style.transform = '';
+        });
+      }
+
+      colDiv.appendChild(cardDiv);
+      container.appendChild(colDiv);
+    });
+  }
+
+  function updateMemberSummary(users) {
     const totalNoLeave = users.filter(u => !u.LeaveStatus || u.LeaveStatus.trim() === "Musaaid didn't Contacted Yet").length;
 
     document.getElementById('totalSectorCard').innerHTML = `
@@ -543,43 +733,6 @@
             <span class="badge bg-warning text-dark ms-2 fs-6">Not Contacted: ${totalNoLeave}</span>
         </div>
     `;
-
-    const container = document.getElementById('sectorCardsContainer');
-    container.className = 'sector-grid';
-    container.innerHTML = '';
-
-    Object.entries(sectorStats).forEach(([sector, counts]) => {
-      const div = document.createElement('div');
-      div.className = `sector-card p-3 rounded shadow-sm border text-center ${currentSectorFilter === sector ? 'bg-primary text-white' : 'bg-white'}`;
-      div.style.cssText = `
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: transform 0.2s;
-        `;
-      div.innerHTML = `
-            <h5 class="mb-2">${sector}</h5>
-            <div class="d-flex flex-column gap-2">
-                <span class="badge bg-success text-white fs-6 mb-2">HOF: ${counts.HOF}</span>
-                <span class="badge bg-info text-dark fs-6 mb-2">FM: ${counts.FM}</span>
-                <span class="badge bg-warning text-dark fs-6">Not Contacted: ${counts.noLeave}</span>
-            </div>
-        `;
-      div.onclick = () => {
-        currentSectorFilter = currentSectorFilter === sector ? null : sector;
-        performSearch();
-
-        document.querySelectorAll('.sector-card').forEach(card => {
-          card.classList.remove('bg-primary', 'text-white');
-          card.classList.add('bg-white');
-        });
-
-        if (currentSectorFilter === sector) {
-          div.classList.remove('bg-white');
-          div.classList.add('bg-primary', 'text-white');
-        }
-      };
-      container.appendChild(div);
-    });
   }
 
   function updateUserTable(users) {
