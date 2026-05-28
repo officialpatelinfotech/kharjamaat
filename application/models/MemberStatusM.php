@@ -253,7 +253,7 @@ class MemberStatusM extends CI_Model
             'Healthy'              => 'Fit & Healthy (Active)',
             'Medically Unfit'      => 'Handicapped Medically Unfit (Active)',
             'Hospitalised'         => 'Major Disease Patient (Active)',
-            'Lazimul Firash'       => 'Lazimul Firash / Bedridden (Inactive)',
+            'Lazimul Firash'       => 'Lazimul Firash / Bedridden (Active)',
             'Wafaat'               => 'Wafaat (Inactive)',
         ];
     }
@@ -299,7 +299,6 @@ class MemberStatusM extends CI_Model
         ];
         // Health statuses that trigger Inactive
         $inactiveHealth = [
-            'Lazimul Firash',
             'Wafaat',
         ];
         // Residential statuses that trigger Inactive (any status except Residing in Local Jamaat and None/empty)
