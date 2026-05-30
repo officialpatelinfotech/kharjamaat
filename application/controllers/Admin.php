@@ -614,6 +614,64 @@ class Admin extends CI_Controller
     redirect('admin/properties');
   }
 
+  public function save_raza_fields($id)
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('AdminM');
+
+    $id = (int)$id;
+    if ($id <= 0) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid Raza ID.']));
+      return;
+    }
+
+    $raza = $this->AdminM->get_razatype_byid($id);
+    if (empty($raza) || empty($raza[0])) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Raza type not found.']));
+      return;
+    }
+    $raza = $raza[0];
+
+    $fieldsJson = $this->input->post('fields');
+    $payload = json_decode($fieldsJson, true);
+
+    if (!is_array($payload) || !isset($payload['fields']) || !is_array($payload['fields'])) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid payload structure.']));
+      return;
+    }
+
+    // Decode existing fields to preserve any other keys (e.g. umoor, name, id)
+    $existing = json_decode($raza['fields'], true);
+    if (!is_array($existing)) {
+      $existing = [];
+    }
+
+    $existing['fields'] = $payload['fields'];
+    // Update name and id in JSON to keep it consistent
+    $existing['id'] = $id;
+    $existing['name'] = $raza['name'];
+    if (isset($raza['umoor'])) {
+      $existing['umoor'] = $raza['umoor'];
+    }
+
+    $flag = $this->AdminM->update_raza_type($id, json_encode($existing));
+    if ($flag) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => true]));
+    } else {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Unable to save form layout.']));
+    }
+  }
+
   // Qardan Hasana schemes
   // - /admin/qardanhasana
   // - /admin/qardanhasana/mohammedi | taher | husain
