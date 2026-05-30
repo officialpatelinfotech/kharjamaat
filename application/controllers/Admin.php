@@ -473,6 +473,147 @@ class Admin extends CI_Controller
     ]));
   }
 
+  // Properties Management
+  public function properties()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->model('PropertyM');
+    $data['properties'] = $this->PropertyM->get_all();
+
+    $data['flash_success'] = $this->session->flashdata('flash_success');
+    $data['flash_error'] = $this->session->flashdata('flash_error');
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/PropertiesList', $data);
+  }
+
+  public function add_property()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('PropertyM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid request method.']));
+      return;
+    }
+
+    $name = trim((string)$this->input->post('name'));
+    if ($name === '') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Property name is required.']));
+      return;
+    }
+
+    if ($this->PropertyM->exists($name)) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Property name already exists.']));
+      return;
+    }
+
+    $inserted_id = $this->PropertyM->create($name);
+    if ($inserted_id) {
+      $this->session->set_flashdata('flash_success', 'Property added successfully');
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => true]));
+    } else {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Unable to save property.']));
+    }
+  }
+
+  public function update_property_name()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('PropertyM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid request method.']));
+      return;
+    }
+
+    $id = (int)$this->input->post('rowId');
+    $name = trim((string)$this->input->post('propertyName'));
+
+    if ($id <= 0) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid property ID.']));
+      return;
+    }
+
+    if ($name === '') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Property name is required.']));
+      return;
+    }
+
+    if ($this->PropertyM->exists($name, $id)) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Property name already exists.']));
+      return;
+    }
+
+    $ok = $this->PropertyM->update($id, $name);
+    if ($ok) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => true]));
+    } else {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Unable to update property.']));
+    }
+  }
+
+  public function delete_property($id = null)
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('PropertyM');
+
+    $id = (int)$id;
+    if ($id <= 0) {
+      $this->session->set_flashdata('flash_error', 'Invalid property ID.');
+      redirect('admin/properties');
+      return;
+    }
+
+    $property = $this->PropertyM->get_by_id($id);
+    if (!$property) {
+      $this->session->set_flashdata('flash_error', 'Property not found.');
+      redirect('admin/properties');
+      return;
+    }
+
+    // Check if property is used in laagat_rent
+    $this->load->model('LaagatRentM');
+    $count = $this->db->where('venue', $property['name'])->count_all_results('laagat_rent');
+    if ($count > 0) {
+      $this->session->set_flashdata('flash_error', 'Cannot delete property because it is currently used as a venue in Laagat/Rent records.');
+      redirect('admin/properties');
+      return;
+    }
+
+    $ok = $this->PropertyM->delete($id);
+    if ($ok) {
+      $this->session->set_flashdata('flash_success', 'Property deleted successfully.');
+    } else {
+      $this->session->set_flashdata('flash_error', 'Unable to delete property.');
+    }
+    redirect('admin/properties');
+  }
+
   // Qardan Hasana schemes
   // - /admin/qardanhasana
   // - /admin/qardanhasana/mohammedi | taher | husain
@@ -2653,6 +2794,10 @@ class Admin extends CI_Controller
     // echo print_r($data['raza']);
     // die();
     $data['raza']['fields'] = json_decode($data['raza']['fields'], true);
+
+    $this->load->model('PropertyM');
+    $data['properties'] = $this->PropertyM->get_all();
+
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/EditRaza', $data);
   }
