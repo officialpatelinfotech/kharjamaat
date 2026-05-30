@@ -4864,6 +4864,36 @@ HTML;
       if ($managed_by !== null) $this->SettingsM->set('managed_by', $managed_by);
       if ($admin_emails !== null) $this->SettingsM->set('admin_emails', $admin_emails);
 
+      // Save notification configurations
+      $notification_keys = [
+        'miqaat_assignment',
+        'miqaat_activation',
+        'raza_submission',
+        'raza_recommendation',
+        'raza_approval',
+        'rsvp_on_raza_approval',
+        'fmb_signup_10am',
+        'fmb_feedback_10pm',
+        'monthly_due_reminder',
+        'corpus_funds_weekly_reminder',
+        'appointment_schedule',
+        'appointment_report_nightly',
+        'amil_3days_before',
+        'amil_1day_before',
+        'amil_event_day'
+      ];
+
+      $notification_settings = [];
+      foreach ($notification_keys as $key) {
+        $notification_settings[$key] = [
+          'member_whatsapp' => $this->input->post("notify_member_whatsapp_{$key}") ? 1 : 0,
+          'member_email'    => $this->input->post("notify_member_email_{$key}") ? 1 : 0,
+          'admin_whatsapp'  => $this->input->post("notify_admin_whatsapp_{$key}") ? 1 : 0,
+          'admin_email'     => $this->input->post("notify_admin_email_{$key}") ? 1 : 0
+        ];
+      }
+      $this->SettingsM->set('notification_settings', json_encode($notification_settings));
+
       $this->session->set_flashdata('success', 'Preferences updated successfully.');
       redirect('admin/preferences');
       return;
@@ -4880,6 +4910,7 @@ HTML;
     $data['trust_regn_no'] = $this->SettingsM->get('trust_regn_no', 'E/24158 (Mumbai)');
     $data['managed_by'] = $this->SettingsM->get('managed_by', 'Anjuman-e-Saifee');
     $data['admin_emails'] = $this->SettingsM->get('admin_emails', "amilsaheb@kharjamaat.in,\n3042@carmelnmh.in,\nkharjamaat@gmail.com,\nkharamilsaheb@gmail.com,\nkharjamaat786@gmail.com,\nkhozemtopiwalla@gmail.com,\nybookwala@gmail.com");
+    $data['notification_settings'] = json_decode((string)$this->SettingsM->get('notification_settings', '{}'), true);
 
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Preferences', $data);

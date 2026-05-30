@@ -37,6 +37,23 @@
         </div>
       </a>
     </div>
+
+    <div class="col-12 col-md-4 d-flex">
+      <a href="<?php echo site_url('admin/properties'); ?>" class="text-decoration-none w-100">
+        <div class="card shadow-sm h-100 lr-card lr-card-tertiary">
+          <div class="card-body d-flex flex-column">
+            <div class="mb-3 text-center">
+              <i class="fa fa-building fa-3x text-info"></i>
+            </div>
+            <h5 class="fw-semibold text-dark mb-2 text-center">Manage Properties</h5>
+            <p class="flex-grow-1 small mb-3 text-dark-50">Add, edit, list, and delete properties used as venues for events and rentals.</p>
+            <div class="text-center">
+              <span class="btn btn-sm btn-outline-info px-3">Go to Properties &raquo;</span>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
   </div>
 </div>
 
@@ -45,6 +62,7 @@
   .lr-card:before { content:''; position:absolute; inset:0; opacity:0.08; }
   .lr-card-primary { background:#fff9e6; }    /* soft warm */
   .lr-card-secondary { background:#e8f4ff; }  /* soft blue */
+  .lr-card-tertiary { background:#f5eefb; }   /* soft purple */
   .lr-card { box-shadow: 0 1px 3px rgba(0,0,0,.08); border:1px solid #e2e6ea; }
   .lr-cards-row .card:hover { box-shadow:0 4px 14px rgba(0,0,0,.18); }
   .lr-card h5, .lr-card p { color:#212529; }

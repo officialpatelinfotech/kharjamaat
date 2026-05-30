@@ -343,18 +343,18 @@
         table.appendChild(tablehead)
         var tablebody = document.createElement('tbody');
         let tbodydata = "";
-        raza.razadata = JSON.parse(raza.razadata)
-        let razafields = JSON.parse(raza.razafields)
+        let razadata = (typeof raza.razadata === 'string') ? JSON.parse(raza.razadata) : raza.razadata;
+        let razafields = (typeof raza.razafields === 'string') ? JSON.parse(raza.razafields) : raza.razafields;
         let k = 0;
-        for (let key in raza.razadata) {
-            if (razafields.fields[k].type == 'select') {
-                console.log(razafields.fields[k])
-                let options = razafields.fields[k].options
-                let value=options[raza.razadata[key]]
-                console.log(value)
-                tbodydata += `<tr><th scope="row">${razafields.fields[k].name}</th><td>${value.name}</td></tr>`
-            }else{
-                tbodydata += `<tr><th scope="row">${razafields.fields[k].name}</th><td>${raza.razadata[key]}</td></tr>`
+        for (let key in razadata) {
+            if (razafields && razafields.fields && razafields.fields[k] && razafields.fields[k].type == 'select') {
+                let options = razafields.fields[k].options || [];
+                let value = options.find(opt => String(opt.id) === String(razadata[key]));
+                let displayVal = value ? value.name : razadata[key];
+                tbodydata += `<tr><th scope="row">${razafields.fields[k].name}</th><td>${displayVal}</td></tr>`
+            } else {
+                let fieldName = (razafields && razafields.fields && razafields.fields[k]) ? razafields.fields[k].name : key;
+                tbodydata += `<tr><th scope="row">${fieldName}</th><td>${razadata[key]}</td></tr>`
             }
             k++;
         }

@@ -81,9 +81,9 @@
           </select>
         </div>
 
-        <div class="mb-3">
+        <div class="mb-3" id="lr_amount_section" style="display: none;">
           <label class="form-label" for="lr_amount">Amount:</label>
-            <input
+          <input
             type="number"
             min="0"
             class="form-control"
@@ -92,6 +92,67 @@
             value="<?php echo htmlspecialchars(isset($form['amount']) ? (string)$form['amount'] : ''); ?>"
             required
           />
+        </div>
+
+        <div class="row mb-3" id="lr_rent_details_section" style="display: none;">
+          <div class="col-12 col-md-6 border-right">
+            <h6 class="font-weight-bold text-primary mb-3">Khar Sabeel Holders</h6>
+            <div class="mb-3">
+              <label class="form-label" for="lr_rent_sabeel">Rent</label>
+              <input
+                type="number"
+                class="form-control"
+                id="lr_rent_sabeel"
+                name="rent_sabeel"
+                min="0"
+                step="0.01"
+                value="<?php echo htmlspecialchars(isset($form['rent_sabeel']) ? (string)$form['rent_sabeel'] : ''); ?>"
+                placeholder="0.00"
+              />
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="lr_deposit_sabeel">Deposit</label>
+              <input
+                type="number"
+                class="form-control"
+                id="lr_deposit_sabeel"
+                name="deposit_sabeel"
+                min="0"
+                step="0.01"
+                value="<?php echo htmlspecialchars(isset($form['deposit_sabeel']) ? (string)$form['deposit_sabeel'] : ''); ?>"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <h6 class="font-weight-bold text-secondary mb-3">Non Khar Sabeel Holders</h6>
+            <div class="mb-3">
+              <label class="form-label" for="lr_rent_non_sabeel">Rent</label>
+              <input
+                type="number"
+                class="form-control"
+                id="lr_rent_non_sabeel"
+                name="rent_non_sabeel"
+                min="0"
+                step="0.01"
+                value="<?php echo htmlspecialchars(isset($form['rent_non_sabeel']) ? (string)$form['rent_non_sabeel'] : ''); ?>"
+                placeholder="0.00"
+              />
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="lr_deposit_non_sabeel">Deposit</label>
+              <input
+                type="number"
+                class="form-control"
+                id="lr_deposit_non_sabeel"
+                name="deposit_non_sabeel"
+                min="0"
+                step="0.01"
+                value="<?php echo htmlspecialchars(isset($form['deposit_non_sabeel']) ? (string)$form['deposit_non_sabeel'] : ''); ?>"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
         </div>
 
         <div class="mb-3">
@@ -327,10 +388,45 @@
       }
     }
 
+    var amountSection = document.getElementById('lr_amount_section');
+    var amountInput = document.getElementById('lr_amount');
+    var rentDetailsSection = document.getElementById('lr_rent_details_section');
+    var rentSabeelInput = document.getElementById('lr_rent_sabeel');
+    var rentNonSabeelInput = document.getElementById('lr_rent_non_sabeel');
+
+    function toggleRentFields() {
+      if (typeSelect && typeSelect.value === 'rent') {
+        if (amountSection) {
+          amountSection.style.display = 'none';
+          if (amountInput) {
+            amountInput.removeAttribute('required');
+            amountInput.value = '';
+          }
+        }
+        if (rentDetailsSection) rentDetailsSection.style.display = 'flex';
+        if (rentSabeelInput) rentSabeelInput.setAttribute('required', 'required');
+        if (rentNonSabeelInput) rentNonSabeelInput.setAttribute('required', 'required');
+      } else {
+        if (amountSection) {
+          amountSection.style.display = 'block';
+          if (amountInput) amountInput.setAttribute('required', 'required');
+        }
+        if (rentDetailsSection) {
+          rentDetailsSection.style.display = 'none';
+          var inputs = rentDetailsSection.querySelectorAll('input');
+          for (var i = 0; i < inputs.length; i++) {
+            inputs[i].value = '';
+            inputs[i].removeAttribute('required');
+          }
+        }
+      }
+    }
+
     typeSelect.addEventListener('change', function() {
       inputName.value = '';
       clearSelected();
       fetchOptions('');
+      toggleRentFields();
     });
 
     inputName.addEventListener('input', function() {
@@ -373,6 +469,7 @@
     } else {
       initSelectedFromDom();
     }
+    toggleRentFields();
     fetchOptions('');
   })();
 </script>

@@ -65,12 +65,12 @@ class AdminM extends CI_Model
 
     if (!empty($data)) {
       $this->db->insert('raza_type', $data);
-      $lastId = $this->db->insert_id();
+      $lastId = (int)$this->db->insert_id();
       $updatedField = json_encode(['id' => $lastId, 'name' => $razaname, 'umoor' => $umoor, 'fields' => []]);
       $this->db->where('id', $lastId);
       $this->db->update('raza_type', array('fields' => $updatedField));
 
-      return $this->db->affected_rows() > 0;
+      return $lastId > 0 ? $lastId : false;
     } else {
       return false;
     }
@@ -1202,21 +1202,68 @@ class AdminM extends CI_Model
     return $this->db->where('ITS_ID', $its_id)->get('user')->row_array();
   }
 
+  public function get_family_members($its_id)
+  {
+    if (!$its_id) return [];
+
+    $member = $this->get_member_by_its($its_id);
+    if (!$member) return [];
+
+    $hof_id = !empty($member['HOF_ID']) ? $member['HOF_ID'] : null;
+    $spouse_its = !empty($member['Spouse_ITS_ID']) ? $member['Spouse_ITS_ID'] : null;
+
+    $this->db->distinct();
+    $this->db->from('user');
+
+    $this->db->group_start();
+    
+    // Always include the member themselves
+    $this->db->where('ITS_ID', $its_id);
+
+    // 1. Same HOF (if set)
+    if ($hof_id) {
+      $this->db->or_where('HOF_ID', $hof_id);
+      $this->db->or_where('ITS_ID', $hof_id);
+    }
+    
+    // 2. Member is HOF of other members
+    $this->db->or_where('HOF_ID', $its_id);
+
+    // 3. Spouse relation (both directions)
+    if ($spouse_its) {
+      $this->db->or_where('ITS_ID', $spouse_its);
+    }
+    $this->db->or_where('Spouse_ITS_ID', $its_id);
+
+    $this->db->group_end();
+    
+    $this->db->order_by('First_Name, Surname ASC');
+    return $this->db->get()->result_array();
+  }
+
   public function get_family_members_by_hof_id($hof_id)
   {
-    if (!$hof_id) return [];
-    return $this->db->where('HOF_ID', $hof_id)
-      ->order_by('First_Name, Surname ASC')
-      ->get('user')->result_array();
+    return $this->get_family_members($hof_id);
   }
 
   /**
-   * Fetch financial summary for all members in a family (by HOF_ID).
+   * Fetch financial summary for all members in a family.
    * Returns: sabeel, fmb, wajebaat, thaali, husain, corpus keyed by ITS_ID.
    */
-  public function get_family_financial_data($hof_id)
+  public function get_family_financial_data($hof_id, $family_member_ids = [])
   {
     if (!$hof_id) return [];
+
+    if (empty($family_member_ids)) {
+      $family_members = $this->get_family_members($hof_id);
+      $family_member_ids = array_column($family_members, 'ITS_ID');
+    }
+
+    if (empty($family_member_ids)) {
+      $family_member_ids = [$hof_id];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($family_member_ids), '?'));
 
     // Sabeel Takhmeen (latest year per member)
     $sabeel_sql = "
@@ -1231,10 +1278,10 @@ class AdminM extends CI_Model
       INNER JOIN (SELECT user_id, MAX(year) AS max_year FROM sabeel_takhmeen GROUP BY user_id) latest
         ON latest.user_id = st.user_id AND latest.max_year = st.year
       INNER JOIN user u ON u.ITS_ID = st.user_id
-      WHERE u.HOF_ID = ?
+      WHERE u.ITS_ID IN ({$placeholders})
     ";
     $sabeel_map = [];
-    foreach ($this->db->query($sabeel_sql, [$hof_id])->result_array() as $r) {
+    foreach ($this->db->query($sabeel_sql, $family_member_ids)->result_array() as $r) {
       $sabeel_map[$r['user_id']] = $r;
     }
 
@@ -1245,10 +1292,10 @@ class AdminM extends CI_Model
       INNER JOIN (SELECT user_id, MAX(year) AS max_year FROM fmb_takhmeen GROUP BY user_id) latest
         ON latest.user_id = ft.user_id AND latest.max_year = ft.year
       INNER JOIN user u ON u.ITS_ID = ft.user_id
-      WHERE u.HOF_ID = ?
+      WHERE u.ITS_ID IN ({$placeholders})
     ";
     $fmb_map = [];
-    foreach ($this->db->query($fmb_sql, [$hof_id])->result_array() as $r) {
+    foreach ($this->db->query($fmb_sql, $family_member_ids)->result_array() as $r) {
       $fmb_map[$r['user_id']] = $r;
     }
 
@@ -1257,10 +1304,10 @@ class AdminM extends CI_Model
       SELECT w.ITS_ID, w.amount, w.due
       FROM wajebaat w
       INNER JOIN user u ON u.ITS_ID = w.ITS_ID
-      WHERE u.HOF_ID = ?
+      WHERE u.ITS_ID IN ({$placeholders})
     ";
     $wajebaat_map = [];
-    foreach ($this->db->query($wajebaat_sql, [$hof_id])->result_array() as $r) {
+    foreach ($this->db->query($wajebaat_sql, $family_member_ids)->result_array() as $r) {
       $wajebaat_map[$r['ITS_ID']] = $r;
     }
 
@@ -1271,10 +1318,10 @@ class AdminM extends CI_Model
       INNER JOIN (SELECT user_id, MAX(signup_date) AS latest FROM fmb_weekly_signup GROUP BY user_id) lt
         ON lt.user_id = ws.user_id AND lt.latest = ws.signup_date
       INNER JOIN user u ON u.ITS_ID = ws.user_id
-      WHERE u.HOF_ID = ?
+      WHERE u.ITS_ID IN ({$placeholders})
     ";
     $thaali_map = [];
-    foreach ($this->db->query($thaali_sql, [$hof_id])->result_array() as $r) {
+    foreach ($this->db->query($thaali_sql, $family_member_ids)->result_array() as $r) {
       $thaali_map[$r['user_id']] = $r;
     }
 
@@ -1283,25 +1330,36 @@ class AdminM extends CI_Model
       SELECT hs.ITS, hs.amount, hs.deposit_date, hs.maturity_date
       FROM qardan_hasana_husain_scheme hs
       INNER JOIN user u ON u.ITS_ID = hs.ITS
-      WHERE u.HOF_ID = ?
+      WHERE u.ITS_ID IN ({$placeholders})
       ORDER BY hs.deposit_date DESC
     ";
     $husain_map = [];
-    foreach ($this->db->query($husain_sql, [$hof_id])->result_array() as $r) {
+    foreach ($this->db->query($husain_sql, $family_member_ids)->result_array() as $r) {
       if (!isset($husain_map[$r['ITS']])) $husain_map[$r['ITS']] = $r;
     }
 
-    // Corpus Funds (assigned to this HOF)
+    // Corpus Funds (assigned to any HOF/ITS in this family)
+    $all_possible_hofs = $family_member_ids;
+    $user_hofs_sql = "SELECT DISTINCT HOF_ID FROM user WHERE ITS_ID IN ({$placeholders})";
+    $user_hofs_rows = $this->db->query($user_hofs_sql, $family_member_ids)->result_array();
+    foreach ($user_hofs_rows as $uhr) {
+      if (!empty($uhr['HOF_ID'])) {
+        $all_possible_hofs[] = $uhr['HOF_ID'];
+      }
+    }
+    $all_possible_hofs = array_values(array_unique(array_filter($all_possible_hofs)));
+
+    $corpus_placeholders = implode(',', array_fill(0, count($all_possible_hofs), '?'));
     $corpus_sql = "
       SELECT cf.title, cfa.amount_assigned,
              IFNULL(SUM(cfp.amount_paid), 0) AS paid
       FROM corpus_fund_assignment cfa
       JOIN corpus_fund cf ON cf.id = cfa.fund_id
       LEFT JOIN corpus_fund_payment cfp ON cfp.fund_id = cfa.fund_id AND cfp.hof_id = cfa.hof_id
-      WHERE cfa.hof_id = ?
+      WHERE cfa.hof_id IN ({$corpus_placeholders})
       GROUP BY cfa.id, cf.title, cfa.amount_assigned
     ";
-    $corpus_rows = $this->db->query($corpus_sql, [$hof_id])->result_array();
+    $corpus_rows = $this->db->query($corpus_sql, $all_possible_hofs)->result_array();
 
     return [
       'sabeel'   => $sabeel_map,

@@ -69,7 +69,7 @@ $config['migration_auto_latest'] = TRUE;
 | be upgraded / downgraded to.
 |
 */
-$config['migration_version'] = 46; // Fix activity status triggers
+$config['migration_version'] = 48; // Add sabeel rent and deposit columns
 
 /*
 |--------------------------------------------------------------------------

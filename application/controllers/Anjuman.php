@@ -874,6 +874,10 @@ class Anjuman extends CI_Controller
               $updateData['jamaat_amount'] = (float)$amt;
               $updateData['sarkaar_amount'] = 0.00;
             }
+            $depAmt = $this->input->post('deposit_amount');
+            if ($depAmt !== null && $depAmt !== '') {
+              $updateData['deposit_amount'] = (float)$depAmt;
+            }
           } else {
             $jAmt = $this->input->post('jamaat_amount');
             $sAmt = $this->input->post('sarkaar_amount');
@@ -985,7 +989,11 @@ class Anjuman extends CI_Controller
       'amount' => '',
       'raza_type_id' => '',
       'raza_type_name' => '',
-      'raza_types' => []
+      'raza_types' => [],
+      'rent_sabeel' => '',
+      'rent_non_sabeel' => '',
+      'deposit_sabeel' => '',
+      'deposit_non_sabeel' => ''
     ];
 
     $editId = (int)$this->input->get('edit');
@@ -1001,7 +1009,11 @@ class Anjuman extends CI_Controller
           'amount' => isset($row['amount']) ? (string)$row['amount'] : '',
           'raza_type_id' => isset($row['raza_type_id']) ? (string)$row['raza_type_id'] : '',
           'raza_type_name' => isset($row['raza_type_name']) ? (string)$row['raza_type_name'] : '',
-          'raza_types' => is_array($razaTypes) ? $razaTypes : []
+          'raza_types' => is_array($razaTypes) ? $razaTypes : [],
+          'rent_sabeel' => isset($row['rent_sabeel']) ? (string)$row['rent_sabeel'] : '',
+          'rent_non_sabeel' => isset($row['rent_non_sabeel']) ? (string)$row['rent_non_sabeel'] : '',
+          'deposit_sabeel' => isset($row['deposit_sabeel']) ? (string)$row['deposit_sabeel'] : '',
+          'deposit_non_sabeel' => isset($row['deposit_non_sabeel']) ? (string)$row['deposit_non_sabeel'] : '',
         ];
       }
     }
@@ -1042,8 +1054,20 @@ class Anjuman extends CI_Controller
     $razaTypeId = !empty($razaTypeIds) ? (int)$razaTypeIds[0] : 0;
 
     $valid = true;
-    if ($title === '' || $hijriYear === '' || $razaTypeId <= 0 || !in_array($chargeType, ['laagat', 'rent'], true) || $amountRaw === null || $amountRaw === '' || !is_numeric($amountRaw) || (float)$amountRaw < 0) {
+    if ($title === '' || $hijriYear === '' || $razaTypeId <= 0 || !in_array($chargeType, ['laagat', 'rent'], true)) {
       $valid = false;
+    }
+    if ($chargeType === 'laagat') {
+      if ($amountRaw === null || $amountRaw === '' || !is_numeric($amountRaw) || (float)$amountRaw < 0) {
+        $valid = false;
+      }
+    } else { // rent
+      $rentSabeel = $this->input->post('rent_sabeel');
+      $rentNonSabeel = $this->input->post('rent_non_sabeel');
+      if ($rentSabeel === null || $rentSabeel === '' || !is_numeric($rentSabeel) || (float)$rentSabeel < 0 ||
+          $rentNonSabeel === null || $rentNonSabeel === '' || !is_numeric($rentNonSabeel) || (float)$rentNonSabeel < 0) {
+        $valid = false;
+      }
     }
 
     if (!$valid) {
@@ -1053,11 +1077,20 @@ class Anjuman extends CI_Controller
       return;
     }
 
+    $rentSabeelVal = ($chargeType === 'rent') ? (float)$this->input->post('rent_sabeel') : 0.00;
+    $rentNonSabeelVal = ($chargeType === 'rent') ? (float)$this->input->post('rent_non_sabeel') : 0.00;
+    $depositSabeelVal = ($chargeType === 'rent') ? (float)$this->input->post('deposit_sabeel') : 0.00;
+    $depositNonSabeelVal = ($chargeType === 'rent') ? (float)$this->input->post('deposit_non_sabeel') : 0.00;
+
     $payload = [
       'title' => $title,
       'hijri_year' => $hijriYear,
       'charge_type' => $chargeType,
-      'amount' => (float)$amountRaw,
+      'amount' => ($chargeType === 'rent') ? $rentNonSabeelVal : (float)$amountRaw,
+      'rent_sabeel' => $rentSabeelVal,
+      'rent_non_sabeel' => $rentNonSabeelVal,
+      'deposit_sabeel' => $depositSabeelVal,
+      'deposit_non_sabeel' => $depositNonSabeelVal,
       'raza_type_id' => $razaTypeId,
       'raza_type_ids' => $razaTypeIds,
     ];

@@ -887,12 +887,14 @@
     } else {
       let k = 0;
       for (let key in razadata) {
-        if (razafields.fields[k].type == 'select') {
-          let options = razafields.fields[k].options;
-          let value = options[razadata[key]];
-          tbodydata += `<tr><th scope=\"row\">${razafields.fields[k].name}</th><td>${value.name}</td></tr>`;
+        if (razafields && razafields.fields && razafields.fields[k] && razafields.fields[k].type == 'select') {
+          let options = razafields.fields[k].options || [];
+          let value = options.find(opt => String(opt.id) === String(razadata[key]));
+          let displayVal = value ? value.name : razadata[key];
+          tbodydata += `<tr><th scope=\"row\">${razafields.fields[k].name}</th><td>${displayVal}</td></tr>`;
         } else {
-          tbodydata += `<tr><th scope=\"row\">${razafields.fields[k].name}</th><td>${razadata[key]}</td></tr>`;
+          let fieldName = (razafields && razafields.fields && razafields.fields[k]) ? razafields.fields[k].name : key;
+          tbodydata += `<tr><th scope=\"row\">${fieldName}</th><td>${razadata[key]}</td></tr>`;
         }
         k++;
       }

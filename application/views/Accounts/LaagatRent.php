@@ -87,6 +87,14 @@
                                     <span class="text-muted">Sarkaar Laagat:</span> <span class="font-weight-bold text-info">₹<?= format_inr($sAmt, 0) ?></span>
                                 </div>
                             </div>
+                            <?php else: ?>
+                            <?php if (!empty($inv['deposit_amount']) && (float)$inv['deposit_amount'] > 0): ?>
+                            <div class="row mt-2 bg-light p-2 rounded mx-0" style="font-size: 0.85rem;">
+                                <div class="col-12 pl-1">
+                                    <span class="text-muted">Deposit Amount:</span> <span class="font-weight-bold text-warning">₹<?= format_inr((float)$inv['deposit_amount'], 0) ?></span>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                             <?php endif; ?>
 
                             <div class="mt-3 text-center">

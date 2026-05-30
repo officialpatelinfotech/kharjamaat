@@ -393,10 +393,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.charge_type === 'rent') {
           // Change modal title dynamically
           document.getElementById('lrViewGradesModalLabel').textContent = 'Rent Details';
-          // Show Flat Rent
+          // Show Rent/Deposit Details
           var flatRentEl = document.getElementById('lrModalContentFlatRent');
-          var flatRentValEl = document.getElementById('lrFlatRentAmountValue');
-          flatRentValEl.textContent = '₹' + masterAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          var rentSabeel = (data.rent_sabeel !== null && data.rent_sabeel !== undefined) ? parseFloat(data.rent_sabeel) : 0;
+          var rentNonSabeel = (data.rent_non_sabeel !== null && data.rent_non_sabeel !== undefined) ? parseFloat(data.rent_non_sabeel) : 0;
+          var depositSabeel = (data.deposit_sabeel !== null && data.deposit_sabeel !== undefined) ? parseFloat(data.deposit_sabeel) : 0;
+          var depositNonSabeel = (data.deposit_non_sabeel !== null && data.deposit_non_sabeel !== undefined) ? parseFloat(data.deposit_non_sabeel) : 0;
+
+          var html = '<div class="row text-center mb-3">' +
+                       '<div class="col-6 border-right">' +
+                         '<div class="text-primary font-weight-bold mb-2" style="font-size: 1.1rem;">Khar Sabeel Holders</div>' +
+                         '<div class="mb-1"><span class="text-muted small">Rent:</span> <span class="font-weight-bold text-dark">₹' + rentSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
+                         '<div><span class="text-muted small">Deposit:</span> <span class="font-weight-bold text-dark">₹' + depositSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
+                       '</div>' +
+                       '<div class="col-6">' +
+                         '<div class="text-secondary font-weight-bold mb-2" style="font-size: 1.1rem;">Non Khar Sabeel Holders</div>' +
+                         '<div class="mb-1"><span class="text-muted small">Rent:</span> <span class="font-weight-bold text-dark">₹' + rentNonSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
+                         '<div><span class="text-muted small">Deposit:</span> <span class="font-weight-bold text-dark">₹' + depositNonSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
+                       '</div>' +
+                     '</div>';
+          flatRentEl.innerHTML = html;
           flatRentEl.style.display = 'block';
         } else {
           // Change modal title dynamically

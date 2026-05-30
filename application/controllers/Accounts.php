@@ -2751,6 +2751,7 @@ class Accounts extends CI_Controller
     return $this->output->set_content_type('application/json')->set_output(json_encode([
       'success' => true,
       'amount' => $breakdown['amount'],
+      'deposit_amount' => isset($breakdown['deposit_amount']) ? $breakdown['deposit_amount'] : 0,
       'jamaat_amount' => $breakdown['jamaat_amount'],
       'sarkaar_amount' => $breakdown['sarkaar_amount'],
       'charge_type' => (string)$row['charge_type'],
@@ -3483,6 +3484,7 @@ class Accounts extends CI_Controller
               'amount' => $invoiceAmountBreakdown['amount'],
               'jamaat_amount' => $invoiceAmountBreakdown['jamaat_amount'],
               'sarkaar_amount' => $invoiceAmountBreakdown['sarkaar_amount'],
+              'deposit_amount' => isset($invoiceAmountBreakdown['deposit_amount']) ? $invoiceAmountBreakdown['deposit_amount'] : 0.00,
               'created_at' => date('Y-m-d H:i:s')
             ];
             $this->db->insert('laagat_rent_invoices', $invoiceData);
@@ -3840,9 +3842,8 @@ class Accounts extends CI_Controller
     $hof_id = $data['user_data']['HOF_ID'];
     $data['hof_data'] = $this->AccountM->getHOFData($hof_id);
 
-    // Fetch Family Members based on HOF_ID
-    $hof_id = $data['user_data']['HOF_ID'];
-    $data['family_members'] = $this->AccountM->getFamilyMembers($hof_id);
+    // Fetch Family Members based on Spouse, Father, Mother, HOF ITS
+    $data['family_members'] = $this->AccountM->getFamilyMembers($user_id);
 
     $data['incharge_data'] = $this->AccountM->getInchargeDetails($user_id);
 
