@@ -449,6 +449,42 @@
       </div>
     </div>
 
+    <!-- ── Quick Action Buttons ── -->
+    <div class="surf">
+      <div class="sec-hd">
+        <h4 class="sec-hd-title"><span class="hd-icon"><i class="fa fa-th-large"></i></span> Quick Actions</h4>
+      </div>
+      <div class="action-grid">
+        <?php
+        $username_raw = $_SESSION['user']['username'] ?? '';
+        $is_sub_sector = false;
+        if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z])$/i', $username_raw)) {
+            $is_sub_sector = true;
+        }
+        $directory_label = $is_sub_sector ? 'Mumineen in your Sub Mohalla' : 'Mumineen in your Mohalla';
+
+        $actions = [
+          ['url' => base_url('MasoolMusaid/mumineendirectory'), 'icon' => 'fa fa-users',           'label' => $directory_label],
+          ['url' => base_url('MasoolMusaid/asharaohbat'),       'icon' => 'fa fa-calendar',         'label' => 'Ashara Ohbat'],
+          ['url' => base_url('MasoolMusaid/ashara_attendance'), 'icon' => 'fa fa-user-check',       'label' => 'Ashara Attendance'],
+          ['url' => base_url('MasoolMusaid/rsvp_list'),         'icon' => 'fa fa-calendar-check-o', 'label' => 'Miqaat RSVP'],
+          ['url' => base_url('MasoolMusaid/miqaat_attendance'), 'icon' => 'fa fa-check-square-o',   'label' => 'Miqaat Attendance'],
+        ];
+        $btnColors = [
+          ['#8e44ad','#fff'], ['#d97706','#fff'], ['#870000','#fff'],
+          ['#d35400','#fff'], ['#006a3f','#fff'],
+        ];
+        foreach ($actions as $i => $act):
+          $bg = $btnColors[$i % count($btnColors)][0];
+        ?>
+        <a href="<?= $act['url'] ?>" class="action-btn" style="background:<?= $bg ?>;">
+          <div class="ab-icon"><i class="<?= $act['icon'] ?>"></i></div>
+          <div class="ab-label"><?= $act['label'] ?></div>
+        </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+
     <!-- ── Thaali Signup card ── -->
     <div class="surf compact">
       <div class="sec-hd">
@@ -542,41 +578,7 @@
       </div>
     </div><!-- /surf -->
 
-    <!-- ── Quick Action Buttons ── -->
-    <div class="surf">
-      <div class="sec-hd">
-        <h4 class="sec-hd-title"><span class="hd-icon"><i class="fa fa-th-large"></i></span> Quick Actions</h4>
-      </div>
-      <div class="action-grid">
-        <?php
-        $username_raw = $_SESSION['user']['username'] ?? '';
-        $is_sub_sector = false;
-        if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z])$/i', $username_raw)) {
-            $is_sub_sector = true;
-        }
-        $directory_label = $is_sub_sector ? 'Mumineen in your Sub Mohalla' : 'Mumineen in your Mohalla';
-
-        $actions = [
-          ['url' => base_url('MasoolMusaid/mumineendirectory'), 'icon' => 'fa fa-users',           'label' => $directory_label],
-          ['url' => base_url('MasoolMusaid/asharaohbat'),       'icon' => 'fa fa-calendar',         'label' => 'Ashara Ohbat'],
-          ['url' => base_url('MasoolMusaid/ashara_attendance'), 'icon' => 'fa fa-user-check',       'label' => 'Ashara Attendance'],
-          ['url' => base_url('MasoolMusaid/rsvp_list'),         'icon' => 'fa fa-calendar-check-o', 'label' => 'Miqaat RSVP'],
-          ['url' => base_url('MasoolMusaid/miqaat_attendance'), 'icon' => 'fa fa-check-square-o',   'label' => 'Miqaat Attendance'],
-        ];
-        $btnColors = [
-          ['#8e44ad','#fff'], ['#d97706','#fff'], ['#870000','#fff'],
-          ['#d35400','#fff'], ['#006a3f','#fff'],
-        ];
-        foreach ($actions as $i => $act):
-          $bg = $btnColors[$i % count($btnColors)][0];
-        ?>
-        <a href="<?= $act['url'] ?>" class="action-btn" style="background:<?= $bg ?>;">
-          <div class="ab-icon"><i class="<?= $act['icon'] ?>"></i></div>
-          <div class="ab-label"><?= $act['label'] ?></div>
-        </a>
-        <?php endforeach; ?>
-      </div>
-    </div>
+    
 
     <!-- ── Overview ── -->
     <div class="surf">
