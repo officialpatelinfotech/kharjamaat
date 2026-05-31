@@ -974,9 +974,10 @@
       let k = 0;
       for (let key in (razadata || {})) {
         if (razafields && razafields.fields && razafields.fields[k] && razafields.fields[k].type == 'select') {
-          let options = razafields.fields[k].options
-          let value = options[razadata[key]]
-          tbodydata += `<tr><th scope="row">${razafields.fields[k].name}</th><td>${value.name}</td></tr>`
+          let options = razafields.fields[k].options || [];
+          let value = options.find(opt => String(opt.id) === String(razadata[key]));
+          let displayVal = value ? value.name : razadata[key];
+          tbodydata += `<tr><th scope="row">${razafields.fields[k].name}</th><td>${displayVal}</td></tr>`
         } else {
           const fname = (razafields && razafields.fields && razafields.fields[k]) ? razafields.fields[k].name : key;
           tbodydata += `<tr><th scope="row">${fname}</th><td>${razadata ? razadata[key] : ''}</td></tr>`

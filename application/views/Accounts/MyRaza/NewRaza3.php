@@ -261,10 +261,10 @@
     return null;
   }
 
-  function renderLaagatRentInfo(groupEl, rawFieldName, chargeType, title, amount, jamaatAmount, sarkaarAmount) {
+  function renderLaagatRentInfo(groupEl, rawFieldName, chargeType, title, amount, jamaatAmount, sarkaarAmount, depositAmount) {
     if (!groupEl) return;
     rawFieldName = (rawFieldName || '').toString();
-    var displayLabel = (chargeType === 'laagat') ? 'Laagat Details' : 'Rent Details';
+    var displayLabel = (chargeType === 'laagat') ? 'Laagat Details' : 'Rent & Deposit Details';
     var bgClass = 'bg-white';
     var toneClass = 'text-dark';
     var n = Number(amount);
@@ -304,7 +304,23 @@
       box.appendChild(v);
     }
 
-    if (chargeType !== 'rent') {
+    if (chargeType === 'rent') {
+      // Show deposit amount row
+      var dep = Number(depositAmount);
+      if (!isFinite(dep)) dep = 0;
+      if (dep > 0) {
+        var depDiv = document.createElement('div');
+        depDiv.className = 'd-flex justify-content-between align-items-center mt-2 p-2 bg-light rounded border text-muted small';
+        var depLabel = document.createElement('div');
+        depLabel.innerHTML = '<strong>Deposit:</strong>';
+        depDiv.appendChild(depLabel);
+        var depVal = document.createElement('div');
+        depVal.className = 'fw-bold text-primary';
+        depVal.textContent = formatInrCurrency(dep);
+        depDiv.appendChild(depVal);
+        box.appendChild(depDiv);
+      }
+    } else {
       // Add bifurcation if present
       var jAmt = Number(jamaatAmount);
       var sAmt = Number(sarkaarAmount);
@@ -336,7 +352,7 @@
     if (chargeType === 'laagat') {
       invoiceNote.textContent = 'An invoice will be created for Laagat on Raza submission.';
     } else {
-      invoiceNote.textContent = 'An invoice will be created for Rent on Raza submission.';
+      invoiceNote.textContent = 'An invoice will be created for Rent & Deposit on Raza submission.';
     }
     box.appendChild(invoiceNote);
 
@@ -427,7 +443,7 @@
           }
         }
 
-        renderLaagatRentInfo(grp, rawName, resp.charge_type, resp.title || '', resp.amount, resp.jamaat_amount, resp.sarkaar_amount);
+        renderLaagatRentInfo(grp, rawName, resp.charge_type, resp.title || '', resp.amount, resp.jamaat_amount, resp.sarkaar_amount, resp.deposit_amount || 0);
       })
       .catch(function(err) {
         console.error('Error fetching rent amount:', err);

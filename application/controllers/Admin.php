@@ -473,6 +473,205 @@ class Admin extends CI_Controller
     ]));
   }
 
+  // Properties Management
+  public function properties()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->model('PropertyM');
+    $data['properties'] = $this->PropertyM->get_all();
+
+    $data['flash_success'] = $this->session->flashdata('flash_success');
+    $data['flash_error'] = $this->session->flashdata('flash_error');
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/PropertiesList', $data);
+  }
+
+  public function add_property()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('PropertyM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid request method.']));
+      return;
+    }
+
+    $name = trim((string)$this->input->post('name'));
+    if ($name === '') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Property name is required.']));
+      return;
+    }
+
+    if ($this->PropertyM->exists($name)) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Property name already exists.']));
+      return;
+    }
+
+    $inserted_id = $this->PropertyM->create($name);
+    if ($inserted_id) {
+      $this->session->set_flashdata('flash_success', 'Property added successfully');
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => true]));
+    } else {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Unable to save property.']));
+    }
+  }
+
+  public function update_property_name()
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('PropertyM');
+
+    if (strtoupper((string)$this->input->method(TRUE)) !== 'POST') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid request method.']));
+      return;
+    }
+
+    $id = (int)$this->input->post('rowId');
+    $name = trim((string)$this->input->post('propertyName'));
+
+    if ($id <= 0) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid property ID.']));
+      return;
+    }
+
+    if ($name === '') {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Property name is required.']));
+      return;
+    }
+
+    if ($this->PropertyM->exists($name, $id)) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Property name already exists.']));
+      return;
+    }
+
+    $ok = $this->PropertyM->update($id, $name);
+    if ($ok) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => true]));
+    } else {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Unable to update property.']));
+    }
+  }
+
+  public function delete_property($id = null)
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('PropertyM');
+
+    $id = (int)$id;
+    if ($id <= 0) {
+      $this->session->set_flashdata('flash_error', 'Invalid property ID.');
+      redirect('admin/properties');
+      return;
+    }
+
+    $property = $this->PropertyM->get_by_id($id);
+    if (!$property) {
+      $this->session->set_flashdata('flash_error', 'Property not found.');
+      redirect('admin/properties');
+      return;
+    }
+
+    // Check if property is used in laagat_rent
+    $this->load->model('LaagatRentM');
+    $count = $this->db->where('venue', $property['name'])->count_all_results('laagat_rent');
+    if ($count > 0) {
+      $this->session->set_flashdata('flash_error', 'Cannot delete property because it is currently used as a venue in Laagat/Rent records.');
+      redirect('admin/properties');
+      return;
+    }
+
+    $ok = $this->PropertyM->delete($id);
+    if ($ok) {
+      $this->session->set_flashdata('flash_success', 'Property deleted successfully.');
+    } else {
+      $this->session->set_flashdata('flash_error', 'Unable to delete property.');
+    }
+    redirect('admin/properties');
+  }
+
+  public function save_raza_fields($id)
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('AdminM');
+
+    $id = (int)$id;
+    if ($id <= 0) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid Raza ID.']));
+      return;
+    }
+
+    $raza = $this->AdminM->get_razatype_byid($id);
+    if (empty($raza) || empty($raza[0])) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Raza type not found.']));
+      return;
+    }
+    $raza = $raza[0];
+
+    $fieldsJson = $this->input->post('fields');
+    $payload = json_decode($fieldsJson, true);
+
+    if (!is_array($payload) || !isset($payload['fields']) || !is_array($payload['fields'])) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Invalid payload structure.']));
+      return;
+    }
+
+    // Decode existing fields to preserve any other keys (e.g. umoor, name, id)
+    $existing = json_decode($raza['fields'], true);
+    if (!is_array($existing)) {
+      $existing = [];
+    }
+
+    $existing['fields'] = $payload['fields'];
+    // Update name and id in JSON to keep it consistent
+    $existing['id'] = $id;
+    $existing['name'] = $raza['name'];
+    if (isset($raza['umoor'])) {
+      $existing['umoor'] = $raza['umoor'];
+    }
+
+    $flag = $this->AdminM->update_raza_type($id, json_encode($existing));
+    if ($flag) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => true]));
+    } else {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_output(json_encode(['status' => false, 'error' => 'Unable to save form layout.']));
+    }
+  }
+
   // Qardan Hasana schemes
   // - /admin/qardanhasana
   // - /admin/qardanhasana/mohammedi | taher | husain
@@ -2653,6 +2852,10 @@ class Admin extends CI_Controller
     // echo print_r($data['raza']);
     // die();
     $data['raza']['fields'] = json_decode($data['raza']['fields'], true);
+
+    $this->load->model('PropertyM');
+    $data['properties'] = $this->PropertyM->get_all();
+
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/EditRaza', $data);
   }
@@ -4864,6 +5067,36 @@ HTML;
       if ($managed_by !== null) $this->SettingsM->set('managed_by', $managed_by);
       if ($admin_emails !== null) $this->SettingsM->set('admin_emails', $admin_emails);
 
+      // Save notification configurations
+      $notification_keys = [
+        'miqaat_assignment',
+        'miqaat_activation',
+        'raza_submission',
+        'raza_recommendation',
+        'raza_approval',
+        'rsvp_on_raza_approval',
+        'fmb_signup_10am',
+        'fmb_feedback_10pm',
+        'monthly_due_reminder',
+        'corpus_funds_weekly_reminder',
+        'appointment_schedule',
+        'appointment_report_nightly',
+        'amil_3days_before',
+        'amil_1day_before',
+        'amil_event_day'
+      ];
+
+      $notification_settings = [];
+      foreach ($notification_keys as $key) {
+        $notification_settings[$key] = [
+          'member_whatsapp' => $this->input->post("notify_member_whatsapp_{$key}") ? 1 : 0,
+          'member_email'    => $this->input->post("notify_member_email_{$key}") ? 1 : 0,
+          'admin_whatsapp'  => $this->input->post("notify_admin_whatsapp_{$key}") ? 1 : 0,
+          'admin_email'     => $this->input->post("notify_admin_email_{$key}") ? 1 : 0
+        ];
+      }
+      $this->SettingsM->set('notification_settings', json_encode($notification_settings));
+
       $this->session->set_flashdata('success', 'Preferences updated successfully.');
       redirect('admin/preferences');
       return;
@@ -4880,6 +5113,7 @@ HTML;
     $data['trust_regn_no'] = $this->SettingsM->get('trust_regn_no', 'E/24158 (Mumbai)');
     $data['managed_by'] = $this->SettingsM->get('managed_by', 'Anjuman-e-Saifee');
     $data['admin_emails'] = $this->SettingsM->get('admin_emails', "amilsaheb@kharjamaat.in,\n3042@carmelnmh.in,\nkharjamaat@gmail.com,\nkharamilsaheb@gmail.com,\nkharjamaat786@gmail.com,\nkhozemtopiwalla@gmail.com,\nybookwala@gmail.com");
+    $data['notification_settings'] = json_decode((string)$this->SettingsM->get('notification_settings', '{}'), true);
 
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Preferences', $data);

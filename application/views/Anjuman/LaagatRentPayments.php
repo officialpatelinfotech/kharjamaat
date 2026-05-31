@@ -121,6 +121,7 @@
               <th class="text-end">Jmt. Amount</th>
               <th class="text-end">Sar. Amount</th>
               <th class="text-end">Total Amount</th>
+              <th class="text-end">Deposit</th>
               <th class="text-end">Paid Amount</th>
               <th class="text-end">Due Amount</th>
               <th class="text-center">Action</th>
@@ -157,6 +158,7 @@
                   <td class="text-end text-success fw-bold"><?= $isRent ? '-' : '₹' . format_inr($jAmt, 0) ?></td>
                   <td class="text-end text-info fw-bold"><?= $isRent ? '-' : '₹' . format_inr($sAmt, 0) ?></td>
                   <td class="text-end text-primary fw-bold">₹<?= format_inr($tAmt, 0) ?></td>
+                  <td class="text-end text-primary fw-bold"><?= $isRent ? '₹' . format_inr((float)$inv['deposit_amount'], 0) : '-' ?></td>
                   <td class="text-end text-success">₹<?= format_inr($inv['paid_amount'], 0) ?></td>
                   <td class="text-end fw-bold <?= ($balance > 0) ? 'text-danger' : 'text-muted' ?>">
                     ₹<?= format_inr($balance, 0) ?>
@@ -188,7 +190,7 @@
               <?php endforeach; ?>
             <?php else: ?>
               <tr>
-                <td colspan="13" class="text-center py-5 text-muted">
+                <td colspan="14" class="text-center py-5 text-muted">
                   <i class="fa-solid fa-magnifying-glass fa-2x mb-3 opacity-25"></i><br>
                   Search for a member ITS ID to record payments
                 </td>
@@ -284,6 +286,10 @@
                     <div class="col-6">
                       <label class="form-label text-muted mb-0">Invoice Amount</label>
                       <div class="fw-bold text-dark">₹<?= format_inr($inv['master_amount'], 0) ?></div>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label text-muted mb-0">Deposit Amount</label>
+                      <div class="fw-bold text-primary">₹<?= format_inr((float)$inv['deposit_amount'], 0) ?></div>
                     </div>
                   <?php else: ?>
                     <?php

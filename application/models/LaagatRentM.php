@@ -306,7 +306,11 @@ class LaagatRentM extends CI_Model
             'title' => (string)($payload['title'] ?? ''),
             'hijri_year' => (string)($payload['hijri_year'] ?? ''),
             'charge_type' => (string)($payload['charge_type'] ?? ''),
-            'amount' => (float)($payload['amount'] ?? 0),
+            'amount' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['rent_non_sabeel'] ?? $payload['amount'] ?? 0) : (float)($payload['amount'] ?? 0),
+            'rent_sabeel' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['rent_sabeel'] ?? 0) : 0.00,
+            'rent_non_sabeel' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['rent_non_sabeel'] ?? 0) : 0.00,
+            'deposit_sabeel' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['deposit_sabeel'] ?? 0) : 0.00,
+            'deposit_non_sabeel' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['deposit_non_sabeel'] ?? 0) : 0.00,
             // Keep legacy single column populated with first selected id.
             'raza_type_id' => !empty($razaTypeIds) ? (int)$razaTypeIds[0] : (int)($payload['raza_type_id'] ?? 0),
             'venue' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent' && isset($payload['venue'])) ? (string)$payload['venue'] : null,
@@ -392,7 +396,11 @@ class LaagatRentM extends CI_Model
             'title' => (string)($payload['title'] ?? ''),
             'hijri_year' => (string)($payload['hijri_year'] ?? ''),
             'charge_type' => (string)($payload['charge_type'] ?? ''),
-            'amount' => (float)($payload['amount'] ?? 0),
+            'amount' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['rent_non_sabeel'] ?? $payload['amount'] ?? 0) : (float)($payload['amount'] ?? 0),
+            'rent_sabeel' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['rent_sabeel'] ?? 0) : 0.00,
+            'rent_non_sabeel' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['rent_non_sabeel'] ?? 0) : 0.00,
+            'deposit_sabeel' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['deposit_sabeel'] ?? 0) : 0.00,
+            'deposit_non_sabeel' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (float)($payload['deposit_non_sabeel'] ?? 0) : 0.00,
             // Keep legacy single column populated with first selected id.
             'raza_type_id' => !empty($razaTypeIds) ? (int)$razaTypeIds[0] : (int)($payload['raza_type_id'] ?? 0),
             'venue' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent' && isset($payload['venue'])) ? (string)$payload['venue'] : null,
@@ -582,7 +590,7 @@ class LaagatRentM extends CI_Model
 
         // 1) Try category-specific match with specific venue first (if charge_type is rent and venue is provided)
         if ($chargeType === 'rent' && $venue !== '') {
-            $this->db->select('lr.id, lr.title, lr.hijri_year, lr.charge_type, lr.amount');
+            $this->db->select('lr.id, lr.title, lr.hijri_year, lr.charge_type, lr.amount, lr.rent_sabeel, lr.rent_non_sabeel, lr.deposit_sabeel, lr.deposit_non_sabeel');
             $this->db->from('laagat_rent lr');
             $this->db->where('lr.charge_type', $chargeType);
             $this->db->where('lr.is_active', 1);
@@ -607,7 +615,7 @@ class LaagatRentM extends CI_Model
         }
 
         // 2) Try category-specific match with NULL/empty venue
-        $this->db->select('lr.id, lr.title, lr.hijri_year, lr.charge_type, lr.amount');
+        $this->db->select('lr.id, lr.title, lr.hijri_year, lr.charge_type, lr.amount, lr.rent_sabeel, lr.rent_non_sabeel, lr.deposit_sabeel, lr.deposit_non_sabeel');
         $this->db->from('laagat_rent lr');
         $this->db->where('lr.charge_type', $chargeType);
         $this->db->where('lr.is_active', 1);
@@ -646,7 +654,7 @@ class LaagatRentM extends CI_Model
 
         // Try specific venue master first (if charge_type is rent and venue is provided)
         if ($chargeType === 'rent' && $venue !== '') {
-            $this->db->select('id, title, hijri_year, charge_type, amount');
+            $this->db->select('id, title, hijri_year, charge_type, amount, rent_sabeel, rent_non_sabeel, deposit_sabeel, deposit_non_sabeel');
             $this->db->from('laagat_rent');
             $this->db->where('charge_type', $chargeType);
             $this->db->where('is_active', 1);
@@ -662,7 +670,7 @@ class LaagatRentM extends CI_Model
         }
 
         // Try NULL/empty venue master
-        $this->db->select('id, title, hijri_year, charge_type, amount');
+        $this->db->select('id, title, hijri_year, charge_type, amount, rent_sabeel, rent_non_sabeel, deposit_sabeel, deposit_non_sabeel');
         $this->db->from('laagat_rent');
         $this->db->where('charge_type', $chargeType);
         $this->db->where('is_active', 1);
@@ -791,12 +799,30 @@ class LaagatRentM extends CI_Model
         $userId = (int)$userId;
         if ($laagatRentId <= 0 || $userId <= 0) return 0.00;
 
-        $lr = $this->db->select('charge_type, hijri_year, amount')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+        $lr = $this->db->select('charge_type, hijri_year, amount, rent_sabeel, rent_non_sabeel, deposit_sabeel, deposit_non_sabeel')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
         if (!$lr) return 0.00;
 
         $hijriYear = $lr['hijri_year'];
         $masterAmount = (float)$lr['amount'];
         $chargeType = $lr['charge_type'];
+
+        if ($chargeType === 'rent') {
+            $hasSabeel = false;
+            $takhmeen = $this->db->select('id')
+                ->from('sabeel_takhmeen')
+                ->where('user_id', $userId)
+                ->where('year', $hijriYear)
+                ->get()
+                ->row_array();
+            if ($takhmeen) {
+                $hasSabeel = true;
+            }
+            $rentAmt = $hasSabeel ? (float)$lr['rent_sabeel'] : (float)$lr['rent_non_sabeel'];
+            if ($rentAmt == 0.00) {
+                $rentAmt = $masterAmount;
+            }
+            return $rentAmt;
+        }
 
         if ($chargeType !== 'rent') {
             $takhmeen = $this->db->select('residential_grade')
@@ -837,18 +863,69 @@ class LaagatRentM extends CI_Model
             ];
         }
 
-        $lr = $this->db->select('charge_type, hijri_year, amount')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+        $lr = $this->db->select('charge_type, hijri_year, amount, rent_sabeel, rent_non_sabeel, deposit_sabeel, deposit_non_sabeel')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
         if (!$lr) {
             return [
                 'jamaat_amount' => 0.00,
                 'sarkaar_amount' => 0.00,
-                'amount' => 0.00
+                'amount' => 0.00,
+                'deposit_amount' => 0.00
             ];
         }
 
         $hijriYear = $lr['hijri_year'];
         $masterAmount = (float)$lr['amount'];
         $chargeType = $lr['charge_type'];
+
+        if ($chargeType === 'rent') {
+            // Check sabeel status using the pre-computed its_sabeel_match column.
+            // Both 'its_sabeel_both_khar' (ITS & Sabeel both in Khar) and
+            // 'sabeel_khar_its_out' (Sabeel in Khar, ITS not in Khar) qualify
+            // as Khar Sabeel Holders and get the lower rent_sabeel rate.
+            $hasSabeel = false;
+            $userRow = $this->db->select('its_sabeel_match')
+                ->from('user')
+                ->where('ITS_ID', $userId)
+                ->get()
+                ->row_array();
+            if ($userRow) {
+                $match = $userRow['its_sabeel_match'] ?? '';
+                $hasSabeel = in_array($match, ['its_sabeel_both_khar', 'sabeel_khar_its_out'], true);
+            }
+
+            // Fallback: check sabeel_takhmeen directly if its_sabeel_match is not set
+            if (!$hasSabeel) {
+                $takhmeen = $this->db->select('id')
+                    ->from('sabeel_takhmeen')
+                    ->where('user_id', $userId)
+                    ->where('year', $hijriYear)
+                    ->get()
+                    ->row_array();
+                if ($takhmeen) {
+                    $hasSabeel = true;
+                }
+            }
+
+            if ($hasSabeel) {
+                $rentAmt = (float)$lr['rent_sabeel'];
+                $depositAmt = (float)$lr['deposit_sabeel'];
+            } else {
+                $rentAmt = (float)$lr['rent_non_sabeel'];
+                $depositAmt = (float)$lr['deposit_non_sabeel'];
+            }
+
+            // Fallback for compatibility
+            if ($rentAmt == 0.00) {
+                $rentAmt = $masterAmount;
+            }
+
+            return [
+                'jamaat_amount' => $rentAmt,
+                'sarkaar_amount' => 0.00,
+                'amount' => $rentAmt,
+                'deposit_amount' => $depositAmt
+            ];
+        }
 
         if ($chargeType !== 'rent') {
             $takhmeen = $this->db->select('residential_grade')
@@ -896,41 +973,32 @@ class LaagatRentM extends CI_Model
 
     public function get_all_venues_from_raza_forms()
     {
-        $types = $this->db->select('fields')
-            ->from('raza_type')
-            ->where('active', 1)
-            ->where('umoor', 'Private-Event')
+        $rows = $this->db->select('name')
+            ->from('properties')
+            ->order_by('name', 'ASC')
             ->get()
             ->result_array();
 
-        $venues = [];
-        foreach ($types as $t) {
-            if (empty($t['fields'])) continue;
-            $fields = json_decode($t['fields'], true);
-            if (isset($fields['fields']) && is_array($fields['fields'])) {
-                foreach ($fields['fields'] as $f) {
-                    if (isset($f['name']) && strcasecmp(trim($f['name']), 'venue') === 0) {
-                        if (isset($f['options']) && is_array($f['options'])) {
-                            foreach ($f['options'] as $o) {
-                                if (isset($o['name'])) {
-                                    $vName = trim($o['name']);
-                                    if ($vName !== '') {
-                                        $venues[strtolower($vName)] = $vName;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        $out = [];
+        foreach ($rows as $r) {
+            $out[] = $r['name'];
         }
-        $out = array_values($venues);
-        sort($out);
         return $out;
     }
 
     public function get_venue_name_by_id($razaTypeId, $optionId)
     {
+        // 1) First check properties table
+        $prop = $this->db->select('name')
+            ->from('properties')
+            ->where('id', (int)$optionId)
+            ->get()
+            ->row_array();
+        if ($prop) {
+            return $prop['name'];
+        }
+
+        // 2) Fallback to legacy scan of fields column in raza_type
         $razaTypeId = (int)$razaTypeId;
         $row = $this->db->select('fields')->from('raza_type')->where('id', $razaTypeId)->get()->row_array();
         if (!$row || empty($row['fields'])) return '';

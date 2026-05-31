@@ -54,6 +54,11 @@ class Notification_lib
     $recipient = isset($opts['recipient']) ? $opts['recipient'] : null;
     $subject = isset($opts['subject']) ? $opts['subject'] : '';
     $body = isset($opts['body']) ? $opts['body'] : '';
+
+    if (function_exists('should_send_notification') && !should_send_notification('email', $recipient, $subject)) {
+      return 0;
+    }
+
     if (!empty($body) && is_string($body)) {
       $body = $this->absolutize_account_links($body);
     }
@@ -157,6 +162,11 @@ class Notification_lib
     }
 
     $templateName = isset($opts['template_name']) ? trim((string)$opts['template_name']) : '';
+
+    if (function_exists('should_send_notification') && !should_send_notification('whatsapp', $recipient, null, $templateName)) {
+      return 0;
+    }
+
     $templateLanguage = isset($opts['template_language']) ? trim((string)$opts['template_language']) : '';
     $bodyVars = isset($opts['body_vars']) && is_array($opts['body_vars']) ? array_values($opts['body_vars']) : [];
 

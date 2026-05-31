@@ -101,10 +101,19 @@
                   <td><?php echo htmlspecialchars((string)($r['hijri_year'] ?? '')); ?></td>
                   <td><?php echo htmlspecialchars(ucfirst(strtolower((string)($r['charge_type'] ?? '')))); ?></td>
                   <td>
-                    <?php
-                      $amt = $r['amount'] ?? '';
-                      echo ($amt !== '' && $amt !== null) ? '₹' . format_inr((float)$amt, 0) : '-';
-                    ?>
+                    <?php if (strtolower($r['charge_type'] ?? '') === 'rent'): ?>
+                      <div class="small text-nowrap">
+                        <span class="text-primary font-weight-bold">Sabeel:</span> ₹<?= format_inr((float)($r['rent_sabeel'] ?? 0), 0) ?> (Dep: ₹<?= format_inr((float)($r['deposit_sabeel'] ?? 0), 0) ?>)
+                      </div>
+                      <div class="small mt-1 text-nowrap">
+                        <span class="text-secondary font-weight-bold">Non-Sabeel:</span> ₹<?= format_inr((float)($r['rent_non_sabeel'] ?? 0), 0) ?> (Dep: ₹<?= format_inr((float)($r['deposit_non_sabeel'] ?? 0), 0) ?>)
+                      </div>
+                    <?php else: ?>
+                      <?php
+                        $amt = $r['amount'] ?? '';
+                        echo ($amt !== '' && $amt !== null) ? '₹' . format_inr((float)$amt, 0) : '-';
+                      ?>
+                    <?php endif; ?>
                   </td>
                   <td><?php echo htmlspecialchars((string)($r['raza_type_name'] ?? '')); ?></td>
                   <td>

@@ -266,6 +266,7 @@ class Umoor12 extends CI_Controller
               'amount' => $invoiceAmountBreakdown['amount'],
               'jamaat_amount' => $invoiceAmountBreakdown['jamaat_amount'],
               'sarkaar_amount' => $invoiceAmountBreakdown['sarkaar_amount'],
+              'deposit_amount' => isset($invoiceAmountBreakdown['deposit_amount']) ? $invoiceAmountBreakdown['deposit_amount'] : 0.00,
               'created_at' => date('Y-m-d H:i:s')
             ];
             $this->db->insert('laagat_rent_invoices', $invoiceData);

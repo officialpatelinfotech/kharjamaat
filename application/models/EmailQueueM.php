@@ -9,6 +9,10 @@ class EmailQueueM extends CI_Model
 
   public function enqueue($recipient, $subject, $message, $bcc = null, $mailtype = 'html', $send_after = null)
   {
+    if (function_exists('should_send_notification') && !should_send_notification('email', $recipient, $subject)) {
+      return 0;
+    }
+
     // Ensure queued HTML emails use the shared branded template (same look as Raza submission)
     // unless the caller already provided a full HTML document.
     if ($mailtype === 'html' && is_string($message) && trim($message) !== '') {

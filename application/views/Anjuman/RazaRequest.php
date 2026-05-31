@@ -1,791 +1,1603 @@
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --gold:#b8860b;--gold-muted:#f5e9c0;
-  --bg:#faf7f0;--surface:#fff;--surface-2:#f7f4ec;
-  --border:#e8e0cc;--border-light:#f0ece0;
-  --text-1:#1a1610;--text-2:#5a5244;--text-3:#9c8f7a;
-  --green:#1a6645;--green-bg:#eaf4ee;
-  --red:#b91c1c;--red-bg:#fef2f2;
-  --blue:#1d4ed8;--blue-bg:#eff6ff;
-  --amber:#b45309;--amber-bg:#fffbeb;
-  --sh:0 1px 4px rgba(0,0,0,.07);
-  --sh2:0 4px 18px rgba(0,0,0,.10);
-  --sh3:0 8px 32px rgba(0,0,0,.14);
-}
-#rzApp{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text-1);padding:16px;min-height:100vh}
-#rzApp *{box-sizing:border-box}
-
-/* ── Header ── */
-#rzApp .rz-hdr{
-    position:relative;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-bottom:14px;
-    flex-wrap:wrap;
-    margin-top:80px;
-}
-
-#rzApp .rz-back{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:6px 13px;
-    border-radius:8px;
-    border:1.5px solid var(--border);
-    background:var(--surface);
-    color:var(--text-2);
-    font-size:.75rem;
-    font-weight:700;
-    text-decoration:none;
-    transition:all .15s;
-    z-index:2;
-}
-
-#rzApp .rz-back:hover{
-    background:var(--gold-muted);
-    border-color:var(--gold);
-    color:var(--gold);
-    text-decoration:none;
-}
-
-#rzApp .rz-breadcrumb{
-    display:flex;
-    align-items:center;
-    gap:5px;
-    font-size:.72rem;
-    color:var(--text-3);
-    flex:1;
-}
-
-#rzApp .rz-breadcrumb a{
-    color:var(--text-3);
-    text-decoration:none;
-    font-weight:600;
-}
-
-#rzApp .rz-breadcrumb a:hover{
-    color:var(--gold);
-}
-
-#rzApp .rz-breadcrumb .sep{
-    color:var(--border);
-    font-size:.8rem;
-}
-
-#rzApp .rz-breadcrumb .cur{
-    color:var(--gold);
-    font-weight:700;
-}
-
-#rzApp .rz-pagetitle{
-    position:absolute;
-    left:50%;
-    transform:translateX(-50%);
-    font-size:.95rem;
-    font-weight:800;
-    color:var(--gold);
-    text-transform:uppercase;
-    letter-spacing:.5px;
-    text-align:center;
-    white-space:nowrap;
-    pointer-events:none;
-}
-
-/* ── Toolbar ── */
-#rzApp .rz-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:9px 12px;margin-bottom:12px;box-shadow:var(--sh)}
-#rzApp .rz-bar-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-#rzApp .rz-sel{height:30px;padding:0 8px;background:var(--surface-2);border:1.5px solid var(--border);border-radius:7px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.73rem;font-weight:600;color:var(--text-2);outline:none;cursor:pointer;transition:border-color .15s}
-#rzApp .rz-sel:hover,#rzApp .rz-sel:focus{border-color:var(--gold)}
-#rzApp .rz-srchwrap{position:relative;flex:1;min-width:140px}
-#rzApp .rz-srchwrap i{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:.72rem;pointer-events:none}
-#rzApp .rz-srchwrap input{width:100%;height:30px;padding:0 30px 0 26px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface-2);font-family:'Plus Jakarta Sans',sans-serif;font-size:.73rem;color:var(--text-1);outline:none;transition:border-color .15s}
-#rzApp .rz-srchwrap input:focus{border-color:var(--gold);background:var(--surface)}
-#rzApp .rz-srchwrap .clr{position:absolute;right:7px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:.7rem;cursor:pointer;display:none;background:none;border:none;padding:0;line-height:1}
-#rzApp .rz-srchwrap input:not(:placeholder-shown)~.clr{display:block}
-#rzApp .rz-refreshbtn{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-radius:7px;background:var(--gold-muted);border:1px solid rgba(184,134,11,.3);color:var(--gold);font-size:.73rem;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap}
-#rzApp .rz-refreshbtn:hover{background:#edd98a}
-#rzApp .rz-bar-sep{width:1px;height:20px;background:var(--border);flex-shrink:0}
-
-/* ── Active filter badge ── */
-#rzApp .rz-active-filters{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;display:none}
-#rzApp .rz-active-filters.show{display:flex}
-#rzApp .rz-fchip{display:inline-flex;align-items:center;gap:4px;background:var(--gold-muted);color:var(--gold);border:1px solid rgba(184,134,11,.3);border-radius:20px;padding:2px 8px;font-size:.65rem;font-weight:700;cursor:pointer}
-#rzApp .rz-fchip:hover{background:#edd98a}
-
-/* ── Table card ── */
-#rzApp .rz-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh);overflow:hidden;margin-bottom:14px}
-#rzApp .rz-scroll{overflow-x:auto}
-#rzApp table{width:100%;border-collapse:collapse;min-width:820px}
-#rzApp thead tr{background:linear-gradient(to bottom,var(--surface-2),#f0ebe0);border-bottom:2px solid var(--border)}
-#rzApp th{padding:9px 11px;font-size:.61rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);white-space:nowrap;text-align:left;user-select:none}
-#rzApp th.c,#rzApp td.c{text-align:center}
-#rzApp th.sortable{cursor:pointer}
-#rzApp th.sortable:hover{color:var(--gold)}
-#rzApp th .sa{margin-left:3px;opacity:.3;font-size:.58rem}
-#rzApp th.asc .sa::after{content:'▲';opacity:1;color:var(--gold)}
-#rzApp th.desc .sa::after{content:'▼';opacity:1;color:var(--gold)}
-#rzApp th:not(.asc):not(.desc) .sa::after{content:'▲▼'}
-#rzApp tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s}
-#rzApp tbody tr:last-child{border-bottom:none}
-#rzApp tbody tr:hover{background:#fdf9ef}
-#rzApp td{padding:9px 11px;font-size:.79rem;color:var(--text-1);vertical-align:middle;line-height:1.4}
-#rzApp td .sub{font-size:.68rem;color:var(--text-3);display:block;margin-top:2px}
-#rzApp .rz-norows{text-align:center;padding:36px 16px;color:var(--text-3);font-size:.8rem}
-#rzApp .rz-norows i{font-size:1.8rem;display:block;margin-bottom:8px;color:var(--border)}
-
-/* ── Cells ── */
-#rzApp .snob{width:24px;height:24px;border-radius:50%;background:var(--gold-muted);color:var(--gold);font-weight:800;font-size:.65rem;display:inline-flex;align-items:center;justify-content:center}
-#rzApp .nm{font-weight:700;font-size:.82rem}
-#rzApp .spill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:.64rem;font-weight:800;white-space:nowrap;margin-bottom:4px}
-#rzApp .s0{background:var(--amber-bg);color:var(--amber)}
-#rzApp .s1{background:var(--blue-bg);color:var(--blue)}
-#rzApp .s2{background:var(--green-bg);color:var(--green)}
-#rzApp .s3{background:var(--red-bg);color:var(--red)}
-#rzApp .s4{background:#f0f0ff;color:#4338ca}
-#rzApp .aprow{display:flex;align-items:center;gap:4px;font-size:.66rem;color:var(--text-2);margin-top:2px}
-#rzApp .adot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-#rzApp .a0{background:#f59e0b}
-#rzApp .a1{background:var(--green)}
-#rzApp .a2{background:var(--red)}
-#rzApp .chat-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;background:var(--blue-bg);color:var(--blue);border:1px solid rgba(29,78,216,.18);font-size:.68rem;font-weight:700;text-decoration:none;transition:background .14s;white-space:nowrap}
-#rzApp .chat-btn:hover{background:#dbeafe;text-decoration:none}
-#rzApp .ccnt{background:var(--gold);color:#fff;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:800}
-#rzApp .actg{display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:wrap}
-#rzApp .aico{width:28px;height:28px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.75rem;transition:all .14s;outline:none}
-#rzApp .aico.ap:hover{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
-#rzApp .aico.rj:hover{background:var(--red-bg);border-color:var(--red);color:var(--red)}
-#rzApp .aico.dl:hover{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
-#rzApp .aico.vw{background:var(--gold-muted);border-color:rgba(184,134,11,.35);color:var(--gold);font-size:.67rem;font-weight:800;width:auto;padding:0 10px}
-#rzApp .aico.vw:hover{background:#edd98a;border-color:var(--gold)}
-
-/* ── Footer ── */
-#rzApp .rz-foot{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--border-light);font-size:.67rem;color:var(--text-3);flex-wrap:wrap;gap:6px;background:var(--surface-2)}
-#rzApp .rz-cnt{background:var(--gold-muted);color:var(--gold);border-radius:20px;padding:2px 9px;font-size:.65rem;font-weight:800}
-
-/* ── Modals ── */
-#rzApp .rz-ov{position:fixed;inset:0;background:rgba(26,22,16,.48);z-index:2000;display:none;align-items:center;justify-content:center;padding:14px}
-#rzApp .rz-ov.open{display:flex}
-#rzApp .rz-modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;width:100%;max-width:480px;box-shadow:var(--sh3);max-height:90vh;display:flex;flex-direction:column}
-#rzApp .rz-mhd{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border-light);flex-shrink:0;background:var(--surface-2);border-radius:18px 18px 0 0}
-#rzApp .rz-mtit{font-weight:800;font-size:.88rem;color:var(--text-1);display:flex;align-items:center;gap:7px}
-#rzApp .rz-mclose{width:28px;height:28px;border-radius:7px;border:none;background:var(--border);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:all .14s}
-#rzApp .rz-mclose:hover{background:var(--gold-muted);color:var(--gold)}
-#rzApp .rz-mbody{overflow-y:auto;flex:1;padding:14px 16px}
-#rzApp .rz-mft{padding:12px 16px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:7px;flex-shrink:0}
-#rzApp .drow{display:flex;align-items:flex-start;padding:7px 10px;border-radius:8px;background:var(--surface-2);gap:10px;margin-bottom:5px;border:1px solid var(--border-light)}
-#rzApp .dk{font-size:.65rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;min-width:90px;flex-shrink:0;padding-top:1px}
-#rzApp .dv{font-size:.8rem;color:var(--text-1);font-weight:600;word-break:break-word;flex:1}
-#rzApp .rz-lbl{display:block;font-size:.67rem;font-weight:800;color:var(--text-2);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.5px}
-#rzApp .rz-ta{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.79rem;color:var(--text-1);resize:vertical;min-height:80px;outline:none;background:var(--surface-2);transition:border-color .15s}
-#rzApp .rz-ta:focus{border-color:var(--gold);background:var(--surface)}
-#rzApp .rz-ta.err{border-color:var(--red);background:var(--red-bg)}
-#rzApp .btn-c{padding:7px 15px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-weight:700;font-size:.75rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .14s}
-#rzApp .btn-c:hover{background:var(--surface-2)}
-#rzApp .btn-ok{padding:7px 15px;border-radius:8px;border:none;background:var(--gold);color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity .14s}
-#rzApp .btn-ok:hover{opacity:.88}
-#rzApp .btn-rj{padding:7px 15px;border-radius:8px;border:none;background:var(--red);color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity .14s}
-#rzApp .btn-rj:hover{opacity:.88}
-#rzApp .fin-warn{background:var(--amber-bg);border:1px solid rgba(180,83,9,.22);border-radius:8px;padding:9px 11px;color:var(--amber);font-size:.74rem;font-weight:600;margin-bottom:12px;display:flex;gap:7px}
-#rzApp .fin-tbl{width:100%;border-collapse:collapse;font-size:.75rem;margin-bottom:10px}
-#rzApp .fin-tbl th,#rzApp .fin-tbl td{padding:6px 8px;border-bottom:1px solid var(--border-light);text-align:left}
-#rzApp .fin-tbl th{font-weight:800;color:var(--text-2);font-size:.62rem;text-transform:uppercase;letter-spacing:.4px;background:var(--surface-2)}
-#rzApp .fin-tbl tr:last-child td,#rzApp .fin-tbl tr:last-child th{border-bottom:none;font-weight:800}
-#rzApp .fok{color:var(--text-3)!important}
-#rzApp .fbad{color:var(--red)!important}
-
-/* ── Toast ── */
-#rzApp .rz-toast{position:fixed;top:14px;right:14px;padding:9px 16px;border-radius:10px;font-size:.78rem;font-weight:700;z-index:9999;display:none;box-shadow:var(--sh2);animation:rzTin .25s}
-#rzApp .rz-toast.ok{background:var(--green);color:#fff}
-#rzApp .rz-toast.er{background:var(--red);color:#fff}
-@keyframes rzTin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-
-@media(max-width:640px){
-  #rzApp{padding:10px}
-  #rzApp .rz-pagetitle{font-size:.82rem;letter-spacing:.3px}
-  #rzApp .rz-bar-row{gap:5px}
-  #rzApp .rz-sel{font-size:.7rem;height:28px}
-  #rzApp .rz-breadcrumb{font-size:.67rem}
-}
-</style>
-
-<?php
-/* ─── Helper: safe hijri month string ─────────────────────── */
-if (!function_exists('rz_month_str')) {
-  function rz_month_str($ci, $month_id) {
-    $raw = $ci->HijriCalendar->hijri_month_name($month_id);
-    if (is_array($raw)) return (string)($raw['hijri_month'] ?? $raw['name'] ?? reset($raw) ?? '');
-    return (string)$raw;
+  /*td {*/
+  /*    min-width: 100px;*/
+  /*}*/
+  .sno {
+    width: 40px;
   }
-}
 
-/* ─── Helper: safe FNN check ──────────────────────────────── */
-if (!function_exists('rz_is_fnn')) {
-  function rz_is_fnn($r) {
-    $chk = function($s){ $s=strtolower((string)$s); return strpos($s,'fnn')!==false||(strpos($s,'fala')!==false&&(strpos($s,'niyaz')!==false||strpos($s,'niaz')!==false)); };
-    if (!empty($r['miqaat_details'])) {
-      $miq=json_decode($r['miqaat_details'],true);
-      if (is_array($miq)) {
-        foreach(['assigned_to','assign_type','name','type'] as $f){ if($chk($miq[$f]??''))return true; }
-        if(!empty($miq['assignments'])&&is_array($miq['assignments'])){ foreach($miq['assignments'] as $a){ if($chk($a['assign_type']??$a['type']??''))return true; } }
+  .created {
+    min-width: 130px;
+  }
+
+  .raza {
+    min-width: 130px;
+  }
+
+  .eventdate {
+    min-width: 130px;
+  }
+
+  .name {
+    min-width: 130px;
+  }
+
+  .remark {
+    min-width: 130px;
+  }
+
+  .approval_status {
+    min-width: 130px;
+  }
+
+  .action {
+    min-width: 100px;
+  }
+
+  .action_btn {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+
+    @media screen and (max-width:768px) {
+      flex-direction: column;
+      gap: 1rem;
+      flex-grow: 1;
+    }
+  }
+
+  .query-form {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    border: 1px solid lightgrey;
+    padding: 2rem;
+    width: 400px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    display: none;
+    z-index: 12;
+    border-radius: 5px;
+
+    @media screen and (max-width:500px) {
+
+      max-width: 350px;
+
+      @media screen and (max-width: 374px) {
+
+        max-width: 250px;
       }
     }
-    return $chk($r['razaType']??'');
   }
-}
 
-$ci = &get_instance();
-$ci->load->model('HijriCalendar');
-
-/* Build hijri year list + map */
-$hijri_years=[]; $hijri_map=[];
-foreach ($raza as $r) {
-  $d='';
-  if(!empty($r['miqaat_details'])){ $md=json_decode($r['miqaat_details'],true); if(is_array($md)&&!empty($md['date']))$d=substr($md['date'],0,10); }
-  if(empty($d)&&!empty($r['razadata'])){ $rd=json_decode($r['razadata'],true); if(is_array($rd)&&!empty($rd['date']))$d=substr($rd['date'],0,10); }
-  $hyear='';
-  if(!empty($d)){ $p=$ci->HijriCalendar->get_hijri_parts_by_greg_date($d); if(!empty($p['hijri_year'])){ $hyear=$p['hijri_year']; $hijri_years[$hyear]=$hyear; } }
-  $hijri_map[$r['id']]=$hyear;
-}
-krsort($hijri_years);
-
-/* Umoor list */
-$umoors=[];
-foreach($razatype as $rt){ if(!empty($rt['umoor']))$umoors[$rt['umoor']]=$rt['umoor']; }
-
-/* Hijri months for JS */
-$hijri_months_raw=$ci->HijriCalendar->get_hijri_month();
-$hijri_months_js=[];
-foreach($hijri_months_raw as $m) $hijri_months_js[$m['id']]=$m['hijri_month'];
-
-/* Page type flags */
-$is_umoor  = (!empty($umoor)&&$umoor==='12 Umoor Raza Applications');
-$is_kaaraj = (!$is_umoor&&!empty($umoor)&&stripos($umoor,'Kaaraj')!==false);
-
-/* Detect from param for breadcrumb */
-$from = $this->input->get('from') ?: 'anjuman';
-$from_label = 'Anjuman Dashboard';
-$from_url   = base_url('anjuman');
-if (strpos($from,'amil')!==false){ $from_label='Amil Dashboard'; $from_url=base_url('amil'); }
-if (strpos($from,'admin')!==false){ $from_label='Admin Dashboard'; $from_url=base_url('admin'); }
-?>
-
-<div id="rzApp">
-<div class="rz-toast" id="rzToast"></div>
-
-<!-- ── Header ── -->
-<div class="rz-hdr">
-  <a href="<?php echo $from_url ?>" class="rz-back">
-    <i class="fa-solid fa-arrow-left"></i> Back
-  </a>
-  <div class="rz-breadcrumb">
-    <a href="<?php echo $from_url ?>"><?php echo $from_label ?></a>
-    <span class="sep">›</span>
-    <span class="cur"><?php echo htmlspecialchars($umoor ?: 'Raza Applications') ?></span>
-  </div>
-  <div class="rz-pagetitle"><?php echo htmlspecialchars($umoor ?: 'Raza Applications') ?></div>
-</div>
-
-<!-- ── Toolbar ── -->
-<div class="rz-bar">
-  <div class="rz-bar-row">
-
-    <div class="rz-srchwrap">
-      <i class="fa fa-search"></i>
-      <input type="text" id="rzSearch" placeholder="Search name, event…" oninput="rzFilter()" autocomplete="off">
-      <button class="clr" onclick="document.getElementById('rzSearch').value='';rzFilter()" tabindex="-1">&#x2715;</button>
-    </div>
-
-    <div class="rz-bar-sep"></div>
-
-    <select class="rz-sel" id="rzStatus" onchange="rzFilter()">
-      <option value="">All Status</option>
-      <option value="0">Pending</option>
-      <option value="1">Recommended</option>
-      <option value="2">Approved</option>
-      <option value="3">Rejected</option>
-      <option value="4">Not Recommended</option>
-    </select>
-
-    <?php if (!$is_umoor && !$is_kaaraj): ?>
-    <select class="rz-sel" id="rzType" onchange="rzFilter()">
-      <option value="">All Types</option>
-      <option value="Shehrullah">Shehrullah</option>
-      <option value="Ashara">Ashara</option>
-      <option value="General">General</option>
-      <option value="Ladies">Ladies</option>
-    </select>
-    <?php elseif($is_umoor): ?>
-    <select class="rz-sel" id="rzUmoor" onchange="rzFilter()">
-      <option value="">All Umoor</option>
-      <?php foreach($umoors as $u): ?>
-      <option value="<?php echo htmlspecialchars($u,ENT_QUOTES) ?>"><?php echo htmlspecialchars($u,ENT_QUOTES) ?></option>
-      <?php endforeach ?>
-    </select>
-    <?php endif ?>
-
-    <select class="rz-sel" id="rzYear" onchange="rzFilter()">
-      <option value="">All Years</option>
-      <?php foreach($hijri_years as $y): ?>
-      <option value="<?php echo $y ?>"><?php echo $y ?>H</option>
-      <?php endforeach ?>
-    </select>
-
-    <div class="rz-bar-sep"></div>
-
-    <select class="rz-sel" id="rzSort" onchange="rzFilter()">
-      <option value="2">Event Date ↓</option>
-      <option value="3">Event Date ↑</option>
-      <option value="0">Name A→Z</option>
-      <option value="1">Name Z→A</option>
-      <option value="4">Created ↓</option>
-      <option value="5">Created ↑</option>
-    </select>
-
-    <button class="rz-refreshbtn" onclick="location.reload()">
-      <i class="fa fa-refresh"></i> Refresh
-    </button>
-  </div>
-
-  <!-- Active filter chips -->
-  <div class="rz-active-filters" id="rzChips"></div>
-</div>
-
-<!-- ── Table ── -->
-<div class="rz-card">
-  <div class="rz-scroll">
-    <table id="rzTable">
-      <thead>
-        <tr>
-          <th class="c" style="width:40px">#</th>
-          <th class="sortable" data-col="name">Name <span class="sa"></span></th>
-          <th>Raza For</th>
-          <th class="sortable" data-col="evdate">Event Date <span class="sa"></span></th>
-          <th class="c">Chat</th>
-          <th>Status</th>
-          <th class="c" style="min-width:130px">Actions</th>
-          <th class="sortable" data-col="ts">Created <span class="sa"></span></th>
-        </tr>
-      </thead>
-      <tbody id="rzTbody">
-<?php
-$spmap  = [0=>['s0','Pending'],1=>['s1','Recommended'],2=>['s2','Approved'],3=>['s3','Rejected'],4=>['s4','Not Recommended']];
-$admap  = [0=>'a0',1=>'a1',2=>'a2'];
-$almap  = [0=>'Pending',1=>'Done',2=>'Rejected'];
-
-foreach ($raza as $key => $r):
-  /* ── event date ── */
-  $greg_date='';
-  if(!empty($r['miqaat_id'])&&!empty($r['miqaat_details'])){
-    $mi2=json_decode($r['miqaat_details'],true);
-    if(!empty($mi2['date']))$greg_date=$mi2['date'];
-  } else {
-    $tmp=json_decode($r['razadata']??'{}',true);
-    if(!empty($tmp['date']))$greg_date=$tmp['date'];
+  #product-overlay {
+    display: none;
+    top: 0;
+    position: fixed;
+    height: 100vh;
+    width: 100vw;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10;
   }
-  $event_cell='—'; $hijri_str='';
-  if(!empty($greg_date)){
-    $event_cell=date('D, d M',strtotime($greg_date));
-    $hijriP=$ci->HijriCalendar->get_hijri_parts_by_greg_date(substr($greg_date,0,10));
-    if(!empty($hijriP['hijri_day'])){
-      $hmn=rz_month_str($ci,$hijriP['hijri_month']);
-      $hijri_str=intval($hijriP['hijri_day']).' '.$hmn.' '.intval($hijriP['hijri_year']).'H';
-      $event_cell.='<span class="sub">'.$hijri_str.'</span>';
+
+  .toast-message {
+    position: fixed;
+    top: 10;
+    right: 0;
+    background-color: #4CAF50;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 4px;
+    z-index: 9999;
+    display: none;
+    font-size: 15px;
+    animation: slideIn 0.5s, slideOut 0.5s 2s;
+
+    @media screen and (max-width:400px) {
+      width: 100%;
+      text-align: center;
     }
   }
 
-  /* ── raza for cell ── */
-  $raza_for='';
-  $miq_type_attr='';
-  if(!empty($r['miqaat_id'])&&!empty($r['miqaat_details'])){
-    $miqd=json_decode($r['miqaat_details'],true);
-    if(is_array($miqd)){
-      $mn=htmlspecialchars($miqd['name']??'',ENT_QUOTES);
-      $mt=htmlspecialchars($miqd['type']??'',ENT_QUOTES);
-      $ma=htmlspecialchars($miqd['assigned_to']??'',ENT_QUOTES);
-      $miq_type_attr=$miqd['type']??'';
-      $metaP=array_filter([$mt,$ma]);
-      $raza_for='<span style="font-weight:700">'.$mn.'</span>'.($metaP?'<span class="sub">'.implode(' · ',$metaP).'</span>':'');
+  @keyframes slideIn {
+    from {
+      right: -100%;
     }
-  } elseif(!empty($r['umoor'])){
-    $raza_for='<span style="font-weight:700">'.htmlspecialchars($r['umoor'],ENT_QUOTES).'</span><span class="sub">'.htmlspecialchars($r['razaType']??'',ENT_QUOTES).'</span>';
-  } else {
-    $raza_for=htmlspecialchars($r['razaType']??'',ENT_QUOTES);
+
+    to {
+      right: 0;
+    }
   }
 
-  /* ── pills/status ── */
-  $sp=$spmap[(int)$r['status']]??['s0','Unknown'];
-  $cdot=$admap[(int)($r['coordinator-status']??0)]??'a0';
-  $jdot=$admap[(int)($r['Janab-status']??0)]??'a0';
-  $clbl=$almap[(int)($r['coordinator-status']??0)]??'Pending';
-  $jlbl=$almap[(int)($r['Janab-status']??0)]??'Pending';
+  @keyframes slideOut {
+    from {
+      right: 0;
+    }
 
-  /* ── name ── */
-  $dname=rz_is_fnn($r)?'Fala ni Niyaz':htmlspecialchars($r['user_name']??'',ENT_QUOTES,'UTF-8');
-  $can_act=((int)($r['Janab-status']??0)===0);
-  $ccnt=(int)($r['chat_count']??0);
-  $hyr=$hijri_map[$r['id']]??'';
+    to {
+      right: -100%;
+    }
+  }
 
-  /* search text for JS data-search attr */
-  $search_text=strtolower($dname.' '.($r['razaType']??'').' '.($r['umoor']??'').' '.($miq_type_attr));
-?>
-        <tr
-          data-id="<?php echo (int)$r['id'] ?>"
-          data-status="<?php echo (int)$r['status'] ?>"
-          data-hy="<?php echo htmlspecialchars((string)$hyr,ENT_QUOTES) ?>"
-          data-miqtype="<?php echo htmlspecialchars($miq_type_attr,ENT_QUOTES) ?>"
-          data-umoor="<?php echo htmlspecialchars($r['umoor']??'',ENT_QUOTES) ?>"
-          data-name="<?php echo htmlspecialchars($r['user_name']??'',ENT_QUOTES) ?>"
-          data-ts="<?php echo htmlspecialchars($r['time-stamp']??'',ENT_QUOTES) ?>"
-          data-evdate="<?php echo htmlspecialchars($greg_date,ENT_QUOTES) ?>"
-          data-search="<?php echo htmlspecialchars($search_text,ENT_QUOTES) ?>">
+  .submit {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: space-between;
 
-          <td class="c"><span class="snob"><?php echo $key+1 ?></span></td>
-          <td><span class="nm"><?php echo $dname ?></span></td>
-          <td><?php echo $raza_for ?></td>
-          <td><?php echo $event_cell ?></td>
-          <td class="c">
-            <a href="<?php echo base_url('Accounts/chat/').$r['id'].'/anjuman' ?>" class="chat-btn">
-              <i class="fa fa-comment"></i> Chat
-              <?php if($ccnt>0): ?><span class="ccnt"><?php echo $ccnt ?></span><?php endif ?>
-            </a>
-          </td>
-          <td>
-            <span class="spill <?php echo $sp[0] ?>"><?php echo $sp[1] ?></span>
-            <div class="aprow"><span class="adot <?php echo $cdot ?>"></span>Jamat · <?php echo $clbl ?></div>
-            <div class="aprow"><span class="adot <?php echo $jdot ?>"></span>Amil Saheb · <?php echo $jlbl ?></div>
-          </td>
-          <td class="c">
-            <div class="actg">
-              <?php if($can_act): ?>
-              <button class="aico ap" onclick="rzApprove(<?php echo (int)$r['id'] ?>)" title="Recommend"><i class="fa fa-check-circle"></i></button>
-              <button class="aico rj" onclick="rzReject(<?php echo (int)$r['id'] ?>)" title="Not Recommend"><i class="fa fa-times-circle"></i></button>
-              <button class="aico dl" onclick="rzDelete(<?php echo (int)$r['id'] ?>)" title="Delete"><i class="fa fa-trash"></i></button>
-              <?php endif ?>
-              <button class="aico vw" onclick="rzView(<?php echo (int)$r['id'] ?>)">View</button>
-            </div>
-          </td>
-          <td><span class="sub" style="font-size:.75rem;color:var(--text-2)"><?php echo date('d M @ g:ia',strtotime($r['time-stamp']??'now')) ?></span></td>
-        </tr>
-<?php endforeach ?>
-      </tbody>
-    </table>
-  </div>
-  <div class="rz-foot">
-    <span class="rz-cnt" id="rzCnt"><?php echo count($raza) ?> records</span>
-    <span><?php echo htmlspecialchars($umoor?:'Raza Applications') ?> &mdash; <?php echo $from_label ?></span>
+    @media screen and (max-width:768px) {
+      flex-direction: column-reverse;
+      gap: 2rem;
+    }
+  }
+
+  .status {
+    min-width: 230px;
+  }
+
+  .select {
+    background: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 18px;
+    color: #495057;
+    padding-inline: 9px;
+
+    @media screen and (max-width:576px) {
+      font-size: 20px;
+      width: 100%;
+    }
+  }
+
+  .options {
+    background-color: white;
+  }
+
+  .table-responsive {
+    transform: rotateX(180deg);
+  }
+
+  .table-container {
+    transform: rotateX(180deg);
+  }
+
+  .chat-button {
+    display: flex;
+    padding: 10px 20px;
+    font-size: 18px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+  }
+
+  /* Hover effect */
+  .chat-button:hover {
+    background-color: #0056b3;
+    color: white;
+    text-decoration: none;
+  }
+
+  .chat-count {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-color: grey;
+    color: white;
+    border-radius: 50%;
+    /* Make it circular */
+    text-align: center;
+    line-height: 25px;
+    font-size: 14px;
+    font-weight: bold;
+    margin-left: 5px;
+    /* Adjust as needed */
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    /* Add shadow for depth */
+  }
+
+  /* Style the sort icons */
+  .sort-icons {
+    display: inline-block;
+    margin-left: 5px;
+    cursor: pointer;
+    vertical-align: middle;
+  }
+
+  .sort-icons i {
+    display: block;
+    font-size: 10px;
+    /* Adjust the size of the icons */
+    margin: 0;
+    line-height: 1;
+    color: #333;
+  }
+
+  .sort-icons i:first-child {
+    margin-bottom: 2px;
+  }
+
+  /* Align the column text with the icons */
+  th {
+    white-space: nowrap;
+  }
+
+  .action-buttons {
+    display: inline-block;
+    text-align: center;
+  }
+
+  .button-group {
+    display: flex;
+    justify-content: space-between;
+    /* Keep buttons spaced apart */
+  }
+
+  .button-group button {
+    margin-right: 5px;
+    /* Add some space between buttons */
+  }
+
+  .view-link {
+    margin-top: 10px;
+    /* Adds space between buttons and the "View" link */
+    text-align: center;
+  }
+</style>
+<div id="toast-message" class="toast-message">
+  Successfull
+</div>
+<div class="margintopcontainer mx-3 pb-4">
+  <div class="ml-1 mr-1 pt-5">
+    <a href="<?php echo base_url("anjuman") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+    <p class="h4 text-center mt-5" style="color:goldenrod; text-transform: uppercase;"><?php echo $umoor; ?></p>
+    <div class="container">
+      <div class="row">
+        <form class="form-inline my-2 my-lg-0 w-100">
+          <a class="form-control btn btn-success my-2 my-lg-0 ml-auto" onclick="refresh();">Refresh</a>
+        </form>
+      </div>
+      <div class="row d-flex justify-content-between mt-3">
+        <select onchange="updateTable();" name="filter" class="select mb-3" id="filter">
+          <option value="" selected disabled>Status</option>
+
+          <!-- <?php foreach ($razatype as $key => $value) { ?>
+            <option class="options" value="<?php echo $value['name'] ?>">
+              <?php echo $value['name'] ?>
+            </option>
+          <?php } ?> -->
+
+          <option class="options" value="pending">Pending</option>
+          <option class="options" value="approved">Approved</option>
+          <option class="options" value="recommended">Recommended</option>
+          <option class="options" value="notrecommended">Not Recommended</option>
+          <option class="options" value="rejected">Rejected</option>
+          <option class="options" value="clear">Clear</option>
+        </select>
+        <?php if (empty($umoor) || $umoor !== '12 Umoor Raza Applications'): ?>
+          <?php if (empty($umoor) || stripos($umoor, 'Kaaraj') === false): ?>
+            <select onchange="updateTable();" name="miqaat_filter" class="select mb-3" id="miqaat_filter">
+              <option value="" selected>All Miqaat Types</option>
+              <option class="options" value="Shehrullah">Shehrullah</option>
+              <option class="options" value="Ashara">Ashara</option>
+              <option class="options" value="General">General</option>
+              <option class="options" value="Ladies">Ladies</option>
+            </select>
+          <?php endif; ?>
+        <?php else: ?>
+          <?php
+          $umoors = [];
+          foreach ($razatype as $rt) {
+            if (!empty($rt['umoor'])) $umoors[$rt['umoor']] = $rt['umoor'];
+          }
+          ?>
+          <select onchange="updateTable();" name="umoor_filter" class="select mb-3" id="umoor_filter">
+            <option value="" selected>All Umoor Types</option>
+            <?php foreach ($umoors as $u): ?>
+              <option value="<?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        <?php endif; ?>
+
+        <?php
+        // Build a list of Hijri event years from $raza (miqaat_details or razadata)
+        $ci = &get_instance();
+        $ci->load->model('HijriCalendar');
+        $hijri_years = [];
+        foreach ($raza as $r) {
+          $d = '';
+          if (!empty($r['miqaat_details'])) {
+            $md = json_decode($r['miqaat_details'], true);
+            if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+          }
+          if (empty($d) && !empty($r['razadata'])) {
+            $rd = json_decode($r['razadata'], true);
+            if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+          }
+          if (!empty($d)) {
+            // expect Y-m-d; use HijriCalendar helper to get hijri parts
+            $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+            if (!empty($parts) && !empty($parts['hijri_year'])) {
+              $hijri_years[$parts['hijri_year']] = $parts['hijri_year'];
+            }
+          }
+        }
+        krsort($hijri_years);
+        // build map of raza_id => hijri_year for client-side use
+        $hijri_map = [];
+        foreach ($raza as $r) {
+          $d = '';
+          if (!empty($r['miqaat_details'])) {
+            $md = json_decode($r['miqaat_details'], true);
+            if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+          }
+          if (empty($d) && !empty($r['razadata'])) {
+            $rd = json_decode($r['razadata'], true);
+            if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+          }
+          $hyear = '';
+          if (!empty($d)) {
+            $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+            if (!empty($parts) && !empty($parts['hijri_year'])) $hyear = $parts['hijri_year'];
+          }
+          $hijri_map[$r['id']] = $hyear;
+        }
+        ?>
+
+        <select onchange="updateTable();" name="year_filter" class="select mb-3" id="year_filter">
+          <option value="" selected>All Hijri Years</option>
+          <?php foreach ($hijri_years as $y): ?>
+            <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
+          <?php endforeach; ?>
+        </select>
+
+        <!-- <?php
+
+              // Build Hijri months (1-12) using get_hijri_month()
+              $ci = &get_instance();
+              $ci->load->model('HijriCalendar');
+              $hijri_months = $ci->HijriCalendar->get_hijri_month();
+              ?>
+        <select onchange="updateTable();" name="hijri_month_filter" class="select mb-3" id="hijri_month_filter">
+          <option value="" selected>All Hijri Months</option>
+          <?php foreach ($hijri_months as $m): ?>
+            <option value="<?php echo $m['id']; ?>"><?php echo htmlspecialchars($m['hijri_month'], ENT_QUOTES, 'UTF-8'); ?></option>
+          <?php endforeach; ?>
+        </select>
+
+        <select onchange="updateTable();" name="hijri_day_filter" class="select mb-3" id="hijri_day_filter">
+          <option value="" selected>All Hijri Days</option>
+          <?php for ($d = 1; $d <= 30; $d++): ?>
+            <option value="<?php echo $d; ?>"><?php echo $d; ?></option>
+          <?php endfor; ?>
+        </select> -->
+
+
+
+        <select onchange="updateTable();" name="sort" class="select mb-3" id="sort">
+          <option value="" selected disabled>Sort</option>
+          <option class="options" value="0">Name(A-Z)</option>
+          <option class="options" value="1">Name(Z-A)</option>
+          <option class="options" value="2">Event Date (New>Old)</option>
+          <option class="options" value="3">Event Date (Old>New)</option>
+          <option class="options" value="4">Create Date (New>Old)</option>
+          <option class="options" value="5">Create Date (Old>New)</option>
+          <option class="options" value="6">Clear</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-responsive mb-5">
+      <div class="table-container">
+        <table class="table table-bordered text-center">
+          <thead>
+            <tr>
+              <th class="sno">S.No.
+                <span class="sort-icons" onclick="sortTable(0)">
+                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+                </span>
+              </th>
+              <!--<th class="sno">FMB Kitchen-->
+              <!--    <span class="sort-icons" onclick="sortTable(3)">-->
+              <!--        <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>-->
+              <!--    </span>-->
+              <!--</th>-->
+              <th class="name">Name
+                <span class="sort-icons" onclick="sortTable(1)">
+                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+                </span>
+              </th>
+              <th class="raza">Raza For
+                <span class="sort-icons" onclick="sortTable(2)">
+                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+                </span>
+              </th>
+              <th class="eventdate">Event Date
+                <span class="sort-icons" onclick="sortTable(3)">
+                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+                </span>
+              </th>
+              <th class="chat">Chat</th>
+              <th class="approval_status">Status
+                <span class="sort-icons" onclick="sortTable(5)">
+                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+                </span>
+              </th>
+              <th class="action">Action</th>
+              <th class="created">Created
+                <span class="sort-icons" onclick="sortTable(7)">
+                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="datatable">
+            <?php
+            foreach ($raza as $key => $r) {
+              // determine hijri year for this row (used for client-side filtering)
+              $hijri_year_attr = '';
+              $d = '';
+              if (!empty($r['miqaat_details'])) {
+                $md = json_decode($r['miqaat_details'], true);
+                if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+              }
+              if (empty($d) && !empty($r['razadata'])) {
+                $rd = json_decode($r['razadata'], true);
+                if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+              }
+              if (!empty($d)) {
+                $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+                if (!empty($parts) && !empty($parts['hijri_year'])) $hijri_year_attr = $parts['hijri_year'];
+              }
+            ?>
+              <tr data-hijri-year="<?php echo $hijri_year_attr; ?>">
+                <td>
+                  <?php echo $key + 1 ?>
+                </td>
+                <td>
+                  <?php
+                  // If this request is a Fala ni Niyaz (FNN), show that label instead of the user's name
+                  $is_fnn = false;
+                  if (!empty($r['miqaat_id']) && !empty($r['miqaat_details'])) {
+                    $miq = json_decode($r['miqaat_details'], true);
+                    if (is_array($miq)) {
+                      // check assigned_to text
+                      $mAssigned = strtolower($miq['assigned_to'] ?? '');
+                      if (strpos($mAssigned, 'fnn') !== false || (strpos($mAssigned, 'fala') !== false && (strpos($mAssigned, 'niyaz') !== false || strpos($mAssigned, 'niaz') !== false))) {
+                        $is_fnn = true;
+                      }
+                      // check top-level assign_type (e.g., 'Fala ni Niyaz')
+                      if (!$is_fnn && !empty($miq['assign_type'])) {
+                        $atop = strtolower($miq['assign_type']);
+                        if (strpos($atop, 'fnn') !== false || (strpos($atop, 'fala') !== false && (strpos($atop, 'niyaz') !== false || strpos($atop, 'niaz') !== false))) {
+                          $is_fnn = true;
+                        }
+                      }
+                      // check each assignment entry for assign_type indicating FNN
+                      if (!$is_fnn && !empty($miq['assignments']) && is_array($miq['assignments'])) {
+                        foreach ($miq['assignments'] as $as) {
+                          $asz = strtolower((string)($as['assign_type'] ?? $as['type'] ?? ''));
+                          if (strpos($asz, 'fnn') !== false || (strpos($asz, 'fala') !== false && (strpos($asz, 'niyaz') !== false || strpos($asz, 'niaz') !== false))) {
+                            $is_fnn = true;
+                            break;
+                          }
+                        }
+                      }
+                    }
+                  }
+                  if (!$is_fnn && isset($r['razaType'])) {
+                    $rt = strtolower($r['razaType']);
+                    if (strpos($rt, 'fnn') !== false || (strpos($rt, 'fala') !== false && (strpos($rt, 'niyaz') !== false || strpos($rt, 'niaz') !== false))) {
+                      $is_fnn = true;
+                    }
+                  }
+
+                  if ($is_fnn) {
+                    echo 'Fala ni Niyaz';
+                  } else {
+                    echo htmlspecialchars($r['user_name'], ENT_QUOTES, 'UTF-8');
+                  }
+                  ?>
+                </td>
+                <td>
+                  <?php
+                  if (!empty($r['miqaat_id']) && !empty($r['miqaat_details'])) {
+                    $miqaat = json_decode($r['miqaat_details'], true);
+                    if (is_array($miqaat)) {
+                      $mName = htmlspecialchars($miqaat['name'] ?? '', ENT_QUOTES, 'UTF-8');
+                      $mType = htmlspecialchars($miqaat['type'] ?? '', ENT_QUOTES, 'UTF-8');
+                      $mAssigned = htmlspecialchars($miqaat['assigned_to'] ?? '', ENT_QUOTES, 'UTF-8');
+                      $mDate = !empty($miqaat['date']) ? date('D, d M', strtotime($miqaat['date'])) : '';
+                      $metaParts = array_filter([$mType, $mAssigned, $mDate], function ($v) {
+                        return $v !== '' && $v !== null;
+                      });
+                      $meta = implode(' &middot; ', $metaParts);
+                      echo "$mName <br><small class=\"text-muted\">$meta</small>";
+                    } else {
+                      echo htmlspecialchars($r['razaType'], ENT_QUOTES, 'UTF-8');
+                    }
+                  } else {
+                    echo htmlspecialchars($r['razaType'], ENT_QUOTES, 'UTF-8');
+                  }
+                  ?>
+                </td>
+                <td>
+                  <?php
+                  // Gregorian date
+                  $greg_date = '';
+                  if (!empty($r['miqaat_id']) && !empty($r['miqaat_details'])) {
+                    $miqaat_info = json_decode($r['miqaat_details'], true);
+                    if (!empty($miqaat_info['date'])) {
+                      $greg_date = $miqaat_info['date'];
+                      echo date('D, d M', strtotime($greg_date));
+                    }
+                  } else {
+                    $temp = json_decode($r['razadata'], true);
+                    if (!empty($temp['date'])) {
+                      $greg_date = $temp['date'];
+                      echo date('D, d M', strtotime($greg_date));
+                    }
+                  }
+                  // Hijri date below
+                  if (!empty($greg_date)) {
+                    $hijri = $ci->HijriCalendar->get_hijri_parts_by_greg_date(substr($greg_date, 0, 10));
+                    if (!empty($hijri['hijri_day']) && !empty($hijri['hijri_month']) && !empty($hijri['hijri_year'])) {
+                      $hijri_month_name = $ci->HijriCalendar->hijri_month_name($hijri['hijri_month']);
+                      echo '<br><small class="text-muted">(' . $hijri['hijri_day'] . ' ' . $hijri_month_name . ' ' . $hijri['hijri_year'] . 'H)</small>';
+                    }
+                  }
+                  ?>
+                </td>
+                <td>
+                  <?php $chat_count = !empty($r['chat_count']) ? $r['chat_count'] : ''; ?>
+                  <a href="<?php echo base_url('Accounts/chat/') . $r['id'] . '/anjuman'; ?>" class="chat-button">
+                    Chat<?php echo $chat_count ? '<div class="chat-count">' . $chat_count . '</div>' : ''; ?>
+                  </a>
+                </td>
+                <td class="status">
+                  <div class="text-left">
+                    <ul>
+                      <?php if ($r['status'] == 0) {
+                        echo '<div><strong style="color: orange;">Pending</strong></div>';
+                      } elseif ($r['status'] == 1) {
+                        echo '<div><strong style="color: blue;">Recommended</strong></div>';
+                      } elseif ($r['status'] == 2) {
+                        echo '<div><strong style="color: limegreen;">Approved</strong></div>';
+                      } elseif ($r['status'] == 3) {
+                        echo '<div><strong style="color: red;">Rejected</strong></div>';
+                      } elseif ($r['status'] == 4) {
+                        echo '<div><strong style="color: blue;">Not Recommended</strong></div>';
+                      } ?>
+                      <li>
+                        <?php if ($r['coordinator-status'] == 0) {
+                          echo '<div>Jamat <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
+                        } elseif ($r['coordinator-status'] == 1) {
+                          echo '<div>Jamat <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
+                        } elseif ($r['coordinator-status'] == 2) {
+                          echo '<div>Jamat <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
+                        } ?>
+                      </li>
+                      <li>
+                        <?php if ($r['Janab-status'] == 0) {
+                          echo '<div>Amil Saheb <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
+                        } elseif ($r['Janab-status'] == 1) {
+                          echo '<div>Amil Saheb <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
+                        } elseif ($r['Janab-status'] == 2) {
+                          echo '<div>Amil Saheb <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
+                        } ?>
+                      </li>
+
+                    </ul>
+                  </div>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <div class="button-group">
+                      <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(<?php echo $r['id']; ?>);">
+                        <i class="fa fa-circle-check"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(<?php echo $r['id']; ?>);">
+                        <i class="fa fa-circle-xmark"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-warning remove-form-row" onclick="deleteRaza(<?php echo $r['id']; ?>);">
+                        <i class="fa fa-trash"></i>
+                      </button>
+                    </div>
+                    <div class="view-link btn btn-sm btn-primary remove-form-row">
+                      <a onclick="show_raza(<?php echo $r['id']; ?>);">
+                        <span style=" cursor:pointer;">View</span>
+                      </a>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
+                </td>
+              </tr>
+            <?php } ?>
+          </tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
-
-<!-- View Modal -->
-<div class="rz-ov" id="modView">
-  <div class="rz-modal">
-    <div class="rz-mhd">
-      <span class="rz-mtit"><i class="fa fa-eye" style="color:var(--gold)"></i> Raza Details</span>
-      <button class="rz-mclose" onclick="rzCM('modView')">&#x2715;</button>
+<div id="product-overlay"></div>
+<div id="approve-form" class="query-form">
+  <table id="details-table-approve" class="table"></table>
+  <form class="approve" id="approve">
+    <div class="form-group">
+      <label for="remark" class="form-label">Remark (optional)</label>
+      <textarea class="form-control" name="remark" id="remark" rows="5"
+        style="max-width:100%; height:100%"></textarea>
     </div>
-    <div class="rz-mbody" id="modViewBody"></div>
-    <div class="rz-mft"><button class="btn-c" onclick="rzCM('modView')">Close</button></div>
-  </div>
+    <div class="submit">
+      <button type="button" class="btn btn-danger w100percent-xs mbm-xs" onclick="clearForm();">Cancel</button>
+      <button type="submit" class="btn btn-success w100percent-xs mbm-xs">Recommend</button>
+    </div>
+  </form>
 </div>
-
-<!-- Approve Modal -->
-<div class="rz-ov" id="modApprove">
-  <div class="rz-modal">
-    <div class="rz-mhd">
-      <span class="rz-mtit"><i class="fa fa-check-circle" style="color:var(--blue)"></i> Recommend Raza</span>
-      <button class="rz-mclose" onclick="rzCM('modApprove')">&#x2715;</button>
+<div id="reject-form" class="query-form">
+  <table id="details-table-reject" class="table"></table>
+  <form class="reject" id="reject">
+    <div class="form-group">
+      <label for="remark" class="form-label">Remark *</label>
+      <textarea class="form-control" name="remark" required id="remark" rows="5"
+        style="max-width:100%; height:100%"></textarea>
     </div>
-    <div class="rz-mbody">
-      <div id="modApD"></div>
-      <label class="rz-lbl">Remark <span style="color:var(--text-3);font-weight:400;text-transform:none">(optional)</span></label>
-      <textarea class="rz-ta" id="appRem" placeholder="Add a remark…"></textarea>
-      <input type="hidden" id="appId"><input type="hidden" id="appIts">
+    <div class="submit">
+      <button type="button" class="btn btn-primary w100percent-xs mbm-xs" onclick="clearForm();">Cancel</button>
+      <button type="submit" class="btn btn-danger w100percent-xs mbm-xs">Not Recommend</button>
     </div>
-    <div class="rz-mft">
-      <button class="btn-c" onclick="rzCM('modApprove')">Cancel</button>
-      <button class="btn-ok" onclick="rzSubmitApprove()">Recommend</button>
-    </div>
-  </div>
+  </form>
 </div>
-
-<!-- Reject Modal -->
-<div class="rz-ov" id="modReject">
-  <div class="rz-modal">
-    <div class="rz-mhd">
-      <span class="rz-mtit"><i class="fa fa-times-circle" style="color:var(--red)"></i> Not Recommend</span>
-      <button class="rz-mclose" onclick="rzCM('modReject')">&#x2715;</button>
+<div id="show-form" class="query-form">
+  <table id="details-table-show" class="table"></table>
+  <form class="reject" id="show">
+    <div class="submit">
+      <button type="button" class="close-btn btn btn-primary w100percent-xs mbm-xs" onclick="clearForm();">Close</button>
     </div>
-    <div class="rz-mbody">
-      <div id="modRjD"></div>
-      <label class="rz-lbl">Remark <span style="color:var(--red);font-weight:800">*</span></label>
-      <textarea class="rz-ta" id="rejRem" placeholder="Reason required…"></textarea>
-      <input type="hidden" id="rejId">
-    </div>
-    <div class="rz-mft">
-      <button class="btn-c" onclick="rzCM('modReject')">Cancel</button>
-      <button class="btn-rj" onclick="rzSubmitReject()">Not Recommend</button>
-    </div>
-  </div>
+  </form>
 </div>
-
-<!-- Financial Modal -->
-<div class="rz-ov" id="modFin">
-  <div class="rz-modal" style="max-width:500px">
-    <div class="rz-mhd">
-      <span class="rz-mtit"><i class="fa fa-exclamation-triangle" style="color:var(--amber)"></i> Pending Dues</span>
-      <button class="rz-mclose" onclick="rzCM('modFin')">&#x2715;</button>
-    </div>
-    <div class="rz-mbody" id="modFinBody"></div>
-    <div class="rz-mft">
-      <button class="btn-c" onclick="rzCM('modFin')">Cancel</button>
-      <button class="btn-ok" id="finProceed">Proceed Anyway</button>
-    </div>
-  </div>
+<!-- Financials modal (rendered from JSON) -->
+<div id="financials-modal" class="query-form" style="width:520px; max-width:95%; display:none;">
+  <div id="financials-modal-content" style="padding:8px 12px;"></div>
 </div>
-
-</div><!-- /#rzApp -->
-
 <script>
-/* ── PHP data ── */
-var rzData=<?php
-  $out=[];
-  foreach($raza as $r){
-    $d='';
-    if(!empty($r['miqaat_details'])){$md=json_decode($r['miqaat_details'],true);if(is_array($md)&&!empty($md['date']))$d=substr($md['date'],0,10);}
-    if(empty($d)&&!empty($r['razadata'])){$rd=json_decode($r['razadata'],true);if(is_array($rd)&&!empty($rd['date']))$d=substr($rd['date'],0,10);}
-    $hp=null;
-    if(!empty($d)){
-      $pts=$ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
-      if(!empty($pts['hijri_year'])){$mn=rz_month_str($ci,$pts['hijri_month']);$hp=['year'=>(int)$pts['hijri_year'],'month'=>(int)$pts['hijri_month'],'day'=>(int)$pts['hijri_day'],'month_name'=>$mn];}
+  let razas = [
+    <?php
+    foreach ($raza as $r) {
+      $d = '';
+      if (!empty($r['miqaat_details'])) {
+        $md = json_decode($r['miqaat_details'], true);
+        if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
+      }
+      if (empty($d) && !empty($r['razadata'])) {
+        $rd = json_decode($r['razadata'], true);
+        if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
+      }
+      $hijri_parts = null;
+      if (!empty($d)) {
+        $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
+        if (!empty($parts['hijri_year']) && !empty($parts['hijri_month']) && !empty($parts['hijri_day'])) {
+          $hijri_parts = [
+            'year' => $parts['hijri_year'],
+            'month' => $parts['hijri_month'],
+            'day' => $parts['hijri_day']
+          ];
+        }
+      }
+      $r['hijri_parts'] = $hijri_parts;
+      echo json_encode($r, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) . ",\n";
     }
-    $r['hijri_parts']=$hp;
-    $r['_evdate']=$d;
-    $out[]=$r;
+    ?>
+  ];
+  let hijriMap = <?php echo json_encode($hijri_map ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+
+  // Expose Hijri month names for JS rendering of hijri date
+  <?php
+  $ci = isset($ci) ? $ci : get_instance();
+  $ci->load->model('HijriCalendar');
+  $hijri_months = $ci->HijriCalendar->get_hijri_month();
+  $hijri_months_js = [];
+  foreach ($hijri_months as $m) {
+    $hijri_months_js[$m['id']] = $m['hijri_month'];
   }
-  echo json_encode($out,JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT);
-?>;
-var rzHMap=<?php echo json_encode($hijri_map,JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT) ?>;
+  ?>
+  window.hijriMonths = <?php echo json_encode($hijri_months_js, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
-/* ── Helpers ── */
-function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function fmtINR(n){return'₹'+(Math.round(n)||0).toLocaleString('en-IN')}
-function parseMaybe(v){if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v)}catch(e){return null}}
-function getEvDate(r){if(r._evdate)return new Date(r._evdate);var m=parseMaybe(r.miqaat_details);if(m&&m.date)return new Date(m.date);var rd=parseMaybe(r.razadata);if(rd&&rd.date)return new Date(rd.date);return new Date(0)}
-
-function rzOM(id){document.getElementById(id).classList.add('open')}
-function rzCM(id){document.getElementById(id).classList.remove('open')}
-document.addEventListener('click',function(e){if(e.target.classList.contains('rz-ov'))e.target.classList.remove('open')});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('#rzApp .rz-ov.open').forEach(function(m){m.classList.remove('open')})});
-
-function rzToast(msg,type){var t=document.getElementById('rzToast');t.textContent=msg;t.className='rz-toast '+(type||'ok');t.style.display='block';clearTimeout(t._t);t._t=setTimeout(function(){t.style.display='none'},2600)}
-
-/* ── Build detail for modals ── */
-function buildDetail(r){
-  var rows=[];
-  if(r.miqaat_id&&r.miqaat_details){
-    var m=parseMaybe(r.miqaat_details)||{};
-    rows=[['Miqaat',m.name||'—'],['Type',m.type||'—'],['Assigned To',m.assigned_to||'—'],['Date',m.date?new Date(m.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—'],['Status',m.status==1?'Active':'Inactive']];
-    if(m.assign_type==='Group'&&Array.isArray(m.assignments)&&m.assignments.length){
-      rows.push(['Group Leader',(m.group_leader_name||'')+' '+(m.group_leader_surname||'')]);
-      m.assignments.forEach(function(mb,i){rows.push(['Member '+(i+1),(mb.member_first_name||'')+' '+(mb.member_surname||'')])});
-    }
-  } else {
-    var rf=parseMaybe(r.razafields)||{};var fields=rf.fields||[];var rd=parseMaybe(r.razadata)||{};var k=0;
-    for(var key in rd){var f=fields[k]||{name:key,type:'text'};var val=rd[key];if(f.type==='select'&&f.options&&f.options[val])val=(f.options[val].name||val);rows.push([f.name,val]);k++}
+  function show_raza(id) {
+    document.getElementById("show-form").style.display = "block";
+    document.getElementById("product-overlay").style.display = "block";
+    let raza = razas.find(e => e.id == id);
+    otherdetails(raza, 'show');
   }
-  if(r.hijri_parts&&r.hijri_parts.day)rows.push(['Hijri Date',r.hijri_parts.day+' '+(r.hijri_parts.month_name||'')+' '+r.hijri_parts.year+'H']);
-  return rows.map(function(row){return'<div class="drow"><span class="dk">'+esc(row[0])+'</span><span class="dv">'+esc(String(row[1]))+'</span></div>'}).join('');
-}
 
-/* ── View ── */
-function rzView(id){
-  var r=rzData.find(function(x){return x.id==id});
-  if(!r)return;
-  document.getElementById('modViewBody').innerHTML=buildDetail(r);
-  rzOM('modView');
-}
-
-/* ── Approve ── */
-function rzApprove(id){
-  var r=rzData.find(function(x){return x.id==id});
-  if(!r)return;
-  document.getElementById('modApD').innerHTML=buildDetail(r);
-  document.getElementById('appRem').value='';
-  document.getElementById('appRem').className='rz-ta';
-  document.getElementById('appId').value=id;
-  document.getElementById('appIts').value=r.user_id||r.userId||r.ITS_ID||r.its_id||'';
-  rzOM('modApprove');
-}
-function rzSubmitApprove(){
-  var id=document.getElementById('appId').value;
-  var its=document.getElementById('appIts').value;
-  var rem=document.getElementById('appRem').value.trim();
-  rzCM('modApprove');
-  if(its){
-    fetch('<?php echo base_url('anjuman/member_financials_json') ?>?its_id='+encodeURIComponent(its),{credentials:'same-origin'})
-      .then(function(res){return res.json()})
-      .then(function(data){if(data&&data.success&&data.total_due>0){rzShowFin(data,id,rem)}else{rzDoApprove(id,rem)}})
-      .catch(function(){rzDoApprove(id,rem)});
-  } else {rzDoApprove(id,rem)}
-}
-function rzShowFin(data,id,rem){
-  var rows=[['FMB Takhmeen',data.fmb_due],['Sabeel Takhmeen',data.sabeel_due],['General Contributions',data.gc_due],['Miqaat Invoices',data.miqaat_due],['Corpus Fund',data.corpus_due],['Ekram Fund',data.ekram_due||0]];
-  var html='<div class="fin-warn"><i class="fa fa-exclamation-triangle"></i>&nbsp;Member has pending dues. Review before proceeding.</div>';
-  html+='<table class="fin-tbl"><thead><tr><th>Category</th><th style="text-align:right">Due</th></tr></thead><tbody>';
-  rows.forEach(function(row){html+='<tr><td>'+esc(row[0])+'</td><td style="text-align:right" class="'+(row[1]>0?'fbad':'fok')+'">'+fmtINR(row[1])+'</td></tr>'});
-  html+='<tr><td><strong>Total</strong></td><td style="text-align:right" class="fbad"><strong>'+fmtINR(data.total_due)+'</strong></td></tr></tbody></table>';
-  if(Array.isArray(data.miqaat_invoices)&&data.miqaat_invoices.length){
-    html+='<p style="font-weight:800;font-size:.74rem;color:var(--text-2);margin:8px 0 5px">Miqaat Invoices</p><div style="max-height:150px;overflow:auto"><table class="fin-tbl"><thead><tr><th>Assigned To</th><th>Invoice</th><th style="text-align:right">Due</th></tr></thead><tbody>';
-    data.miqaat_invoices.forEach(function(row){html+='<tr><td>'+esc(row.assigned_to||'')+'</td><td>'+esc(row.invoice||'')+'</td><td style="text-align:right" class="fbad">'+fmtINR(row.due)+'</td></tr>'});
-    html+='</tbody></table></div>';
+  function approve_raza(id) {
+    // Open approve form; financials modal will appear when Recommend is clicked
+    let raza = razas.find(e => e.id == id);
+    // clear any previous hidden inputs
+    $('#approve').find('input[name="raza_id"]').parent().remove();
+    $('#approve').find('input[name="its_id"]').parent().remove();
+    document.getElementById("approve-form").style.display = "block";
+    document.getElementById("product-overlay").style.display = "block";
+    const newInput = document.createElement("div");
+    newInput.innerHTML = `<input type="text" hidden name="raza_id" value=${id} Required=true>`;
+    document.getElementById("approve").appendChild(newInput);
+    try {
+      var its = raza.user_id || raza.userId || raza.ITS_ID || raza.its_id || raza.its || null;
+      if (its) {
+        const itsInput = document.createElement('div');
+        itsInput.innerHTML = `<input type="text" hidden name="its_id" value="${its}" Required=true>`;
+        document.getElementById('approve').appendChild(itsInput);
+      }
+    } catch (e) {}
+    otherdetails(raza, 'approve');
   }
-  document.getElementById('modFinBody').innerHTML=html;
-  document.getElementById('finProceed').onclick=function(){rzCM('modFin');rzDoApprove(id,rem)};
-  rzOM('modFin');
-}
-function rzDoApprove(id,rem){
-  $.ajax({type:'POST',url:'<?php echo base_url('admin/approveRaza') ?>',data:{raza_id:id,remark:rem},
-    success:function(){rzToast('Raza recommended successfully','ok');location.reload()},
-    error:function(){rzToast('Something went wrong — please try again','er')}
-  });
-}
 
-/* ── Reject ── */
-function rzReject(id){
-  var r=rzData.find(function(x){return x.id==id});
-  if(!r)return;
-  document.getElementById('modRjD').innerHTML=buildDetail(r);
-  document.getElementById('rejRem').value='';
-  document.getElementById('rejRem').className='rz-ta';
-  document.getElementById('rejId').value=id;
-  rzOM('modReject');
-}
-function rzSubmitReject(){
-  var rem=document.getElementById('rejRem').value.trim();
-  if(!rem){document.getElementById('rejRem').className='rz-ta err';return}
-  var id=document.getElementById('rejId').value;
-  rzCM('modReject');
-  $.ajax({type:'POST',url:'<?php echo base_url('admin/rejectRaza') ?>',data:{raza_id:id,remark:rem},
-    success:function(){rzToast('Marked as not recommended','ok');location.reload()},
-    error:function(){rzToast('Something went wrong','er')}
-  });
-}
+  function reject_raza(id) {
+    document.getElementById("reject-form").style.display = "block";
+    document.getElementById("product-overlay").style.display = "block";
+    const newInput = document.createElement("div");
+    newInput.innerHTML = `<input type="text" hidden name="raza_id" value=${id} Required=true>`;
+    document.getElementById("reject").appendChild(newInput);
+    let raza = razas.find(e => e.id == id);
+    otherdetails(raza, 'reject');
+  }
 
-/* ── Delete ── */
-function rzDelete(id){if(!confirm('Delete this raza request?'))return;window.location.href='<?php echo base_url('anjuman/DeleteRaza/') ?>'+id}
+  function clearForm() {
+    $('#approve')[0].reset();
+    $('#reject')[0].reset();
+    document.getElementById("approve-form").style.display = "none";
+    document.getElementById("reject-form").style.display = "none";
+    document.getElementById("show-form").style.display = "none";
+    document.getElementById("product-overlay").style.display = "none";
+  }
 
-/* ══════════════════════════════════════════════════════════
-   FILTER ENGINE — reads data-* attrs directly from DOM rows
-   No JSON lookup needed → no type mismatch possible
-══════════════════════════════════════════════════════════ */
-var _sortCol=null, _sortDir=1;
+  function closeFinancialsModal() {
+    document.getElementById('financials-modal').style.display = 'none';
+    document.getElementById('financials-modal-content').innerHTML = '';
+    // restore overlay z-index if present
+    var overlay = document.getElementById('product-overlay');
+    if (overlay) overlay.style.zIndex = 10;
+  }
 
-/* Column header sort */
-document.querySelectorAll('#rzApp th.sortable').forEach(function(th){
-  th.addEventListener('click',function(){
-    var col=th.dataset.col;
-    if(_sortCol===col){_sortDir*=-1}else{_sortCol=col;_sortDir=1}
-    document.querySelectorAll('#rzApp th.sortable').forEach(function(h){h.classList.remove('asc','desc')});
-    th.classList.add(_sortDir===1?'asc':'desc');
-    rzFilter();
-  });
-});
+  function formatINR(n) {
+    // simple formatting without decimals
+    return '₹' + (Math.round(n)).toLocaleString('en-IN');
+  }
 
-function rzFilter(){
-  var search   = (document.getElementById('rzSearch').value||'').toLowerCase().trim();
-  var status   = document.getElementById('rzStatus').value;           /* '' | '0'|'1'|'2'|'3'|'4' */
-  var sortV    = parseInt(document.getElementById('rzSort').value);
-  var year     = (document.getElementById('rzYear')||{value:''}).value||'';
-  var typeEl   = document.getElementById('rzType');
-  var miqType  = typeEl ? typeEl.value.toLowerCase() : '';
-  var umoorEl  = document.getElementById('rzUmoor');
-  var umoorV   = umoorEl ? umoorEl.value.toLowerCase() : '';
+  function renderFinancialsModal(data, raza_id, raza) {
+    var c = document.getElementById('financials-modal-content');
+    var html = '';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+    html += '<h5 style="margin:0">Pending Financial Dues</h5>';
+    html += '<button onclick="closeFinancialsModal()" style="border:0;background:transparent;font-size:18px">&times;</button>';
+    html += '</div>';
+    html += '<div style="margin-top:8px;padding:8px;border-radius:4px;background:#fff3cd;border:1px solid #ffeeba;color:#856404">The member has pending dues. Please review before proceeding.</div>';
+    html += '<table class="table" style="margin-top:12px;font-size:14px;width:100%">';
+    html += '<thead><tr><th>Category</th><th style="text-align:right">Due</th></tr></thead>';
+    html += '<tbody>';
+    html += `<tr><td>FMB Takhmeen</td><td style="text-align:right;color:${data.fmb_due>0?'#dc3545':'#6c757d'}">${formatINR(data.fmb_due)}</td></tr>`;
+    html += `<tr><td>Sabeel Takhmeen</td><td style="text-align:right;color:${data.sabeel_due>0?'#dc3545':'#6c757d'}">${formatINR(data.sabeel_due)}</td></tr>`;
+    html += `<tr><td>General Contributions</td><td style="text-align:right;color:${data.gc_due>0?'#dc3545':'#6c757d'}">${formatINR(data.gc_due)}</td></tr>`;
+    html += `<tr><td>Miqaat Invoices</td><td style="text-align:right;color:${data.miqaat_due>0?'#dc3545':'#6c757d'}">${formatINR(data.miqaat_due)}</td></tr>`;
+    html += `<tr><td>Corpus Fund</td><td style="text-align:right;color:${data.corpus_due>0?'#dc3545':'#6c757d'}">${formatINR(data.corpus_due)}</td></tr>`;
+    html += `<tr><td>Ekram Fund</td><td style="text-align:right;color:${(data.ekram_due||0)>0?'#dc3545':'#6c757d'}">${formatINR(data.ekram_due||0)}</td></tr>`;
+    html += `<tr><th style="text-align:left">Total</th><th style="text-align:right;color:#dc3545">${formatINR(data.total_due)}</th></tr>`;
+    html += '</tbody></table>';
 
-  var rows = Array.prototype.slice.call(document.querySelectorAll('#rzTbody tr[data-id]'));
-  var visible = 0;
-
-  /* ── FILTER: hide/show each row based on its data-* attrs ── */
-  rows.forEach(function(tr){
-    var show = true;
-
-    /* status — compare as strings, both sides */
-    if(status !== '' && tr.dataset.status !== status){ show=false; }
-
-    /* hijri year */
-    if(show && year && tr.dataset.hy !== year){ show=false; }
-
-    /* miqaat type */
-    if(show && miqType && (tr.dataset.miqtype||'').toLowerCase() !== miqType){ show=false; }
-
-    /* umoor */
-    if(show && umoorV && (tr.dataset.umoor||'').toLowerCase() !== umoorV){ show=false; }
-
-    /* text search — uses pre-built data-search attr */
-    if(show && search){
-      var hay = (tr.dataset.search||'') + ' ' + (tr.textContent||'').toLowerCase();
-      if(hay.indexOf(search)===-1){ show=false; }
+    // Miqaat / Member invoices table (if any)
+    if (Array.isArray(data.miqaat_invoices) && data.miqaat_invoices.length > 0) {
+      html += '<h6 style="margin-top:8px">Miqaat / Member Invoices</h6>';
+      html += '<div style="max-height:180px;overflow:auto;border-top:1px solid #eee;padding-top:8px">';
+      html += '<table class="table table-sm" style="width:100%;font-size:13px">';
+      html += '<thead><tr><th>Assigned to</th><th>Invoice</th><th style="text-align:right">Amount</th><th style="text-align:right">Paid</th><th style="text-align:right">Due</th></tr></thead>';
+      html += '<tbody>';
+      data.miqaat_invoices.forEach(function(row) {
+        html += '<tr>';
+        html += `<td>${(row.assigned_to||'')}</td>`;
+        html += `<td>${(row.invoice||'')}</td>`;
+        html += `<td style="text-align:right">${formatINR(row.amount)}</td>`;
+        html += `<td style="text-align:right">${formatINR(row.paid)}</td>`;
+        html += `<td style="text-align:right;color:#dc3545">${formatINR(row.due)}</td>`;
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
     }
 
-    tr.style.display = show ? '' : 'none';
-    if(show) visible++;
-  });
+    // Footer buttons
+    html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">';
+    html += `<button class="btn btn-secondary" onclick="closeFinancialsModal()">Cancel</button>`;
+    html += `<button class="btn btn-primary" onclick="proceedFromFinancials(${raza_id})">Proceed</button>`;
+    html += '</div>';
 
-  /* ── SORT ── */
-  var tbody = document.getElementById('rzTbody');
-  var vis   = rows.filter(function(tr){ return tr.style.display !== 'none' });
-
-  vis.sort(function(a,b){
-    /* column-header sort takes priority */
-    if(_sortCol){
-      var d = _sortDir;
-      if(_sortCol==='name')  return d*((a.dataset.name||'').localeCompare(b.dataset.name||''));
-      if(_sortCol==='evdate')return d*(new Date(a.dataset.evdate||0)-new Date(b.dataset.evdate||0));
-      if(_sortCol==='ts')    return d*(new Date(a.dataset.ts||0)-new Date(b.dataset.ts||0));
+    c.innerHTML = html;
+    var fin = document.getElementById('financials-modal');
+    // ensure financials modal appears above other query-form modals
+    if (fin) {
+      fin.style.zIndex = 30;
+      fin.style.display = 'block';
     }
-    /* dropdown sort */
-    switch(sortV){
-      case 0: return (a.dataset.name||'').localeCompare(b.dataset.name||'');
-      case 1: return (b.dataset.name||'').localeCompare(a.dataset.name||'');
-      case 2: return new Date(b.dataset.evdate||0)-new Date(a.dataset.evdate||0);
-      case 3: return new Date(a.dataset.evdate||0)-new Date(b.dataset.evdate||0);
-      case 4: return new Date(b.dataset.ts||0)-new Date(a.dataset.ts||0);
-      case 5: return new Date(a.dataset.ts||0)-new Date(b.dataset.ts||0);
-      default:return 0;
+    // push overlay behind the modal but above page
+    var overlay = document.getElementById('product-overlay');
+    if (overlay) overlay.style.zIndex = 20;
+  }
+
+  function proceedFromFinancials(raza_id) {
+    // When user clicks Proceed in financials modal, submit the approve form
+    try {
+      closeFinancialsModal();
+    } catch (e) {}
+    // ensure raza_id exists in form
+    $('#approve').find('input[name="raza_id"]').parent().remove();
+    const newInput = document.createElement("div");
+    newInput.innerHTML = `<input type="text" hidden name="raza_id" value=${raza_id} Required=true>`;
+    document.getElementById("approve").appendChild(newInput);
+    // submit via AJAX
+    submitApproveForm($('#approve'));
+  }
+
+  function otherdetails(raza, action) {
+    var table = document.getElementById(`details-table-${action}`);
+    table.innerHTML = "";
+    var tablehead = document.createElement('thead')
+    tablehead.innerHTML = `<thead><tr><th scope=\"col\" colspan=\"2\" class=\"text-center\">Raza Details</th></tr></thead>`;
+    table.appendChild(tablehead);
+    var tablebody = document.createElement('tbody');
+    let tbodydata = "";
+    let razadata = JSON.parse(raza.razadata);
+    let razafields = JSON.parse(raza.razafields);
+    let raza_type_id = parseInt(raza.razaType_id || raza.raza_type_id);
+    if (raza_type_id === 2 && raza.miqaat_details) {
+      let miqaat_info = JSON.parse(raza.miqaat_details);
+      tbodydata += `<tr><th scope=\"row\">Miqaat Name</th><td>${miqaat_info.name}</td></tr>`;
+      tbodydata += `<tr><th scope=\"row\">Miqaat Type</th><td>${miqaat_info.type}</td></tr>`;
+      // Format miqaat_info.date as dd-mm-yyyy
+      let miqaatDateStr = '';
+      if (miqaat_info.date) {
+        let d = new Date(miqaat_info.date);
+        let day = String(d.getDate()).padStart(2, '0');
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let year = d.getFullYear();
+        miqaatDateStr = `${day}-${month}-${year}`;
+      }
+      tbodydata += `<tr><th scope=\"row\">Miqaat Date</th><td>${miqaatDateStr}</td></tr>`;
+      tbodydata += `<tr><th scope=\"row\">Assigned To</th><td>${miqaat_info.assigned_to}</td></tr>`;
+      tbodydata += `<tr><th scope=\"row\">Status</th><td>${miqaat_info.status == 1 ? 'Active' : 'Inactive'}</td></tr>`;
+      // If group assignment, show group leader and all members' names
+      if (miqaat_info.assign_type === 'Group' && Array.isArray(miqaat_info.assignments) && miqaat_info.assignments.length > 0) {
+        tbodydata += `<tr><th colspan=\"2\" class=\"text-center\">Group Leader</th></tr>`;
+        tbodydata += `<tr><th scope=\"row\">Leader Name</th><td>${miqaat_info.group_leader_name ? miqaat_info.group_leader_name : ''} ${miqaat_info.group_leader_surname ? miqaat_info.group_leader_surname : ''}</td></tr>`;
+        tbodydata += `<tr><th colspan=\"2\" class=\"text-center\">Group Members</th></tr>`;
+        miqaat_info.assignments.forEach(function(member, idx) {
+          tbodydata += `<tr><th scope=\"row\">Member ${idx + 1}</th><td>${member.member_first_name ? member.member_first_name : ''} ${member.member_surname ? member.member_surname : ''}</td></tr>`;
+        });
+      }
+    } else {
+      let k = 0;
+      for (let key in razadata) {
+        if (razafields && razafields.fields && razafields.fields[k] && razafields.fields[k].type == 'select') {
+          let options = razafields.fields[k].options || [];
+          let value = options.find(opt => String(opt.id) === String(razadata[key]));
+          let displayVal = value ? value.name : razadata[key];
+          tbodydata += `<tr><th scope=\"row\">${razafields.fields[k].name}</th><td>${displayVal}</td></tr>`;
+        } else {
+          let fieldName = (razafields && razafields.fields && razafields.fields[k]) ? razafields.fields[k].name : key;
+          tbodydata += `<tr><th scope=\"row\">${fieldName}</th><td>${razadata[key]}</td></tr>`;
+        }
+        k++;
+      }
+    }
+    tablebody.innerHTML = tbodydata;
+    table.appendChild(tablebody);
+  }
+
+  $(document).ready(function() {
+    $('#approve').submit(function(event) {
+      event.preventDefault();
+      var raza_id = $(this).find('input[name="raza_id"]').val();
+      var its = $(this).find('input[name="its_id"]').val();
+      var hof = $(this).find('input[name="hof_id"]').val();
+      var q = '';
+      if (its) q = 'its_id=' + encodeURIComponent(its);
+      else if (hof) q = 'hof_id=' + encodeURIComponent(hof);
+      if (!q) {
+        // No identifier; submit directly
+        submitApproveForm($(this));
+        return;
+      }
+      var url = `<?php echo base_url('anjuman/member_financials_json'); ?>?` + q;
+      fetch(url, {
+          credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(function(data) {
+          if (!data || !data.success) {
+            // no data -> submit directly
+            submitApproveForm($('#approve'));
+            return;
+          }
+          renderFinancialsModal(data, raza_id, null);
+        })
+        .catch(function(e) {
+          console.error('financials fetch error', e);
+          submitApproveForm($('#approve'));
+        });
+    });
+
+    window.submitApproveForm = function($form) {
+      var formData = $form.serialize();
+      $.ajax({
+        type: 'POST',
+        url: "<?php echo base_url('admin/approveRaza'); ?>",
+        data: formData,
+        success: function(response) {
+          showSuccessMessage();
+          clearForm();
+          refresh();
+        },
+        error: function(error) {
+          console.error('query submission failed');
+        }
+      });
+    }
+
+    function showSuccessMessage() {
+      var toastMessage = $('#toast-message');
+      toastMessage.show();
+      setTimeout(function() {
+        toastMessage.hide();
+      }, 2000);
     }
   });
-  vis.forEach(function(tr){ tbody.appendChild(tr) });
+  $(document).ready(function() {
+    $('#reject').submit(function(event) {
+      event.preventDefault();
 
-  /* ── Renumber ── */
-  var n=0;
-  vis.forEach(function(tr){ n++; var s=tr.querySelector('.snob'); if(s) s.textContent=n; });
+      var formData = $(this).serialize();
 
-  /* ── Count ── */
-  document.getElementById('rzCnt').textContent = visible+' record'+(visible!==1?'s':'');
+      $.ajax({
+        type: 'POST',
+        url: "<?php echo base_url('admin/rejectRaza'); ?>",
+        data: formData,
+        success: function(response) {
+          showSuccessMessage();
+          clearForm();
+          refresh();
+        },
+        error: function(error) {
+          console.error('query submission failed');
+        }
+      });
+    });
 
-  /* ── Active filter chips ── */
-  var chips=[]; var chipsWrap=document.getElementById('rzChips');
-  if(status){var lbl={0:'Pending',1:'Recommended',2:'Approved',3:'Rejected',4:'Not Recommended'}[status]||status;chips.push({label:'Status: '+lbl,clear:function(){document.getElementById('rzStatus').value='';rzFilter()}})}
-  if(miqType){chips.push({label:'Type: '+miqType,clear:function(){document.getElementById('rzType').value='';rzFilter()}})}
-  if(umoorV){chips.push({label:'Umoor: '+umoorV,clear:function(){document.getElementById('rzUmoor').value='';rzFilter()}})}
-  if(year){chips.push({label:'Year: '+year+'H',clear:function(){document.getElementById('rzYear').value='';rzFilter()}})}
-  if(search){chips.push({label:'Search: "'+search+'"',clear:function(){document.getElementById('rzSearch').value='';rzFilter()}})}
-
-  chipsWrap.innerHTML='';
-  chips.forEach(function(c,i){
-    var ch=document.createElement('span');
-    ch.className='rz-fchip';
-    ch.innerHTML=esc(c.label)+'&nbsp;&#x2715;';
-    (function(fn){ch.onclick=fn})(c.clear);
-    chipsWrap.appendChild(ch);
+    function showSuccessMessage() {
+      var toastMessage = $('#toast-message');
+      toastMessage.show();
+      setTimeout(function() {
+        toastMessage.hide();
+      }, 2000);
+    }
   });
-  chipsWrap.classList.toggle('show',chips.length>0);
-}
 
-/* Run on load — default sort: event date newest first */
-document.addEventListener('DOMContentLoaded',function(){ rzFilter(); });
+  function redirectto(location) {
+    window.location.href = '<?php echo base_url() ?>' + location;
+  }
+
+  function deleteRaza(id) {
+    let check = confirm("Do You Want to Delete This Raza?");
+    if (check) {
+      window.location.href = '<?php echo base_url() ?>' + 'anjuman/DeleteRaza/' + id;
+    }
+  }
+</script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
+<script>
+  function refresh() {
+    window.location.reload()
+  }
+</script>
+<script>
+  $(document).ready(function() {
+    // Function to handle the search functionality
+    function performSearch() {
+      var input, filter, table, tr, td, i, txtValue;
+      input = document.getElementById("razaSearchInput");
+      filter = input.value.toLowerCase();
+      table = document.getElementsByTagName("table")[0]; // Assuming it's the first table on the page
+      tr = table.getElementsByTagName("tr");
+
+      // Loop through all table rows and hide those that don't match the search query
+      for (i = 1; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td");
+        var found = false;
+        for (var j = 0; j < td.length; j++) {
+          if (td[j]) {
+            txtValue = td[j].textContent || td[j].innerText;
+            if (txtValue.toLowerCase().indexOf(filter) > -1) {
+              found = true;
+              break;
+            }
+          }
+        }
+        if (found) {
+          tr[i].style.display = "";
+        } else {
+          tr[i].style.display = "none";
+        }
+      }
+    }
+
+    // Attach the performSearch function to the input field's keyup event
+    document.getElementById("razaSearchInput").addEventListener("keyup", performSearch);
+  });
+</script>
+<script>
+  let tem = document.getElementById("sort");
+  // Default to Event Date (New > Old)
+  tem.value = 2;
+  // Preserve initial server-rendered table HTML as a safe fallback
+  const _initialRazaTbodyHTML = (document.getElementById('datatable') || {
+    innerHTML: ''
+  }).innerHTML;
+  updateTable();
+
+  function updateTable() {
+    var filterValue = document.getElementById("filter").value;
+    var sortValue = document.getElementById("sort").value;
+    var miqaatFilterElem = document.getElementById("miqaat_filter");
+    var miqaatFilter = miqaatFilterElem ? miqaatFilterElem.value : "";
+    var umoorFilterElem = document.getElementById("umoor_filter");
+    var umoorFilter = umoorFilterElem ? umoorFilterElem.value : "";
+    var yearFilterElem = document.getElementById("year_filter");
+    var yearFilter = yearFilterElem ? yearFilterElem.value : "";
+    var hijriMonthElem = document.getElementById("hijri_month_filter");
+    var hijriMonth = hijriMonthElem ? hijriMonthElem.value : "";
+    var hijriDayElem = document.getElementById("hijri_day_filter");
+    var hijriDay = hijriDayElem ? hijriDayElem.value : "";
+    updateTableContent(filterValue, sortValue, miqaatFilter, yearFilter, umoorFilter, hijriMonth, hijriDay);
+  }
+
+  function updateTableContent(filter, sort, miqaatFilter, yearFilter, umoorFilter, hijriMonth, hijriDay) {
+    var tbody = document.getElementById('datatable');
+    if (!tbody) return;
+    // If the server did not provide a JS array, keep server-rendered rows
+    if (!Array.isArray(razas) || razas.length === 0) {
+      tbody.innerHTML = _initialRazaTbodyHTML;
+      return;
+    }
+    // build into a fragment and only replace on success
+    var frag = document.createDocumentFragment();
+    var tempContainer = document.createElement('tbody');
+
+    // Filter and sort your razas array based on the selected options
+    var filteredAndSortedRazas = razas;
+
+    // helper to safely parse JSON-ish fields
+    function parseMaybe(val) {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Apply miqaat type filter if selected
+    if (miqaatFilter && miqaatFilter !== "") {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        var m = parseMaybe(raza.miqaat_details) || {};
+        var miqaatType = (m.type || raza.razaType || '').toString();
+        return miqaatType.toLowerCase() === miqaatFilter.toLowerCase();
+      });
+    }
+
+
+    // Apply Hijri year filter if selected (uses server-provided hijriMap)
+    if (yearFilter && yearFilter !== "") {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        var hy = (hijriMap && hijriMap[raza.id]) ? hijriMap[raza.id].toString() : '';
+        return hy === yearFilter;
+      });
+    }
+
+    // Hijri month/day filter: parse hijri date from event date (server must provide hijriMap or parse client-side)
+    if ((hijriMonth && hijriMonth !== "") || (hijriDay && hijriDay !== "")) {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        // Try to get gregorian date from miqaat_details or razadata
+        function parseMaybe(val) {
+          if (!val) return null;
+          if (typeof val === 'object') return val;
+          try {
+            return JSON.parse(val);
+          } catch (e) {
+            return null;
+          }
+        }
+        var d = '';
+        var m = parseMaybe(raza.miqaat_details);
+        if (m && m.date) d = m.date;
+        if (!d) {
+          var rd = parseMaybe(raza.razadata);
+          if (rd && rd.date) d = rd.date;
+        }
+        if (!d) return false;
+        // Use a simple Hijri conversion if available, else skip
+        // If server provides hijriMap[raza.id] as {year,month,day}, use it
+        var hijri = (raza.hijri_parts || null);
+        if (!hijri && window.hijriPartsMap && window.hijriPartsMap[raza.id]) hijri = window.hijriPartsMap[raza.id];
+        // If not, try to parse from data-hijri-date attribute (not present in this table)
+        // If not, skip filtering
+        if (!hijri) return true;
+        if (hijriMonth && hijriMonth !== "" && parseInt(hijri.month) !== parseInt(hijriMonth)) return false;
+        if (hijriDay && hijriDay !== "" && parseInt(hijri.day) !== parseInt(hijriDay)) return false;
+        return true;
+      });
+    }
+
+    // Apply Umoor filter if selected
+    if (umoorFilter && umoorFilter !== "") {
+      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+        var u = (raza.umoor || '').toString();
+        return u.toLowerCase() === umoorFilter.toLowerCase();
+      });
+    }
+
+    if (filter !== "") {
+      switch (filter) {
+        case "approved":
+          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+            return raza.status == 2;
+          });
+          break;
+        case "recommended":
+          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+            return raza.status == 1;
+          });
+          break;
+        case "pending":
+          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+            return raza.status == 0;
+          });
+          break;
+        case "rejected":
+          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+            return raza.status == 3;
+          });
+          break;
+        case "notrecommended":
+          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+            return raza.status == 4;
+          });
+          break;
+        case "clear":
+          refresh();
+          break;
+
+        default:
+          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
+            return raza.razaType === filter;
+          });
+          break;
+      }
+
+    }
+
+    if (sort !== "") {
+      filteredAndSortedRazas.sort(function(a, b) {
+        // Implement your sorting logic here
+        switch (parseInt(sort)) {
+          case 0:
+            return a.user_name.localeCompare(b.user_name);
+          case 1:
+            return b.user_name.localeCompare(a.user_name);
+          case 4:
+            // Implement sorting by date (New > Old)
+            return new Date(b['time-stamp']) - new Date(a['time-stamp']);
+          case 5:
+            // Implement sorting by date (Old > New)
+            return new Date(a['time-stamp']) - new Date(b['time-stamp']);
+          case 2:
+            // Implement sorting by event date (New > Old)
+            return new Date(getEventDate(b.razadata, b.miqaat_details)) - new Date(getEventDate(a.razadata, a.miqaat_details));
+          case 3:
+            // Implement sorting by event date (Old > New)
+            return new Date(getEventDate(a.razadata, a.miqaat_details)) - new Date(getEventDate(b.razadata, b.miqaat_details));
+          case 6:
+            refresh();
+          default:
+            return 0;
+        }
+      });
+    }
+
+    try {
+      // Populate the table with the filtered and sorted data into tempContainer
+      for (var i = 0; i < filteredAndSortedRazas.length; i++) {
+        var raza = filteredAndSortedRazas[i];
+        var chatCount = raza.chat_count && raza.chat_count > 0 ? raza.chat_count : '';
+        var chatCountHTML = chatCount ? `<div class="chat-count">${chatCount}</div>` : '';
+        var chatURL = `<?php echo base_url('Accounts/chat/') ?>${raza.id}<?php echo "/anjuman"; ?>`;
+        var row = document.createElement("tr");
+        // Determine display name: if this is a Fala ni Niyaz (FNN) show label instead of user name
+        var nameDisplay = raza['user_name'] || '';
+        try {
+          var _m = parseMaybe(raza.miqaat_details) || {};
+          var miqAssignedTo = (_m.assigned_to || '').toString().toLowerCase();
+          var miqType = (_m.type || '').toString().toLowerCase();
+          var miqName = (_m.name || '').toString().toLowerCase();
+          var miqAssignType = (_m.assign_type || _m.assignType || '').toString().toLowerCase();
+          var rt = (raza.razaType || '').toString().toLowerCase();
+          var isFnn = false;
+          var checkFnn = function(s) {
+            if (!s) return false;
+            if (s.indexOf('fnn') !== -1) return true;
+            if (s.indexOf('fala') !== -1 && (s.indexOf('niyaz') !== -1 || s.indexOf('niaz') !== -1)) return true;
+            return false;
+          };
+          if (checkFnn(miqAssignedTo) || checkFnn(miqType) || checkFnn(miqName) || checkFnn(miqAssignType) || checkFnn(rt)) {
+            isFnn = true;
+          }
+          // check assignments array
+          if (!isFnn && Array.isArray(_m.assignments)) {
+            for (var ai = 0; ai < _m.assignments.length; ai++) {
+              var as = _m.assignments[ai] || {};
+              var ast = (as.assign_type || as.type || '').toString().toLowerCase();
+              if (checkFnn(ast)) {
+                isFnn = true;
+                break;
+              }
+            }
+          }
+          if (isFnn) nameDisplay = 'Fala ni Niyaz';
+        } catch (e) {
+          // ignore
+        }
+
+        row.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${nameDisplay}</td>
+            <td>${formateRazaType(raza)}</td>
+            <td>${formatEventDate(raza)}</td>
+            <td><a href="${chatURL}" class="chat-button">Chat${chatCountHTML}</a></td>
+            <td>${getStatusHTML(raza)}</td>
+            <td><span class="action_btn">${getActionHTML(raza)}</span></td>
+            <td>${formatDate(raza['time-stamp'])}</td>
+        `;
+        tempContainer.appendChild(row);
+      }
+      // Replace existing tbody content on success
+      tbody.innerHTML = '';
+      // move children from tempContainer to tbody
+      while (tempContainer.firstChild) tbody.appendChild(tempContainer.firstChild);
+    } catch (e) {
+      console.error('updateTableContent error', e);
+      // restore server-rendered rows so page doesn't appear empty
+      tbody.innerHTML = _initialRazaTbodyHTML;
+    }
+
+
+
+  }
+
+  function formatSabil(raza) {
+    if (raza['sabil'] != '') {
+      if (raza['sabil']) {
+        return 'yes';
+      } else {
+        return 'no';
+      }
+    } else {
+      return ""
+    }
+  }
+  // function formatFmbTameer(raza){
+  //     if(raza['fmbtameer'] != ''){
+  //         if(raza['fmbtameer']){
+  //         return 'yes';
+  //     }else{
+  //         return 'no';
+  //     }
+  //     }else{
+  //         return ""
+  //     }
+  // }
+  function formatFmb(raza) {
+    if (raza['fmb'] != '') {
+      if (raza['fmb']) {
+        return 'yes';
+      } else {
+        return 'no';
+      }
+    } else {
+      return ""
+    }
+  }
+
+  function formateRazaType(raza) {
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
+    // If miqaat present, show details similar to server rendering
+    if (raza.miqaat_id && raza.miqaat_details) {
+      const m = parseMaybe(raza.miqaat_details) || {};
+      const date = m.date ? new Date(m.date).toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }) : '';
+      const name = m.name || '';
+      const type = m.type || '';
+      const assigned = m.assigned_to || '';
+      const parts = [type, assigned].filter(Boolean);
+      return `${name}<br><small style="color: #6c757d;">${parts.join(' · ')}</small>`;
+    }
+    let data = parseMaybe(raza.razadata) || {};
+    let rf = parseMaybe(raza.razafields) || {};
+    let razafields = rf.fields || [];
+
+    // Logic for 'raza-purpose' can be included if needed
+    // if (data['raza-purpose']) {
+    //     let k = razafields.find(e => {
+    //         let name = e.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+    //         return name === 'raza-purpose';
+    //     });
+    //     let value = k.options[data['raza-purpose']];
+    //     return `${raza.razaType}<br/> <span style='color:grey'>(${value.name})</span>`;
+    // } else {
+    //     return `${raza.razaType} (${raza.umoor || ''})`; // Add raza.umoor with razaType
+    // }
+
+    // Return razaType and umoor
+    return `${raza.umoor ? raza.umoor + '\n' : ''}(${raza.razaType || ''})`;
+
+  }
+
+  function formatDate(dateString) {
+    // Implement date formatting logic if needed
+    const options = {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: true
+    };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+  }
+
+  function formatEventDate(raza) {
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
+    let data = parseMaybe(raza.razadata) || {}
+    let rf = parseMaybe(raza.razafields) || {}
+    let razafields = rf.fields || []
+    let gregDate = '';
+    let gregDateStr = '';
+    const options = {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    };
+    if (raza.miqaat_id && raza.miqaat_details) {
+      let miqaat_info = parseMaybe(raza.miqaat_details) || {};
+      gregDate = miqaat_info.date;
+      if (gregDate) {
+        gregDateStr = new Date(gregDate).toLocaleDateString('en-US', options);
+      }
+    } else {
+      gregDate = data.date;
+      if (gregDate) {
+        gregDateStr = new Date(gregDate).toLocaleDateString('en-US', options);
+      }
+    }
+    // Hijri date from hijri_parts (provided by server)
+    let hijriStr = '';
+    if (raza.hijri_parts && raza.hijri_parts.year && raza.hijri_parts.month && raza.hijri_parts.day) {
+      // Use hijri_months array if available, else fallback to number
+      let hijriMonthName = '';
+      if (window.hijriMonths && window.hijriMonths[raza.hijri_parts.month]) {
+        hijriMonthName = window.hijriMonths[raza.hijri_parts.month];
+      } else {
+        // fallback: just show month number
+        hijriMonthName = 'Month ' + raza.hijri_parts.month;
+      }
+      hijriStr = `<br><small class=\"text-muted\">(${raza.hijri_parts.day} ${hijriMonthName} ${raza.hijri_parts.year}H)</small>`;
+    }
+    if (gregDateStr) {
+      return gregDateStr + hijriStr;
+    } else {
+      return '';
+    }
+  }
+
+  function getStatusHTML(raza) {
+    let statusHTML = '<div class="text-left">';
+
+    if (raza['status'] == 0) {
+      statusHTML += '<div><strong style="color: orange;">Pending</strong></div>';
+    } else if (raza['status'] == 1) {
+      statusHTML += '<div><strong style="color: blue;">Recommended</strong></div>';
+    } else if (raza['status'] == 2) {
+      statusHTML += '<div><strong style="color: limegreen;">Approved</strong></div>';
+    } else if (raza['status'] == 3) {
+      statusHTML += '<div><strong style="color: red;">Rejected</strong></div>';
+    } else if (raza['status'] == 4) {
+      statusHTML += '<div><strong style="color: blue;">Not Recommended</strong></div>';
+    }
+
+    statusHTML += '<ul><li>';
+    if (raza['coordinator-status'] == 0) {
+      statusHTML += '<div>Jamat <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
+    } else if (raza['coordinator-status'] == 1) {
+      statusHTML += '<div>Jamat <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
+    } else if (raza['coordinator-status'] == 2) {
+      statusHTML += '<div>Jamat <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
+    }
+    statusHTML += '</li>';
+
+    statusHTML += '<li>';
+    if (raza['Janab-status'] == 0) {
+      statusHTML += '<div>Amil Saheb <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
+    } else if (raza['Janab-status'] == 1) {
+      statusHTML += '<div>Amil Saheb <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
+    } else if (raza['Janab-status'] == 2) {
+      statusHTML += '<div>Amil Saheb <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
+    }
+    statusHTML += '</li></ul></div>';
+
+    return statusHTML;
+  }
+
+  function getActionHTML(raza) {
+    // Implement your action HTML generation logic
+    // You can use the same logic you have in your PHP code
+
+    let actionHTML = '';
+    if (raza['Janab-status'] == 0) {
+      actionHTML = `
+        <div class="action-buttons">
+            <div class="button-group">
+                <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(${raza['id']});">
+                    <i class="fa fa-circle-check"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(${raza['id']});">
+                    <i class="fa fa-circle-xmark"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-warning remove-form-row" onclick="deleteRaza(${raza['id']});">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </div>
+            <div class="view-link btn btn-sm btn-primary remove-form-row">
+                <a onclick="show_raza(${raza['id']});">
+                    <span style=" cursor:pointer;">View</span>
+                </a>
+            </div>
+        </div>
+    `;
+    } else {
+      actionHTML = `
+        <div class="view-link">
+          <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="show_raza(${raza['id']});">View</button>
+        </div>
+      `;
+    }
+
+    return actionHTML;
+  }
+
+  function getEventDate(razadata, miqaat_details = {}) {
+    // Extract event date from razadata or miqaat_details; both may be object or JSON string
+    const parseMaybe = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
+    let data = parseMaybe(razadata) || {};
+    if (data.date) {
+      return new Date(data.date);
+    } else if (miqaat_details) {
+      let miqaat_info = parseMaybe(miqaat_details) || {};
+      return new Date(miqaat_info.date);
+    } else {
+      return null;
+    }
+  }
+</script>
+<script>
+  function sortTable(n) {
+    var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+    table = document.querySelector("table");
+    switching = true;
+    dir = "asc"; // Set the sorting direction to ascending
+
+    // Make a loop that will continue until no switching has been done
+    while (switching) {
+      switching = false;
+      rows = table.rows;
+
+      // Loop through all table rows (except the first, which contains table headers)
+      for (i = 1; i < (rows.length - 1); i++) {
+        shouldSwitch = false;
+
+        // Get the two elements you want to compare, one from current row and one from the next
+        x = rows[i].getElementsByTagName("TD")[n];
+        y = rows[i + 1].getElementsByTagName("TD")[n];
+
+        // Check if the two rows should switch place, based on the direction, asc or desc
+        if (dir === "asc") {
+          if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+            // If so, mark as a switch and break the loop
+            shouldSwitch = true;
+            break;
+          }
+        } else if (dir === "desc") {
+          if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+            // If so, mark as a switch and break the loop
+            shouldSwitch = true;
+            break;
+          }
+        }
+      }
+      if (shouldSwitch) {
+        // If a switch has been marked, make the switch and mark that a switch has been done
+        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+        switching = true;
+        // Each time a switch is done, increase this count by 1
+        switchcount++;
+      } else {
+        // If no switching has been done AND the direction is "asc", set the direction to "desc" and run the loop again
+        if (switchcount === 0 && dir === "asc") {
+          dir = "desc";
+          switching = true;
+        }
+      }
+    }
+  }
+</script>
+<script>
+  $(document).ready(function() {
+    if ($.fn && $.fn.DataTable) {
+      $('.table').DataTable();
+    }
+  });
+
+  $(document).ready(function() {
+    $('.close-btn').click(function(e) {
+      e.preventDefault();
+    });
+  });
 </script>

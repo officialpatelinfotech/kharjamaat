@@ -103,6 +103,7 @@
                             <th class="text-end">Jmt. Amount</th>
                             <th class="text-end">Sar. Amount</th>
                             <th class="text-end">Total Amount</th>
+                            <th class="text-end">Deposit</th>
                             <th class="text-center">Action</th>
                         </tr>
                     </thead>
@@ -133,6 +134,7 @@
                                     <td class="text-end text-success fw-bold"><?= $isRent ? '-' : '₹' . format_inr($jAmt, 0) ?></td>
                                     <td class="text-end text-info fw-bold"><?= $isRent ? '-' : '₹' . format_inr($sAmt, 0) ?></td>
                                     <td class="text-end text-primary fw-bold">₹<?= format_inr($tAmt, 0) ?></td>
+                                    <td class="text-end text-warning fw-bold"><?= $isRent ? '₹' . format_inr((float)$inv['deposit_amount'], 0) : '-' ?></td>
                                     <td class="text-center text-nowrap">
                                         <div class="d-flex justify-content-center align-items-center">
                                             <button type="button" class="btn btn-sm btn-outline-primary mr-2" title="Edit Invoice" 
@@ -201,6 +203,13 @@
                             <input type="number" step="0.01" name="amount" id="edit_invoice_amount" class="form-control" readonly style="background-color: #e9ecef;">
                         </div>
                     </div>
+                    <div class="mb-3" id="edit_deposit_amount_section" style="display: none;">
+                        <label class="form-label text-warning">Deposit Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" step="0.01" name="deposit_amount" id="edit_deposit_amount" class="form-control">
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -226,6 +235,8 @@ function editInvoice(data) {
     
     if (data.charge_type === 'rent') {
         $('#edit_split_amounts_section').hide();
+        $('#edit_deposit_amount_section').show();
+        $('#edit_deposit_amount').val(parseFloat(data.deposit_amount || 0).toFixed(2));
         $('#edit_amount_label').text('Amount');
         $('#edit_invoice_amount')
             .val(tAmt.toFixed(2))
@@ -233,6 +244,7 @@ function editInvoice(data) {
             .css('background-color', '');
     } else {
         $('#edit_split_amounts_section').show();
+        $('#edit_deposit_amount_section').hide();
         $('#edit_amount_label').text('Total Amount');
         $('#edit_jamaat_amount').val(jAmt.toFixed(2));
         $('#edit_sarkaar_amount').val(sAmt.toFixed(2));

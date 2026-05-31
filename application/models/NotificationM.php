@@ -21,6 +21,20 @@ class NotificationM extends CI_Model {
             'scheduled_at' => null
         ];
         $data = array_merge($defaults, $row);
+
+        if (function_exists('should_send_notification')) {
+            $template_name = null;
+            if ($data['channel'] === 'whatsapp' && is_string($data['body'])) {
+                $decoded = json_decode($data['body'], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && ($decoded['type'] ?? '') === 'template') {
+                    $template_name = $decoded['template_name'] ?? null;
+                }
+            }
+            if (!should_send_notification($data['channel'], $data['recipient'], $data['subject'], $template_name)) {
+                return 0;
+            }
+        }
+
         $this->db->insert('notifications', $data);
         return $this->db->insert_id();
     }

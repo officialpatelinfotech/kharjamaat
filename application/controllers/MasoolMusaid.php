@@ -1199,8 +1199,8 @@ class MasoolMusaid extends CI_Controller
     $hof_id = !empty($member['HOF_ID']) ? $member['HOF_ID'] : $its_id;
     $data['user_name']         = $_SESSION['user']['username'];
     $data['member']            = $member;
-    $data['family_members']    = $this->AdminM->get_family_members_by_hof_id($hof_id);
-    $data['family_financials'] = $this->AdminM->get_family_financial_data($hof_id);
+    $data['family_members']    = $this->AdminM->get_family_members($its_id);
+    $data['family_financials'] = $this->AdminM->get_family_financial_data($its_id, array_column($data['family_members'], 'ITS_ID'));
     $this->load->view('MasoolMusaid/Header', $data);
     $this->load->view('Admin/ViewMember', $data);
   }

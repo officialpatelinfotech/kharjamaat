@@ -285,74 +285,96 @@
     </div>
   </div>
 
+  <!-- Sector Cards (Moved Above Stats) -->
+  <div class="mb-2 fw-bold" id="totalSectorCard"></div>
+  <div class="row">
+    <div class="col-12">
+      <div class="chart-container sector-block">
+        <div class="section-header-standard">
+          <h4 class="section-title"><i class="fa fa-map-marker"></i> Sector-wise Members</h4>
+          <button class="collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSectorsAshara" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+        </div>
+        <div class="collapse show" id="collapseSectorsAshara">
+          <div id="sectorCardsContainer" class="row"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Stats Section -->
-  <h4 class="section-title">Overview Statistics</h4>
+  <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3 mt-4">
+    <h4 class="m-0" style="color: var(--text-2); font-size: 1.1rem; font-weight: 800;">Overview Statistics</h4>
+    <button type="button" class="btn btn-outline-danger btn-sm" id="resetStatsBtn" onclick="resetFiltersAndStats()" style="display: none; border-radius: 20px; font-weight: 600;">
+      <i class="fa-solid fa-arrows-rotate me-1"></i> Reset Sector & Stats
+    </button>
+  </div>
+  
   <div class="stats-grid">
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=all' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_total_members" href="<?= $directory_url . '?year=' . $selected_year . '&filter=all' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>Total Members</h5>
-        <div class="stats-value"><?= count($users) ?></div>
+        <div class="stats-value" id="stat_total_members"><?= count($users) ?></div>
       </div>
     </a>
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=hof_fm_type&value=HOF' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_hof" href="<?= $directory_url . '?year=' . $selected_year . '&filter=hof_fm_type&value=HOF' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>HOF (Head of Family)</h5>
-        <div class="stats-value"><?= $stats['HOF'] ?></div>
+        <div class="stats-value" id="stat_hof"><?= $stats['HOF'] ?></div>
       </div>
     </a>
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=hof_fm_type&value=FM' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_fm" href="<?= $directory_url . '?year=' . $selected_year . '&filter=hof_fm_type&value=FM' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>FM (Family Members)</h5>
-        <div class="stats-value"><?= $stats['FM'] ?></div>
+        <div class="stats-value" id="stat_fm"><?= $stats['FM'] ?></div>
       </div>
     </a>
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=gender&value=male' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_mardo" href="<?= $directory_url . '?year=' . $selected_year . '&filter=gender&value=male' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>Males</h5>
-        <div class="stats-value"><?= $stats['Mardo'] ?></div>
+        <div class="stats-value" id="stat_mardo"><?= $stats['Mardo'] ?></div>
       </div>
     </a>
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=gender&value=female' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_bairo" href="<?= $directory_url . '?year=' . $selected_year . '&filter=gender&value=female' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>Females</h5>
-        <div class="stats-value"><?= $stats['Bairo'] ?></div>
+        <div class="stats-value" id="stat_bairo"><?= $stats['Bairo'] ?></div>
       </div>
     </a>
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=0&max=4' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_age_0_4" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=0&max=4' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>Age 0-4</h5>
-        <div class="stats-value"><?= $stats['Age_0_4'] ?></div>
+        <div class="stats-value" id="stat_age_0_4"><?= $stats['Age_0_4'] ?></div>
       </div>
     </a>
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=5&max=15' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_age_5_15" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=5&max=15' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>Age 5-15</h5>
-        <div class="stats-value"><?= $stats['Age_5_15'] ?></div>
+        <div class="stats-value" id="stat_age_5_15"><?= $stats['Age_5_15'] ?></div>
       </div>
     </a>
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=16&max=25' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_age_16_25" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=16&max=25' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>Age 16-25</h5>
-        <div class="stats-value"><?= $stats['Age_16_25'] ?></div>
+        <div class="stats-value" id="stat_age_16_25"><?= $stats['Age_16_25'] ?></div>
       </div>
     </a>
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=26&max=65' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_age_26_65" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=26&max=65' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>Age 26-65</h5>
-        <div class="stats-value"><?= $stats['Age_26_65'] ?></div>
+        <div class="stats-value" id="stat_age_26_65"><?= $stats['Age_26_65'] ?></div>
       </div>
     </a>
-    <a href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=66' ?>" style="text-decoration: none; color: inherit; display: block;">
+    <a id="link_age_above_65" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=66' ?>" style="text-decoration: none; color: inherit; display: block;">
       <div class="stats-card bg-light">
         <h5>Above 65</h5>
-        <div class="stats-value"><?= $stats['Buzurgo'] ?></div>
+        <div class="stats-value" id="stat_age_above_65"><?= $stats['Buzurgo'] ?></div>
       </div>
     </a>
   </div>
 
   <!-- Leave Status Section -->
   <h4 class="section-title">Ashara Ohbat Status</h4>
-  <div class="stats-grid">
+  <div class="stats-grid" id="ohbatStatusGrid">
     <?php foreach ($stats['LeaveStatus'] as $status => $count):
       $statusLabel = $status ?: 'No Status';
       if (in_array(strtolower(trim($statusLabel)), ['bed ridden', 'not in town', 'married outcaste', 'wafaat'])) {
@@ -392,22 +414,6 @@
           <option value="Will not attend any Day">Will not attend any Day</option>
           <option value="Ashara with Maula tus">Ashara with Maula tus</option>
         </select>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sector Cards -->
-  <div class="mb-2 fw-bold" id="totalSectorCard"></div>
-  <div class="row">
-    <div class="col-12">
-      <div class="chart-container sector-block">
-        <div class="section-header-standard">
-          <h4 class="section-title"><i class="fa fa-map-marker"></i> Sector-wise Members</h4>
-          <button class="collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSectorsAshara" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
-        </div>
-        <div class="collapse show" id="collapseSectorsAshara">
-          <div id="sectorCardsContainer" class="row"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -498,6 +504,7 @@
   document.addEventListener('DOMContentLoaded', function() {
     initSectorCards();
     updateMemberSummary(originalData);
+    updateStats(originalData);
     updateUserTable(originalData);
   });
 
@@ -537,7 +544,18 @@
     }
 
     updateMemberSummary(filtered);
+    updateStats(filtered);
     updateUserTable(filtered);
+
+    // Toggle Reset Button visibility
+    const resetBtn = document.getElementById('resetStatsBtn');
+    if (resetBtn) {
+      if (currentSectorFilter || currentStatusFilter || keyword) {
+        resetBtn.style.display = 'inline-block';
+      } else {
+        resetBtn.style.display = 'none';
+      }
+    }
   }
 
   function filterByStatus() {
@@ -573,6 +591,132 @@
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+  }
+
+  function updateStats(filtered) {
+    let hof = 0, fm = 0, mardo = 0, bairo = 0;
+    let age_0_4 = 0, age_5_15 = 0, age_16_25 = 0, age_26_65 = 0, buzurgo = 0;
+    
+    filtered.forEach(user => {
+      if (user.HOF_FM_TYPE === 'HOF') hof++;
+      if (user.HOF_FM_TYPE === 'FM') fm++;
+      
+      const gender = (user.Gender || '').toLowerCase();
+      if (gender === 'male') mardo++;
+      if (gender === 'female') bairo++;
+      
+      const age = parseInt(user.Age || 0);
+      if (age >= 0 && age <= 4) age_0_4++;
+      else if (age >= 5 && age <= 15) age_5_15++;
+      else if (age >= 16 && age <= 25) age_16_25++;
+      else if (age >= 26 && age <= 65) age_26_65++;
+      else if (age > 65) buzurgo++;
+    });
+
+    document.getElementById('stat_total_members').textContent = filtered.length;
+    document.getElementById('stat_hof').textContent = hof;
+    document.getElementById('stat_fm').textContent = fm;
+    document.getElementById('stat_mardo').textContent = mardo;
+    document.getElementById('stat_bairo').textContent = bairo;
+    document.getElementById('stat_age_0_4').textContent = age_0_4;
+    document.getElementById('stat_age_5_15').textContent = age_5_15;
+    document.getElementById('stat_age_16_25').textContent = age_16_25;
+    document.getElementById('stat_age_26_65').textContent = age_26_65;
+    document.getElementById('stat_age_above_65').textContent = buzurgo;
+
+    // Update link hrefs based on currentSectorFilter
+    const baseDirUrl = '<?= $directory_url ?>';
+    const selYear = '<?= $selected_year ?>';
+    
+    function updateLinkHref(id, extraParams) {
+      const link = document.getElementById(id);
+      if (!link) return;
+      
+      let params = new URLSearchParams();
+      params.set('year', selYear);
+      
+      Object.keys(extraParams).forEach(k => params.set(k, extraParams[k]));
+      
+      if (currentSectorFilter) {
+        params.set('sector', currentSectorFilter);
+      }
+      
+      link.href = baseDirUrl + '?' + params.toString();
+    }
+
+    updateLinkHref('link_total_members', { filter: 'all' });
+    updateLinkHref('link_hof', { filter: 'hof_fm_type', value: 'HOF' });
+    updateLinkHref('link_fm', { filter: 'hof_fm_type', value: 'FM' });
+    updateLinkHref('link_mardo', { filter: 'gender', value: 'male' });
+    updateLinkHref('link_bairo', { filter: 'gender', value: 'female' });
+    updateLinkHref('link_age_0_4', { filter: 'age_range', min: '0', max: '4' });
+    updateLinkHref('link_age_5_15', { filter: 'age_range', min: '5', max: '15' });
+    updateLinkHref('link_age_16_25', { filter: 'age_range', min: '16', max: '25' });
+    updateLinkHref('link_age_26_65', { filter: 'age_range', min: '26', max: '65' });
+    updateLinkHref('link_age_above_65', { filter: 'age_range', min: '66' });
+
+    // 2. Ashara Ohbat Status
+    const statusCounts = {};
+    const possibleStatuses = [
+      'Will attend all 9 Days',
+      'Not answering calls or messages',
+      "Musaaid didn't Contacted Yet",
+      'Will attend few Days only',
+      'Will not attend any Day',
+      'Ashara with Maula tus'
+    ];
+    possibleStatuses.forEach(st => statusCounts[st] = 0);
+    
+    filtered.forEach(user => {
+      let st = user.LeaveStatus || "Musaaid didn't Contacted Yet";
+      if (st === 'Unknown') st = "Musaaid didn't Contacted Yet";
+      
+      if (['bed ridden', 'not in town', 'married outcaste', 'wafaat'].includes(st.toLowerCase().trim())) {
+        return;
+      }
+      if (statusCounts[st] !== undefined) {
+        statusCounts[st]++;
+      } else {
+        statusCounts[st] = 1;
+      }
+    });
+
+    const statusGrid = document.getElementById('ohbatStatusGrid');
+    statusGrid.innerHTML = '';
+    
+    Object.keys(statusCounts).forEach(statusLabel => {
+      const count = statusCounts[statusLabel];
+      const isCardActive = (currentStatusFilter === statusLabel);
+      
+      const cardDiv = document.createElement('div');
+      cardDiv.className = `stats-card status-card-btn ${isCardActive ? 'active' : ''}`;
+      cardDiv.dataset.status = statusLabel;
+      cardDiv.style.cursor = 'pointer';
+      cardDiv.onclick = () => clickStatusCard(statusLabel);
+      
+      cardDiv.innerHTML = `
+        <h5>${escapeHtml(statusLabel)}</h5>
+        <div class="stats-value">${count}</div>
+      `;
+      statusGrid.appendChild(cardDiv);
+    });
+  }
+
+  function resetFiltersAndStats() {
+    currentSectorFilter = null;
+    currentStatusFilter = null;
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    
+    document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(card => {
+      card.classList.remove('active');
+    });
+
+    document.querySelectorAll('.status-card-btn').forEach(card => {
+      card.classList.remove('active');
+    });
+
+    performSearch();
   }
 
   function initSectorCards() {

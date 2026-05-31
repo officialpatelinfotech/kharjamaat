@@ -2335,11 +2335,43 @@ class AccountM extends CI_Model
     }
   }
 
-  public function getFamilyMembers($hof_id)
+  public function getFamilyMembers($its_id)
   {
-    $this->db->where('HOF_ID', $hof_id);
-    $query = $this->db->get('user');
-    return $query->result_array();
+    if (!$its_id) return [];
+
+    $member = $this->db->where('ITS_ID', $its_id)->get('user')->row_array();
+    if (!$member) return [];
+
+    $hof_id = !empty($member['HOF_ID']) ? $member['HOF_ID'] : null;
+    $spouse_its = !empty($member['Spouse_ITS_ID']) ? $member['Spouse_ITS_ID'] : null;
+
+    $this->db->distinct();
+    $this->db->from('user');
+
+    $this->db->group_start();
+    
+    // Always include the member themselves
+    $this->db->where('ITS_ID', $its_id);
+
+    // 1. Same HOF (if set)
+    if ($hof_id) {
+      $this->db->or_where('HOF_ID', $hof_id);
+      $this->db->or_where('ITS_ID', $hof_id);
+    }
+    
+    // 2. Member is HOF of other members
+    $this->db->or_where('HOF_ID', $its_id);
+
+    // 3. Spouse relation (both directions)
+    if ($spouse_its) {
+      $this->db->or_where('ITS_ID', $spouse_its);
+    }
+    $this->db->or_where('Spouse_ITS_ID', $its_id);
+
+    $this->db->group_end();
+    
+    $this->db->order_by('First_Name, Surname ASC');
+    return $this->db->get()->result_array();
   }
 
   public function getInchargeDetails($user_id)

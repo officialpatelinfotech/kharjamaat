@@ -83,6 +83,13 @@ $route['admin/laagat/create'] = 'Admin/laagat_create';
 $route['admin/laagat/manage'] = 'Admin/laagat_manage';
 $route['admin/laagat/check-duplicate'] = 'Admin/laagat_check_duplicate';
 
+$route['admin/properties'] = 'Admin/properties';
+$route['admin/add_property'] = 'Admin/add_property';
+$route['admin/update_property_name'] = 'Admin/update_property_name';
+$route['admin/delete_property/(:num)'] = 'Admin/delete_property/$1';
+$route['admin/save_raza_fields/(:num)'] = 'Admin/save_raza_fields/$1';
+
+
 
 
 
