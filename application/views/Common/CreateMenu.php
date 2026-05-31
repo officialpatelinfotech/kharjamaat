@@ -7,7 +7,7 @@
   .hidden {
     display: none;
   }
-
+  
   #search-results .list-group-item {
     cursor: pointer;
   }
