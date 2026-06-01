@@ -249,7 +249,9 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
             <label class="flabel">Residential Status</label>
             <select id="fResidential" class="fselect">
               <option value="">All</option>
-              <option value="Residing in Local Jamaat">Local Jamaat</option>
+              <option value="Residing in Khar">Residing in Khar</option>
+              <option value="Madresa in Khar">Madresa in Khar</option>
+              <option value="FMB Thaali in Khar">FMB Thaali in Khar</option>
               <option value="Moved for Job">Moved for Job</option>
               <option value="Moved for Studies">Moved for Studies</option>
               <option value="Moved after Marriage">Moved after Marriage</option>

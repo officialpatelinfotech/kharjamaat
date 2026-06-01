@@ -237,7 +237,9 @@ class MemberStatusM extends CI_Model
     {
         return [
             ''                                            => '— None —',
-            'Residing in Local Jamaat'                    => 'Residing in Local Jamaat (Active)',
+            'Residing in Khar'                            => 'Residing in Khar (Active)',
+            'Madresa in Khar'                             => 'Madresa in Khar (Active)',
+            'FMB Thaali in Khar'                          => 'FMB Thaali in Khar (Active)',
             'Moved for Job'                               => 'Moved for Job (Inactive)',
             'Moved for Studies'                           => 'Moved for Studies (Inactive)',
             'Moved after Marriage'                        => 'Permanently moved after Marriage (Inactive)',
@@ -301,7 +303,7 @@ class MemberStatusM extends CI_Model
         $inactiveHealth = [
             'Wafaat',
         ];
-        // Residential statuses that trigger Inactive (any status except Residing in Local Jamaat and None/empty)
+        // Residential statuses that trigger Inactive (any status except Residing in Khar and None/empty)
         $inactiveResidential = [
             'Moved for Job',
             'Moved for Studies',
