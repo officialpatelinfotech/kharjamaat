@@ -808,17 +808,12 @@ function fval($m, $k)
                 <option value="FM">Family Member</option>
               </select>
             </div>
-            <div class="am-field" id="hofSelectWrapper" style="display:none;">
-              <label class="am-label">Select Head of Family</label>
-              <select name="HOF_ID">
-                <option value="">-- Choose HOF --</option>
-                <option value="">-- HOF Not Assigned --</option>
-                <?php foreach ($hof_list as $h): ?>
-                  <option value="<?php echo htmlspecialchars($h['ITS_ID']); ?>">
-                    <?php echo htmlspecialchars($h['Full_Name']) . ' (' . $h['ITS_ID'] . ')'; ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
+            <div class="am-field" id="hofSelectWrapper" style="display:none; position: relative;">
+              <label class="am-label">Select Head of Family (Autocomplete)</label>
+              <input type="text" id="hof_autocomplete" placeholder="Search HOF by ITS or Name..." autocomplete="off">
+              <input type="hidden" name="HOF_ID" id="hof_id">
+              <div id="hof_autocomplete_list" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1050; max-height: 250px; overflow-y: auto; display: none; top: 100%;"></div>
+              <div class="small text-muted mt-1">Type ITS ID or Member Name. Only members with ITS out of Khar, or both ITS and Sabeel out of Khar will be shown.</div>
             </div>
             <div class="am-field"><label class="am-label">Father ITS ID</label><input type="text" name="Father_ITS_ID"
                 value="<?php echo fval($m, 'Father_ITS_ID'); ?>" placeholder="Father ITS (if known)"></div>
@@ -1302,5 +1297,84 @@ function fval($m, $k)
           st.className = 'am-status err';
         });
     });
+
+    // HOF Autocomplete
+    var hofInput = document.getElementById('hof_autocomplete');
+    var hofIdInput = document.getElementById('hof_id');
+    var hofList = document.getElementById('hof_autocomplete_list');
+
+    if (hofInput && hofList) {
+      var debounceTimeout = null;
+
+      hofInput.addEventListener('input', function () {
+        var val = this.value.trim();
+        
+        // If cleared completely, reset hidden input
+        if (val === '') {
+          hofIdInput.value = '';
+          hofList.style.display = 'none';
+          hofList.innerHTML = '';
+          return;
+        }
+
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(function () {
+          fetch('<?php echo base_url("admin/search_hofs_autocomplete"); ?>?q=' + encodeURIComponent(val))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              hofList.innerHTML = '';
+              if (data && data.length > 0) {
+                data.forEach(function (item) {
+                  var btn = document.createElement('button');
+                  btn.type = 'button';
+                  btn.className = 'list-group-item list-group-item-action py-2 px-3';
+                  btn.style.cursor = 'pointer';
+                  btn.innerHTML = '<strong>' + escapeHtml(item.Full_Name) + '</strong> (' + escapeHtml(item.ITS_ID) + ')';
+                  btn.addEventListener('click', function () {
+                    hofIdInput.value = item.ITS_ID;
+                    hofInput.value = item.Full_Name + ' (' + item.ITS_ID + ')';
+                    hofList.style.display = 'none';
+                    hofList.innerHTML = '';
+                  });
+                  hofList.appendChild(btn);
+                });
+                hofList.style.display = 'block';
+              } else {
+                var div = document.createElement('div');
+                div.className = 'list-group-item text-muted py-2 px-3';
+                div.textContent = 'No members found';
+                hofList.appendChild(div);
+                hofList.style.display = 'block';
+              }
+            })
+            .catch(function () {
+              hofList.innerHTML = '';
+              var div = document.createElement('div');
+              div.className = 'list-group-item text-danger py-2 px-3';
+              div.textContent = 'Failed to load results';
+              hofList.appendChild(div);
+              hofList.style.display = 'block';
+            });
+        }, 300);
+      });
+
+      // Close autocomplete list if clicked outside
+      document.addEventListener('click', function (e) {
+        if (e.target !== hofInput && e.target !== hofList && !hofList.contains(e.target)) {
+          hofList.style.display = 'none';
+        }
+      });
+
+      // Helper to escape HTML to prevent XSS in dynamic list
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;')
+                  .replace(/'/g, '&#039;');
+      }
+    }
+
   })();
 </script>

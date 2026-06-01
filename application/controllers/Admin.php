@@ -4412,19 +4412,38 @@ HTML;
   }
   public function submitaddmumineen()
   {
+    $its_id = $this->input->post('itsId');
+
+    if (empty($its_id)) {
+      echo json_encode([
+        'status' => 'error',
+        'message' => 'ITS ID is required'
+      ]);
+      return;
+    }
+
+    // Check duplicate ITS ID
+    $exists = $this->db->where('ITS_ID', $its_id)->get('user')->row_array();
+    if ($exists) {
+      echo json_encode([
+        'status' => 'error',
+        'message' => 'ITS ID already exists'
+      ]);
+      return;
+    }
 
     $data = array(
       'Full_Name' => $this->input->post('fullName'),
-      'ITS_ID' => $this->input->post('itsId'),
+      'ITS_ID' => $its_id,
       'Mobile' => $this->input->post('contact'),
       'Email' => $this->input->post('email'),
       'HOF_FM_TYPE' => $this->input->post('isHOF') ? 'HOF' : 'FM',
-      'HOF_ID' => $this->input->post('isHOF') ? $this->input->post('itsId') : $this->input->post('hofItsId')
+      'HOF_ID' => $this->input->post('isHOF') ? $its_id : $this->input->post('hofItsId')
     );
     $logindata = array(
-      'username' => $this->input->post('itsId'),
-      'password' => md5($this->input->post('itsId')),
-      'hof' => $this->input->post('isHOF') ? $this->input->post('itsId') : $this->input->post('hofItsId')
+      'username' => $its_id,
+      'password' => md5($its_id),
+      'hof' => $this->input->post('isHOF') ? $its_id : $this->input->post('hofItsId')
     );
 
     $check = $this->AdminM->addMumineen($data, $logindata);
@@ -4485,6 +4504,15 @@ HTML;
 
     $data['hof_list'] = $hof_list;
 
+    $hof_name = '';
+    if (!empty($member['HOF_ID'])) {
+      $hof_row = $this->AdminM->get_member_by_its($member['HOF_ID']);
+      if ($hof_row) {
+        $hof_name = $hof_row['Full_Name'];
+      }
+    }
+    $data['hof_name'] = $hof_name;
+
     $data['sector_map'] = $this->AdminM->get_sector_hierarchy();
     $data['sector_list'] = array_keys($data['sector_map']);
     $this->load->model('MemberStatusM');
@@ -4495,6 +4523,39 @@ HTML;
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/EditMember', $data);
   }
+
+  public function search_hofs_autocomplete()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      http_response_code(403);
+      echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+      return;
+    }
+
+    $q = trim((string)$this->input->get('q'));
+
+    $this->db->select('ITS_ID, Full_Name');
+    $this->db->from('user');
+    
+    $this->db->group_start();
+    $this->db->where('its_sabeel_match IS NULL', null, false);
+    $this->db->or_where('its_sabeel_match', '');
+    $this->db->or_where('its_sabeel_match', 'sabeel_khar_its_out');
+    $this->db->or_where('its_sabeel_match', 'both_not_khar');
+    $this->db->group_end();
+
+    if ($q !== '') {
+      $this->db->group_start();
+      $this->db->like('ITS_ID', $q);
+      $this->db->or_like('Full_Name', $q);
+      $this->db->group_end();
+    }
+    $this->db->limit(20);
+    $results = $this->db->get()->result_array();
+
+    echo json_encode($results);
+  }
+
 
   
 

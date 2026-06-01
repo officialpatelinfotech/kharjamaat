@@ -311,22 +311,15 @@ if (empty($redirect)) {
                 </select>
               </div>
               <div class="col-md-4 col-12 mb-2" id="hofSelectWrapper"
-                style="<?php echo ($member['HOF_FM_TYPE'] === 'HOF') ? 'display:none;' : ''; ?>">
-                <label class="form-label small mb-1">Select HOF (Family members)</label>
-                <select name="HOF_ID" class="form-control form-select">
-                  <option value="">-- Choose family member as HOF --</option>
-                  <option value="" <?php echo (empty($member['HOF_ID'])) ? 'selected' : ''; ?>>-- HOF Not Assigned --</option>
-                  <?php foreach ($hof_list as $h):
-                    $sel = (isset($member['HOF_ID']) && $member['HOF_ID'] == $h['ITS_ID']) ? 'selected' : '';
-                    $note = (isset($h['HOF_FM_TYPE']) && $h['HOF_FM_TYPE'] === 'HOF') ? ' (HOF)' : '';
-                    ?>
-                    <option value="<?php echo htmlspecialchars($h['ITS_ID']); ?>" <?php echo $sel; ?>>
-                      <?php echo htmlspecialchars($h['Full_Name']) . ' (' . $h['ITS_ID'] . ')' . $note; ?></option>
-                  <?php endforeach; ?>
-                </select>
-                <div class="small text-muted mt-1">Listing family members only. If none found, a full HOF list is shown.
+                style="<?php echo ($member['HOF_FM_TYPE'] === 'HOF') ? 'display:none;' : ''; ?>; position: relative;">
+                <label class="form-label small mb-1">Select HOF (Autocomplete)</label>
+                <input type="text" id="hof_autocomplete" class="form-control form-control-sm" placeholder="Search HOF by ITS or Name..." value="<?php echo !empty($member['HOF_ID']) ? htmlspecialchars(!empty($hof_name) ? $hof_name . ' (' . $member['HOF_ID'] . ')' : $member['HOF_ID']) : ''; ?>" autocomplete="off">
+                <input type="hidden" name="HOF_ID" id="hof_id" value="<?php echo htmlspecialchars($member['HOF_ID'] ?? ''); ?>">
+                <div id="hof_autocomplete_list" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1050; max-height: 250px; overflow-y: auto; display: none; top: 100%;"></div>
+                <div class="small text-muted mt-1">Type ITS ID or Member Name. Only members not in the Khar ITS data will be shown.
                 </div>
               </div>
+
               <div class="col-md-4 col-12 mb-2">
                 <label class="form-label small mb-1">HOF FM Type</label>
                 <input type="text" class="form-control form-control-sm" name="HOF_FM_TYPE"
@@ -1029,6 +1022,84 @@ if (empty($redirect)) {
 
         // Run once on load to initialize status correctly
         updateMemberStatus();
+
+        // HOF Autocomplete
+        var hofInput = document.getElementById('hof_autocomplete');
+        var hofIdInput = document.getElementById('hof_id');
+        var hofList = document.getElementById('hof_autocomplete_list');
+
+        if (hofInput && hofList) {
+          var debounceTimeout = null;
+
+          hofInput.addEventListener('input', function () {
+            var val = this.value.trim();
+            
+            // If cleared completely, reset hidden input
+            if (val === '') {
+              hofIdInput.value = '';
+              hofList.style.display = 'none';
+              hofList.innerHTML = '';
+              return;
+            }
+
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(function () {
+              fetch('<?php echo base_url("admin/search_hofs_autocomplete"); ?>?q=' + encodeURIComponent(val))
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                  hofList.innerHTML = '';
+                  if (data && data.length > 0) {
+                    data.forEach(function (item) {
+                      var btn = document.createElement('button');
+                      btn.type = 'button';
+                      btn.className = 'list-group-item list-group-item-action py-2 px-3';
+                      btn.style.cursor = 'pointer';
+                      btn.innerHTML = '<strong>' + escapeHtml(item.Full_Name) + '</strong> (' + escapeHtml(item.ITS_ID) + ')';
+                      btn.addEventListener('click', function () {
+                        hofIdInput.value = item.ITS_ID;
+                        hofInput.value = item.Full_Name + ' (' + item.ITS_ID + ')';
+                        hofList.style.display = 'none';
+                        hofList.innerHTML = '';
+                      });
+                      hofList.appendChild(btn);
+                    });
+                    hofList.style.display = 'block';
+                  } else {
+                    var div = document.createElement('div');
+                    div.className = 'list-group-item text-muted py-2 px-3';
+                    div.textContent = 'No members found';
+                    hofList.appendChild(div);
+                    hofList.style.display = 'block';
+                  }
+                })
+                .catch(function () {
+                  hofList.innerHTML = '';
+                  var div = document.createElement('div');
+                  div.className = 'list-group-item text-danger py-2 px-3';
+                  div.textContent = 'Failed to load results';
+                  hofList.appendChild(div);
+                  hofList.style.display = 'block';
+                });
+            }, 300);
+          });
+
+          // Close autocomplete list if clicked outside
+          document.addEventListener('click', function (e) {
+            if (e.target !== hofInput && e.target !== hofList && !hofList.contains(e.target)) {
+              hofList.style.display = 'none';
+            }
+          });
+
+          // Helper to escape HTML to prevent XSS in dynamic list
+          function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+          }
+        }
 
       })();
     </script>

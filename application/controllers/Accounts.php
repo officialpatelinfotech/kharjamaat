@@ -3607,7 +3607,16 @@ class Accounts extends CI_Controller
 
       // Notify admins with raza id and miqaat details (use branded template)
       $this->load->helper('email_template');
-      $adminSubject = htmlspecialchars($user_data['Full_Name']) . ' has submitted a new Kaaraj Raza';
+      $umoor = isset($razatype['umoor']) ? $razatype['umoor'] : '';
+      if ($umoor === 'Private-Event') {
+        $razaLabel = 'Private Event Raza / Kaaraj Raza';
+      } elseif ($umoor === 'Public-Event') {
+        $razaLabel = 'Miqaat Raza';
+      } else {
+        $razaLabel = 'Non Event Raza';
+      }
+      $adminSubject = htmlspecialchars($user_data['Full_Name']) . ' has submitted a new ' . $razaLabel;
+
 
       // prepare details array for the branded email
       $adminDetails = [

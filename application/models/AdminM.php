@@ -1150,6 +1150,16 @@ class AdminM extends CI_Model
   }
   public function addMumineen($data, $logindata)
   {
+    if (empty($data['ITS_ID'])) {
+      return false;
+    }
+
+    // Check duplicate ITS ID
+    $exists = $this->db->where('ITS_ID', $data['ITS_ID'])->get('user')->row_array();
+    if ($exists) {
+      return false;
+    }
+
     $this->db->trans_start();
 
     // Insert member in user table
