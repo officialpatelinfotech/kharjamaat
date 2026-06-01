@@ -1,693 +1,534 @@
 <?php
-$date = isset($date) ? $date : date('Y-m-d');
+$date       = isset($date)       ? $date       : date('Y-m-d');
 $start_date = isset($start_date) ? $start_date : '';
-$end_date = isset($end_date) ? $end_date : '';
+$end_date   = isset($end_date)   ? $end_date   : '';
 
-// Support `start`/`end` query params (e.g., from the dashboard link). Prefer explicit
-// variables passed from controller but fall back to GET if present.
-// Accept either `start_date`/`end_date` (preferred) or legacy `start`/`end` query params.
 if (empty($start_date)) {
-  if (!empty($_GET['start_date'])) {
-    $start_date = $_GET['start_date'];
-  } elseif (!empty($_GET['start'])) {
-    $start_date = $_GET['start'];
-  }
-  if (!empty($start_date)) {
-    $date = '';
-  }
+  if (!empty($_GET['start_date']))  { $start_date = $_GET['start_date']; }
+  elseif (!empty($_GET['start']))   { $start_date = $_GET['start']; }
+  if (!empty($start_date))          { $date = ''; }
 }
 if (empty($end_date)) {
-  if (!empty($_GET['end_date'])) {
-    $end_date = $_GET['end_date'];
-  } elseif (!empty($_GET['end'])) {
-    $end_date = $_GET['end'];
-  }
-  if (!empty($end_date)) {
-    $date = '';
-  }
+  if (!empty($_GET['end_date']))    { $end_date = $_GET['end_date']; }
+  elseif (!empty($_GET['end']))     { $end_date = $_GET['end']; }
+  if (!empty($end_date))            { $date = ''; }
 }
 
-// Controller now provides defaults; no view-side defaulting
 $breakdown = isset($breakdown) ? $breakdown : [];
-$totals = isset($totals) ? $totals : ['families' => 0, 'signed_up' => 0, 'not_signed' => 0, 'percent' => 0];
+$totals    = isset($totals)    ? $totals    : ['families'=>0,'signed_up'=>0,'not_signed'=>0,'percent'=>0];
 ?>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  .sticky-header thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: #fff;
-  }
+/* ═══════════════════════════════════════════════════
+   THAALI SIGNUPS BREAKDOWN — gold design system
+   All class names unchanged, CSS-only improvements
+═══════════════════════════════════════════════════ */
+#tsbApp{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  color:#1a1610;
+  background:#faf7f0;
+  min-height:calc(100vh - 57px);
+  padding:16px;
+}
+#tsbApp *{box-sizing:border-box}
 
-  .progress-xxs {
-    height: 6px;
-  }
+/* ── Topbar ── */
+#tsbApp .tsb-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:18px;flex-wrap:wrap;gap:8px;
+}
+#tsbApp .tsb-back{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 13px;border-radius:8px;
+  border:1.5px solid #e8e0cc;background:#fff;color:#5a5244;
+  font-size:.75rem;font-weight:700;text-decoration:none;
+  transition:all .15s;flex-shrink:0;
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+#tsbApp .tsb-back:hover{
+  background:#f5e9c0;border-color:#b8860b;color:#b8860b;text-decoration:none;
+}
+#tsbApp .tsb-heading{
+  font-size:.98rem;font-weight:800;color:#b8860b;
+  text-align:center;flex:1;letter-spacing:.3px;
+}
 
-  .card.hoverable:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .08);
-    transition: all .15s ease;
-  }
+/* ══════════════════════════════════════════
+   HIJRI MONTH NAVIGATOR
+   Pill card — arrows physically beside text
+   Full-bleed gold gradient on hover
+══════════════════════════════════════════ */
+#tsbApp .tsb-hijri-nav{
+  display:flex;justify-content:center;
+  margin-bottom:16px;
+}
+#tsbApp .tsb-nav-pill{
+  display:inline-flex;align-items:stretch;
+  background:#fff;
+  border:1.5px solid #e8e0cc;
+  border-radius:50px;
+  box-shadow:0 2px 10px rgba(0,0,0,.07),0 1px 3px rgba(0,0,0,.04);
+  overflow:hidden;
+  /* responds to content on desktop, edge-to-edge on narrow mobile */
+  max-width:360px;
+  width:100%;
+}
+#tsbApp .tsb-chev{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:48px;flex-shrink:0;
+  border:none;background:transparent;
+  color:#b8a88a;font-size:.82rem;
+  cursor:pointer;text-decoration:none;
+  transition:background .15s,color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+#tsbApp .tsb-chev.left {border-right:1px solid #f0ece0}
+#tsbApp .tsb-chev.right{border-left :1px solid #f0ece0}
+#tsbApp .tsb-chev:hover{
+  background:linear-gradient(135deg,#f5e9c0,#fdf3d0);
+  color:#b8860b;text-decoration:none;
+}
+#tsbApp .tsb-chev.dis{
+  opacity:.28;pointer-events:none;cursor:default;
+}
+#tsbApp .tsb-nav-centre{
+  flex:1;padding:11px 16px;text-align:center;
+  /* subtle gold shimmer behind month name */
+  background:linear-gradient(180deg,#fff 60%,#fdf8ee 100%);
+}
+#tsbApp .tsb-hijri-title{
+  display:block;font-size:1rem;font-weight:800;
+  color:#b8860b;line-height:1.2;white-space:nowrap;
+  letter-spacing:.2px;
+}
+#tsbApp .tsb-hijri-year{
+  display:block;font-size:.67rem;font-weight:600;
+  color:#9c8f7a;margin-top:3px;letter-spacing:.3px;
+}
 
-  /* vertical scroll within table container */
-  .table-scroll-y {
-    max-height: 65vh;
-    overflow-y: auto;
-  }
+/* ══════════════════════════════════════════
+   TABLE CARD
+══════════════════════════════════════════ */
+#tsbApp .tsb-tcard{
+  background:#fff;
+  border:1px solid #e8e0cc;
+  border-radius:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  overflow:hidden;
+}
 
-  /* subtle highlight for auto-scrolled row */
-  .auto-focus-row {
-    animation: rowPulse 2.5s ease 1;
-  }
+/* Scroll wrapper — horizontal only, page scrolls vertically */
+#tsbApp .tsb-tscroll{
+  overflow-x:auto;
+  overflow-y:visible;
+}
+#tsbApp .tsb-tscroll::-webkit-scrollbar{height:4px}
+#tsbApp .tsb-tscroll::-webkit-scrollbar-track{background:transparent}
+#tsbApp .tsb-tscroll::-webkit-scrollbar-thumb{
+  background:#e8e0cc;border-radius:10px;
+}
 
-  @keyframes rowPulse {
-    0% {
-      background-color: #fffceb;
-    }
+#tsbApp table.tsb-tbl{
+  width:100%;border-collapse:collapse;
+  font-size:.78rem;min-width:500px;
+}
 
-    40% {
-      background-color: #fff5c2;
-    }
+#tsbApp table.tsb-tbl thead th{
+  background:linear-gradient(to bottom,#f7f4ec,#ede8da);
+  padding:10px 13px;
+  font-size:.59rem;font-weight:800;
+  text-transform:uppercase;letter-spacing:.75px;color:#9c8f7a;
+  border-bottom:2px solid #e8e0cc;
+  white-space:nowrap;
+  text-align:left;
+}
+#tsbApp table.tsb-tbl thead th:not(:first-child){text-align:right}
 
-    100% {
-      background-color: transparent;
-    }
-  }
+/* Body rows */
+#tsbApp table.tsb-tbl tbody tr{
+  border-bottom:1px solid #f0ece0;
+  cursor:pointer;
+  transition:background .1s;
+}
+#tsbApp table.tsb-tbl tbody tr:hover td{background:#fdf9ef!important}
+#tsbApp table.tsb-tbl td{
+  padding:10px 13px;vertical-align:middle;color:#1a1610;
+}
+#tsbApp table.tsb-tbl td:not(:first-child){
+  text-align:right;font-variant-numeric:tabular-nums;
+}
+
+/* Alternating subtle stripe on even rows */
+#tsbApp table.tsb-tbl tbody tr:nth-child(even) td{
+  background:#faf7f2;
+}
+#tsbApp table.tsb-tbl tbody tr:nth-child(even):hover td{background:#fdf9ef!important}
+
+/* ── TODAY row — warm honey, no border ── */
+#tsbApp table.tsb-tbl tbody tr.tsb-today td{
+  background:#e8ddab!important;
+}
+
+#tsbApp table.tsb-tbl tbody tr.tsb-today:hover td{
+  background:#dfd29a!important;
+}
+
+#tsbApp .tsb-today-badge{
+  display:inline-block;
+  background:#8a6a12;
+  color:#fff;
+  font-size:.52rem;
+  font-weight:800;
+  padding:2px 7px;
+  border-radius:20px;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  margin-left:6px;
+  vertical-align:middle;
+  box-shadow:0 1px 4px rgba(138,106,18,.22)
+}
+
+/* ── Date cell ── */
+#tsbApp .tsb-date-main{
+  font-size:.8rem;font-weight:700;color:#1a1610;
+  display:flex;align-items:center;flex-wrap:wrap;gap:2px;
+}
+#tsbApp .tsb-date-hijri{
+  font-size:.67rem;color:#9c8f7a;margin-top:3px;font-weight:500;
+}
+
+/* ── Value cells ── */
+#tsbApp .tsb-val-ok {color:#1a6645;font-weight:700}
+#tsbApp .tsb-val-bad{color:#b91c1c;font-weight:600}
+#tsbApp .tsb-val-sep{color:#d1d5db;font-size:.68rem;margin:0 2px}
+
+/* Total column — slightly larger, bold */
+#tsbApp .tsb-total-ok {font-weight:800;font-size:.84rem;color:#1a6645}
+#tsbApp .tsb-total-bad{font-weight:800;font-size:.84rem;color:#b91c1c}
+#tsbApp .tsb-pct{
+  display:block;font-size:.62rem;color:#9c8f7a;
+  margin-top:3px;font-weight:600;
+}
+
+/* ── Pulse animation for today on load ── */
+#tsbApp .tsb-pulse{animation:tsbPulse 2.2s ease 1}
+@keyframes tsbPulse{
+  0%  {background:#fff5c2!important}
+  55% {background:#fffbea!important}
+  100%{background:#fffbea!important}
+}
+
+/* ── Empty state ── */
+#tsbApp .tsb-empty{
+  text-align:center;padding:48px 20px;
+  color:#9c8f7a;font-size:.82rem;
+}
+#tsbApp .tsb-empty i{
+  font-size:2rem;display:block;
+  margin-bottom:10px;color:#e8e0cc;
+}
+
+/* ── Footer ── */
+#tsbApp .tsb-tfoot{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 14px;
+  border-top:1px solid #f0ece0;
+  background:#f7f4ec;
+  font-size:.68rem;color:#9c8f7a;
+  flex-wrap:wrap;gap:6px;
+}
+#tsbApp .tsb-cnt{
+  background:#f5e9c0;color:#b8860b;
+  border-radius:20px;padding:2px 10px;
+  font-size:.64rem;font-weight:800;
+}
+
+/* ── Responsive ── */
+@media(max-width:576px){
+  #tsbApp{padding:10px}
+  #tsbApp .tsb-nav-pill{max-width:100%}
+  #tsbApp .tsb-nav-centre{padding:9px 10px}
+  #tsbApp .tsb-hijri-title{font-size:.88rem}
+  #tsbApp .tsb-chev{width:40px}
+  #tsbApp table.tsb-tbl{min-width:420px}
+  #tsbApp table.tsb-tbl thead th{top:57px}
+}
 </style>
-<div class="container margintopcontainer pt-4">
-  <div class="d-flex align-items-center mb-3">
-    <a href="<?php echo $active_controller; ?>" class="btn btn-outline-secondary me-2"><i
-        class="fa-solid fa-arrow-left"></i></a>
-  </div>
-  <h4 class="text-center heading mb-4">Thaali Signups Breakdown</h4>
 
-  <form method="get" action="<?php echo site_url('common/thaali_signups_breakdown'); ?>"
-    class="row g-2 align-items-end mb-3" id="tsbForm">
-    <?php if (!empty($from)): ?>
-      <input type="hidden" name="from" value="<?php echo htmlspecialchars($from); ?>">
-    <?php endif; ?>
-    <div class="col-12 col-md-auto mt-3">
-      <label for="date" class="form-label mb-0">Date</label>
-      <input type="date" class="form-control" id="date" name="date" value="<?php echo htmlspecialchars($date); ?>"
-        oninput="document.getElementById('start_date').value='';document.getElementById('end_date').value='';">
-    </div>
-    <div class="col-12 col-md-auto mt-3">
-      <label for="start_date" class="form-label mb-0">Start date</label>
-      <input type="date" class="form-control" id="start_date" name="start_date"
-        value="<?php echo htmlspecialchars($start_date); ?>" oninput="document.getElementById('date').value='';">
-    </div>
-    <div class="col-12 col-md-auto mt-3">
-      <label for="end_date" class="form-label mb-0">End date</label>
-      <input type="date" class="form-control" id="end_date" name="end_date"
-        value="<?php echo htmlspecialchars($end_date); ?>" oninput="document.getElementById('date').value='';">
-    </div>
-    <div class="col-12 col-md-auto mt-3">
-      <button type="submit" class="btn btn-primary">Apply</button>
-    </div>
-    <div class="col-auto">
-      <?php
-      $clearHref = site_url('common/thaali_signups_breakdown');
-      if (!empty($from)) {
-        $clearHref .= '?from=' . urlencode($from);
-      }
-      ?>
-      <a href="<?= $clearHref ?>" class="btn btn-outline-secondary">Clear</a>
-    </div>
-  </form>
+<?php
+/* ── Hijri navigator ── */
+$this->load->model('HijriCalendar');
+$sel_hijri_year  = isset($_GET['hijri_year'])  ? $_GET['hijri_year']  : null;
+$sel_hijri_month = isset($_GET['hijri_month']) ? (int)$_GET['hijri_month'] : null;
+if (!$sel_hijri_year || !$sel_hijri_month) {
+  $ref_date = '';
+  if (!empty($start_date))  $ref_date = $start_date;
+  elseif (!empty($date))    $ref_date = $date;
+  else                      $ref_date = date('Y-m-d');
+  $parts = $this->HijriCalendar->get_hijri_parts_by_greg_date($ref_date);
+  if ($parts && is_array($parts)) {
+    $sel_hijri_year  = $parts['hijri_year'];
+    $sel_hijri_month = (int)$parts['hijri_month'];
+  }
+}
+$years = $this->HijriCalendar->get_distinct_hijri_years();
+$monthList = [];
+foreach ($years as $y) {
+  $ms = $this->HijriCalendar->get_hijri_months_for_year($y);
+  if (!is_array($ms)) continue;
+  foreach ($ms as $m) $monthList[] = ['year'=>$y,'id'=>(int)$m['id'],'name'=>$m['name']??''];
+}
+$currentIndex = null;
+foreach ($monthList as $i => $mn) {
+  if ($mn['year']==$sel_hijri_year && (int)$mn['id']===(int)$sel_hijri_month) { $currentIndex=$i; break; }
+}
+$prev = ($currentIndex!==null && $currentIndex>0)                   ? $monthList[$currentIndex-1] : null;
+$next = ($currentIndex!==null && $currentIndex<count($monthList)-1) ? $monthList[$currentIndex+1] : null;
+$basePath = site_url('common/thaali_signups_breakdown');
+$preserve = [];
+if (!empty($from))           $preserve['from']       = $from;
+if (!empty($start_date))     $preserve['start_date'] = $start_date;
+if (!empty($end_date))       $preserve['end_date']   = $end_date;
+if (!empty($date))           $preserve['date']        = $date;
+if (!empty($_GET['sector'])) $preserve['sector']     = $_GET['sector'];
+$currentMonthName = ($currentIndex!==null && isset($monthList[$currentIndex]['name'])) ? $monthList[$currentIndex]['name'] : '';
 
-  <?php
-  // Build a centered summary of the active filter (date or range)
-  $hasRange = (!empty($start_date) && !empty($end_date));
-  $hasSingle = (!$hasRange && !empty($date));
-  $summaryMain = '';
-  $summarySub = '';
-  if ($hasRange) {
-    $sf = date('D, d M Y', strtotime($start_date));
-    $ef = date('D, d M Y', strtotime($end_date));
-    $summaryMain = $sf . ' — ' . $ef;
-    // Try to show Hijri equivalents for start/end if available
-    $hStart = isset($hijri_by_date[$start_date]) ? $hijri_by_date[$start_date] : null;
-    $hEnd = isset($hijri_by_date[$end_date]) ? $hijri_by_date[$end_date] : null;
-    if ($hStart && $hEnd) {
-      $hs = $hStart['hijri_day'] . ' ' . ($hStart['hijri_month_name'] ?? $hStart['hijri_month']) . ' ' . $hStart['hijri_year'];
-      $he = $hEnd['hijri_day'] . ' ' . ($hEnd['hijri_month_name'] ?? $hEnd['hijri_month']) . ' ' . $hEnd['hijri_year'];
-      $summarySub = $hs . ' — ' . $he;
-    }
-  } elseif ($hasSingle) {
-    $summaryMain = date('D, d M Y', strtotime($date));
-    $hSingle = isset($hijri_by_date[$date]) ? $hijri_by_date[$date] : null;
-    if ($hSingle) {
-      $summarySub = $hSingle['hijri_day'] . ' ' . ($hSingle['hijri_month_name'] ?? $hSingle['hijri_month']) . ' ' . $hSingle['hijri_year'];
+/* ── Build rows ──────────────────────────────────────────────────────────────
+   Priority: $daily_breakdowns (full month or range, multiple days)
+   Fallback:  $breakdown (single-day legacy, controller passes this for one date)
+   The bug was: default page load (no date params) hit the else branch which
+   only reads $breakdown → just 1 day. Now we always try $daily_breakdowns first.
+── */
+$isSubSectorMode = !empty($_GET['sector']);
+$rows = [];
+
+if (!empty($daily_breakdowns)) {
+  /* Controller sent multi-day data — use it regardless of URL params */
+  foreach ($daily_breakdowns as $day) {
+    $d = $day['date'] ?? '';
+    foreach ($day['breakdown'] ?? [] as $r) {
+      $sec = $isSubSectorMode ? trim($r['sub_sector']??'') : trim($r['sector']??'');
+      if ($sec==='') $sec='Unassigned';
+      $rows[] = ['date'=>$d,'sector'=>$sec,'signed'=>(int)($r['signed_up']??0),'total'=>(int)($r['total_families']??0)];
     }
   }
-  ?>
-  <?php
-  // Hijri month switcher for this breakdown page (preserve filters where possible)
-  $this->load->model('HijriCalendar');
-  // Prefer explicit GET hijri params if provided
-  $sel_hijri_year = isset($_GET['hijri_year']) ? $_GET['hijri_year'] : null;
-  $sel_hijri_month = isset($_GET['hijri_month']) ? (int) $_GET['hijri_month'] : null;
-  if (!$sel_hijri_year || !$sel_hijri_month) {
-    // derive from start_date, end_date or single date if available
-    $ref_date = '';
-    if (!empty($start_date))
-      $ref_date = $start_date;
-    elseif (!empty($date))
-      $ref_date = $date;
-    else
-      $ref_date = date('Y-m-d');
-    $parts = $this->HijriCalendar->get_hijri_parts_by_greg_date($ref_date);
-    if ($parts && is_array($parts)) {
-      $sel_hijri_year = $parts['hijri_year'];
-      $sel_hijri_month = (int) $parts['hijri_month'];
-    }
+} else {
+  /* Fallback: single-day $breakdown (legacy or single-date controller path) */
+  $fallback_date = !empty($date) ? $date : (!empty($start_date) ? $start_date : date('Y-m-d'));
+  foreach ($breakdown as $r) {
+    $d   = $r['date'] ?? $r['greg_date'] ?? $fallback_date;
+    $sec = $isSubSectorMode ? trim($r['sub_sector']??'') : trim($r['sector']??'');
+    if ($sec==='') $sec='Unassigned';
+    $rows[] = ['date'=>$d,'sector'=>$sec,'signed'=>(int)($r['signed_up']??0),'total'=>(int)($r['total_families']??0)];
   }
-  $years = $this->HijriCalendar->get_distinct_hijri_years();
-  $monthList = [];
-  foreach ($years as $y) {
-    $ms = $this->HijriCalendar->get_hijri_months_for_year($y);
-    if (!is_array($ms))
-      continue;
-    foreach ($ms as $m) {
-      $monthList[] = ['year' => $y, 'id' => (int) $m['id'], 'name' => (isset($m['name']) ? $m['name'] : '')];
-    }
-  }
-  $currentIndex = null;
-  foreach ($monthList as $i => $mn) {
-    if ($mn['year'] == $sel_hijri_year && (int) $mn['id'] === (int) $sel_hijri_month) {
-      $currentIndex = $i;
-      break;
-    }
-  }
-  $prev = null;
-  $next = null;
-  if ($currentIndex !== null) {
-    if ($currentIndex > 0)
-      $prev = $monthList[$currentIndex - 1];
-    if ($currentIndex < count($monthList) - 1)
-      $next = $monthList[$currentIndex + 1];
-  }
-  // Build base url preserving filters
-  $basePath = site_url('common/thaali_signups_breakdown');
-  $preserve = [];
-  if (!empty($from))
-    $preserve['from'] = $from;
-  if (!empty($start_date))
-    $preserve['start_date'] = $start_date;
-  if (!empty($end_date))
-    $preserve['end_date'] = $end_date;
-  if (!empty($date))
-    $preserve['date'] = $date;
+}
+usort($rows, fn($a,$b) => (strtotime($a['date']??'') <=> strtotime($b['date']??'')) ?: strcmp($a['sector']??'',$b['sector']??''));
 
-  // ✅ FIX: preserve sector during hijri navigation
-  if (!empty($_GET['sector']))
-    $preserve['sector'] = $_GET['sector'];
+/* ── Pivot ── */
+$dateSectorCounts = []; $sectors = [];
+foreach ($rows as $r) {
+  $d=$r['date']??''; $s=$r['sector']??'';
+  if ($d==='') continue;
+  if (!isset($dateSectorCounts[$d]))      $dateSectorCounts[$d]=[];
+  if (!isset($dateSectorCounts[$d][$s])) $dateSectorCounts[$d][$s]=['signed'=>0,'total'=>0];
+  $dateSectorCounts[$d][$s]['signed'] += $r['signed'];
+  $dateSectorCounts[$d][$s]['total']  += $r['total'];
+  $sectors[$s]=true;
+}
+$sectors = array_keys($sectors); sort($sectors,SORT_NATURAL|SORT_FLAG_CASE);
+$dates   = array_keys($dateSectorCounts);
+usort($dates, fn($a,$b) => strtotime($a)<=>strtotime($b));
+$colCount = count($sectors)+2;
+$today    = date('Y-m-d');
+?>
 
-  ?>
-  <div class="d-flex justify-content-center align-items-center mb-3 hijri-switcher" aria-label="Hijri month navigation">
-    <a href="<?= $prev ? ($basePath . '?' . http_build_query(array_merge($preserve, ['hijri_year' => $prev['year'], 'hijri_month' => $prev['id']]))) : '#' ?>"
-      class="hijri-nav-btn <?= $prev ? '' : 'disabled' ?> me-3" aria-label="Previous Hijri month">
-      <div class="chev-pill chev-box"><i class="fa fa-chevron-left" aria-hidden="true"></i></div>
-    </a>
+<div id="tsbApp" class="margintopcontainer">
 
-    <div class="hijri-title text-center" id="tsb-hijri-title" role="heading" aria-level="3">
-      <?= htmlspecialchars(($sel_hijri_month ? (isset($monthList[$currentIndex]['name']) ? $monthList[$currentIndex]['name'] : '') : '') . ' ' . ($sel_hijri_year ? $sel_hijri_year : '')); ?>
-    </div>
-
-    <a href="<?= $next ? ($basePath . '?' . http_build_query(array_merge($preserve, ['hijri_year' => $next['year'], 'hijri_month' => $next['id']]))) : '#' ?>"
-      class="hijri-nav-btn <?= $next ? '' : 'disabled' ?> ms-3" aria-label="Next Hijri month">
-      <div class="chev-pill chev-box"><i class="fa fa-chevron-right" aria-hidden="true"></i></div>
-    </a>
+  <!-- Topbar -->
+  <div class="tsb-topbar">
+    <a href="<?php echo $active_controller?>" class="tsb-back"><i class="fa fa-arrow-left"></i> Back</a>
+    <div class="tsb-heading"><i class="fa fa-cutlery" style="margin-right:6px;opacity:.7"></i>Thaali Signups Breakdown</div>
+    <div style="width:80px;flex-shrink:0"></div>
   </div>
 
-  <style>
-    .hijri-switcher .chev-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid #e6eef0;
-      background: #fff;
-      color: #0b5563;
-      cursor: pointer;
-      transition: all .12s ease;
-      box-shadow: none;
-      min-width: 44px;
-      min-height: 44px;
-    }
+  <!-- Hijri month navigator — compact pill with arrows right beside text -->
+  <div class="tsb-hijri-nav">
+    <div class="tsb-nav-pill">
 
-    .hijri-switcher .chev-pill i {
-      font-size: 1rem;
-    }
+      <a href="<?php echo $prev ? ($basePath.'?'.http_build_query(array_merge($preserve,['hijri_year'=>$prev['year'],'hijri_month'=>$prev['id']]))) : '#'?>"
+         class="tsb-chev left <?php echo $prev?'':'dis'?>" id="tsb-prev" aria-label="Previous Hijri month">
+        <i class="fa fa-chevron-left"></i>
+      </a>
 
-    .hijri-switcher .chev-pill:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-    }
+      <div class="tsb-nav-centre" id="tsb-nav-centre">
+        <span class="tsb-hijri-title" id="tsb-hijri-title"><?php echo htmlspecialchars($currentMonthName,ENT_QUOTES)?></span>
+        <span class="tsb-hijri-year"><?php echo htmlspecialchars((string)($sel_hijri_year??''),ENT_QUOTES)?>H</span>
+      </div>
 
-    .hijri-switcher .hijri-title {
-      color: #0ea5a4;
-      font-weight: 700;
-      font-size: 1.05rem;
-      padding: 0 8px;
-    }
+      <a href="<?php echo $next ? ($basePath.'?'.http_build_query(array_merge($preserve,['hijri_year'=>$next['year'],'hijri_month'=>$next['id']]))) : '#'?>"
+         class="tsb-chev right <?php echo $next?'':'dis'?>" id="tsb-next" aria-label="Next Hijri month">
+        <i class="fa fa-chevron-right"></i>
+      </a>
 
-    .hijri-switcher .hijri-nav-btn.disabled .chev-pill {
-      opacity: .45;
-      pointer-events: none;
-    }
+    </div>
+  </div>
 
-    @media (max-width:576px) {
-      .hijri-switcher .chev-pill {
-        padding: 6px 8px;
-        min-width: 38px;
-        min-height: 38px;
-      }
-
-      .hijri-switcher .hijri-title {
-        font-size: 0.95rem;
-      }
-    }
-  </style>
-
-  <script>
-    (function() {
-      const dateEl = document.getElementById('date');
-      const startEl = document.getElementById('start_date');
-      const endEl = document.getElementById('end_date');
-      if (!startEl || !endEl) return;
-
-      function syncMinMax() {
-        if (startEl.value) {
-          endEl.min = startEl.value;
-        } else {
-          endEl.removeAttribute('min');
-        }
-        if (endEl.value) {
-          startEl.max = endEl.value;
-        } else {
-          startEl.removeAttribute('max');
-        }
-      }
-
-      startEl.addEventListener('change', syncMinMax);
-      endEl.addEventListener('change', syncMinMax);
-      // Also when date is typed, it clears range (handled inline); ensure constraints reset
-      dateEl && dateEl.addEventListener('input', () => {
-        startEl.value = '';
-        endEl.value = '';
-        syncMinMax();
-      });
-      syncMinMax();
-    })();
-  </script>
-
-  <?php
-  // Build a unified rows list: each entry contains date, sector, signed, total
-  // 🔑 Decide view mode explicitly (VERY IMPORTANT)
-  $isSubSectorMode = !empty($_GET['sector']);
-
-  $rows = [];
-  if (!empty($start_date) || !empty($end_date)) {
-    if (!empty($daily_breakdowns)) {
-      foreach ($daily_breakdowns as $day) {
-        $d = $day['date'] ?? '';
-        $dBreakdown = isset($day['breakdown']) ? $day['breakdown'] : [];
-        // foreach ($dBreakdown as $r) {
-        //   $sec = isset($r['sector']) ? trim($r['sector']) : '';
-        //   if ($sec === '') $sec = 'Unassigned';
-        //   $signed = (int)($r['signed_up'] ?? 0);
-        //   $total = (int)($r['total_families'] ?? 0);
-        //   $rows[] = ['date' => $d, 'sector' => $sec, 'signed' => $signed, 'total' => $total];
-        // }
-        foreach ($dBreakdown as $r) {
-
-          // ✅ CORRECT MODE HANDLING
-          if ($isSubSectorMode) {
-            // Sector incharge → show A / B / C
-            $sec = isset($r['sub_sector']) ? trim($r['sub_sector']) : '';
-          } else {
-            // Admin / Jamaat → show Burhani / Saifee / etc
-            $sec = isset($r['sector']) ? trim($r['sector']) : '';
-          }
-
-          if ($sec === '')
-            $sec = 'Unassigned';
-
-          $signed = (int) ($r['signed_up'] ?? 0);
-          $total = (int) ($r['total_families'] ?? 0);
-
-          $rows[] = [
-            'date' => $d,
-            'sector' => $sec,
-            'signed' => $signed,
-            'total' => $total
-          ];
-        }
-      }
-    }
-  } else {
-    // Single date: use controller-provided $breakdown which includes totals
-    $d = $date;
-    foreach ($breakdown as $r) {
-
-      // ✅ CORRECT MODE HANDLING
-      if ($isSubSectorMode) {
-        $sec = isset($r['sub_sector']) ? trim($r['sub_sector']) : '';
-      } else {
-        $sec = isset($r['sector']) ? trim($r['sector']) : '';
-      }
-
-      if ($sec === '')
-        $sec = 'Unassigned';
-
-      $signed = (int) ($r['signed_up'] ?? 0);
-      $total = (int) ($r['total_families'] ?? 0);
-
-      $rows[] = [
-        'date' => $d,
-        'sector' => $sec,
-        'signed' => $signed,
-        'total' => $total
-      ];
-    }
-  }
-
-
-  // Sort rows by date asc then sector asc
-  usort($rows, function ($a, $b) {
-    $da = strtotime($a['date'] ?? '');
-    $db = strtotime($b['date'] ?? '');
-    if ($da === $db)
-      return strcmp($a['sector'] ?? '', $b['sector'] ?? '');
-    return $da <=> $db;
-  });
-  ?>
-
-  <?php
-  // Pivot rows to one row per date, columns per sector
-  $dateSectorCounts = [];
-  $sectors = [];
-  foreach ($rows as $r) {
-    $d = $r['date'] ?? '';
-    $s = $r['sector'] ?? '';
-    $v_signed = (int) ($r['signed'] ?? 0);
-    $v_total = (int) ($r['total'] ?? 0);
-    if ($d === '')
-      continue;
-    if (!isset($dateSectorCounts[$d]))
-      $dateSectorCounts[$d] = [];
-    if (!isset($dateSectorCounts[$d][$s]))
-      $dateSectorCounts[$d][$s] = ['signed' => 0, 'total' => 0];
-    $dateSectorCounts[$d][$s]['signed'] += $v_signed;
-    // totals may come from different sub-sectors; sum them so sector shows combined total
-    $dateSectorCounts[$d][$s]['total'] += $v_total;
-    $sectors[$s] = true;
-  }
-  $sectors = array_keys($sectors);
-  sort($sectors, SORT_NATURAL | SORT_FLAG_CASE);
-  $dates = array_keys($dateSectorCounts);
-  usort($dates, function ($a, $b) {
-    return strtotime($a) <=> strtotime($b);
-  });
-  ?>
-  <div class="card shadow-sm" id="thaali-breakdown-block">
-    <div class="table-responsive table-scroll-y">
-      <table class="table table-striped table-hover sticky-header mb-0">
+  <!-- Table card -->
+  <div class="tsb-tcard" id="thaali-breakdown-block">
+    <div class="tsb-tscroll">
+      <table class="tsb-tbl" id="tsbTable">
         <thead>
           <tr>
-            <th style="min-width: 220px;">Date (Hijri)</th>
-            <?php if (!empty($sectors)):
-              foreach ($sectors as $sec): ?>
-                <th class="text-end"><?= htmlspecialchars($sec) ?></th>
-            <?php endforeach;
-            endif; ?>
-            <th class="text-end">Total</th>
-            <!-- (no duplicate sector headers here) -->
+            <th style="min-width:190px">Date (Hijri)</th>
+            <?php foreach ($sectors as $sec): ?>
+            <th><?php echo htmlspecialchars($sec,ENT_QUOTES)?></th>
+            <?php endforeach ?>
+            <th style="min-width:120px">Total</th>
           </tr>
         </thead>
         <tbody>
           <?php if (empty($dates)): ?>
-            <tr>
-              <td colspan="<?= max(2, count($sectors) + 2) ?>" class="text-center text-muted py-4">No data available.</td>
-            </tr>
-            <?php else:
-            foreach ($dates as $d): ?>
-              <?php
-              $rowCounts = $dateSectorCounts[$d];
-              $sum_signed = 0;
-              $sum_total = 0;
-              $hijriParts = isset($hijri_by_date[$d]) ? $hijri_by_date[$d] : null;
-              $hijriDisp = '';
-              if ($hijriParts) {
-                $hijriDisp = $hijriParts['hijri_day'] . ' ' . ($hijriParts['hijri_month_name'] ?? $hijriParts['hijri_month']) . ' ' . $hijriParts['hijri_year'];
-              }
+          <tr><td colspan="<?php echo $colCount?>" class="tsb-empty">
+            <i class="fa fa-cutlery"></i>
+            <p>No data available for this period.</p>
+          </td></tr>
+          <?php else: ?>
+          <?php foreach ($dates as $d):
+            $rowCounts  = $dateSectorCounts[$d] ?? [];
+            $sum_signed = 0; $sum_total = 0;
+            $hijriParts = $hijri_by_date[$d] ?? null;
+            $hijriDisp  = '';
+            if ($hijriParts) {
+              $hijriDisp = $hijriParts['hijri_day'].' '.($hijriParts['hijri_month_name']??$hijriParts['hijri_month']).' '.$hijriParts['hijri_year'].'H';
+            }
+            $isToday = ($d === $today);
+          ?>
+          <tr class="tsb-row-click<?php echo $isToday?' tsb-today':''?>"
+              data-date="<?php echo htmlspecialchars($d,ENT_QUOTES)?>"
+              tabindex="0"
+              title="View detail for <?php echo htmlspecialchars($d,ENT_QUOTES)?>">
+            <td>
+              <div class="tsb-date-main">
+                <?php echo date('D, d M Y',strtotime($d))?>
+                <?php if ($isToday): ?><span class="tsb-today-badge">Today</span><?php endif ?>
+              </div>
+              <?php if ($hijriDisp): ?><div class="tsb-date-hijri"><?php echo htmlspecialchars($hijriDisp,ENT_QUOTES)?></div><?php endif ?>
+            </td>
+            <?php foreach ($sectors as $sec):
+              $cell   = $rowCounts[$sec] ?? ['signed'=>0,'total'=>0];
+              $signed = (int)($cell['signed']??0);
+              $total  = (int)($cell['total']??0);
+              $notsig = max($total-$signed,0);
+              $sum_signed += $signed;
+              $sum_total  += $total;
+            ?>
+            <td>
+              <span class="tsb-val-ok"><?php echo number_format($signed)?></span>
+              <span class="tsb-val-sep">/</span>
+              <span class="tsb-val-bad"><?php echo number_format($notsig)?></span>
+            </td>
+            <?php endforeach ?>
+            <td>
+              <?php if ($sum_total > 0):
+                $sum_not = max($sum_total-$sum_signed,0);
+                $pct     = round($sum_signed/$sum_total*100);
               ?>
-              <tr class="table-row-click" data-date="<?= htmlspecialchars($d) ?>" style="cursor: pointer;">
-                <td>
-                  <?= htmlspecialchars(date('D, d M Y', strtotime($d))) ?>
-                  <?php if (!empty($hijriDisp)): ?>
-                    <div class="small text-muted">(<?= htmlspecialchars($hijriDisp) ?>)</div>
-                  <?php endif; ?>
-                </td>
-                <?php foreach ($sectors as $sec):
-                  $cell = isset($rowCounts[$sec]) ? $rowCounts[$sec] : ['signed' => 0, 'total' => 0];
-                  $signed = (int) ($cell['signed'] ?? 0);
-                  $total = (int) ($cell['total'] ?? 0);
-                  $not_signed = max($total - $signed, 0);
-                  $sum_signed += $signed;
-                  $sum_total += $total;
-                ?>
-                  <td class="text-end fw-semibold">
-                    <span class="text-success"><?= number_format($signed) ?></span> -
-                    <span class="text-danger"><?= number_format($not_signed) ?></span>
-                  </td>
-                <?php endforeach; ?>
-                <td class="text-end fw-bold"><?php
-                                              if ($sum_total > 0) {
-                                                $sum_not = max($sum_total - $sum_signed, 0);
-                                                echo '<span class="text-success">' . number_format($sum_signed) . '</span>' . ' - ' . '<span class="text-danger">' . number_format($sum_not) . '</span>';
-                                              } else {
-                                                echo '-';
-                                              }
-                                              ?></td>
-              </tr>
-          <?php endforeach;
-          endif; ?>
+              <span class="tsb-total-ok"><?php echo number_format($sum_signed)?></span>
+              <span class="tsb-val-sep">/</span>
+              <span class="tsb-total-bad"><?php echo number_format($sum_not)?></span>
+              <span class="tsb-pct"><?php echo $pct?>% signed</span>
+              <?php else: ?><span style="color:#d1d5db">—</span><?php endif ?>
+            </td>
+          </tr>
+          <?php endforeach ?>
+          <?php endif ?>
         </tbody>
       </table>
     </div>
+    <div class="tsb-tfoot">
+      <span class="tsb-cnt"><?php echo count($dates)?> row<?php echo count($dates)!==1?'s':''?></span>
+      <span style="font-size:.66rem;color:#9c8f7a">
+        <span style="color:#1a6645;font-weight:700">Green</span> = Signed up &nbsp;/&nbsp;
+        <span style="color:#b91c1c;font-weight:700">Red</span> = Not signed up
+      </span>
+    </div>
   </div>
 
-</div>
+</div><!-- /#tsbApp -->
 
 <script>
-  // Hijri month AJAX navigation: fetch fragment and replace table + title
-  (function() {
-    function buildAjaxUrl(href) {
-      try {
-        var u = new URL(href, window.location.origin);
-        u.searchParams.set('ajax', '1');
-        return u.toString();
-      } catch (e) {
-        // Fallback: append param safely
-        return href + (href.indexOf('?') === -1 ? '?' : '&') + 'ajax=1';
-      }
-    }
+/* ── Row click → detail page ── */
+function initTsbRows(){
+  var base='<?php echo site_url('common/thaali_signup_report')?>';
+  var fromQ='<?php echo !empty($from)?('?from='.urlencode($from)):''?>';
+  document.querySelectorAll('#tsbApp .tsb-row-click[data-date]').forEach(function(tr){
+    tr.replaceWith(tr.cloneNode(true));
+  });
+  document.querySelectorAll('#tsbApp .tsb-row-click[data-date]').forEach(function(tr){
+    var d=tr.getAttribute('data-date');if(!d)return;
+    var url=base+'/'+encodeURIComponent(d)+fromQ;
+    tr.title='View detail for '+d;
+    tr.addEventListener('click',function(e){if(e.target&&e.target.tagName==='A')return;e.metaKey||e.ctrlKey?window.open(url,'_blank'):window.location.href=url});
+    tr.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')window.location.href=url});
+  });
+}
+initTsbRows();
 
-    function setSpinner(on) {
-      document.querySelectorAll('.hijri-nav-btn .chev-box').forEach(function(b) {
-        if (on) {
-          b.dataset.orig = b.innerHTML;
-          b.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-        } else {
-          if (b.dataset.orig) {
-            b.innerHTML = b.dataset.orig;
-            delete b.dataset.orig;
-          }
-        }
-      });
-    }
+/* ── Auto-scroll + pulse today ── */
+(function(){
+  var today='<?php echo $today?>';
+  var target=document.querySelector('#tsbApp .tsb-row-click[data-date="'+today+'"]');
+  if(!target)return;
+  target.classList.add('tsb-pulse');
+  setTimeout(function(){target.classList.remove('tsb-pulse')},2500);
+  var container=target.closest('.tsb-tscroll');
+  if(container&&container.scrollHeight>container.clientHeight){
+    var cRect=container.getBoundingClientRect(),tRect=target.getBoundingClientRect();
+    container.scrollBy({top:(tRect.top-cRect.top)-(container.clientHeight/2-tRect.height/2),behavior:'smooth'});
+  } else { target.scrollIntoView({block:'center',behavior:'smooth'}); }
+})();
 
-    document.addEventListener('click', function(e) {
-      var a = e.target.closest && e.target.closest('.hijri-nav-btn');
-      if (!a) return;
-      // allow normal behavior for disabled
-      if (a.classList.contains('disabled')) {
-        e.preventDefault();
-        return;
-      }
-      var href = a.getAttribute('href') || '#';
-      if (href === '#') {
-        e.preventDefault();
-        return;
-      }
-      e.preventDefault();
-      var url = buildAjaxUrl(href);
-      setSpinner(true);
-      fetch(url, {
-        credentials: 'same-origin'
-      }).then(function(r) {
-        return r.text();
-      }).then(function(text) {
-        var parser = new DOMParser();
-        var doc = parser.parseFromString(text, 'text/html');
-        var newBlock = doc.getElementById('thaali-breakdown-block');
-        var newTitle = doc.getElementById('tsb-hijri-title');
-        if (newBlock) {
-          var cur = document.getElementById('thaali-breakdown-block');
-          if (cur) cur.parentNode.replaceChild(newBlock, cur);
-        } else {
-          // Fallback: try replacing the table wrapper or the table itself
-          var newTableWrap = doc.querySelector('.table-responsive.table-scroll-y');
-          var curTableWrap = document.querySelector('.table-responsive.table-scroll-y');
-          if (newTableWrap && curTableWrap && curTableWrap.parentNode) {
-            curTableWrap.parentNode.replaceChild(newTableWrap, curTableWrap);
-          } else {
-            // final fallback: replace table element
-            var newTable = doc.querySelector('table.table');
-            var curTable = document.querySelector('table.table');
-            if (newTable && curTable && curTable.parentNode) {
-              curTable.parentNode.replaceChild(newTable, curTable);
-            }
-          }
-        }
-        if (newTitle) {
-          var curT = document.getElementById('tsb-hijri-title');
-          if (curT) curT.innerHTML = newTitle.innerHTML;
-        }
-        // update nav buttons: copy dataset/class/href from returned doc
-        var navBtns = doc.querySelectorAll('.hijri-nav-btn');
-        var curNav = document.querySelectorAll('.hijri-nav-btn');
-        if (navBtns && navBtns.length && curNav && curNav.length) {
-          for (var i = 0; i < Math.min(navBtns.length, curNav.length); i++) {
-            var src = navBtns[i];
-            var dst = curNav[i];
-            dst.className = src.className;
-            // copy href and data-* attributes
-            dst.setAttribute('href', src.getAttribute('href') || '#');
-            Array.prototype.slice.call(src.attributes).forEach(function(attr) {
-              if (attr.name.indexOf('data-') === 0) dst.setAttribute(attr.name, attr.value);
-            });
-            // copy inner HTML (chevron content)
-            dst.innerHTML = src.innerHTML;
-          }
-        }
-        // push state with clicked href (clean, without ajax param)
-        try {
-          var pushUrl = href;
-          // re-bind row click handlers for the newly injected table
-          if (typeof initThaaliRowLinks === 'function') {
-            try {
-              initThaaliRowLinks();
-            } catch (e) {
-              console.error('Failed to init row links after AJAX replace', e);
-            }
-          }
-          history.pushState({}, '', pushUrl);
-        } catch (e) {}
-      }).catch(function(err) {
-        console.error('Failed to load month fragment', err);
-      }).finally(function() {
-        setSpinner(false);
-      });
-    });
-
-    // support back/forward
-    window.addEventListener('popstate', function(ev) {
-      // simply reload to ensure state matches (safe fallback)
-      window.location.reload();
-    });
-  })();
-  function initThaaliRowLinks() {
-    const rows = document.querySelectorAll('tr.table-row-click[data-date]');
-    if (!rows || !rows.length) return;
-
-    const base = '<?= site_url('common/thaali_signup_report') ?>';
-    const fromQ = '<?= !empty($from) ? ('?from=' . urlencode($from)) : '' ?>';
-
-    function goto(url, evt) {
-      // keep a small log for debugging
-      // console.log('[TSB] Navigating to:', url);
-      if (evt && (evt.metaKey || evt.ctrlKey)) {
-        window.open(url, '_blank');
-      } else {
-        window.location.href = url;
-      }
-    }
-
-    rows.forEach(tr => {
-      const d = tr.getAttribute('data-date');
-      if (!d) return;
-      const url = base + '/' + encodeURIComponent(d) + fromQ;
-      tr.title = 'View details for ' + d;
-
-      // remove any existing handlers to avoid duplicate bindings
-      tr.replaceWith(tr.cloneNode(true));
-    });
-
-    // re-select after cloning
-    const freshRows = document.querySelectorAll('tr.table-row-click[data-date]');
-    freshRows.forEach(tr => {
-      const d = tr.getAttribute('data-date');
-      if (!d) return;
-      const url = base + '/' + encodeURIComponent(d) + fromQ;
-      tr.title = 'View details for ' + d;
-
-      tr.addEventListener('click', (e) => {
-        if (e.target && e.target.tagName === 'A') return;
-        goto(url, e);
-      });
-
-      tr.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') goto(url, e);
-      });
-
-      tr.tabIndex = 0;
+/* ── Hijri AJAX navigation ── */
+(function(){
+  function buildUrl(href){
+    try{var u=new URL(href,window.location.origin);u.searchParams.set('ajax','1');return u.toString()}
+    catch(e){return href+(href.indexOf('?')===-1?'?':'&')+'ajax=1'}
+  }
+  function setSpinner(on){
+    document.querySelectorAll('#tsbApp .tsb-chev').forEach(function(b){
+      if(on){b.dataset.orig=b.innerHTML;b.innerHTML='<i class="fa fa-spinner fa-spin"></i>'}
+      else if(b.dataset.orig){b.innerHTML=b.dataset.orig;delete b.dataset.orig}
     });
   }
-
-  // initialize on first load
-  initThaaliRowLinks();
-
-  // Auto-scroll to today's date within the table (if present)
-  (function() {
-    const today = '<?= date('Y-m-d'); ?>';
-    const target = document.querySelector('tbody tr.table-row-click[data-date="' + today + '"]');
-    if (!target) return;
-
-    const container = target.closest('.table-responsive');
-    // Add a gentle highlight to the target row
-    target.classList.add('auto-focus-row');
-    // Ensure highlight is removed (no class clutter) after a few seconds
-    setTimeout(() => target.classList.remove('auto-focus-row'), 3000);
-
-    // Try to scroll the table container so the row is centered
-    try {
-      if (container && container.scrollHeight > container.clientHeight) {
-        const cRect = container.getBoundingClientRect();
-        const tRect = target.getBoundingClientRect();
-        // Amount the row is from top of container
-        const delta = (tRect.top - cRect.top) - (container.clientHeight / 2 - tRect.height / 2);
-        container.scrollBy({
-          top: delta,
-          left: 0,
-          behavior: 'smooth'
-        });
-      } else {
-        // Fallback: scroll the page
-        target.scrollIntoView({
-          block: 'center',
-          behavior: 'smooth'
-        });
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('.tsb-chev');
+    if(!a)return;
+    if(a.classList.contains('dis')){e.preventDefault();return}
+    var href=a.getAttribute('href')||'#';
+    if(href==='#'){e.preventDefault();return}
+    e.preventDefault();
+    setSpinner(true);
+    fetch(buildUrl(href),{credentials:'same-origin'}).then(function(r){return r.text()}).then(function(text){
+      var parser=new DOMParser();var doc=parser.parseFromString(text,'text/html');
+      /* Replace table block */
+      var newBlock=doc.getElementById('thaali-breakdown-block');
+      if(newBlock){var cur=document.getElementById('thaali-breakdown-block');if(cur)cur.parentNode.replaceChild(newBlock,cur)}
+      /* Replace nav centre (month name + year) */
+      var newCentre=doc.getElementById('tsb-nav-centre');
+      if(newCentre){var curCentre=document.getElementById('tsb-nav-centre');if(curCentre)curCentre.innerHTML=newCentre.innerHTML}
+      /* Update nav arrow classes + hrefs */
+      var navBtns=doc.querySelectorAll('.tsb-chev');
+      var curNav=document.querySelectorAll('#tsbApp .tsb-chev');
+      for(var i=0;i<Math.min(navBtns.length,curNav.length);i++){
+        curNav[i].className=navBtns[i].className;
+        curNav[i].setAttribute('href',navBtns[i].getAttribute('href')||'#');
+        curNav[i].innerHTML=navBtns[i].innerHTML;
       }
-    } catch (e) {
-      // Fallback if any error
-      target.scrollIntoView({
-        block: 'center',
-        behavior: 'smooth'
-      });
-    }
-  })();
+      if(typeof initTsbRows==='function')initTsbRows();
+      try{history.pushState({},'',href)}catch(e){}
+    }).catch(function(err){console.error('TSB AJAX nav failed',err)}).finally(function(){setSpinner(false)});
+  });
+  window.addEventListener('popstate',function(){window.location.reload()});
+})();
 </script>
