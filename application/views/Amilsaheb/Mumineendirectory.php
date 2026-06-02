@@ -86,7 +86,7 @@ table.dir th .si{margin-left:3px;opacity:.3;font-size:.57rem}
 table.dir th.asc .si::after{content:'▲';opacity:1;color:var(--gold)}
 table.dir th.desc .si::after{content:'▼';opacity:1;color:var(--gold)}
 table.dir th:not(.asc):not(.desc) .si::after{content:'⇅'}
-table.dir tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s}
+table.dir tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s;cursor:pointer}
 table.dir tbody tr:hover{background:#fdf9ef}
 table.dir td{padding:8px 11px;vertical-align:middle;color:var(--text-1)}
 table.dir tr.hof-row td{background:#fffbeb;font-weight:700;border-top:1.5px solid rgba(184,134,11,.25)}
@@ -188,7 +188,7 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
         <div class="fsec" id="secLabel2"><i class="fa fa-user" style="color:var(--purple)"></i> Member Details</div>
         <div class="fgrid fg-4" id="secRow2">
           <div>
-            <label class="flabel">Member Status</label>
+            <label class="flabel">Active Inactive Status</label>
             <select id="fStatus" class="fselect">
               <option value="">All</option>
               <option value="Active">Active</option>
@@ -517,7 +517,7 @@ function renderTable(){
       `<td><a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>`+
       (CAN_EDIT?`<a href="${EDIT_URL}${u.ITS_ID}?redirect=${rp}" class="act-btn act-edit" style="margin-left:4px" title="Edit"><i class="fa fa-pencil"></i></a>`:'')+`</td>`;
   }
-  if(sortCol){filtered.forEach((u,i)=>{const tr=tbody.insertRow();if((u.HOF_FM_TYPE||'').toUpperCase()==='HOF')tr.className='hof-row';tr.innerHTML=rowHTML(u,i+1)});return}
+  if(sortCol){filtered.forEach((u,i)=>{const tr=tbody.insertRow();tr.dataset.its=u.ITS_ID;if((u.HOF_FM_TYPE||'').toUpperCase()==='HOF')tr.className='hof-row';tr.innerHTML=rowHTML(u,i+1)});return}
   const groups={},order=[];
   filtered.forEach(u=>{const hid=(u.HOF_ID||u.HOF||u.ITS_ID||'').toString();if(!groups[hid]){groups[hid]={hid,hname:itsMap[hid]||u.HOF_Name||hid,members:[]};order.push(hid)}groups[hid].members.push(u)});
   const seen=new Set();
@@ -525,7 +525,7 @@ function renderTable(){
   let idx=1;
   sg.forEach((grp,gi)=>{
     if(gi>0){const sep=tbody.insertRow();sep.className='family-sep';sep.innerHTML='<td colspan="12"></td>'}
-    grp.members.forEach(u=>{const tr=tbody.insertRow();if((u.HOF_FM_TYPE||'').toUpperCase()==='HOF')tr.className='hof-row';tr.innerHTML=rowHTML(u,idx++)});
+    grp.members.forEach(u=>{const tr=tbody.insertRow();tr.dataset.its=u.ITS_ID;if((u.HOF_FM_TYPE||'').toUpperCase()==='HOF')tr.className='hof-row';tr.innerHTML=rowHTML(u,idx++)});
   });
 }
 
@@ -602,5 +602,18 @@ document.querySelectorAll('th.sortable').forEach(th=>{
     this.classList.add(sortDir);
     applySortToFiltered();renderTable();
   });
+});
+
+// Clickable rows for Mumineen directory table
+document.querySelector('table.dir tbody').addEventListener('click', e => {
+  const tr = e.target.closest('tr');
+  if (!tr || tr.classList.contains('family-sep') || tr.classList.contains('empty-row')) return;
+  if (e.target.closest('button, a, input, select, option, label') || e.target.classList.contains('act-btn')) {
+    return;
+  }
+  const its = tr.dataset.its;
+  if (its) {
+    window.location.href = VIEW_URL + its;
+  }
 });
 </script>

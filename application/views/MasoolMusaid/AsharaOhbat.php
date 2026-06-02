@@ -2,6 +2,13 @@
   $users = $users ?? []; 
   $role_segment = $this->uri->segment(1);
   $directory_url = base_url($role_segment . '/mumineendirectory');
+
+  $view_member_base = 'admin/viewmember/';
+  if ($this->session->userdata('role') === 'amilsaheb' || (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 2)) {
+    $view_member_base = 'amilsaheb/viewmember/';
+  } else if ($this->session->userdata('role') === 'MasoolMusaid' || (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 16)) {
+    $view_member_base = 'MasoolMusaid/viewmember/';
+  }
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -167,6 +174,10 @@
 
   .action-btn {
     min-width: 80px;
+  }
+
+  #userData tbody tr {
+    cursor: pointer;
   }
 
   @media (max-width: 768px) {
@@ -484,6 +495,8 @@
 
   const originalData = <?= json_encode($users) ?>;
   const sectorIncharges = <?= json_encode($stats['Sectors'] ?? []) ?>;
+  const loggedInSector = '<?= isset($current_sector) ? $current_sector : "" ?>';
+  const loggedInSubSector = '<?= isset($current_sub_sector) ? $current_sub_sector : "" ?>';
 
   function escapeHtml(str) {
     if (!str) return '';
@@ -498,6 +511,7 @@
   }
   let sortDirection = {};
   let currentSectorFilter = null;
+  let currentSubSectorFilter = null;
   let currentStatusFilter = null;
 
   // Initialize the page
@@ -516,6 +530,11 @@
     // Apply sector filter if active
     if (currentSectorFilter) {
       filtered = filtered.filter(user => user.Sector === currentSectorFilter);
+    }
+
+    // Apply sub-sector filter if active
+    if (currentSubSectorFilter) {
+      filtered = filtered.filter(user => user.Sub_Sector === currentSubSectorFilter);
     }
 
     // Apply status filter if active
@@ -640,6 +659,9 @@
       if (currentSectorFilter) {
         params.set('sector', currentSectorFilter);
       }
+      if (currentSubSectorFilter) {
+        params.set('subsector', currentSubSectorFilter);
+      }
       
       link.href = baseDirUrl + '?' + params.toString();
     }
@@ -704,6 +726,7 @@
 
   function resetFiltersAndStats() {
     currentSectorFilter = null;
+    currentSubSectorFilter = null;
     currentStatusFilter = null;
     document.getElementById('searchInput').value = '';
     document.getElementById('statusFilter').value = '';
@@ -726,36 +749,128 @@
     container.innerHTML = '';
 
     const inchargeMap = {};
+    const subInchargeMap = {};
+    
     sectorIncharges.forEach(item => {
       const secName = item.Sector || 'Unknown';
       inchargeMap[secName.toLowerCase()] = item;
+      
+      const subs = item.sub_sectors || [];
+      subs.forEach(sub => {
+        const subKey = `${secName.toLowerCase()}_${(sub.Sub_Sector || '').toLowerCase()}`;
+        subInchargeMap[subKey] = sub;
+      });
     });
 
-    // Sort sectors by total count descending
-    const sortedSectors = sectorIncharges.filter(item => {
-      const sec = (item.Sector || '').trim();
-      return sec !== '' && sec.toLowerCase() !== 'unassigned';
-    });
-    sortedSectors.sort((a, b) => {
-      const totalA = parseInt(a.total || 0);
-      const totalB = parseInt(b.total || 0);
-      return totalB - totalA;
-    });
+    let cardsToRender = [];
 
-    sortedSectors.forEach(itemData => {
-      const sector = itemData.Sector || 'Unknown';
-      const inchargeName = itemData.Sector_Incharge_Name || '';
-      const subSectors = itemData.sub_sectors || [];
-      const hof = parseInt(itemData.hof_count || 0);
-      const fm = parseInt(itemData.fm_count || 0);
-      const cid = 'collapseSectorIncharge_' + sector.replace(/[^a-zA-Z0-9]/g, '_');
+    if (loggedInSector) {
+      // It's a sector or sub-sector login: show sub-sectors under loggedInSector
+      const subSectorsFound = new Set();
+      
+      // 1. Check originalData (members actually in this scope)
+      originalData.forEach(u => {
+        if ((u.Sector || '').toLowerCase() === loggedInSector.toLowerCase()) {
+          const sub = (u.Sub_Sector || '').trim();
+          if (sub) {
+            subSectorsFound.add(sub);
+          }
+        }
+      });
+      
+      // 2. Check subInchargeMap for any other defined sub-sectors under loggedInSector
+      Object.keys(subInchargeMap).forEach(key => {
+        if (key.startsWith(loggedInSector.toLowerCase() + '_')) {
+          const subName = subInchargeMap[key].Sub_Sector;
+          if (subName) {
+            subSectorsFound.add(subName);
+          }
+        }
+      });
+
+      // Filter subSectorsFound if a specific loggedInSubSector is set
+      let subSectorsList = Array.from(subSectorsFound);
+      if (loggedInSubSector) {
+        subSectorsList = subSectorsList.filter(s => s.toLowerCase() === loggedInSubSector.toLowerCase());
+      }
+      
+      // Sort sub-sectors alphabetically
+      subSectorsList.sort();
+
+      subSectorsList.forEach(subName => {
+        // Calculate counts dynamically from originalData
+        const members = originalData.filter(u => 
+          (u.Sector || '').toLowerCase() === loggedInSector.toLowerCase() && 
+          (u.Sub_Sector || '').toLowerCase() === subName.toLowerCase()
+        );
+        const hof = members.filter(u => u.HOF_FM_TYPE === 'HOF').length;
+        const fm = members.filter(u => u.HOF_FM_TYPE === 'FM').length;
+        
+        const subKey = `${loggedInSector.toLowerCase()}_${subName.toLowerCase()}`;
+        const subInchargeInfo = subInchargeMap[subKey] || {};
+        
+        cardsToRender.push({
+          type: 'subsector',
+          displayName: loggedInSector + ' ' + subName,
+          Sector: loggedInSector,
+          Sub_Sector: subName,
+          hof: hof,
+          fm: fm,
+          inchargeName: subInchargeInfo.Sub_Sector_Incharge_Name || '',
+          inchargeFemaleName: subInchargeInfo.Sub_Sector_Incharge_Female_Name || ''
+        });
+      });
+    } else {
+      // Admin/Amilsaheb/Umoor: show all sectors
+      const sortedSectors = sectorIncharges.filter(item => {
+        const sec = (item.Sector || '').trim();
+        return sec !== '' && sec.toLowerCase() !== 'unassigned';
+      });
+      sortedSectors.sort((a, b) => {
+        const totalA = parseInt(a.total || 0);
+        const totalB = parseInt(b.total || 0);
+        return totalB - totalA;
+      });
+
+      sortedSectors.forEach(itemData => {
+        const sector = itemData.Sector || 'Unknown';
+        const inchargeName = itemData.Sector_Incharge_Name || '';
+        const inchargeFemaleName = itemData.Sector_Incharge_Female_Name || '';
+        const subSectors = itemData.sub_sectors || [];
+        const hof = parseInt(itemData.hof_count || 0);
+        const fm = parseInt(itemData.fm_count || 0);
+
+        cardsToRender.push({
+          type: 'sector',
+          displayName: sector,
+          Sector: sector,
+          Sub_Sector: null,
+          hof: hof,
+          fm: fm,
+          inchargeName: inchargeName,
+          inchargeFemaleName: inchargeFemaleName,
+          sub_sectors: subSectors
+        });
+      });
+    }
+
+    cardsToRender.forEach(itemData => {
+      const cid = 'collapseSectorIncharge_' + itemData.displayName.replace(/[^a-zA-Z0-9]/g, '_');
 
       const colDiv = document.createElement('div');
       colDiv.className = 'col-12 col-md-3 mb-3';
 
       const cardDiv = document.createElement('div');
-      cardDiv.className = `overview-card ${currentSectorFilter === sector ? 'active' : ''}`;
-      cardDiv.dataset.sector = sector;
+      
+      const isCardActive = (itemData.type === 'subsector') 
+        ? (currentSectorFilter === itemData.Sector && currentSubSectorFilter === itemData.Sub_Sector)
+        : (currentSectorFilter === itemData.Sector && !currentSubSectorFilter);
+
+      cardDiv.className = `overview-card ${isCardActive ? 'active' : ''}`;
+      cardDiv.dataset.sector = itemData.Sector;
+      if (itemData.Sub_Sector) {
+        cardDiv.dataset.subsector = itemData.Sub_Sector;
+      }
       cardDiv.style.cssText = `
         display: flex;
         flex-direction: column;
@@ -778,20 +893,27 @@
 
       const titleSpan = document.createElement('span');
       titleSpan.className = 'overview-title';
-      titleSpan.textContent = sector;
+      titleSpan.textContent = itemData.displayName;
 
       let inchargeHtml = '';
-      if (inchargeName) {
-        inchargeHtml = `<div style="font-size:.74rem;color:var(--text-3);margin:4px 0;"><i class="fa fa-male" style="color:#1d4ed8;margin-right:3px;"></i>${escapeHtml(inchargeName)}</div>`;
+      if (itemData.inchargeName || itemData.inchargeFemaleName) {
+        inchargeHtml = '<div style="font-size:.74rem;color:var(--text-3);margin:4px 0;text-align:left;">';
+        if (itemData.inchargeName) {
+          inchargeHtml += `<div style="margin-bottom:2px;"><i class="fa fa-male" style="color:#1d4ed8;margin-right:4px;"></i>${escapeHtml(itemData.inchargeName)}</div>`;
+        }
+        if (itemData.inchargeFemaleName) {
+          inchargeHtml += `<div><i class="fa fa-female" style="color:#9d174d;margin-right:4px;"></i>${escapeHtml(itemData.inchargeFemaleName)}</div>`;
+        }
+        inchargeHtml += '</div>';
       }
 
       const valueSpan = document.createElement('span');
       valueSpan.className = 'overview-value';
       valueSpan.style.cssText = 'font-size:.95rem; font-weight: 800; color: var(--text-1); margin-top: 4px;';
-      valueSpan.innerHTML = `HOF ${hof} &nbsp;·&nbsp; FM ${fm}`;
+      valueSpan.innerHTML = `HOF ${itemData.hof} &nbsp;·&nbsp; FM ${itemData.fm}`;
 
       bodyDiv.appendChild(titleSpan);
-      if (inchargeName) {
+      if (itemData.inchargeName || itemData.inchargeFemaleName) {
         const temp = document.createElement('div');
         temp.innerHTML = inchargeHtml;
         bodyDiv.appendChild(temp.firstElementChild);
@@ -804,11 +926,34 @@
 
       mainLink.onclick = (e) => {
         e.stopPropagation();
-        currentSectorFilter = currentSectorFilter === sector ? null : sector;
+        if (itemData.type === 'subsector') {
+          if (currentSectorFilter === itemData.Sector && currentSubSectorFilter === itemData.Sub_Sector) {
+            currentSectorFilter = null;
+            currentSubSectorFilter = null;
+          } else {
+            currentSectorFilter = itemData.Sector;
+            currentSubSectorFilter = itemData.Sub_Sector;
+          }
+        } else {
+          if (currentSectorFilter === itemData.Sector) {
+            currentSectorFilter = null;
+            currentSubSectorFilter = null;
+          } else {
+            currentSectorFilter = itemData.Sector;
+            currentSubSectorFilter = null;
+          }
+        }
         
         // Toggle active style on cards
         document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(card => {
-          if (card.dataset.sector === currentSectorFilter) {
+          const cardSec = card.dataset.sector;
+          const cardSub = card.dataset.subsector || '';
+          
+          const isFilterActive = (itemData.type === 'subsector') 
+            ? (cardSec === currentSectorFilter && cardSub === currentSubSectorFilter)
+            : (cardSec === currentSectorFilter && !currentSubSectorFilter);
+            
+          if (isFilterActive) {
             card.classList.add('active');
           } else {
             card.classList.remove('active');
@@ -818,7 +963,73 @@
         performSearch();
       };
 
-      if (subSectors.length > 0 || inchargeName) {
+      // Calculate status counts for this card's scope
+      const cardMembers = originalData.filter(user => {
+        const isSectorMatch = (user.Sector || '').toLowerCase() === itemData.Sector.toLowerCase();
+        if (!isSectorMatch) return false;
+        if (itemData.type === 'subsector') {
+          return (user.Sub_Sector || '').toLowerCase() === (itemData.Sub_Sector || '').toLowerCase();
+        }
+        return true;
+      });
+
+      const statusCounts = {};
+      const possibleStatuses = [
+        'Will attend all 9 Days',
+        'Not answering calls or messages',
+        "Musaaid didn't Contacted Yet",
+        'Will attend few Days only',
+        'Will not attend any Day',
+        'Ashara with Maula tus'
+      ];
+      possibleStatuses.forEach(st => statusCounts[st] = 0);
+
+      cardMembers.forEach(user => {
+        let st = user.LeaveStatus || "Musaaid didn't Contacted Yet";
+        if (st === 'Unknown') st = "Musaaid didn't Contacted Yet";
+        if (['bed ridden', 'not in town', 'married outcaste', 'wafaat'].includes(st.toLowerCase().trim())) {
+          return;
+        }
+        if (statusCounts[st] !== undefined) {
+          statusCounts[st]++;
+        } else {
+          statusCounts[st] = 1;
+        }
+      });
+
+      let statusHtml = '<div style="margin-top:8px; padding-top:8px; border-top:1.5px dashed var(--border-light); font-size:.74rem; text-align:left;">';
+      const statusLabelsMap = {
+        'Will attend all 9 Days': { short: 'All 9 Days', color: '#1a6645', bg: '#eaf4ee' },
+        'Ashara with Maula tus': { short: 'With Maula', color: '#b8860b', bg: '#f5e9c0' },
+        'Will attend few Days only': { short: 'Few Days', color: '#b45309', bg: '#fff7ed' },
+        "Musaaid didn't Contacted Yet": { short: 'Uncontacted', color: '#4b5563', bg: '#f3f4f6' },
+        'Not answering calls or messages': { short: 'No Answer', color: '#b91c1c', bg: '#fef2f2' },
+        'Will not attend any Day': { short: 'Not Attending', color: '#b91c1c', bg: '#fef2f2' }
+      };
+
+      let statusShown = false;
+      Object.keys(statusLabelsMap).forEach(st => {
+        const cnt = statusCounts[st] || 0;
+        if (cnt > 0) {
+          statusShown = true;
+          const cfg = statusLabelsMap[st];
+          statusHtml += `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="color:var(--text-2); font-weight:600;">${cfg.short}</span>
+              <span style="background:${cfg.bg}; color:${cfg.color}; font-weight:800; padding:1px 6px; border-radius:10px; font-size:.65rem; min-width:20px; text-align:center;">${cnt}</span>
+            </div>
+          `;
+        }
+      });
+      statusHtml += '</div>';
+
+      if (statusShown) {
+        const temp = document.createElement('div');
+        temp.innerHTML = statusHtml;
+        cardDiv.appendChild(temp.firstElementChild);
+      }
+
+      if (itemData.type === 'sector' && (itemData.sub_sectors.length > 0 || itemData.inchargeName)) {
         const collapseWrapper = document.createElement('div');
         collapseWrapper.style.cssText = 'margin-top:8px;border-top:1px solid var(--border-light);padding-top:5px;width:100%;';
         
@@ -835,7 +1046,7 @@
         collapseContent.id = cid;
 
         let listHtml = '<ul style="list-style:none;padding:5px 0 0;margin:0;font-size:.75rem;color:var(--text-2);">';
-        subSectors.forEach(sub => {
+        itemData.sub_sectors.forEach(sub => {
           listHtml += `<li style="padding:5px 6px;background:var(--bg);border-radius:6px;margin-bottom:3px;text-align:left;">
             <strong>${escapeHtml(sub.Sub_Sector)}</strong><br>`;
           if (sub.Sub_Sector_Incharge_Name) {
@@ -845,6 +1056,8 @@
             listHtml += `<i class="fa fa-female" style="color:#9d174d;margin-right:3px;"></i>${escapeHtml(sub.Sub_Sector_Incharge_Female_Name)}`;
           }
           listHtml += '</li>';
+        });
+        itemData.sub_sectors.forEach(sub => {
         });
         listHtml += '</ul>';
         collapseContent.innerHTML = listHtml;
@@ -999,6 +1212,13 @@
       btn.textContent = 'Edit';
       btn.onclick = () => openModal(user);
       actionCell.appendChild(btn);
+
+      // Make the whole row clickable except action buttons
+      row.addEventListener('click', function(e) {
+        if (!e.target.closest('a, button, input, select, textarea, label')) {
+          window.location.href = '<?php echo base_url($view_member_base); ?>' + user.ITS;
+        }
+      });
     });
   }
 

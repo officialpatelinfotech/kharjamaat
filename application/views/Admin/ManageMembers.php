@@ -15,6 +15,7 @@
   .mm-actions .mm-edit-btn { width:32px; height:32px; padding:0; display:inline-flex; justify-content:center; align-items:center; }
   .mm-actions i { font-size:14px; }
   @media (max-width: 576px){ .mm-actions { gap:4px; } }
+  tr[data-full_name] { cursor: pointer; }
 </style>
 <div class="container margintopcontainer pt-5 mb-5">
   <div class="mm-header mb-3 w-100">
@@ -251,7 +252,7 @@
           </tr>
           <?php foreach($rows as $r): ?>
             <?php $isHof = (($r['HOF_FM_TYPE'] ?? '') === 'HOF'); ?>
-            <tr data-hof="<?php echo htmlspecialchars($hofId); ?>" data-full_name="<?php echo htmlspecialchars($r['Full_Name'] ?? ''); ?>" data-sector="<?php echo htmlspecialchars($r['Sector'] ?? ''); ?>" data-sub_sector="<?php echo htmlspecialchars($r['Sub_Sector'] ?? ''); ?>" data-age="<?php echo isset($r['Age']) && $r['Age'] !== null && $r['Age'] !== '' ? (int)$r['Age'] : ''; ?>">
+            <tr data-its="<?php echo htmlspecialchars($r['ITS_ID'] ?? ''); ?>" data-hof="<?php echo htmlspecialchars($hofId); ?>" data-full_name="<?php echo htmlspecialchars($r['Full_Name'] ?? ''); ?>" data-sector="<?php echo htmlspecialchars($r['Sector'] ?? ''); ?>" data-sub_sector="<?php echo htmlspecialchars($r['Sub_Sector'] ?? ''); ?>" data-age="<?php echo isset($r['Age']) && $r['Age'] !== null && $r['Age'] !== '' ? (int)$r['Age'] : ''; ?>">
                 <td><?php echo $rowIndex++; ?></td>
                 <td>
                   <div class="d-flex justify-content-between align-items-center">
@@ -353,6 +354,19 @@
           tbody.appendChild(r);
         });
       });
+    });
+
+    // Clickable rows for member rows in ManageMembers
+    tbody.addEventListener('click', e => {
+      const tr = e.target.closest('tr[data-full_name]');
+      if (!tr) return;
+      if (e.target.closest('button, a, input, select, option, label, form')) {
+        return;
+      }
+      const its = tr.getAttribute('data-its');
+      if (its) {
+        window.location.href = '<?php echo base_url("admin/viewmember/"); ?>' + its;
+      }
     });
   });
 </script>

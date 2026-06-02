@@ -607,4 +607,65 @@ class Umoor extends CI_Controller
     $this->load->view('Umoor/Header', $data);
     $this->load->view('MasoolMusaid/AsharaAttendance', $data);
   }
+  public function mumineendirectory()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15)) {
+      redirect('/accounts');
+    }
+
+    $get = $this->input->get();
+    if (!empty($get)) {
+      $data['users'] = $this->AmilsahebM->get_users_filtered($get);
+    } elseif ($this->input->post('search')) {
+      $keyword = $this->input->post('search');
+      $data['users'] = $this->AmilsahebM->get_users_filtered(['name' => $keyword]);
+    } else {
+      $data['users'] = $this->AmilsahebM->get_all_users();
+    }
+    $data['all_users'] = $this->AmilsahebM->get_all_users();
+
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $hijri_parts = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts[2];
+    $current_hijri_month = (int)$hijri_parts[1];
+    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year);
+
+    $ohbat_rows = $this->db->where('year', $selected_year)->get('ashara_ohbat')->result_array();
+    $ohbat_map = [];
+    foreach ($ohbat_rows as $row) {
+      $ohbat_map[$row['ITS']] = $row['LeaveStatus'];
+    }
+
+    if (isset($data['users']) && is_array($data['users'])) {
+      foreach ($data['users'] as &$u) {
+        $its = is_object($u)
+          ? (isset($u->ITS_ID) ? $u->ITS_ID : (isset($u->ITS) ? $u->ITS : null))
+          : (isset($u['ITS_ID']) ? $u['ITS_ID'] : (isset($u['ITS']) ? $u['ITS'] : null));
+        $val = isset($ohbat_map[$its]) && !empty($ohbat_map[$its]) ? $ohbat_map[$its] : "Musaaid didn't Contacted Yet";
+        if (is_object($u)) $u->LeaveStatus = $val;
+        else $u['LeaveStatus'] = $val;
+      }
+      unset($u);
+    }
+
+    if (isset($data['all_users']) && is_array($data['all_users'])) {
+      foreach ($data['all_users'] as &$u) {
+        $its = is_object($u)
+          ? (isset($u->ITS_ID) ? $u->ITS_ID : (isset($u->ITS) ? $u->ITS : null))
+          : (isset($u['ITS_ID']) ? $u['ITS_ID'] : (isset($u['ITS']) ? $u['ITS'] : null));
+        $val = isset($ohbat_map[$its]) && !empty($ohbat_map[$its]) ? $ohbat_map[$its] : "Musaaid didn't Contacted Yet";
+        if (is_object($u)) $u->LeaveStatus = $val;
+        else $u['LeaveStatus'] = $val;
+      }
+      unset($u);
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['is_umoor'] = true;
+
+    $this->load->view('Umoor/Header', $data);
+    $this->load->view('MasoolMusaid/Mumineendirectory', $data);
+  }
 }

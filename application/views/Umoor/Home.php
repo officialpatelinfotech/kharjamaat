@@ -278,7 +278,7 @@
 
       <?php
       $actions = [
-        ['url' => base_url('Umoor/RazaRequest'),          'icon' => 'fa fa-hand-o-up',        'label' => 'Raza Request',         'bg' => '#8e44ad'],
+        ['url' => base_url('Umoor/Mumineendirectory'),     'icon' => 'fa fa-address-book',     'label' => 'Mumineen Directory',    'bg' => '#8e44ad'],
         ['url' => base_url('umoor/asharaohbat'),           'icon' => 'fa fa-calendar',          'label' => 'Ashara Ohbat',         'bg' => '#d97706'],
         ['url' => base_url('umoor/ashara_attendance'),     'icon' => 'fa fa-calendar-check-o',  'label' => 'Ashara Attendance',    'bg' => '#870000'],
         

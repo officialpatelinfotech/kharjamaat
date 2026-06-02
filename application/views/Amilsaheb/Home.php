@@ -530,8 +530,8 @@
           </h1>
         </div>
         <div class="dash-header-badge">
-          <span class="badge-val"><?= (int)(($stats['active_inactive']['active'] ?? 0) + ($stats['active_inactive']['inactive'] ?? 0)) ?></span>
-          <span class="badge-lbl">Total Members</span>
+          <span class="badge-val"><?= (int)($stats['active_inactive']['active'] ?? 0) ?></span>
+          <span class="badge-lbl">Active Members</span>
         </div>
       </div>
     </div>

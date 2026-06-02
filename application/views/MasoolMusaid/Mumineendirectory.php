@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
-.mumineen-container { max-width:1200px; margin:0 auto; padding:1.5rem; }
+.mumineen-container { max-width:1500px; margin:0 auto; padding:1.5rem; }
 .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
 
 /* Filter card */
@@ -125,7 +125,8 @@ th.sortable.asc  .sort-icon::after { content:'▲'; }
 th.sortable.desc .sort-icon::after { content:'▼'; }
 th.sortable:not(.asc):not(.desc) .sort-icon::after { content:'⇅'; opacity:.4; }
 
-table.dir tbody tr { border-bottom:1px solid #f1f5f9; transition:background .1s; }
+.mumineen-container:not(.umoor-view) table.dir tbody tr { border-bottom:1px solid #f1f5f9; transition:background .1s; cursor: pointer; }
+.mumineen-container.umoor-view table.dir tbody tr { border-bottom:1px solid #f1f5f9; transition:background .1s; }
 table.dir tbody tr:hover { background:#f8fbff; }
 table.dir td { padding:8px 12px; vertical-align:middle; }
 tr.hof-row td { background:#eff6ff; font-weight:700; border-top:2px solid #bfdbfe; }
@@ -154,8 +155,9 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
 </style>
 
 <?php
+  $is_umoor = isset($is_umoor) ? $is_umoor : (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15);
   $view_base = 'admin/viewmember/';
-  $back_fallback = 'amilsaheb';
+  $back_fallback = $is_umoor ? 'umoor' : 'amilsaheb';
   if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 2) {
     $view_base = 'amilsaheb/viewmember/';
     $back_fallback = 'amilsaheb';
@@ -163,10 +165,10 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
     $view_base = 'MasoolMusaid/viewmember/';
     $back_fallback = 'MasoolMusaid';
   }
-  $can_edit = isset($_SESSION['user']['role']) && in_array($_SESSION['user']['role'], [1, 3]);
+  $can_edit = !$is_umoor && isset($_SESSION['user']['role']) && in_array($_SESSION['user']['role'], [1, 3]);
 ?>
 
-<div class="mumineen-container pt-5">
+<div class="mumineen-container pt-5 <?= $is_umoor ? 'umoor-view' : '' ?>">
 
   <!-- Top bar -->
   <div class="top-bar pt-3">
@@ -229,7 +231,7 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
         <div class="filter-section-label" id="secLabel2"><i class="fa fa-user" style="color:#8b5cf6;"></i> Member Details</div>
         <div class="frow frow-4" id="secRow2">
           <div>
-            <label class="flabel">Member Status</label>
+            <label class="flabel">Active Inactive Status</label>
             <select id="fStatus" class="fselect">
               <option value="">All</option>
               <option value="Active">Active</option>
@@ -368,7 +370,10 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
           <th class="sortable" data-col="health_status">Health <span class="sort-icon"></span></th>
           <th class="sortable" data-col="deeni_status">Deeni <span class="sort-icon"></span></th>
           <th class="sortable" data-col="residential_status">Residential <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="sort-icon"></span></th>
+          <?php if (!$is_umoor): ?>
           <th>Actions</th>
+          <?php endif; ?>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -383,6 +388,13 @@ const ALL_DATA = <?= json_encode(isset($all_users) ? $all_users : $users) ?>;
 const VIEW_URL = '<?= base_url($view_base) ?>';
 const EDIT_URL = '<?= base_url('admin/editmember/') ?>';
 const CAN_EDIT = <?= $can_edit ? 'true' : 'false' ?>;
+const IS_UMOOR = <?= $is_umoor ? 'true' : 'false' ?>;
+const ITS_MATCH_LABELS = {
+  its_sabeel_both_khar: 'ITS & Sabeel both in Khar',
+  its_khar_sabeel_out: 'ITS in Khar, Sabeel out',
+  sabeel_khar_its_out: 'Sabeel in Khar, ITS out',
+  both_not_khar: 'Both not in Khar'
+};
 
 let filtered  = [...ALL_DATA];
 let sortCol   = null, sortDir = 'asc';
@@ -793,7 +805,7 @@ function renderTable() {
   tbody.innerHTML = '';
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="12"><i class="fa fa-search"></i> No members found.</td></tr>';
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="${IS_UMOOR ? 12 : 13}"><i class="fa fa-search"></i> No members found.</td></tr>`;
     return;
   }
 
@@ -808,7 +820,7 @@ function renderTable() {
       : act === 'temporary' ? '<span class="badge-temp">Temporary</span>'
       : '<span class="badge-inactive">Inactive</span>';
 
-    return `<td style="color:#9ca3af;font-weight:600;font-size:.78rem;">${rowNum}</td>` +
+    let html = `<td style="color:#9ca3af;font-weight:600;font-size:.78rem;">${rowNum}</td>` +
       `<td><div style="font-weight:${isHOF?700:500};">${esc(u.Full_Name||'')}` +
         (isHOF ? '<span class="pill-hof">HOF</span>' : '<span class="pill-fm">FM</span>') +
       `</div></td>` +
@@ -821,15 +833,21 @@ function renderTable() {
       `<td style="font-size:.75rem;">${esc(u.health_status||'—')}</td>` +
       `<td style="font-size:.75rem;">${esc(u.deeni_status||'—')}</td>` +
       `<td style="font-size:.75rem;">${esc(u.residential_status||'—')}</td>` +
-      `<td>` +
+      `<td style="font-size:.75rem;">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>`;
+
+    if (!IS_UMOOR) {
+      html += `<td>` +
         `<a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>` +
         (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}?redirect=${redirectParam}" class="act-btn act-edit ms-1" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
       `</td>`;
+    }
+    return html;
   }
 
   if (sortCol) {
     filtered.forEach((u, i) => {
       const tr = tbody.insertRow();
+      tr.dataset.its = u.ITS_ID;
       if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') tr.className = 'hof-row';
       tr.innerHTML = rowHTML(u, i + 1);
     });
@@ -853,10 +871,11 @@ function renderTable() {
     if (gi > 0) {
       const sep = tbody.insertRow();
       sep.className = 'family-sep';
-      sep.innerHTML = '<td colspan="12"></td>';
+      sep.innerHTML = `<td colspan="${IS_UMOOR ? 12 : 13}"></td>`;
     }
     grp.members.forEach(u => {
       const tr = tbody.insertRow();
+      tr.dataset.its = u.ITS_ID;
       if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') tr.className = 'hof-row';
       tr.innerHTML = rowHTML(u, idx++);
     });
@@ -865,10 +884,6 @@ function renderTable() {
 
 // ── Chips ─────────────────────────────────────────────────────────────────────
 function renderChips() {
-  const ITS_L = {
-    its_sabeel_both_khar:'ITS & Sabeel in Khar', its_khar_sabeel_out:'ITS in Khar',
-    sabeel_khar_its_out:'Sabeel in Khar', both_not_khar:'Both Not in Khar',
-  };
   const defs = [
     ['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],
     ['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],
@@ -900,7 +915,7 @@ function renderChips() {
     if (!el || !el.value) return;
     any = true;
     const display = id === 'fHOF'      ? (el.options[el.selectedIndex]?.text || el.value)
-                  : id === 'fItsMatch' ? (ITS_L[el.value] || el.value)
+                  : id === 'fItsMatch' ? (ITS_MATCH_LABELS[el.value] || el.value)
                   : el.value;
     const chip = document.createElement('span');
     chip.className = 'chip';
@@ -1027,5 +1042,19 @@ document.querySelectorAll('th.sortable').forEach(th => {
     applySortToFiltered();
     renderTable();
   });
+});
+
+// Clickable rows for Mumineen directory table
+document.querySelector('table.dir tbody').addEventListener('click', e => {
+  if (IS_UMOOR) return;
+  const tr = e.target.closest('tr');
+  if (!tr || tr.classList.contains('family-sep') || tr.classList.contains('empty-row')) return;
+  if (e.target.closest('button, a, input, select, option, label') || e.target.classList.contains('act-btn')) {
+    return;
+  }
+  const its = tr.dataset.its;
+  if (its) {
+    window.location.href = VIEW_URL + its;
+  }
 });
 </script>

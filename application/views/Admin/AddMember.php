@@ -1195,8 +1195,38 @@ function fval($m, $k)
 
     /* Sector / Sub-sector */
     var sectorMap = <?php echo json_encode($sector_map ?? []); ?>;
+    var inchargesMap = <?php echo json_encode($incharges_map ?? []); ?>;
     var sectorSel = document.getElementById('sectorSelect');
     var subSel = document.getElementById('subSectorSelect');
+
+    function setValByName(name, val) {
+      var el = document.getElementsByName(name)[0];
+      if (el) el.value = val;
+    }
+
+    function updateIncharges() {
+      var selectedSector = sectorSel ? sectorSel.value : '';
+      var selectedSubSector = subSel ? subSel.value : '';
+
+      var sectorIncharge = (inchargesMap && inchargesMap.sectors) 
+        ? inchargesMap.sectors.find(function(s) { return s.Sector === selectedSector; }) 
+        : null;
+      
+      setValByName('Sector_Incharge_ITSID', (sectorIncharge && sectorIncharge.Sector_Incharge_ITSID) || '');
+      setValByName('Sector_Incharge_Name', (sectorIncharge && sectorIncharge.Sector_Incharge_Name) || '');
+      setValByName('Sector_Incharge_Female_ITSID', (sectorIncharge && sectorIncharge.Sector_Incharge_Female_ITSID) || '');
+      setValByName('Sector_Incharge_Female_Name', (sectorIncharge && sectorIncharge.Sector_Incharge_Female_Name) || '');
+
+      var subSectorIncharge = (inchargesMap && inchargesMap.sub_sectors) 
+        ? inchargesMap.sub_sectors.find(function(s) { return s.Sector === selectedSector && s.Sub_Sector === selectedSubSector; }) 
+        : null;
+
+      setValByName('Sub_Sector_Incharge_ITSID', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_ITSID) || '');
+      setValByName('Sub_Sector_Incharge_Name', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_Name) || '');
+      setValByName('Sub_Sector_Incharge_Female_ITSID', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_Female_ITSID) || '');
+      setValByName('Sub_Sector_Incharge_Female_Name', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_Female_Name) || '');
+    }
+
     if (sectorSel) {
       sectorSel.addEventListener('change', function () {
         subSel.innerHTML = '<option value="">-- Select Sub Sector --</option>';
@@ -1209,6 +1239,13 @@ function fval($m, $k)
           });
           subSel.disabled = false;
         }
+        updateIncharges();
+      });
+    }
+
+    if (subSel) {
+      subSel.addEventListener('change', function () {
+        updateIncharges();
       });
     }
 
@@ -1335,6 +1372,30 @@ function fval($m, $k)
                     hofInput.value = item.Full_Name + ' (' + item.ITS_ID + ')';
                     hofList.style.display = 'none';
                     hofList.innerHTML = '';
+                    if (item.Sector) {
+                      if (sectorSel) {
+                        sectorSel.value = item.Sector;
+                        subSel.innerHTML = '<option value="">-- Select Sub Sector --</option>';
+                        subSel.disabled = true;
+                        if (sectorMap[item.Sector]) {
+                          sectorMap[item.Sector].forEach(function (ss) {
+                            var o = document.createElement('option');
+                            o.value = ss; o.textContent = ss;
+                            if (ss === item.Sub_Sector) o.selected = true;
+                            subSel.appendChild(o);
+                          });
+                          subSel.disabled = false;
+                        }
+                      }
+                      setValByName('Sector_Incharge_ITSID', item.Sector_Incharge_ITSID || '');
+                      setValByName('Sector_Incharge_Name', item.Sector_Incharge_Name || '');
+                      setValByName('Sector_Incharge_Female_ITSID', item.Sector_Incharge_Female_ITSID || '');
+                      setValByName('Sector_Incharge_Female_Name', item.Sector_Incharge_Female_Name || '');
+                      setValByName('Sub_Sector_Incharge_ITSID', item.Sub_Sector_Incharge_ITSID || '');
+                      setValByName('Sub_Sector_Incharge_Name', item.Sub_Sector_Incharge_Name || '');
+                      setValByName('Sub_Sector_Incharge_Female_ITSID', item.Sub_Sector_Incharge_Female_ITSID || '');
+                      setValByName('Sub_Sector_Incharge_Female_Name', item.Sub_Sector_Incharge_Female_Name || '');
+                    }
                   });
                   hofList.appendChild(btn);
                 });

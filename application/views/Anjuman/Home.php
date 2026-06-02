@@ -486,8 +486,8 @@ if (!function_exists('format_inr')) {
           </h1>
         </div>
         <div class="anj-badge">
-          <span class="anj-badge-val"><?= (int)(($stats['active_inactive']['active'] ?? 0) + ($stats['active_inactive']['inactive'] ?? 0)) ?></span>
-          <span class="anj-badge-lbl">Total Members</span>
+          <span class="anj-badge-val"><?= (int)($stats['active_inactive']['active'] ?? 0) ?></span>
+          <span class="anj-badge-lbl">Active Members</span>
         </div>
       </div>
     </div>

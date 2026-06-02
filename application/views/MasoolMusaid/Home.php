@@ -355,8 +355,8 @@
         </h1>
       </div>
       <div class="mm-badge" style="border-radius:14px; padding:10px 16px;">
-        <span class="badge-val" style="font-size:1.5rem; font-weight:800; color:#fff; line-height:1; display:block;"><?= (int)(($stats['active_inactive']['active'] ?? 0) + ($stats['active_inactive']['inactive'] ?? 0)) ?></span>
-        <span class="mm-badge-lbl" style="font-size:.65rem; font-weight:700; color:rgba(255,255,255,.65); letter-spacing:.5px; text-transform:uppercase; margin-top:3px; display:block;">Total Members</span>
+        <span class="badge-val" style="font-size:1.5rem; font-weight:800; color:#fff; line-height:1; display:block;"><?= (int)($stats['active_inactive']['active'] ?? 0) ?></span>
+        <span class="mm-badge-lbl" style="font-size:.65rem; font-weight:700; color:rgba(255,255,255,.65); letter-spacing:.5px; text-transform:uppercase; margin-top:3px; display:block;">Active Members</span>
       </div>
     </div>
 

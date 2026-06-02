@@ -354,6 +354,77 @@ if (empty($redirect)) {
           </div>
         </div>
 
+        <!-- Sector Hierarchy -->
+        <div class="group-section">
+          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
+            data-group-target="group-sector">
+            <span class="small fw-semibold text-uppercase">Sector Hierarchy</span><span class="toggle-indicator">+</span>
+          </div>
+          <div id="group-sector" class="group-body collapsed border-start border-end border-bottom p-3">
+            <div class="row g-3">
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sector</label>
+                <?php $currentSector = $member['Sector'] ?? ''; ?>
+                <select class="form-control form-select form-select-sm" name="Sector" id="sectorSelectEdit">
+                  <option value="">-- Select Sector --</option>
+                  <?php if (!empty($sector_list))
+                    foreach ($sector_list as $sec): ?>
+                      <option value="<?php echo htmlspecialchars($sec); ?>" <?php echo ($sec === $currentSector) ? 'selected' : ''; ?>><?php echo htmlspecialchars($sec); ?></option>
+                    <?php endforeach; ?>
+                </select>
+              </div>
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sub Sector</label>
+                <?php $currentSub = $member['Sub_Sector'] ?? ''; ?>
+                <select class="form-control form-select form-select-sm" name="Sub_Sector" id="subSectorSelectEdit"
+                  disabled>
+                  <option value="">-- Select Sub Sector --</option>
+                </select>
+              </div>
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sector Incharge ITSID</label>
+                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_ITSID"
+                  value="<?php echo htmlspecialchars($member['Sector_Incharge_ITSID'] ?? ''); ?>">
+              </div>
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sector Incharge Name</label>
+                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_Name"
+                  value="<?php echo htmlspecialchars($member['Sector_Incharge_Name'] ?? ''); ?>">
+              </div>
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sector Incharge Female ITSID</label>
+                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_Female_ITSID"
+                  value="<?php echo htmlspecialchars($member['Sector_Incharge_Female_ITSID'] ?? ''); ?>">
+              </div>
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sector Incharge Female Name</label>
+                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_Female_Name"
+                  value="<?php echo htmlspecialchars($member['Sector_Incharge_Female_Name'] ?? ''); ?>">
+              </div>
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sub Sector Incharge ITSID</label>
+                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_ITSID"
+                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_ITSID'] ?? ''); ?>">
+              </div>
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sub Sector Incharge Name</label>
+                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_Name"
+                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Name'] ?? ''); ?>">
+              </div>
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sub Sector Incharge Female ITSID</label>
+                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_Female_ITSID"
+                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Female_ITSID'] ?? ''); ?>">
+              </div>
+              <div class="col-md-4 col-12 mb-2">
+                <label class="form-label small mb-1">Sub Sector Incharge Female Name</label>
+                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_Female_Name"
+                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Female_Name'] ?? ''); ?>">
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Marital & Personal Status -->
         <div class="group-section">
           <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
@@ -629,77 +700,6 @@ if (empty($redirect)) {
           </div>
         </div>
 
-        <!-- Sector Hierarchy -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-sector">
-            <span class="small fw-semibold text-uppercase">Sector Hierarchy</span><span class="toggle-indicator">+</span>
-          </div>
-          <div id="group-sector" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector</label>
-                <?php $currentSector = $member['Sector'] ?? ''; ?>
-                <select class="form-control form-select form-select-sm" name="Sector" id="sectorSelectEdit">
-                  <option value="">-- Select Sector --</option>
-                  <?php if (!empty($sector_list))
-                    foreach ($sector_list as $sec): ?>
-                      <option value="<?php echo htmlspecialchars($sec); ?>" <?php echo ($sec === $currentSector) ? 'selected' : ''; ?>><?php echo htmlspecialchars($sec); ?></option>
-                    <?php endforeach; ?>
-                </select>
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector</label>
-                <?php $currentSub = $member['Sub_Sector'] ?? ''; ?>
-                <select class="form-control form-select form-select-sm" name="Sub_Sector" id="subSectorSelectEdit"
-                  disabled>
-                  <option value="">-- Select Sub Sector --</option>
-                </select>
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector Incharge ITSID</label>
-                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_ITSID"
-                  value="<?php echo htmlspecialchars($member['Sector_Incharge_ITSID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector Incharge Name</label>
-                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_Name"
-                  value="<?php echo htmlspecialchars($member['Sector_Incharge_Name'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector Incharge Female ITSID</label>
-                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_Female_ITSID"
-                  value="<?php echo htmlspecialchars($member['Sector_Incharge_Female_ITSID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector Incharge Female Name</label>
-                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_Female_Name"
-                  value="<?php echo htmlspecialchars($member['Sector_Incharge_Female_Name'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector Incharge ITSID</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_ITSID"
-                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_ITSID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector Incharge Name</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_Name"
-                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Name'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector Incharge Female ITSID</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_Female_ITSID"
-                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Female_ITSID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector Incharge Female Name</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_Female_Name"
-                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Female_Name'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Verification & Scan -->
         <div class="group-section">
           <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
@@ -941,10 +941,39 @@ if (empty($redirect)) {
 
         // Sector/Sub-Sector dependent dropdown (Edit)
         var sectorMapEdit = <?php echo json_encode($sector_map ?? []); ?>;
+        var inchargesMap = <?php echo json_encode($incharges_map ?? []); ?>;
         var sectorSelectEdit = document.getElementById('sectorSelectEdit');
         var subSectorSelectEdit = document.getElementById('subSectorSelectEdit');
         var preSector = '<?php echo addslashes($member['Sector'] ?? ''); ?>';
         var preSub = '<?php echo addslashes($member['Sub_Sector'] ?? ''); ?>';
+
+        function setValByName(name, val) {
+          var el = document.getElementsByName(name)[0];
+          if (el) el.value = val;
+        }
+
+        function updateIncharges() {
+          var selectedSector = sectorSelectEdit ? sectorSelectEdit.value : '';
+          var selectedSubSector = subSectorSelectEdit ? subSectorSelectEdit.value : '';
+
+          var sectorIncharge = (inchargesMap && inchargesMap.sectors) 
+            ? inchargesMap.sectors.find(function(s) { return s.Sector === selectedSector; }) 
+            : null;
+          
+          setValByName('Sector_Incharge_ITSID', (sectorIncharge && sectorIncharge.Sector_Incharge_ITSID) || '');
+          setValByName('Sector_Incharge_Name', (sectorIncharge && sectorIncharge.Sector_Incharge_Name) || '');
+          setValByName('Sector_Incharge_Female_ITSID', (sectorIncharge && sectorIncharge.Sector_Incharge_Female_ITSID) || '');
+          setValByName('Sector_Incharge_Female_Name', (sectorIncharge && sectorIncharge.Sector_Incharge_Female_Name) || '');
+
+          var subSectorIncharge = (inchargesMap && inchargesMap.sub_sectors) 
+            ? inchargesMap.sub_sectors.find(function(s) { return s.Sector === selectedSector && s.Sub_Sector === selectedSubSector; }) 
+            : null;
+
+          setValByName('Sub_Sector_Incharge_ITSID', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_ITSID) || '');
+          setValByName('Sub_Sector_Incharge_Name', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_Name) || '');
+          setValByName('Sub_Sector_Incharge_Female_ITSID', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_Female_ITSID) || '');
+          setValByName('Sub_Sector_Incharge_Female_Name', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_Female_Name) || '');
+        }
 
         function populateSubEdit(sec) {
           subSectorSelectEdit.innerHTML = '<option value="">-- Select Sub Sector --</option>';
@@ -966,11 +995,17 @@ if (empty($redirect)) {
           sectorSelectEdit.addEventListener('change', function () {
             preSub = '';
             populateSubEdit(this.value);
+            updateIncharges();
           });
           // initial population
           if (preSector) {
             populateSubEdit(preSector);
           }
+        }
+        if (subSectorSelectEdit) {
+          subSectorSelectEdit.addEventListener('change', function () {
+            updateIncharges();
+          });
         }
 
         // Living status auto-toggle member status
@@ -1060,6 +1095,21 @@ if (empty($redirect)) {
                         hofInput.value = item.Full_Name + ' (' + item.ITS_ID + ')';
                         hofList.style.display = 'none';
                         hofList.innerHTML = '';
+                        if (item.Sector) {
+                          if (sectorSelectEdit) {
+                            sectorSelectEdit.value = item.Sector;
+                            preSub = item.Sub_Sector || '';
+                            populateSubEdit(item.Sector);
+                          }
+                          setValByName('Sector_Incharge_ITSID', item.Sector_Incharge_ITSID || '');
+                          setValByName('Sector_Incharge_Name', item.Sector_Incharge_Name || '');
+                          setValByName('Sector_Incharge_Female_ITSID', item.Sector_Incharge_Female_ITSID || '');
+                          setValByName('Sector_Incharge_Female_Name', item.Sector_Incharge_Female_Name || '');
+                          setValByName('Sub_Sector_Incharge_ITSID', item.Sub_Sector_Incharge_ITSID || '');
+                          setValByName('Sub_Sector_Incharge_Name', item.Sub_Sector_Incharge_Name || '');
+                          setValByName('Sub_Sector_Incharge_Female_ITSID', item.Sub_Sector_Incharge_Female_ITSID || '');
+                          setValByName('Sub_Sector_Incharge_Female_Name', item.Sub_Sector_Incharge_Female_Name || '');
+                        }
                       });
                       hofList.appendChild(btn);
                     });

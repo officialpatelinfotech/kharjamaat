@@ -4515,6 +4515,7 @@ HTML;
 
     $data['sector_map'] = $this->AdminM->get_sector_hierarchy();
     $data['sector_list'] = array_keys($data['sector_map']);
+    $data['incharges_map'] = $this->AdminM->get_sector_incharges_map();
     $this->load->model('MemberStatusM');
     $data['deeni_status_options']       = MemberStatusM::deeni_status_options();
     $data['residential_status_options'] = MemberStatusM::residential_status_options();
@@ -4534,7 +4535,7 @@ HTML;
 
     $q = trim((string)$this->input->get('q'));
 
-    $this->db->select('ITS_ID, Full_Name');
+    $this->db->select('ITS_ID, Full_Name, Sector, Sub_Sector, Sector_Incharge_ITSID, Sector_Incharge_Name, Sector_Incharge_Female_ITSID, Sector_Incharge_Female_Name, Sub_Sector_Incharge_ITSID, Sub_Sector_Incharge_Name, Sub_Sector_Incharge_Female_ITSID, Sub_Sector_Incharge_Female_Name');
     $this->db->from('user');
     
     $this->db->group_start();
@@ -4807,6 +4808,7 @@ HTML;
     $data['member'] = [];
     $data['sector_map'] = $this->AdminM->get_sector_hierarchy();
     $data['sector_list'] = array_keys($data['sector_map']);
+    $data['incharges_map'] = $this->AdminM->get_sector_incharges_map();
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/AddMember', $data);
   }

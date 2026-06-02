@@ -1160,6 +1160,32 @@ class AdminM extends CI_Model
       return false;
     }
 
+    // If the member is a Family Member (FM), copy HOF's sector details to this member before saving
+    $its_id = $data['ITS_ID'];
+    $hof_id = isset($data['HOF_ID']) ? $data['HOF_ID'] : null;
+    $hof_fm_type = isset($data['HOF_FM_TYPE']) ? $data['HOF_FM_TYPE'] : null;
+
+    if ($hof_fm_type === 'FM' && $hof_id && $hof_id !== $its_id) {
+      $hof = $this->get_member_by_its($hof_id);
+      if ($hof) {
+        $sector_fields = [
+          'Sector',
+          'Sub_Sector',
+          'Sector_Incharge_ITSID',
+          'Sector_Incharge_Name',
+          'Sector_Incharge_Female_ITSID',
+          'Sector_Incharge_Female_Name',
+          'Sub_Sector_Incharge_ITSID',
+          'Sub_Sector_Incharge_Name',
+          'Sub_Sector_Incharge_Female_ITSID',
+          'Sub_Sector_Incharge_Female_Name',
+        ];
+        foreach ($sector_fields as $field) {
+          $data[$field] = $hof[$field] ?? null;
+        }
+      }
+    }
+
     $this->db->trans_start();
 
     // Insert member in user table
@@ -1392,8 +1418,67 @@ class AdminM extends CI_Model
   public function update_member($its_id, $data)
   {
     if (!$its_id || empty($data)) return false;
+
+    // Check if the member is HOF
+    $member = $this->get_member_by_its($its_id);
+    $isHof = ($member && ($member['HOF_FM_TYPE'] ?? '') === 'HOF') || (isset($data['HOF_FM_TYPE']) && $data['HOF_FM_TYPE'] === 'HOF');
+
+    // If the member is a Family Member (FM), copy HOF's sector details to this member before saving
+    $hof_id = isset($data['HOF_ID']) ? $data['HOF_ID'] : ($member ? ($member['HOF_ID'] ?? null) : null);
+    $hof_fm_type = isset($data['HOF_FM_TYPE']) ? $data['HOF_FM_TYPE'] : ($member ? ($member['HOF_FM_TYPE'] ?? null) : null);
+
+    if ($hof_fm_type === 'FM' && $hof_id && $hof_id !== $its_id) {
+      $hof = $this->get_member_by_its($hof_id);
+      if ($hof) {
+        $sector_fields = [
+          'Sector',
+          'Sub_Sector',
+          'Sector_Incharge_ITSID',
+          'Sector_Incharge_Name',
+          'Sector_Incharge_Female_ITSID',
+          'Sector_Incharge_Female_Name',
+          'Sub_Sector_Incharge_ITSID',
+          'Sub_Sector_Incharge_Name',
+          'Sub_Sector_Incharge_Female_ITSID',
+          'Sub_Sector_Incharge_Female_Name',
+        ];
+        foreach ($sector_fields as $field) {
+          $data[$field] = $hof[$field] ?? null;
+        }
+      }
+    }
+
     $this->db->where('ITS_ID', $its_id);
-    return $this->db->update('user', $data);
+    $updated = $this->db->update('user', $data);
+
+    // If HOF is updated, update family members with the same sector & incharge details
+    if ($updated && $isHof) {
+      $family_fields = [
+        'Sector',
+        'Sub_Sector',
+        'Sector_Incharge_ITSID',
+        'Sector_Incharge_Name',
+        'Sector_Incharge_Female_ITSID',
+        'Sector_Incharge_Female_Name',
+        'Sub_Sector_Incharge_ITSID',
+        'Sub_Sector_Incharge_Name',
+        'Sub_Sector_Incharge_Female_ITSID',
+        'Sub_Sector_Incharge_Female_Name',
+      ];
+      $family_data = [];
+      foreach ($family_fields as $field) {
+        if (array_key_exists($field, $data)) {
+          $family_data[$field] = $data[$field];
+        }
+      }
+      if (!empty($family_data)) {
+        $this->db->where('HOF_ID', $its_id);
+        $this->db->where('HOF_FM_TYPE', 'FM');
+        $this->db->update('user', $family_data);
+      }
+    }
+
+    return $updated;
   }
 
   /**
@@ -1750,6 +1835,39 @@ class AdminM extends CI_Model
     return [
       'status' => 'success',
       'message' => 'Member created'
+    ];
+  }
+
+  public function get_sector_incharges_map()
+  {
+    // For Sectors
+    $sectors = $this->db->select('
+      Sector, 
+      MAX(Sector_Incharge_ITSID) as Sector_Incharge_ITSID, 
+      MAX(Sector_Incharge_Name) as Sector_Incharge_Name, 
+      MAX(Sector_Incharge_Female_ITSID) as Sector_Incharge_Female_ITSID, 
+      MAX(Sector_Incharge_Female_Name) as Sector_Incharge_Female_Name
+    ')
+    ->where('Sector IS NOT NULL AND Sector != ""')
+    ->group_by('Sector')
+    ->get('user')->result_array();
+
+    // For Sub-Sectors
+    $subSectors = $this->db->select('
+      Sector,
+      Sub_Sector,
+      MAX(Sub_Sector_Incharge_ITSID) as Sub_Sector_Incharge_ITSID,
+      MAX(Sub_Sector_Incharge_Name) as Sub_Sector_Incharge_Name,
+      MAX(Sub_Sector_Incharge_Female_ITSID) as Sub_Sector_Incharge_Female_ITSID,
+      MAX(Sub_Sector_Incharge_Female_Name) as Sub_Sector_Incharge_Female_Name
+    ')
+    ->where('Sector IS NOT NULL AND Sector != "" AND Sub_Sector IS NOT NULL AND Sub_Sector != ""')
+    ->group_by('Sector, Sub_Sector')
+    ->get('user')->result_array();
+
+    return [
+      'sectors' => $sectors,
+      'sub_sectors' => $subSectors
     ];
   }
 }

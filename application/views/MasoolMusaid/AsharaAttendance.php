@@ -80,7 +80,7 @@ html{background:var(--bg)}
 #ashApp table.ash{width:100%;border-collapse:collapse;font-size:.76rem;min-width:820px}
 #ashApp table.ash thead th{background:var(--surface-2);padding:8px 10px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:5;text-align:left}
 #ashApp table.ash thead th.c{text-align:center}
-#ashApp table.ash tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s}
+#ashApp table.ash tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s;cursor:pointer}
 #ashApp table.ash tbody tr:hover{background:#fdf9ef}
 #ashApp table.ash tbody tr.hidden-row{display:none}
 #ashApp table.ash td{padding:7px 10px;vertical-align:middle;color:var(--text-1)}
@@ -133,6 +133,7 @@ html{background:var(--bg)}
 #ashApp .dd-tbl td{padding:7px 9px;border-bottom:1px solid var(--border-light);color:var(--text-1);vertical-align:middle}
 #ashApp .dd-tbl tr:last-child td{border-bottom:none}
 #ashApp .dd-tbl tr:hover td{background:#fdf9ef}
+#ashApp .dd-tbl tbody tr{cursor:pointer}
 #ashApp .dd-frow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 #ashApp .dd-fsel{height:30px;padding:0 8px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface-2);font-family:'Plus Jakarta Sans',sans-serif;font-size:.73rem;color:var(--text-1);outline:none;transition:border-color .15s}
 #ashApp .dd-fsel:focus{border-color:var(--gold)}
@@ -231,6 +232,13 @@ $can_edit   = in_array($user_name ?? '', ['amilsaheb','jamaat']);
 $back_href  = isset($back_url) ? $back_url : 'javascript:void(0)';
 $back_attr  = isset($back_url) ? '' : 'onclick="window.history.back()"';
 $jp         = htmlspecialchars(jamaat_place() ?? 'Khar', ENT_QUOTES);
+
+$view_member_base = 'admin/viewmember/';
+if ($this->session->userdata('role') === 'amilsaheb' || (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 2)) {
+  $view_member_base = 'amilsaheb/viewmember/';
+} else if ($this->session->userdata('role') === 'MasoolMusaid' || (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 16)) {
+  $view_member_base = 'MasoolMusaid/viewmember/';
+}
 ?>
 
 <div id="ashApp">
@@ -511,6 +519,7 @@ $jp         = htmlspecialchars(jamaat_place() ?? 'Khar', ENT_QUOTES);
 const ASH_USERS = <?php echo json_encode($users, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT) ?>;
 const ASH_DAYS  = <?php echo json_encode($days) ?>;
 const BASE_URL  = '<?php echo base_url() ?>';
+const VIEW_MEMBER_BASE_URL = '<?php echo base_url($view_member_base) ?>';
 
 /* ── Modal helpers ── */
 function ashOM(id){document.getElementById(id).classList.add('open')}
@@ -643,7 +652,7 @@ function buildDD(){
   const tb=document.getElementById('ddBody');
   tb.innerHTML=ASH_USERS.map(u=>{
     const s=u[key]??'Not Marked',c=u[ckey]??'';
-    return`<tr data-status="${esc(s)}" data-sector="${esc(u.Sector??'')}" data-sub="${esc(u.Sub_Sector??'')}">
+    return`<tr data-its="${esc(u.ITS_ID??'')}" data-status="${esc(s)}" data-sector="${esc(u.Sector??'')}" data-sub="${esc(u.Sub_Sector??'')}">
       <td>${esc(u.ITS_ID??'')}</td><td>${esc(u.Full_Name??'')}</td><td>${esc(u.HOF_ID??'')}</td>
       <td>${esc(u.Mobile??'')}</td><td>${esc(u.Sector??'')}</td><td>${esc(u.Sub_Sector??'')}</td>
       <td class="${stCls(s)}">${esc(s)}</td><td style="font-size:.7rem;color:var(--text-3)">${esc(c)}</td>
@@ -740,4 +749,29 @@ function ashExport(){
 
 /* ── "Not attended anywhere" shortcut from stats card ── */
 /* handled by day-card click → opens detail modal */
+
+/* ── Clickable Rows ── */
+document.querySelector('#ashTable tbody').addEventListener('click', e => {
+  const tr = e.target.closest('tr');
+  if (!tr) return;
+  if (e.target.closest('button, a, input, select, option, label') || e.target.classList.contains('ab')) {
+    return;
+  }
+  const its = tr.dataset.its;
+  if (its) {
+    window.location.href = VIEW_MEMBER_BASE_URL + its;
+  }
+});
+
+document.querySelector('#ddTable tbody').addEventListener('click', e => {
+  const tr = e.target.closest('tr');
+  if (!tr) return;
+  if (e.target.closest('button, a, input, select, option, label, .ash-edit-mini') || e.target.classList.contains('ash-edit-mini')) {
+    return;
+  }
+  const its = tr.dataset.its;
+  if (its) {
+    window.location.href = VIEW_MEMBER_BASE_URL + its;
+  }
+});
 </script>
