@@ -23,9 +23,120 @@ class Umoor extends CI_Controller
       redirect('/accounts');
     }
 
+    $role = (int)$_SESSION['user']['role'];
     $data['user_name'] = $_SESSION['user']['username'];
-    $this->load->view('Umoor/Header', $data);
-    $this->load->view('Umoor/Home');
+
+    if ($role === 4) {
+      // Early JSON endpoints: handle AJAX requests before rendering any views
+      $fmt = $this->input->get('format');
+      if ($fmt === 'json') {
+        // Miqaat RSVP counts/lists
+        $miqaat_rsvp = $this->input->get('miqaat_rsvp');
+        if ($miqaat_rsvp) {
+          $miqaat_id = $this->input->get('miqaat_id');
+          $m = $miqaat_id ? $this->CommonM->get_next_miqaat_rsvp_stats((int)$miqaat_id)
+            : $this->CommonM->get_next_miqaat_rsvp_stats();
+          $payload = ['success' => true, 'miqaat_rsvp' => $m];
+          return $this->output->set_content_type('application/json')->set_output(json_encode($payload));
+        }
+
+        // Previous miqaat before a given date
+        $miqaat_prev = $this->input->get('miqaat_prev');
+        if ($miqaat_prev) {
+          $before_date = $this->input->get('before_date');
+          $payload = ['success' => false, 'miqaat' => null];
+          if ($before_date) {
+            $row = $this->db->query(
+              "SELECT id, name, type, date, assigned_to FROM miqaat WHERE date < ? ORDER BY date DESC LIMIT 1",
+              [$before_date]
+            )->row_array();
+            if ($row) {
+              $hparts = $this->HijriCalendar->get_hijri_parts_by_greg_date($row['date']);
+              if ($hparts && isset($hparts['hijri_day'])) {
+                $row['hijri_label'] = trim((($hparts['hijri_day'] ?? '')) . ' ' . (($hparts['hijri_month_name'] ?? $hparts['hijri_month'] ?? '')) . ' ' . (($hparts['hijri_year'] ?? '')));
+              } else {
+                $row['hijri_label'] = '';
+              }
+              $row['hijri_parts'] = $hparts;
+              $payload = ['success' => true, 'miqaat' => $row];
+            }
+          }
+          return $this->output->set_content_type('application/json')->set_output(json_encode($payload));
+        }
+
+        return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unknown request']));
+      }
+
+      // Demographic & overall stats (non-financial)
+      $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
+      $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
+      $residentOverview = $this->AmilsahebM->get_resident_overview_counts(true);
+
+      $stats = [
+        'HOF' => (int)($residentOverview['hof'] ?? 0),
+        'FM' => (int)($residentOverview['fm'] ?? 0),
+        'Mardo' => (int)($residentOverview['male'] ?? 0),
+        'Bairo' => (int)($residentOverview['female'] ?? 0),
+        'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
+        'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
+        'Age_16_25' => (int)($residentOverview['age_16_25'] ?? 0),
+        'Age_26_65' => (int)($residentOverview['age_26_65'] ?? 0),
+        'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
+        'LeaveStatus' => [],
+        'Sectors' => $sectorsData,
+        'SubSectors' => $subSectorsData,
+        'deeni_eligible' => $this->AmilsahebM->get_deeni_eligible_count(),
+        'deeni_taking' => $this->AmilsahebM->get_deeni_taking_count(),
+        'madresa_deprived' => $this->AmilsahebM->get_madresa_deprived_count(),
+        'singles_21_40' => $this->AmilsahebM->get_singles_21_40_count(),
+        'status_counts' => $this->AmilsahebM->get_status_counts(),
+        'active_inactive' => $this->AmilsahebM->get_active_inactive_counts(),
+      ];
+
+      $data['stats'] = $stats;
+      $data['current_sector'] = '';
+      $data['current_sub_sector'] = '';
+      $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
+      $data['marital_status_counts'] = $this->AmilsahebM->get_marital_status_distribution();
+      $data['year_daytype_stats'] = $this->CommonM->get_year_calendar_daytypes();
+
+      // Raza Summary
+      $data['raza_summary'] = $this->get_raza_summary($data['user_name']);
+
+      // Madresa Hijri Year
+      $data['dashboard_madresa_hijri_year'] = isset($data['year_daytype_stats']['hijri_year']) ? (int)$data['year_daytype_stats']['hijri_year'] : null;
+
+      // Upcoming miqaats enriched
+      $upcoming_miqaats = $this->get_upcoming_miqaats(5);
+      if (!empty($upcoming_miqaats)) {
+        foreach ($upcoming_miqaats as &$um) {
+          $um_date = isset($um['date']) ? $um['date'] : null;
+          $hparts = null;
+          if ($um_date) {
+            $hparts = $this->HijriCalendar->get_hijri_parts_by_greg_date($um_date);
+          }
+          if ($hparts && isset($hparts['hijri_day'])) {
+            $um['hijri_label'] = trim(($hparts['hijri_day'] ?? '') . ' ' . ($hparts['hijri_month_name'] ?? $hparts['hijri_month'] ?? '') . ' ' . ($hparts['hijri_year'] ?? ''));
+          } else {
+            $um['hijri_label'] = '';
+          }
+          $um['hijri_parts'] = $hparts;
+        }
+        unset($um);
+      }
+
+      $data['dashboard_data'] = [
+        'upcoming_miqaats' => $upcoming_miqaats,
+        'miqaat_rsvp' => $this->CommonM->get_next_miqaat_rsvp_stats(),
+        'raza_summary' => $data['raza_summary'],
+      ];
+
+      $this->load->view('Umoor/Header', $data);
+      $this->load->view('Umoor/Home_Deeniyah', $data);
+    } else {
+      $this->load->view('Umoor/Header', $data);
+      $this->load->view('Umoor/Home');
+    }
   }
   public function success($redirectto)
   {
@@ -667,5 +778,46 @@ class Umoor extends CI_Controller
 
     $this->load->view('Umoor/Header', $data);
     $this->load->view('MasoolMusaid/Mumineendirectory', $data);
+  }
+
+  private function get_raza_summary($umoor = null)
+  {
+    if ($umoor) {
+      $row = $this->db->query(
+        "SELECT 
+            SUM(CASE WHEN r.status = 1 THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN r.status = 2 THEN 1 ELSE 0 END) AS approved,
+            SUM(CASE WHEN r.status = 3 THEN 1 ELSE 0 END) AS rejected
+          FROM raza r
+          JOIN raza_type rt ON rt.id = r.razaType
+          WHERE r.active = 1 AND rt.umoor = ?",
+        [$umoor]
+      )->row_array();
+    } else {
+      $row = $this->db->query(
+        "SELECT 
+            SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS approved,
+            SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS rejected
+          FROM raza
+          WHERE active = 1"
+      )->row_array();
+    }
+    return [
+      'pending' => (int)($row['pending'] ?? 0),
+      'approved' => (int)($row['approved'] ?? 0),
+      'rejected' => (int)($row['rejected'] ?? 0)
+    ];
+  }
+
+  private function get_upcoming_miqaats($limit = 5)
+  {
+    $limit = (int)$limit;
+    $sql = "SELECT m.id, m.name, m.type, m.date, m.assigned_to
+        FROM miqaat m
+        WHERE m.date >= CURDATE()
+        ORDER BY m.date ASC
+        LIMIT $limit";
+    return $this->db->query($sql)->result_array();
   }
 }

@@ -538,11 +538,11 @@
         </div>
       <?php endif; ?>
       
-      <?php if ($groupName === 'My Details' && $role !== 16): ?>
+      <?php if ($groupName === 'My Details' && $role !== 16 && $role !== 4): ?>
         <!-- Mobile Financial Panel -->
         <div class="d-block d-md-none mb-4 mt-2">
            <?php echo $financial_panel_html; ?>
-        </div>
+         </div>
       <?php endif; ?>
     <?php endforeach; ?>
 
@@ -585,7 +585,7 @@
       </div><!-- /col-lg-8 -->
 
       <!-- Right Sidebar (Financials) -->
-      <?php if ($role !== 16): ?>
+      <?php if ($role !== 16 && $role !== 4): ?>
       <div class="col-lg-4 col-md-5 mb-4 d-none d-md-block">
         <?php echo $financial_panel_html; ?>
       </div>

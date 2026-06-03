@@ -306,6 +306,7 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
             <th class="sortable" data-col="health_status">Health <span class="si"></span></th>
             <th class="sortable" data-col="deeni_status">Deeni <span class="si"></span></th>
             <th class="sortable" data-col="residential_status">Residential <span class="si"></span></th>
+            <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="si"></span></th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -321,6 +322,12 @@ const ALL_DATA = <?= json_encode(isset($all_users) ? $all_users : $users) ?>;
 const VIEW_URL = '<?= base_url($view_base) ?>';
 const EDIT_URL = '<?= base_url('admin/editmember/') ?>';
 const CAN_EDIT = <?= $can_edit ? 'true' : 'false' ?>;
+const ITS_MATCH_LABELS = {
+  its_sabeel_both_khar: 'ITS & Sabeel both in Khar',
+  its_khar_sabeel_out: 'ITS in Khar, Sabeel out',
+  sabeel_khar_its_out: 'Sabeel in Khar, ITS out',
+  both_not_khar: 'Both not in Khar'
+};
 
 let filtered = [...ALL_DATA];
 let sortCol = null, sortDir = 'asc';
@@ -496,7 +503,7 @@ function applySortToFiltered(){
 function renderTable(){
   const tbody=document.getElementById('tbody');
   tbody.innerHTML='';
-  if(!filtered.length){tbody.innerHTML='<tr class="empty-row"><td colspan="12"><i class="fa fa-search"></i> No members found.</td></tr>';return}
+  if(!filtered.length){tbody.innerHTML='<tr class="empty-row"><td colspan="13"><i class="fa fa-search"></i> No members found.</td></tr>';return}
   const rp=encodeURIComponent(window.location.pathname+window.location.search);
   function rowHTML(u,n){
     const isHOF=(u.HOF_FM_TYPE||'').toUpperCase()==='HOF';
@@ -514,6 +521,7 @@ function renderTable(){
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.health_status||'—')}</td>`+
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.deeni_status||'—')}</td>`+
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.residential_status||'—')}</td>`+
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>`+
       `<td><a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>`+
       (CAN_EDIT?`<a href="${EDIT_URL}${u.ITS_ID}?redirect=${rp}" class="act-btn act-edit" style="margin-left:4px" title="Edit"><i class="fa fa-pencil"></i></a>`:'')+`</td>`;
   }
@@ -524,7 +532,7 @@ function renderTable(){
   const sg=order.filter(k=>{if(seen.has(k))return false;seen.add(k);return true}).map(k=>groups[k]).sort((a,b)=>(a.hname||'').localeCompare(b.hname||''));
   let idx=1;
   sg.forEach((grp,gi)=>{
-    if(gi>0){const sep=tbody.insertRow();sep.className='family-sep';sep.innerHTML='<td colspan="12"></td>'}
+    if(gi>0){const sep=tbody.insertRow();sep.className='family-sep';sep.innerHTML='<td colspan="13"></td>'}
     grp.members.forEach(u=>{const tr=tbody.insertRow();tr.dataset.its=u.ITS_ID;if((u.HOF_FM_TYPE||'').toUpperCase()==='HOF')tr.className='hof-row';tr.innerHTML=rowHTML(u,idx++)});
   });
 }

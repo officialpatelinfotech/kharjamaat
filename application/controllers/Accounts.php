@@ -4189,6 +4189,20 @@ class Accounts extends CI_Controller
 
   public function chat($id, $from = null)
   {
+    // Enforce that Umoor logins can only access chats belonging to their own Umoor's Raza requests
+    if (isset($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $raza = $this->db->select('razaType')->from('raza')->where('id', $id)->get()->row_array();
+      if ($raza) {
+        $allowed = $this->db->where('id', (int)$raza['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+        if (!$allowed) {
+          show_error('You do not have permission to view this chat.');
+        }
+      } else {
+        show_error('Raza request not found.');
+      }
+    }
+
     $data['user_name'] = $_SESSION['user']['username'] ?? "";
     if ($_SESSION['user_data'] != "") {
       $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
@@ -4220,6 +4234,21 @@ class Accounts extends CI_Controller
 
     // Get data from the POST request
     $raza_id = $this->input->post('raza_id');
+
+    // Enforce that Umoor logins can only message in chats belonging to their own Umoor's Raza requests
+    if (isset($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $raza = $this->db->select('razaType')->from('raza')->where('id', $raza_id)->get()->row_array();
+      if ($raza) {
+        $allowed = $this->db->where('id', (int)$raza['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+        if (!$allowed) {
+          show_error('You do not have permission to post messages to this chat.');
+        }
+      } else {
+        show_error('Raza request not found.');
+      }
+    }
+
     $user = $this->input->post('user');
     $message = $this->input->post('message');
 
@@ -4247,6 +4276,20 @@ class Accounts extends CI_Controller
 
   public function deleteMessage($message_id)
   {
+    // Enforce that Umoor logins can only delete messages belonging to their own Umoor's Raza requests
+    if (isset($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $chatMsg = $this->db->select('raza_id')->from('chat')->where('id', $message_id)->get()->row_array();
+      if ($chatMsg) {
+        $raza = $this->db->select('razaType')->from('raza')->where('id', $chatMsg['raza_id'])->get()->row_array();
+        if ($raza) {
+          $allowed = $this->db->where('id', (int)$raza['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+          if (!$allowed) {
+            show_error('You do not have permission to delete this message.');
+          }
+        }
+      }
+    }
 
     $result = $this->AccountM->deleteMessage($message_id);
 

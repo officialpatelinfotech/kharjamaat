@@ -2534,6 +2534,21 @@ class Admin extends CI_Controller
   {
     $remark = trim($_POST['remark']);
     $raza_id = $_POST['raza_id'];
+
+    // Enforce that Umoor logins can only approve Raza belonging to their own Umoor
+    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $razaRow = $this->db->select('razaType')->from('raza')->where('id', $raza_id)->get()->row_array();
+      if (!empty($razaRow)) {
+        $allowed = $this->db->where('id', (int)$razaRow['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+        if (!$allowed) {
+          show_error('You do not have permission to approve this Raza request.');
+        }
+      } else {
+        show_error('Raza request not found.');
+      }
+    }
+
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
     $this->load->helper('raza_details');
     $razaRow = $this->db->select('id, raza_id, user_id, razaType, razadata, miqaat_id')
@@ -2726,6 +2741,21 @@ class Admin extends CI_Controller
   {
     $remark = trim($_POST['remark']);
     $raza_id = $_POST['raza_id'];
+
+    // Enforce that Umoor logins can only reject Raza belonging to their own Umoor
+    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $razaRow = $this->db->select('razaType')->from('raza')->where('id', $raza_id)->get()->row_array();
+      if (!empty($razaRow)) {
+        $allowed = $this->db->where('id', (int)$razaRow['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+        if (!$allowed) {
+          show_error('You do not have permission to reject this Raza request.');
+        }
+      } else {
+        show_error('Raza request not found.');
+      }
+    }
+
     $flag = $this->AdminM->reject_raza($raza_id, $remark);
 
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
@@ -4816,7 +4846,7 @@ HTML;
   // View single member details (read-only)
   public function viewmember($its_id = null)
   {
-    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3 && ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15))) {
       redirect('/accounts');
     }
     if (!$its_id) {
@@ -5060,7 +5090,7 @@ HTML;
   // AJAX: member search autocomplete (name or ITS ID)
   public function searchmembers()
   {
-    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3 && ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15))) {
       http_response_code(403);
       echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
       return;
