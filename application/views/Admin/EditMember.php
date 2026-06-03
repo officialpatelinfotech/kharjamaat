@@ -319,7 +319,7 @@ if (empty($redirect)) {
       </div>
       <ul class="edit-list">
         <li class="edit-row">
-          <div class="er-key">Deeni Status <span class="auto-lbl">Living</span></div>
+          <div class="er-key">Deeni Status <span class="auto-lbl">Manual</span></div>
           <div class="er-val">
             <select name="deeni_status" id="deeniStatusSel">
               <?php foreach($deeni_status_options as $v=>$l): ?><option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['deeni_status']??'')===$v)?'selected':''; ?>><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?>
@@ -328,7 +328,7 @@ if (empty($redirect)) {
           </div>
         </li>
         <li class="edit-row">
-          <div class="er-key">Health Status <span class="auto-lbl">Living</span></div>
+          <div class="er-key">Health Status <span class="auto-lbl">Manual</span></div>
           <div class="er-val">
             <select name="health_status" id="healthStatusSel">
               <?php foreach($health_status_options as $v=>$l): ?><option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['health_status']??'')===$v)?'selected':''; ?>><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?>
@@ -337,7 +337,7 @@ if (empty($redirect)) {
           </div>
         </li>
         <li class="edit-row">
-          <div class="er-key">Residential Status <span class="auto-lbl">Living</span></div>
+          <div class="er-key">Residential Status <span class="auto-lbl">Manual</span></div>
           <div class="er-val">
             <select name="residential_status" id="residentialStatusSel">
               <?php foreach($residential_status_options as $v=>$l): ?><option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['residential_status']??'')===$v)?'selected':''; ?>><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?>
