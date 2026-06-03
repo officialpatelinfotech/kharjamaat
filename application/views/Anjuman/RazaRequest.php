@@ -1,1603 +1,890 @@
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,6..72,400;0,6..72,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
 <style>
-  /*td {*/
-  /*    min-width: 100px;*/
-  /*}*/
-  .sno {
-    width: 40px;
-  }
+/* ── Golden Theme Variables ── */
+:root {
+  --gold:         #b8860b;
+  --gold-light:   #e6c84a;
+  --gold-muted:   #f5e9c0;
+  --gold-border:  rgba(230,200,74,.35);
+  --bg:           #faf7f0;
+  --surface:      #ffffff;
+  --surface-2:    #f7f4ec;
+  --border:       #e8e0cc;
+  --border-light: #f0ece0;
+  --text-1:       #1a1610;
+  --text-2:       #5a5244;
+  --text-3:       #9c8f7a;
+  --green:        #1a6645;
+  --green-bg:     #eaf4ee;
+  --red:          #b91c1c;
+  --red-bg:       #fef2f2;
+  --blue:         #1d4ed8;
+  --blue-bg:      #eff6ff;
+  --orange:       #b45309;
+  --orange-bg:    #fff7ed;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow:       0 4px 16px rgba(0,0,0,.07),0 1px 4px rgba(0,0,0,.04);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.05);
+  --radius:       14px;
+  --radius-sm:    10px;
+}
+*,*::before,*::after{box-sizing:border-box;}
 
-  .created {
-    min-width: 130px;
-  }
+/* ── Full-width wrapper ── */
+#rzApp{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  color:var(--text-1);
+  background:var(--bg);
+  min-height:100vh;
+  padding-top:57px;
+}
+#rzApp .rz-wrap{
+  width:100%;
+  padding:14px 16px 40px;
+}
 
-  .raza {
-    min-width: 130px;
-  }
+/* ── Compact Page Header ── */
+#rzApp .rz-header{
+  background:linear-gradient(135deg,#78520a 0%,#b8860b 50%,#c9a227 100%);
+  border-radius:14px;
+  padding:10px 16px;
+  margin-bottom:14px;
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:12px;
+  min-height:0;
+}
+#rzApp .rz-header::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/svg%3E") repeat;
+  pointer-events:none;
+}
+#rzApp .rz-header::after{
+  content:'';position:absolute;right:-30px;top:-30px;
+  width:140px;height:140px;
+  background:radial-gradient(circle,rgba(255,255,255,.10) 0%,transparent 70%);
+  pointer-events:none;
+}
 
-  .eventdate {
-    min-width: 130px;
-  }
+/* Left: back button */
+#rzApp .hdr-back{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:8px;
+  font-size:.8rem;font-weight:700;
+  text-decoration:none;
+  border:1px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.15);
+  color:#fff;
+  cursor:pointer;
+  white-space:nowrap;
+  position:relative;z-index:1;
+  transition:background .15s;
+}
+#rzApp .hdr-back:hover{background:rgba(255,255,255,.28);color:#fff;text-decoration:none;}
 
-  .name {
-    min-width: 130px;
-  }
+/* Center: umoor title */
+#rzApp .hdr-center{
+  text-align:center;
+  position:relative;z-index:1;
+}
+#rzApp .hdr-umoor{
+  font-family:'Literata',Georgia,serif;
+  font-size:1rem;
+  font-weight:600;
+  color:#fff;
+  margin:0;
+  line-height:1.3;
+}
 
-  .remark {
-    min-width: 130px;
-  }
+/* Right: count badge */
+#rzApp .hdr-badge{
+  position:relative;z-index:1;
+  flex-shrink:0;
+  background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:10px;
+  padding:5px 12px;
+  text-align:center;
+  white-space:nowrap;
+}
+#rzApp .hdr-badge-val{
+  font-size:1.15rem;font-weight:800;color:#fff;
+  display:block;line-height:1;
+}
+#rzApp .hdr-badge-lbl{
+  font-size:.6rem;font-weight:700;
+  color:rgba(255,255,255,.65);
+  letter-spacing:.5px;text-transform:uppercase;
+  display:block;margin-top:1px;
+}
 
-  .approval_status {
-    min-width: 130px;
-  }
+/* ── Filter bar ── */
+#rzApp .filter-bar{
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px 16px;
+  margin-bottom:14px;
+  box-shadow:var(--shadow-sm);
+}
+#rzApp .filter-bar-inner{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+#rzApp .filter-select{
+  height:36px;padding:0 11px;
+  border:1.5px solid var(--border);border-radius:8px;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:.8rem;color:var(--text-1);
+  background:var(--surface-2);outline:none;cursor:pointer;
+  transition:border-color .15s,box-shadow .15s;
+  min-width:130px;flex:1 1 120px;
+}
+#rzApp .filter-select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,11,.12);background:var(--surface);}
+#rzApp .search-wrap{position:relative;flex:1 1 200px;}
+#rzApp .search-wrap .fa-search{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:.8rem;pointer-events:none;}
+#rzApp #razaSearchInput{
+  width:100%;height:36px;padding:0 11px 0 32px;
+  border:1.5px solid var(--border);border-radius:8px;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:.8rem;
+  color:var(--text-1);background:var(--surface-2);outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+#rzApp #razaSearchInput:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,11,.12);background:var(--surface);}
+#rzApp .refresh-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  height:36px;padding:0 14px;border-radius:8px;
+  border:1.5px solid var(--border);background:var(--surface);
+  color:var(--text-2);font-size:.8rem;font-weight:700;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+#rzApp .refresh-btn:hover{border-color:var(--gold);background:var(--gold-muted);color:var(--gold);}
 
-  .action {
-    min-width: 100px;
-  }
+/* ── Table card ── */
+#rzApp .table-card{
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
+#rzApp .table-card .tc-header{
+  padding:10px 16px;
+  background:var(--surface-2);
+  border-bottom:1.5px solid var(--border-light);
+  display:flex;align-items:center;gap:8px;
+}
+#rzApp .tc-icon{
+  width:26px;height:26px;border-radius:6px;
+  background:var(--gold-muted);color:var(--gold);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:.76rem;flex-shrink:0;
+}
+#rzApp .tc-title{font-size:.78rem;font-weight:800;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;}
+#rzApp .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 
-  .action_btn {
-    display: flex;
-    flex-direction: row;
-    gap: 1rem;
+/* ── Table ── */
+#rzApp table{width:100%;border-collapse:collapse;font-size:.83rem;}
+#rzApp thead tr{background:var(--gold-muted);}
+#rzApp thead th{
+  padding:10px 12px;font-size:.7rem;font-weight:800;
+  color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;
+  white-space:nowrap;border-bottom:2px solid var(--gold-border);
+  text-align:left;cursor:pointer;user-select:none;
+}
+#rzApp thead th:hover{color:var(--gold);}
+#rzApp thead th .sort-icon{margin-left:4px;opacity:.5;font-size:.62rem;}
+#rzApp thead th:hover .sort-icon{opacity:1;}
+#rzApp tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s;}
+#rzApp tbody tr:last-child{border-bottom:none;}
+#rzApp tbody tr:hover{background:rgba(184,134,11,.04);}
+#rzApp td{padding:10px 12px;vertical-align:middle;color:var(--text-1);}
+#rzApp td.sno{color:var(--text-3);font-size:.76rem;font-weight:700;width:36px;}
 
-    @media screen and (max-width:768px) {
-      flex-direction: column;
-      gap: 1rem;
-      flex-grow: 1;
-    }
-  }
+/* ── Name cell ── */
+#rzApp .rz-name{font-weight:700;font-size:.84rem;color:var(--text-1);}
+#rzApp .rz-type{font-size:.77rem;color:var(--text-2);font-weight:600;margin-top:1px;}
+#rzApp .rz-type-meta{font-size:.7rem;color:var(--text-3);margin-top:1px;}
 
-  .query-form {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: white;
-    border: 1px solid lightgrey;
-    padding: 2rem;
-    width: 400px;
-    max-height: calc(100vh - 120px);
-    overflow-y: auto;
-    display: none;
-    z-index: 12;
-    border-radius: 5px;
+/* ── Date cell ── */
+#rzApp .rz-date{font-size:.81rem;font-weight:600;color:var(--text-1);}
+#rzApp .rz-hijri{font-size:.7rem;color:var(--text-3);margin-top:2px;}
 
-    @media screen and (max-width:500px) {
+/* ── Status badges ── */
+#rzApp .status-main{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:700;border:1.5px solid transparent;white-space:nowrap;margin-bottom:4px;}
+#rzApp .status-main.pending  {background:#fffbeb;color:#92400e;border-color:#fcd34d;}
+#rzApp .status-main.recommended{background:var(--blue-bg);color:var(--blue);border-color:#93c5fd;}
+#rzApp .status-main.approved {background:var(--green-bg);color:var(--green);border-color:#86efac;}
+#rzApp .status-main.rejected {background:var(--red-bg);color:var(--red);border-color:#fca5a5;}
+#rzApp .status-main.notrecommended{background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;}
+#rzApp .status-sub{display:flex;flex-direction:column;gap:2px;margin-top:3px;}
+#rzApp .sub-row{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;color:var(--text-2);}
 
-      max-width: 350px;
+/* ── Chat button ── */
+#rzApp .chat-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;background:var(--blue-bg);color:var(--blue);border:1.5px solid #93c5fd;font-size:.76rem;font-weight:700;text-decoration:none;transition:background .15s;white-space:nowrap;}
+#rzApp .chat-btn:hover{background:#dbeafe;color:var(--blue);text-decoration:none;}
+#rzApp .chat-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:var(--blue);color:#fff;border-radius:50%;font-size:.62rem;font-weight:800;}
 
-      @media screen and (max-width: 374px) {
+/* ── Action buttons ── */
+#rzApp .action-wrap{display:flex;flex-direction:column;gap:5px;align-items:flex-start;}
+#rzApp .btn-group-row{display:flex;gap:5px;}
+#rzApp .act-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;border:1.5px solid;cursor:pointer;font-size:.78rem;transition:all .15s;background:transparent;}
+#rzApp .act-btn.approve{border-color:#86efac;color:var(--green);}
+#rzApp .act-btn.approve:hover{background:var(--green-bg);}
+#rzApp .act-btn.reject{border-color:#fca5a5;color:var(--red);}
+#rzApp .act-btn.reject:hover{background:var(--red-bg);}
+#rzApp .act-btn.del{border-color:#fcd34d;color:#92400e;}
+#rzApp .act-btn.del:hover{background:#fffbeb;}
+#rzApp .act-btn.view{border-color:#93c5fd;color:var(--blue);width:auto;padding:0 10px;font-size:.73rem;font-weight:700;}
+#rzApp .act-btn.view:hover{background:var(--blue-bg);}
 
-        max-width: 250px;
-      }
-    }
-  }
+/* ── Created date ── */
+#rzApp .rz-created{font-size:.76rem;color:var(--text-2);}
 
-  #product-overlay {
-    display: none;
-    top: 0;
-    position: fixed;
-    height: 100vh;
-    width: 100vw;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 10;
-  }
+/* ── Empty state ── */
+#rzApp .empty-state{padding:44px 20px;text-align:center;color:var(--text-3);}
+#rzApp .empty-state i{font-size:2rem;margin-bottom:10px;display:block;}
+#rzApp .empty-state p{font-size:.9rem;margin:0;}
 
-  .toast-message {
-    position: fixed;
-    top: 10;
-    right: 0;
-    background-color: #4CAF50;
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 4px;
-    z-index: 9999;
-    display: none;
-    font-size: 15px;
-    animation: slideIn 0.5s, slideOut 0.5s 2s;
+/* ── Toast ── */
+#rzApp .toast-msg{position:fixed;top:66px;right:16px;background:linear-gradient(135deg,#1a6645,#2d9d68);color:#fff;padding:11px 18px;border-radius:11px;font-size:.83rem;font-weight:700;z-index:9999;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:8px;}
 
-    @media screen and (max-width:400px) {
-      width: 100%;
-      text-align: center;
-    }
-  }
+/* ── Modal overlay ── */
+#rzApp .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;backdrop-filter:blur(2px);}
+#rzApp .modal-overlay.active{display:flex;align-items:center;justify-content:center;padding:16px;}
 
-  @keyframes slideIn {
-    from {
-      right: -100%;
-    }
+/* ── Modal card ── */
+#rzApp .modal-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-lg);width:100%;max-width:500px;max-height:calc(100vh - 100px);overflow-y:auto;border:1.5px solid var(--border);}
+#rzApp .modal-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--gold-muted);border-bottom:1.5px solid var(--gold-border);}
+#rzApp .modal-title{font-family:'Literata',Georgia,serif;font-size:1rem;font-weight:600;color:var(--text-1);margin:0;}
+#rzApp .modal-close{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;transition:all .15s;}
+#rzApp .modal-close:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-muted);}
+#rzApp .modal-body{padding:18px;}
+#rzApp .modal-ft{padding:12px 18px;border-top:1.5px solid var(--border-light);display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;}
 
-    to {
-      right: 0;
-    }
-  }
+/* ── Detail table inside modal ── */
+#rzApp .detail-list{list-style:none;margin:0 0 14px;padding:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;}
+#rzApp .detail-row{display:flex;border-bottom:1px solid var(--border-light);}
+#rzApp .detail-row:last-child{border-bottom:none;}
+#rzApp .dr-k{flex:0 0 40%;max-width:40%;padding:8px 12px;font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;background:var(--surface-2);border-right:1px solid var(--border-light);}
+#rzApp .dr-v{flex:1;padding:8px 12px;font-size:.81rem;color:var(--text-1);}
 
-  @keyframes slideOut {
-    from {
-      right: 0;
-    }
+/* ── Form fields inside modal ── */
+#rzApp .form-group{margin-bottom:12px;}
+#rzApp .form-group label{display:block;font-size:.73rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px;}
+#rzApp .form-group textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.83rem;color:var(--text-1);background:var(--surface-2);outline:none;resize:vertical;min-height:90px;transition:border-color .15s,box-shadow .15s;}
+#rzApp .form-group textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,11,.12);background:var(--surface);}
 
-    to {
-      right: -100%;
-    }
-  }
+/* ── Modal buttons ── */
+#rzApp .btn-gold{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;background:linear-gradient(135deg,#b8860b,#c9a227);border:none;color:#fff;font-size:.82rem;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(184,134,11,.3);transition:opacity .15s;}
+#rzApp .btn-gold:hover{opacity:.9;}
+#rzApp .btn-outline-secondary{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s;}
+#rzApp .btn-outline-secondary:hover{border-color:var(--gold);background:var(--gold-muted);color:var(--gold);}
+#rzApp .btn-danger{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;border:1.5px solid #fca5a5;background:var(--red-bg);color:var(--red);font-size:.82rem;font-weight:700;cursor:pointer;transition:background .15s;}
+#rzApp .btn-danger:hover{background:#fee2e2;}
 
-  .submit {
-    margin-top: 2rem;
-    display: flex;
-    justify-content: space-between;
+/* ── Financials modal ── */
+#rzApp .fin-modal-card{max-width:540px;}
+#rzApp .fin-warning{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:9px 13px;font-size:.78rem;color:#92400e;margin-bottom:12px;display:flex;align-items:flex-start;gap:7px;}
+#rzApp .fin-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:7px;}
+#rzApp .fin-table th,#rzApp .fin-table td{padding:8px 11px;border:1px solid var(--border-light);}
+#rzApp .fin-table th{background:var(--surface-2);color:var(--text-2);font-weight:700;font-size:.7rem;text-transform:uppercase;}
+#rzApp .fin-table tr:hover td{background:rgba(184,134,11,.03);}
+#rzApp .fin-amt-due{color:var(--red);font-weight:700;}
+#rzApp .fin-amt-ok{color:var(--text-3);}
+#rzApp .fin-total-row th{background:var(--gold-muted)!important;color:var(--gold)!important;}
 
-    @media screen and (max-width:768px) {
-      flex-direction: column-reverse;
-      gap: 2rem;
-    }
-  }
-
-  .status {
-    min-width: 230px;
-  }
-
-  .select {
-    background: #e9ecef;
-    border: 1px solid #ced4da;
-    border-radius: 5px;
-    font-size: 18px;
-    color: #495057;
-    padding-inline: 9px;
-
-    @media screen and (max-width:576px) {
-      font-size: 20px;
-      width: 100%;
-    }
-  }
-
-  .options {
-    background-color: white;
-  }
-
-  .table-responsive {
-    transform: rotateX(180deg);
-  }
-
-  .table-container {
-    transform: rotateX(180deg);
-  }
-
-  .chat-button {
-    display: flex;
-    padding: 10px 20px;
-    font-size: 18px;
-    font-weight: bold;
-    text-decoration: none;
-    color: #fff;
-    background-color: #007bff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    align-items: center;
-    justify-content: center;
-    margin: auto;
-  }
-
-  /* Hover effect */
-  .chat-button:hover {
-    background-color: #0056b3;
-    color: white;
-    text-decoration: none;
-  }
-
-  .chat-count {
-    display: inline-block;
-    width: 25px;
-    height: 25px;
-    background-color: grey;
-    color: white;
-    border-radius: 50%;
-    /* Make it circular */
-    text-align: center;
-    line-height: 25px;
-    font-size: 14px;
-    font-weight: bold;
-    margin-left: 5px;
-    /* Adjust as needed */
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    /* Add shadow for depth */
-  }
-
-  /* Style the sort icons */
-  .sort-icons {
-    display: inline-block;
-    margin-left: 5px;
-    cursor: pointer;
-    vertical-align: middle;
-  }
-
-  .sort-icons i {
-    display: block;
-    font-size: 10px;
-    /* Adjust the size of the icons */
-    margin: 0;
-    line-height: 1;
-    color: #333;
-  }
-
-  .sort-icons i:first-child {
-    margin-bottom: 2px;
-  }
-
-  /* Align the column text with the icons */
-  th {
-    white-space: nowrap;
-  }
-
-  .action-buttons {
-    display: inline-block;
-    text-align: center;
-  }
-
-  .button-group {
-    display: flex;
-    justify-content: space-between;
-    /* Keep buttons spaced apart */
-  }
-
-  .button-group button {
-    margin-right: 5px;
-    /* Add some space between buttons */
-  }
-
-  .view-link {
-    margin-top: 10px;
-    /* Adds space between buttons and the "View" link */
-    text-align: center;
-  }
+/* ── Responsive ── */
+@media(max-width:768px){
+  #rzApp .rz-wrap{padding:10px 10px 30px;}
+  #rzApp .filter-bar-inner{flex-direction:column;}
+  #rzApp .filter-select,#rzApp .search-wrap,#rzApp #razaSearchInput{width:100%;flex:none;}
+  #rzApp td,#rzApp th{padding:7px 9px;}
+  #rzApp .modal-card{max-width:100%;}
+  #rzApp .hdr-umoor{font-size:.88rem;}
+}
+@media(max-width:480px){
+  #rzApp table{font-size:.76rem;}
+  #rzApp td{padding:6px 7px;}
+  #rzApp .act-btn{width:27px;height:27px;font-size:.72rem;}
+  #rzApp .hdr-back span{display:none;}
+}
 </style>
-<div id="toast-message" class="toast-message">
-  Successfull
+
+<!-- Toast -->
+<div id="rzApp">
+<div id="rz-toast" class="toast-msg" style="display:none;">
+  <i class="fa-solid fa-circle-check"></i> <span id="rz-toast-msg">Done</span>
 </div>
-<div class="margintopcontainer mx-3 pb-4">
-  <div class="ml-1 mr-1 pt-5">
-    <a href="<?php echo base_url("anjuman") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
-    <p class="h4 text-center mt-5" style="color:goldenrod; text-transform: uppercase;"><?php echo $umoor; ?></p>
-    <div class="container">
-      <div class="row">
-        <form class="form-inline my-2 my-lg-0 w-100">
-          <a class="form-control btn btn-success my-2 my-lg-0 ml-auto" onclick="refresh();">Refresh</a>
-        </form>
+
+<div class="rz-wrap">
+
+  <!-- ── Compact Page Header ── -->
+  <div class="rz-header">
+    <!-- Left: back -->
+    <a href="<?php echo base_url('anjuman'); ?>" class="hdr-back">
+      <i class="fa-solid fa-arrow-left"></i> <span>Back</span>
+    </a>
+
+    <!-- Center: umoor name -->
+    <div class="hdr-center">
+      <p class="hdr-umoor"><?php echo htmlspecialchars($umoor ?? '', ENT_QUOTES, 'UTF-8'); ?></p>
+    </div>
+
+    <!-- Right: count -->
+    <div class="hdr-badge">
+      <span class="hdr-badge-val" id="rzCount"><?php echo count($raza ?? []); ?></span>
+      <span class="hdr-badge-lbl">Requests</span>
+    </div>
+  </div>
+
+  <!-- ── Filter Bar ── -->
+  <div class="filter-bar">
+    <div class="filter-bar-inner">
+      <div class="search-wrap">
+        <i class="fa fa-search"></i>
+        <input type="text" id="razaSearchInput" placeholder="Search by name, type, status…">
       </div>
-      <div class="row d-flex justify-content-between mt-3">
-        <select onchange="updateTable();" name="filter" class="select mb-3" id="filter">
-          <option value="" selected disabled>Status</option>
 
-          <!-- <?php foreach ($razatype as $key => $value) { ?>
-            <option class="options" value="<?php echo $value['name'] ?>">
-              <?php echo $value['name'] ?>
-            </option>
-          <?php } ?> -->
+      <select onchange="updateTable();" id="filter" class="filter-select">
+        <option value="" selected disabled>Filter by Status</option>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="recommended">Recommended</option>
+        <option value="notrecommended">Not Recommended</option>
+        <option value="rejected">Rejected</option>
+        <option value="clear">Clear Filter</option>
+      </select>
 
-          <option class="options" value="pending">Pending</option>
-          <option class="options" value="approved">Approved</option>
-          <option class="options" value="recommended">Recommended</option>
-          <option class="options" value="notrecommended">Not Recommended</option>
-          <option class="options" value="rejected">Rejected</option>
-          <option class="options" value="clear">Clear</option>
+      <?php if (empty($umoor) || $umoor !== '12 Umoor Raza Applications'): ?>
+        <?php if (empty($umoor) || stripos($umoor, 'Kaaraj') === false): ?>
+        <select onchange="updateTable();" id="miqaat_filter" class="filter-select">
+          <option value="" selected>All Miqaat Types</option>
+          <option value="Shehrullah">Shehrullah</option>
+          <option value="Ashara">Ashara</option>
+          <option value="General">General</option>
+          <option value="Ladies">Ladies</option>
         </select>
-        <?php if (empty($umoor) || $umoor !== '12 Umoor Raza Applications'): ?>
-          <?php if (empty($umoor) || stripos($umoor, 'Kaaraj') === false): ?>
-            <select onchange="updateTable();" name="miqaat_filter" class="select mb-3" id="miqaat_filter">
-              <option value="" selected>All Miqaat Types</option>
-              <option class="options" value="Shehrullah">Shehrullah</option>
-              <option class="options" value="Ashara">Ashara</option>
-              <option class="options" value="General">General</option>
-              <option class="options" value="Ladies">Ladies</option>
-            </select>
-          <?php endif; ?>
-        <?php else: ?>
-          <?php
-          $umoors = [];
-          foreach ($razatype as $rt) {
-            if (!empty($rt['umoor'])) $umoors[$rt['umoor']] = $rt['umoor'];
-          }
-          ?>
-          <select onchange="updateTable();" name="umoor_filter" class="select mb-3" id="umoor_filter">
-            <option value="" selected>All Umoor Types</option>
-            <?php foreach ($umoors as $u): ?>
-              <option value="<?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($u, ENT_QUOTES, 'UTF-8'); ?></option>
-            <?php endforeach; ?>
-          </select>
         <?php endif; ?>
+      <?php else: ?>
+        <?php $umoors=[]; foreach($razatype as $rt){ if(!empty($rt['umoor'])) $umoors[$rt['umoor']]=$rt['umoor']; } ?>
+        <select onchange="updateTable();" id="umoor_filter" class="filter-select">
+          <option value="" selected>All Umoor Types</option>
+          <?php foreach($umoors as $u): ?>
+            <option value="<?php echo htmlspecialchars($u,ENT_QUOTES,'UTF-8'); ?>"><?php echo htmlspecialchars($u,ENT_QUOTES,'UTF-8'); ?></option>
+          <?php endforeach; ?>
+        </select>
+      <?php endif; ?>
 
-        <?php
-        // Build a list of Hijri event years from $raza (miqaat_details or razadata)
-        $ci = &get_instance();
-        $ci->load->model('HijriCalendar');
-        $hijri_years = [];
-        foreach ($raza as $r) {
-          $d = '';
-          if (!empty($r['miqaat_details'])) {
-            $md = json_decode($r['miqaat_details'], true);
-            if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
-          }
-          if (empty($d) && !empty($r['razadata'])) {
-            $rd = json_decode($r['razadata'], true);
-            if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
-          }
-          if (!empty($d)) {
-            // expect Y-m-d; use HijriCalendar helper to get hijri parts
-            $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
-            if (!empty($parts) && !empty($parts['hijri_year'])) {
-              $hijri_years[$parts['hijri_year']] = $parts['hijri_year'];
-            }
-          }
+      <?php
+        $ci=&get_instance(); $ci->load->model('HijriCalendar');
+        $hijri_years=[]; $hijri_map=[];
+        foreach($raza as $r){
+          $d='';
+          if(!empty($r['miqaat_details'])){$md=json_decode($r['miqaat_details'],true);if(is_array($md)&&!empty($md['date']))$d=substr($md['date'],0,10);}
+          if(empty($d)&&!empty($r['razadata'])){$rd=json_decode($r['razadata'],true);if(is_array($rd)&&!empty($rd['date']))$d=substr($rd['date'],0,10);}
+          if(!empty($d)){$parts=$ci->HijriCalendar->get_hijri_parts_by_greg_date($d);if(!empty($parts['hijri_year']))$hijri_years[$parts['hijri_year']]=$parts['hijri_year'];}
+          $hyear='';
+          if(!empty($d)){$parts=$ci->HijriCalendar->get_hijri_parts_by_greg_date($d);if(!empty($parts['hijri_year']))$hyear=$parts['hijri_year'];}
+          $hijri_map[$r['id']]=$hyear;
         }
         krsort($hijri_years);
-        // build map of raza_id => hijri_year for client-side use
-        $hijri_map = [];
-        foreach ($raza as $r) {
-          $d = '';
-          if (!empty($r['miqaat_details'])) {
-            $md = json_decode($r['miqaat_details'], true);
-            if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
-          }
-          if (empty($d) && !empty($r['razadata'])) {
-            $rd = json_decode($r['razadata'], true);
-            if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
-          }
-          $hyear = '';
-          if (!empty($d)) {
-            $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
-            if (!empty($parts) && !empty($parts['hijri_year'])) $hyear = $parts['hijri_year'];
-          }
-          $hijri_map[$r['id']] = $hyear;
-        }
-        ?>
+      ?>
+      <select onchange="updateTable();" id="year_filter" class="filter-select">
+        <option value="" selected>All Hijri Years</option>
+        <?php foreach($hijri_years as $y): ?><option value="<?php echo $y; ?>"><?php echo $y; ?></option><?php endforeach; ?>
+      </select>
 
-        <select onchange="updateTable();" name="year_filter" class="select mb-3" id="year_filter">
-          <option value="" selected>All Hijri Years</option>
-          <?php foreach ($hijri_years as $y): ?>
-            <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
-          <?php endforeach; ?>
-        </select>
+      <select onchange="updateTable();" id="sort" class="filter-select">
+        <option value="2" selected>Event Date (New→Old)</option>
+        <option value="3">Event Date (Old→New)</option>
+        <option value="0">Name (A–Z)</option>
+        <option value="1">Name (Z–A)</option>
+        <option value="4">Created (New→Old)</option>
+        <option value="5">Created (Old→New)</option>
+      </select>
 
-        <!-- <?php
-
-              // Build Hijri months (1-12) using get_hijri_month()
-              $ci = &get_instance();
-              $ci->load->model('HijriCalendar');
-              $hijri_months = $ci->HijriCalendar->get_hijri_month();
-              ?>
-        <select onchange="updateTable();" name="hijri_month_filter" class="select mb-3" id="hijri_month_filter">
-          <option value="" selected>All Hijri Months</option>
-          <?php foreach ($hijri_months as $m): ?>
-            <option value="<?php echo $m['id']; ?>"><?php echo htmlspecialchars($m['hijri_month'], ENT_QUOTES, 'UTF-8'); ?></option>
-          <?php endforeach; ?>
-        </select>
-
-        <select onchange="updateTable();" name="hijri_day_filter" class="select mb-3" id="hijri_day_filter">
-          <option value="" selected>All Hijri Days</option>
-          <?php for ($d = 1; $d <= 30; $d++): ?>
-            <option value="<?php echo $d; ?>"><?php echo $d; ?></option>
-          <?php endfor; ?>
-        </select> -->
-
-
-
-        <select onchange="updateTable();" name="sort" class="select mb-3" id="sort">
-          <option value="" selected disabled>Sort</option>
-          <option class="options" value="0">Name(A-Z)</option>
-          <option class="options" value="1">Name(Z-A)</option>
-          <option class="options" value="2">Event Date (New>Old)</option>
-          <option class="options" value="3">Event Date (Old>New)</option>
-          <option class="options" value="4">Create Date (New>Old)</option>
-          <option class="options" value="5">Create Date (Old>New)</option>
-          <option class="options" value="6">Clear</option>
-        </select>
-      </div>
+      <button class="refresh-btn" onclick="window.location.reload();">
+        <i class="fa fa-rotate-right"></i> Refresh
+      </button>
     </div>
-    <div class="table-responsive mb-5">
-      <div class="table-container">
-        <table class="table table-bordered text-center">
-          <thead>
-            <tr>
-              <th class="sno">S.No.
-                <span class="sort-icons" onclick="sortTable(0)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <!--<th class="sno">FMB Kitchen-->
-              <!--    <span class="sort-icons" onclick="sortTable(3)">-->
-              <!--        <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>-->
-              <!--    </span>-->
-              <!--</th>-->
-              <th class="name">Name
-                <span class="sort-icons" onclick="sortTable(1)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="raza">Raza For
-                <span class="sort-icons" onclick="sortTable(2)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="eventdate">Event Date
-                <span class="sort-icons" onclick="sortTable(3)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="chat">Chat</th>
-              <th class="approval_status">Status
-                <span class="sort-icons" onclick="sortTable(5)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-              <th class="action">Action</th>
-              <th class="created">Created
-                <span class="sort-icons" onclick="sortTable(7)">
-                  <i class="fas fa-sort-up"></i><i class="fas fa-sort-down"></i>
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody id="datatable">
-            <?php
-            foreach ($raza as $key => $r) {
-              // determine hijri year for this row (used for client-side filtering)
-              $hijri_year_attr = '';
-              $d = '';
-              if (!empty($r['miqaat_details'])) {
-                $md = json_decode($r['miqaat_details'], true);
-                if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
-              }
-              if (empty($d) && !empty($r['razadata'])) {
-                $rd = json_decode($r['razadata'], true);
-                if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
-              }
-              if (!empty($d)) {
-                $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
-                if (!empty($parts) && !empty($parts['hijri_year'])) $hijri_year_attr = $parts['hijri_year'];
-              }
-            ?>
-              <tr data-hijri-year="<?php echo $hijri_year_attr; ?>">
-                <td>
-                  <?php echo $key + 1 ?>
-                </td>
-                <td>
-                  <?php
-                  // If this request is a Fala ni Niyaz (FNN), show that label instead of the user's name
-                  $is_fnn = false;
-                  if (!empty($r['miqaat_id']) && !empty($r['miqaat_details'])) {
-                    $miq = json_decode($r['miqaat_details'], true);
-                    if (is_array($miq)) {
-                      // check assigned_to text
-                      $mAssigned = strtolower($miq['assigned_to'] ?? '');
-                      if (strpos($mAssigned, 'fnn') !== false || (strpos($mAssigned, 'fala') !== false && (strpos($mAssigned, 'niyaz') !== false || strpos($mAssigned, 'niaz') !== false))) {
-                        $is_fnn = true;
-                      }
-                      // check top-level assign_type (e.g., 'Fala ni Niyaz')
-                      if (!$is_fnn && !empty($miq['assign_type'])) {
-                        $atop = strtolower($miq['assign_type']);
-                        if (strpos($atop, 'fnn') !== false || (strpos($atop, 'fala') !== false && (strpos($atop, 'niyaz') !== false || strpos($atop, 'niaz') !== false))) {
-                          $is_fnn = true;
-                        }
-                      }
-                      // check each assignment entry for assign_type indicating FNN
-                      if (!$is_fnn && !empty($miq['assignments']) && is_array($miq['assignments'])) {
-                        foreach ($miq['assignments'] as $as) {
-                          $asz = strtolower((string)($as['assign_type'] ?? $as['type'] ?? ''));
-                          if (strpos($asz, 'fnn') !== false || (strpos($asz, 'fala') !== false && (strpos($asz, 'niyaz') !== false || strpos($asz, 'niaz') !== false))) {
-                            $is_fnn = true;
-                            break;
-                          }
-                        }
-                      }
-                    }
-                  }
-                  if (!$is_fnn && isset($r['razaType'])) {
-                    $rt = strtolower($r['razaType']);
-                    if (strpos($rt, 'fnn') !== false || (strpos($rt, 'fala') !== false && (strpos($rt, 'niyaz') !== false || strpos($rt, 'niaz') !== false))) {
-                      $is_fnn = true;
-                    }
-                  }
+  </div>
 
-                  if ($is_fnn) {
-                    echo 'Fala ni Niyaz';
-                  } else {
-                    echo htmlspecialchars($r['user_name'], ENT_QUOTES, 'UTF-8');
-                  }
-                  ?>
-                </td>
-                <td>
-                  <?php
-                  if (!empty($r['miqaat_id']) && !empty($r['miqaat_details'])) {
-                    $miqaat = json_decode($r['miqaat_details'], true);
-                    if (is_array($miqaat)) {
-                      $mName = htmlspecialchars($miqaat['name'] ?? '', ENT_QUOTES, 'UTF-8');
-                      $mType = htmlspecialchars($miqaat['type'] ?? '', ENT_QUOTES, 'UTF-8');
-                      $mAssigned = htmlspecialchars($miqaat['assigned_to'] ?? '', ENT_QUOTES, 'UTF-8');
-                      $mDate = !empty($miqaat['date']) ? date('D, d M', strtotime($miqaat['date'])) : '';
-                      $metaParts = array_filter([$mType, $mAssigned, $mDate], function ($v) {
-                        return $v !== '' && $v !== null;
-                      });
-                      $meta = implode(' &middot; ', $metaParts);
-                      echo "$mName <br><small class=\"text-muted\">$meta</small>";
-                    } else {
-                      echo htmlspecialchars($r['razaType'], ENT_QUOTES, 'UTF-8');
-                    }
-                  } else {
-                    echo htmlspecialchars($r['razaType'], ENT_QUOTES, 'UTF-8');
-                  }
-                  ?>
-                </td>
-                <td>
-                  <?php
-                  // Gregorian date
-                  $greg_date = '';
-                  if (!empty($r['miqaat_id']) && !empty($r['miqaat_details'])) {
-                    $miqaat_info = json_decode($r['miqaat_details'], true);
-                    if (!empty($miqaat_info['date'])) {
-                      $greg_date = $miqaat_info['date'];
-                      echo date('D, d M', strtotime($greg_date));
-                    }
-                  } else {
-                    $temp = json_decode($r['razadata'], true);
-                    if (!empty($temp['date'])) {
-                      $greg_date = $temp['date'];
-                      echo date('D, d M', strtotime($greg_date));
-                    }
-                  }
-                  // Hijri date below
-                  if (!empty($greg_date)) {
-                    $hijri = $ci->HijriCalendar->get_hijri_parts_by_greg_date(substr($greg_date, 0, 10));
-                    if (!empty($hijri['hijri_day']) && !empty($hijri['hijri_month']) && !empty($hijri['hijri_year'])) {
-                      $hijri_month_name = $ci->HijriCalendar->hijri_month_name($hijri['hijri_month']);
-                      echo '<br><small class="text-muted">(' . $hijri['hijri_day'] . ' ' . $hijri_month_name . ' ' . $hijri['hijri_year'] . 'H)</small>';
-                    }
-                  }
-                  ?>
-                </td>
-                <td>
-                  <?php $chat_count = !empty($r['chat_count']) ? $r['chat_count'] : ''; ?>
-                  <a href="<?php echo base_url('Accounts/chat/') . $r['id'] . '/anjuman'; ?>" class="chat-button">
-                    Chat<?php echo $chat_count ? '<div class="chat-count">' . $chat_count . '</div>' : ''; ?>
-                  </a>
-                </td>
-                <td class="status">
-                  <div class="text-left">
-                    <ul>
-                      <?php if ($r['status'] == 0) {
-                        echo '<div><strong style="color: orange;">Pending</strong></div>';
-                      } elseif ($r['status'] == 1) {
-                        echo '<div><strong style="color: blue;">Recommended</strong></div>';
-                      } elseif ($r['status'] == 2) {
-                        echo '<div><strong style="color: limegreen;">Approved</strong></div>';
-                      } elseif ($r['status'] == 3) {
-                        echo '<div><strong style="color: red;">Rejected</strong></div>';
-                      } elseif ($r['status'] == 4) {
-                        echo '<div><strong style="color: blue;">Not Recommended</strong></div>';
-                      } ?>
-                      <li>
-                        <?php if ($r['coordinator-status'] == 0) {
-                          echo '<div>Jamat <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
-                        } elseif ($r['coordinator-status'] == 1) {
-                          echo '<div>Jamat <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
-                        } elseif ($r['coordinator-status'] == 2) {
-                          echo '<div>Jamat <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
-                        } ?>
-                      </li>
-                      <li>
-                        <?php if ($r['Janab-status'] == 0) {
-                          echo '<div>Amil Saheb <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
-                        } elseif ($r['Janab-status'] == 1) {
-                          echo '<div>Amil Saheb <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
-                        } elseif ($r['Janab-status'] == 2) {
-                          echo '<div>Amil Saheb <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
-                        } ?>
-                      </li>
-
-                    </ul>
-                  </div>
-                </td>
-                <td>
-                  <div class="action-buttons">
-                    <div class="button-group">
-                      <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(<?php echo $r['id']; ?>);">
-                        <i class="fa fa-circle-check"></i>
-                      </button>
-                      <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(<?php echo $r['id']; ?>);">
-                        <i class="fa fa-circle-xmark"></i>
-                      </button>
-                      <button type="button" class="btn btn-sm btn-warning remove-form-row" onclick="deleteRaza(<?php echo $r['id']; ?>);">
-                        <i class="fa fa-trash"></i>
-                      </button>
-                    </div>
-                    <div class="view-link btn btn-sm btn-primary remove-form-row">
-                      <a onclick="show_raza(<?php echo $r['id']; ?>);">
-                        <span style=" cursor:pointer;">View</span>
-                      </a>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
-                </td>
-              </tr>
-            <?php } ?>
-          </tbody>
-          <tfoot></tfoot>
-        </table>
+  <!-- ── Table Card ── -->
+  <div class="table-card">
+    <div class="tc-header">
+      <span class="tc-icon"><i class="fa fa-list-alt"></i></span>
+      <span class="tc-title">Raza Applications</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="sno" onclick="sortTable(0)">#<span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+            <th onclick="sortTable(1)">Name<span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+            <th onclick="sortTable(2)">Raza For<span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+            <th onclick="sortTable(3)">Event Date<span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+            <th>Chat</th>
+            <th onclick="sortTable(5)">Status<span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+            <th>Action</th>
+            <th onclick="sortTable(7)">Created<span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+          </tr>
+        </thead>
+        <tbody id="datatable">
+          <?php
+          foreach($raza as $key=>$r){
+            $hijri_year_attr=''; $d='';
+            if(!empty($r['miqaat_details'])){$md=json_decode($r['miqaat_details'],true);if(is_array($md)&&!empty($md['date']))$d=substr($md['date'],0,10);}
+            if(empty($d)&&!empty($r['razadata'])){$rd=json_decode($r['razadata'],true);if(is_array($rd)&&!empty($rd['date']))$d=substr($rd['date'],0,10);}
+            if(!empty($d)){$parts=$ci->HijriCalendar->get_hijri_parts_by_greg_date($d);if(!empty($parts['hijri_year']))$hijri_year_attr=$parts['hijri_year'];}
+            $is_fnn=false;
+            if(!empty($r['miqaat_id'])&&!empty($r['miqaat_details'])){$miq=json_decode($r['miqaat_details'],true);if(is_array($miq)){$mAss=strtolower($miq['assigned_to']??'');if(strpos($mAss,'fnn')!==false||(strpos($mAss,'fala')!==false&&(strpos($mAss,'niyaz')!==false||strpos($mAss,'niaz')!==false)))$is_fnn=true;if(!$is_fnn&&!empty($miq['assign_type'])){$at=strtolower($miq['assign_type']);if(strpos($at,'fnn')!==false||(strpos($at,'fala')!==false&&(strpos($at,'niyaz')!==false||strpos($at,'niaz')!==false)))$is_fnn=true;}}}
+            if(!$is_fnn&&isset($r['razaType'])){$rt=strtolower($r['razaType']);if(strpos($rt,'fnn')!==false||(strpos($rt,'fala')!==false&&(strpos($rt,'niyaz')!==false||strpos($rt,'niaz')!==false)))$is_fnn=true;}
+            $displayName=$is_fnn?'Fala ni Niyaz':htmlspecialchars($r['user_name'],ENT_QUOTES,'UTF-8');
+            $statusMap=[0=>['pending','Pending'],1=>['recommended','Recommended'],2=>['approved','Approved'],3=>['rejected','Rejected'],4=>['notrecommended','Not Recommended']];
+            $sm=$statusMap[$r['status']]??['secondary','Unknown'];
+            $coIcons=[0=>'<i class="fa-solid fa-clock" style="color:#ca8a04;"></i>',1=>'<i class="fa-solid fa-circle-check" style="color:#1a6645;"></i>',2=>'<i class="fa-solid fa-circle-xmark" style="color:#b91c1c;"></i>'];
+            $coIcon=$coIcons[$r['coordinator-status']]??$coIcons[0];
+            $jaIcon=$coIcons[$r['Janab-status']]??$coIcons[0];
+          ?>
+          <tr data-hijri-year="<?php echo $hijri_year_attr; ?>">
+            <td class="sno"><?php echo $key+1; ?></td>
+            <td><div class="rz-name"><?php echo $displayName; ?></div></td>
+            <td>
+              <?php
+              if(!empty($r['miqaat_id'])&&!empty($r['miqaat_details'])){
+                $miqaat=json_decode($r['miqaat_details'],true);
+                if(is_array($miqaat)){
+                  $mName=htmlspecialchars($miqaat['name']??'',ENT_QUOTES,'UTF-8');
+                  $mType=htmlspecialchars($miqaat['type']??'',ENT_QUOTES,'UTF-8');
+                  $mAss=htmlspecialchars($miqaat['assigned_to']??'',ENT_QUOTES,'UTF-8');
+                  $metaParts=array_filter([$mType,$mAss]);
+                  echo '<div class="rz-type">'.$mName.'</div>';
+                  if(!empty($metaParts)) echo '<div class="rz-type-meta">'.implode(' · ',$metaParts).'</div>';
+                }
+              } else {
+                echo '<div class="rz-type">'.htmlspecialchars($r['razaType'],ENT_QUOTES,'UTF-8').'</div>';
+              }
+              ?>
+            </td>
+            <td>
+              <?php
+              $greg_date='';
+              if(!empty($r['miqaat_id'])&&!empty($r['miqaat_details'])){$mi=json_decode($r['miqaat_details'],true);if(!empty($mi['date'])){$greg_date=$mi['date'];echo '<div class="rz-date">'.date('D, d M',strtotime($greg_date)).'</div>';}}
+              else{$tmp=json_decode($r['razadata'],true);if(!empty($tmp['date'])){$greg_date=$tmp['date'];echo '<div class="rz-date">'.date('D, d M',strtotime($greg_date)).'</div>';}}
+              if(!empty($greg_date)){$hijri=$ci->HijriCalendar->get_hijri_parts_by_greg_date(substr($greg_date,0,10));if(!empty($hijri['hijri_day'])&&!empty($hijri['hijri_month'])&&!empty($hijri['hijri_year'])){$hn=$ci->HijriCalendar->hijri_month_name($hijri['hijri_month']);echo '<div class="rz-hijri">'.$hijri['hijri_day'].' '.$hn.' '.$hijri['hijri_year'].'H</div>';}}
+              ?>
+            </td>
+            <td>
+              <?php $cc=!empty($r['chat_count'])?$r['chat_count']:''; ?>
+              <a href="<?php echo base_url('Accounts/chat/').$r['id'].'/anjuman'; ?>" class="chat-btn">
+                <i class="fa-regular fa-comment"></i> Chat
+                <?php if($cc): ?><span class="chat-badge"><?php echo $cc; ?></span><?php endif; ?>
+              </a>
+            </td>
+            <td>
+              <span class="status-main <?php echo $sm[0]; ?>">
+                <?php
+                  $statusIcons=['pending'=>'fa-clock','recommended'=>'fa-thumbs-up','approved'=>'fa-circle-check','rejected'=>'fa-circle-xmark','notrecommended'=>'fa-thumbs-down'];
+                  echo '<i class="fa-solid '.$statusIcons[$sm[0]].'"></i> '.$sm[1];
+                ?>
+              </span>
+              <div class="status-sub">
+                <span class="sub-row"><?php echo $coIcon; ?> Jamat</span>
+                <span class="sub-row"><?php echo $jaIcon; ?> Amil Saheb</span>
+              </div>
+            </td>
+            <td>
+              <div class="action-wrap">
+                <?php if($r['Janab-status']==0): ?>
+                <div class="btn-group-row">
+                  <button class="act-btn approve" title="Recommend" onclick="approve_raza(<?php echo $r['id']; ?>)"><i class="fa-solid fa-circle-check"></i></button>
+                  <button class="act-btn reject"  title="Not Recommend" onclick="reject_raza(<?php echo $r['id']; ?>)"><i class="fa-solid fa-circle-xmark"></i></button>
+                  <button class="act-btn del"     title="Delete" onclick="deleteRaza(<?php echo $r['id']; ?>)"><i class="fa-solid fa-trash"></i></button>
+                </div>
+                <?php endif; ?>
+                <button class="act-btn view" onclick="show_raza(<?php echo $r['id']; ?>)"><i class="fa-regular fa-eye"></i> View</button>
+              </div>
+            </td>
+            <td><div class="rz-created"><?php echo date('D, d M',strtotime($r['time-stamp'])); ?><br><span style="color:var(--text-3);font-size:.68rem;"><?php echo date('g:i a',strtotime($r['time-stamp'])); ?></span></div></td>
+          </tr>
+          <?php } ?>
+        </tbody>
+      </table>
+      <div id="rz-empty" class="empty-state" style="display:none;">
+        <i class="fa fa-inbox"></i>
+        <p>No requests match your filters.</p>
       </div>
     </div>
   </div>
+
+</div><!-- /rz-wrap -->
+
+<!-- ── Modal Overlay ── -->
+<div id="product-overlay" class="modal-overlay" onclick="clearForm()"></div>
+
+<!-- ── Approve Modal ── -->
+<div id="approve-form" class="modal-card" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1010;">
+  <div class="modal-hd">
+    <h3 class="modal-title"><i class="fa-solid fa-thumbs-up" style="color:var(--green);margin-right:7px;"></i>Recommend Raza</h3>
+    <button class="modal-close" onclick="clearForm()"><i class="fa fa-times"></i></button>
+  </div>
+  <div class="modal-body">
+    <table id="details-table-approve" style="width:100%;margin-bottom:12px;"></table>
+    <form id="approve">
+      <div class="form-group">
+        <label>Remark (optional)</label>
+        <textarea name="remark" id="remark" rows="4"></textarea>
+      </div>
+    </form>
+  </div>
+  <div class="modal-ft">
+    <button class="btn-outline-secondary" onclick="clearForm()">Cancel</button>
+    <button class="btn-gold" onclick="$('#approve').submit()"><i class="fa-solid fa-check"></i> Recommend</button>
+  </div>
 </div>
-<div id="product-overlay"></div>
-<div id="approve-form" class="query-form">
-  <table id="details-table-approve" class="table"></table>
-  <form class="approve" id="approve">
-    <div class="form-group">
-      <label for="remark" class="form-label">Remark (optional)</label>
-      <textarea class="form-control" name="remark" id="remark" rows="5"
-        style="max-width:100%; height:100%"></textarea>
-    </div>
-    <div class="submit">
-      <button type="button" class="btn btn-danger w100percent-xs mbm-xs" onclick="clearForm();">Cancel</button>
-      <button type="submit" class="btn btn-success w100percent-xs mbm-xs">Recommend</button>
-    </div>
-  </form>
+
+<!-- ── Reject Modal ── -->
+<div id="reject-form" class="modal-card" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1010;">
+  <div class="modal-hd" style="background:var(--red-bg);border-bottom-color:#fca5a5;">
+    <h3 class="modal-title"><i class="fa-solid fa-thumbs-down" style="color:var(--red);margin-right:7px;"></i>Not Recommend</h3>
+    <button class="modal-close" onclick="clearForm()"><i class="fa fa-times"></i></button>
+  </div>
+  <div class="modal-body">
+    <table id="details-table-reject" style="width:100%;margin-bottom:12px;"></table>
+    <form id="reject">
+      <div class="form-group">
+        <label>Remark <span style="color:var(--red)">*</span></label>
+        <textarea name="remark" required rows="4"></textarea>
+      </div>
+    </form>
+  </div>
+  <div class="modal-ft">
+    <button class="btn-outline-secondary" onclick="clearForm()">Cancel</button>
+    <button class="btn-danger" onclick="$('#reject').submit()"><i class="fa-solid fa-times-circle"></i> Not Recommend</button>
+  </div>
 </div>
-<div id="reject-form" class="query-form">
-  <table id="details-table-reject" class="table"></table>
-  <form class="reject" id="reject">
-    <div class="form-group">
-      <label for="remark" class="form-label">Remark *</label>
-      <textarea class="form-control" name="remark" required id="remark" rows="5"
-        style="max-width:100%; height:100%"></textarea>
-    </div>
-    <div class="submit">
-      <button type="button" class="btn btn-primary w100percent-xs mbm-xs" onclick="clearForm();">Cancel</button>
-      <button type="submit" class="btn btn-danger w100percent-xs mbm-xs">Not Recommend</button>
-    </div>
-  </form>
+
+<!-- ── View Modal ── -->
+<div id="show-form" class="modal-card" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1010;">
+  <div class="modal-hd">
+    <h3 class="modal-title"><i class="fa-regular fa-eye" style="margin-right:7px;"></i>Raza Details</h3>
+    <button class="modal-close" onclick="clearForm()"><i class="fa fa-times"></i></button>
+  </div>
+  <div class="modal-body">
+    <table id="details-table-show" style="width:100%;"></table>
+  </div>
+  <!-- <div class="modal-ft">
+    <button class="btn-outline-secondary" onclick="clearForm()"><i class="fa fa-times"></i> Close</button>
+  </div> -->
 </div>
-<div id="show-form" class="query-form">
-  <table id="details-table-show" class="table"></table>
-  <form class="reject" id="show">
-    <div class="submit">
-      <button type="button" class="close-btn btn btn-primary w100percent-xs mbm-xs" onclick="clearForm();">Close</button>
-    </div>
-  </form>
+
+<!-- ── Financials Modal ── -->
+<div id="financials-modal" class="modal-card fin-modal-card" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1020;">
+  <div class="modal-hd" style="background:#fffbeb;border-bottom-color:#fcd34d;">
+    <h3 class="modal-title"><i class="fa-solid fa-triangle-exclamation" style="color:#92400e;margin-right:7px;"></i>Pending Financial Dues</h3>
+    <button class="modal-close" onclick="closeFinancialsModal()"><i class="fa fa-times"></i></button>
+  </div>
+  <div class="modal-body" id="financials-modal-content"></div>
 </div>
-<!-- Financials modal (rendered from JSON) -->
-<div id="financials-modal" class="query-form" style="width:520px; max-width:95%; display:none;">
-  <div id="financials-modal-content" style="padding:8px 12px;"></div>
-</div>
-<script>
-  let razas = [
-    <?php
-    foreach ($raza as $r) {
-      $d = '';
-      if (!empty($r['miqaat_details'])) {
-        $md = json_decode($r['miqaat_details'], true);
-        if (is_array($md) && !empty($md['date'])) $d = substr($md['date'], 0, 10);
-      }
-      if (empty($d) && !empty($r['razadata'])) {
-        $rd = json_decode($r['razadata'], true);
-        if (is_array($rd) && !empty($rd['date'])) $d = substr($rd['date'], 0, 10);
-      }
-      $hijri_parts = null;
-      if (!empty($d)) {
-        $parts = $ci->HijriCalendar->get_hijri_parts_by_greg_date($d);
-        if (!empty($parts['hijri_year']) && !empty($parts['hijri_month']) && !empty($parts['hijri_day'])) {
-          $hijri_parts = [
-            'year' => $parts['hijri_year'],
-            'month' => $parts['hijri_month'],
-            'day' => $parts['hijri_day']
-          ];
-        }
-      }
-      $r['hijri_parts'] = $hijri_parts;
-      echo json_encode($r, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) . ",\n";
-    }
-    ?>
-  ];
-  let hijriMap = <?php echo json_encode($hijri_map ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
-  // Expose Hijri month names for JS rendering of hijri date
-  <?php
-  $ci = isset($ci) ? $ci : get_instance();
-  $ci->load->model('HijriCalendar');
-  $hijri_months = $ci->HijriCalendar->get_hijri_month();
-  $hijri_months_js = [];
-  foreach ($hijri_months as $m) {
-    $hijri_months_js[$m['id']] = $m['hijri_month'];
-  }
-  ?>
-  window.hijriMonths = <?php echo json_encode($hijri_months_js, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+</div><!-- /#rzApp -->
 
-  function show_raza(id) {
-    document.getElementById("show-form").style.display = "block";
-    document.getElementById("product-overlay").style.display = "block";
-    let raza = razas.find(e => e.id == id);
-    otherdetails(raza, 'show');
-  }
-
-  function approve_raza(id) {
-    // Open approve form; financials modal will appear when Recommend is clicked
-    let raza = razas.find(e => e.id == id);
-    // clear any previous hidden inputs
-    $('#approve').find('input[name="raza_id"]').parent().remove();
-    $('#approve').find('input[name="its_id"]').parent().remove();
-    document.getElementById("approve-form").style.display = "block";
-    document.getElementById("product-overlay").style.display = "block";
-    const newInput = document.createElement("div");
-    newInput.innerHTML = `<input type="text" hidden name="raza_id" value=${id} Required=true>`;
-    document.getElementById("approve").appendChild(newInput);
-    try {
-      var its = raza.user_id || raza.userId || raza.ITS_ID || raza.its_id || raza.its || null;
-      if (its) {
-        const itsInput = document.createElement('div');
-        itsInput.innerHTML = `<input type="text" hidden name="its_id" value="${its}" Required=true>`;
-        document.getElementById('approve').appendChild(itsInput);
-      }
-    } catch (e) {}
-    otherdetails(raza, 'approve');
-  }
-
-  function reject_raza(id) {
-    document.getElementById("reject-form").style.display = "block";
-    document.getElementById("product-overlay").style.display = "block";
-    const newInput = document.createElement("div");
-    newInput.innerHTML = `<input type="text" hidden name="raza_id" value=${id} Required=true>`;
-    document.getElementById("reject").appendChild(newInput);
-    let raza = razas.find(e => e.id == id);
-    otherdetails(raza, 'reject');
-  }
-
-  function clearForm() {
-    $('#approve')[0].reset();
-    $('#reject')[0].reset();
-    document.getElementById("approve-form").style.display = "none";
-    document.getElementById("reject-form").style.display = "none";
-    document.getElementById("show-form").style.display = "none";
-    document.getElementById("product-overlay").style.display = "none";
-  }
-
-  function closeFinancialsModal() {
-    document.getElementById('financials-modal').style.display = 'none';
-    document.getElementById('financials-modal-content').innerHTML = '';
-    // restore overlay z-index if present
-    var overlay = document.getElementById('product-overlay');
-    if (overlay) overlay.style.zIndex = 10;
-  }
-
-  function formatINR(n) {
-    // simple formatting without decimals
-    return '₹' + (Math.round(n)).toLocaleString('en-IN');
-  }
-
-  function renderFinancialsModal(data, raza_id, raza) {
-    var c = document.getElementById('financials-modal-content');
-    var html = '';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center">';
-    html += '<h5 style="margin:0">Pending Financial Dues</h5>';
-    html += '<button onclick="closeFinancialsModal()" style="border:0;background:transparent;font-size:18px">&times;</button>';
-    html += '</div>';
-    html += '<div style="margin-top:8px;padding:8px;border-radius:4px;background:#fff3cd;border:1px solid #ffeeba;color:#856404">The member has pending dues. Please review before proceeding.</div>';
-    html += '<table class="table" style="margin-top:12px;font-size:14px;width:100%">';
-    html += '<thead><tr><th>Category</th><th style="text-align:right">Due</th></tr></thead>';
-    html += '<tbody>';
-    html += `<tr><td>FMB Takhmeen</td><td style="text-align:right;color:${data.fmb_due>0?'#dc3545':'#6c757d'}">${formatINR(data.fmb_due)}</td></tr>`;
-    html += `<tr><td>Sabeel Takhmeen</td><td style="text-align:right;color:${data.sabeel_due>0?'#dc3545':'#6c757d'}">${formatINR(data.sabeel_due)}</td></tr>`;
-    html += `<tr><td>General Contributions</td><td style="text-align:right;color:${data.gc_due>0?'#dc3545':'#6c757d'}">${formatINR(data.gc_due)}</td></tr>`;
-    html += `<tr><td>Miqaat Invoices</td><td style="text-align:right;color:${data.miqaat_due>0?'#dc3545':'#6c757d'}">${formatINR(data.miqaat_due)}</td></tr>`;
-    html += `<tr><td>Corpus Fund</td><td style="text-align:right;color:${data.corpus_due>0?'#dc3545':'#6c757d'}">${formatINR(data.corpus_due)}</td></tr>`;
-    html += `<tr><td>Ekram Fund</td><td style="text-align:right;color:${(data.ekram_due||0)>0?'#dc3545':'#6c757d'}">${formatINR(data.ekram_due||0)}</td></tr>`;
-    html += `<tr><th style="text-align:left">Total</th><th style="text-align:right;color:#dc3545">${formatINR(data.total_due)}</th></tr>`;
-    html += '</tbody></table>';
-
-    // Miqaat / Member invoices table (if any)
-    if (Array.isArray(data.miqaat_invoices) && data.miqaat_invoices.length > 0) {
-      html += '<h6 style="margin-top:8px">Miqaat / Member Invoices</h6>';
-      html += '<div style="max-height:180px;overflow:auto;border-top:1px solid #eee;padding-top:8px">';
-      html += '<table class="table table-sm" style="width:100%;font-size:13px">';
-      html += '<thead><tr><th>Assigned to</th><th>Invoice</th><th style="text-align:right">Amount</th><th style="text-align:right">Paid</th><th style="text-align:right">Due</th></tr></thead>';
-      html += '<tbody>';
-      data.miqaat_invoices.forEach(function(row) {
-        html += '<tr>';
-        html += `<td>${(row.assigned_to||'')}</td>`;
-        html += `<td>${(row.invoice||'')}</td>`;
-        html += `<td style="text-align:right">${formatINR(row.amount)}</td>`;
-        html += `<td style="text-align:right">${formatINR(row.paid)}</td>`;
-        html += `<td style="text-align:right;color:#dc3545">${formatINR(row.due)}</td>`;
-        html += '</tr>';
-      });
-      html += '</tbody></table></div>';
-    }
-
-    // Footer buttons
-    html += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">';
-    html += `<button class="btn btn-secondary" onclick="closeFinancialsModal()">Cancel</button>`;
-    html += `<button class="btn btn-primary" onclick="proceedFromFinancials(${raza_id})">Proceed</button>`;
-    html += '</div>';
-
-    c.innerHTML = html;
-    var fin = document.getElementById('financials-modal');
-    // ensure financials modal appears above other query-form modals
-    if (fin) {
-      fin.style.zIndex = 30;
-      fin.style.display = 'block';
-    }
-    // push overlay behind the modal but above page
-    var overlay = document.getElementById('product-overlay');
-    if (overlay) overlay.style.zIndex = 20;
-  }
-
-  function proceedFromFinancials(raza_id) {
-    // When user clicks Proceed in financials modal, submit the approve form
-    try {
-      closeFinancialsModal();
-    } catch (e) {}
-    // ensure raza_id exists in form
-    $('#approve').find('input[name="raza_id"]').parent().remove();
-    const newInput = document.createElement("div");
-    newInput.innerHTML = `<input type="text" hidden name="raza_id" value=${raza_id} Required=true>`;
-    document.getElementById("approve").appendChild(newInput);
-    // submit via AJAX
-    submitApproveForm($('#approve'));
-  }
-
-  function otherdetails(raza, action) {
-    var table = document.getElementById(`details-table-${action}`);
-    table.innerHTML = "";
-    var tablehead = document.createElement('thead')
-    tablehead.innerHTML = `<thead><tr><th scope=\"col\" colspan=\"2\" class=\"text-center\">Raza Details</th></tr></thead>`;
-    table.appendChild(tablehead);
-    var tablebody = document.createElement('tbody');
-    let tbodydata = "";
-    let razadata = JSON.parse(raza.razadata);
-    let razafields = JSON.parse(raza.razafields);
-    let raza_type_id = parseInt(raza.razaType_id || raza.raza_type_id);
-    if (raza_type_id === 2 && raza.miqaat_details) {
-      let miqaat_info = JSON.parse(raza.miqaat_details);
-      tbodydata += `<tr><th scope=\"row\">Miqaat Name</th><td>${miqaat_info.name}</td></tr>`;
-      tbodydata += `<tr><th scope=\"row\">Miqaat Type</th><td>${miqaat_info.type}</td></tr>`;
-      // Format miqaat_info.date as dd-mm-yyyy
-      let miqaatDateStr = '';
-      if (miqaat_info.date) {
-        let d = new Date(miqaat_info.date);
-        let day = String(d.getDate()).padStart(2, '0');
-        let month = String(d.getMonth() + 1).padStart(2, '0');
-        let year = d.getFullYear();
-        miqaatDateStr = `${day}-${month}-${year}`;
-      }
-      tbodydata += `<tr><th scope=\"row\">Miqaat Date</th><td>${miqaatDateStr}</td></tr>`;
-      tbodydata += `<tr><th scope=\"row\">Assigned To</th><td>${miqaat_info.assigned_to}</td></tr>`;
-      tbodydata += `<tr><th scope=\"row\">Status</th><td>${miqaat_info.status == 1 ? 'Active' : 'Inactive'}</td></tr>`;
-      // If group assignment, show group leader and all members' names
-      if (miqaat_info.assign_type === 'Group' && Array.isArray(miqaat_info.assignments) && miqaat_info.assignments.length > 0) {
-        tbodydata += `<tr><th colspan=\"2\" class=\"text-center\">Group Leader</th></tr>`;
-        tbodydata += `<tr><th scope=\"row\">Leader Name</th><td>${miqaat_info.group_leader_name ? miqaat_info.group_leader_name : ''} ${miqaat_info.group_leader_surname ? miqaat_info.group_leader_surname : ''}</td></tr>`;
-        tbodydata += `<tr><th colspan=\"2\" class=\"text-center\">Group Members</th></tr>`;
-        miqaat_info.assignments.forEach(function(member, idx) {
-          tbodydata += `<tr><th scope=\"row\">Member ${idx + 1}</th><td>${member.member_first_name ? member.member_first_name : ''} ${member.member_surname ? member.member_surname : ''}</td></tr>`;
-        });
-      }
-    } else {
-      let k = 0;
-      for (let key in razadata) {
-        if (razafields && razafields.fields && razafields.fields[k] && razafields.fields[k].type == 'select') {
-          let options = razafields.fields[k].options || [];
-          let value = options.find(opt => String(opt.id) === String(razadata[key]));
-          let displayVal = value ? value.name : razadata[key];
-          tbodydata += `<tr><th scope=\"row\">${razafields.fields[k].name}</th><td>${displayVal}</td></tr>`;
-        } else {
-          let fieldName = (razafields && razafields.fields && razafields.fields[k]) ? razafields.fields[k].name : key;
-          tbodydata += `<tr><th scope=\"row\">${fieldName}</th><td>${razadata[key]}</td></tr>`;
-        }
-        k++;
-      }
-    }
-    tablebody.innerHTML = tbodydata;
-    table.appendChild(tablebody);
-  }
-
-  $(document).ready(function() {
-    $('#approve').submit(function(event) {
-      event.preventDefault();
-      var raza_id = $(this).find('input[name="raza_id"]').val();
-      var its = $(this).find('input[name="its_id"]').val();
-      var hof = $(this).find('input[name="hof_id"]').val();
-      var q = '';
-      if (its) q = 'its_id=' + encodeURIComponent(its);
-      else if (hof) q = 'hof_id=' + encodeURIComponent(hof);
-      if (!q) {
-        // No identifier; submit directly
-        submitApproveForm($(this));
-        return;
-      }
-      var url = `<?php echo base_url('anjuman/member_financials_json'); ?>?` + q;
-      fetch(url, {
-          credentials: 'same-origin'
-        })
-        .then(r => r.json())
-        .then(function(data) {
-          if (!data || !data.success) {
-            // no data -> submit directly
-            submitApproveForm($('#approve'));
-            return;
-          }
-          renderFinancialsModal(data, raza_id, null);
-        })
-        .catch(function(e) {
-          console.error('financials fetch error', e);
-          submitApproveForm($('#approve'));
-        });
-    });
-
-    window.submitApproveForm = function($form) {
-      var formData = $form.serialize();
-      $.ajax({
-        type: 'POST',
-        url: "<?php echo base_url('admin/approveRaza'); ?>",
-        data: formData,
-        success: function(response) {
-          showSuccessMessage();
-          clearForm();
-          refresh();
-        },
-        error: function(error) {
-          console.error('query submission failed');
-        }
-      });
-    }
-
-    function showSuccessMessage() {
-      var toastMessage = $('#toast-message');
-      toastMessage.show();
-      setTimeout(function() {
-        toastMessage.hide();
-      }, 2000);
-    }
-  });
-  $(document).ready(function() {
-    $('#reject').submit(function(event) {
-      event.preventDefault();
-
-      var formData = $(this).serialize();
-
-      $.ajax({
-        type: 'POST',
-        url: "<?php echo base_url('admin/rejectRaza'); ?>",
-        data: formData,
-        success: function(response) {
-          showSuccessMessage();
-          clearForm();
-          refresh();
-        },
-        error: function(error) {
-          console.error('query submission failed');
-        }
-      });
-    });
-
-    function showSuccessMessage() {
-      var toastMessage = $('#toast-message');
-      toastMessage.show();
-      setTimeout(function() {
-        toastMessage.hide();
-      }, 2000);
-    }
-  });
-
-  function redirectto(location) {
-    window.location.href = '<?php echo base_url() ?>' + location;
-  }
-
-  function deleteRaza(id) {
-    let check = confirm("Do You Want to Delete This Raza?");
-    if (check) {
-      window.location.href = '<?php echo base_url() ?>' + 'anjuman/DeleteRaza/' + id;
-    }
-  }
-</script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
 <script>
-  function refresh() {
-    window.location.reload()
-  }
-</script>
-<script>
-  $(document).ready(function() {
-    // Function to handle the search functionality
-    function performSearch() {
-      var input, filter, table, tr, td, i, txtValue;
-      input = document.getElementById("razaSearchInput");
-      filter = input.value.toLowerCase();
-      table = document.getElementsByTagName("table")[0]; // Assuming it's the first table on the page
-      tr = table.getElementsByTagName("tr");
+var razas=[
+<?php
+foreach($raza as $r){
+  $d='';
+  if(!empty($r['miqaat_details'])){$md=json_decode($r['miqaat_details'],true);if(is_array($md)&&!empty($md['date']))$d=substr($md['date'],0,10);}
+  if(empty($d)&&!empty($r['razadata'])){$rd=json_decode($r['razadata'],true);if(is_array($rd)&&!empty($rd['date']))$d=substr($rd['date'],0,10);}
+  $hijri_parts=null;
+  if(!empty($d)){$parts=$ci->HijriCalendar->get_hijri_parts_by_greg_date($d);if(!empty($parts['hijri_year'])&&!empty($parts['hijri_month'])&&!empty($parts['hijri_day']))$hijri_parts=['year'=>$parts['hijri_year'],'month'=>$parts['hijri_month'],'day'=>$parts['hijri_day']];}
+  $r['hijri_parts']=$hijri_parts;
+  echo json_encode($r,JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT).",\n";
+}
+?>
+];
+var hijriMap=<?php echo json_encode($hijri_map??[],JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT); ?>;
+<?php
+$ci=isset($ci)?$ci:get_instance();$ci->load->model('HijriCalendar');
+$hijri_months=$ci->HijriCalendar->get_hijri_month();$hijri_months_js=[];
+foreach($hijri_months as $m)$hijri_months_js[$m['id']]=$m['hijri_month'];
+?>
+window.hijriMonths=<?php echo json_encode($hijri_months_js,JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT); ?>;
 
-      // Loop through all table rows and hide those that don't match the search query
-      for (i = 1; i < tr.length; i++) {
-        td = tr[i].getElementsByTagName("td");
-        var found = false;
-        for (var j = 0; j < td.length; j++) {
-          if (td[j]) {
-            txtValue = td[j].textContent || td[j].innerText;
-            if (txtValue.toLowerCase().indexOf(filter) > -1) {
-              found = true;
-              break;
-            }
-          }
-        }
-        if (found) {
-          tr[i].style.display = "";
-        } else {
-          tr[i].style.display = "none";
-        }
-      }
-    }
+var _initialTbodyHTML=(document.getElementById('datatable')||{innerHTML:''}).innerHTML;
+document.getElementById('sort').value=2;
+updateTable();
 
-    // Attach the performSearch function to the input field's keyup event
-    document.getElementById("razaSearchInput").addEventListener("keyup", performSearch);
+/* ── Search ── */
+document.getElementById('razaSearchInput').addEventListener('input',function(){
+  var f=this.value.toLowerCase();
+  var rows=document.querySelectorAll('#datatable tr');
+  var vis=0;
+  rows.forEach(function(tr){
+    var txt=(tr.textContent||tr.innerText).toLowerCase();
+    var show=txt.indexOf(f)>-1;
+    tr.style.display=show?'':'none';
+    if(show)vis++;
   });
-</script>
-<script>
-  let tem = document.getElementById("sort");
-  // Default to Event Date (New > Old)
-  tem.value = 2;
-  // Preserve initial server-rendered table HTML as a safe fallback
-  const _initialRazaTbodyHTML = (document.getElementById('datatable') || {
-    innerHTML: ''
-  }).innerHTML;
-  updateTable();
+  document.getElementById('rz-empty').style.display=vis?'none':'block';
+});
 
-  function updateTable() {
-    var filterValue = document.getElementById("filter").value;
-    var sortValue = document.getElementById("sort").value;
-    var miqaatFilterElem = document.getElementById("miqaat_filter");
-    var miqaatFilter = miqaatFilterElem ? miqaatFilterElem.value : "";
-    var umoorFilterElem = document.getElementById("umoor_filter");
-    var umoorFilter = umoorFilterElem ? umoorFilterElem.value : "";
-    var yearFilterElem = document.getElementById("year_filter");
-    var yearFilter = yearFilterElem ? yearFilterElem.value : "";
-    var hijriMonthElem = document.getElementById("hijri_month_filter");
-    var hijriMonth = hijriMonthElem ? hijriMonthElem.value : "";
-    var hijriDayElem = document.getElementById("hijri_day_filter");
-    var hijriDay = hijriDayElem ? hijriDayElem.value : "";
-    updateTableContent(filterValue, sortValue, miqaatFilter, yearFilter, umoorFilter, hijriMonth, hijriDay);
-  }
+/* ── Show/Approve/Reject ── */
+function show_raza(id){
+  var raza=razas.find(function(e){return e.id==id;});
+  buildDetailTable(raza,'show');
+  document.getElementById('show-form').style.display='block';
+  document.getElementById('product-overlay').classList.add('active');
+}
+function approve_raza(id){
+  var raza=razas.find(function(e){return e.id==id;});
+  $('#approve').find('input[name="raza_id"]').parent().remove();
+  $('#approve').find('input[name="its_id"]').parent().remove();
+  buildDetailTable(raza,'approve');
+  document.getElementById('approve-form').style.display='block';
+  document.getElementById('product-overlay').classList.add('active');
+  var inp=document.createElement('div');inp.innerHTML='<input type="hidden" name="raza_id" value="'+id+'">';
+  document.getElementById('approve').appendChild(inp);
+  try{var its=raza.user_id||raza.userId||raza.ITS_ID||raza.its_id||raza.its||null;if(its){var i2=document.createElement('div');i2.innerHTML='<input type="hidden" name="its_id" value="'+its+'">';document.getElementById('approve').appendChild(i2);}}catch(e){}
+}
+function reject_raza(id){
+  var raza=razas.find(function(e){return e.id==id;});
+  buildDetailTable(raza,'reject');
+  document.getElementById('reject-form').style.display='block';
+  document.getElementById('product-overlay').classList.add('active');
+  var inp=document.createElement('div');inp.innerHTML='<input type="hidden" name="raza_id" value="'+id+'">';
+  document.getElementById('reject').appendChild(inp);
+}
+function clearForm(){
+  ['approve','reject'].forEach(function(id){var f=document.getElementById(id);if(f)f.reset();});
+  ['approve-form','reject-form','show-form'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
+  document.getElementById('product-overlay').classList.remove('active');
+}
+function closeFinancialsModal(){
+  document.getElementById('financials-modal').style.display='none';
+  document.getElementById('financials-modal-content').innerHTML='';
+}
 
-  function updateTableContent(filter, sort, miqaatFilter, yearFilter, umoorFilter, hijriMonth, hijriDay) {
-    var tbody = document.getElementById('datatable');
-    if (!tbody) return;
-    // If the server did not provide a JS array, keep server-rendered rows
-    if (!Array.isArray(razas) || razas.length === 0) {
-      tbody.innerHTML = _initialRazaTbodyHTML;
-      return;
+/* ── Build detail table ── */
+function buildDetailTable(raza,action){
+  var table=document.getElementById('details-table-'+action);
+  table.innerHTML='';
+  var ul=document.createElement('ul');ul.className='detail-list';
+  var rows=[];
+  var rt_id=parseInt(raza.razaType_id||raza.raza_type_id);
+  function parseMaybe(v){if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v);}catch(e){return null;}}
+  if(rt_id===2&&raza.miqaat_details){
+    var mi=parseMaybe(raza.miqaat_details)||{};
+    rows.push(['Miqaat Name',mi.name||'']);
+    rows.push(['Miqaat Type',mi.type||'']);
+    if(mi.date){var d=new Date(mi.date);rows.push(['Miqaat Date',d.getDate().toString().padStart(2,'0')+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getFullYear()]);}
+    rows.push(['Assigned To',mi.assigned_to||'']);
+    rows.push(['Status',mi.status==1?'Active':'Inactive']);
+    if(mi.assign_type==='Group'&&Array.isArray(mi.assignments)&&mi.assignments.length){
+      rows.push(['Group Leader',(mi.group_leader_name||'')+' '+(mi.group_leader_surname||'')]);
+      mi.assignments.forEach(function(m,i){rows.push(['Member '+(i+1),(m.member_first_name||'')+' '+(m.member_surname||'')]);});
     }
-    // build into a fragment and only replace on success
-    var frag = document.createDocumentFragment();
-    var tempContainer = document.createElement('tbody');
-
-    // Filter and sort your razas array based on the selected options
-    var filteredAndSortedRazas = razas;
-
-    // helper to safely parse JSON-ish fields
-    function parseMaybe(val) {
-      if (!val) return null;
-      if (typeof val === 'object') return val;
-      try {
-        return JSON.parse(val);
-      } catch (e) {
-        return null;
-      }
-    }
-
-    // Apply miqaat type filter if selected
-    if (miqaatFilter && miqaatFilter !== "") {
-      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-        var m = parseMaybe(raza.miqaat_details) || {};
-        var miqaatType = (m.type || raza.razaType || '').toString();
-        return miqaatType.toLowerCase() === miqaatFilter.toLowerCase();
-      });
-    }
-
-
-    // Apply Hijri year filter if selected (uses server-provided hijriMap)
-    if (yearFilter && yearFilter !== "") {
-      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-        var hy = (hijriMap && hijriMap[raza.id]) ? hijriMap[raza.id].toString() : '';
-        return hy === yearFilter;
-      });
-    }
-
-    // Hijri month/day filter: parse hijri date from event date (server must provide hijriMap or parse client-side)
-    if ((hijriMonth && hijriMonth !== "") || (hijriDay && hijriDay !== "")) {
-      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-        // Try to get gregorian date from miqaat_details or razadata
-        function parseMaybe(val) {
-          if (!val) return null;
-          if (typeof val === 'object') return val;
-          try {
-            return JSON.parse(val);
-          } catch (e) {
-            return null;
-          }
-        }
-        var d = '';
-        var m = parseMaybe(raza.miqaat_details);
-        if (m && m.date) d = m.date;
-        if (!d) {
-          var rd = parseMaybe(raza.razadata);
-          if (rd && rd.date) d = rd.date;
-        }
-        if (!d) return false;
-        // Use a simple Hijri conversion if available, else skip
-        // If server provides hijriMap[raza.id] as {year,month,day}, use it
-        var hijri = (raza.hijri_parts || null);
-        if (!hijri && window.hijriPartsMap && window.hijriPartsMap[raza.id]) hijri = window.hijriPartsMap[raza.id];
-        // If not, try to parse from data-hijri-date attribute (not present in this table)
-        // If not, skip filtering
-        if (!hijri) return true;
-        if (hijriMonth && hijriMonth !== "" && parseInt(hijri.month) !== parseInt(hijriMonth)) return false;
-        if (hijriDay && hijriDay !== "" && parseInt(hijri.day) !== parseInt(hijriDay)) return false;
-        return true;
-      });
-    }
-
-    // Apply Umoor filter if selected
-    if (umoorFilter && umoorFilter !== "") {
-      filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-        var u = (raza.umoor || '').toString();
-        return u.toLowerCase() === umoorFilter.toLowerCase();
-      });
-    }
-
-    if (filter !== "") {
-      switch (filter) {
-        case "approved":
-          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-            return raza.status == 2;
-          });
-          break;
-        case "recommended":
-          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-            return raza.status == 1;
-          });
-          break;
-        case "pending":
-          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-            return raza.status == 0;
-          });
-          break;
-        case "rejected":
-          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-            return raza.status == 3;
-          });
-          break;
-        case "notrecommended":
-          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-            return raza.status == 4;
-          });
-          break;
-        case "clear":
-          refresh();
-          break;
-
-        default:
-          filteredAndSortedRazas = filteredAndSortedRazas.filter(function(raza) {
-            return raza.razaType === filter;
-          });
-          break;
-      }
-
-    }
-
-    if (sort !== "") {
-      filteredAndSortedRazas.sort(function(a, b) {
-        // Implement your sorting logic here
-        switch (parseInt(sort)) {
-          case 0:
-            return a.user_name.localeCompare(b.user_name);
-          case 1:
-            return b.user_name.localeCompare(a.user_name);
-          case 4:
-            // Implement sorting by date (New > Old)
-            return new Date(b['time-stamp']) - new Date(a['time-stamp']);
-          case 5:
-            // Implement sorting by date (Old > New)
-            return new Date(a['time-stamp']) - new Date(b['time-stamp']);
-          case 2:
-            // Implement sorting by event date (New > Old)
-            return new Date(getEventDate(b.razadata, b.miqaat_details)) - new Date(getEventDate(a.razadata, a.miqaat_details));
-          case 3:
-            // Implement sorting by event date (Old > New)
-            return new Date(getEventDate(a.razadata, a.miqaat_details)) - new Date(getEventDate(b.razadata, b.miqaat_details));
-          case 6:
-            refresh();
-          default:
-            return 0;
-        }
-      });
-    }
-
-    try {
-      // Populate the table with the filtered and sorted data into tempContainer
-      for (var i = 0; i < filteredAndSortedRazas.length; i++) {
-        var raza = filteredAndSortedRazas[i];
-        var chatCount = raza.chat_count && raza.chat_count > 0 ? raza.chat_count : '';
-        var chatCountHTML = chatCount ? `<div class="chat-count">${chatCount}</div>` : '';
-        var chatURL = `<?php echo base_url('Accounts/chat/') ?>${raza.id}<?php echo "/anjuman"; ?>`;
-        var row = document.createElement("tr");
-        // Determine display name: if this is a Fala ni Niyaz (FNN) show label instead of user name
-        var nameDisplay = raza['user_name'] || '';
-        try {
-          var _m = parseMaybe(raza.miqaat_details) || {};
-          var miqAssignedTo = (_m.assigned_to || '').toString().toLowerCase();
-          var miqType = (_m.type || '').toString().toLowerCase();
-          var miqName = (_m.name || '').toString().toLowerCase();
-          var miqAssignType = (_m.assign_type || _m.assignType || '').toString().toLowerCase();
-          var rt = (raza.razaType || '').toString().toLowerCase();
-          var isFnn = false;
-          var checkFnn = function(s) {
-            if (!s) return false;
-            if (s.indexOf('fnn') !== -1) return true;
-            if (s.indexOf('fala') !== -1 && (s.indexOf('niyaz') !== -1 || s.indexOf('niaz') !== -1)) return true;
-            return false;
-          };
-          if (checkFnn(miqAssignedTo) || checkFnn(miqType) || checkFnn(miqName) || checkFnn(miqAssignType) || checkFnn(rt)) {
-            isFnn = true;
-          }
-          // check assignments array
-          if (!isFnn && Array.isArray(_m.assignments)) {
-            for (var ai = 0; ai < _m.assignments.length; ai++) {
-              var as = _m.assignments[ai] || {};
-              var ast = (as.assign_type || as.type || '').toString().toLowerCase();
-              if (checkFnn(ast)) {
-                isFnn = true;
-                break;
-              }
-            }
-          }
-          if (isFnn) nameDisplay = 'Fala ni Niyaz';
-        } catch (e) {
-          // ignore
-        }
-
-        row.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${nameDisplay}</td>
-            <td>${formateRazaType(raza)}</td>
-            <td>${formatEventDate(raza)}</td>
-            <td><a href="${chatURL}" class="chat-button">Chat${chatCountHTML}</a></td>
-            <td>${getStatusHTML(raza)}</td>
-            <td><span class="action_btn">${getActionHTML(raza)}</span></td>
-            <td>${formatDate(raza['time-stamp'])}</td>
-        `;
-        tempContainer.appendChild(row);
-      }
-      // Replace existing tbody content on success
-      tbody.innerHTML = '';
-      // move children from tempContainer to tbody
-      while (tempContainer.firstChild) tbody.appendChild(tempContainer.firstChild);
-    } catch (e) {
-      console.error('updateTableContent error', e);
-      // restore server-rendered rows so page doesn't appear empty
-      tbody.innerHTML = _initialRazaTbodyHTML;
-    }
-
-
-
-  }
-
-  function formatSabil(raza) {
-    if (raza['sabil'] != '') {
-      if (raza['sabil']) {
-        return 'yes';
-      } else {
-        return 'no';
-      }
-    } else {
-      return ""
+  } else {
+    var data=parseMaybe(raza.razadata)||{};
+    var rf=parseMaybe(raza.razafields)||{};
+    var fields=rf.fields||[];
+    var k=0;
+    for(var key in data){
+      var fname=fields[k]?fields[k].name:key;
+      var fval=data[key];
+      if(fields[k]&&fields[k].type==='select'){var opt=(fields[k].options||[]).find(function(o){return String(o.id)===String(fval);});fval=opt?opt.name:fval;}
+      rows.push([fname,fval]);k++;
     }
   }
-  // function formatFmbTameer(raza){
-  //     if(raza['fmbtameer'] != ''){
-  //         if(raza['fmbtameer']){
-  //         return 'yes';
-  //     }else{
-  //         return 'no';
-  //     }
-  //     }else{
-  //         return ""
-  //     }
-  // }
-  function formatFmb(raza) {
-    if (raza['fmb'] != '') {
-      if (raza['fmb']) {
-        return 'yes';
-      } else {
-        return 'no';
-      }
-    } else {
-      return ""
-    }
-  }
-
-  function formateRazaType(raza) {
-    const parseMaybe = (val) => {
-      if (!val) return null;
-      if (typeof val === 'object') return val;
-      try {
-        return JSON.parse(val);
-      } catch (e) {
-        return null;
-      }
-    };
-    // If miqaat present, show details similar to server rendering
-    if (raza.miqaat_id && raza.miqaat_details) {
-      const m = parseMaybe(raza.miqaat_details) || {};
-      const date = m.date ? new Date(m.date).toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      }) : '';
-      const name = m.name || '';
-      const type = m.type || '';
-      const assigned = m.assigned_to || '';
-      const parts = [type, assigned].filter(Boolean);
-      return `${name}<br><small style="color: #6c757d;">${parts.join(' · ')}</small>`;
-    }
-    let data = parseMaybe(raza.razadata) || {};
-    let rf = parseMaybe(raza.razafields) || {};
-    let razafields = rf.fields || [];
-
-    // Logic for 'raza-purpose' can be included if needed
-    // if (data['raza-purpose']) {
-    //     let k = razafields.find(e => {
-    //         let name = e.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
-    //         return name === 'raza-purpose';
-    //     });
-    //     let value = k.options[data['raza-purpose']];
-    //     return `${raza.razaType}<br/> <span style='color:grey'>(${value.name})</span>`;
-    // } else {
-    //     return `${raza.razaType} (${raza.umoor || ''})`; // Add raza.umoor with razaType
-    // }
-
-    // Return razaType and umoor
-    return `${raza.umoor ? raza.umoor + '\n' : ''}(${raza.razaType || ''})`;
-
-  }
-
-  function formatDate(dateString) {
-    // Implement date formatting logic if needed
-    const options = {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      hour12: true
-    };
-    return new Date(dateString).toLocaleDateString('en-US', options);
-  }
-
-  function formatEventDate(raza) {
-    const parseMaybe = (val) => {
-      if (!val) return null;
-      if (typeof val === 'object') return val;
-      try {
-        return JSON.parse(val);
-      } catch (e) {
-        return null;
-      }
-    };
-    let data = parseMaybe(raza.razadata) || {}
-    let rf = parseMaybe(raza.razafields) || {}
-    let razafields = rf.fields || []
-    let gregDate = '';
-    let gregDateStr = '';
-    const options = {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    };
-    if (raza.miqaat_id && raza.miqaat_details) {
-      let miqaat_info = parseMaybe(raza.miqaat_details) || {};
-      gregDate = miqaat_info.date;
-      if (gregDate) {
-        gregDateStr = new Date(gregDate).toLocaleDateString('en-US', options);
-      }
-    } else {
-      gregDate = data.date;
-      if (gregDate) {
-        gregDateStr = new Date(gregDate).toLocaleDateString('en-US', options);
-      }
-    }
-    // Hijri date from hijri_parts (provided by server)
-    let hijriStr = '';
-    if (raza.hijri_parts && raza.hijri_parts.year && raza.hijri_parts.month && raza.hijri_parts.day) {
-      // Use hijri_months array if available, else fallback to number
-      let hijriMonthName = '';
-      if (window.hijriMonths && window.hijriMonths[raza.hijri_parts.month]) {
-        hijriMonthName = window.hijriMonths[raza.hijri_parts.month];
-      } else {
-        // fallback: just show month number
-        hijriMonthName = 'Month ' + raza.hijri_parts.month;
-      }
-      hijriStr = `<br><small class=\"text-muted\">(${raza.hijri_parts.day} ${hijriMonthName} ${raza.hijri_parts.year}H)</small>`;
-    }
-    if (gregDateStr) {
-      return gregDateStr + hijriStr;
-    } else {
-      return '';
-    }
-  }
-
-  function getStatusHTML(raza) {
-    let statusHTML = '<div class="text-left">';
-
-    if (raza['status'] == 0) {
-      statusHTML += '<div><strong style="color: orange;">Pending</strong></div>';
-    } else if (raza['status'] == 1) {
-      statusHTML += '<div><strong style="color: blue;">Recommended</strong></div>';
-    } else if (raza['status'] == 2) {
-      statusHTML += '<div><strong style="color: limegreen;">Approved</strong></div>';
-    } else if (raza['status'] == 3) {
-      statusHTML += '<div><strong style="color: red;">Rejected</strong></div>';
-    } else if (raza['status'] == 4) {
-      statusHTML += '<div><strong style="color: blue;">Not Recommended</strong></div>';
-    }
-
-    statusHTML += '<ul><li>';
-    if (raza['coordinator-status'] == 0) {
-      statusHTML += '<div>Jamat <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
-    } else if (raza['coordinator-status'] == 1) {
-      statusHTML += '<div>Jamat <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
-    } else if (raza['coordinator-status'] == 2) {
-      statusHTML += '<div>Jamat <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
-    }
-    statusHTML += '</li>';
-
-    statusHTML += '<li>';
-    if (raza['Janab-status'] == 0) {
-      statusHTML += '<div>Amil Saheb <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
-    } else if (raza['Janab-status'] == 1) {
-      statusHTML += '<div>Amil Saheb <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
-    } else if (raza['Janab-status'] == 2) {
-      statusHTML += '<div>Amil Saheb <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
-    }
-    statusHTML += '</li></ul></div>';
-
-    return statusHTML;
-  }
-
-  function getActionHTML(raza) {
-    // Implement your action HTML generation logic
-    // You can use the same logic you have in your PHP code
-
-    let actionHTML = '';
-    if (raza['Janab-status'] == 0) {
-      actionHTML = `
-        <div class="action-buttons">
-            <div class="button-group">
-                <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(${raza['id']});">
-                    <i class="fa fa-circle-check"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(${raza['id']});">
-                    <i class="fa fa-circle-xmark"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-warning remove-form-row" onclick="deleteRaza(${raza['id']});">
-                    <i class="fa fa-trash"></i>
-                </button>
-            </div>
-            <div class="view-link btn btn-sm btn-primary remove-form-row">
-                <a onclick="show_raza(${raza['id']});">
-                    <span style=" cursor:pointer;">View</span>
-                </a>
-            </div>
-        </div>
-    `;
-    } else {
-      actionHTML = `
-        <div class="view-link">
-          <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="show_raza(${raza['id']});">View</button>
-        </div>
-      `;
-    }
-
-    return actionHTML;
-  }
-
-  function getEventDate(razadata, miqaat_details = {}) {
-    // Extract event date from razadata or miqaat_details; both may be object or JSON string
-    const parseMaybe = (val) => {
-      if (!val) return null;
-      if (typeof val === 'object') return val;
-      try {
-        return JSON.parse(val);
-      } catch (e) {
-        return null;
-      }
-    };
-    let data = parseMaybe(razadata) || {};
-    if (data.date) {
-      return new Date(data.date);
-    } else if (miqaat_details) {
-      let miqaat_info = parseMaybe(miqaat_details) || {};
-      return new Date(miqaat_info.date);
-    } else {
-      return null;
-    }
-  }
-</script>
-<script>
-  function sortTable(n) {
-    var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-    table = document.querySelector("table");
-    switching = true;
-    dir = "asc"; // Set the sorting direction to ascending
-
-    // Make a loop that will continue until no switching has been done
-    while (switching) {
-      switching = false;
-      rows = table.rows;
-
-      // Loop through all table rows (except the first, which contains table headers)
-      for (i = 1; i < (rows.length - 1); i++) {
-        shouldSwitch = false;
-
-        // Get the two elements you want to compare, one from current row and one from the next
-        x = rows[i].getElementsByTagName("TD")[n];
-        y = rows[i + 1].getElementsByTagName("TD")[n];
-
-        // Check if the two rows should switch place, based on the direction, asc or desc
-        if (dir === "asc") {
-          if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-            // If so, mark as a switch and break the loop
-            shouldSwitch = true;
-            break;
-          }
-        } else if (dir === "desc") {
-          if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-            // If so, mark as a switch and break the loop
-            shouldSwitch = true;
-            break;
-          }
-        }
-      }
-      if (shouldSwitch) {
-        // If a switch has been marked, make the switch and mark that a switch has been done
-        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-        switching = true;
-        // Each time a switch is done, increase this count by 1
-        switchcount++;
-      } else {
-        // If no switching has been done AND the direction is "asc", set the direction to "desc" and run the loop again
-        if (switchcount === 0 && dir === "asc") {
-          dir = "desc";
-          switching = true;
-        }
-      }
-    }
-  }
-</script>
-<script>
-  $(document).ready(function() {
-    if ($.fn && $.fn.DataTable) {
-      $('.table').DataTable();
-    }
+  rows.forEach(function(row){
+    var li=document.createElement('li');li.className='detail-row';
+    li.innerHTML='<div class="dr-k">'+row[0]+'</div><div class="dr-v">'+(row[1]||'<span style="color:var(--text-3)">—</span>')+'</div>';
+    ul.appendChild(li);
   });
+  table.appendChild(ul);
+}
 
-  $(document).ready(function() {
-    $('.close-btn').click(function(e) {
-      e.preventDefault();
+/* ── Financials modal ── */
+function formatINR(n){return '₹'+(Math.round(n)).toLocaleString('en-IN');}
+function renderFinancialsModal(data,raza_id){
+  var c=document.getElementById('financials-modal-content');
+  var rows=[
+    ['FMB Takhmeen',data.fmb_due],
+    ['Sabeel Takhmeen',data.sabeel_due],
+    ['General Contributions',data.gc_due],
+    ['Miqaat Invoices',data.miqaat_due],
+    ['Corpus Fund',data.corpus_due],
+    ['Ekram Fund',data.ekram_due||0]
+  ];
+  var html='<div class="fin-warning"><i class="fa-solid fa-triangle-exclamation"></i><span>This member has pending dues. Please review before proceeding.</span></div>';
+  html+='<table class="fin-table"><thead><tr><th>Category</th><th style="text-align:right">Due Amount</th></tr></thead><tbody>';
+  rows.forEach(function(r){html+='<tr><td>'+r[0]+'</td><td style="text-align:right" class="'+(r[1]>0?'fin-amt-due':'fin-amt-ok')+'">'+formatINR(r[1])+'</td></tr>';});
+  html+='<tr class="fin-total-row"><th>Total Due</th><th style="text-align:right">'+formatINR(data.total_due)+'</th></tr>';
+  html+='</tbody></table>';
+  if(Array.isArray(data.miqaat_invoices)&&data.miqaat_invoices.length){
+    html+='<h6 style="margin:12px 0 8px;font-size:.78rem;font-weight:800;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;">Miqaat / Member Invoices</h6>';
+    html+='<div style="max-height:150px;overflow:auto;"><table class="fin-table"><thead><tr><th>Assigned To</th><th>Invoice</th><th style="text-align:right">Amt</th><th style="text-align:right">Paid</th><th style="text-align:right">Due</th></tr></thead><tbody>';
+    data.miqaat_invoices.forEach(function(row){html+='<tr><td>'+(row.assigned_to||'')+'</td><td>'+(row.invoice||'')+'</td><td style="text-align:right">'+formatINR(row.amount)+'</td><td style="text-align:right">'+formatINR(row.paid)+'</td><td style="text-align:right" class="fin-amt-due">'+formatINR(row.due)+'</td></tr>';});
+    html+='</tbody></table></div>';
+  }
+  html+='<div style="display:flex;justify-content:flex-end;gap:9px;margin-top:14px;">';
+  html+='<button class="btn-outline-secondary" onclick="closeFinancialsModal()">Cancel</button>';
+  html+='<button class="btn-gold" onclick="proceedFromFinancials('+raza_id+')"><i class="fa-solid fa-arrow-right"></i> Proceed Anyway</button>';
+  html+='</div>';
+  c.innerHTML=html;
+  document.getElementById('financials-modal').style.display='block';
+}
+function proceedFromFinancials(raza_id){
+  closeFinancialsModal();
+  $('#approve').find('input[name="raza_id"]').parent().remove();
+  var inp=document.createElement('div');inp.innerHTML='<input type="hidden" name="raza_id" value="'+raza_id+'">';
+  document.getElementById('approve').appendChild(inp);
+  submitApproveForm($('#approve'));
+}
+
+/* ── AJAX submissions ── */
+$(document).ready(function(){
+  $('#approve').submit(function(e){
+    e.preventDefault();
+    var its=$(this).find('input[name="its_id"]').val();
+    var raza_id=$(this).find('input[name="raza_id"]').val();
+    if(!its){submitApproveForm($(this));return;}
+    fetch('<?php echo base_url("anjuman/member_financials_json"); ?>?its_id='+encodeURIComponent(its),{credentials:'same-origin'})
+      .then(function(r){return r.json();})
+      .then(function(data){if(!data||!data.success){submitApproveForm($('#approve'));return;}renderFinancialsModal(data,raza_id);})
+      .catch(function(){submitApproveForm($('#approve'));});
+  });
+  window.submitApproveForm=function($form){
+    $.ajax({type:'POST',url:'<?php echo base_url("admin/approveRaza"); ?>',data:$form.serialize(),success:function(){showToast('Raza Recommended successfully!');clearForm();window.location.reload();},error:function(){console.error('failed');}});
+  };
+  $('#reject').submit(function(e){
+    e.preventDefault();
+    $.ajax({type:'POST',url:'<?php echo base_url("admin/rejectRaza"); ?>',data:$(this).serialize(),success:function(){showToast('Raza marked as Not Recommended.');clearForm();window.location.reload();},error:function(){console.error('failed');}});
+  });
+});
+
+function showToast(msg){
+  var t=document.getElementById('rz-toast');
+  document.getElementById('rz-toast-msg').textContent=msg;
+  t.style.display='flex';
+  setTimeout(function(){t.style.display='none';},2500);
+}
+function deleteRaza(id){
+  if(confirm('Delete this Raza request?')) window.location.href='<?php echo base_url(); ?>anjuman/DeleteRaza/'+id;
+}
+
+/* ── Table update (filter/sort) ── */
+var _initialRazaTbodyHTML=document.getElementById('datatable').innerHTML;
+function updateTable(){
+  var filter=document.getElementById('filter').value;
+  var sort=document.getElementById('sort').value;
+  var miqaatEl=document.getElementById('miqaat_filter');
+  var miqaatF=miqaatEl?miqaatEl.value:'';
+  var umoorEl=document.getElementById('umoor_filter');
+  var umoorF=umoorEl?umoorEl.value:'';
+  var yearEl=document.getElementById('year_filter');
+  var yearF=yearEl?yearEl.value:'';
+  function parseMaybe(v){if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v);}catch(e){return null;}}
+  var list=razas.slice();
+  if(miqaatF) list=list.filter(function(r){var m=parseMaybe(r.miqaat_details)||{};return (m.type||r.razaType||'').toLowerCase()===miqaatF.toLowerCase();});
+  if(yearF) list=list.filter(function(r){return (hijriMap&&hijriMap[r.id]?hijriMap[r.id].toString():'')===yearF;});
+  if(umoorF) list=list.filter(function(r){return (r.umoor||'').toLowerCase()===umoorF.toLowerCase();});
+  if(filter==='clear'){window.location.reload();return;}
+  var statusMap={approved:2,recommended:1,pending:0,rejected:3,notrecommended:4};
+  if(filter!==''&&statusMap[filter]!==undefined) list=list.filter(function(r){return r.status==statusMap[filter];});
+  function getEvDate(r){var m=parseMaybe(r.miqaat_details)||{};if(m.date)return new Date(m.date);var d=parseMaybe(r.razadata)||{};return d.date?new Date(d.date):new Date(0);}
+  list.sort(function(a,b){
+    var s=parseInt(sort);
+    if(s===0)return a.user_name.localeCompare(b.user_name);
+    if(s===1)return b.user_name.localeCompare(a.user_name);
+    if(s===2)return getEvDate(b)-getEvDate(a);
+    if(s===3)return getEvDate(a)-getEvDate(b);
+    if(s===4)return new Date(b['time-stamp'])-new Date(a['time-stamp']);
+    if(s===5)return new Date(a['time-stamp'])-new Date(b['time-stamp']);
+    return 0;
+  });
+  var tbody=document.getElementById('datatable');
+  if(!list.length){tbody.innerHTML='';document.getElementById('rz-empty').style.display='block';document.getElementById('rzCount').textContent='0';return;}
+  document.getElementById('rz-empty').style.display='none';
+  document.getElementById('rzCount').textContent=list.length;
+  try{
+    var html='';
+    list.forEach(function(r,i){
+      var chatURL='<?php echo base_url("Accounts/chat/"); ?>'+r.id+'/anjuman';
+      var cc=r.chat_count&&r.chat_count>0?r.chat_count:'';
+      var chatBadge=cc?'<span class="chat-badge">'+cc+'</span>':'';
+      html+='<tr>';
+      html+='<td class="sno">'+(i+1)+'</td>';
+      html+='<td><div class="rz-name">'+(r.user_name||'')+'</div></td>';
+      html+='<td>'+formateRazaTypeJS(r)+'</td>';
+      html+='<td>'+formatEventDateJS(r)+'</td>';
+      html+='<td><a href="'+chatURL+'" class="chat-btn"><i class="fa-regular fa-comment"></i> Chat '+chatBadge+'</a></td>';
+      html+='<td>'+getStatusHTML(r)+'</td>';
+      html+='<td>'+getActionHTML(r)+'</td>';
+      html+='<td><div class="rz-created">'+formatDateShort(r['time-stamp'])+'</div></td>';
+      html+='</tr>';
     });
-  });
+    tbody.innerHTML=html;
+  }catch(e){console.error(e);tbody.innerHTML=_initialRazaTbodyHTML;}
+}
+
+function formateRazaTypeJS(r){
+  function parseMaybe(v){if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v);}catch(e){return null;}}
+  if(r.miqaat_id&&r.miqaat_details){var m=parseMaybe(r.miqaat_details)||{};var p=[m.type,m.assigned_to].filter(Boolean);return '<div class="rz-type">'+(m.name||'')+'</div>'+(p.length?'<div class="rz-type-meta">'+p.join(' · ')+'</div>':'');}
+  return '<div class="rz-type">'+(r.umoor?r.umoor+' · ':'')+(r.razaType||'')+'</div>';
+}
+function formatEventDateJS(r){
+  function parseMaybe(v){if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v);}catch(e){return null;}}
+  var gd='';
+  if(r.miqaat_id&&r.miqaat_details){var m=parseMaybe(r.miqaat_details)||{};gd=m.date||'';}
+  else{var d=parseMaybe(r.razadata)||{};gd=d.date||'';}
+  if(!gd)return '';
+  var opts={weekday:'short',month:'short',day:'numeric'};
+  var ds=new Date(gd).toLocaleDateString('en-US',opts);
+  var hijriStr='';
+  if(r.hijri_parts&&r.hijri_parts.year){var mn=(window.hijriMonths&&window.hijriMonths[r.hijri_parts.month])||('M'+r.hijri_parts.month);hijriStr='<div class="rz-hijri">'+r.hijri_parts.day+' '+mn+' '+r.hijri_parts.year+'H</div>';}
+  return '<div class="rz-date">'+ds+'</div>'+hijriStr;
+}
+function formatDateShort(s){
+  var d=new Date(s);
+  return d.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short'})+'<br><span style="color:var(--text-3);font-size:.68rem;">'+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})+'</span>';
+}
+function getStatusHTML(r){
+  var map={0:['pending','fa-clock','Pending'],1:['recommended','fa-thumbs-up','Recommended'],2:['approved','fa-circle-check','Approved'],3:['rejected','fa-circle-xmark','Rejected'],4:['notrecommended','fa-thumbs-down','Not Recommended']};
+  var sm=map[r.status]||['secondary','fa-question','Unknown'];
+  var coIcons={0:'<i class="fa-solid fa-clock" style="color:#ca8a04;"></i>',1:'<i class="fa-solid fa-circle-check" style="color:#1a6645;"></i>',2:'<i class="fa-solid fa-circle-xmark" style="color:#b91c1c;"></i>'};
+  return '<span class="status-main '+sm[0]+'"><i class="fa-solid '+sm[1]+'"></i> '+sm[2]+'</span>'
+    +'<div class="status-sub"><span class="sub-row">'+(coIcons[r['coordinator-status']]||coIcons[0])+' Jamat</span><span class="sub-row">'+(coIcons[r['Janab-status']]||coIcons[0])+' Amil Saheb</span></div>';
+}
+function getActionHTML(r){
+  var btns='';
+  if(r['Janab-status']==0){
+    btns='<div class="btn-group-row"><button class="act-btn approve" title="Recommend" onclick="approve_raza('+r.id+')"><i class="fa-solid fa-circle-check"></i></button><button class="act-btn reject" title="Not Recommend" onclick="reject_raza('+r.id+')"><i class="fa-solid fa-circle-xmark"></i></button><button class="act-btn del" title="Delete" onclick="deleteRaza('+r.id+')"><i class="fa-solid fa-trash"></i></button></div>';
+  }
+  return '<div class="action-wrap">'+btns+'<button class="act-btn view" onclick="show_raza('+r.id+')"><i class="fa-regular fa-eye"></i> View</button></div>';
+}
+
+/* ── Column sort ── */
+function sortTable(n){
+  var table=document.querySelector('#rzApp table');
+  var switching=true,dir='asc',switchcount=0;
+  while(switching){
+    switching=false;var rows=table.rows;
+    for(var i=1;i<rows.length-1;i++){
+      var x=rows[i].getElementsByTagName('TD')[n];
+      var y=rows[i+1].getElementsByTagName('TD')[n];
+      if(!x||!y)continue;
+      var xv=(x.textContent||x.innerText).toLowerCase();
+      var yv=(y.textContent||y.innerText).toLowerCase();
+      var shouldSwitch=(dir==='asc'&&xv>yv)||(dir==='desc'&&xv<yv);
+      if(shouldSwitch){rows[i].parentNode.insertBefore(rows[i+1],rows[i]);switching=true;switchcount++;break;}
+    }
+    if(!switching&&switchcount===0&&dir==='asc'){dir='desc';switching=true;}
+  }
+}
 </script>
