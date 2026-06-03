@@ -1,1159 +1,720 @@
-<?php /* Expanded Edit Member View with Full Field Set - grouped 3-column layout + verification automation */ ?>
+<?php /* Edit Member — Inline edit matching ViewMember layout */ ?>
 <?php
 if (!function_exists('norm_date_input')) {
-  function norm_date_input($val)
-  {
-    if (empty($val))
-      return '';
-    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $val))
-      return $val; // already ISO
+  function norm_date_input($val) {
+    if (empty($val)) return '';
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $val)) return $val;
     $t = strtotime($val);
     return $t ? date('Y-m-d', $t) : '';
   }
 }
-
 $redirect = $this->input->get('redirect');
 $role = $_SESSION['user']['role'] ?? null;
 $default_redirect = ($role == 3) ? base_url('anjuman/mumineendirectory') : base_url('admin/managemembers');
-
 if (empty($redirect)) {
   $redirect = $default_redirect;
 } else {
-  if (strpos($redirect, 'http://') === 0 || strpos($redirect, 'https://') === 0) {
-    if (strpos($redirect, base_url()) !== 0) {
-      $redirect = $default_redirect;
-    }
-  } else if (strpos($redirect, '//') === 0) {
-    $redirect = $default_redirect;
+  if (strpos($redirect,'http://')===0||strpos($redirect,'https://')===0) {
+    if (strpos($redirect,base_url())!==0) $redirect=$default_redirect;
+  } elseif (strpos($redirect,'//')===0) {
+    $redirect=$default_redirect;
   } else {
-    if (strpos($redirect, '/') === 0) {
-      $base_path = rtrim(parse_url(base_url(), PHP_URL_PATH), '/');
-      if (!empty($base_path) && strpos($redirect, $base_path) !== 0) {
-        $redirect = $default_redirect;
-      }
+    if (strpos($redirect,'/')===0) {
+      $bp=rtrim(parse_url(base_url(),PHP_URL_PATH),'/');
+      if (!empty($bp)&&strpos($redirect,$bp)!==0) $redirect=$default_redirect;
     } else {
-      $redirect = base_url($redirect);
+      $redirect=base_url($redirect);
     }
   }
 }
 ?>
-<div class="container margintopcontainer pt-5 mb-5">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 text-nowrap">Edit Member</h4>
-    <a href="<?php echo htmlspecialchars($redirect); ?>" class="btn btn-sm btn-outline-secondary w-auto text-nowrap">Back</a>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,6..72,400;0,6..72,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+<style>
+:root {
+  --gold:         #b8860b;
+  --gold-light:   #e6c84a;
+  --gold-muted:   #f5e9c0;
+  --gold-border:  rgba(230,200,74,.35);
+  --bg:           #faf7f0;
+  --surface:      #ffffff;
+  --surface-2:    #f7f4ec;
+  --border:       #e8e0cc;
+  --border-light: #f0ece0;
+  --text-1:       #1a1610;
+  --text-2:       #5a5244;
+  --text-3:       #9c8f7a;
+  --green:        #1a6645;
+  --green-bg:     #eaf4ee;
+  --red:          #b91c1c;
+  --red-bg:       #fef2f2;
+  --blue:         #1d4ed8;
+  --blue-bg:      #eff6ff;
+  --orange:       #b45309;
+  --orange-bg:    #fff7ed;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow:       0 4px 16px rgba(0,0,0,.07),0 1px 4px rgba(0,0,0,.04);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.05);
+  --radius:       16px;
+  --radius-sm:    10px;
+}
+#emApp,#emApp *,#emApp *::before,#emApp *::after{box-sizing:border-box;}
+#emApp{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text-1);background:var(--bg);min-height:100vh;padding-top:57px;}
+
+/* ── Page header ── */
+#emApp .em-header{
+  background:linear-gradient(135deg,#78520a 0%,#b8860b 50%,#c9a227 100%);
+  border-radius:22px;padding:20px 26px;margin-bottom:22px;
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+}
+#emApp .em-header::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/svg%3E") repeat;pointer-events:none;}
+#emApp .em-header::after{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(255,255,255,.12) 0%,transparent 70%);pointer-events:none;}
+#emApp .em-eyebrow{font-size:.67rem;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:3px;position:relative;z-index:1;}
+#emApp .em-title{font-family:'Literata',Georgia,serif;font-size:1.4rem;font-weight:600;color:#fff;line-height:1.2;margin:0;position:relative;z-index:1;}
+#emApp .em-title small{font-size:.85rem;font-weight:400;color:rgba(255,255,255,.7);display:block;margin-top:2px;}
+#emApp .em-header-actions{display:flex;align-items:center;gap:10px;position:relative;z-index:1;flex-shrink:0;flex-wrap:wrap;}
+#emApp .hdr-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-size:.8rem;font-weight:700;text-decoration:none;transition:background .15s;white-space:nowrap;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;cursor:pointer;}
+#emApp .hdr-btn:hover{background:rgba(255,255,255,.28);color:#fff;text-decoration:none;}
+
+/* ── Member hero ── */
+#emApp .member-hero{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:18px;display:flex;align-items:center;gap:18px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;}
+#emApp .member-hero::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold),var(--gold-light));}
+#emApp .hero-avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#c9a227);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;flex-shrink:0;box-shadow:0 3px 12px rgba(184,134,11,.3);}
+#emApp .hero-avatar.female{background:linear-gradient(135deg,#b45309,#f59e0b);}
+#emApp .hero-name{font-family:'Literata',Georgia,serif;font-size:1.2rem;font-weight:600;color:var(--text-1);margin:0 0 4px;}
+#emApp .hero-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:.76rem;color:var(--text-3);}
+#emApp .hero-meta span{display:inline-flex;align-items:center;gap:4px;}
+#emApp .hero-meta i{color:var(--gold);}
+
+/* ── Editing indicator banner ── */
+#emApp .edit-banner{background:var(--gold-muted);border:1.5px solid var(--gold-border);border-radius:12px;padding:10px 16px;margin-bottom:18px;display:flex;align-items:center;gap:10px;font-size:.82rem;font-weight:600;color:var(--gold);}
+#emApp .edit-banner i{font-size:1rem;}
+
+/* ── Status pills ── */
+#emApp .status-strip{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+#emApp .spill{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:40px;font-size:.76rem;font-weight:700;border:1.5px solid transparent;}
+#emApp .spill.success{background:var(--green-bg);color:var(--green);border-color:#86efac;}
+#emApp .spill.danger{background:var(--red-bg);color:var(--red);border-color:#fca5a5;}
+#emApp .spill.warning{background:#fffbeb;color:#92400e;border-color:#fcd34d;}
+#emApp .spill.info{background:var(--blue-bg);color:var(--blue);border-color:#93c5fd;}
+#emApp .spill.secondary{background:var(--surface-2);color:var(--text-2);border-color:var(--border);}
+
+/* ── Masonry grid (identical to ViewMember) ── */
+#emApp .masonry-grid{column-count:2;column-gap:16px;}
+@media(max-width:768px){#emApp .masonry-grid{column-count:1;}}
+
+/* ── Panel cards (identical to ViewMember) ── */
+#emApp .panel{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:16px;box-shadow:var(--shadow-sm);overflow:hidden;break-inside:avoid;display:inline-block;width:100%;transition:box-shadow .2s;}
+#emApp .panel:hover{box-shadow:var(--shadow);}
+#emApp .panel-hd{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;background:var(--surface-2);border-bottom:1.5px solid var(--border-light);cursor:pointer;user-select:none;transition:background .15s;}
+#emApp .panel-hd:hover{background:var(--gold-muted);}
+#emApp .panel-hd.open{background:var(--gold-muted);border-bottom-color:var(--gold-border);}
+#emApp .ph-left{display:flex;align-items:center;gap:9px;}
+#emApp .ph-icon{width:28px;height:28px;border-radius:7px;background:var(--gold-muted);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;flex-shrink:0;}
+#emApp .panel-hd.open .ph-icon{background:rgba(184,134,11,.18);}
+#emApp .ph-title{font-size:.82rem;font-weight:800;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;}
+#emApp .ph-badge{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--border-light);color:var(--text-3);}
+#emApp .ph-chevron{width:24px;height:24px;border-radius:6px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.68rem;color:var(--text-3);transition:transform .2s;}
+#emApp .panel-hd.open .ph-chevron{transform:rotate(180deg);}
+
+/* ── Edit rows — same structure as ViewMember detail-row but with inputs ── */
+#emApp .edit-list{list-style:none;margin:0;padding:0;}
+#emApp .edit-row{display:flex;align-items:stretch;border-bottom:1px solid var(--border-light);min-height:44px;transition:background .12s;}
+#emApp .edit-row:last-child{border-bottom:none;}
+#emApp .edit-row:focus-within{background:rgba(184,134,11,.03);}
+
+/* Key column — identical to ViewMember .dr-key */
+#emApp .er-key{
+  flex:0 0 42%;max-width:42%;
+  padding:10px 14px;
+  font-size:.72rem;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.3px;
+  background:var(--surface-2);
+  border-right:1px solid var(--border-light);
+  display:flex;align-items:center;gap:5px;
+  word-break:break-word;line-height:1.3;
+}
+#emApp .er-key .req{color:var(--red);font-size:.9rem;line-height:1;}
+#emApp .er-key .auto-lbl{font-size:.58rem;font-weight:700;padding:1px 5px;border-radius:8px;background:var(--gold-muted);color:var(--gold);white-space:nowrap;flex-shrink:0;}
+
+/* Value column — same position as ViewMember .dr-val but contains an input */
+#emApp .er-val{flex:1;display:flex;align-items:center;padding:5px 10px;}
+
+/* Inputs/selects styled to look like plain text until focused */
+#emApp .er-val input,
+#emApp .er-val select {
+  width:100%;
+  border:1.5px solid transparent;
+  border-radius:7px;
+  padding:6px 10px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:.84rem;
+  color:var(--text-1);
+  background:transparent;
+  outline:none;
+  transition:border-color .15s,background .15s,box-shadow .15s;
+  height:34px;
+}
+/* On hover show subtle border */
+#emApp .edit-row:hover .er-val input,
+#emApp .edit-row:hover .er-val select{
+  border-color:var(--border);
+  background:var(--surface);
+}
+/* On focus — gold highlight, feels like "now editing" */
+#emApp .er-val input:focus,
+#emApp .er-val select:focus{
+  border-color:var(--gold);
+  background:var(--surface);
+  box-shadow:0 0 0 3px rgba(184,134,11,.12);
+}
+/* Readonly/auto fields — look like plain text, not editable */
+#emApp .er-val input[readonly]{
+  color:var(--text-3);cursor:default;
+  background:transparent;border-color:transparent !important;
+  box-shadow:none !important;
+}
+#emApp .er-val select{cursor:pointer;}
+
+/* Status grid inside Member Status panel */
+#emApp .status-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;padding:16px 18px;border-bottom:1px solid var(--border-light);}
+#emApp .sg-item{}
+#emApp .sg-label{font-size:.7rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+#emApp .sg-badge{display:inline-block;font-size:.6rem;font-weight:700;padding:1px 7px;border-radius:12px;}
+#emApp .sg-badge.auto{background:var(--gold-muted);color:var(--gold);}
+#emApp .sg-badge.manual{background:var(--orange-bg);color:var(--orange);}
+#emApp .sg-val{font-size:.9rem;font-weight:700;color:var(--text-1);}
+#emApp .sg-val.green{color:var(--green);}
+#emApp .sg-val.red{color:var(--red);}
+
+/* Section note */
+#emApp .section-note{display:flex;align-items:flex-start;gap:8px;padding:10px 16px;font-size:.78rem;color:var(--text-2);border-bottom:1px solid var(--border-light);}
+#emApp .section-note.gold{background:var(--gold-muted);}
+#emApp .section-note i{margin-top:1px;flex-shrink:0;}
+
+/* HOF autocomplete */
+#emApp .autocomplete-wrap{position:relative;width:100%;}
+#emApp #hof_autocomplete_list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);z-index:1050;display:none;max-height:240px;overflow-y:auto;}
+#emApp #hof_autocomplete_list.open{display:block;}
+#emApp .hof-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border-light);transition:background .12s;}
+#emApp .hof-item:last-child{border-bottom:none;}
+#emApp .hof-item:hover{background:var(--gold-muted);}
+#emApp .hof-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#c9a227);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;flex-shrink:0;}
+#emApp .hof-name{font-weight:700;font-size:.84rem;color:var(--text-1);}
+#emApp .hof-its{font-size:.7rem;color:var(--text-3);}
+#emApp .hof-empty{padding:14px;text-align:center;color:var(--text-3);font-size:.84rem;}
+
+/* Responsive */
+@media(max-width:480px){
+  #emApp .er-key{flex:0 0 38%;max-width:38%;font-size:.67rem;padding:8px 9px;}
+  #emApp .er-val{padding:4px 6px;}
+  #emApp .er-val input,#emApp .er-val select{font-size:.8rem;padding:5px 8px;height:32px;}
+}
+
+/* ── Sticky save bar ── */
+#emApp .sticky-save{position:fixed;left:0;right:0;bottom:0;z-index:1060;padding:10px 16px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-top:1.5px solid var(--border);box-shadow:0 -4px 20px rgba(0,0,0,.06);}
+#emApp .sticky-save .inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;}
+#emApp .btn-save{display:inline-flex;align-items:center;gap:7px;padding:9px 22px;border-radius:10px;background:linear-gradient(135deg,#b8860b,#c9a227);border:none;color:#fff;font-size:.86rem;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s;box-shadow:0 3px 12px rgba(184,134,11,.35);}
+#emApp .btn-save:hover{opacity:.9;transform:translateY(-1px);}
+#emApp .btn-cancel{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-size:.84rem;font-weight:700;text-decoration:none;transition:border-color .15s,background .15s;}
+#emApp .btn-cancel:hover{border-color:var(--gold);background:var(--gold-muted);color:var(--gold);text-decoration:none;}
+#emApp .btn-danger-outline{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:10px;border:1.5px solid #fca5a5;background:var(--red-bg);color:var(--red);font-size:.84rem;font-weight:700;cursor:pointer;transition:background .15s;}
+#emApp .btn-danger-outline:hover{background:#fee2e2;}
+#emApp .save-status{font-size:.8rem;font-weight:700;padding:6px 12px;border-radius:8px;display:none;}
+#emApp .save-status.success{display:inline-block;background:var(--green-bg);color:var(--green);}
+#emApp .save-status.error{display:inline-block;background:var(--red-bg);color:var(--red);}
+</style>
+
+<?php
+  $its_match   = $member['its_sabeel_match'] ?? '';
+  $actStatus   = $member['activity_status']  ?? 'active';
+  $matchLabels = ['its_sabeel_both_khar'=>['ITS & Sabeel both in Khar','success'],'its_khar_sabeel_out'=>['ITS in Khar, Sabeel outside','warning'],'sabeel_khar_its_out'=>['Sabeel in Khar, ITS outside','info'],'both_not_khar'=>['Both not in Khar','secondary']];
+  $matchLabel  = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][0] : 'Not calculated';
+  $matchClass  = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][1] : 'secondary';
+  $actClass    = ['active'=>'success','inactive'=>'danger','temporary'=>'warning'][$actStatus] ?? 'secondary';
+  $isF         = strtolower($member['Gender'] ?? '') === 'female';
+  $memberName  = trim($member['Full_Name'] ?? '');
+  $getInitials = function($n){ if(!$n)return'?'; $p=preg_split('/\s+/',trim($n)); return count($p)===1?strtoupper(substr($p[0],0,1)):strtoupper(substr($p[0],0,1).substr($p[count($p)-1],0,1)); };
+  $initials    = $getInitials($memberName);
+  $maritalVal  = $member['Marital_Status'] ?? '';  $maritalOpts = ["Single","Married","Engaged","Separated","Divorced","Widowed"];
+  $bloodVal    = $member['Blood_Group'] ?? '';      $bloodOpts   = ["A+","A-","B+","B-","AB+","AB-","O+","O-","Unknown"];
+  $inactiveVal = $member['Inactive_Status'] ?? '';  $inactiveOpts= ["Deceased","Shifted Jamaat","Travel / Outstation","Duplicate Record","Blocked / Suspended","Other"];
+  $dvs=$member['Data_Verifcation_Status']??''; $pvs=$member['Photo_Verifcation_Status']??'';
+  $currentSector=$member['Sector']??'';
+?>
+
+<div id="emApp">
+<div class="container pt-4 pb-5" style="max-width:1300px;">
+
+  <!-- ── Header ── -->
+  <div class="em-header">
+    <div>
+      <p class="em-eyebrow">Member Management</p>
+      <h1 class="em-title">Edit Member<small><?php echo htmlspecialchars($memberName); ?> &mdash; ITS <?php echo htmlspecialchars($member['ITS_ID']??''); ?></small></h1>
+    </div>
+    <div class="em-header-actions">
+      <a href="<?php echo htmlspecialchars($redirect); ?>" class="hdr-btn"><i class="fa fa-arrow-left"></i> Back</a>
+    </div>
   </div>
-  <?php
-    $its_match    = $member['its_sabeel_match'] ?? '';
-    $actStatus    = $member['activity_status']  ?? 'active';
-    $matchLabels  = [
-      'its_sabeel_both_khar'  => ['ITS & Sabeel both in Khar',      'success'],
-      'its_khar_sabeel_out'   => ['ITS in Khar, Sabeel outside',         'warning'],
-      'sabeel_khar_its_out'   => ['Sabeel in Khar, ITS outside',         'info'],
-      'both_not_khar'         => ['ITS & Sabeel both not in Khar',   'secondary'],
-    ];
-    $actClasses = ['active' => 'success', 'inactive' => 'danger', 'temporary' => 'warning'];
-    $matchLabel = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][0] : 'Not calculated';
-    $matchClass = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][1] : 'light';
-    $actClass   = $actClasses[$actStatus] ?? 'secondary';
-  ?>
-  <style>
-    .member-badges-wrapper .badge { font-size: 0.85rem; padding: 0.5rem 1rem; line-height: 1.2; text-align: left; white-space: normal; }
-    @media (max-width: 576px) {
-      .member-badges-wrapper { flex-direction: column; align-items: stretch !important; gap: 0.5rem !important; }
-      .member-badges-wrapper .badge { display: flex; align-items: flex-start; }
-      .member-badges-wrapper .badge i { margin-top: 2px; }
-    }
-  </style>
-  <div class="mb-3 d-flex flex-wrap gap-2 align-items-center member-badges-wrapper">
-    <span class="badge rounded-pill bg-<?php echo $matchClass; ?> text-<?php echo in_array($matchClass, ['warning','info','light','secondary']) ? 'dark' : 'white'; ?> fw-normal">
-      <i class="fa-solid fa-link me-2"></i>ITS–Sabeel: <?php echo $matchLabel; ?>
-    </span>
-    <span class="badge rounded-pill bg-<?php echo $actClass; ?> text-white fw-normal">
-      <i class="fa-solid fa-circle-check me-2"></i>Status: <?php echo ucfirst($actStatus); ?>
-    </span>
-  </div>
-  <?php if (!empty($member)): ?>
-    <form id="editMemberForm" class="card shadow-sm border-0" method="post"
-      action="<?php echo base_url('admin/updatemember'); ?>">
-      <div class="card-body">
-        <style>
-          .group-header {
-            cursor: pointer;
-            user-select: none;
-          }
 
-          .group-body.collapsed {
-            display: none;
-          }
+  <?php if(!empty($member)): ?>
 
-          .group-section+.group-section {
-            margin-top: 1rem;
-          }
-
-          .toggle-indicator {
-            font-weight: bold;
-            width: 1rem;
-            text-align: center;
-          }
-        </style>
-        <div class="d-flex flex-wrap gap-2 mb-3">
-          <button type="button" id="expandAllGroups" class="btn btn-sm btn-outline-primary">Expand All</button>
-          <button type="button" id="collapseAllGroups" class="ml-md-2 mt-2 mt-md-0 btn btn-sm btn-outline-secondary">Collapse All</button>
-        </div>
-
-        <!-- Identity & Contact -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-identity">
-            <span class="small fw-semibold text-uppercase">Identity & Contact</span><span
-              class="toggle-indicator">−</span>
-          </div>
-          <div id="group-identity" class="group-body border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">ITS ID</label>
-                <input type="text" class="form-control form-control-sm"
-                  value="<?php echo htmlspecialchars($member['ITS_ID']); ?>" readonly name="its_id">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Full Name</label>
-                <input type="text" class="form-control form-control-sm" name="Full_Name"
-                  value="<?php echo htmlspecialchars($member['Full_Name']); ?>" required>
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Full Name Arabic</label>
-                <input type="text" class="form-control form-control-sm" name="Full_Name_Arabic"
-                  value="<?php echo htmlspecialchars($member['Full_Name_Arabic'] ?? ''); ?>"
-                  placeholder="Arabic script name">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">First Name</label>
-                <input type="text" class="form-control form-control-sm" name="First_Name" placeholder="Given name"
-                  value="<?php echo htmlspecialchars($member['First_Name'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Surname</label>
-                <input type="text" class="form-control form-control-sm" name="Surname" placeholder="Family name"
-                  value="<?php echo htmlspecialchars($member['Surname'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">First Prefix</label>
-                <input type="text" class="form-control form-control-sm" name="First_Prefix"
-                  value="<?php echo htmlspecialchars($member['First_Prefix'] ?? ''); ?>" placeholder="e.g. Shk / Shz">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Prefix Year</label>
-                <input type="text" class="form-control form-control-sm" name="Prefix_Year"
-                  value="<?php echo htmlspecialchars($member['Prefix_Year'] ?? ''); ?>" placeholder="Year granted">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Father Prefix</label>
-                <input type="text" class="form-control form-control-sm" name="Father_Prefix"
-                  value="<?php echo htmlspecialchars($member['Father_Prefix'] ?? ''); ?>" placeholder="Father prefix">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Father Name</label>
-                <input type="text" class="form-control form-control-sm" name="Father_Name"
-                  value="<?php echo htmlspecialchars($member['Father_Name'] ?? ''); ?>" placeholder="Father first name">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Father Surname</label>
-                <input type="text" class="form-control form-control-sm" name="Father_Surname"
-                  value="<?php echo htmlspecialchars($member['Father_Surname'] ?? ''); ?>" placeholder="Father surname">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Husband Prefix</label>
-                <input type="text" class="form-control form-control-sm" name="Husband_Prefix"
-                  value="<?php echo htmlspecialchars($member['Husband_Prefix'] ?? ''); ?>" placeholder="Husband prefix">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Husband Name</label>
-                <input type="text" class="form-control form-control-sm" name="Husband_Name"
-                  value="<?php echo htmlspecialchars($member['Husband_Name'] ?? ''); ?>" placeholder="Husband name">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Gender</label>
-                <?php $gSel = $member['Gender'] ?? ''; ?>
-                <select class="form-control form-select" name="Gender">
-                  <option value="">--</option>
-                  <option value="Male" <?php echo $gSel === 'Male' ? 'selected' : ''; ?>>Male</option>
-                  <option value="Female" <?php echo $gSel === 'Female' ? 'selected' : ''; ?>>Female</option>
-                </select>
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Age</label>
-                <input type="number" class="form-control form-control-sm" name="Age" placeholder="Years"
-                  value="<?php echo htmlspecialchars($member['Age'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Mobile</label>
-                <input type="text" class="form-control form-control-sm" name="Mobile" placeholder="Primary mobile"
-                  value="<?php echo htmlspecialchars($member['Mobile'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Email</label>
-                <input type="email" class="form-control form-control-sm" name="Email" placeholder="name@example.com"
-                  value="<?php echo htmlspecialchars($member['Email'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">WhatsApp No</label>
-                <input type="text" class="form-control form-control-sm" name="WhatsApp_No" placeholder="WhatsApp number"
-                  value="<?php echo htmlspecialchars($member['WhatsApp_No'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Registered Family Mobile</label>
-                <input type="text" class="form-control form-control-sm" name="Registered_Family_Mobile"
-                  placeholder="Shared family mobile"
-                  value="<?php echo htmlspecialchars($member['Registered_Family_Mobile'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Member Status (ITS-Sabeel + Living Statuses) -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-primary text-white border rounded d-flex justify-content-between align-items-center" data-group-target="group-member-status">
-            <span class="small fw-semibold text-uppercase">Member Status</span><span class="toggle-indicator">−</span>
-          </div>
-          <div id="group-member-status" class="group-body border-start border-end border-bottom p-3">
-
-            <!-- Auto-calculated (read-only) -->
-            <p class="text-muted small mb-2"><i class="fa-solid fa-robot me-1"></i>Auto-calculated on CSV import or Sabeel changes. <em>Not editable here.</em></p>
-            <div class="row g-3 mb-3">
-              <div class="col-md-6 col-12">
-                <label class="form-label small mb-1 fw-semibold">ITS–Sabeel Match <span class="badge bg-secondary ms-1" style="font-size:.65rem">Auto</span></label>
-                <input type="text" class="form-control form-control-sm bg-light" readonly
-                  value="<?php echo htmlspecialchars($matchLabel); ?>">
-              </div>
-              <div class="col-md-3 col-12">
-                <label class="form-label small mb-1 fw-semibold">Member Status</label>
-                <input type="hidden" name="activity_status" id="activityStatusSel" value="<?php echo htmlspecialchars($actStatus); ?>">
-                <input type="text" id="activityStatusDisplay" class="form-control form-control-sm bg-light" readonly
-                  value="<?php echo htmlspecialchars($activity_status_options[$actStatus] ?? ucfirst($actStatus)); ?>">
-              </div>
-            </div>
-
-            <hr class="my-2">
-            <!-- Manual living status fields -->
-            <p class="text-muted small mb-2"><i class="fa-solid fa-user-pen me-1"></i>Living Status — manually managed by Admin.</p>
-            <div class="row g-3" id="living-status-fields">
-              <div class="col-md-3 col-12">
-                <label class="form-label small mb-1 fw-semibold">Deeni Status</label>
-                <select name="deeni_status" id="deeniStatusSel" class="form-control form-select form-select-sm">
-                  <?php foreach ($deeni_status_options as $val => $label): ?>
-                    <option value="<?php echo htmlspecialchars($val); ?>"
-                      <?php echo (($member['deeni_status'] ?? '') === $val) ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($label); ?>
-                    </option>
-                  <?php endforeach; ?>
-                  <?php if (!empty($member['deeni_status']) && !array_key_exists($member['deeni_status'], $deeni_status_options)): ?>
-                    <option value="<?php echo htmlspecialchars($member['deeni_status']); ?>" selected>
-                      <?php echo htmlspecialchars($member['deeni_status']); ?> (Legacy)
-                    </option>
-                  <?php endif; ?>
-                </select>
-              </div>
-
-              <div class="col-md-3 col-12">
-                <label class="form-label small mb-1 fw-semibold">Health Status</label>
-                <select name="health_status" id="healthStatusSel" class="form-control form-select form-select-sm">
-                  <?php foreach ($health_status_options as $val => $label): ?>
-                    <option value="<?php echo htmlspecialchars($val); ?>"
-                      <?php echo (($member['health_status'] ?? '') === $val) ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($label); ?>
-                    </option>
-                  <?php endforeach; ?>
-                  <?php if (!empty($member['health_status']) && !array_key_exists($member['health_status'], $health_status_options)): ?>
-                    <option value="<?php echo htmlspecialchars($member['health_status']); ?>" selected>
-                      <?php echo htmlspecialchars($member['health_status']); ?> (Legacy)
-                    </option>
-                  <?php endif; ?>
-                </select>
-              </div>
-
-              <div class="col-md-3 col-12">
-                <label class="form-label small mb-1 fw-semibold">Residential Status</label>
-                <select name="residential_status" id="residentialStatusSel" class="form-control form-select form-select-sm">
-                  <?php foreach ($residential_status_options as $val => $label): ?>
-                    <option value="<?php echo htmlspecialchars($val); ?>"
-                      <?php echo (($member['residential_status'] ?? '') === $val) ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($label); ?>
-                    </option>
-                  <?php endforeach; ?>
-                  <?php if (!empty($member['residential_status']) && !array_key_exists($member['residential_status'], $residential_status_options)): ?>
-                    <option value="<?php echo htmlspecialchars($member['residential_status']); ?>" selected>
-                      <?php echo htmlspecialchars($member['residential_status']); ?> (Legacy)
-                    </option>
-                  <?php endif; ?>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        <!-- Family & Relationships -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-family">
-            <span class="small fw-semibold text-uppercase">Family & Relationships</span><span
-              class="toggle-indicator">+</span>
-          </div>
-          <div id="group-family" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1 d-block">Type</label>
-                <select name="hof_type" id="hofTypeSelect" class="form-control form-select">
-                  <option value="HOF" <?php echo ($member['HOF_FM_TYPE'] === 'HOF') ? 'selected' : ''; ?>>Head of Family
-                  </option>
-                  <option value="FM" <?php echo ($member['HOF_FM_TYPE'] !== 'HOF') ? 'selected' : ''; ?>>Family Member
-                  </option>
-                </select>
-              </div>
-              <div class="col-md-4 col-12 mb-2" id="hofSelectWrapper"
-                style="<?php echo ($member['HOF_FM_TYPE'] === 'HOF') ? 'display:none;' : ''; ?>; position: relative;">
-                <label class="form-label small mb-1">Select HOF (Autocomplete)</label>
-                <input type="text" id="hof_autocomplete" class="form-control form-control-sm" placeholder="Search HOF by ITS or Name..." value="<?php echo !empty($member['HOF_ID']) ? htmlspecialchars(!empty($hof_name) ? $hof_name . ' (' . $member['HOF_ID'] . ')' : $member['HOF_ID']) : ''; ?>" autocomplete="off">
-                <input type="hidden" name="HOF_ID" id="hof_id" value="<?php echo htmlspecialchars($member['HOF_ID'] ?? ''); ?>">
-                <div id="hof_autocomplete_list" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1050; max-height: 250px; overflow-y: auto; display: none; top: 100%;"></div>
-                <div class="small text-muted mt-1">Type ITS ID or Member Name. Only members not in the Khar ITS data will be shown.
-                </div>
-              </div>
-
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">HOF FM Type</label>
-                <input type="text" class="form-control form-control-sm" name="HOF_FM_TYPE"
-                  value="<?php echo htmlspecialchars($member['HOF_FM_TYPE']); ?>" readonly>
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Father ITS ID</label>
-                <input type="text" class="form-control form-control-sm" name="Father_ITS_ID" placeholder="Father ITS"
-                  value="<?php echo htmlspecialchars($member['Father_ITS_ID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Mother ITS ID</label>
-                <input type="text" class="form-control form-control-sm" name="Mother_ITS_ID" placeholder="Mother ITS"
-                  value="<?php echo htmlspecialchars($member['Mother_ITS_ID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Spouse ITS ID</label>
-                <input type="text" class="form-control form-control-sm" name="Spouse_ITS_ID" placeholder="Spouse ITS"
-                  value="<?php echo htmlspecialchars($member['Spouse_ITS_ID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Family ID</label>
-                <input type="text" class="form-control form-control-sm" name="Family_ID" placeholder="Internal family ref"
-                  value="<?php echo htmlspecialchars($member['Family_ID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Tanzeem File No</label>
-                <input type="text" class="form-control form-control-sm" name="TanzeemFile_No"
-                  placeholder="Tanzeem file no" value="<?php echo htmlspecialchars($member['TanzeemFile_No'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sector Hierarchy -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-sector">
-            <span class="small fw-semibold text-uppercase">Sector Hierarchy</span><span class="toggle-indicator">+</span>
-          </div>
-          <div id="group-sector" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector</label>
-                <?php $currentSector = $member['Sector'] ?? ''; ?>
-                <select class="form-control form-select form-select-sm" name="Sector" id="sectorSelectEdit">
-                  <option value="">-- Select Sector --</option>
-                  <?php if (!empty($sector_list))
-                    foreach ($sector_list as $sec): ?>
-                      <option value="<?php echo htmlspecialchars($sec); ?>" <?php echo ($sec === $currentSector) ? 'selected' : ''; ?>><?php echo htmlspecialchars($sec); ?></option>
-                    <?php endforeach; ?>
-                </select>
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector</label>
-                <?php $currentSub = $member['Sub_Sector'] ?? ''; ?>
-                <select class="form-control form-select form-select-sm" name="Sub_Sector" id="subSectorSelectEdit"
-                  disabled>
-                  <option value="">-- Select Sub Sector --</option>
-                </select>
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector Incharge ITSID</label>
-                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_ITSID"
-                  value="<?php echo htmlspecialchars($member['Sector_Incharge_ITSID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector Incharge Name</label>
-                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_Name"
-                  value="<?php echo htmlspecialchars($member['Sector_Incharge_Name'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector Incharge Female ITSID</label>
-                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_Female_ITSID"
-                  value="<?php echo htmlspecialchars($member['Sector_Incharge_Female_ITSID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sector Incharge Female Name</label>
-                <input type="text" class="form-control form-control-sm" name="Sector_Incharge_Female_Name"
-                  value="<?php echo htmlspecialchars($member['Sector_Incharge_Female_Name'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector Incharge ITSID</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_ITSID"
-                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_ITSID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector Incharge Name</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_Name"
-                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Name'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector Incharge Female ITSID</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_Female_ITSID"
-                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Female_ITSID'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Sector Incharge Female Name</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Sector_Incharge_Female_Name"
-                  value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Female_Name'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Marital & Personal Status -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-marital">
-            <span class="small fw-semibold text-uppercase">Marital & Personal Status</span><span
-              class="toggle-indicator">+</span>
-          </div>
-          <div id="group-marital" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-3 col-12">
-                <label class="form-label small mb-1">Misaq</label>
-                <input type="text" class="form-control form-control-sm" name="Misaq" placeholder="Yes / Year"
-                  value="<?php echo htmlspecialchars($member['Misaq'] ?? ''); ?>">
-              </div>
-              <div class="col-md-3 col-12">
-                <label class="form-label small mb-1">Marital Status</label>
-                <?php $maritalVal = $member['Marital_Status'] ?? '';
-                $maritalOptions = ["Single", "Married", "Engaged", "Separated", "Divorced", "Widowed"]; ?>
-                <select name="Marital_Status" class="form-control form-select form-select-sm">
-                  <option value="">-- Select --</option>
-                  <?php foreach ($maritalOptions as $opt): ?>
-                    <option value="<?php echo $opt; ?>" <?php echo ($opt === $maritalVal) ? 'selected' : ''; ?>>
-                      <?php echo $opt; ?></option>
-                  <?php endforeach; ?>
-                  <?php if ($maritalVal && !in_array($maritalVal, $maritalOptions)): ?>
-                    <option value="<?php echo htmlspecialchars($maritalVal); ?>" selected>
-                      <?php echo htmlspecialchars($maritalVal); ?> (Legacy)</option>
-                  <?php endif; ?>
-                </select>
-              </div>
-              <div class="col-md-3 col-12">
-                <label class="form-label small mb-1">Blood Group</label>
-                <?php $bloodVal = $member['Blood_Group'] ?? '';
-                $bloodOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"]; ?>
-                <select name="Blood_Group" class="form-control form-select form-select-sm">
-                  <option value="">-- Select --</option>
-                  <?php foreach ($bloodOptions as $opt): ?>
-                    <option value="<?php echo $opt; ?>" <?php echo ($opt === $bloodVal) ? 'selected' : ''; ?>>
-                      <?php echo $opt; ?></option>
-                  <?php endforeach; ?>
-                  <?php if ($bloodVal && !in_array($bloodVal, $bloodOptions)): ?>
-                    <option value="<?php echo htmlspecialchars($bloodVal); ?>" selected>
-                      <?php echo htmlspecialchars($bloodVal); ?> (Legacy)</option>
-                  <?php endif; ?>
-                </select>
-              </div>
-              <div class="col-md-3 col-12">
-                <label class="form-label small mb-1">Warakatul Tarkhis</label>
-                <input type="text" class="form-control form-control-sm" name="Warakatul_Tarkhis"
-                  placeholder="Number / Year" value="<?php echo htmlspecialchars($member['Warakatul_Tarkhis'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Nikah & Religious Dates -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-nikah">
-            <span class="small fw-semibold text-uppercase">Nikah & Religious Dates</span><span
-              class="toggle-indicator">+</span>
-          </div>
-          <div id="group-nikah" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Date Of Nikah</label>
-                <input type="date" class="form-control form-control-sm" name="Date_Of_Nikah"
-                  value="<?php echo norm_date_input($member['Date_Of_Nikah'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Date Of Nikah Hijri</label>
-                <input type="text" class="form-control form-control-sm" name="Date_Of_Nikah_Hijri" placeholder=""
-                  value="<?php echo htmlspecialchars($member['Date_Of_Nikah_Hijri'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Origin & Community -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-origin">
-            <span class="small fw-semibold text-uppercase">Origin & Community</span><span
-              class="toggle-indicator">+</span>
-          </div>
-          <div id="group-origin" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Organisation</label>
-                <input type="text" class="form-control form-control-sm" name="Organisation"
-                  placeholder="Employer / Institute"
-                  value="<?php echo htmlspecialchars($member['Organisation'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Organisation CSV</label>
-                <input type="text" class="form-control form-control-sm" name="Organisation_CSV" placeholder="Import ref"
-                  value="<?php echo htmlspecialchars($member['Organisation_CSV'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Vatan</label>
-                <input type="text" class="form-control form-control-sm" name="Vatan" placeholder="Native place"
-                  value="<?php echo htmlspecialchars($member['Vatan'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Nationality</label>
-                <input type="text" class="form-control form-control-sm" name="Nationality" placeholder="Country"
-                  value="<?php echo htmlspecialchars($member['Nationality'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Jamaat</label>
-                <input type="text" class="form-control form-control-sm" name="Jamaat" placeholder="Home Jamaat"
-                  value="<?php echo htmlspecialchars($member['Jamaat'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Jamiaat</label>
-                <input type="text" class="form-control form-control-sm" name="Jamiaat" placeholder="Jamia (if any)"
-                  value="<?php echo htmlspecialchars($member['Jamiaat'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Dunyavi Taalim (Education & Skills) -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-education">
-            <span class="small fw-semibold text-uppercase">Dunyavi Taalim (Education & Skills)</span><span
-              class="toggle-indicator">+</span>
-          </div>
-          <div id="group-education" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Qualification</label>
-                <input type="text" class="form-control form-control-sm" name="Qualification" placeholder="Highest degree"
-                  value="<?php echo htmlspecialchars($member['Qualification'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Languages</label>
-                <input type="text" class="form-control form-control-sm" name="Languages" placeholder="Comma separated"
-                  value="<?php echo htmlspecialchars($member['Languages'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Hunars</label>
-                <input type="text" class="form-control form-control-sm" name="Hunars" placeholder="Skills / Talents"
-                  value="<?php echo htmlspecialchars($member['Hunars'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        <!-- Occupation -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-occupation">
-            <span class="small fw-semibold text-uppercase">Occupation</span><span class="toggle-indicator">+</span>
-          </div>
-          <div id="group-occupation" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Occupation</label>
-                <input type="text" class="form-control form-control-sm" name="Occupation" placeholder="Primary occupation"
-                  value="<?php echo htmlspecialchars($member['Occupation'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Occupation</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Occupation" placeholder="Secondary"
-                  value="<?php echo htmlspecialchars($member['Sub_Occupation'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Sub Occupation2</label>
-                <input type="text" class="form-control form-control-sm" name="Sub_Occupation2" placeholder="Additional"
-                  value="<?php echo htmlspecialchars($member['Sub_Occupation2'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Religious Milestones & Ziyarat -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-religious">
-            <span class="small fw-semibold text-uppercase">Religious Milestones & Ziyarat</span><span
-              class="toggle-indicator">+</span>
-          </div>
-          <div id="group-religious" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Quran Sanad</label>
-                <input type="text" class="form-control form-control-sm" name="Quran_Sanad" placeholder="Yes / Year"
-                  value="<?php echo htmlspecialchars($member['Quran_Sanad'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Qadambosi Sharaf</label>
-                <input type="text" class="form-control form-control-sm" name="Qadambosi_Sharaf" placeholder="Yes / Year"
-                  value="<?php echo htmlspecialchars($member['Qadambosi_Sharaf'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Raudat Tahera Ziyarat</label>
-                <input type="text" class="form-control form-control-sm" name="Raudat_Tahera_Ziyarat"
-                  placeholder="Yes / Year"
-                  value="<?php echo htmlspecialchars($member['Raudat_Tahera_Ziyarat'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Karbala Ziyarat</label>
-                <input type="text" class="form-control form-control-sm" name="Karbala_Ziyarat" placeholder="Yes / Year"
-                  value="<?php echo htmlspecialchars($member['Karbala_Ziyarat'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Ashara Mubaraka</label>
-                <input type="text" class="form-control form-control-sm" name="Ashara_Mubaraka"
-                  placeholder="Yes / City / Year"
-                  value="<?php echo htmlspecialchars($member['Ashara_Mubaraka'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Housing & Address -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-housing">
-            <span class="small fw-semibold text-uppercase">Housing & Address</span><span class="toggle-indicator">+</span>
-          </div>
-          <div id="group-housing" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Housing</label>
-                <input type="text" class="form-control form-control-sm" name="Housing" placeholder="Building / Society"
-                  value="<?php echo htmlspecialchars($member['Housing'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Type of House</label>
-                <input type="text" class="form-control form-control-sm" name="Type_of_House" placeholder="Owned / Rented"
-                  value="<?php echo htmlspecialchars($member['Type_of_House'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Address</label>
-                <input type="text" class="form-control form-control-sm" name="Address" placeholder="Flat / Street"
-                  value="<?php echo htmlspecialchars($member['Address'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Building</label>
-                <input type="text" class="form-control form-control-sm" name="Building"
-                  value="<?php echo htmlspecialchars($member['Building'] ?? ''); ?>" placeholder="Building name">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Street</label>
-                <input type="text" class="form-control form-control-sm" name="Street"
-                  value="<?php echo htmlspecialchars($member['Street'] ?? ''); ?>" placeholder="Street">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Area</label>
-                <input type="text" class="form-control form-control-sm" name="Area"
-                  value="<?php echo htmlspecialchars($member['Area'] ?? ''); ?>" placeholder="Area">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">State</label>
-                <input type="text" class="form-control form-control-sm" name="State" placeholder="State"
-                  value="<?php echo htmlspecialchars($member['State'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">City</label>
-                <input type="text" class="form-control form-control-sm" name="City" placeholder="City"
-                  value="<?php echo htmlspecialchars($member['City'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Pincode</label>
-                <input type="text" class="form-control form-control-sm" name="Pincode" placeholder="Postal code"
-                  value="<?php echo htmlspecialchars($member['Pincode'] ?? ''); ?>">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Verification & Scan -->
-        <div class="group-section">
-          <div class="group-header py-2 px-3 bg-light border rounded d-flex justify-content-between align-items-center"
-            data-group-target="group-verification">
-            <span class="small fw-semibold text-uppercase">Verification & Scan</span><span
-              class="toggle-indicator">+</span>
-          </div>
-          <div id="group-verification" class="group-body collapsed border-start border-end border-bottom p-3">
-            <div class="row g-3">
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Data Verification Status</label>
-                <?php $dvs = $member['Data_Verifcation_Status'] ?? ''; ?>
-                <select class="form-control form-select ver-status" data-date-target="dataVerificationDate"
-                  name="Data_Verifcation_Status">
-                  <option value="">--</option>
-                  <option value="Verified" <?php echo $dvs === 'Verified' ? 'selected' : ''; ?>>Verified</option>
-                  <option value="Pending" <?php echo $dvs === 'Pending' ? 'selected' : ''; ?>>Pending</option>
-                  <option value="Not Verified" <?php echo $dvs === 'Not Verified' ? 'selected' : ''; ?>>Not Verified
-                  </option>
-                </select>
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Photo Verification Status</label>
-                <?php $pvs = $member['Photo_Verifcation_Status'] ?? ''; ?>
-                <select class="form-control form-select ver-status" data-date-target="photoVerificationDate"
-                  name="Photo_Verifcation_Status">
-                  <option value="">--</option>
-                  <option value="Verified" <?php echo $pvs === 'Verified' ? 'selected' : ''; ?>>Verified</option>
-                  <option value="Pending" <?php echo $pvs === 'Pending' ? 'selected' : ''; ?>>Pending</option>
-                  <option value="Not Verified" <?php echo $pvs === 'Not Verified' ? 'selected' : ''; ?>>Not Verified
-                  </option>
-                </select>
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Data Verification Date</label>
-                <input id="dataVerificationDate" type="date" class="form-control form-control-sm"
-                  name="Data_Verification_Date"
-                  value="<?php echo norm_date_input($member['Data_Verification_Date'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Photo Verification Date</label>
-                <input id="photoVerificationDate" type="date" class="form-control form-control-sm"
-                  name="Photo_Verification_Date"
-                  value="<?php echo norm_date_input($member['Photo_Verification_Date'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Last Scanned Event</label>
-                <input type="text" class="form-control form-control-sm" name="Last_Scanned_Event"
-                  value="<?php echo htmlspecialchars($member['Last_Scanned_Event'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Last Scanned Place</label>
-                <input type="text" class="form-control form-control-sm" name="Last_Scanned_Place"
-                  value="<?php echo htmlspecialchars($member['Last_Scanned_Place'] ?? ''); ?>">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Title</label>
-                <input type="text" class="form-control form-control-sm" name="Title"
-                  value="<?php echo htmlspecialchars($member['Title'] ?? ''); ?>" placeholder="Title">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Category</label>
-                <input type="text" class="form-control form-control-sm" name="Category"
-                  value="<?php echo htmlspecialchars($member['Category'] ?? ''); ?>" placeholder="Category">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Idara</label>
-                <input type="text" class="form-control form-control-sm" name="Idara"
-                  value="<?php echo htmlspecialchars($member['Idara'] ?? ''); ?>" placeholder="Idara">
-              </div>
-              <div class="col-md-4 col-12 mb-2">
-                <label class="form-label small mb-1">Inactive Status</label>
-                <?php $inactiveVal = $member['Inactive_Status'] ?? '';
-                $inactiveOptions = ["Deceased", "Shifted Jamaat", "Travel / Outstation", "Duplicate Record", "Blocked / Suspended", "Other"]; ?>
-                <select name="Inactive_Status" id="inactiveStatusEdit" class="form-control form-select form-select-sm">
-                  <option value="" <?php echo $inactiveVal === '' ? 'selected' : ''; ?>>Active</option>
-                  <?php foreach ($inactiveOptions as $opt): ?>
-                    <option value="<?php echo $opt; ?>" <?php echo ($opt === $inactiveVal) ? 'selected' : ''; ?>>
-                      <?php echo $opt; ?></option>
-                  <?php endforeach; ?>
-                  <?php if ($inactiveVal && !in_array($inactiveVal, $inactiveOptions)): ?>
-                    <option value="<?php echo htmlspecialchars($inactiveVal); ?>" selected>
-                      <?php echo htmlspecialchars($inactiveVal); ?> (Legacy)</option>
-                  <?php endif; ?>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="form-sticky-spacer" style="height:90px"></div>
-        <div class="form-sticky-bar">
-          <div class="inner d-flex justify-content-center align-items-center gap-2 flex-wrap">
-            <button type="submit" class="btn btn-primary btn-sm mb-md-0 mb-2 mr-0 mr-md-2">Save Changes</button>
-            <a href="<?php echo htmlspecialchars($redirect); ?>" class="btn btn-outline-secondary btn-sm mb-md-0 mb-2 mr-0 mr-md-2">Cancel</a>
-            <button type="button" class="btn btn-outline-danger btn-sm"
-              onclick="if(confirm('Reset this member\'s password to their ITS ID?')){ var f=document.createElement('form'); f.method='post'; f.action='<?php echo base_url('admin/reset_member_password'); ?>'; var i=document.createElement('input'); i.type='hidden'; i.name='its_id'; i.value='<?php echo addslashes($member['ITS_ID'] ?? ''); ?>'; f.appendChild(i); document.body.appendChild(f); f.submit(); }">
-              <i class="fa fa-key me-1"></i>Reset Password
-            </button>
-            <span id="editMemberStatus" class="small ms-2"></span>
-          </div>
-        </div>
-        <style>
-          .form-sticky-bar {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1050;
-            padding: 8px 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(3px);
-            border-top: 1px solid #dee2e6;
-          }
-
-          .form-sticky-bar .inner {
-            max-width: 880px;
-            margin: 0 auto;
-            padding: 4px 12px;
-          }
-
-          @media (max-width: 600px) {
-            .form-sticky-bar .inner {
-              max-width: 100%;
-            }
-          }
-        </style>
+  <!-- ── Hero ── -->
+  <div class="member-hero">
+    <div class="hero-avatar <?php echo $isF?'female':''; ?>"><?php echo htmlspecialchars($initials); ?></div>
+    <div style="flex:1;min-width:0;">
+      <h2 class="hero-name"><?php echo htmlspecialchars($memberName?:'—'); ?></h2>
+      <div class="hero-meta">
+        <?php if(!empty($member['ITS_ID'])): ?><span><i class="fa fa-id-badge"></i> ITS: <?php echo htmlspecialchars($member['ITS_ID']); ?></span><?php endif; ?>
+        <?php if(!empty($member['Gender'])): ?><span><i class="fa fa-<?php echo $isF?'female':'male'; ?>"></i> <?php echo htmlspecialchars($member['Gender']); ?></span><?php endif; ?>
+        <?php if(!empty($member['Age'])): ?><span><i class="fa fa-birthday-cake"></i> Age <?php echo htmlspecialchars($member['Age']); ?></span><?php endif; ?>
+        <?php if(!empty($member['Sector'])): ?><span><i class="fa fa-map-marker"></i> <?php echo htmlspecialchars($member['Sector']); ?><?php echo !empty($member['Sub_Sector'])?' — '.htmlspecialchars($member['Sub_Sector']):''; ?></span><?php endif; ?>
       </div>
-    </form>
-    <script>
-      (function () {
-        var typeSel = document.getElementById('hofTypeSelect');
-        var hofWrap = document.getElementById('hofSelectWrapper');
-        if (typeSel) {
-          typeSel.addEventListener('change', function () {
-            if (this.value === 'HOF') {
-              hofWrap && (hofWrap.style.display = 'none');
-            } else {
-              hofWrap && (hofWrap.style.display = 'block');
-            }
-          });
-        }
+    </div>
+  </div>
 
-        function today() {
-          var d = new Date();
-          return d.toISOString().slice(0, 10);
-        }
-        document.querySelectorAll('.ver-status').forEach(function (sel) {
-          sel.addEventListener('change', function () {
-            var targetId = this.getAttribute('data-date-target');
-            var dateInput = document.getElementById(targetId);
-            if (!dateInput) return;
-            if (this.value === 'Verified') {
-              if (!dateInput.value) dateInput.value = today();
-            } else if (this.value === '' || this.value === 'Not Verified') {
-              dateInput.value = '';
-            }
-          });
-        });
-        // Group toggle logic
-        var headers = document.querySelectorAll('.group-header');
-        headers.forEach(function (h) {
-          h.addEventListener('click', function (e) {
-            // ignore if clicking a nested interactive control (none expected here)
-            var targetId = h.getAttribute('data-group-target');
-            var body = document.getElementById(targetId);
-            if (!body) return;
-            var indicator = h.querySelector('.toggle-indicator');
-            var collapsed = body.classList.toggle('collapsed');
-            if (indicator) {
-              indicator.textContent = collapsed ? '+' : '−';
-            }
-          });
-        });
-        var expandAllBtn = document.getElementById('expandAllGroups');
-        var collapseAllBtn = document.getElementById('collapseAllGroups');
+  <!-- ── Editing notice ── -->
+  <div class="edit-banner">
+    <i class="fa fa-pencil-square-o"></i>
+    <span>You are editing this member's details. Click any field to make changes, then save using the button below.</span>
+  </div>
 
-        function setAll(expand) {
-          document.querySelectorAll('.group-body').forEach(function (b) {
-            var header = document.querySelector('.group-header[data-group-target="' + b.id + '"]');
-            var indicator = header ? header.querySelector('.toggle-indicator') : null;
-            if (expand) {
-              b.classList.remove('collapsed');
-              if (indicator) indicator.textContent = '−';
-            } else {
-              b.classList.add('collapsed');
-              if (indicator) indicator.textContent = '+';
-            }
-          });
-        }
-        if (expandAllBtn) {
-          expandAllBtn.addEventListener('click', function () {
-            setAll(true);
-          });
-        }
-        if (collapseAllBtn) {
-          collapseAllBtn.addEventListener('click', function () {
-            setAll(false);
-          });
-        }
-        var form = document.getElementById('editMemberForm');
-        form.addEventListener('submit', function (e) {
-          e.preventDefault();
-          var fd = new FormData(form);
-          // Set activity_status explicitly because the select is disabled
-          var activitySelVal = document.getElementById('activityStatusSel') ? document.getElementById('activityStatusSel').value : '';
-          fd.set('activity_status', activitySelVal);
-          // Leave Inactive_Status empty (controller maps empty to NULL)
-          var hofType = fd.get('hof_type');
-          if (hofType === 'HOF') {
-            fd.set('HOF_FM_TYPE', 'HOF');
-            fd.set('HOF_ID', fd.get('its_id'));
-          } else {
-            fd.set('HOF_FM_TYPE', 'FM');
-          }
-          fetch(form.action, {
-            method: 'POST',
-            body: fd
-          })
-            .then(r => r.json())
-            .then(json => {
-              var statusEl = document.getElementById('editMemberStatus');
-              if (json.status === 'success') {
-                statusEl.textContent = 'Saved';
-                statusEl.className = 'small text-success';
-                setTimeout(() => {
-                  window.location.href = '<?php echo addslashes($redirect); ?>';
-                }, 600);
-              } else {
-                statusEl.textContent = json.message || 'Update failed';
-                statusEl.className = 'small text-danger';
-              }
-            })
-            .catch(() => {
-              var statusEl = document.getElementById('editMemberStatus');
-              statusEl.textContent = 'Network error';
-              statusEl.className = 'small text-danger';
-            });
-        });
+  <!-- ── Status pills ── -->
+  <div class="status-strip">
+    <span class="spill <?php echo $matchClass; ?>"><i class="fa fa-link"></i> <?php echo htmlspecialchars($matchLabel); ?></span>
+    <span class="spill <?php echo $actClass; ?>"><i class="fa fa-circle"></i> <?php echo ucfirst($actStatus); ?></span>
+    <?php if(!empty($member['HOF_FM_TYPE'])): ?><span class="spill info"><i class="fa fa-home"></i> <?php echo htmlspecialchars($member['HOF_FM_TYPE']); ?></span><?php endif; ?>
+  </div>
 
-        // Sector/Sub-Sector dependent dropdown (Edit)
-        var sectorMapEdit = <?php echo json_encode($sector_map ?? []); ?>;
-        var inchargesMap = <?php echo json_encode($incharges_map ?? []); ?>;
-        var sectorSelectEdit = document.getElementById('sectorSelectEdit');
-        var subSectorSelectEdit = document.getElementById('subSectorSelectEdit');
-        var preSector = '<?php echo addslashes($member['Sector'] ?? ''); ?>';
-        var preSub = '<?php echo addslashes($member['Sub_Sector'] ?? ''); ?>';
+  <form id="editMemberForm" method="post" action="<?php echo base_url('admin/updatemember'); ?>">
 
-        function setValByName(name, val) {
-          var el = document.getElementsByName(name)[0];
-          if (el) el.value = val;
-        }
+  <!-- ══ MEMBER STATUS (full width, above masonry) ══ -->
+  <div class="panel" style="margin-bottom:16px;">
+    <div class="panel-hd open" data-pt="grp-mstatus" style="background:var(--blue-bg);border-color:#93c5fd55;">
+      <div class="ph-left">
+        <span class="ph-icon" style="background:var(--blue-bg);color:var(--blue);"><i class="fa fa-toggle-on"></i></span>
+        <span class="ph-title" style="color:var(--blue);">Member Status</span>
+      </div>
+      <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+    </div>
+    <div id="grp-mstatus">
+      <div class="section-note gold"><i class="fa fa-info-circle"></i><span>ITS–Sabeel match &amp; Member Status are auto-calculated. Living statuses below drive Member Status automatically.</span></div>
+      <div class="status-grid">
+        <div class="sg-item">
+          <div class="sg-label">ITS–Sabeel Match <span class="sg-badge auto">Auto</span></div>
+          <div class="sg-val"><?php echo htmlspecialchars($matchLabel); ?></div>
+        </div>
+        <div class="sg-item">
+          <div class="sg-label">Member Status <span class="sg-badge auto">Auto</span></div>
+          <input type="hidden" name="activity_status" id="activityStatusSel" value="<?php echo htmlspecialchars($actStatus); ?>">
+          <div class="sg-val <?php echo $actClass==='success'?'green':($actClass==='danger'?'red':''); ?>" id="activityStatusDisplay">
+            <?php echo htmlspecialchars($activity_status_options[$actStatus] ?? ucfirst($actStatus)); ?>
+          </div>
+        </div>
+      </div>
+      <ul class="edit-list">
+        <li class="edit-row">
+          <div class="er-key">Deeni Status <span class="auto-lbl">Living</span></div>
+          <div class="er-val">
+            <select name="deeni_status" id="deeniStatusSel">
+              <?php foreach($deeni_status_options as $v=>$l): ?><option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['deeni_status']??'')===$v)?'selected':''; ?>><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?>
+              <?php if(!empty($member['deeni_status'])&&!array_key_exists($member['deeni_status'],$deeni_status_options)): ?><option value="<?php echo htmlspecialchars($member['deeni_status']); ?>" selected><?php echo htmlspecialchars($member['deeni_status']); ?> (Legacy)</option><?php endif; ?>
+            </select>
+          </div>
+        </li>
+        <li class="edit-row">
+          <div class="er-key">Health Status <span class="auto-lbl">Living</span></div>
+          <div class="er-val">
+            <select name="health_status" id="healthStatusSel">
+              <?php foreach($health_status_options as $v=>$l): ?><option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['health_status']??'')===$v)?'selected':''; ?>><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?>
+              <?php if(!empty($member['health_status'])&&!array_key_exists($member['health_status'],$health_status_options)): ?><option value="<?php echo htmlspecialchars($member['health_status']); ?>" selected><?php echo htmlspecialchars($member['health_status']); ?> (Legacy)</option><?php endif; ?>
+            </select>
+          </div>
+        </li>
+        <li class="edit-row">
+          <div class="er-key">Residential Status <span class="auto-lbl">Living</span></div>
+          <div class="er-val">
+            <select name="residential_status" id="residentialStatusSel">
+              <?php foreach($residential_status_options as $v=>$l): ?><option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['residential_status']??'')===$v)?'selected':''; ?>><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?>
+              <?php if(!empty($member['residential_status'])&&!array_key_exists($member['residential_status'],$residential_status_options)): ?><option value="<?php echo htmlspecialchars($member['residential_status']); ?>" selected><?php echo htmlspecialchars($member['residential_status']); ?> (Legacy)</option><?php endif; ?>
+            </select>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
 
-        function updateIncharges() {
-          var selectedSector = sectorSelectEdit ? sectorSelectEdit.value : '';
-          var selectedSubSector = subSectorSelectEdit ? subSectorSelectEdit.value : '';
+  <!-- ══ MASONRY GRID (2 columns, same as ViewMember) ══ -->
+  <div class="masonry-grid">
 
-          var sectorIncharge = (inchargesMap && inchargesMap.sectors) 
-            ? inchargesMap.sectors.find(function(s) { return s.Sector === selectedSector; }) 
-            : null;
-          
-          setValByName('Sector_Incharge_ITSID', (sectorIncharge && sectorIncharge.Sector_Incharge_ITSID) || '');
-          setValByName('Sector_Incharge_Name', (sectorIncharge && sectorIncharge.Sector_Incharge_Name) || '');
-          setValByName('Sector_Incharge_Female_ITSID', (sectorIncharge && sectorIncharge.Sector_Incharge_Female_ITSID) || '');
-          setValByName('Sector_Incharge_Female_Name', (sectorIncharge && sectorIncharge.Sector_Incharge_Female_Name) || '');
+    <!-- ─ Identity & Contact ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-identity">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-id-card"></i></span><span class="ph-title">Identity &amp; Contact</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-identity">
+        <ul class="edit-list">
+          <li class="edit-row"><div class="er-key">ITS ID</div><div class="er-val"><input type="text" name="its_id" value="<?php echo htmlspecialchars($member['ITS_ID']); ?>" readonly></div></li>
+          <li class="edit-row"><div class="er-key">Full Name <span class="req">*</span></div><div class="er-val"><input type="text" name="Full_Name" value="<?php echo htmlspecialchars($member['Full_Name']); ?>" required></div></li>
+          <li class="edit-row"><div class="er-key">Full Name Arabic</div><div class="er-val"><input type="text" name="Full_Name_Arabic" value="<?php echo htmlspecialchars($member['Full_Name_Arabic']??''); ?>" placeholder="Arabic script"></div></li>
+          <li class="edit-row"><div class="er-key">First Name</div><div class="er-val"><input type="text" name="First_Name" value="<?php echo htmlspecialchars($member['First_Name']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Surname</div><div class="er-val"><input type="text" name="Surname" value="<?php echo htmlspecialchars($member['Surname']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Gender</div><div class="er-val"><select name="Gender"><option value="">--</option><option value="Male" <?php echo ($member['Gender']??'')==='Male'?'selected':''; ?>>Male</option><option value="Female" <?php echo ($member['Gender']??'')==='Female'?'selected':''; ?>>Female</option></select></div></li>
+          <li class="edit-row"><div class="er-key">Age</div><div class="er-val"><input type="number" name="Age" value="<?php echo htmlspecialchars($member['Age']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Mobile</div><div class="er-val"><input type="text" name="Mobile" value="<?php echo htmlspecialchars($member['Mobile']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">WhatsApp No</div><div class="er-val"><input type="text" name="WhatsApp_No" value="<?php echo htmlspecialchars($member['WhatsApp_No']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Email</div><div class="er-val"><input type="email" name="Email" value="<?php echo htmlspecialchars($member['Email']??''); ?>" placeholder="name@example.com"></div></li>
+          <li class="edit-row"><div class="er-key">Registered Family Mobile</div><div class="er-val"><input type="text" name="Registered_Family_Mobile" value="<?php echo htmlspecialchars($member['Registered_Family_Mobile']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">First Prefix</div><div class="er-val"><input type="text" name="First_Prefix" value="<?php echo htmlspecialchars($member['First_Prefix']??''); ?>" placeholder="e.g. Shk / Shz"></div></li>
+          <li class="edit-row"><div class="er-key">Prefix Year</div><div class="er-val"><input type="text" name="Prefix_Year" value="<?php echo htmlspecialchars($member['Prefix_Year']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Father Prefix</div><div class="er-val"><input type="text" name="Father_Prefix" value="<?php echo htmlspecialchars($member['Father_Prefix']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Father Name</div><div class="er-val"><input type="text" name="Father_Name" value="<?php echo htmlspecialchars($member['Father_Name']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Father Surname</div><div class="er-val"><input type="text" name="Father_Surname" value="<?php echo htmlspecialchars($member['Father_Surname']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Husband Prefix</div><div class="er-val"><input type="text" name="Husband_Prefix" value="<?php echo htmlspecialchars($member['Husband_Prefix']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Husband Name</div><div class="er-val"><input type="text" name="Husband_Name" value="<?php echo htmlspecialchars($member['Husband_Name']??''); ?>"></div></li>
+        </ul>
+      </div>
+    </div>
 
-          var subSectorIncharge = (inchargesMap && inchargesMap.sub_sectors) 
-            ? inchargesMap.sub_sectors.find(function(s) { return s.Sector === selectedSector && s.Sub_Sector === selectedSubSector; }) 
-            : null;
+    <!-- ─ Family & Relationships ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-family">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-home"></i></span><span class="ph-title">Family &amp; Relationships</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-family">
+        <ul class="edit-list">
+          <li class="edit-row">
+            <div class="er-key">Type</div>
+            <div class="er-val"><select name="hof_type" id="hofTypeSelect"><option value="HOF" <?php echo ($member['HOF_FM_TYPE']==='HOF')?'selected':''; ?>>Head of Family (HOF)</option><option value="FM" <?php echo ($member['HOF_FM_TYPE']!=='HOF')?'selected':''; ?>>Family Member (FM)</option></select></div>
+          </li>
+          <li class="edit-row" id="hofSelectWrapper" style="<?php echo ($member['HOF_FM_TYPE']==='HOF')?'display:none;':''; ?>">
+            <div class="er-key">Select HOF</div>
+            <div class="er-val">
+              <div class="autocomplete-wrap">
+                <input type="text" id="hof_autocomplete" placeholder="Search by ITS or name…" value="<?php echo !empty($member['HOF_ID'])?htmlspecialchars(!empty($hof_name)?$hof_name.' ('.$member['HOF_ID'].')':$member['HOF_ID']):''; ?>" autocomplete="off">
+                <input type="hidden" name="HOF_ID" id="hof_id" value="<?php echo htmlspecialchars($member['HOF_ID']??''); ?>">
+                <div id="hof_autocomplete_list"></div>
+              </div>
+            </div>
+          </li>
+          <li class="edit-row"><div class="er-key">HOF FM Type</div><div class="er-val"><input type="text" name="HOF_FM_TYPE" value="<?php echo htmlspecialchars($member['HOF_FM_TYPE']); ?>" readonly></div></li>
+          <li class="edit-row"><div class="er-key">Father ITS ID</div><div class="er-val"><input type="text" name="Father_ITS_ID" value="<?php echo htmlspecialchars($member['Father_ITS_ID']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Mother ITS ID</div><div class="er-val"><input type="text" name="Mother_ITS_ID" value="<?php echo htmlspecialchars($member['Mother_ITS_ID']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Spouse ITS ID</div><div class="er-val"><input type="text" name="Spouse_ITS_ID" value="<?php echo htmlspecialchars($member['Spouse_ITS_ID']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Family ID</div><div class="er-val"><input type="text" name="Family_ID" value="<?php echo htmlspecialchars($member['Family_ID']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Tanzeem File No</div><div class="er-val"><input type="text" name="TanzeemFile_No" value="<?php echo htmlspecialchars($member['TanzeemFile_No']??''); ?>"></div></li>
+        </ul>
+      </div>
+    </div>
 
-          setValByName('Sub_Sector_Incharge_ITSID', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_ITSID) || '');
-          setValByName('Sub_Sector_Incharge_Name', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_Name) || '');
-          setValByName('Sub_Sector_Incharge_Female_ITSID', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_Female_ITSID) || '');
-          setValByName('Sub_Sector_Incharge_Female_Name', (subSectorIncharge && subSectorIncharge.Sub_Sector_Incharge_Female_Name) || '');
-        }
+    <!-- ─ Sector Hierarchy ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-sector">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-map-marker"></i></span><span class="ph-title">Sector Hierarchy</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-sector">
+        <ul class="edit-list">
+          <li class="edit-row"><div class="er-key">Sector</div><div class="er-val"><select name="Sector" id="sectorSelectEdit"><option value="">-- Select --</option><?php if(!empty($sector_list)) foreach($sector_list as $sec): ?><option value="<?php echo htmlspecialchars($sec); ?>" <?php echo ($sec===$currentSector)?'selected':''; ?>><?php echo htmlspecialchars($sec); ?></option><?php endforeach; ?></select></div></li>
+          <li class="edit-row"><div class="er-key">Sub Sector</div><div class="er-val"><select name="Sub_Sector" id="subSectorSelectEdit" disabled><option value="">-- Select --</option></select></div></li>
+          <li class="edit-row"><div class="er-key">Sector Incharge ITS</div><div class="er-val"><input type="text" name="Sector_Incharge_ITSID" value="<?php echo htmlspecialchars($member['Sector_Incharge_ITSID']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Sector Incharge Name</div><div class="er-val"><input type="text" name="Sector_Incharge_Name" value="<?php echo htmlspecialchars($member['Sector_Incharge_Name']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Sector Incharge Female ITS</div><div class="er-val"><input type="text" name="Sector_Incharge_Female_ITSID" value="<?php echo htmlspecialchars($member['Sector_Incharge_Female_ITSID']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Sector Incharge Female Name</div><div class="er-val"><input type="text" name="Sector_Incharge_Female_Name" value="<?php echo htmlspecialchars($member['Sector_Incharge_Female_Name']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Sub Sector Incharge ITS</div><div class="er-val"><input type="text" name="Sub_Sector_Incharge_ITSID" value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_ITSID']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Sub Sector Incharge Name</div><div class="er-val"><input type="text" name="Sub_Sector_Incharge_Name" value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Name']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Sub Sector Incharge Female ITS</div><div class="er-val"><input type="text" name="Sub_Sector_Incharge_Female_ITSID" value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Female_ITSID']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Sub Sector Incharge Female Name</div><div class="er-val"><input type="text" name="Sub_Sector_Incharge_Female_Name" value="<?php echo htmlspecialchars($member['Sub_Sector_Incharge_Female_Name']??''); ?>"></div></li>
+        </ul>
+      </div>
+    </div>
 
-        function populateSubEdit(sec) {
-          subSectorSelectEdit.innerHTML = '<option value="">-- Select Sub Sector --</option>';
-          subSectorSelectEdit.disabled = true;
-          if (sec && sectorMapEdit[sec] && sectorMapEdit[sec].length) {
-            var frag = document.createDocumentFragment();
-            sectorMapEdit[sec].forEach(function (ss) {
-              var opt = document.createElement('option');
-              opt.value = ss;
-              opt.textContent = ss;
-              if (ss === preSub) opt.selected = true;
-              frag.appendChild(opt);
-            });
-            subSectorSelectEdit.appendChild(frag);
-            subSectorSelectEdit.disabled = false;
-          }
-        }
-        if (sectorSelectEdit) {
-          sectorSelectEdit.addEventListener('change', function () {
-            preSub = '';
-            populateSubEdit(this.value);
-            updateIncharges();
-          });
-          // initial population
-          if (preSector) {
-            populateSubEdit(preSector);
-          }
-        }
-        if (subSectorSelectEdit) {
-          subSectorSelectEdit.addEventListener('change', function () {
-            updateIncharges();
-          });
-        }
+    <!-- ─ Marital & Personal ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-marital">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-heart"></i></span><span class="ph-title">Marital &amp; Personal</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-marital">
+        <ul class="edit-list">
+          <li class="edit-row"><div class="er-key">Misaq</div><div class="er-val"><input type="text" name="Misaq" value="<?php echo htmlspecialchars($member['Misaq']??''); ?>" placeholder="Yes / Year"></div></li>
+          <li class="edit-row"><div class="er-key">Marital Status</div><div class="er-val"><select name="Marital_Status"><option value="">-- Select --</option><?php foreach($maritalOpts as $o): ?><option value="<?php echo $o; ?>" <?php echo ($o===$maritalVal)?'selected':''; ?>><?php echo $o; ?></option><?php endforeach; ?><?php if($maritalVal&&!in_array($maritalVal,$maritalOpts)): ?><option value="<?php echo htmlspecialchars($maritalVal); ?>" selected><?php echo htmlspecialchars($maritalVal); ?> (Legacy)</option><?php endif; ?></select></div></li>
+          <li class="edit-row"><div class="er-key">Blood Group</div><div class="er-val"><select name="Blood_Group"><option value="">-- Select --</option><?php foreach($bloodOpts as $o): ?><option value="<?php echo $o; ?>" <?php echo ($o===$bloodVal)?'selected':''; ?>><?php echo $o; ?></option><?php endforeach; ?><?php if($bloodVal&&!in_array($bloodVal,$bloodOpts)): ?><option value="<?php echo htmlspecialchars($bloodVal); ?>" selected><?php echo htmlspecialchars($bloodVal); ?> (Legacy)</option><?php endif; ?></select></div></li>
+          <li class="edit-row"><div class="er-key">Warakatul Tarkhis</div><div class="er-val"><input type="text" name="Warakatul_Tarkhis" value="<?php echo htmlspecialchars($member['Warakatul_Tarkhis']??''); ?>" placeholder="Number / Year"></div></li>
+          <li class="edit-row"><div class="er-key">Date of Nikah</div><div class="er-val"><input type="date" name="Date_Of_Nikah" value="<?php echo norm_date_input($member['Date_Of_Nikah']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Date of Nikah Hijri</div><div class="er-val"><input type="text" name="Date_Of_Nikah_Hijri" value="<?php echo htmlspecialchars($member['Date_Of_Nikah_Hijri']??''); ?>"></div></li>
+        </ul>
+      </div>
+    </div>
 
-        // Living status auto-toggle member status
-        var deeniSel = document.getElementById('deeniStatusSel');
-        var healthSel = document.getElementById('healthStatusSel');
-        var residentialSel = document.getElementById('residentialStatusSel');
-        var activitySel = document.getElementById('activityStatusSel');
+    <!-- ─ Origin & Community ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-origin">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-globe"></i></span><span class="ph-title">Origin &amp; Community</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-origin">
+        <ul class="edit-list">
+          <li class="edit-row"><div class="er-key">Organisation</div><div class="er-val"><input type="text" name="Organisation" value="<?php echo htmlspecialchars($member['Organisation']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Organisation CSV</div><div class="er-val"><input type="text" name="Organisation_CSV" value="<?php echo htmlspecialchars($member['Organisation_CSV']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Vatan</div><div class="er-val"><input type="text" name="Vatan" value="<?php echo htmlspecialchars($member['Vatan']??''); ?>" placeholder="Native place"></div></li>
+          <li class="edit-row"><div class="er-key">Nationality</div><div class="er-val"><input type="text" name="Nationality" value="<?php echo htmlspecialchars($member['Nationality']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Jamaat</div><div class="er-val"><input type="text" name="Jamaat" value="<?php echo htmlspecialchars($member['Jamaat']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Jamiaat</div><div class="er-val"><input type="text" name="Jamiaat" value="<?php echo htmlspecialchars($member['Jamiaat']??''); ?>"></div></li>
+        </ul>
+      </div>
+    </div>
 
-        function updateMemberStatus() {
-          if (!deeniSel || !healthSel || !residentialSel || !activitySel) return;
-          
-          var deeniText = deeniSel.options[deeniSel.selectedIndex]?.text || '';
-          var healthText = healthSel.options[healthSel.selectedIndex]?.text || '';
-          var residentialText = residentialSel.options[residentialSel.selectedIndex]?.text || '';
+    <!-- ─ Education & Skills ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-education">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-graduation-cap"></i></span><span class="ph-title">Education &amp; Skills</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-education">
+        <ul class="edit-list">
+          <li class="edit-row"><div class="er-key">Qualification</div><div class="er-val"><input type="text" name="Qualification" value="<?php echo htmlspecialchars($member['Qualification']??''); ?>" placeholder="Highest degree"></div></li>
+          <li class="edit-row"><div class="er-key">Languages</div><div class="er-val"><input type="text" name="Languages" value="<?php echo htmlspecialchars($member['Languages']??''); ?>" placeholder="Comma separated"></div></li>
+          <li class="edit-row"><div class="er-key">Hunars</div><div class="er-val"><input type="text" name="Hunars" value="<?php echo htmlspecialchars($member['Hunars']??''); ?>" placeholder="Skills / Talents"></div></li>
+        </ul>
+      </div>
+    </div>
 
-          // Check if any selected option contains "(Inactive)"
-          var hasInactive = deeniText.indexOf('(Inactive)') > -1 || 
-                            healthText.indexOf('(Inactive)') > -1 || 
-                            residentialText.indexOf('(Inactive)') > -1;
-                            
-          // Check if any selected option contains "(Active)"
-          var hasActive = deeniText.indexOf('(Active)') > -1 || 
-                          healthText.indexOf('(Active)') > -1 || 
-                          residentialText.indexOf('(Active)') > -1;
+    <!-- ─ Occupation ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-occupation">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-briefcase"></i></span><span class="ph-title">Occupation</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-occupation">
+        <ul class="edit-list">
+          <li class="edit-row"><div class="er-key">Occupation</div><div class="er-val"><input type="text" name="Occupation" value="<?php echo htmlspecialchars($member['Occupation']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Sub Occupation</div><div class="er-val"><input type="text" name="Sub_Occupation" value="<?php echo htmlspecialchars($member['Sub_Occupation']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Sub Occupation 2</div><div class="er-val"><input type="text" name="Sub_Occupation2" value="<?php echo htmlspecialchars($member['Sub_Occupation2']??''); ?>"></div></li>
+        </ul>
+      </div>
+    </div>
 
-          if (hasInactive) {
-            activitySel.value = 'inactive';
-          } else if (hasActive) {
-            activitySel.value = 'active';
-          }
+    <!-- ─ Religious Milestones ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-religious">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-star"></i></span><span class="ph-title">Religious Milestones &amp; Ziyarat</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-religious">
+        <ul class="edit-list">
+          <li class="edit-row"><div class="er-key">Quran Sanad</div><div class="er-val"><input type="text" name="Quran_Sanad" value="<?php echo htmlspecialchars($member['Quran_Sanad']??''); ?>" placeholder="Yes / Year"></div></li>
+          <li class="edit-row"><div class="er-key">Qadambosi Sharaf</div><div class="er-val"><input type="text" name="Qadambosi_Sharaf" value="<?php echo htmlspecialchars($member['Qadambosi_Sharaf']??''); ?>" placeholder="Yes / Year"></div></li>
+          <li class="edit-row"><div class="er-key">Raudat Tahera Ziyarat</div><div class="er-val"><input type="text" name="Raudat_Tahera_Ziyarat" value="<?php echo htmlspecialchars($member['Raudat_Tahera_Ziyarat']??''); ?>" placeholder="Yes / Year"></div></li>
+          <li class="edit-row"><div class="er-key">Karbala Ziyarat</div><div class="er-val"><input type="text" name="Karbala_Ziyarat" value="<?php echo htmlspecialchars($member['Karbala_Ziyarat']??''); ?>" placeholder="Yes / Year"></div></li>
+          <li class="edit-row"><div class="er-key">Ashara Mubaraka</div><div class="er-val"><input type="text" name="Ashara_Mubaraka" value="<?php echo htmlspecialchars($member['Ashara_Mubaraka']??''); ?>" placeholder="Yes / City / Year"></div></li>
+        </ul>
+      </div>
+    </div>
 
-          var displayInput = document.getElementById('activityStatusDisplay');
-          if (displayInput) {
-            if (activitySel.value === 'active') {
-              displayInput.value = 'Active';
-            } else if (activitySel.value === 'inactive') {
-              displayInput.value = 'Inactive';
-            } else if (!activitySel.value) {
-              displayInput.value = '— None —';
-            } else {
-              displayInput.value = activitySel.value.charAt(0).toUpperCase() + activitySel.value.slice(1);
-            }
-          }
-        }
+    <!-- ─ Housing & Address ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-housing">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-building"></i></span><span class="ph-title">Housing &amp; Address</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-housing">
+        <ul class="edit-list">
+          <li class="edit-row"><div class="er-key">Housing</div><div class="er-val"><input type="text" name="Housing" value="<?php echo htmlspecialchars($member['Housing']??''); ?>" placeholder="Building / Society"></div></li>
+          <li class="edit-row"><div class="er-key">Type of House</div><div class="er-val"><input type="text" name="Type_of_House" value="<?php echo htmlspecialchars($member['Type_of_House']??''); ?>" placeholder="Owned / Rented"></div></li>
+          <li class="edit-row"><div class="er-key">Address</div><div class="er-val"><input type="text" name="Address" value="<?php echo htmlspecialchars($member['Address']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Building</div><div class="er-val"><input type="text" name="Building" value="<?php echo htmlspecialchars($member['Building']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Street</div><div class="er-val"><input type="text" name="Street" value="<?php echo htmlspecialchars($member['Street']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Area</div><div class="er-val"><input type="text" name="Area" value="<?php echo htmlspecialchars($member['Area']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">City</div><div class="er-val"><input type="text" name="City" value="<?php echo htmlspecialchars($member['City']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">State</div><div class="er-val"><input type="text" name="State" value="<?php echo htmlspecialchars($member['State']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Pincode</div><div class="er-val"><input type="text" name="Pincode" value="<?php echo htmlspecialchars($member['Pincode']??''); ?>"></div></li>
+        </ul>
+      </div>
+    </div>
 
-        if (deeniSel) deeniSel.addEventListener('change', updateMemberStatus);
-        if (healthSel) healthSel.addEventListener('change', updateMemberStatus);
-        if (residentialSel) residentialSel.addEventListener('change', updateMemberStatus);
+    <!-- ─ Verification & Scan ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-verification">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-shield"></i></span><span class="ph-title">Verification &amp; Scan</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-verification">
+        <ul class="edit-list">
+          <li class="edit-row"><div class="er-key">Data Verification Status</div><div class="er-val"><select class="ver-status" data-date-target="dataVerificationDate" name="Data_Verifcation_Status"><option value="">--</option><option value="Verified" <?php echo $dvs==='Verified'?'selected':''; ?>>Verified</option><option value="Pending" <?php echo $dvs==='Pending'?'selected':''; ?>>Pending</option><option value="Not Verified" <?php echo $dvs==='Not Verified'?'selected':''; ?>>Not Verified</option></select></div></li>
+          <li class="edit-row"><div class="er-key">Data Verification Date</div><div class="er-val"><input id="dataVerificationDate" type="date" name="Data_Verification_Date" value="<?php echo norm_date_input($member['Data_Verification_Date']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Photo Verification Status</div><div class="er-val"><select class="ver-status" data-date-target="photoVerificationDate" name="Photo_Verifcation_Status"><option value="">--</option><option value="Verified" <?php echo $pvs==='Verified'?'selected':''; ?>>Verified</option><option value="Pending" <?php echo $pvs==='Pending'?'selected':''; ?>>Pending</option><option value="Not Verified" <?php echo $pvs==='Not Verified'?'selected':''; ?>>Not Verified</option></select></div></li>
+          <li class="edit-row"><div class="er-key">Photo Verification Date</div><div class="er-val"><input id="photoVerificationDate" type="date" name="Photo_Verification_Date" value="<?php echo norm_date_input($member['Photo_Verification_Date']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Last Scanned Event</div><div class="er-val"><input type="text" name="Last_Scanned_Event" value="<?php echo htmlspecialchars($member['Last_Scanned_Event']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Last Scanned Place</div><div class="er-val"><input type="text" name="Last_Scanned_Place" value="<?php echo htmlspecialchars($member['Last_Scanned_Place']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Title</div><div class="er-val"><input type="text" name="Title" value="<?php echo htmlspecialchars($member['Title']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Category</div><div class="er-val"><input type="text" name="Category" value="<?php echo htmlspecialchars($member['Category']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Idara</div><div class="er-val"><input type="text" name="Idara" value="<?php echo htmlspecialchars($member['Idara']??''); ?>"></div></li>
+          <li class="edit-row"><div class="er-key">Inactive Status</div><div class="er-val"><select name="Inactive_Status" id="inactiveStatusEdit"><option value="" <?php echo $inactiveVal===''?'selected':''; ?>>Active</option><?php foreach($inactiveOpts as $o): ?><option value="<?php echo $o; ?>" <?php echo ($o===$inactiveVal)?'selected':''; ?>><?php echo $o; ?></option><?php endforeach; ?><?php if($inactiveVal&&!in_array($inactiveVal,$inactiveOpts)): ?><option value="<?php echo htmlspecialchars($inactiveVal); ?>" selected><?php echo htmlspecialchars($inactiveVal); ?> (Legacy)</option><?php endif; ?></select></div></li>
+        </ul>
+      </div>
+    </div>
 
-        // Run once on load to initialize status correctly
-        updateMemberStatus();
+  </div><!-- /masonry-grid -->
 
-        // HOF Autocomplete
-        var hofInput = document.getElementById('hof_autocomplete');
-        var hofIdInput = document.getElementById('hof_id');
-        var hofList = document.getElementById('hof_autocomplete_list');
+  <div style="height:80px;"></div>
 
-        if (hofInput && hofList) {
-          var debounceTimeout = null;
+  <!-- ── Sticky Save Bar ── -->
+  <div class="sticky-save">
+    <div class="inner">
+      <span class="save-status" id="editMemberStatus"></span>
+      <button type="button" class="btn-danger-outline" onclick="if(confirm('Reset this member\'s password to their ITS ID?')){var f=document.createElement('form');f.method='post';f.action='<?php echo base_url('admin/reset_member_password'); ?>';var i=document.createElement('input');i.type='hidden';i.name='its_id';i.value='<?php echo addslashes($member['ITS_ID']??''); ?>';f.appendChild(i);document.body.appendChild(f);f.submit();}"><i class="fa fa-key"></i> Reset Password</button>
+      <a href="<?php echo htmlspecialchars($redirect); ?>" class="btn-cancel">Cancel</a>
+      <button type="submit" class="btn-save"><i class="fa fa-save"></i> Save Changes</button>
+    </div>
+  </div>
 
-          hofInput.addEventListener('input', function () {
-            var val = this.value.trim();
-            
-            // If cleared completely, reset hidden input
-            if (val === '') {
-              hofIdInput.value = '';
-              hofList.style.display = 'none';
-              hofList.innerHTML = '';
-              return;
-            }
+  </form>
 
-            clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(function () {
-              fetch('<?php echo base_url("admin/search_hofs_autocomplete"); ?>?q=' + encodeURIComponent(val))
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                  hofList.innerHTML = '';
-                  if (data && data.length > 0) {
-                    data.forEach(function (item) {
-                      var btn = document.createElement('button');
-                      btn.type = 'button';
-                      btn.className = 'list-group-item list-group-item-action py-2 px-3';
-                      btn.style.cursor = 'pointer';
-                      btn.innerHTML = '<strong>' + escapeHtml(item.Full_Name) + '</strong> (' + escapeHtml(item.ITS_ID) + ')';
-                      btn.addEventListener('click', function () {
-                        hofIdInput.value = item.ITS_ID;
-                        hofInput.value = item.Full_Name + ' (' + item.ITS_ID + ')';
-                        hofList.style.display = 'none';
-                        hofList.innerHTML = '';
-                        if (item.Sector) {
-                          if (sectorSelectEdit) {
-                            sectorSelectEdit.value = item.Sector;
-                            preSub = item.Sub_Sector || '';
-                            populateSubEdit(item.Sector);
-                          }
-                          setValByName('Sector_Incharge_ITSID', item.Sector_Incharge_ITSID || '');
-                          setValByName('Sector_Incharge_Name', item.Sector_Incharge_Name || '');
-                          setValByName('Sector_Incharge_Female_ITSID', item.Sector_Incharge_Female_ITSID || '');
-                          setValByName('Sector_Incharge_Female_Name', item.Sector_Incharge_Female_Name || '');
-                          setValByName('Sub_Sector_Incharge_ITSID', item.Sub_Sector_Incharge_ITSID || '');
-                          setValByName('Sub_Sector_Incharge_Name', item.Sub_Sector_Incharge_Name || '');
-                          setValByName('Sub_Sector_Incharge_Female_ITSID', item.Sub_Sector_Incharge_Female_ITSID || '');
-                          setValByName('Sub_Sector_Incharge_Female_Name', item.Sub_Sector_Incharge_Female_Name || '');
-                        }
-                      });
-                      hofList.appendChild(btn);
-                    });
-                    hofList.style.display = 'block';
-                  } else {
-                    var div = document.createElement('div');
-                    div.className = 'list-group-item text-muted py-2 px-3';
-                    div.textContent = 'No members found';
-                    hofList.appendChild(div);
-                    hofList.style.display = 'block';
-                  }
-                })
-                .catch(function () {
-                  hofList.innerHTML = '';
-                  var div = document.createElement('div');
-                  div.className = 'list-group-item text-danger py-2 px-3';
-                  div.textContent = 'Failed to load results';
-                  hofList.appendChild(div);
-                  hofList.style.display = 'block';
+  <script>
+  (function(){
+    /* Accordion */
+    document.querySelectorAll('[data-pt]').forEach(function(hd){
+      var body=document.getElementById(hd.getAttribute('data-pt'));
+      var chev=hd.querySelector('.ph-chevron');
+      if(!body) return;
+      var open=hd.classList.contains('open');
+      hd.addEventListener('click',function(){
+        open=!open;
+        body.style.display=open?'':'none';
+        hd.classList.toggle('open',open);
+        if(chev) chev.style.transform=open?'rotate(180deg)':'';
+      });
+    });
+
+    /* HOF type */
+    var typeSel=document.getElementById('hofTypeSelect');
+    var hofWrap=document.getElementById('hofSelectWrapper');
+    if(typeSel) typeSel.addEventListener('change',function(){if(hofWrap)hofWrap.style.display=this.value==='HOF'?'none':'';});
+
+    /* Verification date */
+    function today(){return new Date().toISOString().slice(0,10);}
+    document.querySelectorAll('.ver-status').forEach(function(sel){
+      sel.addEventListener('change',function(){
+        var di=document.getElementById(this.getAttribute('data-date-target'));
+        if(!di)return;
+        if(this.value==='Verified'){if(!di.value)di.value=today();}
+        else if(this.value===''||this.value==='Not Verified'){di.value='';}
+      });
+    });
+
+    /* Living status → member status */
+    var dS=document.getElementById('deeniStatusSel'),hS=document.getElementById('healthStatusSel'),rS=document.getElementById('residentialStatusSel');
+    var aS=document.getElementById('activityStatusSel'),aD=document.getElementById('activityStatusDisplay');
+    function upStatus(){
+      if(!dS||!hS||!rS||!aS) return;
+      var t=[dS.options[dS.selectedIndex]?.text||'',hS.options[hS.selectedIndex]?.text||'',rS.options[rS.selectedIndex]?.text||''];
+      var hasI=t.some(function(x){return x.indexOf('(Inactive)')>-1;});
+      var hasA=t.some(function(x){return x.indexOf('(Active)')>-1;});
+      if(hasI) aS.value='inactive'; else if(hasA) aS.value='active';
+      if(aD){var v=aS.value;aD.textContent=v?v.charAt(0).toUpperCase()+v.slice(1):'— None —';}
+    }
+    if(dS)dS.addEventListener('change',upStatus);
+    if(hS)hS.addEventListener('change',upStatus);
+    if(rS)rS.addEventListener('change',upStatus);
+    upStatus();
+
+    /* Sector / Sub-sector */
+    var sectorMapEdit=<?php echo json_encode($sector_map??[]); ?>;
+    var inchargesMap=<?php echo json_encode($incharges_map??[]); ?>;
+    var sectorSel=document.getElementById('sectorSelectEdit');
+    var subSel=document.getElementById('subSectorSelectEdit');
+    var preSector='<?php echo addslashes($member['Sector']??''); ?>';
+    var preSub='<?php echo addslashes($member['Sub_Sector']??''); ?>';
+    function setN(n,v){var e=document.getElementsByName(n)[0];if(e)e.value=v||'';}
+    function upIncharges(){
+      var sec=sectorSel?sectorSel.value:'',sub=subSel?subSel.value:'';
+      var si=(inchargesMap&&inchargesMap.sectors)?inchargesMap.sectors.find(function(s){return s.Sector===sec;}):null;
+      setN('Sector_Incharge_ITSID',si&&si.Sector_Incharge_ITSID||'');setN('Sector_Incharge_Name',si&&si.Sector_Incharge_Name||'');
+      setN('Sector_Incharge_Female_ITSID',si&&si.Sector_Incharge_Female_ITSID||'');setN('Sector_Incharge_Female_Name',si&&si.Sector_Incharge_Female_Name||'');
+      var ssi=(inchargesMap&&inchargesMap.sub_sectors)?inchargesMap.sub_sectors.find(function(s){return s.Sector===sec&&s.Sub_Sector===sub;}):null;
+      setN('Sub_Sector_Incharge_ITSID',ssi&&ssi.Sub_Sector_Incharge_ITSID||'');setN('Sub_Sector_Incharge_Name',ssi&&ssi.Sub_Sector_Incharge_Name||'');
+      setN('Sub_Sector_Incharge_Female_ITSID',ssi&&ssi.Sub_Sector_Incharge_Female_ITSID||'');setN('Sub_Sector_Incharge_Female_Name',ssi&&ssi.Sub_Sector_Incharge_Female_Name||'');
+    }
+    function popSub(sec){
+      subSel.innerHTML='<option value="">-- Select Sub Sector --</option>';subSel.disabled=true;
+      if(sec&&sectorMapEdit[sec]&&sectorMapEdit[sec].length){
+        sectorMapEdit[sec].forEach(function(ss){var o=document.createElement('option');o.value=ss;o.textContent=ss;if(ss===preSub)o.selected=true;subSel.appendChild(o);});
+        subSel.disabled=false;
+      }
+    }
+    if(sectorSel){sectorSel.addEventListener('change',function(){preSub='';popSub(this.value);upIncharges();});if(preSector)popSub(preSector);}
+    if(subSel) subSel.addEventListener('change',upIncharges);
+
+    /* HOF Autocomplete */
+    var hofIn=document.getElementById('hof_autocomplete'),hofId=document.getElementById('hof_id'),hofList=document.getElementById('hof_autocomplete_list');
+    function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    if(hofIn&&hofList){
+      var db=null;
+      hofIn.addEventListener('input',function(){
+        var v=this.value.trim();
+        if(!v){hofId.value='';hofList.classList.remove('open');hofList.innerHTML='';return;}
+        clearTimeout(db);
+        db=setTimeout(function(){
+          fetch('<?php echo base_url("admin/search_hofs_autocomplete"); ?>?q='+encodeURIComponent(v))
+            .then(function(r){return r.json();})
+            .then(function(data){
+              hofList.innerHTML='';
+              if(data&&data.length){
+                data.forEach(function(item){
+                  var d=document.createElement('div');d.className='hof-item';
+                  var ini=(item.Full_Name||'?').split(' ').map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase();
+                  d.innerHTML='<div class="hof-av">'+esc(ini)+'</div><div><div class="hof-name">'+esc(item.Full_Name)+'</div><div class="hof-its">ITS: '+esc(item.ITS_ID)+'</div></div>';
+                  d.addEventListener('click',function(){
+                    hofId.value=item.ITS_ID;hofIn.value=item.Full_Name+' ('+item.ITS_ID+')';
+                    hofList.classList.remove('open');hofList.innerHTML='';
+                    if(item.Sector&&sectorSel){sectorSel.value=item.Sector;preSub=item.Sub_Sector||'';popSub(item.Sector);}
+                    ['Sector_Incharge_ITSID','Sector_Incharge_Name','Sector_Incharge_Female_ITSID','Sector_Incharge_Female_Name','Sub_Sector_Incharge_ITSID','Sub_Sector_Incharge_Name','Sub_Sector_Incharge_Female_ITSID','Sub_Sector_Incharge_Female_Name'].forEach(function(n){setN(n,item[n]||'');});
+                  });
+                  hofList.appendChild(d);
                 });
-            }, 300);
-          });
+              } else { hofList.innerHTML='<div class="hof-empty">No members found</div>'; }
+              hofList.classList.add('open');
+            })
+            .catch(function(){hofList.innerHTML='<div class="hof-empty" style="color:var(--red);">Failed to load</div>';hofList.classList.add('open');});
+        },300);
+      });
+      document.addEventListener('click',function(e){if(e.target!==hofIn&&!hofList.contains(e.target))hofList.classList.remove('open');});
+    }
 
-          // Close autocomplete list if clicked outside
-          document.addEventListener('click', function (e) {
-            if (e.target !== hofInput && e.target !== hofList && !hofList.contains(e.target)) {
-              hofList.style.display = 'none';
-            }
-          });
+    /* AJAX submit */
+    var form=document.getElementById('editMemberForm'),stEl=document.getElementById('editMemberStatus');
+    form.addEventListener('submit',function(e){
+      e.preventDefault();
+      var fd=new FormData(form);
+      var av=document.getElementById('activityStatusSel')?document.getElementById('activityStatusSel').value:'';
+      fd.set('activity_status',av);
+      var ht=fd.get('hof_type');
+      if(ht==='HOF'){fd.set('HOF_FM_TYPE','HOF');fd.set('HOF_ID',fd.get('its_id'));}
+      else{fd.set('HOF_FM_TYPE','FM');}
+      fetch(form.action,{method:'POST',body:fd})
+        .then(function(r){return r.json();})
+        .then(function(j){
+          if(j.status==='success'){stEl.textContent='✓ Saved';stEl.className='save-status success';setTimeout(function(){window.location.href='<?php echo addslashes($redirect); ?>';},700);}
+          else{stEl.textContent=j.message||'Update failed';stEl.className='save-status error';}
+        })
+        .catch(function(){stEl.textContent='Network error';stEl.className='save-status error';});
+    });
+  })();
+  </script>
 
-          // Helper to escape HTML to prevent XSS in dynamic list
-          function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, '&amp;')
-                      .replace(/</g, '&lt;')
-                      .replace(/>/g, '&gt;')
-                      .replace(/"/g, '&quot;')
-                      .replace(/'/g, '&#039;');
-          }
-        }
-
-      })();
-    </script>
   <?php else: ?>
-    <div class="alert alert-warning">Member not found.</div>
+    <div style="background:var(--red-bg);border:1px solid #fca5a5;border-radius:12px;padding:18px 22px;color:var(--red);font-weight:700;margin-top:20px;">
+      <i class="fa fa-exclamation-triangle" style="margin-right:8px;"></i>Member not found.
+    </div>
   <?php endif; ?>
+
+</div>
 </div>
