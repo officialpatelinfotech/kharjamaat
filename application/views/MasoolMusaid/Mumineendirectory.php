@@ -417,10 +417,10 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
           <th class="sortable" data-col="Sector">Sector / Sub Sector <span class="si"></span></th>
           <th>Mobile</th>
           <th class="sortable" data-col="_status">Status <span class="si"></span></th>
+          <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="si"></span></th>
           <th class="sortable" data-col="health_status">Health <span class="si"></span></th>
           <th class="sortable" data-col="deeni_status">Deeni <span class="si"></span></th>
           <th class="sortable" data-col="residential_status">Residential <span class="si"></span></th>
-          <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="si"></span></th>
           <?php if (!$is_umoor): ?>
           <th>Actions</th>
           <?php endif; ?>
@@ -878,10 +878,10 @@ function renderTable() {
       `<td><div style="font-size:.76rem;font-weight:600">${esc(u.Sector||'—')}</div><div style="font-size:.68rem;color:var(--text-3)">${esc(u.Sub_Sector||'')}</div></td>` +
       `<td style="font-size:.75rem;color:var(--text-2)">${esc(u.Mobile||'—')}</td>` +
       `<td>${badge}</td>` +
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>` +
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.health_status||'—')}</td>` +
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.deeni_status||'—')}</td>` +
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.residential_status||'—')}</td>` +
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>`;
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.residential_status||'—')}</td>`;
 
     if (!IS_UMOOR) {
       html += `<td>` +
