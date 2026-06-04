@@ -642,7 +642,7 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
             <?php echo htmlspecialchars($fmName); ?>
             <?php if($fmHof): ?><span class="fm-hof">HOF</span><?php endif; ?>
           </div>
-          <div class="fm-its">ITS: <?php echo htmlspecialchars($fm['ITS_ID']??''); ?></div>
+          <div class="fm-its">ITS: <?php echo htmlspecialchars($fm['ITS_ID']??''); ?><?php echo !empty($fm['Age']) ? ' &bull; Age: ' . htmlspecialchars($fm['Age']) : ''; ?></div>
         </div>
       </a>
       <?php endforeach; ?>

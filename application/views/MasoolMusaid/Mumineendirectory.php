@@ -158,7 +158,9 @@
   border:1px solid var(--border);
   border-radius:14px;
   box-shadow:var(--sh);
-  overflow:hidden;
+  overflow-x:auto;
+  max-height:70vh;
+  overflow-y:auto;
 }
 table.dir { width:100%; border-collapse:collapse; font-size:.78rem; min-width:980px; }
 table.dir thead th {
@@ -414,7 +416,7 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
           <th class="sortable" data-col="ITS_ID">ITS ID <span class="si"></span></th>
           <th class="sortable" data-col="Age">Age <span class="si"></span></th>
           <th class="sortable" data-col="Gender">Gender <span class="si"></span></th>
-          <th class="sortable" data-col="Sector">Sector / Sub Sector <span class="si"></span></th>
+          <th class="sortable" data-col="Sector">Sector /</br> Sub Sector <span class="si"></span></th>
           <th>Mobile</th>
           <th class="sortable" data-col="_status">Status <span class="si"></span></th>
           <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="si"></span></th>

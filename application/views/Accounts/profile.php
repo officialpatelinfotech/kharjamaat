@@ -353,7 +353,7 @@
                   <?php echo htmlspecialchars($name); ?>
                 </div>
                 <div class="fm-its">
-                  ITS: <?php echo htmlspecialchars($fm['ITS_ID'] ?? ''); ?>
+                  ITS: <?php echo htmlspecialchars($fm['ITS_ID'] ?? ''); ?><?php echo !empty($fm['Age']) ? ' &bull; Age: ' . htmlspecialchars($fm['Age']) : ''; ?>
                 </div>
               </div>
             </div>

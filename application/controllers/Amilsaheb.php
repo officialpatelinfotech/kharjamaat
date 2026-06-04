@@ -2204,9 +2204,7 @@ class Amilsaheb extends CI_Controller
         'Attended in Khar on Time',
         'Attended in Khar Late',
         'Attended in Other Jamaat',
-        'Not attended anywhere',
-        'Not in Town',
-        'Married Outcaste'
+        'Not attended anywhere'
       ],
       // Year dropdown support (UI only)
       'selected_year' => $selected_year,

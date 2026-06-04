@@ -48,7 +48,9 @@
 /* ── Filter grid ── */
 .fgrid{display:grid;gap:8px;margin-bottom:4px}
 .fg-6{grid-template-columns:2fr 1fr 1fr 1fr 1.1fr 1fr}
+.fg-5{grid-template-columns:repeat(5,1fr)}
 .fg-4{grid-template-columns:repeat(4,1fr)}
+.fg-3{grid-template-columns:repeat(3,1fr)}
 .flabel{display:block;font-size:.67rem;font-weight:700;color:var(--text-2);margin-bottom:4px;letter-spacing:.2px}
 .finput,.fselect{width:100%;height:32px;padding:0 9px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface-2);font-family:'Plus Jakarta Sans',sans-serif;font-size:.76rem;color:var(--text-1);outline:none;transition:border-color .15s,background .15s}
 .finput:focus,.fselect:focus{border-color:var(--gold);background:var(--surface);box-shadow:0 0 0 3px rgba(184,134,11,.1)}
@@ -77,7 +79,7 @@
 
 /* ── Table card ── */
 .md-tcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh);overflow:hidden}
-.md-tscroll{overflow-x:auto}
+.md-tscroll{overflow-x:auto;max-height:70vh;overflow-y:auto}
 table.dir{width:100%;border-collapse:collapse;font-size:.78rem;min-width:980px}
 table.dir thead th{background:linear-gradient(to bottom,var(--surface-2),#f0ebe0);padding:9px 11px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;user-select:none;text-align:left;position:sticky;top:0;z-index:1}
 table.dir th.sortable{cursor:pointer;transition:color .14s}
@@ -109,9 +111,9 @@ table.dir .empty-row td{text-align:center;padding:36px;color:var(--text-3);font-
 .act-edit{background:var(--amber-bg);color:var(--amber)}
 
 /* ── Responsive ── */
-@media(max-width:992px){.fg-6,.fg-4{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:768px){.fg-6,.fg-4{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:576px){.fg-6,.fg-4{grid-template-columns:1fr}.md-wrap{padding:10px}}
+@media(max-width:992px){.fg-6,.fg-5,.fg-4,.fg-3{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.fg-6,.fg-5,.fg-4,.fg-3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:576px){.fg-6,.fg-5,.fg-4,.fg-3{grid-template-columns:1fr}.md-wrap{padding:10px}}
 </style>
 
 <?php
@@ -130,9 +132,19 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
     <a href="<?php echo $back_url_val ?>" class="md-back">
       <i class="fa fa-arrow-left"></i> Back
     </a>
-    <button class="md-export" onclick="exportCSV()">
-      <i class="fa fa-file-excel-o"></i> Export Excel
-    </button>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <?php if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 1): ?>
+        <a href="<?php echo base_url('admin/importlatest'); ?>" class="md-export" style="text-decoration:none;">
+          <i class="fa fa-upload"></i> Import Latest Data
+        </a>
+        <a href="<?php echo base_url('admin/addmember'); ?>" class="md-export" style="text-decoration:none; background:var(--blue-bg); color:var(--blue); border-color:rgba(29,78,216,.25);">
+          <i class="fa fa-user-plus"></i> Add Member
+        </a>
+      <?php endif; ?>
+      <button class="md-export" onclick="exportCSV()">
+        <i class="fa fa-file-excel-o"></i> Export Excel
+      </button>
+    </div>
   </div>
 
   <!-- Filter card -->
@@ -186,13 +198,23 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
 
         <!-- Member Details -->
         <div class="fsec" id="secLabel2"><i class="fa fa-user" style="color:var(--purple)"></i> Member Details</div>
-        <div class="fgrid fg-4" id="secRow2">
+        <div class="fgrid fg-5" id="secRow2">
           <div>
             <label class="flabel">Active Inactive Status</label>
             <select id="fStatus" class="fselect">
               <option value="">All</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">ITS-Sabeel Match</label>
+            <select id="fItsMatch" class="fselect">
+              <option value="">All</option>
+              <option value="its_sabeel_both_khar">ITS &amp; Sabeel both in Khar</option>
+              <option value="its_khar_sabeel_out">ITS in Khar, Sabeel out</option>
+              <option value="sabeel_khar_its_out">Sabeel in Khar, ITS out</option>
+              <option value="both_not_khar">Both not in Khar</option>
             </select>
           </div>
           <div>
@@ -219,7 +241,7 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
 
         <!-- Status Filters -->
         <div class="fsec" id="secLabel3"><i class="fa fa-heartbeat" style="color:var(--red)"></i> Status Filters</div>
-        <div class="fgrid fg-4" id="secRow3">
+        <div class="fgrid fg-3" id="secRow3">
           <div>
             <label class="flabel">Health Status</label>
             <select id="fHealth" class="fselect">
@@ -259,16 +281,6 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
               <option value="Unknown or Not Traceable">Unknown / Not Traceable</option>
             </select>
           </div>
-          <div>
-            <label class="flabel">ITS-Sabeel Match</label>
-            <select id="fItsMatch" class="fselect">
-              <option value="">All</option>
-              <option value="its_sabeel_both_khar">ITS &amp; Sabeel both in Khar</option>
-              <option value="its_khar_sabeel_out">ITS in Khar, Sabeel out</option>
-              <option value="sabeel_khar_its_out">Sabeel in Khar, ITS out</option>
-              <option value="both_not_khar">Both not in Khar</option>
-            </select>
-          </div>
         </div>
 
       </form>
@@ -300,7 +312,7 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
             <th class="sortable" data-col="ITS_ID">ITS ID <span class="si"></span></th>
             <th class="sortable" data-col="Age">Age <span class="si"></span></th>
             <th class="sortable" data-col="Gender">Gender <span class="si"></span></th>
-            <th class="sortable" data-col="Sector">Sector / Sub Sector <span class="si"></span></th>
+            <th class="sortable" data-col="Sector">Sector /</br> Sub Sector <span class="si"></span></th>
             <th>Mobile</th>
             <th class="sortable" data-col="_status">Status <span class="si"></span></th>
             <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="si"></span></th>

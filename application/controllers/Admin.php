@@ -4296,26 +4296,65 @@ HTML;
 
   public function managemembers()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
-    // Collect filters from query string
-    $filters = [
-      'name' => $this->input->get('name'),
-      'sector' => $this->input->get('sector'),
-      'sub_sector' => $this->input->get('sub_sector'),
-      'status' => $this->input->get('status'),
-      'hof' => $this->input->get('hof'),
-    ];
+    
+    $this->load->model('AmilsahebM');
 
-    // Fetch filtered members & filter metadata
-    $data['members'] = $this->AdminM->get_members_filtered($filters);
-    $data['filter_meta'] = $this->AdminM->get_member_filter_meta();
-    $data['applied_filters'] = $filters;
+    // Load users list (support filtering via GET or POST search)
+    if ($this->input->post('search')) {
+      $keyword = $this->input->post('search');
+      $data['users'] = $this->AmilsahebM->search_users($keyword);
+    } elseif (!empty($this->input->get())) {
+      $data['users'] = $this->AmilsahebM->get_users_filtered($this->input->get());
+    } else {
+      $data['users'] = $this->AmilsahebM->get_all_users();
+    }
+    $data['all_users'] = $this->AmilsahebM->get_all_users();
+
+    // Fetch and merge LeaveStatus for the current/selected Hijri Year
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $hijri_parts = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts[2];
+    $current_hijri_month = (int)$hijri_parts[1];
+    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year);
+
+    $ohbat_rows = $this->db->where('year', $selected_year)->get('ashara_ohbat')->result_array();
+    $ohbat_map = [];
+    foreach ($ohbat_rows as $row) {
+      $ohbat_map[$row['ITS']] = $row['LeaveStatus'];
+    }
+
+    if (isset($data['users']) && is_array($data['users'])) {
+      foreach ($data['users'] as &$u) {
+        $its = isset($u->ITS_ID) ? $u->ITS_ID : (isset($u['ITS_ID']) ? $u['ITS_ID'] : (isset($u['ITS']) ? $u['ITS'] : null));
+        $val = isset($ohbat_map[$its]) && !empty($ohbat_map[$its]) ? $ohbat_map[$its] : "Musaaid didn't Contacted Yet";
+        if (is_object($u)) $u->LeaveStatus = $val;
+        else $u['LeaveStatus'] = $val;
+      }
+      unset($u);
+    }
+
+    if (isset($data['all_users']) && is_array($data['all_users'])) {
+      foreach ($data['all_users'] as &$u) {
+        $its = isset($u->ITS_ID) ? $u->ITS_ID : (isset($u['ITS_ID']) ? $u['ITS_ID'] : (isset($u['ITS']) ? $u['ITS'] : null));
+        $val = isset($ohbat_map[$its]) && !empty($ohbat_map[$its]) ? $ohbat_map[$its] : "Musaaid didn't Contacted Yet";
+        if (is_object($u)) $u->LeaveStatus = $val;
+        else $u['LeaveStatus'] = $val;
+      }
+      unset($u);
+    }
 
     $data['user_name'] = $_SESSION['user']['username'];
+    // Provide view params for shared directory view
+    $data['back_url'] = base_url('admin');
+    $data['update_user_url'] = base_url('admin/update_user_details');
+
     $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/ManageMembers', $data);
+    $this->load->view('Amilsaheb/Mumineendirectory', $data);
   }
   // Updated by Patel Infotech Services
 

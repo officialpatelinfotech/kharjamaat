@@ -644,9 +644,7 @@ class MasoolMusaid extends CI_Controller
         'Attended in Khar on Time',
         'Attended in Khar Late',
         'Attended in Other Jamaat',
-        'Not attended anywhere',
-        'Not in Town',
-        'Married Outcaste'
+        'Not attended anywhere'
       ],
       'all_sub_sectors' => $this->MasoolMusaidM->get_all_sub_sectors($sel_sector),
       // Year dropdown support (UI only)
