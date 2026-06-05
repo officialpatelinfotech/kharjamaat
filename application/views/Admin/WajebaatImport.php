@@ -7,7 +7,7 @@
       <h2 class="m-0">Import Latest Wajebaat Data</h2>
     </div>
     <div class="col-3 text-right">
-      <a href="<?php echo base_url('admin/wajebaat_export'); ?>" class="btn btn-sm btn-success">&#x2B07; Export Current</a>
+      <a href="<?php echo base_url('admin/wajebaat_export?year=' . $current_hijri_year); ?>" class="btn btn-sm btn-success" id="export-link">&#x2B07; Export Current (<?= $current_hijri_year ?> H)</a>
     </div>
   </div>
   <hr>
@@ -23,6 +23,15 @@
     <div class="alert alert-info">Provide a CSV file. Required columns: <strong>ITS_ID, amount, due</strong>. Header row is optional; non-empty cells update/insert data.</div>
 
     <form method="post" enctype="multipart/form-data" id="wajebaat-import-form">
+      <div class="form-group mb-3">
+        <label for="year" class="font-weight-bold">Select Year</label>
+        <select name="year" id="year" class="form-control" style="max-width:250px;">
+          <?php foreach ($available_years as $y): ?>
+            <option value="<?= $y ?>" <?= $y == $current_hijri_year ? 'selected' : '' ?>><?= $y ?> H</option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
       <div id="dropzone" class="border rounded p-4 text-center" style="border-style: dashed!important; background:#f8f9fa;">
         <h4 class="mb-1">Select or Drop CSV Here</h4>
         <div class="text-muted">Click to browse or drag a .csv file (UTF-8 recommended)</div>
@@ -78,5 +87,15 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
   clearBtn.addEventListener('click', function(){ fileInput.value = ''; setFileDisplay(null); });
+
+  var yearSelect = document.getElementById('year');
+  var exportLink = document.getElementById('export-link');
+  if (yearSelect && exportLink) {
+    yearSelect.addEventListener('change', function() {
+      var y = this.value;
+      exportLink.href = '<?php echo base_url("admin/wajebaat_export"); ?>?year=' + y;
+      exportLink.innerHTML = '&#x2B07; Export Current (' + y + ' H)';
+    });
+  }
 });
 </script>

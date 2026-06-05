@@ -35,7 +35,7 @@
       <h2 class="m-0">Wajebaat</h2>
     </div>
     <div class="col-3 text-right">
-      <a href="<?php echo base_url('admin/wajebaat_import'); ?>" id="import-data" class="btn btn-sm btn-primary">Import Data</a>
+      <a href="<?php echo base_url('admin/wajebaat_import?year=' . $selected_year); ?>" id="import-data" class="btn btn-sm btn-primary">Import Data</a>
     </div>
   </div>
   <hr>
@@ -46,6 +46,14 @@
         <div class="col-md-6 mb-2">
           <label class="small mb-1">Name / ITS</label>
           <input type="text" id="waFilterText" class="form-control form-control-sm" placeholder="Search by name or ITS">
+        </div>
+        <div class="col-md-3 mb-2">
+          <label class="small mb-1">Hijri Year</label>
+          <select id="waFilterYear" class="form-control form-control-sm" onchange="location.href='?year=' + this.value;">
+            <?php foreach ($available_years as $y): ?>
+              <option value="<?= $y ?>" <?= $y == $selected_year ? 'selected' : '' ?>><?= $y ?> H</option>
+            <?php endforeach; ?>
+          </select>
         </div>
       </div>
 

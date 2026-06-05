@@ -229,6 +229,43 @@ class MasoolMusaid extends CI_Controller
       $subsector = $matches[2];
     }
 
+    $incharge_male = '';
+    $incharge_female = '';
+    if ($subsector !== '') {
+      $row = $this->db->select('Sub_Sector_Incharge_Name, Sub_Sector_Incharge_Female_Name')
+                      ->from('user')
+                      ->where('Sector', $sector)
+                      ->where('Sub_Sector', $subsector)
+                      ->group_start()
+                        ->where("Sub_Sector_Incharge_Name != '' AND Sub_Sector_Incharge_Name IS NOT NULL")
+                        ->or_where("Sub_Sector_Incharge_Female_Name != '' AND Sub_Sector_Incharge_Female_Name IS NOT NULL")
+                      ->group_end()
+                      ->limit(1)
+                      ->get()
+                      ->row_array();
+      if ($row) {
+        $incharge_male = trim($row['Sub_Sector_Incharge_Name'] ?? '');
+        $incharge_female = trim($row['Sub_Sector_Incharge_Female_Name'] ?? '');
+      }
+    } else {
+      $row = $this->db->select('Sector_Incharge_Name, Sector_Incharge_Female_Name')
+                      ->from('user')
+                      ->where('Sector', $sector)
+                      ->group_start()
+                        ->where("Sector_Incharge_Name != '' AND Sector_Incharge_Name IS NOT NULL")
+                        ->or_where("Sector_Incharge_Female_Name != '' AND Sector_Incharge_Female_Name IS NOT NULL")
+                      ->group_end()
+                      ->limit(1)
+                      ->get()
+                      ->row_array();
+      if ($row) {
+        $incharge_male = trim($row['Sector_Incharge_Name'] ?? '');
+        $incharge_female = trim($row['Sector_Incharge_Female_Name'] ?? '');
+      }
+    }
+    $data['incharge_male'] = $incharge_male;
+    $data['incharge_female'] = $incharge_female;
+
     $sectorsData = $this->MasoolMusaidM->get_sectors_stats($sector, $subsector);
     $subSectorsData = $this->MasoolMusaidM->get_sub_sectors_stats($sector, $subsector);
 

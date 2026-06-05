@@ -9,6 +9,12 @@
   } else if ($this->session->userdata('role') === 'MasoolMusaid' || (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 16)) {
     $view_member_base = 'MasoolMusaid/viewmember/';
   }
+
+  $username_raw = $_SESSION['user']['username'] ?? '';
+  $is_sub_sector = false;
+  if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z])$/i', $username_raw)) {
+      $is_sub_sector = true;
+  }
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -298,6 +304,7 @@
 
   <!-- Sector Cards (Moved Above Stats) -->
   <div class="mb-2 fw-bold" id="totalSectorCard"></div>
+  <?php if (!$is_sub_sector): ?>
   <div class="row">
     <div class="col-12">
       <div class="chart-container sector-block">
@@ -311,6 +318,7 @@
       </div>
     </div>
   </div>
+  <?php endif; ?>
 
   <!-- Stats Section -->
   <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3 mt-4">
@@ -880,7 +888,7 @@
       `;
 
       const mainLink = document.createElement('div');
-      mainLink.style.cssText = 'display:flex;align-items:center;gap:10px;flex:1;text-decoration:none;color:inherit;';
+      mainLink.style.cssText = 'display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;';
       
       const iconDiv = document.createElement('div');
       iconDiv.className = 'overview-icon';
@@ -924,7 +932,7 @@
       mainLink.appendChild(bodyDiv);
       cardDiv.appendChild(mainLink);
 
-      mainLink.onclick = (e) => {
+      cardDiv.onclick = (e) => {
         e.stopPropagation();
         if (itemData.type === 'subsector') {
           if (currentSectorFilter === itemData.Sector && currentSubSectorFilter === itemData.Sub_Sector) {
@@ -1065,6 +1073,10 @@
         collapseWrapper.appendChild(collapseBtn);
         collapseWrapper.appendChild(collapseContent);
         cardDiv.appendChild(collapseWrapper);
+
+        collapseWrapper.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
 
         collapseContent.addEventListener('show.bs.collapse', (e) => {
           e.stopPropagation();

@@ -2382,8 +2382,18 @@ class Admin extends CI_Controller
   {
     $this->validateUser($_SESSION['user']);
     $this->load->model('WajebaatM');
+    $this->load->model('HijriCalendar');
+
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $data['selected_year'] = $selected_year;
+    $data['available_years'] = $this->WajebaatM->get_years();
+
     $data['user_name'] = $_SESSION['user']['username'];
-    $data['wajebaat'] = $this->WajebaatM->get_all();
+    $data['wajebaat'] = $this->WajebaatM->get_all($selected_year);
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Wajebaat', $data);
   }
@@ -2422,6 +2432,13 @@ class Admin extends CI_Controller
         redirect('admin/wajebaat_import');
         return;
       }
+      $year = (int)$this->input->post('year');
+      if ($year <= 0) {
+        $this->load->model('HijriCalendar');
+        $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+        $parts = explode('-', $today_hijri['hijri_date']);
+        $year = (int)$parts[2];
+      }
       $processed = 0;
       $inserted = 0;
       $updated = 0;
@@ -2442,7 +2459,7 @@ class Admin extends CI_Controller
             $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
             $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
             if ($isValidIts($its)) {
-              $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
+              $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due, 'year' => $year]);
               if ($res['action'] === 'inserted') $inserted++;
               elseif ($res['action'] === 'updated') $updated++;
             } else {
@@ -2458,7 +2475,7 @@ class Admin extends CI_Controller
         $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
         $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
         if ($isValidIts($its)) {
-          $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
+          $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due, 'year' => $year]);
           if ($res['action'] === 'inserted') $inserted++;
           elseif ($res['action'] === 'updated') $updated++;
         } else {
@@ -2466,10 +2483,19 @@ class Admin extends CI_Controller
         }
       }
       fclose($fh);
-      $this->session->set_flashdata('message', "Import completed: $inserted inserted, $updated updated, $skipped skipped from $processed rows");
+      $this->session->set_flashdata('message', "Import completed: $inserted inserted, $updated updated, $skipped skipped from $processed rows for year $year");
       redirect('admin/wajebaat');
       return;
     }
+
+    $this->load->model('HijriCalendar');
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_get_year = (int)$this->input->get('year');
+    $data['current_hijri_year'] = $selected_get_year ?: $current_hijri_year;
+    $data['available_years'] = $this->WajebaatM->get_years();
 
     $data['message'] = $this->session->flashdata('message');
     $data['error'] = $this->session->flashdata('error');
@@ -2481,15 +2507,22 @@ class Admin extends CI_Controller
   {
     $this->validateUser($_SESSION['user']);
     $this->load->model('WajebaatM');
-    $rows = $this->WajebaatM->get_all();
+    $this->load->model('HijriCalendar');
+
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $rows = $this->WajebaatM->get_all($selected_year);
 
     header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename=wajebaat_export_' . date('Ymd_His') . '.csv');
+    header('Content-Disposition: attachment; filename=wajebaat_export_' . $selected_year . '_' . date('Ymd_His') . '.csv');
     echo "\xEF\xBB\xBF"; // BOM
     $out = fopen('php://output', 'w');
-    fputcsv($out, ['id', 'ITS_ID', 'amount', 'due', 'created_at']);
+    fputcsv($out, ['id', 'ITS_ID', 'amount', 'due', 'year', 'created_at']);
     foreach ($rows as $r) {
-      fputcsv($out, [$r['id'], $r['ITS_ID'], $r['amount'], $r['due'], $r['created_at']]);
+      fputcsv($out, [$r['id'], $r['ITS_ID'], $r['amount'], $r['due'], $r['year'], $r['created_at']]);
     }
     fclose($out);
     exit;
@@ -2524,9 +2557,15 @@ class Admin extends CI_Controller
       redirect('admin/wajebaat_import');
       return;
     }
-    // Truncate table (remove all rows)
-    $this->db->query('TRUNCATE TABLE `wajebaat`');
-    $this->session->set_flashdata('message', 'All Wajebaat records deleted');
+    
+    $year = (int)$this->input->post('year');
+    if ($year > 0) {
+      $this->db->where('year', $year)->delete('wajebaat');
+      $this->session->set_flashdata('message', 'Wajebaat records for Hijri Year ' . $year . ' deleted');
+    } else {
+      $this->db->query('TRUNCATE TABLE `wajebaat`');
+      $this->session->set_flashdata('message', 'All Wajebaat records deleted');
+    }
     redirect('admin/wajebaat');
   }
 

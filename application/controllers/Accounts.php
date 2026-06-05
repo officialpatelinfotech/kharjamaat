@@ -868,6 +868,16 @@ class Accounts extends CI_Controller
     }
     $this->load->model('AccountM');
     $this->load->model('WajebaatM');
+    $this->load->model('HijriCalendar');
+
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $data['selected_year'] = $selected_year;
+    $data['available_years'] = $this->WajebaatM->get_years();
+
     $username = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
     $data['user_name'] = $username;
 
@@ -888,7 +898,7 @@ class Accounts extends CI_Controller
     $total_due = 0.0;
     $lastUpdated = '';
     foreach ($memberIds as $mid) {
-      $row = $this->WajebaatM->get_by_its($mid);
+      $row = $this->WajebaatM->get_by_its($mid, $selected_year);
       if (!empty($row) && is_array($row)) {
         $total_amount += (float)($row['amount'] ?? 0);
         $total_due += (float)($row['due'] ?? 0);
@@ -2618,8 +2628,13 @@ class Accounts extends CI_Controller
     // Wajebaat outstanding for family
     $wajebaat_due = 0.0;
     $this->load->model('WajebaatM');
+    $this->load->model('HijriCalendar');
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
     foreach ($memberIds as $m) {
-      $waj_row = $this->WajebaatM->get_by_its($m);
+      $waj_row = $this->WajebaatM->get_by_its($m, $current_hijri_year);
       if (!empty($waj_row) && is_array($waj_row)) {
         $wajebaat_due += (float)($waj_row['due'] ?? 0);
       }
@@ -2855,8 +2870,13 @@ class Accounts extends CI_Controller
     // Wajebaat outstanding for family
     $wajebaat_due = 0.0;
     $this->load->model('WajebaatM');
+    $this->load->model('HijriCalendar');
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
     foreach ($memberIds as $m) {
-      $waj_row = $this->WajebaatM->get_by_its($m);
+      $waj_row = $this->WajebaatM->get_by_its($m, $current_hijri_year);
       if (!empty($waj_row) && is_array($waj_row)) {
         $wajebaat_due += (float)($waj_row['due'] ?? 0);
       }

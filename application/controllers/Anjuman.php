@@ -372,7 +372,17 @@ class Anjuman extends CI_Controller
     }
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->model('WajebaatM');
-    $data['wajebaat_rows'] = $this->WajebaatM->get_all();
+    $this->load->model('HijriCalendar');
+
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $data['selected_year'] = $selected_year;
+    $data['available_years'] = $this->WajebaatM->get_years();
+    $data['wajebaat_rows'] = $this->WajebaatM->get_all($selected_year);
+
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/WajebaatDetails', $data);
   }

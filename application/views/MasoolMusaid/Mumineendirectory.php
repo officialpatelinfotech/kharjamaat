@@ -532,7 +532,22 @@ function readURLAndApply() {
 
   if (legFilter === 'health_status')      setv('fHealth',      legValue);
   if (legFilter === 'deeni_status')       setv('fDeeni',       legValue);
-  if (legFilter === 'residential_status') setv('fResidential', legValue);
+  if (legFilter === 'residential_status') {
+    setv('fResidential', legValue);
+    if (legValue === 'Madresa in Khar') {
+      sortCol = 'Age';
+      sortDir = 'asc';
+      setTimeout(() => {
+        document.querySelectorAll('th.sortable').forEach(th => {
+          if (th.dataset.col === 'Age') {
+            th.classList.add('asc');
+          } else {
+            th.classList.remove('asc', 'desc');
+          }
+        });
+      }, 50);
+    }
+  }
   if (legFilter === 'sector')             setv('fSector',      legValue);
 
   if (!['','all','age_range','sector','gender','hof_fm_type','health_status','deeni_status','residential_status','its_sabeel_match'].includes(legFilter) && legValue) {
@@ -894,30 +909,83 @@ function renderTable() {
     return html;
   }
 
-  if (sortCol) {
-    filtered.forEach((u, i) => {
-      const tr = tbody.insertRow();
-      tr.dataset.its = u.ITS_ID;
-      if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') tr.className = 'hof-row';
-      tr.innerHTML = rowHTML(u, i + 1);
-    });
-    return;
-  }
-
   const groups = {}, order = [];
   filtered.forEach(u => {
     const hid = (u.HOF_ID || u.HOF || u.ITS_ID || '').toString();
-    if (!groups[hid]) { groups[hid] = { hid, hname: itsMap[hid] || u.HOF_Name || hid, members:[] }; order.push(hid); }
+    if (!groups[hid]) {
+      groups[hid] = {
+        hid,
+        hname: itsMap[hid] || u.HOF_Name || hid,
+        members: [],
+        hofUser: null
+      };
+      order.push(hid);
+    }
+    if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') {
+      groups[hid].hofUser = u;
+    }
     groups[hid].members.push(u);
   });
+
+  // Sort members within each group: HOF first, then FMs sorted by Age ascending
+  Object.keys(groups).forEach(hid => {
+    groups[hid].members.sort((a, b) => {
+      const aIsH = (a.HOF_FM_TYPE || '').toUpperCase() === 'HOF';
+      const bIsH = (b.HOF_FM_TYPE || '').toUpperCase() === 'HOF';
+      if (aIsH && !bIsH) return -1;
+      if (!aIsH && bIsH) return 1;
+      const ageA = parseInt(a.Age) || 0;
+      const ageB = parseInt(b.Age) || 0;
+      return ageA - ageB;
+    });
+  });
+
   const seen = new Set();
-  const sortedGroups = order
-    .filter(k => { if (seen.has(k)) return false; seen.add(k); return true; })
-    .map(k => groups[k])
-    .sort((a, b) => (a.hname||'').localeCompare(b.hname||''));
+  let sg = order.filter(k => { if (seen.has(k)) return false; seen.add(k); return true; }).map(k => groups[k]);
+
+  if (sortCol) {
+    const getSortVal = (grp) => {
+      const refUser = grp.hofUser || grp.members[0];
+      if (!refUser) return '';
+      if (sortCol === '_status') {
+        const inact = (refUser.Inactive_Status || refUser.inactive_status || '').trim();
+        const act   = (refUser.activity_status || '').toLowerCase();
+        return (!inact && (!act || act === 'active')) ? 'Active' : 'Inactive';
+      }
+      if (sortCol === 'Age') {
+        return parseInt(refUser.Age) || 0;
+      }
+      return (refUser[sortCol] || '').toString().toLowerCase();
+    };
+    sg.sort((a, b) => {
+      // Families with HOF come before families without HOF
+      const aHas = !!a.hofUser, bHas = !!b.hofUser;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      const va = getSortVal(a);
+      const vb = getSortVal(b);
+      if (sortCol === 'Age') {
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
+      if (typeof va === 'string' && typeof vb === 'string') {
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      }
+      return 0;
+    });
+  } else {
+    sg.sort((a, b) => {
+      // Families with HOF come before orphan FM-only groups
+      const aHas = !!a.hofUser, bHas = !!b.hofUser;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      const ageA = parseInt((a.hofUser && a.hofUser.Age) || (a.members[0] && a.members[0].Age)) || 0;
+      const ageB = parseInt((b.hofUser && b.hofUser.Age) || (b.members[0] && b.members[0].Age)) || 0;
+      return ageA - ageB;
+    });
+  }
 
   let idx = 1;
-  sortedGroups.forEach((grp, gi) => {
+  sg.forEach((grp, gi) => {
     if (gi > 0) {
       const sep = tbody.insertRow();
       sep.className = 'family-sep';

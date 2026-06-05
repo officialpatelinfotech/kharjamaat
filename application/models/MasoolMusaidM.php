@@ -195,7 +195,9 @@ class MasoolMusaidM extends CI_Model
       'SUM(CASE WHEN u.Age BETWEEN 16 AND 25 THEN 1 ELSE 0 END) as age_16_25',
       'SUM(CASE WHEN u.Age BETWEEN 26 AND 65 THEN 1 ELSE 0 END) as age_26_65',
       'SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) as seniors_count',
-      'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
+      'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count',
+      'MAX(u.Sub_Sector_Incharge_Name) as Sub_Sector_Incharge_Name',
+      'MAX(u.Sub_Sector_Incharge_Female_Name) as Sub_Sector_Incharge_Female_Name'
     ]);
 
     $this->db->from('user u');

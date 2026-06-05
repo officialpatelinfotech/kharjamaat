@@ -208,6 +208,23 @@
         foreach($arr as $r){ if(($r['HOF_FM_TYPE'] ?? '') === 'HOF') return $r; }
         return $arr[0];
       };
+
+      // Sort groups: families WITH a real HOF first (by HOF age asc), orphan FM-only groups at end
+      uasort($groups, function($a, $b) {
+        // Detect real HOF in each group
+        $hofA = null; $hofB = null;
+        foreach ($a as $r) { if (strtoupper($r['HOF_FM_TYPE'] ?? '') === 'HOF') { $hofA = $r; break; } }
+        foreach ($b as $r) { if (strtoupper($r['HOF_FM_TYPE'] ?? '') === 'HOF') { $hofB = $r; break; } }
+        // Groups with HOF come before orphan FM-only groups
+        if ($hofA && !$hofB) return -1;
+        if (!$hofA && $hofB) return 1;
+        // Both have HOF (or both orphan): sort by age of representative
+        $refA = $hofA ?? $a[0];
+        $refB = $hofB ?? $b[0];
+        $ageA = isset($refA['Age']) && $refA['Age'] !== '' ? (int)$refA['Age'] : 0;
+        $ageB = isset($refB['Age']) && $refB['Age'] !== '' ? (int)$refB['Age'] : 0;
+        return $ageA - $ageB;
+      });
     ?>
     <div class="table-responsive border rounded shadow-sm">
       <table class="table table-sm table-hover mb-0 align-middle" data-export-url="<?php echo $exportUrl ?? base_url('admin/exportmembers'); ?>">
@@ -228,6 +245,16 @@
           $redirect_query = '?redirect=' . urlencode($current_uri);
           $rowIndex = 1; 
           foreach($groups as $hofId => $rows): 
+            // Sort members within this family group: HOF first, then FMs sorted by Age ascending
+            usort($rows, function($a, $b) {
+              $aIsH = (strtoupper($a['HOF_FM_TYPE'] ?? '') === 'HOF');
+              $bIsH = (strtoupper($b['HOF_FM_TYPE'] ?? '') === 'HOF');
+              if ($aIsH && !$bIsH) return -1;
+              if (!$aIsH && $bIsH) return 1;
+              $ageA = isset($a['Age']) && $a['Age'] !== '' ? (int)$a['Age'] : 0;
+              $ageB = isset($b['Age']) && $b['Age'] !== '' ? (int)$b['Age'] : 0;
+              return $ageA - $ageB;
+            });
             $hofRec = $getHofRecord($rows); 
         ?>
           <tr class="table-primary" data-hof="<?php echo htmlspecialchars($hofId); ?>" data-hof-name="<?php echo htmlspecialchars($hofRec['Full_Name'] ?? ''); ?>" data-hof-its="<?php echo htmlspecialchars($hofRec['ITS_ID'] ?? ''); ?>" data-hof-sector="<?php echo htmlspecialchars($hofRec['Sector'] ?? ''); ?>" data-hof-sub="<?php echo htmlspecialchars($hofRec['Sub_Sector'] ?? ''); ?>" data-member-count="<?php echo count($rows); ?>" style="--bs-table-bg:#e7f1ff;">
@@ -252,7 +279,7 @@
           </tr>
           <?php foreach($rows as $r): ?>
             <?php $isHof = (($r['HOF_FM_TYPE'] ?? '') === 'HOF'); ?>
-            <tr data-its="<?php echo htmlspecialchars($r['ITS_ID'] ?? ''); ?>" data-hof="<?php echo htmlspecialchars($hofId); ?>" data-full_name="<?php echo htmlspecialchars($r['Full_Name'] ?? ''); ?>" data-sector="<?php echo htmlspecialchars($r['Sector'] ?? ''); ?>" data-sub_sector="<?php echo htmlspecialchars($r['Sub_Sector'] ?? ''); ?>" data-age="<?php echo isset($r['Age']) && $r['Age'] !== null && $r['Age'] !== '' ? (int)$r['Age'] : ''; ?>">
+            <tr data-its="<?php echo htmlspecialchars($r['ITS_ID'] ?? ''); ?>" data-hof="<?php echo htmlspecialchars($hofId); ?>" data-full_name="<?php echo htmlspecialchars($r['Full_Name'] ?? ''); ?>" data-sector="<?php echo htmlspecialchars($r['Sector'] ?? ''); ?>" data-sub_sector="<?php echo htmlspecialchars($r['Sub_Sector'] ?? ''); ?>" data-age="<?php echo isset($r['Age']) && $r['Age'] !== null && $r['Age'] !== '' ? (int)$r['Age'] : ''; ?>" data-is-hof="<?php echo $isHof ? '1' : '0'; ?>">
                 <td><?php echo $rowIndex++; ?></td>
                 <td>
                   <div class="d-flex justify-content-between align-items-center">
@@ -322,36 +349,66 @@
         // collect member rows (exclude HOF header rows)
         const memberRows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('table-primary'));
 
-        memberRows.sort((a,b) => {
-          const aRaw = (a.getAttribute('data-' + key.toLowerCase()) || '').toString();
-          const bRaw = (b.getAttribute('data-' + key.toLowerCase()) || '').toString();
-          const aVal = aRaw.trim().toLowerCase();
-          const bVal = bRaw.trim().toLowerCase();
-          if(key.toLowerCase() === 'age'){
-            const na = parseInt(aVal,10); const nb = parseInt(bVal,10);
-            if(isNaN(na) && isNaN(nb)) return 0;
-            if(isNaN(na)) return dir === 'asc' ? 1 : -1;
-            if(isNaN(nb)) return dir === 'asc' ? -1 : 1;
-            return dir === 'asc' ? na - nb : nb - na;
-          }
-          return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        // Group rows by family using data-hof
+        const groups = {};
+        memberRows.forEach(tr => {
+          const hof = tr.getAttribute('data-hof') || '';
+          if(!groups[hof]) groups[hof] = [];
+          groups[hof].push(tr);
         });
 
-        // Rebuild tbody grouped by hof
-        tbody.innerHTML = '';
-        const added = new Set();
-        memberRows.forEach(r => {
-          const hof = r.getAttribute('data-hof') || '';
-          if(!added.has(hof)){
-            if(hofHeaderMap[hof]){
-              tbody.insertAdjacentHTML('beforeend', hofHeaderMap[hof]);
-            } else {
-              // fallback header
-              tbody.insertAdjacentHTML('beforeend', '<tr class="table-primary" data-hof="'+ (hof ? hof.replace(/"/g,'') : '') +'">\n<td colspan="7" class="py-2"><strong>HOF:</strong> '+ (hof ? hof : '') +'</td>\n</tr>');
-            }
-            added.add(hof);
+        // Within each family group, sort the rows: HOF first, then members sorted by Age ascending
+        Object.keys(groups).forEach(hof => {
+          groups[hof].sort((a, b) => {
+            const aIsH = a.getAttribute('data-is-hof') === '1';
+            const bIsH = b.getAttribute('data-is-hof') === '1';
+            if(aIsH && !bIsH) return -1;
+            if(!aIsH && bIsH) return 1;
+            const ageA = parseInt(a.getAttribute('data-age')) || 0;
+            const ageB = parseInt(b.getAttribute('data-age')) || 0;
+            return ageA - ageB;
+          });
+        });
+
+        // Sort the families themselves based on the chosen column's value of the HOF row for that family
+        const sortedHofs = Object.keys(groups).sort((a, b) => {
+          const aHofRow = groups[a].find(r => r.getAttribute('data-is-hof') === '1');
+          const bHofRow = groups[b].find(r => r.getAttribute('data-is-hof') === '1');
+          // Families with a real HOF row come before orphan FM-only groups
+          if (aHofRow && !bHofRow) return -1;
+          if (!aHofRow && bHofRow) return 1;
+          const refA = aHofRow || groups[a][0];
+          const refB = bHofRow || groups[b][0];
+          if(!refA || !refB) return 0;
+
+          let va = (refA.getAttribute('data-' + key.toLowerCase()) || '').toString().trim().toLowerCase();
+          let vb = (refB.getAttribute('data-' + key.toLowerCase()) || '').toString().trim().toLowerCase();
+
+          if(key.toLowerCase() === 'age'){
+            const na = parseInt(va, 10) || 0;
+            const nb = parseInt(vb, 10) || 0;
+            return dir === 'asc' ? na - nb : nb - na;
           }
-          tbody.appendChild(r);
+          if (va < vb) return dir === 'asc' ? -1 : 1;
+          if (va > vb) return dir === 'asc' ? 1 : -1;
+          return 0;
+        });
+
+        // Rebuild tbody and update row indices
+        tbody.innerHTML = '';
+        let idx = 1;
+        sortedHofs.forEach(hof => {
+          if(hofHeaderMap[hof]){
+            tbody.insertAdjacentHTML('beforeend', hofHeaderMap[hof]);
+          } else {
+            // fallback header
+            tbody.insertAdjacentHTML('beforeend', '<tr class="table-primary" data-hof="'+ (hof ? hof.replace(/"/g,'') : '') +'">\n<td colspan="7" class="py-2"><strong>HOF:</strong> '+ (hof ? hof : '') +'</td>\n</tr>');
+          }
+          groups[hof].forEach(r => {
+            const numCell = r.querySelector('td:first-child');
+            if (numCell) numCell.textContent = idx++;
+            tbody.appendChild(r);
+          });
         });
       });
     });
