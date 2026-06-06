@@ -387,6 +387,7 @@
         <li><a class="menu-item" href="<?php echo base_url('umoor/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/miqaatattendance?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Miqaat Attendance Report</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('Umoor/qardanhasana') ?>"><span class="menu-icon"><i class="fa fa-leaf"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
       </ul>
     </div>
   </aside>
@@ -830,6 +831,18 @@
 
     <!-- Other Modules -->
     <?php
+    if (!function_exists('format_inr')) {
+      function format_inr($num) {
+        $num = (int)round((float)$num);
+        $n = strval($num); $len = strlen($n);
+        if ($len <= 3) return $n;
+        $last3 = substr($n, -3); $rest = substr($n, 0, $len - 3);
+        $parts = [];
+        while (strlen($rest) > 2) { $parts[] = substr($rest, -2); $rest = substr($rest, 0, strlen($rest) - 2); }
+        if ($rest !== '') $parts[] = $rest;
+        return implode(',', array_reverse($parts)) . ',' . $last3;
+      }
+    }
     $rz=isset($dashboard_data['raza_summary'])?$dashboard_data['raza_summary']:['pending'=>0,'approved'=>0,'rejected'=>0];
     $dashboard_madresa_hijri_year=isset($year_daytype_stats['hijri_year'])?(int)$year_daytype_stats['hijri_year']:null;
     ?>
@@ -841,6 +854,28 @@
           <div class="section-header-standard"><h5 class="section-title"><i class="fa fa-book"></i> Madresa</h5><button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseMadresaAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button></div>
           <div class="collapse show" id="collapseMadresaAnjuman">
             <div class="row justify-content-center text-center"><div class="col-12 col-md-4"><div class="mini-card"><div class="stats-value"><?= $dashboard_madresa_hijri_year?((int)$dashboard_madresa_hijri_year.'H'):'Classes' ?></div><div class="stats-label">Madresa<?= $dashboard_madresa_hijri_year?' (Current Year)':'' ?></div></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Qardan Hasana -->
+      <div class="col-md-12 mb-3">
+        <div class="chart-container compact">
+          <div class="section-header-standard">
+            <h5 class="section-title"><i class="fa fa-leaf"></i> Qardan Hasana</h5>
+            <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseQH" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+          </div>
+          <div class="collapse show" id="collapseQH">
+            <?php
+            $qh = isset($qh_all_schemes_totals) ? $qh_all_schemes_totals : ['mohammedi' => 0, 'taher' => 0, 'husain' => 0, 'total' => 0];
+            ?>
+            <div class="row text-center mb-2">
+              <div class="col-6 col-md-3 mb-2"><div class="mini-card"><div class="stats-value">₹<?= format_inr($qh['mohammedi']) ?></div><div class="stats-label">Mohammedi</div></div></div>
+              <div class="col-6 col-md-3 mb-2"><div class="mini-card"><div class="stats-value">₹<?= format_inr($qh['taher']) ?></div><div class="stats-label">Taher</div></div></div>
+              <div class="col-6 col-md-3 mb-2"><div class="mini-card"><div class="stats-value">₹<?= format_inr($qh['husain']) ?></div><div class="stats-label">Husain</div></div></div>
+              <div class="col-6 col-md-3 mb-2"><div class="mini-card"><div class="stats-value" style="color:var(--green);">₹<?= format_inr($qh['total']) ?></div><div class="stats-label">Total</div></div></div>
+            </div>
+            <div style="text-align:center;"><a href="<?= base_url('Umoor/qardanhasana') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.75rem;border-color:var(--border);color:var(--text-2);">View All</a></div>
           </div>
         </div>
       </div>

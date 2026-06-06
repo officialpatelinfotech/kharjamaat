@@ -337,6 +337,15 @@ const ITS_MATCH_LABELS = {
   both_not_khar: 'Both not in Khar'
 };
 
+const HEALTH_MAP = {};
+document.querySelectorAll('#fHealth option').forEach(opt => { if (opt.value) HEALTH_MAP[opt.value] = opt.textContent.trim(); });
+
+const DEENI_MAP = {};
+document.querySelectorAll('#fDeeni option').forEach(opt => { if (opt.value) DEENI_MAP[opt.value] = opt.textContent.trim(); });
+
+const RESIDENTIAL_MAP = {};
+document.querySelectorAll('#fResidential option').forEach(opt => { if (opt.value) RESIDENTIAL_MAP[opt.value] = opt.textContent.trim(); });
+
 let filtered = [...ALL_DATA];
 let sortCol = null, sortDir = 'asc';
 
@@ -539,9 +548,9 @@ function renderTable(){
       `<td style="font-size:.75rem;color:var(--text-2)">${esc(u.Mobile||'—')}</td>`+
       `<td>${badge}</td>`+
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>`+
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.health_status||'—')}</td>`+
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.deeni_status||'—')}</td>`+
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.residential_status||'—')}</td>`+
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>`+
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(DEENI_MAP[(u.deeni_status||'').trim()] || u.deeni_status || '—')}</td>`+
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(RESIDENTIAL_MAP[(u.residential_status||'').trim()] || u.residential_status || '—')}</td>`+
       `<td><a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>`+
       (CAN_EDIT?`<a href="${EDIT_URL}${u.ITS_ID}?redirect=${rp}" class="act-btn act-edit" style="margin-left:4px" title="Edit"><i class="fa fa-pencil"></i></a>`:'')+`</td>`;
   }
@@ -635,7 +644,7 @@ function renderChips(){
   row.innerHTML='';let any=false;
   defs.forEach(([id,label])=>{
     const el=document.getElementById(id);if(!el||!el.value)return;any=true;
-    const display=id==='fHOF'?(el.options[el.selectedIndex]?.text||el.value):id==='fItsMatch'?(ITS_L[el.value]||el.value):el.value;
+    const display=el.tagName==='SELECT'?(el.options[el.selectedIndex]?.text||el.value):el.value;
     const chip=document.createElement('span');chip.className='chip';
     chip.innerHTML=`<b>${esc(label)}:</b>&nbsp;${esc(display)}&nbsp;<span class="chip-x" data-id="${id}">&times;</span>`;
     row.appendChild(chip);

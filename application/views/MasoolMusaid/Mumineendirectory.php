@@ -445,6 +445,15 @@ const ITS_MATCH_LABELS = {
   both_not_khar: 'Both not in Khar'
 };
 
+const HEALTH_MAP = {};
+document.querySelectorAll('#fHealth option').forEach(opt => { if (opt.value) HEALTH_MAP[opt.value] = opt.textContent.trim(); });
+
+const DEENI_MAP = {};
+document.querySelectorAll('#fDeeni option').forEach(opt => { if (opt.value) DEENI_MAP[opt.value] = opt.textContent.trim(); });
+
+const RESIDENTIAL_MAP = {};
+document.querySelectorAll('#fResidential option').forEach(opt => { if (opt.value) RESIDENTIAL_MAP[opt.value] = opt.textContent.trim(); });
+
 let filtered  = [...ALL_DATA];
 let sortCol   = null, sortDir = 'asc';
 
@@ -887,9 +896,9 @@ function renderTable() {
       `<td style="font-size:.75rem;color:var(--text-2)">${esc(u.Mobile||'—')}</td>` +
       `<td>${badge}</td>` +
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>` +
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.health_status||'—')}</td>` +
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.deeni_status||'—')}</td>` +
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.residential_status||'—')}</td>`;
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>` +
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(DEENI_MAP[(u.deeni_status||'').trim()] || u.deeni_status || '—')}</td>` +
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(RESIDENTIAL_MAP[(u.residential_status||'').trim()] || u.residential_status || '—')}</td>`;
 
     if (!IS_UMOOR) {
       html += `<td>` +
@@ -1023,9 +1032,7 @@ function renderChips() {
     const el = document.getElementById(id);
     if (!el || !el.value) return;
     any = true;
-    const display = id === 'fHOF'      ? (el.options[el.selectedIndex]?.text || el.value)
-                  : id === 'fItsMatch' ? (ITS_MATCH_LABELS[el.value] || el.value)
-                  : el.value;
+    const display = el.tagName === 'SELECT' ? (el.options[el.selectedIndex]?.text || el.value) : el.value;
     const chip = document.createElement('span');
     chip.className = 'chip';
     chip.innerHTML = `<b>${esc(label)}:</b>&nbsp;${esc(display)} <span class="chip-x" data-id="${id}">&times;</span>`;
