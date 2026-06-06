@@ -82,6 +82,7 @@ class Anjuman extends CI_Controller
     // Resident-only sector and overview stats for Jamaat cards
     $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
     $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
+    $residentOverview = $this->AmilsahebM->get_resident_overview_counts(true);
 
     // Calculate Ashara Ohbat counts for default year
     $today_date = date('Y-m-d');
