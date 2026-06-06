@@ -379,8 +379,6 @@ class Amilsaheb extends CI_Controller
     }
     $data['expense_dashboard'] = $expense_dashboard;
 
-    $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
-
     // Marital status distribution (excluding members under 21)
     $data['marital_status_counts'] = $this->AmilsahebM->get_marital_status_distribution();
 

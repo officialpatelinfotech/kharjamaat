@@ -50,6 +50,7 @@
 .frow{display:grid;gap:8px;margin-bottom:4px;align-items:end;}
 .frow-6{grid-template-columns:2fr 1fr 1fr 1fr 1.1fr 1fr}
 .frow-4{grid-template-columns:repeat(4,1fr)}
+.frow-3{grid-template-columns:repeat(3,1fr)}
 .flabel{display:block;font-size:.67rem;font-weight:700;color:var(--text-2);margin-bottom:4px;letter-spacing:.2px}
 .finput,.fselect{width:100%;height:32px;padding:0 9px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface-2);font-family:'Plus Jakarta Sans',sans-serif;font-size:.76rem;color:var(--text-1);outline:none;transition:border-color .15s,background .15s}
 .finput:focus,.fselect:focus{border-color:var(--gold);background:var(--surface);box-shadow:0 0 0 3px rgba(184,134,11,.1)}
@@ -197,9 +198,9 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
 .act-view { background:var(--blue-bg); color:var(--blue); }
 .act-edit { background:var(--amber-bg); color:var(--amber); }
 
-@media(max-width:992px){.frow-6,.frow-4{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:768px){.frow-6,.frow-4{grid-template-columns:repeat(2,1fr)}.sector-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}}
-@media(max-width:576px){.frow-6,.frow-4{grid-template-columns:1fr}.mumineen-container{padding:10px}.sector-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:992px){.frow-6,.frow-4,.frow-3{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.frow-6,.frow-4,.frow-3{grid-template-columns:repeat(2,1fr)}.sector-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}}
+@media(max-width:576px){.frow-6,.frow-4,.frow-3{grid-template-columns:1fr}.mumineen-container{padding:10px}.sector-grid{grid-template-columns:1fr 1fr;}}
 </style>
 
 <?php
@@ -281,7 +282,7 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
 
         <!-- Section 2: Member Details -->
         <div class="fsec" id="secLabel2"><i class="fa fa-user" style="color:var(--purple);"></i> Member Details</div>
-        <div class="frow frow-4" id="secRow2">
+        <div class="frow frow-3" id="secRow2">
           <div>
             <label class="flabel">Active Inactive Status</label>
             <select id="fStatus" class="fselect">
@@ -297,10 +298,6 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
-          </div>
-          <div>
-            <label class="flabel">Member Type</label>
-            <select id="fMemberType" class="fselect"><option value="">All</option></select>
           </div>
           <div>
             <label class="flabel">HOF / FM</label>
@@ -465,13 +462,12 @@ readURLAndApply();
 
 // ── Fill selects ──────────────────────────────────────────────────────────────
 function fillSelects() {
-  const sectors = new Set(), subs = new Set(), hofs = new Map(), marital = new Set(), mTypes = new Set();
+  const sectors = new Set(), subs = new Set(), hofs = new Map(), marital = new Set();
   ALL_DATA.forEach(u => {
     if (u.Sector)     sectors.add(u.Sector);
     if (u.Sub_Sector) subs.add(u.Sub_Sector);
     const ms = (u.Marital_Status || '').trim();
     if (ms) marital.add(ms.charAt(0).toUpperCase() + ms.slice(1).toLowerCase());
-    if (u.Member_Type) mTypes.add(u.Member_Type);
     const hid = (u.HOF_ID || u.HOF || '').toString();
     if (hid) hofs.set(hid, itsMap[hid] || u.HOF_Name || hid);
   });
@@ -483,7 +479,6 @@ function fillSelects() {
   };
   fill('fSector',     Array.from(sectors).sort().map(v => [v,v]));
   fill('fSubSector',  Array.from(subs).sort().map(v => [v,v]));
-  fill('fMemberType', Array.from(mTypes).sort().map(v => [v,v]));
   fill('fHOF',        Array.from(hofs.entries()).sort((a,b) => (a[1]||'').localeCompare(b[1]||'')));
 
   const pref = ['Single','Married','Engaged','Separated','Divorced','Widowed'];
@@ -644,7 +639,6 @@ function run() {
 
   const status   = gv('fStatus');
   const gender   = gv('fGender').toLowerCase();
-  const mType    = gv('fMemberType');
   const hofType  = gv('fHOFType').toUpperCase();
   const health   = gv('fHealth');
   const deeni    = gv('fDeeni');
@@ -682,7 +676,6 @@ function run() {
 
     const wg = gender || dsGender;
     if (wg && (u.Gender || '').toLowerCase() !== wg) return false;
-    if (mType && u.Member_Type !== mType) return false;
 
     const wh = hofType || dsHofType;
     if (wh && (u.HOF_FM_TYPE || '').toUpperCase() !== wh) return false;
@@ -801,7 +794,6 @@ function buildBaseFiltered() {
   const ageMax  = document.getElementById('fAgeMax').value !== '' ? parseInt(document.getElementById('fAgeMax').value) : null;
   const status   = gv('fStatus');
   const gender   = gv('fGender').toLowerCase();
-  const mType    = gv('fMemberType');
   const hofType  = gv('fHOFType').toUpperCase();
   const health   = gv('fHealth');
   const deeni    = gv('fDeeni');
@@ -824,7 +816,6 @@ function buildBaseFiltered() {
     if (ageMax !== null && (parseInt(u.Age)||0) > ageMax) return false;
     if (status) { const inact=(u.Inactive_Status||u.inactive_status||'').trim(),act=(u.activity_status||'').toLowerCase(),isAct=!inact&&(!act||act==='active'); if(status==='Active'&&!isAct) return false; if(status==='Inactive'&&isAct) return false; }
     const wg=gender||dsGender; if(wg&&(u.Gender||'').toLowerCase()!==wg) return false;
-    if(mType&&u.Member_Type!==mType) return false;
     const wh=hofType||dsHofType; if(wh&&(u.HOF_FM_TYPE||'').toUpperCase()!==wh) return false;
     if(health&&(u.health_status||'').trim()!==health) return false;
     if(deeni&&(u.deeni_status||'').trim()!==deeni) return false;
@@ -1005,7 +996,7 @@ function renderChips() {
   const defs = [
     ['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],
     ['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],
-    ['fStatus','Status'],['fGender','Gender'],['fMemberType','Member Type'],
+    ['fStatus','Status'],['fGender','Gender'],
     ['fHOFType','HOF/FM'],['fHealth','Health'],['fDeeni','Deeni'],
     ['fResidential','Residential'],['fItsMatch','ITS Match'],
   ];
@@ -1096,7 +1087,7 @@ function resetAll() {
 function exportCSV() {
   if (!filtered.length) { alert('No data to export.'); return; }
   const preferred = ['ITS_ID','Full_Name','Age','Gender','Sector','Sub_Sector','Mobile','Email',
-    'Marital_Status','HOF_FM_TYPE','Member_Type','activity_status','health_status',
+    'Marital_Status','HOF_FM_TYPE','activity_status','health_status',
     'deeni_status','residential_status','its_sabeel_match','Qualification','Occupation','Address','Vatan'];
   const extra = new Set();
   filtered.forEach(r => Object.keys(r).forEach(k => { if (!preferred.includes(k)) extra.add(k); }));
@@ -1118,7 +1109,7 @@ function setv(id, val) { const el = document.getElementById(id); if (el && val !
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''; }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
-['fSector','fSubSector','fMarital','fHOF','fStatus','fGender','fMemberType',
+['fSector','fSubSector','fMarital','fHOF','fStatus','fGender',
  'fHOFType','fHealth','fDeeni','fResidential','fItsMatch'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', run);

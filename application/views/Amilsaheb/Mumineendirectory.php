@@ -198,7 +198,7 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
 
         <!-- Member Details -->
         <div class="fsec" id="secLabel2"><i class="fa fa-user" style="color:var(--purple)"></i> Member Details</div>
-        <div class="fgrid fg-5" id="secRow2">
+        <div class="fgrid fg-4" id="secRow2">
           <div>
             <label class="flabel">Active Inactive Status</label>
             <select id="fStatus" class="fselect">
@@ -224,10 +224,6 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
-          </div>
-          <div>
-            <label class="flabel">Member Type</label>
-            <select id="fMemberType" class="fselect"><option value="">All</option></select>
           </div>
           <div>
             <label class="flabel">HOF / FM</label>
@@ -353,13 +349,12 @@ readURLAndApply();
 
 /* ── Fill selects ── */
 function fillSelects(){
-  const sectors=new Set(),subs=new Set(),hofs=new Map(),marital=new Set(),mTypes=new Set();
+  const sectors=new Set(),subs=new Set(),hofs=new Map(),marital=new Set();
   ALL_DATA.forEach(u=>{
     if(u.Sector) sectors.add(u.Sector);
     if(u.Sub_Sector) subs.add(u.Sub_Sector);
     const ms=(u.Marital_Status||'').trim();
     if(ms) marital.add(ms.charAt(0).toUpperCase()+ms.slice(1).toLowerCase());
-    if(u.Member_Type) mTypes.add(u.Member_Type);
     const hid=(u.HOF_ID||u.HOF||'').toString();
     if(hid) hofs.set(hid,itsMap[hid]||u.HOF_Name||hid);
   });
@@ -369,7 +364,6 @@ function fillSelects(){
   };
   fill('fSector',Array.from(sectors).sort().map(v=>[v,v]));
   fill('fSubSector',Array.from(subs).sort().map(v=>[v,v]));
-  fill('fMemberType',Array.from(mTypes).sort().map(v=>[v,v]));
   fill('fHOF',Array.from(hofs.entries()).sort((a,b)=>(a[1]||'').localeCompare(b[1]||'')));
   const pref=['Single','Married','Engaged','Separated','Divorced','Widowed'];
   const rem=new Set(marital);
@@ -481,7 +475,7 @@ function run(){
   const hof=document.getElementById('fHOF').value;
   const ageMin=document.getElementById('fAgeMin').value!==''?parseInt(document.getElementById('fAgeMin').value):null;
   const ageMax=document.getElementById('fAgeMax').value!==''?parseInt(document.getElementById('fAgeMax').value):null;
-  const status=gv('fStatus'),gender=gv('fGender').toLowerCase(),mType=gv('fMemberType'),hofType=gv('fHOFType').toUpperCase();
+  const status=gv('fStatus'),gender=gv('fGender').toLowerCase(),hofType=gv('fHOFType').toUpperCase();
   const health=gv('fHealth'),deeni=gv('fDeeni'),resi=gv('fResidential'),itsMatch=gv('fItsMatch');
   const form=document.getElementById('filtersForm');
   const dsGender=(form.dataset.gender||'').toLowerCase(),dsHofType=(form.dataset.hofFmType||'').toUpperCase();
@@ -497,7 +491,6 @@ function run(){
     if(ageMax!==null&&(parseInt(u.Age)||0)>ageMax)return false;
     if(status){const inact=(u.Inactive_Status||u.inactive_status||'').trim(),act=(u.activity_status||'').toLowerCase(),isAct=!inact&&(!act||act==='active');if(status==='Active'&&!isAct)return false;if(status==='Inactive'&&isAct)return false}
     const wg=gender||dsGender;if(wg&&(u.Gender||'').toLowerCase()!==wg)return false;
-    if(mType&&u.Member_Type!==mType)return false;
     const wh=hofType||dsHofType;if(wh&&(u.HOF_FM_TYPE||'').toUpperCase()!==wh)return false;
     if(health&&(u.health_status||'').trim()!==health)return false;
     if(deeni&&(u.deeni_status||'').trim()!==deeni)return false;
@@ -637,7 +630,7 @@ function renderTable(){
 /* ── Chips ── */
 function renderChips(){
   const ITS_L={its_sabeel_both_khar:'ITS & Sabeel in Khar',its_khar_sabeel_out:'ITS in Khar',sabeel_khar_its_out:'Sabeel in Khar',both_not_khar:'Both Not in Khar'};
-  const defs=[['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],['fStatus','Status'],['fGender','Gender'],['fMemberType','Member Type'],['fHOFType','HOF/FM'],['fHealth','Health'],['fDeeni','Deeni'],['fResidential','Residential'],['fItsMatch','ITS Match']];
+  const defs=[['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],['fStatus','Status'],['fGender','Gender'],['fHOFType','HOF/FM'],['fHealth','Health'],['fDeeni','Deeni'],['fResidential','Residential'],['fItsMatch','ITS Match']];
   const row=document.getElementById('chipRow');
   row.innerHTML='';let any=false;
   defs.forEach(([id,label])=>{
@@ -672,7 +665,7 @@ function resetAll(){
 /* ── Export CSV ── */
 function exportCSV(){
   if(!filtered.length){alert('No data to export.');return}
-  const pref=['ITS_ID','Full_Name','Age','Gender','Sector','Sub_Sector','Mobile','Email','Marital_Status','HOF_FM_TYPE','Member_Type','activity_status','health_status','deeni_status','residential_status','its_sabeel_match','Qualification','Occupation','Address','Vatan'];
+  const pref=['ITS_ID','Full_Name','Age','Gender','Sector','Sub_Sector','Mobile','Email','Marital_Status','HOF_FM_TYPE','activity_status','health_status','deeni_status','residential_status','its_sabeel_match','Qualification','Occupation','Address','Vatan'];
   const extra=new Set();filtered.forEach(r=>Object.keys(r).forEach(k=>{if(!pref.includes(k))extra.add(k)}));
   const headers=[...pref,...Array.from(extra)];
   let csv=headers.map(h=>'"'+h+'"').join(',')+'\n';
@@ -689,7 +682,8 @@ function setv(id,val){const el=document.getElementById(id);if(el&&val!=null)el.v
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1).toLowerCase():''}
 
 /* ── Events ── */
-['fSector','fSubSector','fMarital','fHOF','fStatus','fGender','fMemberType','fHOFType','fHealth','fDeeni','fResidential','fItsMatch'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',run)});
+['fSector','fSubSector','fMarital','fHOF','fStatus','fGender',
+ 'fHOFType','fHealth','fDeeni','fResidential','fItsMatch'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',run)});
 ['fName','fAgeMin','fAgeMax'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',run)});
 document.getElementById('btnReset').addEventListener('click',resetAll);
 document.getElementById('btnToggle').addEventListener('click',function(){

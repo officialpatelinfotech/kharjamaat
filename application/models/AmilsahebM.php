@@ -535,23 +535,7 @@ class AmilsahebM extends CI_Model
     return $this->db->get()->result_array();
   }
 
-  /**
-   * Get distribution of member types for dashboard.
-   * Buckets are derived from user.member_type using simple keyword matching.
-   * Returns: [resident, external, moved_out, non_sabeel, temporary, total]
-   */
-  public function get_member_type_distribution()
-  {
-    $total = $this->db->count_all('user');
-    return [
-      'resident'   => 0,
-      'external'   => 0,
-      'moved_out'  => 0,
-      'non_sabeel' => 0,
-      'temporary'  => 0,
-      'total'      => $total,
-    ];
-  }
+
 
   /**
    * Resident-only overview counts for dashboard (HOF/FM/Gender/Age/Seniors/Total).

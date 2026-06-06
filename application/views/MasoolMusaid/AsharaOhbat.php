@@ -301,31 +301,27 @@
       <?php endif; ?>
     </div>
   </div>
-
-  <!-- Sector Cards (Moved Above Stats) -->
   <div class="mb-2 fw-bold" id="totalSectorCard"></div>
-  <?php if (!$is_sub_sector): ?>
-  <div class="row">
-    <div class="col-12">
-      <div class="chart-container sector-block">
-        <div class="section-header-standard">
-          <h4 class="section-title"><i class="fa fa-map-marker"></i> Sector-wise Members</h4>
-          <button class="collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSectorsAshara" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
-        </div>
-        <div class="collapse show" id="collapseSectorsAshara">
-          <div id="sectorCardsContainer" class="row"></div>
-        </div>
+
+  <!-- Sector/Sub-sector Filters Panel -->
+  <div class="chart-container compact mb-3">
+    <div class="row align-items-center g-3">
+      <div class="col-12 col-md-6">
+        <label for="sectorFilterSel" class="form-label fw-bold small mb-1" style="color: var(--text-2);"><i class="fa fa-map-marker" style="color: var(--gold); margin-right: 4px;"></i> Sector</label>
+        <select id="sectorFilterSel" class="form-control form-select shadow-sm" onchange="onSectorChange()">
+          <option value="">All Sectors</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-6">
+        <label for="subSectorFilterSel" class="form-label fw-bold small mb-1" style="color: var(--text-2);"><i class="fa fa-map" style="color: var(--gold); margin-right: 4px;"></i> Sub Sector</label>
+        <select id="subSectorFilterSel" class="form-control form-select shadow-sm" onchange="onSubSectorChange()">
+          <option value="">All Sub Sectors</option>
+        </select>
       </div>
     </div>
-  </div>
-  <?php endif; ?>
-
-  <!-- Stats Section -->
+  </div>  <!-- Stats Section -->
   <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3 mt-4">
     <h4 class="m-0" style="color: var(--text-2); font-size: 1.1rem; font-weight: 800;">Overview Statistics</h4>
-    <button type="button" class="btn btn-outline-danger btn-sm" id="resetStatsBtn" onclick="resetFiltersAndStats()" style="display: none; border-radius: 20px; font-weight: 600;">
-      <i class="fa-solid fa-arrows-rotate me-1"></i> Reset Sector & Stats
-    </button>
   </div>
   
   <div class="stats-grid">
@@ -524,39 +520,45 @@
 
   // Initialize the page
   document.addEventListener('DOMContentLoaded', function() {
-    initSectorCards();
+    initSectorDropdowns();
     updateMemberSummary(originalData);
     updateStats(originalData);
     updateUserTable(originalData);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusParam = urlParams.get('status');
+    if (statusParam) {
+      const filterSelect = document.getElementById('statusFilter');
+      if (filterSelect) {
+        filterSelect.value = statusParam;
+        filterByStatus();
+      }
+    }
   });
 
   function performSearch() {
     const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
 
-    let filtered = originalData;
-
-    // Apply sector filter if active
+    // 1. Scoped data (only filtered by Sector and Sub Sector)
+    let scoped = originalData;
     if (currentSectorFilter) {
-      filtered = filtered.filter(user => user.Sector === currentSectorFilter);
+      scoped = scoped.filter(user => user.Sector === currentSectorFilter);
     }
-
-    // Apply sub-sector filter if active
     if (currentSubSectorFilter) {
-      filtered = filtered.filter(user => user.Sub_Sector === currentSubSectorFilter);
+      scoped = scoped.filter(user => user.Sub_Sector === currentSubSectorFilter);
     }
 
-    // Apply status filter if active
+    // 2. Table data (further filtered by Status and Keyword search)
+    let tableData = scoped;
     if (currentStatusFilter) {
       if (currentStatusFilter === 'no-status') {
-        filtered = filtered.filter(user => !user.LeaveStatus || user.LeaveStatus.trim() === "Musaaid didn't Contacted Yet");
+        tableData = tableData.filter(user => !user.LeaveStatus || user.LeaveStatus.trim() === "Musaaid didn't Contacted Yet");
       } else {
-        filtered = filtered.filter(user => user.LeaveStatus === currentStatusFilter);
+        tableData = tableData.filter(user => user.LeaveStatus === currentStatusFilter);
       }
     }
-
-    // Apply search keyword
     if (keyword) {
-      filtered = filtered.filter(user => {
+      tableData = tableData.filter(user => {
         const searchFields = [
           'ITS', 'HOF_FM_TYPE', 'HOF_ID', 'Full_Name',
           'Name', 'Mobile', 'Sector', 'Sub_Sector',
@@ -570,19 +572,11 @@
       });
     }
 
-    updateMemberSummary(filtered);
-    updateStats(filtered);
-    updateUserTable(filtered);
+    updateMemberSummary(scoped);
+    updateStats(scoped);
+    updateUserTable(tableData);
 
-    // Toggle Reset Button visibility
-    const resetBtn = document.getElementById('resetStatsBtn');
-    if (resetBtn) {
-      if (currentSectorFilter || currentStatusFilter || keyword) {
-        resetBtn.style.display = 'inline-block';
-      } else {
-        resetBtn.style.display = 'none';
-      }
-    }
+    // Reset Button toggle logic removed
   }
 
   function filterByStatus() {
@@ -733,16 +727,20 @@
   }
 
   function resetFiltersAndStats() {
-    currentSectorFilter = null;
-    currentSubSectorFilter = null;
+    if (!loggedInSector) {
+      currentSectorFilter = null;
+      document.getElementById('sectorFilterSel').value = '';
+    }
+    if (!loggedInSubSector) {
+      currentSubSectorFilter = null;
+      document.getElementById('subSectorFilterSel').value = '';
+    }
+    updateSubSectorDropdown();
+
     currentStatusFilter = null;
     document.getElementById('searchInput').value = '';
     document.getElementById('statusFilter').value = '';
     
-    document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(card => {
-      card.classList.remove('active');
-    });
-
     document.querySelectorAll('.status-card-btn').forEach(card => {
       card.classList.remove('active');
     });
@@ -750,347 +748,80 @@
     performSearch();
   }
 
-  function initSectorCards() {
-    const container = document.getElementById('sectorCardsContainer');
-    if (!container) return;
-    container.className = 'row';
-    container.innerHTML = '';
+  function initSectorDropdowns() {
+    const sectorSel = document.getElementById('sectorFilterSel');
+    const subSectorSel = document.getElementById('subSectorFilterSel');
+    if (!sectorSel || !subSectorSel) return;
 
-    const inchargeMap = {};
-    const subInchargeMap = {};
-    
-    sectorIncharges.forEach(item => {
-      const secName = item.Sector || 'Unknown';
-      inchargeMap[secName.toLowerCase()] = item;
-      
-      const subs = item.sub_sectors || [];
-      subs.forEach(sub => {
-        const subKey = `${secName.toLowerCase()}_${(sub.Sub_Sector || '').toLowerCase()}`;
-        subInchargeMap[subKey] = sub;
-      });
+    // Get unique sectors from originalData
+    const sectors = [...new Set(originalData.map(u => u.Sector).filter(Boolean))].sort();
+
+    // Populate Sector dropdown
+    sectorSel.innerHTML = '<option value="">All Sectors</option>';
+    sectors.forEach(sec => {
+      const opt = document.createElement('option');
+      opt.value = sec;
+      opt.textContent = sec;
+      sectorSel.appendChild(opt);
     });
 
-    let cardsToRender = [];
-
+    // Handle loggedInSector lock
     if (loggedInSector) {
-      // It's a sector or sub-sector login: show sub-sectors under loggedInSector
-      const subSectorsFound = new Set();
-      
-      // 1. Check originalData (members actually in this scope)
-      originalData.forEach(u => {
-        if ((u.Sector || '').toLowerCase() === loggedInSector.toLowerCase()) {
-          const sub = (u.Sub_Sector || '').trim();
-          if (sub) {
-            subSectorsFound.add(sub);
-          }
-        }
-      });
-      
-      // 2. Check subInchargeMap for any other defined sub-sectors under loggedInSector
-      Object.keys(subInchargeMap).forEach(key => {
-        if (key.startsWith(loggedInSector.toLowerCase() + '_')) {
-          const subName = subInchargeMap[key].Sub_Sector;
-          if (subName) {
-            subSectorsFound.add(subName);
-          }
-        }
-      });
-
-      // Filter subSectorsFound if a specific loggedInSubSector is set
-      let subSectorsList = Array.from(subSectorsFound);
-      if (loggedInSubSector) {
-        subSectorsList = subSectorsList.filter(s => s.toLowerCase() === loggedInSubSector.toLowerCase());
-      }
-      
-      // Sort sub-sectors alphabetically
-      subSectorsList.sort();
-
-      subSectorsList.forEach(subName => {
-        // Calculate counts dynamically from originalData
-        const members = originalData.filter(u => 
-          (u.Sector || '').toLowerCase() === loggedInSector.toLowerCase() && 
-          (u.Sub_Sector || '').toLowerCase() === subName.toLowerCase()
-        );
-        const hof = members.filter(u => u.HOF_FM_TYPE === 'HOF').length;
-        const fm = members.filter(u => u.HOF_FM_TYPE === 'FM').length;
-        
-        const subKey = `${loggedInSector.toLowerCase()}_${subName.toLowerCase()}`;
-        const subInchargeInfo = subInchargeMap[subKey] || {};
-        
-        cardsToRender.push({
-          type: 'subsector',
-          displayName: loggedInSector + ' ' + subName,
-          Sector: loggedInSector,
-          Sub_Sector: subName,
-          hof: hof,
-          fm: fm,
-          inchargeName: subInchargeInfo.Sub_Sector_Incharge_Name || '',
-          inchargeFemaleName: subInchargeInfo.Sub_Sector_Incharge_Female_Name || ''
-        });
-      });
-    } else {
-      // Admin/Amilsaheb/Umoor: show all sectors
-      const sortedSectors = sectorIncharges.filter(item => {
-        const sec = (item.Sector || '').trim();
-        return sec !== '' && sec.toLowerCase() !== 'unassigned';
-      });
-      sortedSectors.sort((a, b) => {
-        const totalA = parseInt(a.total || 0);
-        const totalB = parseInt(b.total || 0);
-        return totalB - totalA;
-      });
-
-      sortedSectors.forEach(itemData => {
-        const sector = itemData.Sector || 'Unknown';
-        const inchargeName = itemData.Sector_Incharge_Name || '';
-        const inchargeFemaleName = itemData.Sector_Incharge_Female_Name || '';
-        const subSectors = itemData.sub_sectors || [];
-        const hof = parseInt(itemData.hof_count || 0);
-        const fm = parseInt(itemData.fm_count || 0);
-
-        cardsToRender.push({
-          type: 'sector',
-          displayName: sector,
-          Sector: sector,
-          Sub_Sector: null,
-          hof: hof,
-          fm: fm,
-          inchargeName: inchargeName,
-          inchargeFemaleName: inchargeFemaleName,
-          sub_sectors: subSectors
-        });
-      });
+      sectorSel.value = loggedInSector;
+      sectorSel.disabled = true;
+      currentSectorFilter = loggedInSector;
     }
 
-    cardsToRender.forEach(itemData => {
-      const cid = 'collapseSectorIncharge_' + itemData.displayName.replace(/[^a-zA-Z0-9]/g, '_');
+    // Populate Sub Sectors based on selected Sector
+    updateSubSectorDropdown();
 
-      const colDiv = document.createElement('div');
-      colDiv.className = 'col-12 col-md-3 mb-3';
+    // Handle loggedInSubSector lock
+    if (loggedInSubSector) {
+      subSectorSel.value = loggedInSubSector;
+      subSectorSel.disabled = true;
+      currentSubSectorFilter = loggedInSubSector;
+    }
 
-      const cardDiv = document.createElement('div');
-      
-      const isCardActive = (itemData.type === 'subsector') 
-        ? (currentSectorFilter === itemData.Sector && currentSubSectorFilter === itemData.Sub_Sector)
-        : (currentSectorFilter === itemData.Sector && !currentSubSectorFilter);
+    performSearch();
+  }
 
-      cardDiv.className = `overview-card ${isCardActive ? 'active' : ''}`;
-      cardDiv.dataset.sector = itemData.Sector;
-      if (itemData.Sub_Sector) {
-        cardDiv.dataset.subsector = itemData.Sub_Sector;
-      }
-      cardDiv.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        height: 100%;
-        cursor: pointer;
-      `;
+  function updateSubSectorDropdown() {
+    const sectorSel = document.getElementById('sectorFilterSel');
+    const subSectorSel = document.getElementById('subSectorFilterSel');
+    if (!sectorSel || !subSectorSel) return;
 
-      const mainLink = document.createElement('div');
-      mainLink.style.cssText = 'display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;';
-      
-      const iconDiv = document.createElement('div');
-      iconDiv.className = 'overview-icon';
-      iconDiv.style.cssText = 'background:#eaf4ee;color:#1a6645;';
-      iconDiv.innerHTML = '<i class="fa fa-map-marker"></i>';
+    const selectedSector = sectorSel.value;
+    subSectorSel.innerHTML = '<option value="">All Sub Sectors</option>';
 
-      const bodyDiv = document.createElement('div');
-      bodyDiv.className = 'overview-body';
-      bodyDiv.style.cssText = 'width:100%;';
+    if (selectedSector) {
+      // Get unique sub-sectors for the selected sector
+      const subSectors = [...new Set(originalData
+        .filter(u => u.Sector === selectedSector)
+        .map(u => u.Sub_Sector)
+        .filter(Boolean)
+      )].sort();
 
-      const titleSpan = document.createElement('span');
-      titleSpan.className = 'overview-title';
-      titleSpan.textContent = itemData.displayName;
-
-      let inchargeHtml = '';
-      if (itemData.inchargeName || itemData.inchargeFemaleName) {
-        inchargeHtml = '<div style="font-size:.74rem;color:var(--text-3);margin:4px 0;text-align:left;">';
-        if (itemData.inchargeName) {
-          inchargeHtml += `<div style="margin-bottom:2px;"><i class="fa fa-male" style="color:#1d4ed8;margin-right:4px;"></i>${escapeHtml(itemData.inchargeName)}</div>`;
-        }
-        if (itemData.inchargeFemaleName) {
-          inchargeHtml += `<div><i class="fa fa-female" style="color:#9d174d;margin-right:4px;"></i>${escapeHtml(itemData.inchargeFemaleName)}</div>`;
-        }
-        inchargeHtml += '</div>';
-      }
-
-      const valueSpan = document.createElement('span');
-      valueSpan.className = 'overview-value';
-      valueSpan.style.cssText = 'font-size:.95rem; font-weight: 800; color: var(--text-1); margin-top: 4px;';
-      valueSpan.innerHTML = `HOF ${itemData.hof} &nbsp;·&nbsp; FM ${itemData.fm}`;
-
-      bodyDiv.appendChild(titleSpan);
-      if (itemData.inchargeName || itemData.inchargeFemaleName) {
-        const temp = document.createElement('div');
-        temp.innerHTML = inchargeHtml;
-        bodyDiv.appendChild(temp.firstElementChild);
-      }
-      bodyDiv.appendChild(valueSpan);
-
-      mainLink.appendChild(iconDiv);
-      mainLink.appendChild(bodyDiv);
-      cardDiv.appendChild(mainLink);
-
-      cardDiv.onclick = (e) => {
-        e.stopPropagation();
-        if (itemData.type === 'subsector') {
-          if (currentSectorFilter === itemData.Sector && currentSubSectorFilter === itemData.Sub_Sector) {
-            currentSectorFilter = null;
-            currentSubSectorFilter = null;
-          } else {
-            currentSectorFilter = itemData.Sector;
-            currentSubSectorFilter = itemData.Sub_Sector;
-          }
-        } else {
-          if (currentSectorFilter === itemData.Sector) {
-            currentSectorFilter = null;
-            currentSubSectorFilter = null;
-          } else {
-            currentSectorFilter = itemData.Sector;
-            currentSubSectorFilter = null;
-          }
-        }
-        
-        // Toggle active style on cards
-        document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(card => {
-          const cardSec = card.dataset.sector;
-          const cardSub = card.dataset.subsector || '';
-          
-          const isFilterActive = (itemData.type === 'subsector') 
-            ? (cardSec === currentSectorFilter && cardSub === currentSubSectorFilter)
-            : (cardSec === currentSectorFilter && !currentSubSectorFilter);
-            
-          if (isFilterActive) {
-            card.classList.add('active');
-          } else {
-            card.classList.remove('active');
-          }
-        });
-
-        performSearch();
-      };
-
-      // Calculate status counts for this card's scope
-      const cardMembers = originalData.filter(user => {
-        const isSectorMatch = (user.Sector || '').toLowerCase() === itemData.Sector.toLowerCase();
-        if (!isSectorMatch) return false;
-        if (itemData.type === 'subsector') {
-          return (user.Sub_Sector || '').toLowerCase() === (itemData.Sub_Sector || '').toLowerCase();
-        }
-        return true;
+      subSectors.forEach(sub => {
+        const opt = document.createElement('option');
+        opt.value = sub;
+        opt.textContent = sub;
+        subSectorSel.appendChild(opt);
       });
+    }
+  }
 
-      const statusCounts = {};
-      const possibleStatuses = [
-        'Will attend all 9 Days',
-        'Not answering calls or messages',
-        "Musaaid didn't Contacted Yet",
-        'Will attend few Days only',
-        'Will not attend any Day',
-        'Ashara with Maula tus'
-      ];
-      possibleStatuses.forEach(st => statusCounts[st] = 0);
+  function onSectorChange() {
+    const sectorSel = document.getElementById('sectorFilterSel');
+    currentSectorFilter = sectorSel.value || null;
+    currentSubSectorFilter = null; // Reset sub-sector when sector changes
+    updateSubSectorDropdown();
+    performSearch();
+  }
 
-      cardMembers.forEach(user => {
-        let st = user.LeaveStatus || "Musaaid didn't Contacted Yet";
-        if (st === 'Unknown') st = "Musaaid didn't Contacted Yet";
-        if (['bed ridden', 'not in town', 'married outcaste', 'wafaat'].includes(st.toLowerCase().trim())) {
-          return;
-        }
-        if (statusCounts[st] !== undefined) {
-          statusCounts[st]++;
-        } else {
-          statusCounts[st] = 1;
-        }
-      });
-
-      let statusHtml = '<div style="margin-top:8px; padding-top:8px; border-top:1.5px dashed var(--border-light); font-size:.74rem; text-align:left;">';
-      const statusLabelsMap = {
-        'Will attend all 9 Days': { short: 'All 9 Days', color: '#1a6645', bg: '#eaf4ee' },
-        'Ashara with Maula tus': { short: 'With Maula', color: '#b8860b', bg: '#f5e9c0' },
-        'Will attend few Days only': { short: 'Few Days', color: '#b45309', bg: '#fff7ed' },
-        "Musaaid didn't Contacted Yet": { short: 'Uncontacted', color: '#4b5563', bg: '#f3f4f6' },
-        'Not answering calls or messages': { short: 'No Answer', color: '#b91c1c', bg: '#fef2f2' },
-        'Will not attend any Day': { short: 'Not Attending', color: '#b91c1c', bg: '#fef2f2' }
-      };
-
-      let statusShown = false;
-      Object.keys(statusLabelsMap).forEach(st => {
-        const cnt = statusCounts[st] || 0;
-        if (cnt > 0) {
-          statusShown = true;
-          const cfg = statusLabelsMap[st];
-          statusHtml += `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <span style="color:var(--text-2); font-weight:600;">${cfg.short}</span>
-              <span style="background:${cfg.bg}; color:${cfg.color}; font-weight:800; padding:1px 6px; border-radius:10px; font-size:.65rem; min-width:20px; text-align:center;">${cnt}</span>
-            </div>
-          `;
-        }
-      });
-      statusHtml += '</div>';
-
-      if (statusShown) {
-        const temp = document.createElement('div');
-        temp.innerHTML = statusHtml;
-        cardDiv.appendChild(temp.firstElementChild);
-      }
-
-      if (itemData.type === 'sector' && (itemData.sub_sectors.length > 0 || itemData.inchargeName)) {
-        const collapseWrapper = document.createElement('div');
-        collapseWrapper.style.cssText = 'margin-top:8px;border-top:1px solid var(--border-light);padding-top:5px;width:100%;';
-        
-        const collapseBtn = document.createElement('button');
-        collapseBtn.className = 'btn btn-sm btn-link text-decoration-none w-100 text-start p-0 d-flex justify-content-between align-items-center';
-        collapseBtn.style.cssText = 'color:var(--text-3);font-size:.74rem;';
-        collapseBtn.type = 'button';
-        collapseBtn.setAttribute('data-bs-toggle', 'collapse');
-        collapseBtn.setAttribute('data-bs-target', '#' + cid);
-        collapseBtn.innerHTML = '<span><i class="fa fa-info-circle"></i> View Incharges</span><i class="fa fa-chevron-down" style="font-size:.62rem;"></i>';
-        
-        const collapseContent = document.createElement('div');
-        collapseContent.className = 'collapse';
-        collapseContent.id = cid;
-
-        let listHtml = '<ul style="list-style:none;padding:5px 0 0;margin:0;font-size:.75rem;color:var(--text-2);">';
-        itemData.sub_sectors.forEach(sub => {
-          listHtml += `<li style="padding:5px 6px;background:var(--bg);border-radius:6px;margin-bottom:3px;text-align:left;">
-            <strong>${escapeHtml(sub.Sub_Sector)}</strong><br>`;
-          if (sub.Sub_Sector_Incharge_Name) {
-            listHtml += `<i class="fa fa-male" style="color:#1d4ed8;margin-right:3px;"></i>${escapeHtml(sub.Sub_Sector_Incharge_Name)}<br>`;
-          }
-          if (sub.Sub_Sector_Incharge_Female_Name) {
-            listHtml += `<i class="fa fa-female" style="color:#9d174d;margin-right:3px;"></i>${escapeHtml(sub.Sub_Sector_Incharge_Female_Name)}`;
-          }
-          listHtml += '</li>';
-        });
-        itemData.sub_sectors.forEach(sub => {
-        });
-        listHtml += '</ul>';
-        collapseContent.innerHTML = listHtml;
-
-        collapseWrapper.appendChild(collapseBtn);
-        collapseWrapper.appendChild(collapseContent);
-        cardDiv.appendChild(collapseWrapper);
-
-        collapseWrapper.addEventListener('click', (e) => {
-          e.stopPropagation();
-        });
-
-        collapseContent.addEventListener('show.bs.collapse', (e) => {
-          e.stopPropagation();
-          collapseBtn.querySelector('.fa-chevron-down').style.transform = 'rotate(180deg)';
-        });
-        collapseContent.addEventListener('hide.bs.collapse', (e) => {
-          e.stopPropagation();
-          collapseBtn.querySelector('.fa-chevron-down').style.transform = '';
-        });
-      }
-
-      colDiv.appendChild(cardDiv);
-      container.appendChild(colDiv);
-    });
+  function onSubSectorChange() {
+    const subSectorSel = document.getElementById('subSectorFilterSel');
+    currentSubSectorFilter = subSectorSel.value || null;
+    performSearch();
   }
 
   function updateMemberSummary(users) {
@@ -1244,12 +975,29 @@
     if (currentSectorFilter) {
       filtered = filtered.filter(user => user.Sector === currentSectorFilter);
     }
+    if (currentSubSectorFilter) {
+      filtered = filtered.filter(user => user.Sub_Sector === currentSubSectorFilter);
+    }
     if (currentStatusFilter) {
       if (currentStatusFilter === 'no-status') {
         filtered = filtered.filter(user => !user.LeaveStatus || user.LeaveStatus.trim() === "Musaaid didn't Contacted Yet");
       } else {
         filtered = filtered.filter(user => user.LeaveStatus === currentStatusFilter);
       }
+    }
+    const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+    if (keyword) {
+      filtered = filtered.filter(user => {
+        const searchFields = [
+          'ITS', 'HOF_FM_TYPE', 'HOF_ID', 'Full_Name',
+          'Name', 'Mobile', 'Sector', 'Sub_Sector',
+          'LeaveStatus', 'Comment'
+        ];
+        return searchFields.some(field => {
+          const value = user[field] ? user[field].toString().toLowerCase() : '';
+          return value.includes(keyword);
+        });
+      });
     }
 
     filtered.sort((a, b) => {
