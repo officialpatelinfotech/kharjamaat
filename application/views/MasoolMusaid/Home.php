@@ -414,6 +414,7 @@ $directory_label = $is_sub_sector ? 'Mumineen in your Sub Mohalla' : 'Mumineen i
         <li><a class="menu-item" href="<?php echo base_url('MasoolMusaid/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('MasoolMusaid/rsvp_list') ?>"><span class="menu-icon"><i class="fa fa-calendar-check-o"></i></span><span class="menu-label">Miqaat RSVP</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('MasoolMusaid/miqaat_attendance') ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">Miqaat Attendance</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('MasoolMusaid/qardanhasana') ?>"><span class="menu-icon"><i class="fa fa-hand-holding-heart"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
       </ul>
     </div>
   </aside>
@@ -478,35 +479,80 @@ $directory_label = $is_sub_sector ? 'Mumineen in your Sub Mohalla' : 'Mumineen i
       </div>
     </div>
 
-    <!-- ── Quick Action Buttons ── -->
-    <div class="chart-container">
-      <div class="section-header-standard">
-        <h4 class="section-title"><i class="fa fa-th-large"></i> Quick Actions</h4>
-      </div>
-      <div class="action-grid">
-        <?php
-        $actions = [
-          ['url' => base_url('MasoolMusaid/mumineendirectory'), 'icon' => 'fa fa-users',           'label' => $directory_label],
-          ['url' => base_url('MasoolMusaid/asharaohbat'),       'icon' => 'fa fa-calendar',         'label' => 'Ashara Ohbat'],
-          ['url' => base_url('MasoolMusaid/ashara_attendance'), 'icon' => 'fa fa-user-check',       'label' => 'Ashara Attendance'],
-          ['url' => base_url('MasoolMusaid/rsvp_list'),         'icon' => 'fa fa-calendar-check-o', 'label' => 'Miqaat RSVP'],
-          ['url' => base_url('MasoolMusaid/miqaat_attendance'), 'icon' => 'fa fa-check-square-o',   'label' => 'Miqaat Attendance'],
-        ];
-        $btnColors = [
-          ['#8e44ad','#fff'], ['#d97706','#fff'], ['#870000','#fff'],
-          ['#d35400','#fff'], ['#006a3f','#fff'],
-        ];
-        foreach ($actions as $i => $act):
-          $bg = $btnColors[$i % count($btnColors)][0];
-        ?>
-        <a href="<?= $act['url'] ?>" class="action-btn" style="background:<?= $bg ?>;">
-          <div class="ab-icon"><i class="<?= $act['icon'] ?>"></i></div>
-          <div class="ab-label"><?= $act['label'] ?></div>
-        </a>
-        <?php endforeach; ?>
-      </div>
+    
+                <!-- ── Husaini Scheme Stats ── -->
+<?php
+$hs = $husaini_stats ?? ['active_given' => 0, 'active_not_given' => 0, 'active_total' => 0];
+$hs_pct_given     = $hs['active_total'] > 0 ? round($hs['active_given']     / $hs['active_total'] * 100) : 0;
+$hs_pct_not_given = $hs['active_total'] > 0 ? round($hs['active_not_given'] / $hs['active_total'] * 100) : 0;
+?>
+<div class="chart-container compact mb-3">
+  <div class="section-header-standard">
+    <h4 class="section-title">
+      <i class="fa fa-hand-holding-heart"></i> Husaini Scheme
+      <small style="font-size:.7rem;font-weight:500;color:var(--text-3);margin-left:6px;">(Active members only)</small>
+    </h4>
+    <a href="<?= base_url('MasoolMusaid/qardanhasana') ?>"
+       class="btn btn-sm btn-outline-secondary"
+       style="white-space:nowrap;border-radius:9px;font-weight:700;font-size:.74rem;">
+      <i class="fa fa-arrow-right"></i> View Details
+    </a>
+  </div>
+ 
+  <div class="row text-center">
+ 
+    <!-- Given -->
+    <div class="col-4">
+      <a href="<?= base_url('MasoolMusaid/qardanhasana') ?>"
+         style="text-decoration:none;color:inherit;display:block;">
+        <div class="mini-card" style="border-left:3px solid #16a34a;">
+          <span class="stats-value green"><?= (int)$hs['active_given'] ?></span>
+          <span class="stats-label" style="color:#15803d;">✔ Given</span>
+          <div style="font-size:.68rem;color:var(--text-3);margin-top:3px;"><?= $hs_pct_given ?>%</div>
+        </div>
+      </a>
     </div>
-
+ 
+    <!-- Not Given -->
+    <div class="col-4">
+      <a href="<?= base_url('MasoolMusaid/qardanhasana') ?>"
+         style="text-decoration:none;color:inherit;display:block;">
+        <div class="mini-card" style="border-left:3px solid #dc2626;">
+          <span class="stats-value red"><?= (int)$hs['active_not_given'] ?></span>
+          <span class="stats-label" style="color:#b91c1c;">✘ Not Given</span>
+          <div style="font-size:.68rem;color:var(--text-3);margin-top:3px;"><?= $hs_pct_not_given ?>%</div>
+        </div>
+      </a>
+    </div>
+ 
+    <!-- Total Active -->
+    <div class="col-4">
+      <a href="<?= base_url('MasoolMusaid/qardanhasana') ?>"
+         style="text-decoration:none;color:inherit;display:block;">
+        <div class="mini-card">
+          <span class="stats-value"><?= (int)$hs['active_total'] ?></span>
+          <span class="stats-label">Active Total</span>
+          <div style="font-size:.68rem;color:var(--text-3);margin-top:3px;">100%</div>
+        </div>
+      </a>
+    </div>
+ 
+  </div>
+ 
+  <!-- Progress bar -->
+  <?php if ($hs['active_total'] > 0): ?>
+  <div style="margin-top:12px;">
+    <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-3);margin-bottom:4px;">
+      <span>Given <?= $hs_pct_given ?>%</span>
+      <span>Not Given <?= $hs_pct_not_given ?>%</span>
+    </div>
+    <div style="height:8px;border-radius:20px;background:#fee2e2;overflow:hidden;">
+      <div style="height:100%;width:<?= $hs_pct_given ?>%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:20px;transition:width .4s;"></div>
+    </div>
+  </div>
+  <?php endif; ?>
+ 
+</div>
 
 
     <!-- ── Overview ── -->
