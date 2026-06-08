@@ -266,8 +266,10 @@
   .collapse-toggle-btn i { transition: transform .22s; }
   .collapse-toggle-btn[aria-expanded="false"] i { transform: rotate(-90deg); }
 </style>
+
 <div class="container-fluid pt-5 p-3 p-md-4">
-  <!-- Header Section -->
+
+  <!-- Back Button -->
   <div class="d-flex align-items-center pt-5 mb-4">
     <a href="<?php echo isset($back_url) ? $back_url : 'javascript:void(0)'; ?>"
        class="btn btn-outline-secondary"
@@ -277,7 +279,8 @@
     </a>
   </div>
 
-  <div class="header-section text-center">
+  <!-- Header Section -->
+  <div class="header-section text-center mb-4">
     <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
       <div class="text-start flex-grow-1">
         <h2 class="mb-0 fw-bold">Ashara Ohbat<?php if(isset($selected_year)) echo ' ' . htmlspecialchars($selected_year); ?></h2>
@@ -296,14 +299,16 @@
     </div>
   </div>
 
-  <!-- Sector Cards (Moved Above Stats) -->
+  <!-- Sector Cards -->
   <div class="mb-2 fw-bold" id="totalSectorCard"></div>
   <div class="row">
     <div class="col-12">
       <div class="chart-container sector-block">
         <div class="section-header-standard">
           <h4 class="section-title"><i class="fa fa-map-marker"></i> Sector-wise Members</h4>
-          <button class="collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSectorsAshara" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+          <button class="collapse-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSectorsAshara" aria-expanded="true">
+            <i class="fa fa-chevron-down"></i>
+          </button>
         </div>
         <div class="collapse show" id="collapseSectorsAshara">
           <div id="sectorCardsContainer" class="row"></div>
@@ -312,78 +317,14 @@
     </div>
   </div>
 
-  <!-- Stats Section -->
-  <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3 mt-4">
-    <h4 class="m-0" style="color: var(--text-2); font-size: 1.1rem; font-weight: 800;">Overview Statistics</h4>
+  <!-- Reset Button (shown when a sector/status filter is active) -->
+  <div class="d-flex justify-content-end mb-2">
     <button type="button" class="btn btn-outline-danger btn-sm" id="resetStatsBtn" onclick="resetFiltersAndStats()" style="display: none; border-radius: 20px; font-weight: 600;">
-      <i class="fa-solid fa-arrows-rotate me-1"></i> Reset Sector & Stats
+      <i class="fa-solid fa-arrows-rotate me-1"></i> Reset Filters
     </button>
   </div>
-  
-  <div class="stats-grid">
-    <a id="link_total_members" href="<?= $directory_url . '?year=' . $selected_year . '&filter=all' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>Total Members</h5>
-        <div class="stats-value" id="stat_total_members"><?= count($users) ?></div>
-      </div>
-    </a>
-    <a id="link_hof" href="<?= $directory_url . '?year=' . $selected_year . '&filter=hof_fm_type&value=HOF' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>HOF (Head of Family)</h5>
-        <div class="stats-value" id="stat_hof"><?= $stats['HOF'] ?></div>
-      </div>
-    </a>
-    <a id="link_fm" href="<?= $directory_url . '?year=' . $selected_year . '&filter=hof_fm_type&value=FM' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>FM (Family Members)</h5>
-        <div class="stats-value" id="stat_fm"><?= $stats['FM'] ?></div>
-      </div>
-    </a>
-    <a id="link_mardo" href="<?= $directory_url . '?year=' . $selected_year . '&filter=gender&value=male' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>Males</h5>
-        <div class="stats-value" id="stat_mardo"><?= $stats['Mardo'] ?></div>
-      </div>
-    </a>
-    <a id="link_bairo" href="<?= $directory_url . '?year=' . $selected_year . '&filter=gender&value=female' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>Females</h5>
-        <div class="stats-value" id="stat_bairo"><?= $stats['Bairo'] ?></div>
-      </div>
-    </a>
-    <a id="link_age_0_4" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=0&max=4' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>Age 0-4</h5>
-        <div class="stats-value" id="stat_age_0_4"><?= $stats['Age_0_4'] ?></div>
-      </div>
-    </a>
-    <a id="link_age_5_15" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=5&max=15' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>Age 5-15</h5>
-        <div class="stats-value" id="stat_age_5_15"><?= $stats['Age_5_15'] ?></div>
-      </div>
-    </a>
-    <a id="link_age_16_25" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=16&max=25' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>Age 16-25</h5>
-        <div class="stats-value" id="stat_age_16_25"><?= $stats['Age_16_25'] ?></div>
-      </div>
-    </a>
-    <a id="link_age_26_65" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=26&max=65' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>Age 26-65</h5>
-        <div class="stats-value" id="stat_age_26_65"><?= $stats['Age_26_65'] ?></div>
-      </div>
-    </a>
-    <a id="link_age_above_65" href="<?= $directory_url . '?year=' . $selected_year . '&filter=age_range&min=66' ?>" style="text-decoration: none; color: inherit; display: block;">
-      <div class="stats-card bg-light">
-        <h5>Above 65</h5>
-        <div class="stats-value" id="stat_age_above_65"><?= $stats['Buzurgo'] ?></div>
-      </div>
-    </a>
-  </div>
 
-  <!-- Leave Status Section -->
+  <!-- Ashara Ohbat Status Section -->
   <h4 class="section-title">Ashara Ohbat Status</h4>
   <div class="stats-grid" id="ohbatStatusGrid">
     <?php foreach ($stats['LeaveStatus'] as $status => $count):
@@ -391,7 +332,6 @@
       if (in_array(strtolower(trim($statusLabel)), ['bed ridden', 'not in town', 'married outcaste', 'wafaat'])) {
         continue;
       }
-      $statusClass = str_replace(' ', '-', strtolower($statusLabel));
     ?>
       <div class="stats-card status-card-btn" data-status="<?= htmlspecialchars($statusLabel) ?>" onclick="clickStatusCard('<?= addslashes($statusLabel) ?>')" style="cursor: pointer;">
         <h5><?= $statusLabel ?></h5>
@@ -455,8 +395,7 @@
 </div>
 
 <!-- Edit Modal -->
-<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel"
-  aria-hidden="true">
+<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <form id="userDetailsForm">
@@ -493,87 +432,63 @@
     }
   })();
 
-  const originalData = <?= json_encode($users) ?>;
-  const sectorIncharges = <?= json_encode($stats['Sectors'] ?? []) ?>;
-  const loggedInSector = '<?= isset($current_sector) ? $current_sector : "" ?>';
+  const originalData      = <?= json_encode($users) ?>;
+  const sectorIncharges   = <?= json_encode($stats['Sectors'] ?? []) ?>;
+  const loggedInSector    = '<?= isset($current_sector)     ? $current_sector     : "" ?>';
   const loggedInSubSector = '<?= isset($current_sub_sector) ? $current_sub_sector : "" ?>';
 
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>"]/g, function(s) {
-      return ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;'
-      } [s]);
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[s]);
     });
   }
-  let sortDirection = {};
-  let currentSectorFilter = null;
-  let currentSubSectorFilter = null;
-  let currentStatusFilter = null;
 
-  // Initialize the page
+  let sortDirection        = {};
+  let currentSectorFilter    = null;
+  let currentSubSectorFilter = null;
+  let currentStatusFilter    = null;
+  let currentSortKey         = null;
+  let currentSortDir         = 1;
+
+  // ── Bootstrap ──────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function() {
     initSectorCards();
-    updateMemberSummary(originalData);
-    updateStats(originalData);
+    updateOhbatStatusGrid(originalData);
     updateUserTable(originalData);
   });
 
+  // ── Search / filter pipeline ───────────────────────────────
   function performSearch() {
     const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
-
     let filtered = originalData;
 
-    // Apply sector filter if active
     if (currentSectorFilter) {
-      filtered = filtered.filter(user => user.Sector === currentSectorFilter);
+      filtered = filtered.filter(u => u.Sector === currentSectorFilter);
     }
-
-    // Apply sub-sector filter if active
     if (currentSubSectorFilter) {
-      filtered = filtered.filter(user => user.Sub_Sector === currentSubSectorFilter);
+      filtered = filtered.filter(u => u.Sub_Sector === currentSubSectorFilter);
     }
-
-    // Apply status filter if active
     if (currentStatusFilter) {
       if (currentStatusFilter === 'no-status') {
-        filtered = filtered.filter(user => !user.LeaveStatus || user.LeaveStatus.trim() === "Musaaid didn't Contacted Yet");
+        filtered = filtered.filter(u => !u.LeaveStatus || u.LeaveStatus.trim() === "Musaaid didn't Contacted Yet");
       } else {
-        filtered = filtered.filter(user => user.LeaveStatus === currentStatusFilter);
+        filtered = filtered.filter(u => u.LeaveStatus === currentStatusFilter);
       }
     }
-
-    // Apply search keyword
     if (keyword) {
-      filtered = filtered.filter(user => {
-        const searchFields = [
-          'ITS', 'HOF_FM_TYPE', 'HOF_ID', 'Full_Name',
-          'Name', 'Mobile', 'Sector', 'Sub_Sector',
-          'LeaveStatus', 'Comment'
-        ];
-
-        return searchFields.some(field => {
-          const value = user[field] ? user[field].toString().toLowerCase() : '';
-          return value.includes(keyword);
-        });
+      filtered = filtered.filter(u => {
+        const fields = ['ITS','HOF_FM_TYPE','HOF_ID','Full_Name','Name','Mobile','Sector','Sub_Sector','LeaveStatus','Comment'];
+        return fields.some(f => (u[f] ? u[f].toString().toLowerCase() : '').includes(keyword));
       });
     }
 
-    updateMemberSummary(filtered);
-    updateStats(filtered);
+    updateOhbatStatusGrid(filtered);
     updateUserTable(filtered);
 
-    // Toggle Reset Button visibility
     const resetBtn = document.getElementById('resetStatsBtn');
     if (resetBtn) {
-      if (currentSectorFilter || currentStatusFilter || keyword) {
-        resetBtn.style.display = 'inline-block';
-      } else {
-        resetBtn.style.display = 'none';
-      }
+      resetBtn.style.display = (currentSectorFilter || currentStatusFilter || keyword) ? 'inline-block' : 'none';
     }
   }
 
@@ -581,104 +496,25 @@
     const status = document.getElementById('statusFilter').value;
     currentStatusFilter = status || null;
 
-    // Synchronize active style on cards
     document.querySelectorAll('.status-card-btn').forEach(card => {
       const cardStatus = card.dataset.status;
-      const mappedVal = (cardStatus === "No Status") ? "no-status" : cardStatus;
-      if (mappedVal === status) {
-        card.classList.add('active');
-      } else {
-        card.classList.remove('active');
-      }
+      const mappedVal  = (cardStatus === 'No Status') ? 'no-status' : cardStatus;
+      card.classList.toggle('active', mappedVal === status);
     });
 
     performSearch();
   }
 
   function clickStatusCard(statusValue) {
-    const filterSelect = document.getElementById('statusFilter');
-    const targetValue = (statusValue === "No Status") ? "no-status" : statusValue;
-
-    if (filterSelect.value === targetValue) {
-      filterSelect.value = "";
-    } else {
-      filterSelect.value = targetValue;
-    }
+    const filterSelect  = document.getElementById('statusFilter');
+    const targetValue   = (statusValue === 'No Status') ? 'no-status' : statusValue;
+    filterSelect.value  = (filterSelect.value === targetValue) ? '' : targetValue;
     filterByStatus();
-
-    const target = document.getElementById('statusFilter');
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    filterSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function updateStats(filtered) {
-    let hof = 0, fm = 0, mardo = 0, bairo = 0;
-    let age_0_4 = 0, age_5_15 = 0, age_16_25 = 0, age_26_65 = 0, buzurgo = 0;
-    
-    filtered.forEach(user => {
-      if (user.HOF_FM_TYPE === 'HOF') hof++;
-      if (user.HOF_FM_TYPE === 'FM') fm++;
-      
-      const gender = (user.Gender || '').toLowerCase();
-      if (gender === 'male') mardo++;
-      if (gender === 'female') bairo++;
-      
-      const age = parseInt(user.Age || 0);
-      if (age >= 0 && age <= 4) age_0_4++;
-      else if (age >= 5 && age <= 15) age_5_15++;
-      else if (age >= 16 && age <= 25) age_16_25++;
-      else if (age >= 26 && age <= 65) age_26_65++;
-      else if (age > 65) buzurgo++;
-    });
-
-    document.getElementById('stat_total_members').textContent = filtered.length;
-    document.getElementById('stat_hof').textContent = hof;
-    document.getElementById('stat_fm').textContent = fm;
-    document.getElementById('stat_mardo').textContent = mardo;
-    document.getElementById('stat_bairo').textContent = bairo;
-    document.getElementById('stat_age_0_4').textContent = age_0_4;
-    document.getElementById('stat_age_5_15').textContent = age_5_15;
-    document.getElementById('stat_age_16_25').textContent = age_16_25;
-    document.getElementById('stat_age_26_65').textContent = age_26_65;
-    document.getElementById('stat_age_above_65').textContent = buzurgo;
-
-    // Update link hrefs based on currentSectorFilter
-    const baseDirUrl = '<?= $directory_url ?>';
-    const selYear = '<?= $selected_year ?>';
-    
-    function updateLinkHref(id, extraParams) {
-      const link = document.getElementById(id);
-      if (!link) return;
-      
-      let params = new URLSearchParams();
-      params.set('year', selYear);
-      
-      Object.keys(extraParams).forEach(k => params.set(k, extraParams[k]));
-      
-      if (currentSectorFilter) {
-        params.set('sector', currentSectorFilter);
-      }
-      if (currentSubSectorFilter) {
-        params.set('subsector', currentSubSectorFilter);
-      }
-      
-      link.href = baseDirUrl + '?' + params.toString();
-    }
-
-    updateLinkHref('link_total_members', { filter: 'all' });
-    updateLinkHref('link_hof', { filter: 'hof_fm_type', value: 'HOF' });
-    updateLinkHref('link_fm', { filter: 'hof_fm_type', value: 'FM' });
-    updateLinkHref('link_mardo', { filter: 'gender', value: 'male' });
-    updateLinkHref('link_bairo', { filter: 'gender', value: 'female' });
-    updateLinkHref('link_age_0_4', { filter: 'age_range', min: '0', max: '4' });
-    updateLinkHref('link_age_5_15', { filter: 'age_range', min: '5', max: '15' });
-    updateLinkHref('link_age_16_25', { filter: 'age_range', min: '16', max: '25' });
-    updateLinkHref('link_age_26_65', { filter: 'age_range', min: '26', max: '65' });
-    updateLinkHref('link_age_above_65', { filter: 'age_range', min: '66' });
-
-    // 2. Ashara Ohbat Status
-    const statusCounts = {};
+  // ── Ashara Ohbat Status grid (dynamic, reflects filtered data) ──
+  function updateOhbatStatusGrid(filtered) {
     const possibleStatuses = [
       'Will attend all 9 Days',
       'Not answering calls or messages',
@@ -687,76 +523,60 @@
       'Will not attend any Day',
       'Ashara with Maula tus'
     ];
+
+    const statusCounts = {};
     possibleStatuses.forEach(st => statusCounts[st] = 0);
-    
-    filtered.forEach(user => {
-      let st = user.LeaveStatus || "Musaaid didn't Contacted Yet";
+
+    filtered.forEach(u => {
+      let st = u.LeaveStatus || "Musaaid didn't Contacted Yet";
       if (st === 'Unknown') st = "Musaaid didn't Contacted Yet";
-      
-      if (['bed ridden', 'not in town', 'married outcaste', 'wafaat'].includes(st.toLowerCase().trim())) {
-        return;
-      }
-      if (statusCounts[st] !== undefined) {
-        statusCounts[st]++;
-      } else {
-        statusCounts[st] = 1;
-      }
+      if (['bed ridden','not in town','married outcaste','wafaat'].includes(st.toLowerCase().trim())) return;
+      if (statusCounts[st] !== undefined) statusCounts[st]++;
+      else statusCounts[st] = 1;
     });
 
-    const statusGrid = document.getElementById('ohbatStatusGrid');
-    statusGrid.innerHTML = '';
-    
+    const grid = document.getElementById('ohbatStatusGrid');
+    grid.innerHTML = '';
     Object.keys(statusCounts).forEach(statusLabel => {
-      const count = statusCounts[statusLabel];
-      const isCardActive = (currentStatusFilter === statusLabel);
-      
-      const cardDiv = document.createElement('div');
-      cardDiv.className = `stats-card status-card-btn ${isCardActive ? 'active' : ''}`;
-      cardDiv.dataset.status = statusLabel;
-      cardDiv.style.cursor = 'pointer';
-      cardDiv.onclick = () => clickStatusCard(statusLabel);
-      
-      cardDiv.innerHTML = `
-        <h5>${escapeHtml(statusLabel)}</h5>
-        <div class="stats-value">${count}</div>
-      `;
-      statusGrid.appendChild(cardDiv);
+      const isActive = (currentStatusFilter === statusLabel);
+      const card = document.createElement('div');
+      card.className = `stats-card status-card-btn${isActive ? ' active' : ''}`;
+      card.dataset.status = statusLabel;
+      card.style.cursor = 'pointer';
+      card.onclick = () => clickStatusCard(statusLabel);
+      card.innerHTML = `<h5>${escapeHtml(statusLabel)}</h5><div class="stats-value">${statusCounts[statusLabel]}</div>`;
+      grid.appendChild(card);
     });
   }
 
+  // ── Reset all filters ──────────────────────────────────────
   function resetFiltersAndStats() {
-    currentSectorFilter = null;
+    currentSectorFilter    = null;
     currentSubSectorFilter = null;
-    currentStatusFilter = null;
-    document.getElementById('searchInput').value = '';
-    document.getElementById('statusFilter').value = '';
-    
-    document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(card => {
-      card.classList.remove('active');
-    });
+    currentStatusFilter    = null;
+    document.getElementById('searchInput').value   = '';
+    document.getElementById('statusFilter').value  = '';
 
-    document.querySelectorAll('.status-card-btn').forEach(card => {
-      card.classList.remove('active');
-    });
+    document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.status-card-btn').forEach(c => c.classList.remove('active'));
 
     performSearch();
   }
 
+  // ── Sector cards ───────────────────────────────────────────
   function initSectorCards() {
     const container = document.getElementById('sectorCardsContainer');
     if (!container) return;
     container.className = 'row';
     container.innerHTML = '';
 
-    const inchargeMap = {};
+    const inchargeMap    = {};
     const subInchargeMap = {};
-    
+
     sectorIncharges.forEach(item => {
       const secName = item.Sector || 'Unknown';
       inchargeMap[secName.toLowerCase()] = item;
-      
-      const subs = item.sub_sectors || [];
-      subs.forEach(sub => {
+      (item.sub_sectors || []).forEach(sub => {
         const subKey = `${secName.toLowerCase()}_${(sub.Sub_Sector || '').toLowerCase()}`;
         subInchargeMap[subKey] = sub;
       });
@@ -765,579 +585,317 @@
     let cardsToRender = [];
 
     if (loggedInSector) {
-      // It's a sector or sub-sector login: show sub-sectors under loggedInSector
+      // Sector / sub-sector login: show sub-sectors
       const subSectorsFound = new Set();
-      
-      // 1. Check originalData (members actually in this scope)
       originalData.forEach(u => {
         if ((u.Sector || '').toLowerCase() === loggedInSector.toLowerCase()) {
           const sub = (u.Sub_Sector || '').trim();
-          if (sub) {
-            subSectorsFound.add(sub);
-          }
+          if (sub) subSectorsFound.add(sub);
         }
       });
-      
-      // 2. Check subInchargeMap for any other defined sub-sectors under loggedInSector
       Object.keys(subInchargeMap).forEach(key => {
         if (key.startsWith(loggedInSector.toLowerCase() + '_')) {
           const subName = subInchargeMap[key].Sub_Sector;
-          if (subName) {
-            subSectorsFound.add(subName);
-          }
+          if (subName) subSectorsFound.add(subName);
         }
       });
 
-      // Filter subSectorsFound if a specific loggedInSubSector is set
       let subSectorsList = Array.from(subSectorsFound);
       if (loggedInSubSector) {
         subSectorsList = subSectorsList.filter(s => s.toLowerCase() === loggedInSubSector.toLowerCase());
       }
-      
-      // Sort sub-sectors alphabetically
       subSectorsList.sort();
 
       subSectorsList.forEach(subName => {
-        // Calculate counts dynamically from originalData
-        const members = originalData.filter(u => 
-          (u.Sector || '').toLowerCase() === loggedInSector.toLowerCase() && 
+        const members = originalData.filter(u =>
+          (u.Sector || '').toLowerCase() === loggedInSector.toLowerCase() &&
           (u.Sub_Sector || '').toLowerCase() === subName.toLowerCase()
         );
         const hof = members.filter(u => u.HOF_FM_TYPE === 'HOF').length;
-        const fm = members.filter(u => u.HOF_FM_TYPE === 'FM').length;
-        
+        const fm  = members.filter(u => u.HOF_FM_TYPE === 'FM').length;
         const subKey = `${loggedInSector.toLowerCase()}_${subName.toLowerCase()}`;
-        const subInchargeInfo = subInchargeMap[subKey] || {};
-        
+        const subInfo = subInchargeMap[subKey] || {};
         cardsToRender.push({
           type: 'subsector',
           displayName: loggedInSector + ' ' + subName,
           Sector: loggedInSector,
           Sub_Sector: subName,
-          hof: hof,
-          fm: fm,
-          inchargeName: subInchargeInfo.Sub_Sector_Incharge_Name || '',
-          inchargeFemaleName: subInchargeInfo.Sub_Sector_Incharge_Female_Name || ''
+          hof, fm,
+          inchargeName: subInfo.Sub_Sector_Incharge_Name || '',
+          inchargeFemaleName: subInfo.Sub_Sector_Incharge_Female_Name || ''
         });
       });
+
     } else {
-      // Admin/Amilsaheb/Umoor: show all sectors
-      const sortedSectors = sectorIncharges.filter(item => {
-        const sec = (item.Sector || '').trim();
-        return sec !== '' && sec.toLowerCase() !== 'unassigned';
-      });
-      sortedSectors.sort((a, b) => {
-        const totalA = parseInt(a.total || 0);
-        const totalB = parseInt(b.total || 0);
-        return totalB - totalA;
-      });
+      // Admin / Amilsaheb: show all sectors
+      const sortedSectors = sectorIncharges
+        .filter(item => {
+          const sec = (item.Sector || '').trim();
+          return sec !== '' && sec.toLowerCase() !== 'unassigned';
+        })
+        .sort((a, b) => parseInt(b.total || 0) - parseInt(a.total || 0));
 
       sortedSectors.forEach(itemData => {
-        const sector = itemData.Sector || 'Unknown';
-        const inchargeName = itemData.Sector_Incharge_Name || '';
-        const inchargeFemaleName = itemData.Sector_Incharge_Female_Name || '';
-        const subSectors = itemData.sub_sectors || [];
-        const hof = parseInt(itemData.hof_count || 0);
-        const fm = parseInt(itemData.fm_count || 0);
-
         cardsToRender.push({
           type: 'sector',
-          displayName: sector,
-          Sector: sector,
+          displayName: itemData.Sector || 'Unknown',
+          Sector: itemData.Sector || 'Unknown',
           Sub_Sector: null,
-          hof: hof,
-          fm: fm,
-          inchargeName: inchargeName,
-          inchargeFemaleName: inchargeFemaleName,
-          sub_sectors: subSectors
+          hof: parseInt(itemData.hof_count || 0),
+          fm:  parseInt(itemData.fm_count  || 0),
+          inchargeName: itemData.Sector_Incharge_Name || '',
+          inchargeFemaleName: itemData.Sector_Incharge_Female_Name || '',
+          sub_sectors: itemData.sub_sectors || []
         });
       });
     }
 
     cardsToRender.forEach(itemData => {
-      const cid = 'collapseSectorIncharge_' + itemData.displayName.replace(/[^a-zA-Z0-9]/g, '_');
-
-      const colDiv = document.createElement('div');
+      const colDiv  = document.createElement('div');
       colDiv.className = 'col-12 col-md-3 mb-3';
 
-      const cardDiv = document.createElement('div');
-      
-      const isCardActive = (itemData.type === 'subsector') 
+      const isCardActive = (itemData.type === 'subsector')
         ? (currentSectorFilter === itemData.Sector && currentSubSectorFilter === itemData.Sub_Sector)
         : (currentSectorFilter === itemData.Sector && !currentSubSectorFilter);
 
-      cardDiv.className = `overview-card ${isCardActive ? 'active' : ''}`;
+      const cardDiv = document.createElement('div');
+      cardDiv.className = `overview-card${isCardActive ? ' active' : ''}`;
       cardDiv.dataset.sector = itemData.Sector;
-      if (itemData.Sub_Sector) {
-        cardDiv.dataset.subsector = itemData.Sub_Sector;
-      }
-      cardDiv.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        height: 100%;
-        cursor: pointer;
-      `;
+      if (itemData.Sub_Sector) cardDiv.dataset.subsector = itemData.Sub_Sector;
+      cardDiv.style.cssText = 'display:flex; flex-direction:column; gap:8px; cursor:pointer;';
 
-      const mainLink = document.createElement('div');
-      mainLink.style.cssText = 'display:flex;align-items:center;gap:10px;flex:1;text-decoration:none;color:inherit;';
-      
-      const iconDiv = document.createElement('div');
-      iconDiv.className = 'overview-icon';
-      iconDiv.style.cssText = 'background:#eaf4ee;color:#1a6645;';
-      iconDiv.innerHTML = '<i class="fa fa-map-marker"></i>';
-
-      const bodyDiv = document.createElement('div');
-      bodyDiv.className = 'overview-body';
-      bodyDiv.style.cssText = 'width:100%;';
-
-      const titleSpan = document.createElement('span');
-      titleSpan.className = 'overview-title';
-      titleSpan.textContent = itemData.displayName;
+      const total = itemData.hof + itemData.fm;
 
       let inchargeHtml = '';
-      if (itemData.inchargeName || itemData.inchargeFemaleName) {
-        inchargeHtml = '<div style="font-size:.74rem;color:var(--text-3);margin:4px 0;text-align:left;">';
-        if (itemData.inchargeName) {
-          inchargeHtml += `<div style="margin-bottom:2px;"><i class="fa fa-male" style="color:#1d4ed8;margin-right:4px;"></i>${escapeHtml(itemData.inchargeName)}</div>`;
-        }
-        if (itemData.inchargeFemaleName) {
-          inchargeHtml += `<div><i class="fa fa-female" style="color:#9d174d;margin-right:4px;"></i>${escapeHtml(itemData.inchargeFemaleName)}</div>`;
-        }
-        inchargeHtml += '</div>';
+      if (itemData.inchargeName) {
+        inchargeHtml += `<div style="font-size:.7rem;color:var(--text-3);margin-top:4px;"><i class="fa fa-male" style="color:var(--gold);margin-right:3px;"></i>${escapeHtml(itemData.inchargeName)}</div>`;
+      }
+      if (itemData.inchargeFemaleName) {
+        inchargeHtml += `<div style="font-size:.7rem;color:var(--text-3);"><i class="fa fa-female" style="color:var(--gold);margin-right:3px;"></i>${escapeHtml(itemData.inchargeFemaleName)}</div>`;
       }
 
-      const valueSpan = document.createElement('span');
-      valueSpan.className = 'overview-value';
-      valueSpan.style.cssText = 'font-size:.95rem; font-weight: 800; color: var(--text-1); margin-top: 4px;';
-      valueSpan.innerHTML = `HOF ${itemData.hof} &nbsp;·&nbsp; FM ${itemData.fm}`;
+      cardDiv.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="overview-icon"><i class="fa fa-map-marker"></i></div>
+          <div class="overview-body" style="flex:1;min-width:0;">
+            <span class="overview-title">${escapeHtml(itemData.displayName)}</span>
+            <span class="overview-value">${total}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;font-size:.72rem;color:var(--text-2);">
+          <span><b>HOF:</b> ${itemData.hof}</span>
+          <span><b>FM:</b> ${itemData.fm}</span>
+        </div>
+        ${inchargeHtml}
+      `;
 
-      bodyDiv.appendChild(titleSpan);
-      if (itemData.inchargeName || itemData.inchargeFemaleName) {
-        const temp = document.createElement('div');
-        temp.innerHTML = inchargeHtml;
-        bodyDiv.appendChild(temp.firstElementChild);
-      }
-      bodyDiv.appendChild(valueSpan);
+      cardDiv.addEventListener('click', function() {
+        const clickedSector    = this.dataset.sector;
+        const clickedSubSector = this.dataset.subsector || null;
+        const isSameFilter = (currentSectorFilter === clickedSector && currentSubSectorFilter === clickedSubSector);
 
-      mainLink.appendChild(iconDiv);
-      mainLink.appendChild(bodyDiv);
-      cardDiv.appendChild(mainLink);
-
-      mainLink.onclick = (e) => {
-        e.stopPropagation();
-        if (itemData.type === 'subsector') {
-          if (currentSectorFilter === itemData.Sector && currentSubSectorFilter === itemData.Sub_Sector) {
-            currentSectorFilter = null;
-            currentSubSectorFilter = null;
-          } else {
-            currentSectorFilter = itemData.Sector;
-            currentSubSectorFilter = itemData.Sub_Sector;
-          }
+        if (isSameFilter) {
+          currentSectorFilter    = null;
+          currentSubSectorFilter = null;
+          document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(c => c.classList.remove('active'));
         } else {
-          if (currentSectorFilter === itemData.Sector) {
-            currentSectorFilter = null;
-            currentSubSectorFilter = null;
-          } else {
-            currentSectorFilter = itemData.Sector;
-            currentSubSectorFilter = null;
-          }
+          currentSectorFilter    = clickedSector;
+          currentSubSectorFilter = clickedSubSector;
+          document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(c => c.classList.remove('active'));
+          this.classList.add('active');
         }
-        
-        // Toggle active style on cards
-        document.querySelectorAll('#sectorCardsContainer .overview-card').forEach(card => {
-          const cardSec = card.dataset.sector;
-          const cardSub = card.dataset.subsector || '';
-          
-          const isFilterActive = (itemData.type === 'subsector') 
-            ? (cardSec === currentSectorFilter && cardSub === currentSubSectorFilter)
-            : (cardSec === currentSectorFilter && !currentSubSectorFilter);
-            
-          if (isFilterActive) {
-            card.classList.add('active');
-          } else {
-            card.classList.remove('active');
-          }
-        });
-
         performSearch();
-      };
-
-      // Calculate status counts for this card's scope
-      const cardMembers = originalData.filter(user => {
-        const isSectorMatch = (user.Sector || '').toLowerCase() === itemData.Sector.toLowerCase();
-        if (!isSectorMatch) return false;
-        if (itemData.type === 'subsector') {
-          return (user.Sub_Sector || '').toLowerCase() === (itemData.Sub_Sector || '').toLowerCase();
-        }
-        return true;
       });
-
-      const statusCounts = {};
-      const possibleStatuses = [
-        'Will attend all 9 Days',
-        'Not answering calls or messages',
-        "Musaaid didn't Contacted Yet",
-        'Will attend few Days only',
-        'Will not attend any Day',
-        'Ashara with Maula tus'
-      ];
-      possibleStatuses.forEach(st => statusCounts[st] = 0);
-
-      cardMembers.forEach(user => {
-        let st = user.LeaveStatus || "Musaaid didn't Contacted Yet";
-        if (st === 'Unknown') st = "Musaaid didn't Contacted Yet";
-        if (['bed ridden', 'not in town', 'married outcaste', 'wafaat'].includes(st.toLowerCase().trim())) {
-          return;
-        }
-        if (statusCounts[st] !== undefined) {
-          statusCounts[st]++;
-        } else {
-          statusCounts[st] = 1;
-        }
-      });
-
-      let statusHtml = '<div style="margin-top:8px; padding-top:8px; border-top:1.5px dashed var(--border-light); font-size:.74rem; text-align:left;">';
-      const statusLabelsMap = {
-        'Will attend all 9 Days': { short: 'All 9 Days', color: '#1a6645', bg: '#eaf4ee' },
-        'Ashara with Maula tus': { short: 'With Maula', color: '#b8860b', bg: '#f5e9c0' },
-        'Will attend few Days only': { short: 'Few Days', color: '#b45309', bg: '#fff7ed' },
-        "Musaaid didn't Contacted Yet": { short: 'Uncontacted', color: '#4b5563', bg: '#f3f4f6' },
-        'Not answering calls or messages': { short: 'No Answer', color: '#b91c1c', bg: '#fef2f2' },
-        'Will not attend any Day': { short: 'Not Attending', color: '#b91c1c', bg: '#fef2f2' }
-      };
-
-      let statusShown = false;
-      Object.keys(statusLabelsMap).forEach(st => {
-        const cnt = statusCounts[st] || 0;
-        if (cnt > 0) {
-          statusShown = true;
-          const cfg = statusLabelsMap[st];
-          statusHtml += `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <span style="color:var(--text-2); font-weight:600;">${cfg.short}</span>
-              <span style="background:${cfg.bg}; color:${cfg.color}; font-weight:800; padding:1px 6px; border-radius:10px; font-size:.65rem; min-width:20px; text-align:center;">${cnt}</span>
-            </div>
-          `;
-        }
-      });
-      statusHtml += '</div>';
-
-      if (statusShown) {
-        const temp = document.createElement('div');
-        temp.innerHTML = statusHtml;
-        cardDiv.appendChild(temp.firstElementChild);
-      }
-
-      if (itemData.type === 'sector' && (itemData.sub_sectors.length > 0 || itemData.inchargeName)) {
-        const collapseWrapper = document.createElement('div');
-        collapseWrapper.style.cssText = 'margin-top:8px;border-top:1px solid var(--border-light);padding-top:5px;width:100%;';
-        
-        const collapseBtn = document.createElement('button');
-        collapseBtn.className = 'btn btn-sm btn-link text-decoration-none w-100 text-start p-0 d-flex justify-content-between align-items-center';
-        collapseBtn.style.cssText = 'color:var(--text-3);font-size:.74rem;';
-        collapseBtn.type = 'button';
-        collapseBtn.setAttribute('data-bs-toggle', 'collapse');
-        collapseBtn.setAttribute('data-bs-target', '#' + cid);
-        collapseBtn.innerHTML = '<span><i class="fa fa-info-circle"></i> View Incharges</span><i class="fa fa-chevron-down" style="font-size:.62rem;"></i>';
-        
-        const collapseContent = document.createElement('div');
-        collapseContent.className = 'collapse';
-        collapseContent.id = cid;
-
-        let listHtml = '<ul style="list-style:none;padding:5px 0 0;margin:0;font-size:.75rem;color:var(--text-2);">';
-        itemData.sub_sectors.forEach(sub => {
-          listHtml += `<li style="padding:5px 6px;background:var(--bg);border-radius:6px;margin-bottom:3px;text-align:left;">
-            <strong>${escapeHtml(sub.Sub_Sector)}</strong><br>`;
-          if (sub.Sub_Sector_Incharge_Name) {
-            listHtml += `<i class="fa fa-male" style="color:#1d4ed8;margin-right:3px;"></i>${escapeHtml(sub.Sub_Sector_Incharge_Name)}<br>`;
-          }
-          if (sub.Sub_Sector_Incharge_Female_Name) {
-            listHtml += `<i class="fa fa-female" style="color:#9d174d;margin-right:3px;"></i>${escapeHtml(sub.Sub_Sector_Incharge_Female_Name)}`;
-          }
-          listHtml += '</li>';
-        });
-        itemData.sub_sectors.forEach(sub => {
-        });
-        listHtml += '</ul>';
-        collapseContent.innerHTML = listHtml;
-
-        collapseWrapper.appendChild(collapseBtn);
-        collapseWrapper.appendChild(collapseContent);
-        cardDiv.appendChild(collapseWrapper);
-
-        collapseContent.addEventListener('show.bs.collapse', (e) => {
-          e.stopPropagation();
-          collapseBtn.querySelector('.fa-chevron-down').style.transform = 'rotate(180deg)';
-        });
-        collapseContent.addEventListener('hide.bs.collapse', (e) => {
-          e.stopPropagation();
-          collapseBtn.querySelector('.fa-chevron-down').style.transform = '';
-        });
-      }
 
       colDiv.appendChild(cardDiv);
       container.appendChild(colDiv);
     });
   }
 
-  function updateMemberSummary(users) {
-    const totalNoLeave = users.filter(u => !u.LeaveStatus || u.LeaveStatus.trim() === "Musaaid didn't Contacted Yet").length;
+  // ── Table render ───────────────────────────────────────────
+  function updateUserTable(data) {
+    const tbody = document.getElementById('userTableBody');
+    tbody.innerHTML = '';
 
-    document.getElementById('totalSectorCard').innerHTML = `
-        <div class="alert alert-info p-2 mb-3 fs-5">
-            <strong>Total Members:</strong> ${users.length} 
-            <span class="badge bg-warning text-dark ms-2 fs-6">Not Contacted: ${totalNoLeave}</span>
-        </div>
-    `;
-  }
-
-  function updateUserTable(users) {
-    const body = document.getElementById('userTableBody');
-    body.innerHTML = '';
-
-    if (users.length === 0) {
-      const row = body.insertRow();
-      const cell = row.insertCell();
-      cell.colSpan = 12;
-      cell.className = 'text-center py-4 text-muted';
-      cell.textContent = 'No members found matching your criteria';
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">No members found.</td></tr>';
       return;
     }
 
-    users.forEach((user, index) => {
-      const row = body.insertRow();
-      let rowClass = '';
+    data.forEach((user, index) => {
+      const row = document.createElement('tr');
 
-      if (!user.LeaveStatus || user.LeaveStatus.trim() === "Musaaid didn't Contacted Yet") {
-        rowClass += ' no-leave';
-      }
-      if (user.HOF_FM_TYPE === 'HOF') {
-        rowClass += ' hof-row';
-      } else if (user.HOF_FM_TYPE === 'FM') {
-        rowClass += ' fm-row';
-      }
+      const type = user.HOF_FM_TYPE || '';
+      if (type === 'HOF') row.classList.add('hof-row');
+      else if (type === 'FM') row.classList.add('fm-row');
 
-      row.className = rowClass;
-
-      // S.No.
-      row.insertCell().textContent = index + 1;
-
-      // ITS
-      row.insertCell().textContent = user.ITS || '';
-
-      // Type with badge
-      const typeCell = row.insertCell();
-      if (user.HOF_FM_TYPE === 'HOF') {
-        typeCell.innerHTML = '<span class="badge bg-primary">HOF</span>';
-      } else if (user.HOF_FM_TYPE === 'FM') {
-        typeCell.innerHTML = '<span class="badge bg-info text-dark">FM</span>';
+      const leaveStatus = user.LeaveStatus || '';
+      if (!leaveStatus || leaveStatus.trim() === '' || leaveStatus === "Musaaid didn't Contacted Yet") {
+        row.classList.add('no-leave');
       }
 
-      // HOF ID
-      row.insertCell().textContent = user.HOF_ID || '';
+      const statusBadgeColor = getStatusBadgeColor(leaveStatus);
 
-      // Name
-      row.insertCell().textContent = user.Full_Name || user.Name || '';
+      row.innerHTML = `
+        <td>${index + 1}</td>
+        <td>${escapeHtml(user.ITS)}</td>
+        <td><span class="badge ${type === 'HOF' ? 'bg-primary' : 'bg-secondary'}">${escapeHtml(type)}</span></td>
+        <td>${escapeHtml(user.HOF_ID)}</td>
+        <td>${escapeHtml(user.Full_Name)}</td>
+        <td>${escapeHtml(user.Age)}</td>
+        <td>${escapeHtml(user.Mobile)}</td>
+        <td>${escapeHtml(user.Sector)}</td>
+        <td>${escapeHtml(user.Sub_Sector)}</td>
+        <td><span class="badge badge-status" style="background-color:${statusBadgeColor};color:#fff;">${escapeHtml(leaveStatus || 'No Status')}</span></td>
+        <td>${escapeHtml(user.Comment)}</td>
+        <td>
+          <a href="<?= base_url($view_member_base) ?>${escapeHtml(user.ITS)}" class="btn btn-sm btn-outline-primary action-btn" onclick="event.stopPropagation()">
+            <i class="fa-solid fa-eye"></i> View
+          </a>
+        </td>
+      `;
 
-      // Age
-      row.insertCell().textContent = user.Age || '';
-
-      // Mobile
-      row.insertCell().textContent = user.Mobile || '';
-
-      // Sector
-      row.insertCell().textContent = user.Sector || '';
-
-      // Sub
-      row.insertCell().textContent = user.Sub_Sector || '';
-
-      // Status with colored badge
-      const statusCell = row.insertCell();
-      if (user.LeaveStatus) {
-        let badgeClass = 'bg-secondary text-white';
-
-        switch (user.LeaveStatus.trim()) {
-          case 'Will attend all 9 Days':
-            badgeClass = 'bg-success';
-            break;
-          case 'Will attend few Days only':
-            badgeClass = 'bg-warning text-dark';
-            break;
-          case 'Will not attend any Day':
-            badgeClass = 'bg-danger';
-            break;
-          case 'Not answering calls or messages':
-            badgeClass = 'bg-dark text-white';
-            break;
-          case "Musaaid didn't Contacted Yet":
-            badgeClass = 'bg-secondary text-white';
-            break;
-          case 'Bed Ridden':
-            badgeClass = 'bg-danger-subtle text-dark';
-            break;
-          case 'Not in Town':
-            badgeClass = 'bg-info text-dark';
-            break;
-          case 'Ashara with Maula tus':
-            badgeClass = 'bg-primary';
-            break;
-          case 'Married Outcaste':
-            badgeClass = 'bg-light text-muted border';
-            break;
-          case 'Wafaat':
-            badgeClass = 'bg-black text-white';
-            break;
-          default:
-            badgeClass = 'bg-secondary text-white';
-        }
-
-        statusCell.innerHTML = `<span class="badge ${badgeClass} badge-status">${user.LeaveStatus}</span>`;
-      }
-
-
-      // Comment (truncated if long)
-      const commentCell = row.insertCell();
-      if (user.Comment && user.Comment.length > 30) {
-        commentCell.textContent = user.Comment.substring(0, 27) + '...';
-        commentCell.title = user.Comment;
-      } else {
-        commentCell.textContent = user.Comment || '';
-      }
-
-      // Action button
-      const actionCell = row.insertCell();
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-sm btn-primary action-btn';
-      btn.textContent = 'Edit';
-      btn.onclick = () => openModal(user);
-      actionCell.appendChild(btn);
-
-      // Make the whole row clickable except action buttons
-      row.addEventListener('click', function(e) {
-        if (!e.target.closest('a, button, input, select, textarea, label')) {
-          window.location.href = '<?php echo base_url($view_member_base); ?>' + user.ITS;
-        }
+      row.addEventListener('click', function() {
+        openEditModal(user);
       });
+
+      tbody.appendChild(row);
     });
   }
 
-  function sortTable(col) {
-    const dir = sortDirection[col] === 'asc' ? 'desc' : 'asc';
-    sortDirection[col] = dir;
+  function getStatusBadgeColor(status) {
+    const map = {
+      'Will attend all 9 Days':            '#2e7d32',
+      'Will attend few Days only':         '#f57c00',
+      'Will not attend any Day':           '#c62828',
+      'Not answering calls or messages':   '#6a1b9a',
+      "Musaaid didn't Contacted Yet":      '#78909c',
+      'Ashara with Maula tus':             '#0277bd',
+    };
+    return map[status] || '#78909c';
+  }
 
-    let filtered = [...originalData];
-
-    // Apply current filters before sorting
-    if (currentSectorFilter) {
-      filtered = filtered.filter(user => user.Sector === currentSectorFilter);
+  // ── Sort ───────────────────────────────────────────────────
+  function sortTable(key) {
+    if (currentSortKey === key) {
+      currentSortDir = -currentSortDir;
+    } else {
+      currentSortKey = key;
+      currentSortDir = 1;
     }
+
+    let filtered = originalData;
+    if (currentSectorFilter)    filtered = filtered.filter(u => u.Sector     === currentSectorFilter);
+    if (currentSubSectorFilter) filtered = filtered.filter(u => u.Sub_Sector === currentSubSectorFilter);
     if (currentStatusFilter) {
       if (currentStatusFilter === 'no-status') {
-        filtered = filtered.filter(user => !user.LeaveStatus || user.LeaveStatus.trim() === "Musaaid didn't Contacted Yet");
+        filtered = filtered.filter(u => !u.LeaveStatus || u.LeaveStatus.trim() === "Musaaid didn't Contacted Yet");
       } else {
-        filtered = filtered.filter(user => user.LeaveStatus === currentStatusFilter);
+        filtered = filtered.filter(u => u.LeaveStatus === currentStatusFilter);
       }
     }
 
+    const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+    if (keyword) {
+      filtered = filtered.filter(u => {
+        const fields = ['ITS','HOF_FM_TYPE','HOF_ID','Full_Name','Name','Mobile','Sector','Sub_Sector','LeaveStatus','Comment'];
+        return fields.some(f => (u[f] ? u[f].toString().toLowerCase() : '').includes(keyword));
+      });
+    }
+
     filtered.sort((a, b) => {
-      const valA = (a[col] || '').toString().toLowerCase();
-      const valB = (b[col] || '').toString().toLowerCase();
-      return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      const av = a[key] || '';
+      const bv = b[key] || '';
+      if (!isNaN(av) && !isNaN(bv)) return currentSortDir * (Number(av) - Number(bv));
+      return currentSortDir * String(av).localeCompare(String(bv));
     });
 
     updateUserTable(filtered);
   }
 
-  function openModal(user) {
-    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
-    const container = document.getElementById('userDetailsFields');
-    container.innerHTML = '';
+  // ── Edit modal ─────────────────────────────────────────────
+  function openEditModal(user) {
+    const fieldsContainer = document.getElementById('userDetailsFields');
+    fieldsContainer.innerHTML = '';
+    document.getElementById('modal_ITS').value = user.ITS;
 
-    // LeaveStatus dropdown
-    const leaveOptions = [
-      'Will attend all 9 Days',
-      'Not answering calls or messages',
-      "Musaaid didn't Contacted Yet",
-      'Will attend few Days only',
-      'Will not attend any Day',
-      'Ashara with Maula tus',
+    const editableFields = [
+      { key: 'LeaveStatus', label: 'Ohbat Status', type: 'select', options: [
+        '', 'Will attend all 9 Days', 'Will attend few Days only', 'Will not attend any Day',
+        'Not answering calls or messages', "Musaaid didn't Contacted Yet", 'Ashara with Maula tus',
+        'Bed Ridden', 'Not in Town', 'Married Outcaste', 'Wafaat'
+      ]},
+      { key: 'Comment', label: 'Comment', type: 'textarea' },
     ];
 
-    const leaveCol = document.createElement('div');
-    leaveCol.className = 'col-12 mb-3';
-    leaveCol.innerHTML = `
-                <label class="form-label fw-bold">Ohbat Status</label>
-                <select name="LeaveStatus" id="LeaveStatus" class="form-control form-select">
-                    <option value="">-- Select Ohbat --</option>
-                    ${leaveOptions.map(opt => `
-                        <option value="${opt}" ${user.LeaveStatus === opt ? 'selected' : ''}>${opt}</option>
-                    `).join('')}
-                </select>
-            `;
-    container.appendChild(leaveCol);
+    const readonlyFields = [
+      { key: 'ITS',         label: 'ITS'         },
+      { key: 'Full_Name',   label: 'Full Name'   },
+      { key: 'HOF_FM_TYPE', label: 'Type'        },
+      { key: 'HOF_ID',      label: 'HOF ID'      },
+      { key: 'Age',         label: 'Age'          },
+      { key: 'Gender',      label: 'Gender'       },
+      { key: 'Mobile',      label: 'Mobile'       },
+      { key: 'Sector',      label: 'Sector'       },
+      { key: 'Sub_Sector',  label: 'Sub-Sector'  },
+    ];
 
-    // Comment textarea
-    const commentCol = document.createElement('div');
-    commentCol.className = 'col-12 mb-3';
-    commentCol.innerHTML = `
-                <label class="form-label fw-bold">Comments</label>
-                <textarea name="Comment" id="Comment" class="form-control" rows="4" 
-                          placeholder="Add any additional comments here...">${user.Comment || ''}</textarea>
-            `;
-    container.appendChild(commentCol);
+    readonlyFields.forEach(f => {
+      const col = document.createElement('div');
+      col.className = 'col-md-6';
+      col.innerHTML = `
+        <label class="form-label fw-semibold" style="font-size:.8rem;color:var(--text-3);">${f.label}</label>
+        <input type="text" class="form-control form-control-sm" value="${escapeHtml(user[f.key] || '')}" readonly style="background:var(--surface-2);">
+      `;
+      fieldsContainer.appendChild(col);
+    });
 
-    // Read-only user info
-    const infoCol = document.createElement('div');
-    infoCol.className = 'col-12';
-    infoCol.innerHTML = `
-                <div class="card bg-light p-3">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>Name:</strong> ${user.Full_Name || user.Name || ''}</p>
-                            <p><strong>ITS:</strong> ${user.ITS || ''}</p>
-                            <p><strong>HOF ID:</strong> ${user.HOF_ID || ''}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>Age:</strong> ${user.Age || ''}</p>
-                            <p><strong>Mobile:</strong> ${user.Mobile || ''}</p>
-                            <p><strong>Sector:</strong> ${user.Sector || ''} ${user.Sub_Sector ? '(' + user.Sub_Sector + ')' : ''}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-    container.appendChild(infoCol);
+    editableFields.forEach(f => {
+      const col = document.createElement('div');
+      col.className = 'col-md-6';
+      let inputHtml = '';
+      if (f.type === 'select') {
+        const opts = f.options.map(o =>
+          `<option value="${escapeHtml(o)}" ${user[f.key] === o ? 'selected' : ''}>${escapeHtml(o) || '-- Select --'}</option>`
+        ).join('');
+        inputHtml = `<select name="${f.key}" class="form-control form-select form-select-sm">${opts}</select>`;
+      } else if (f.type === 'textarea') {
+        inputHtml = `<textarea name="${f.key}" class="form-control form-control-sm" rows="3">${escapeHtml(user[f.key] || '')}</textarea>`;
+      }
+      col.innerHTML = `<label class="form-label fw-semibold" style="font-size:.8rem;color:var(--text-2);">${f.label}</label>${inputHtml}`;
+      fieldsContainer.appendChild(col);
+    });
 
-    document.getElementById('modal_ITS').value = user.ITS;
+    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
     modal.show();
   }
 
+  // ── Form submit ────────────────────────────────────────────
   document.getElementById('userDetailsForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    // Append selected year (if present) so backend can scope by year
-    try {
-      var ySel = document.getElementById('yearSelect');
-      if(ySel && !formData.has('year')){
-        formData.append('year', ySel.value);
-      }
-    } catch(err) {}
+    const formData = new FormData(this);
+    const its = document.getElementById('modal_ITS').value;
+    formData.append('ITS', its);
 
-    fetch('<?php echo base_url('MasoolMusaid/update_ashara_ohbat_details') ?>', {
-        method: 'POST',
-        body: formData
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          alert('User details updated successfully');
-          location.reload();
-        } else {
-          alert('Update failed: ' + (data.message || 'Please try again'));
+    fetch('<?= base_url($role_segment . "/update_ashara_status") ?>', {
+      method: 'POST',
+      body: formData
+    })
+    .then(r => r.json())
+    .then(resp => {
+      if (resp.success) {
+        // Update in-memory data
+        const idx = originalData.findIndex(u => String(u.ITS) === String(its));
+        if (idx !== -1) {
+          formData.forEach((val, key) => { if (key !== 'ITS') originalData[idx][key] = val; });
         }
-      })
-      .catch(error => {
-        alert('Error occurred: ' + error.message);
-      });
+        bootstrap.Modal.getInstance(document.getElementById('userDetailsModal')).hide();
+        performSearch();
+        alert('Updated successfully!');
+      } else {
+        alert('Update failed: ' + (resp.message || 'Unknown error'));
+      }
+    })
+    .catch(() => alert('Network error. Please try again.'));
   });
 </script>
