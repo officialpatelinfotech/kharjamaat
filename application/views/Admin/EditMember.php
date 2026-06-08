@@ -491,7 +491,7 @@ if (empty($redirect)) {
         <div class="panel-hd open" data-pt="remarks-content" style="background: var(--red-bg); border-bottom-color: rgba(185, 28, 28, 0.15);">
           <div class="ph-left">
             <span class="ph-icon" style="background: rgba(185, 28, 28, 0.1); color: var(--red);"><i class="fa fa-lock"></i></span>
-            <span class="ph-title" style="color: var(--red); font-weight: 800;">Confidential Remarks &amp; Notes</span>
+            <span class="ph-title" style="color: var(--red); font-weight: 800;">Comments/Remarks</span>
             <span class="ph-badge" style="background: rgba(185, 28, 28, 0.15); color: var(--red);"><?php echo count($comments); ?></span>
           </div>
           <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
