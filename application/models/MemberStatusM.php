@@ -308,6 +308,7 @@ class MemberStatusM extends CI_Model
             'Moved for Job',
             'Moved for Studies',
             'Moved after Marriage',
+            'Moved Permanently but not taken transfer',
             'Permanently moved but ITS not Transferred',
             'Permanently Moved and ITS also Transferred',
             'Permanently Migrated',

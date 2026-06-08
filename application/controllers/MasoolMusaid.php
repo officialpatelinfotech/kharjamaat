@@ -229,6 +229,43 @@ class MasoolMusaid extends CI_Controller
       $subsector = $matches[2];
     }
 
+    $incharge_male = '';
+    $incharge_female = '';
+    if ($subsector !== '') {
+      $row = $this->db->select('Sub_Sector_Incharge_Name, Sub_Sector_Incharge_Female_Name')
+                      ->from('user')
+                      ->where('Sector', $sector)
+                      ->where('Sub_Sector', $subsector)
+                      ->group_start()
+                        ->where("Sub_Sector_Incharge_Name != '' AND Sub_Sector_Incharge_Name IS NOT NULL")
+                        ->or_where("Sub_Sector_Incharge_Female_Name != '' AND Sub_Sector_Incharge_Female_Name IS NOT NULL")
+                      ->group_end()
+                      ->limit(1)
+                      ->get()
+                      ->row_array();
+      if ($row) {
+        $incharge_male = trim($row['Sub_Sector_Incharge_Name'] ?? '');
+        $incharge_female = trim($row['Sub_Sector_Incharge_Female_Name'] ?? '');
+      }
+    } else {
+      $row = $this->db->select('Sector_Incharge_Name, Sector_Incharge_Female_Name')
+                      ->from('user')
+                      ->where('Sector', $sector)
+                      ->group_start()
+                        ->where("Sector_Incharge_Name != '' AND Sector_Incharge_Name IS NOT NULL")
+                        ->or_where("Sector_Incharge_Female_Name != '' AND Sector_Incharge_Female_Name IS NOT NULL")
+                      ->group_end()
+                      ->limit(1)
+                      ->get()
+                      ->row_array();
+      if ($row) {
+        $incharge_male = trim($row['Sector_Incharge_Name'] ?? '');
+        $incharge_female = trim($row['Sector_Incharge_Female_Name'] ?? '');
+      }
+    }
+    $data['incharge_male'] = $incharge_male;
+    $data['incharge_female'] = $incharge_female;
+
     $sectorsData = $this->MasoolMusaidM->get_sectors_stats($sector, $subsector);
     $subSectorsData = $this->MasoolMusaidM->get_sub_sectors_stats($sector, $subsector);
 
@@ -288,6 +325,43 @@ class MasoolMusaid extends CI_Controller
     $data['current_sub_sector'] = $subsector;
     $data['marital_status_counts'] = $this->MasoolMusaidM->get_marital_status_distribution($sector, $subsector);
     $data['year_daytype_stats'] = $this->CommonM->get_year_calendar_daytypes();
+
+    // ── Husaini Scheme stats for dashboard ─────────────────
+    $this->load->model('QardanHasanaM');
+ 
+    // All active members in this sector/subsector
+    $husaini_members = $this->MasoolMusaidM->get_members_for_husaini($sector, $subsector);
+ 
+    // All ITS that have ever paid into Husaini scheme
+    $husaini_payers_list = $this->MasoolMusaidM->get_husaini_payer_its_list();
+    $husaini_payers_set  = array_flip($husaini_payers_list);
+ 
+    $husaini_active_given     = 0;
+    $husaini_active_not_given = 0;
+ 
+    foreach ($husaini_members as $m) {
+        $its = (string)($m['ITS_ID'] ?? '');
+ 
+        // Determine active status (same logic as qardanhasana controller)
+        $inactive_status = trim((string)($m['Inactive_Status']   ?? ''));
+        $activity_status = strtolower(trim((string)($m['activity_status'] ?? '')));
+        $is_active = ($inactive_status === '')
+                  && ($activity_status === '' || $activity_status === 'active');
+ 
+        if (!$is_active) continue; // only count active members
+ 
+        if (isset($husaini_payers_set[$its])) {
+            $husaini_active_given++;
+        } else {
+            $husaini_active_not_given++;
+        }
+    }
+ 
+    $data['husaini_stats'] = [
+        'active_given'     => $husaini_active_given,
+        'active_not_given' => $husaini_active_not_given,
+        'active_total'     => $husaini_active_given + $husaini_active_not_given,
+    ];
  
      $this->load->view('MasoolMusaid/Header', $data);
      $this->load->view('MasoolMusaid/Home', $data);
@@ -644,9 +718,7 @@ class MasoolMusaid extends CI_Controller
         'Attended in Khar on Time',
         'Attended in Khar Late',
         'Attended in Other Jamaat',
-        'Not attended anywhere',
-        'Not in Town',
-        'Married Outcaste'
+        'Not attended anywhere'
       ],
       'all_sub_sectors' => $this->MasoolMusaidM->get_all_sub_sectors($sel_sector),
       // Year dropdown support (UI only)
@@ -1203,5 +1275,57 @@ class MasoolMusaid extends CI_Controller
     $data['family_financials'] = $this->AdminM->get_family_financial_data($its_id, array_column($data['family_members'], 'ITS_ID'));
     $this->load->view('MasoolMusaid/Header', $data);
     $this->load->view('Admin/ViewMember', $data);
+  }
+
+  public function qardanhasana()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      redirect('/accounts');
+    }
+ 
+    $username  = $_SESSION['user']['username'];
+    $sector    = '';
+    $subsector = '';
+    if (preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $m)) {
+      $sector    = $m[1];
+      $subsector = strtoupper($m[2]);
+    }
+ 
+    $this->load->model('QardanHasanaM');
+ 
+    // Only active members returned from model
+    $members = $this->MasoolMusaidM->get_members_for_husaini($sector, $subsector);
+ 
+    // ITS that have ever paid
+    $payers_set = array_flip(
+      $this->MasoolMusaidM->get_husaini_payer_its_list()
+    );
+ 
+    $total     = 0;
+    $given     = 0;
+    $not_given = 0;
+ 
+    foreach ($members as &$member) {
+      $its               = (string)($member['ITS_ID'] ?? '');
+      $member['has_given'] = isset($payers_set[$its]);
+      $total++;
+      $member['has_given'] ? $given++ : $not_given++;
+    }
+    unset($member);
+ 
+    $data = [
+      'user_name' => $username,
+      'sector'    => $sector,
+      'subsector' => $subsector,
+      'members'   => $members,
+      'summary'   => [
+        'total'     => $total,
+        'given'     => $given,
+        'not_given' => $not_given,
+      ],
+    ];
+ 
+    $this->load->view('MasoolMusaid/Header', $data);
+    $this->load->view('MasoolMusaid/QardanHasana/Husaini', $data);
   }
 }

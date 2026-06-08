@@ -362,6 +362,13 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
   </div>
 <?php else: ?>
 <?php
+  if (!class_exists('MemberStatusM')) {
+    CI_Controller::get_instance()->load->model('MemberStatusM');
+  }
+  $deeni_status_options       = MemberStatusM::deeni_status_options();
+  $health_status_options      = MemberStatusM::health_status_options();
+  $residential_status_options = MemberStatusM::residential_status_options();
+
   $humanize = function($key) {
     $k = str_replace(['_id','_'], [' ID',' '], $key);
     $k = preg_replace('/\s+/', ' ', trim($k));
@@ -372,6 +379,9 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
     $parts = preg_split('/\s+/', trim($name));
     if(count($parts)===1) return strtoupper(substr($parts[0],0,1));
     return strtoupper(substr($parts[0],0,1).substr($parts[count($parts)-1],0,1));
+  };
+  $stripActiveInactive = function($str) {
+    return trim(preg_replace('/\s*\((Active|Inactive)\)\s*$/i', '', $str));
   };
 
   $hof_id = !empty($member['HOF_ID']) ? $member['HOF_ID'] : $member['ITS_ID'];
@@ -575,18 +585,13 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
   </div>
 </div>
 
-<!-- ── Status Pills ── -->
+<!-- ── Status pills ── -->
 <div class="status-strip">
-  <?php if($its_match): ?>
-    <span class="spill <?php echo $matchCls; ?>"><i class="fa fa-link"></i> <?php echo htmlspecialchars($matchLbl); ?></span>
-  <?php endif; ?>
-  <?php if($actStatus): ?>
-    <span class="spill <?php echo $actCls; ?>"><i class="fa fa-circle"></i> <?php echo ucfirst(htmlspecialchars($actStatus)); ?></span>
-  <?php endif; ?>
-  <?php if(!empty($member['HOF_FM_TYPE'])): ?>
-    <span class="spill info"><i class="fa fa-home"></i> <?php echo htmlspecialchars($member['HOF_FM_TYPE']); ?></span>
-  <?php endif; ?>
+  <span class="spill <?php echo $matchCls; ?>"><i class="fa fa-link"></i> <?php echo htmlspecialchars($matchLbl); ?></span>
+  <span class="spill <?php echo $actCls; ?>"><i class="fa fa-circle"></i> <?php echo ucfirst(htmlspecialchars($actStatus)); ?></span>
+  <?php if(!empty($member['HOF_FM_TYPE'])): ?><span class="spill info"><i class="fa fa-home"></i> <?php echo htmlspecialchars($member['HOF_FM_TYPE']); ?></span><?php endif; ?>
 </div>
+
 
 <!-- ── Status Panel (full width) ── -->
 <div class="panel">
@@ -612,16 +617,34 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
       <?php if($show_deeni_status): ?>
       <div class="sg-item">
         <div class="sg-label">Deeni Status <span class="sg-badge sensitive">Sensitive</span></div>
-        <div class="sg-val <?php echo empty($member['deeni_status'])?'muted':''; ?>"><?php echo htmlspecialchars($member['deeni_status'] ?? '—'); ?></div>
+        <div class="sg-val <?php echo empty($member['deeni_status'])?'muted':''; ?>">
+          <?php
+            $deeniVal = $member['deeni_status'] ?? '';
+            $deeniLabel = !empty($deeniVal) ? ($deeni_status_options[$deeniVal] ?? $deeniVal) : '—';
+            echo htmlspecialchars($stripActiveInactive($deeniLabel));
+          ?>
+        </div>
       </div>
       <?php endif; ?>
       <div class="sg-item">
         <div class="sg-label">Health Status <span class="sg-badge manual">Manual</span></div>
-        <div class="sg-val <?php echo empty($member['health_status'])?'muted':''; ?>"><?php echo htmlspecialchars($member['health_status'] ?? '—'); ?></div>
+        <div class="sg-val <?php echo empty($member['health_status'])?'muted':''; ?>">
+          <?php
+            $healthVal = $member['health_status'] ?? '';
+            $healthLabel = !empty($healthVal) ? ($health_status_options[$healthVal] ?? $healthVal) : '—';
+            echo htmlspecialchars($stripActiveInactive($healthLabel));
+          ?>
+        </div>
       </div>
       <div class="sg-item">
         <div class="sg-label">Residential Status <span class="sg-badge manual">Manual</span></div>
-        <div class="sg-val <?php echo empty($member['residential_status'])?'muted':''; ?>"><?php echo htmlspecialchars($member['residential_status'] ?? '—'); ?></div>
+        <div class="sg-val <?php echo empty($member['residential_status'])?'muted':''; ?>">
+          <?php
+            $resVal = $member['residential_status'] ?? '';
+            $resLabel = !empty($resVal) ? ($residential_status_options[$resVal] ?? $resVal) : '—';
+            echo htmlspecialchars($stripActiveInactive($resLabel));
+          ?>
+        </div>
       </div>
     </div>
   </div>
@@ -654,7 +677,7 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
             <?php echo htmlspecialchars($fmName); ?>
             <?php if($fmHof): ?><span class="fm-hof">HOF</span><?php endif; ?>
           </div>
-          <div class="fm-its">ITS: <?php echo htmlspecialchars($fm['ITS_ID']??''); ?></div>
+          <div class="fm-its">ITS: <?php echo htmlspecialchars($fm['ITS_ID']??''); ?><?php echo !empty($fm['Age']) ? ' &bull; Age: ' . htmlspecialchars($fm['Age']) : ''; ?></div>
         </div>
       </a>
       <?php endforeach; ?>

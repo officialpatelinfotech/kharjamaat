@@ -46,10 +46,18 @@
 </style>
 
 <div class="container margintopcontainer pt-5 member-summary-wrap">
-  <div class="d-flex align-items-center mb-3">
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap" style="gap: 10px;">
     <a href="<?php echo base_url('accounts/home'); ?>" class="btn btn-outline-secondary me-2"><i class="fa-solid fa-arrow-left"></i></a>
+    <div class="d-flex align-items-center">
+      <label for="yearSelect" class="me-2 mb-0 font-weight-bold" style="white-space: nowrap; font-size: 0.9rem;">Hijri Year:</label>
+      <select id="yearSelect" class="form-control form-select form-select-sm" onchange="location.href='?year='+this.value;" style="width: auto; display: inline-block;">
+        <?php foreach ($available_years as $y): ?>
+          <option value="<?= $y ?>" <?= $y == $selected_year ? 'selected' : '' ?>><?= $y ?> H</option>
+        <?php endforeach; ?>
+      </select>
+    </div>
   </div>
-  <h4 class="text-center mb-3 member-summary-title">Wajebaat Details</h4>
+  <h4 class="text-center mb-3 member-summary-title">Wajebaat Details (<?= $selected_year ?> H)</h4>
   <?php
   $tot_assigned = isset($wajebaat['amount']) ? (float)$wajebaat['amount'] : 0;
   $tot_due      = isset($wajebaat['due']) ? (float)$wajebaat['due'] : null;

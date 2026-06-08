@@ -2382,8 +2382,18 @@ class Admin extends CI_Controller
   {
     $this->validateUser($_SESSION['user']);
     $this->load->model('WajebaatM');
+    $this->load->model('HijriCalendar');
+
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $data['selected_year'] = $selected_year;
+    $data['available_years'] = $this->WajebaatM->get_years();
+
     $data['user_name'] = $_SESSION['user']['username'];
-    $data['wajebaat'] = $this->WajebaatM->get_all();
+    $data['wajebaat'] = $this->WajebaatM->get_all($selected_year);
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Wajebaat', $data);
   }
@@ -2422,6 +2432,13 @@ class Admin extends CI_Controller
         redirect('admin/wajebaat_import');
         return;
       }
+      $year = (int)$this->input->post('year');
+      if ($year <= 0) {
+        $this->load->model('HijriCalendar');
+        $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+        $parts = explode('-', $today_hijri['hijri_date']);
+        $year = (int)$parts[2];
+      }
       $processed = 0;
       $inserted = 0;
       $updated = 0;
@@ -2442,7 +2459,7 @@ class Admin extends CI_Controller
             $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
             $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
             if ($isValidIts($its)) {
-              $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
+              $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due, 'year' => $year]);
               if ($res['action'] === 'inserted') $inserted++;
               elseif ($res['action'] === 'updated') $updated++;
             } else {
@@ -2458,7 +2475,7 @@ class Admin extends CI_Controller
         $amount = isset($row[1]) ? (float)str_replace(',', '', $row[1]) : 0;
         $due = isset($row[2]) ? (float)str_replace(',', '', $row[2]) : 0;
         if ($isValidIts($its)) {
-          $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due]);
+          $res = $this->WajebaatM->upsert(['ITS_ID' => $its, 'amount' => $amount, 'due' => $due, 'year' => $year]);
           if ($res['action'] === 'inserted') $inserted++;
           elseif ($res['action'] === 'updated') $updated++;
         } else {
@@ -2466,10 +2483,19 @@ class Admin extends CI_Controller
         }
       }
       fclose($fh);
-      $this->session->set_flashdata('message', "Import completed: $inserted inserted, $updated updated, $skipped skipped from $processed rows");
+      $this->session->set_flashdata('message', "Import completed: $inserted inserted, $updated updated, $skipped skipped from $processed rows for year $year");
       redirect('admin/wajebaat');
       return;
     }
+
+    $this->load->model('HijriCalendar');
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_get_year = (int)$this->input->get('year');
+    $data['current_hijri_year'] = $selected_get_year ?: $current_hijri_year;
+    $data['available_years'] = $this->WajebaatM->get_years();
 
     $data['message'] = $this->session->flashdata('message');
     $data['error'] = $this->session->flashdata('error');
@@ -2481,15 +2507,22 @@ class Admin extends CI_Controller
   {
     $this->validateUser($_SESSION['user']);
     $this->load->model('WajebaatM');
-    $rows = $this->WajebaatM->get_all();
+    $this->load->model('HijriCalendar');
+
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $rows = $this->WajebaatM->get_all($selected_year);
 
     header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename=wajebaat_export_' . date('Ymd_His') . '.csv');
+    header('Content-Disposition: attachment; filename=wajebaat_export_' . $selected_year . '_' . date('Ymd_His') . '.csv');
     echo "\xEF\xBB\xBF"; // BOM
     $out = fopen('php://output', 'w');
-    fputcsv($out, ['id', 'ITS_ID', 'amount', 'due', 'created_at']);
+    fputcsv($out, ['id', 'ITS_ID', 'amount', 'due', 'year', 'created_at']);
     foreach ($rows as $r) {
-      fputcsv($out, [$r['id'], $r['ITS_ID'], $r['amount'], $r['due'], $r['created_at']]);
+      fputcsv($out, [$r['id'], $r['ITS_ID'], $r['amount'], $r['due'], $r['year'], $r['created_at']]);
     }
     fclose($out);
     exit;
@@ -2524,9 +2557,15 @@ class Admin extends CI_Controller
       redirect('admin/wajebaat_import');
       return;
     }
-    // Truncate table (remove all rows)
-    $this->db->query('TRUNCATE TABLE `wajebaat`');
-    $this->session->set_flashdata('message', 'All Wajebaat records deleted');
+    
+    $year = (int)$this->input->post('year');
+    if ($year > 0) {
+      $this->db->where('year', $year)->delete('wajebaat');
+      $this->session->set_flashdata('message', 'Wajebaat records for Hijri Year ' . $year . ' deleted');
+    } else {
+      $this->db->query('TRUNCATE TABLE `wajebaat`');
+      $this->session->set_flashdata('message', 'All Wajebaat records deleted');
+    }
     redirect('admin/wajebaat');
   }
 
@@ -2534,6 +2573,21 @@ class Admin extends CI_Controller
   {
     $remark = trim($_POST['remark']);
     $raza_id = $_POST['raza_id'];
+
+    // Enforce that Umoor logins can only approve Raza belonging to their own Umoor
+    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $razaRow = $this->db->select('razaType')->from('raza')->where('id', $raza_id)->get()->row_array();
+      if (!empty($razaRow)) {
+        $allowed = $this->db->where('id', (int)$razaRow['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+        if (!$allowed) {
+          show_error('You do not have permission to approve this Raza request.');
+        }
+      } else {
+        show_error('Raza request not found.');
+      }
+    }
+
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
     $this->load->helper('raza_details');
     $razaRow = $this->db->select('id, raza_id, user_id, razaType, razadata, miqaat_id')
@@ -2726,6 +2780,21 @@ class Admin extends CI_Controller
   {
     $remark = trim($_POST['remark']);
     $raza_id = $_POST['raza_id'];
+
+    // Enforce that Umoor logins can only reject Raza belonging to their own Umoor
+    if (!empty($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $razaRow = $this->db->select('razaType')->from('raza')->where('id', $raza_id)->get()->row_array();
+      if (!empty($razaRow)) {
+        $allowed = $this->db->where('id', (int)$razaRow['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+        if (!$allowed) {
+          show_error('You do not have permission to reject this Raza request.');
+        }
+      } else {
+        show_error('Raza request not found.');
+      }
+    }
+
     $flag = $this->AdminM->reject_raza($raza_id, $remark);
 
     $user = $this->AdminM->get_user_by_raza_id($raza_id);
@@ -4266,26 +4335,65 @@ HTML;
 
   public function managemembers()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
-    // Collect filters from query string
-    $filters = [
-      'name' => $this->input->get('name'),
-      'sector' => $this->input->get('sector'),
-      'sub_sector' => $this->input->get('sub_sector'),
-      'status' => $this->input->get('status'),
-      'hof' => $this->input->get('hof'),
-    ];
+    
+    $this->load->model('AmilsahebM');
 
-    // Fetch filtered members & filter metadata
-    $data['members'] = $this->AdminM->get_members_filtered($filters);
-    $data['filter_meta'] = $this->AdminM->get_member_filter_meta();
-    $data['applied_filters'] = $filters;
+    // Load users list (support filtering via GET or POST search)
+    if ($this->input->post('search')) {
+      $keyword = $this->input->post('search');
+      $data['users'] = $this->AmilsahebM->search_users($keyword);
+    } elseif (!empty($this->input->get())) {
+      $data['users'] = $this->AmilsahebM->get_users_filtered($this->input->get());
+    } else {
+      $data['users'] = $this->AmilsahebM->get_all_users();
+    }
+    $data['all_users'] = $this->AmilsahebM->get_all_users();
+
+    // Fetch and merge LeaveStatus for the current/selected Hijri Year
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $hijri_parts = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts[2];
+    $current_hijri_month = (int)$hijri_parts[1];
+    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year);
+
+    $ohbat_rows = $this->db->where('year', $selected_year)->get('ashara_ohbat')->result_array();
+    $ohbat_map = [];
+    foreach ($ohbat_rows as $row) {
+      $ohbat_map[$row['ITS']] = $row['LeaveStatus'];
+    }
+
+    if (isset($data['users']) && is_array($data['users'])) {
+      foreach ($data['users'] as &$u) {
+        $its = isset($u->ITS_ID) ? $u->ITS_ID : (isset($u['ITS_ID']) ? $u['ITS_ID'] : (isset($u['ITS']) ? $u['ITS'] : null));
+        $val = isset($ohbat_map[$its]) && !empty($ohbat_map[$its]) ? $ohbat_map[$its] : "Musaaid didn't Contacted Yet";
+        if (is_object($u)) $u->LeaveStatus = $val;
+        else $u['LeaveStatus'] = $val;
+      }
+      unset($u);
+    }
+
+    if (isset($data['all_users']) && is_array($data['all_users'])) {
+      foreach ($data['all_users'] as &$u) {
+        $its = isset($u->ITS_ID) ? $u->ITS_ID : (isset($u['ITS_ID']) ? $u['ITS_ID'] : (isset($u['ITS']) ? $u['ITS'] : null));
+        $val = isset($ohbat_map[$its]) && !empty($ohbat_map[$its]) ? $ohbat_map[$its] : "Musaaid didn't Contacted Yet";
+        if (is_object($u)) $u->LeaveStatus = $val;
+        else $u['LeaveStatus'] = $val;
+      }
+      unset($u);
+    }
 
     $data['user_name'] = $_SESSION['user']['username'];
+    // Provide view params for shared directory view
+    $data['back_url'] = base_url('admin');
+    $data['update_user_url'] = base_url('admin/update_user_details');
+
     $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/ManageMembers', $data);
+    $this->load->view('Amilsaheb/Mumineendirectory', $data);
   }
   // Updated by Patel Infotech Services
 
@@ -4816,7 +4924,7 @@ HTML;
   // View single member details (read-only)
   public function viewmember($its_id = null)
   {
-    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3 && ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15))) {
       redirect('/accounts');
     }
     if (!$its_id) {
@@ -5060,7 +5168,7 @@ HTML;
   // AJAX: member search autocomplete (name or ITS ID)
   public function searchmembers()
   {
-    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3 && ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15))) {
       http_response_code(403);
       echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
       return;

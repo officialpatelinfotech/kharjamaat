@@ -1,683 +1,792 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,6..72,400;0,6..72,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* ── Golden Theme ── */
-:root {
-  --gold:         #b8860b;
-  --gold-light:   #e6c84a;
-  --gold-muted:   #f5e9c0;
-  --gold-border:  rgba(230,200,74,.35);
-  --bg:           #faf7f0;
-  --surface:      #ffffff;
-  --surface-2:    #f7f4ec;
-  --border:       #e8e0cc;
-  --border-light: #f0ece0;
-  --text-1:       #1a1610;
-  --text-2:       #5a5244;
-  --text-3:       #9c8f7a;
-  --green:        #1a6645;
-  --green-bg:     #eaf4ee;
-  --red:          #b91c1c;
-  --red-bg:       #fef2f2;
-  --blue:         #1d4ed8;
-  --blue-bg:      #eff6ff;
-  --orange:       #b45309;
-  --orange-bg:    #fff7ed;
-  --purple:       #6d28d9;
-  --purple-bg:    #f5f3ff;
-  --teal:         #0f766e;
-  --teal-bg:      #f0fdfa;
-  --pink:         #9d174d;
-  --pink-bg:      #fdf2f8;
-  --shadow-sm:    0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-  --shadow:       0 4px 16px rgba(0,0,0,.07),0 1px 4px rgba(0,0,0,.04);
-  --shadow-lg:    0 8px 32px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.05);
-  --radius:       16px;
-  --radius-sm:    10px;
-}
+#miqaatApp{font-family:'Plus Jakarta Sans',sans-serif;color:#1a1610;background:#faf7f0;min-height:calc(100vh - 57px);padding:14px 16px}
+#miqaatApp *{box-sizing:border-box}
 
-/* ── Scoped reset ── */
-#mqApp,#mqApp *,#mqApp *::before,#mqApp *::after{box-sizing:border-box;}
-#mqApp{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text-1);background:var(--bg);min-height:100vh;padding:57px 0 40px;}
-
-/* ── Full-width wrapper (12px side padding only) ── */
-#mqApp .mq-wrap{padding:0 12px;}
-@media(min-width:1400px){#mqApp .mq-wrap{padding:0 20px;}}
-
-/* ── Flash alerts ── */
-#mqApp .flash{padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:.86rem;font-weight:600;display:flex;align-items:center;gap:8px;}
-#mqApp .flash.success{background:var(--green-bg);color:var(--green);border:1px solid #86efac;}
-#mqApp .flash.error{background:var(--red-bg);color:var(--red);border:1px solid #fca5a5;}
-
-/* ── Page header banner ── */
-#mqApp .mq-header{
-  background:linear-gradient(135deg,#78520a 0%,#b8860b 50%,#c9a227 100%);
-  border-radius:20px;padding:18px 22px;margin-bottom:18px;
-  position:relative;overflow:hidden;
-  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-}
-#mqApp .mq-header::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/svg%3E") repeat;pointer-events:none;}
-#mqApp .mq-header::after{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(255,255,255,.12) 0%,transparent 70%);pointer-events:none;}
-#mqApp .mq-eyebrow{font-size:.65rem;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:3px;position:relative;z-index:1;}
-#mqApp .mq-title{font-family:'Literata',Georgia,serif;font-size:1.35rem;font-weight:600;color:#fff;line-height:1.2;margin:0;position:relative;z-index:1;}
-#mqApp .mq-title small{font-size:.85rem;font-weight:400;color:rgba(255,255,255,.7);display:block;margin-top:2px;}
-#mqApp .mq-header-actions{display:flex;align-items:center;gap:8px;position:relative;z-index:1;flex-wrap:wrap;}
-#mqApp .hdr-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:9px;font-size:.8rem;font-weight:700;text-decoration:none;transition:background .15s;white-space:nowrap;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;cursor:pointer;}
-#mqApp .hdr-btn:hover{background:rgba(255,255,255,.28);color:#fff;text-decoration:none;}
-#mqApp .hdr-btn.primary{background:rgba(255,255,255,.92);color:var(--gold);border-color:rgba(255,255,255,.6);}
-#mqApp .hdr-btn.primary:hover{background:#fff;}
+/* ── Topbar ── */
+#miqaatApp .miqaat-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+#miqaatApp .miqaat-back{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1.5px solid #e8e0cc;background:#fff;color:#5a5244;font-size:.75rem;font-weight:700;text-decoration:none;transition:all .15s}
+#miqaatApp .miqaat-back:hover{background:#f5e9c0;border-color:#b8860b;color:#b8860b;text-decoration:none}
+#miqaatApp .miqaat-heading{font-size:.98rem;font-weight:800;color:#b8860b;text-align:center;flex:1;letter-spacing:.3px}
 
 /* ── Filter card ── */
-#mqApp .filter-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow-sm);}
-#mqApp .filter-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
-#mqApp .filter-field{display:flex;flex-direction:column;gap:4px;flex:1 1 140px;min-width:0;}
-#mqApp .filter-field label{font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.3px;}
-#mqApp .filter-field select,
-#mqApp .filter-field input{
-  height:38px;padding:0 11px;
-  border:1.5px solid var(--border);border-radius:9px;
-  font-family:'Plus Jakarta Sans',sans-serif;font-size:.82rem;
-  color:var(--text-1);background:var(--surface-2);outline:none;
-  transition:border-color .15s,box-shadow .15s;width:100%;
-}
-#mqApp .filter-field select:focus,
-#mqApp .filter-field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,11,.12);background:var(--surface);}
-#mqApp .filter-actions{display:flex;gap:8px;align-items:flex-end;flex-shrink:0;}
-#mqApp .btn-filter{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 16px;border-radius:9px;border:none;background:linear-gradient(135deg,#b8860b,#c9a227);color:#fff;font-size:.82rem;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(184,134,11,.28);white-space:nowrap;}
-#mqApp .btn-clear{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-size:.82rem;font-weight:700;text-decoration:none;transition:all .15s;white-space:nowrap;}
-#mqApp .btn-clear:hover{border-color:var(--gold);background:var(--gold-muted);color:var(--gold);text-decoration:none;}
-#mqApp .btn-print{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;}
-#mqApp .btn-print:hover{border-color:var(--gold);background:var(--gold-muted);color:var(--gold);}
-#mqApp .btn-add{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 16px;border-radius:9px;background:linear-gradient(135deg,#b8860b,#c9a227);color:#fff;font-size:.82rem;font-weight:800;text-decoration:none;box-shadow:0 2px 8px rgba(184,134,11,.28);white-space:nowrap;transition:opacity .15s;}
-#mqApp .btn-add:hover{opacity:.9;color:#fff;text-decoration:none;}
+#miqaatApp .miqaat-fc{background:#fff;border:1px solid #e8e0cc;border-radius:13px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:12px;overflow:hidden}
+#miqaatApp .miqaat-fc-head{background:linear-gradient(135deg,#78520a,#b8860b);padding:9px 14px;display:flex;align-items:center;justify-content:space-between}
+#miqaatApp .miqaat-fc-title{font-size:.8rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:6px}
+#miqaatApp .miqaat-fc-hint{font-size:.68rem;color:rgba(255,255,255,.65);font-weight:500}
+#miqaatApp .miqaat-fc-body{padding:11px 14px}
+#miqaatApp .miqaat-frow{display:flex;align-items:flex-end;gap:7px;flex-wrap:wrap}
+#miqaatApp .miqaat-fg{display:flex;flex-direction:column;gap:3px;flex:1;min-width:130px}
+#miqaatApp .miqaat-lbl{font-size:.62rem;font-weight:700;color:#5a5244;text-transform:uppercase;letter-spacing:.4px}
+#miqaatApp .miqaat-sel,#miqaatApp .miqaat-inp{height:32px;padding:0 9px;border:1.5px solid #e8e0cc;border-radius:7px;background:#f7f4ec;font-family:'Plus Jakarta Sans',sans-serif;font-size:.76rem;color:#1a1610;outline:none;transition:border-color .15s,box-shadow .15s;width:100%}
+#miqaatApp .miqaat-sel:focus,#miqaatApp .miqaat-inp:focus{border-color:#b8860b;background:#fff;box-shadow:0 0 0 3px rgba(184,134,11,.1)}
+#miqaatApp .miqaat-search-wrap{position:relative;flex:1;min-width:160px}
+#miqaatApp .miqaat-search-wrap .s-ico{position:absolute;left:10px;top:calc(50% + 5px);transform:translateY(-50%);color:#9c8f7a;font-size:.78rem;pointer-events:none;display:flex;align-items:center;justify-content:center}
+#miqaatApp .miqaat-search-wrap .miqaat-inp{padding-left:30px;padding-right:30px}
+#miqaatApp .miqaat-search-wrap .s-clr{position:absolute;right:10px;top:calc(50% + 5px);transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9c8f7a;font-size:.72rem;padding:0;line-height:1;display:none}
+#miqaatApp .miqaat-search-wrap .s-clr.vis{display:flex;align-items:center;justify-content:center}
+#miqaatApp .miqaat-search-wrap .s-clr:hover{color:#b91c1c}
+
+#miqaatApp .miqaat-btn-filter{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:7px;background:#b8860b;border:1.5px solid #b8860b;color:#fff;font-size:.74rem;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;text-decoration:none;transition:all .15s}
+#miqaatApp .miqaat-btn-filter:hover{background:#78520a;border-color:#78520a;color:#fff;text-decoration:none}
+#miqaatApp .miqaat-clear-btn{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:7px;background:#f7f4ec;border:1.5px solid #e8e0cc;color:#5a5244;font-size:.74rem;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;text-decoration:none;white-space:nowrap;transition:all .15s}
+#miqaatApp .miqaat-clear-btn:hover{background:#fef2f2;border-color:#b91c1c;color:#b91c1c;text-decoration:none}
+#miqaatApp .miqaat-btn-print{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:7px;background:#fff;border:1.5px solid #e8e0cc;color:#5a5244;font-size:.74rem;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;text-decoration:none;transition:all .15s}
+#miqaatApp .miqaat-btn-print:hover{background:#f7f4ec;border-color:#b8860b;color:#b8860b}
+#miqaatApp .miqaat-btn-add{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:7px;background:#10b981;border:1.5px solid #10b981;color:#fff;font-size:.74rem;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;text-decoration:none;transition:all .15s}
+#miqaatApp .miqaat-btn-add:hover{background:#065f46;border-color:#065f46;color:#fff;text-decoration:none}
+
+/* ── Active filters bar ── */
+#miqaatApp .miqaat-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;min-height:0}
+#miqaatApp .miqaat-chip{display:inline-flex;align-items:center;gap:4px;background:#f5e9c0;color:#b8860b;border:1px solid rgba(184,134,11,.3);border-radius:20px;padding:3px 9px;font-size:.67rem;font-weight:700}
 
 /* ── Stats grid ── */
-#mqApp .stats-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
-  gap:10px;
-  margin-bottom:18px;
-}
-#mqApp .stat-card{
-  border-radius:var(--radius-sm);padding:13px 14px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:4px;text-align:center;border:1.5px solid transparent;
-  transition:transform .15s,box-shadow .15s;
-}
-#mqApp .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
-#mqApp .stat-card .sc-val{font-size:1.6rem;font-weight:800;line-height:1;color:var(--text-1);}
-#mqApp .stat-card .sc-lbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-2);margin-top:2px;}
-#mqApp .stat-card.c-gold   {background:var(--gold-muted);     border-color:var(--gold-border);}
-#mqApp .stat-card.c-gold .sc-val{color:var(--gold);}
-#mqApp .stat-card.c-blue   {background:var(--blue-bg);        border-color:#bfdbfe;}
-#mqApp .stat-card.c-blue .sc-val{color:var(--blue);}
-#mqApp .stat-card.c-teal   {background:var(--teal-bg);        border-color:#99f6e4;}
-#mqApp .stat-card.c-teal .sc-val{color:var(--teal);}
-#mqApp .stat-card.c-green  {background:var(--green-bg);       border-color:#86efac;}
-#mqApp .stat-card.c-green .sc-val{color:var(--green);}
-#mqApp .stat-card.c-orange {background:var(--orange-bg);      border-color:#fcd34d;}
-#mqApp .stat-card.c-orange .sc-val{color:var(--orange);}
-#mqApp .stat-card.c-purple {background:var(--purple-bg);      border-color:#c4b5fd;}
-#mqApp .stat-card.c-purple .sc-val{color:var(--purple);}
-#mqApp .stat-card.c-pink   {background:var(--pink-bg);        border-color:#fbcfe8;}
-#mqApp .stat-card.c-pink .sc-val{color:var(--pink);}
-#mqApp .stat-card.c-red    {background:var(--red-bg);         border-color:#fca5a5;}
-#mqApp .stat-card.c-red .sc-val{color:var(--red);}
-#mqApp .stat-card.c-amber  {background:#fffbeb;               border-color:#fcd34d;}
-#mqApp .stat-card.c-amber .sc-val{color:#92400e;}
-#mqApp .stat-card.c-rose   {background:#fff1f2;               border-color:#fda4af;}
-#mqApp .stat-card.c-rose .sc-val{color:#be123c;}
+#miqaatApp .miqaat-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+@media(min-width:576px){#miqaatApp .miqaat-stats{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:992px){#miqaatApp .miqaat-stats{grid-template-columns:repeat(5,1fr)}}
+#miqaatApp .miqaat-scard{border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:5px;border:1.5px solid;box-shadow:0 1px 3px rgba(0,0,0,.06);min-height:80px}
+#miqaatApp .sc-lbl{font-size:.63rem;font-weight:700;line-height:1.3}
+#miqaatApp .sc-val{font-size:1.35rem;font-weight:800;line-height:1}
+#miqaatApp .sc-ico{font-size:.88rem;margin-bottom:1px}
+
+#miqaatApp .sc-general{background:#dbeafe;border-color:#3b82f6;color:#1d4ed8}
+#miqaatApp .sc-ashara{background:#fee2e2;border-color:#ef4444;color:#b91c1c}
+#miqaatApp .sc-shehrullah{background:#e0f2fe;border-color:#0284c7;color:#0369a1}
+#miqaatApp .sc-ladies{background:#fce7f3;border-color:#ec4899;color:#9d174d}
+#miqaatApp .sc-individual{background:#ede9fe;border-color:#7c3aed;color:#5b21b6}
+#miqaatApp .sc-group{background:#d1fae5;border-color:#10b981;color:#065f46}
+#miqaatApp .sc-fnn{background:#fde68a;border-color:#f59e0b;color:#92400e}
+#miqaatApp .sc-contributors{background:#d1fae5;border-color:#10b981;color:#065f46}
+#miqaatApp .sc-noncontrib{background:#ffe4e6;border-color:#f43f5e;color:#be123c}
 
 /* ── Table card ── */
-#mqApp .table-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;}
-#mqApp .table-card-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--surface-2);border-bottom:1.5px solid var(--border-light);}
-#mqApp .table-card-hd-left{display:flex;align-items:center;gap:8px;}
-#mqApp .tc-icon{width:28px;height:28px;border-radius:7px;background:var(--gold-muted);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;flex-shrink:0;}
-#mqApp .tc-title{font-size:.82rem;font-weight:800;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;}
-#mqApp .tc-count{font-size:.7rem;font-weight:700;padding:2px 9px;border-radius:20px;background:var(--gold-muted);color:var(--gold);}
+#miqaatApp .miqaat-tcard{background:#fff;border:1px solid #e8e0cc;border-radius:13px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+#miqaatApp .miqaat-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #f0ece0;background:#faf7f0}
+#miqaatApp .leg-lbl{font-size:.6rem;font-weight:800;color:#9c8f7a;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+#miqaatApp .leg-item{display:inline-flex;align-items:center;gap:4px;font-size:.64rem;font-weight:600;color:#5a5244;white-space:nowrap}
+#miqaatApp .leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;border:1px solid rgba(0,0,0,.12)}
+#miqaatApp .miqaat-row-count{margin-left:auto;background:#f5e9c0;color:#b8860b;border-radius:20px;padding:2px 9px;font-size:.64rem;font-weight:800}
 
-/* ── Table scroll ── */
-#mqApp .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-#mqApp .table-inner-scroll{max-height:62vh;overflow:auto;}
+/* Table */
+#miqaatApp .miqaat-tscroll{overflow-x:auto;overflow-y:visible}
+#miqaatApp .miqaat-tscroll::-webkit-scrollbar{height:4px}
+#miqaatApp .miqaat-tscroll::-webkit-scrollbar-thumb{background:#e8e0cc;border-radius:10px}
+#miqaatApp table.miqaat-tbl{width:100%;border-collapse:collapse;font-size:.78rem;min-width:1000px}
+#miqaatApp table.miqaat-tbl thead th{background:linear-gradient(to bottom,#f7f4ec,#ede8da);padding:9px 11px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#9c8f7a;border-bottom:2px solid #e8e0cc;white-space:nowrap;text-align:left;z-index:10;user-select:none}
+#miqaatApp table.miqaat-tbl thead th.sortable{cursor:pointer}
+#miqaatApp table.miqaat-tbl thead th.sortable:hover{color:#b8860b}
+#miqaatApp table.miqaat-tbl thead th .sort-indicator{margin-left:3px;font-size:.56rem}
+#miqaatApp table.miqaat-tbl tbody tr{border-bottom:1px solid #f0ece0}
+#miqaatApp table.miqaat-tbl tbody tr:not(.month-hdr):not(.no-results-row):hover td{filter:brightness(.96)}
+#miqaatApp table.miqaat-tbl td{padding:8px 11px;vertical-align:middle;color:#1a1610}
 
-/* ── Table ── */
-#mqApp table{width:100%;border-collapse:collapse;font-size:.83rem;}
-#mqApp thead th{
-  position:sticky;top:0;z-index:5;
-  padding:10px 13px;font-size:.7rem;font-weight:800;
-  color:var(--text-2);text-transform:uppercase;letter-spacing:.4px;
-  background:var(--gold-muted);border-bottom:2px solid var(--gold-border);
-  white-space:nowrap;cursor:pointer;user-select:none;
-}
-#mqApp thead th:hover{color:var(--gold);}
-#mqApp thead th .sort-indicator{margin-left:4px;font-size:.65rem;opacity:.5;}
-#mqApp thead th:hover .sort-indicator{opacity:1;}
-#mqApp tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s;}
-#mqApp tbody tr:last-child{border-bottom:none;}
-#mqApp tbody tr:hover{background:rgba(184,134,11,.04);}
-#mqApp tbody tr.sunday-row{background:rgba(185,28,28,.04);}
-#mqApp tbody tr.sunday-row:hover{background:rgba(185,28,28,.08);}
-#mqApp td{padding:10px 13px;vertical-align:middle;}
-#mqApp td.sno{color:var(--text-3);font-size:.75rem;font-weight:700;width:38px;white-space:nowrap;}
+/* Row colors by type */
+#miqaatApp tr.row-holiday td{background:#f9f9f7;color:#9c8f7a;font-style:italic}
+#miqaatApp tr.row-sunday td{background:#fff2f2!important}
+#miqaatApp tr.row-ashara td{background:#fffbf0}
+#miqaatApp tr.row-shehrullah td{background:#e6f7ff}
+#miqaatApp tr.row-ladies td{background:#fff5f8}
+#miqaatApp tr.row-general td{background:#f8faff}
+#miqaatApp tr.row-miqaat td{background:#fffdf4}
 
-/* ── Month header row ── */
-#mqApp tr.month-header td{
-  background:var(--gold-muted);
-  font-size:.74rem;font-weight:800;color:var(--gold);
-  text-transform:uppercase;letter-spacing:.6px;
-  padding:8px 14px;
-  border-top:2px solid var(--gold-border);
-  border-bottom:1px solid var(--gold-border);
-}
+/* Left accent border */
+#miqaatApp tr.row-holiday td:first-child{border-left:3px solid #d1d5db}
+#miqaatApp tr.row-sunday td:first-child{border-left:3px solid #ef4444}
+#miqaatApp tr.row-ashara td:first-child{border-left:3px solid #f59e0b}
+#miqaatApp tr.row-shehrullah td:first-child{border-left:3px solid #0284c7}
+#miqaatApp tr.row-ladies td:first-child{border-left:3px solid #ec4899}
+#miqaatApp tr.row-general td:first-child{border-left:3px solid #3b82f6}
+#miqaatApp tr.row-miqaat td:first-child{border-left:3px solid #b8860b}
 
-/* ── Date cells ── */
-#mqApp .eng-date{font-weight:700;font-size:.83rem;color:var(--text-1);white-space:nowrap;}
-#mqApp .hijri-date{font-size:.72rem;color:var(--text-3);margin-top:2px;white-space:nowrap;}
-#mqApp .day-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:700;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border-light);}
-#mqApp .day-badge.sunday{background:var(--red-bg);color:var(--red);border-color:#fca5a5;}
+/* Month header */
+#miqaatApp tr.month-hdr td{background:linear-gradient(90deg,#f5e9c0,#fdf5d6)!important;font-weight:800;font-size:.76rem;color:#b8860b;border-top:2px solid rgba(184,134,11,.22);border-bottom:1px solid rgba(184,134,11,.15);padding:7px 11px;white-space:nowrap;filter:none!important}
 
-/* ── Miqaat name & type ── */
-#mqApp .mq-name{font-weight:700;font-size:.85rem;color:var(--text-1);}
-#mqApp .mq-type-tag{display:inline-block;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:.67rem;font-weight:700;border:1px solid transparent;}
-#mqApp .mq-type-tag.ashara   {background:var(--rose-bg,#fff1f2);color:#be123c;border-color:#fda4af;}
-#mqApp .mq-type-tag.shehrullah{background:#e0f2fe;color:#0369a1;border-color:#7dd3fc;}
-#mqApp .mq-type-tag.general  {background:var(--green-bg);color:var(--green);border-color:#86efac;}
-#mqApp .mq-type-tag.ladies   {background:var(--pink-bg);color:var(--pink);border-color:#fbcfe8;}
-#mqApp .mq-type-tag.default  {background:var(--surface-2);color:var(--text-3);border-color:var(--border);}
+/* Cells */
+#miqaatApp .miqaat-sno{width:26px;height:26px;border-radius:50%;background:#f5e9c0;color:#b8860b;font-weight:800;font-size:.63rem;display:inline-flex;align-items:center;justify-content:center}
+#miqaatApp .tbadge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.61rem;font-weight:800;white-space:nowrap}
+#miqaatApp .tb-ashara{background:#fffbeb;color:#b45309;border:1px solid rgba(180,83,9,.25)}
+#miqaatApp .tb-shehrullah{background:#e0f2fe;color:#0369a1;border:1px solid rgba(3,105,161,.2)}
+#miqaatApp .tb-ladies{background:#fce7f3;color:#9d174d;border:1px solid rgba(157,23,77,.2)}
+#miqaatApp .tb-general{background:#eff6ff;color:#1d4ed8;border:1px solid rgba(29,78,216,.2)}
+#miqaatApp .tb-miqaat{background:#f5e9c0;color:#b8860b;border:1px solid rgba(184,134,11,.3)}
 
-/* ── Assignment cell ── */
-#mqApp .assign-group-name{font-weight:800;font-size:.82rem;color:var(--text-1);display:flex;align-items:center;gap:5px;margin-bottom:3px;}
-#mqApp .assign-group-name i{color:var(--gold);}
-#mqApp .assign-label{font-size:.68rem;font-weight:700;text-transform:uppercase;color:var(--text-3);letter-spacing:.3px;margin:5px 0 2px;}
-#mqApp .assign-person{font-size:.78rem;color:var(--text-2);display:flex;align-items:center;gap:5px;}
-#mqApp .assign-person .its{font-size:.68rem;color:var(--text-3);background:var(--surface-2);padding:1px 6px;border-radius:8px;border:1px solid var(--border-light);}
-#mqApp .assign-pending{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.72rem;font-weight:700;background:var(--orange-bg);color:var(--orange);border:1px solid #fcd34d;}
-#mqApp .assign-direct{font-weight:700;font-size:.84rem;color:var(--text-1);}
+#miqaatApp .assign-link{color:#1d4ed8;font-weight:600;font-size:.77rem;text-decoration:none;display:inline-flex;align-items:center;gap:3px}
+#miqaatApp .assign-link:hover{color:#b8860b;text-decoration:underline}
 
-/* ── Status badges ── */
-#mqApp .status-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:700;border:1px solid transparent;}
-#mqApp .status-badge.active     {background:var(--green-bg);color:var(--green);border-color:#86efac;}
-#mqApp .status-badge.inactive   {background:var(--orange-bg);color:var(--orange);border-color:#fcd34d;}
-#mqApp .status-badge.completed  {background:var(--blue-bg);color:var(--blue);border-color:#93c5fd;}
-#mqApp .status-badge.partial    {background:var(--purple-bg);color:var(--purple);border-color:#c4b5fd;}
-#mqApp .status-badge.pending-status{background:var(--surface-2);color:var(--text-3);border-color:var(--border);}
+#miqaatApp .st-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:800;white-space:nowrap;text-align:center}
+#miqaatApp .st-active{background:#d1fae5;color:#065f46;border:1px solid rgba(6,95,70,.2)}
+#miqaatApp .st-inactive{background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb}
+#miqaatApp .st-completed{background:#eff6ff;color:#1d4ed8;border:1px solid rgba(29,78,216,.2)}
+#miqaatApp .st-warning{background:#fffbeb;color:#b45309;border:1px solid rgba(180,83,9,.25)}
 
-/* ── Action buttons ── */
-#mqApp .act-row{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-#mqApp .act-btn{display:inline-flex;align-items:center;justify-content:center;width:100%;height:30px;border-radius:7px;border:1.5px solid;font-size:.78rem;cursor:pointer;background:transparent;transition:background .12s;text-decoration:none;}
-#mqApp .act-btn:disabled{opacity:.4;cursor:not-allowed;}
-#mqApp .act-btn.activate{border-color:#86efac;color:var(--green);}
-#mqApp .act-btn.activate:hover:not(:disabled){background:var(--green-bg);}
-#mqApp .act-btn.cancel  {border-color:#fcd34d;color:var(--orange);}
-#mqApp .act-btn.cancel:hover:not(:disabled){background:var(--orange-bg);}
-#mqApp .act-btn.edit    {border-color:#93c5fd;color:var(--blue);}
-#mqApp .act-btn.edit:hover{background:var(--blue-bg);}
-#mqApp .act-btn.del     {border-color:#fca5a5;color:var(--red);}
-#mqApp .act-btn.del:hover:not(:disabled){background:var(--red-bg);}
+#miqaatApp .btn-action{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:none;cursor:pointer;font-size:.78rem;transition:opacity .15s}
+#miqaatApp .btn-action:hover{opacity:.8}
+#miqaatApp .btn-act-success{background:#10b981;color:#fff}
+#miqaatApp .btn-act-warning{background:#f59e0b;color:#fff}
+#miqaatApp .btn-act-primary{background:#3b82f6;color:#fff;display:inline-flex;align-items:center;justify-content:center}
+#miqaatApp .btn-act-danger{background:#ef4444;color:#fff}
 
-/* ── Empty state ── */
-#mqApp .empty-state{padding:48px 20px;text-align:center;color:var(--text-3);}
-#mqApp .empty-state i{font-size:2rem;margin-bottom:10px;display:block;}
-#mqApp .empty-state p{font-size:.9rem;margin:0 0 12px;}
+#miqaatApp .miqaat-tfoot{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid #f0ece0;background:#f7f4ec;font-size:.68rem;color:#9c8f7a;flex-wrap:wrap;gap:6px}
 
-/* ── Responsive ── */
-@media(max-width:768px){
-  #mqApp .stats-grid{grid-template-columns:repeat(2,1fr);}
-  #mqApp .filter-row{flex-direction:column;}
-  #mqApp .filter-field{flex:none;width:100%;}
-  #mqApp .filter-actions{width:100%;flex-wrap:wrap;}
-  #mqApp .mq-header{flex-direction:column;align-items:flex-start;}
-  #mqApp thead th{font-size:.65rem;padding:8px 9px;}
-  #mqApp td{padding:8px 9px;font-size:.78rem;}
-}
-@media(max-width:480px){
-  #mqApp .stats-grid{grid-template-columns:repeat(2,1fr);}
-  #mqApp .stat-card .sc-val{font-size:1.3rem;}
+#miqaatApp .miqaat-no-results{text-align:center;padding:40px 20px;color:#9c8f7a}
+#miqaatApp .miqaat-no-results i{font-size:1.8rem;display:block;margin-bottom:8px;color:#e8e0cc}
+#miqaatApp .miqaat-no-results p{font-size:.82rem;margin:0}
+
+@media(max-width:576px){
+  #miqaatApp{padding:10px}
+  #miqaatApp .miqaat-frow{flex-direction:column;align-items:stretch}
+  #miqaatApp .miqaat-fg{min-width:100%}
+  #miqaatApp table.miqaat-tbl{min-width:760px}
 }
 
-/* ── Print ── */
-@media print{
-  body *{visibility:hidden!important;}
-  .miqaat-print-only,.miqaat-print-only *{visibility:visible!important;}
-  .miqaat-print-only{position:absolute;top:0;left:0;width:100%;}
-  .miqaat-screen-only{display:none!important;}
-  .miqaat-print-only{display:block!important;}
-  .miqaat-print-only thead{display:table-header-group;}
-  .miqaat-print-only table{width:100%!important;}
-  .miqaat-print-only *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+/* Print-optimized styles: show only the miqaat list when printing */
+@media print {
+  body * { visibility: hidden !important; }
+  .miqaat-list-container, .miqaat-list-container * { visibility: visible !important; }
+  .miqaat-list-container { position: absolute; top: 0; left: 0; width: 100%; }
+  .miqaat-tcard { box-shadow: none !important; border: none !important; }
+  .miqaat-tscroll { overflow: visible !important; }
+  table.miqaat-tbl thead th { position: static !important; background: #1f2933 !important; color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .miqaat-list-container table th:nth-child(8),
+  .miqaat-list-container table td:nth-child(8),
+  .miqaat-list-container table th:nth-child(9),
+  .miqaat-list-container table td:nth-child(9) {
+    display: none !important;
+  }
 }
-.miqaat-print-only{display:none;}
 </style>
 
-<div id="mqApp">
-<div class="mq-wrap pt-3 pb-4">
+<!-- Global modal styles -->
+<style>
+.fmb-ov{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;background:rgba(26,22,16,.52)!important;z-index:9999!important;display:none;align-items:center;justify-content:center;padding:16px;font-family:'Plus Jakarta Sans',sans-serif}
+.fmb-ov.open{display:flex!important}
+.fmb-modal{background:#fff;border:1px solid #e8e0cc;border-radius:18px;width:100%;max-width:500px;box-shadow:0 12px 40px rgba(0,0,0,.18);max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.fmb-mhd{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid #f0ece0;flex-shrink:0;background:linear-gradient(to bottom,#f7f4ec,#f0ebe0);border-radius:18px 18px 0 0}
+.fmb-mtit{font-weight:800;font-size:.92rem;color:#1a1610;display:flex;align-items:center;gap:8px;font-family:'Plus Jakarta Sans',sans-serif}
+.fmb-mclose{width:30px;height:30px;border-radius:8px;border:none;background:#e8e0cc;color:#5a5244;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:700;line-height:1;transition:all .14s;flex-shrink:0}
+.fmb-mclose:hover{background:#f5e9c0;color:#b8860b}
+.fmb-mbody{overflow-y:auto;flex:1;padding:16px 18px}
+.fmb-mft{padding:12px 18px;border-top:1px solid #f0ece0;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;background:#faf7f0}
+.adet-row{padding:10px 12px;border-radius:9px;background:#f7f4ec;border:1px solid #e8e0cc;margin-bottom:8px;text-align:left}
+.adet-row .ak{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9c8f7a;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.adet-row .av{font-size:.85rem;font-weight:700;color:#1a1610}
+.adet-row .asub{font-size:.74rem;color:#5a5244;margin-top:3px}
+.fmb-lbl2{display:block;font-size:.67rem;font-weight:800;color:#5a5244;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;margin-top:12px}
+.fmb-sel2{width:100%;height:38px;padding:0 11px;border:1.5px solid #e8e0cc;border-radius:8px;background:#f7f4ec;font-family:'Plus Jakarta Sans',sans-serif;font-size:.82rem;color:#1a1610;outline:none;transition:border-color .15s}
+.fmb-sel2:focus{border-color:#b8860b;box-shadow:0 0 0 3px rgba(184,134,11,.1)}
+.fmb-btn-ok{padding:8px 18px;border-radius:9px;border:none;background:#b8860b;color:#fff;font-weight:700;font-size:.78rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity .15s}
+.fmb-btn-ok:hover{opacity:.87}
+.fmb-btn-c{padding:8px 16px;border-radius:9px;border:1.5px solid #e8e0cc;background:#fff;color:#5a5244;font-weight:700;font-size:.78rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .14s}
+.fmb-btn-c:hover{background:#f7f4ec}
+</style>
 
-  <!-- Flash messages -->
-  <?php if($this->session->flashdata('error')): ?>
-    <div class="flash error"><i class="fa-solid fa-triangle-exclamation"></i><?= $this->session->flashdata('error'); ?></div>
-  <?php endif; ?>
-  <?php if($this->session->flashdata('success')): ?>
-    <div class="flash success"><i class="fa-solid fa-circle-check"></i><?= $this->session->flashdata('success'); ?></div>
-  <?php endif; ?>
+<?php
+/* ── Helpers ── */
+function miqaat_row_class($type, $is_sunday) {
+  if ($is_sunday) return 'row-sunday';
+  $t = strtolower(trim($type));
+  if (str_contains($t, 'ashara')) return 'row-ashara';
+  if (str_contains($t, 'shehrullah')) return 'row-shehrullah';
+  if (str_contains($t, 'ladies')) return 'row-ladies';
+  if ($t === 'general') return 'row-general';
+  return 'row-miqaat';
+}
 
-  <!-- ── Header ── -->
-  <div class="mq-header">
-    <div>
-      <p class="mq-eyebrow">Miqaat Management</p>
-      <h1 class="mq-title">
-        Manage Miqaat
-        <small>Hijri Year <?php echo isset($hijri_year) ? htmlspecialchars($hijri_year) : ''; ?></small>
-      </h1>
+function miqaat_badge($type) {
+  $t = strtolower(trim($type));
+  $cls = match(true) {
+    str_contains($t, 'ashara') => 'tb-ashara',
+    str_contains($t, 'shehrullah') => 'tb-shehrullah',
+    str_contains($t, 'ladies') => 'tb-ladies',
+    $t === 'general' => 'tb-general',
+    default => 'tb-miqaat'
+  };
+  return "<span class='tbadge $cls'>" . htmlspecialchars($type ?: '—', ENT_QUOTES) . "</span>";
+}
+?>
+
+<div id="miqaatApp" class="margintopcontainer">
+
+  <!-- Alerts -->
+  <?php if ($this->session->flashdata('error')): ?>
+    <div class="alert alert-danger" style="margin-bottom: 12px; border-radius: 8px;">
+      <?= $this->session->flashdata('error'); ?>
     </div>
-    <div class="mq-header-actions">
-      <a href="<?php echo isset($from) ? base_url($from) : base_url('anjuman/fmbthaali'); ?>" class="hdr-btn">
-        <i class="fa-solid fa-arrow-left"></i> Back
-      </a>
-      <button id="print-table-btn" class="hdr-btn"><i class="fa fa-print"></i> Print</button>
-      <a href="<?php echo base_url('common/createmiqaat?date='.date('Y-m-d')); ?>" class="hdr-btn primary">
-        <i class="fa-solid fa-plus"></i> Add Miqaat
-      </a>
+  <?php endif; ?>
+
+  <?php if ($this->session->flashdata('success')): ?>
+    <div class="alert alert-success" style="margin-bottom: 12px; border-radius: 8px;">
+      <?= $this->session->flashdata('success'); ?>
+    </div>
+  <?php endif; ?>
+
+  <!-- Topbar -->
+  <div class="miqaat-topbar">
+    <a href="<?php echo isset($from) ? base_url($from) : base_url("anjuman/fmbthaali"); ?>" class="miqaat-back"><i class="fa fa-arrow-left"></i> Back</a>
+    <div class="miqaat-heading"><i class="fa fa-calendar" style="margin-right:6px;opacity:.7"></i>Manage Miqaat For Year &mdash; <?php echo isset($hijri_year) ? $hijri_year : ""; ?></div>
+    <div style="width:70px"></div>
+  </div>
+
+  <!-- Filter card -->
+  <div class="miqaat-fc">
+    <div class="miqaat-fc-head">
+      <div class="miqaat-fc-title"><i class="fa fa-sliders"></i> Filters</div>
+      <div class="miqaat-fc-hint">Filters apply automatically on change</div>
+    </div>
+    <div class="miqaat-fc-body">
+      <form method="post" action="<?php echo base_url('common/managemiqaat'); ?>" id="filter-form">
+        <input type="hidden" name="from" value="<?php echo isset($from) ? htmlspecialchars($from, ENT_QUOTES) : ''; ?>" />
+        <div class="miqaat-frow">
+
+          <!-- Month / Year -->
+          <div class="miqaat-fg" style="max-width:180px">
+            <label class="miqaat-lbl">Month / Year</label>
+            <select name="hijri_month" id="hijri-month" class="miqaat-sel">
+              <option value="">Select Month / Year</option>
+              <option value="-3" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -3 ? "selected" : ""; ?>>Last Year</option>
+              <option value="-1" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -1 ? "selected" : ""; ?>>Current Year</option>
+              <?php if (isset($hijri_months)) foreach ($hijri_months as $hm): ?>
+                <option value="<?php echo $hm['id']; ?>" <?php echo isset($hijri_month_id) && $hm['id'] == $hijri_month_id ? 'selected' : ''; ?>><?php echo htmlspecialchars($hm['hijri_month'], ENT_QUOTES); ?></option>
+              <?php endforeach ?>
+              <option value="-2" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -2 ? "selected" : ""; ?>>Next Year</option>
+            </select>
+          </div>
+
+          <!-- Miqaat Type -->
+          <div class="miqaat-fg" style="max-width:160px">
+            <label class="miqaat-lbl">Miqaat Type</label>
+            <select id="miqaat-type" name="miqaat_type" class="miqaat-sel">
+              <option value="">All Types</option>
+              <?php if (!empty($miqaat_types)) foreach ($miqaat_types as $type): ?>
+                <option value="<?php echo htmlspecialchars($type, ENT_QUOTES); ?>" <?php echo (isset($miqaat_type) && $miqaat_type === $type) ? 'selected' : ''; ?>><?php echo htmlspecialchars($type, ENT_QUOTES); ?></option>
+              <?php endforeach ?>
+            </select>
+          </div>
+
+          <!-- Assignment -->
+          <div class="miqaat-fg" style="max-width:180px">
+            <label class="miqaat-lbl">Assignment Status</label>
+            <select id="assignment-filter" name="assignment_filter" class="miqaat-sel">
+              <option value="" <?php echo empty($assignment_filter) ? 'selected' : ''; ?>>Assigned / Unassigned</option>
+              <option value="unassigned" <?php echo (isset($assignment_filter) && $assignment_filter === 'unassigned') ? 'selected' : ''; ?>>Unassigned Only</option>
+              <option value="assigned" <?php echo (isset($assignment_filter) && $assignment_filter === 'assigned') ? 'selected' : ''; ?>>Assigned Only</option>
+            </select>
+          </div>
+
+          <!-- Search -->
+          <div class="miqaat-fg miqaat-search-wrap">
+            <label class="miqaat-lbl">Search Member / Group / ITS</label>
+            <i class="fa fa-search s-ico"></i>
+            <input type="text" class="miqaat-inp" name="member_name_filter" id="member-name-filter"
+              placeholder="Type name, group or ITS ID…"
+              value="<?php echo isset($member_name_filter) ? htmlspecialchars($member_name_filter, ENT_QUOTES) : ''; ?>">
+            <button type="button" class="s-clr" id="miqaatSearchClr" title="Clear search">&#x2715;</button>
+          </div>
+
+          <!-- Actions -->
+          <div class="miqaat-fg" style="flex:0 0 auto;min-width:auto;align-items:flex-end">
+            <label class="miqaat-lbl" style="visibility:hidden">actions</label>
+            <div style="display:flex;gap:7px;">
+              <button type="submit" class="miqaat-btn-filter" id="apply-filters-btn"><i class="fa fa-filter"></i> Filter</button>
+              <a href="<?php echo base_url('common/managemiqaat?from=' . (isset($from) ? urlencode($from) : '')); ?>" class="miqaat-clear-btn"><i class="fa fa-times"></i> Clear All</a>
+              <button type="button" id="print-table-btn" class="miqaat-btn-print" title="Print table"><i class="fa fa-print"></i> Print</button>
+              <a href="<?php echo base_url('common/createmiqaat?date=' . date('Y-m-d')); ?>" class="miqaat-btn-add"><i class="fa fa-plus"></i> Add Miqaat</a>
+            </div>
+          </div>
+
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- ── Filter card ── -->
-  <div class="filter-card">
-    <form method="post" action="<?php echo base_url('common/managemiqaat'); ?>" id="filter-form">
-      <div class="filter-row">
-        <div class="filter-field">
-          <label>Month / Year</label>
-          <select name="hijri_month" id="hijri-month">
-            <option value="">All Months</option>
-            <option value="-3" <?php echo (isset($hijri_month_id)&&$hijri_month_id==-3)?'selected':''; ?>>Last Year</option>
-            <option value="-1" <?php echo (isset($hijri_month_id)&&$hijri_month_id==-1)?'selected':''; ?>>Current Year</option>
-            <?php if(isset($hijri_months)) foreach($hijri_months as $v): ?>
-              <option value="<?php echo $v['id']; ?>" <?php echo (isset($hijri_month_id)&&$v['id']==$hijri_month_id)?'selected':''; ?>><?php echo $v['hijri_month']; ?></option>
-            <?php endforeach; ?>
-            <option value="-2" <?php echo (isset($hijri_month_id)&&$hijri_month_id==-2)?'selected':''; ?>>Next Year</option>
-          </select>
-        </div>
-        <div class="filter-field">
-          <label>Member / Leader</label>
-          <input type="text" name="member_name_filter" id="member-name-filter" placeholder="Name or ITS ID" value="<?php echo isset($member_name_filter)?htmlspecialchars($member_name_filter,ENT_QUOTES):''; ?>">
-        </div>
-        <div class="filter-field">
-          <label>Assignment</label>
-          <select name="assignment_filter" id="assignment-filter">
-            <option value="" <?php echo empty($assignment_filter)?'selected':''; ?>>All</option>
-            <option value="unassigned" <?php echo (isset($assignment_filter)&&$assignment_filter==='unassigned')?'selected':''; ?>>Unassigned Only</option>
-            <option value="assigned" <?php echo (isset($assignment_filter)&&$assignment_filter==='assigned')?'selected':''; ?>>Assigned Only</option>
-          </select>
-        </div>
-        <div class="filter-field">
-          <label>Miqaat Type</label>
-          <select name="miqaat_type" id="miqaat-type">
-            <option value="">All Types</option>
-            <?php if(!empty($miqaat_types)) foreach($miqaat_types as $type): ?>
-              <option value="<?php echo htmlspecialchars($type,ENT_QUOTES); ?>" <?php echo (isset($miqaat_type)&&$miqaat_type===$type)?'selected':''; ?>><?php echo htmlspecialchars($type); ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div class="filter-actions">
-          <button type="submit" class="btn-filter"><i class="fa fa-filter"></i> Apply</button>
-          <a href="<?php echo base_url('common/managemiqaat'); ?>" class="btn-clear"><i class="fa fa-times"></i> Clear</a>
-        </div>
-      </div>
-    </form>
-  </div>
-
-  <!-- ── Stats grid ── -->
+  <!-- PHP Counts & Calculations -->
   <?php
-  $sum_total_miqaats=isset($summary_miqaat_days)?(int)$summary_miqaat_days:0;
-  $sum_individual=isset($summary_individual)?(int)$summary_individual:0;
-  $sum_group=isset($summary_group)?(int)$summary_group:0;
-  $sum_fnn=isset($summary_fnn)?(int)$summary_fnn:0;
-  $sum_ashara=isset($summary_ashara)?(int)$summary_ashara:0;
-  $sum_shehrullah=isset($summary_shehrullah)?(int)$summary_shehrullah:0;
-  $sum_general=isset($summary_general)?(int)$summary_general:0;
-  $sum_ladies=isset($summary_ladies)?(int)$summary_ladies:0;
+  // Derive counts from visible dataset when summary vars are not provided
+  $sum_total_miqaats = isset($summary_miqaat_days) ? (int)$summary_miqaat_days : 0;
+  $sum_sundays = isset($summary_sundays) ? (int)$summary_sundays : 0;
+  $sum_individual = isset($summary_individual) ? (int)$summary_individual : 0;
+  $sum_group = isset($summary_group) ? (int)$summary_group : 0;
+  $sum_fnn = isset($summary_fnn) ? (int)$summary_fnn : 0;
+  $sum_ashara = isset($summary_ashara) ? (int)$summary_ashara : 0;
+  $sum_shehrullah = isset($summary_shehrullah) ? (int)$summary_shehrullah : 0;
+  $sum_general = isset($summary_general) ? (int)$summary_general : 0;
+  $sum_ladies = isset($summary_ladies) ? (int)$summary_ladies : 0;
 
-  if($sum_total_miqaats===0||$sum_individual===0){
-    $sum_total_miqaats=$sum_individual=$sum_group=$sum_fnn=$sum_ashara=$sum_shehrullah=$sum_general=$sum_ladies=0;
-    if(!empty($miqaats)&&is_array($miqaats)){
-      foreach($miqaats as $d){
-        if(empty($d['miqaats']))continue;
-        foreach($d['miqaats'] as $m){
-          $sum_total_miqaats++;
-          $hasInd=$hasGrp=false;
-          if(!empty($m['assignments'])){foreach($m['assignments'] as $as){$at=strtolower($as['assign_type']??'');if($at==='individual')$hasInd=true;if($at==='group')$hasGrp=true;}}
-          if($hasInd)$sum_individual++;if($hasGrp)$sum_group++;
-          $hay=strtolower(trim(($m['type']??'').' '.($m['name']??'').' '.($m['assigned_to']??'')));
-          $is_fnn=(strpos($hay,'fnn')!==false)||((strpos($hay,'fala')!==false)&&(strpos($hay,'niyaz')!==false||strpos($hay,'niaz')!==false));
-          if($is_fnn)$sum_fnn++;
-          $tl=strtolower(trim($m['type']??''));
-          if($tl==='ashara')$sum_ashara++;if($tl==='shehrullah')$sum_shehrullah++;if($tl==='general')$sum_general++;if($tl==='ladies')$sum_ladies++;
+  $monthWiseMiqaats = [];
+  $filteredMiqaats = [];
+
+  if (!empty($miqaats)) {
+    $filter = isset($assignment_filter) ? $assignment_filter : '';
+    if ($filter === 'unassigned' || $filter === 'assigned') {
+      foreach ($miqaats as $d) {
+        if (empty($d['miqaats'])) continue;
+        $dayCopy = $d;
+        $dayCopy['miqaats'] = [];
+        foreach ($d['miqaats'] as $m) {
+          $hasAssignments = !empty($m['assignments']);
+          if ($filter === 'unassigned' && !$hasAssignments) {
+            $dayCopy['miqaats'][] = $m;
+          } elseif ($filter === 'assigned' && $hasAssignments) {
+            $dayCopy['miqaats'][] = $m;
+          }
+        }
+        if (!empty($dayCopy['miqaats'])) {
+          $filteredMiqaats[] = $dayCopy;
         }
       }
+    } else {
+      $filteredMiqaats = array_values(array_filter($miqaats, function ($d) {
+        return !empty($d['miqaats']);
+      }));
+    }
+
+    foreach ($filteredMiqaats as $day) {
+      $hijriMonth = '';
+      if (!empty($day['hijri_date_with_month'])) {
+        $parts = explode(' ', $day['hijri_date_with_month'], 2);
+        $hijriMonth = isset($parts[1]) ? $parts[1] : '';
+      }
+      if ($hijriMonth) {
+        if (!isset($monthWiseMiqaats[$hijriMonth])) {
+          $monthWiseMiqaats[$hijriMonth] = [];
+        }
+        $monthWiseMiqaats[$hijriMonth][] = $day;
+      }
     }
   }
 
-  // Individual contributors (HOF-based)
-  $sum_individual_contributors=isset($calendar_summary['individual_contributors'])?(int)$calendar_summary['individual_contributors']:0;
-  if($sum_individual_contributors===0){
-    $uniq_member_ids=[];
-    if(!empty($miqaats)&&is_array($miqaats)){foreach($miqaats as $d){if(empty($d['miqaats']))continue;foreach($d['miqaats'] as $m){if(empty($m['assignments']))continue;foreach($m['assignments'] as $as){$at=strtolower($as['assign_type']??'');if($at==='individual'){$mid=trim((string)($as['member_id']??''));if($mid!=='')$uniq_member_ids[$mid]=true;}}}}}
-    if(!empty($uniq_member_ids)){
-      try{
-        $ci=get_instance();$ids=array_keys($uniq_member_ids);$chunks=array_chunk($ids,200);$hof_ids=[];
-        foreach($chunks as $c){$escaped=array_map(function($v)use($ci){return $ci->db->escape($v);},$c);$in=implode(',',$escaped);$sql="SELECT DISTINCT hof.ITS_ID AS hof_id FROM `user` u JOIN `user` hof ON hof.ITS_ID=(CASE WHEN u.HOF_FM_TYPE='HOF' THEN u.ITS_ID ELSE u.HOF_ID END) WHERE u.ITS_ID IN(".$in.") AND hof.HOF_FM_TYPE='HOF' AND hof.Inactive_Status IS NULL AND hof.Sector IS NOT NULL AND hof.Sub_Sector IS NOT NULL";$res=$ci->db->query($sql)->result_array();foreach($res as $r){$hid=trim((string)($r['hof_id']??''));if($hid!=='')$hof_ids[$hid]=true;}}
-        $sum_individual_contributors=count($hof_ids);
-      }catch(Exception $e){$sum_individual_contributors=count($uniq_member_ids);}
+  // Recalculate summary counts for visible rows
+  $sum_total_miqaats = 0;
+  $sum_individual = 0;
+  $sum_group = 0;
+  $sum_fnn = 0;
+  $sum_ashara = 0;
+  $sum_shehrullah = 0;
+  $sum_general = 0;
+  $sum_ladies = 0;
+  $uniq_member_ids = [];
+
+  foreach ($filteredMiqaats as $d) {
+    if (empty($d['miqaats'])) continue;
+    foreach ($d['miqaats'] as $m) {
+      $sum_total_miqaats++;
+      $type_l = strtolower(isset($m['type']) ? $m['type'] : '');
+      if ($type_l === 'ashara') $sum_ashara++;
+      if ($type_l === 'shehrullah') $sum_shehrullah++;
+      if ($type_l === 'general') $sum_general++;
+      if ($type_l === 'ladies') $sum_ladies++;
+
+      $hasInd = false;
+      $hasGrp = false;
+      if (!empty($m['assignments'])) {
+        foreach ($m['assignments'] as $as) {
+          $at = strtolower(isset($as['assign_type']) ? $as['assign_type'] : '');
+          if ($at === 'individual') {
+            $hasInd = true;
+            $mid = trim((string)($as['member_id'] ?? ''));
+            if ($mid !== '') $uniq_member_ids[$mid] = true;
+          }
+          if ($at === 'group') $hasGrp = true;
+        }
+      }
+      if ($hasInd) $sum_individual++;
+      if ($hasGrp) $sum_group++;
+
+      $hay_parts = [
+        (string)($m['type'] ?? ''),
+        (string)($m['name'] ?? ''),
+        (string)($m['assigned_to'] ?? '')
+      ];
+      if (!empty($m['assignments'])) {
+        foreach ($m['assignments'] as $as_chk) {
+          $hay_parts[] = (string)($as_chk['assign_type'] ?? '');
+        }
+      }
+      $hay = strtolower(trim(implode(' ', $hay_parts)));
+      $basic = preg_replace('/\s+/', ' ', $hay);
+      $letters = preg_replace('/[^a-z]/', '', $basic);
+      $letters = preg_replace(['/.{0}a{2,}/', '/.{0}i{2,}/', '/.{0}y{2,}/'], ['a', 'i', 'y'], $letters);
+      $is_fnn = (strpos($basic, 'fnn') !== false)
+        || ((strpos($basic, 'fala') !== false) && (strpos($basic, 'niyaz') !== false || strpos($basic, 'niaz') !== false))
+        || ((strpos($letters, 'fala') !== false) && (strpos($letters, 'niyaz') !== false || strpos($letters, 'niaz') !== false));
+      if ($is_fnn) $sum_fnn++;
     }
   }
-  $total_members=isset($calendar_summary['total_members'])?(int)$calendar_summary['total_members']:(isset($summary_total_members)?(int)$summary_total_members:0);
-  if(empty($total_members)){try{$ci=get_instance();$q=$ci->db->query("SELECT COUNT(*) AS cnt FROM `user` WHERE HOF_FM_TYPE='HOF' AND Inactive_Status IS NULL");$row=$q->row();$total_members=$row?(int)$row->cnt:0;}catch(Exception $e){$total_members=0;}}
-  $non_contributors=max(0,$total_members-$sum_individual_contributors);
+
+  // Individual Contributors map to HOFs
+  $sum_individual_contributors = 0;
+  if (!empty($uniq_member_ids)) {
+    try {
+      $ci = get_instance();
+      $ids = array_keys($uniq_member_ids);
+      $chunks = array_chunk($ids, 200);
+      $hof_ids = [];
+      foreach ($chunks as $c) {
+        $escaped = array_map(function($v) use ($ci) { return $ci->db->escape($v); }, $c);
+        $in = implode(',', $escaped);
+        $sql = "SELECT DISTINCT hof.ITS_ID AS hof_id FROM `user` u JOIN `user` hof ON hof.ITS_ID = (CASE WHEN u.HOF_FM_TYPE = 'HOF' THEN u.ITS_ID ELSE u.HOF_ID END) WHERE u.ITS_ID IN (" . $in . ") AND hof.HOF_FM_TYPE = 'HOF' AND hof.Inactive_Status IS NULL AND hof.Sector IS NOT NULL AND hof.Sub_Sector IS NOT NULL";
+        $res = $ci->db->query($sql)->result_array();
+        foreach ($res as $r) {
+          $hid = isset($r['hof_id']) ? trim((string)$r['hof_id']) : '';
+          if ($hid !== '') $hof_ids[$hid] = true;
+        }
+      }
+      $sum_individual_contributors = count($hof_ids);
+    } catch (Exception $e) {
+      $sum_individual_contributors = count($uniq_member_ids);
+    }
+  }
+
+  // Total HOF Members count
+  $total_members = 0;
+  try {
+    $ci = get_instance();
+    $q = $ci->db->query("SELECT COUNT(*) AS cnt FROM `user` WHERE HOF_FM_TYPE = 'HOF' AND Inactive_Status IS NULL");
+    $row = $q->row();
+    $total_members = $row ? (int)$row->cnt : 0;
+  } catch (Exception $e) {
+    $total_members = 0;
+  }
+  $non_contributors = max(0, $total_members - $sum_individual_contributors);
   ?>
 
-  <div class="stats-grid">
-    <div class="stat-card c-gold"><span class="sc-val"><?php echo isset($calendar_summary['total_miqaat_days'])?(int)$calendar_summary['total_miqaat_days']:(int)$sum_total_miqaats; ?></span><span class="sc-lbl">Total Miqaat</span></div>
-    <div class="stat-card c-rose"><span class="sc-val"><?php echo isset($calendar_summary['ashara'])?(int)$calendar_summary['ashara']:(int)$sum_ashara; ?></span><span class="sc-lbl">Ashara</span></div>
-    <div class="stat-card c-blue"><span class="sc-val"><?php echo isset($calendar_summary['shehrullah'])?(int)$calendar_summary['shehrullah']:(int)$sum_shehrullah; ?></span><span class="sc-lbl">Shehrullah</span></div>
-    <div class="stat-card c-green"><span class="sc-val"><?php echo isset($calendar_summary['general'])?(int)$calendar_summary['general']:(int)$sum_general; ?></span><span class="sc-lbl">General</span></div>
-    <div class="stat-card c-pink"><span class="sc-val"><?php echo isset($calendar_summary['ladies'])?(int)$calendar_summary['ladies']:(int)$sum_ladies; ?></span><span class="sc-lbl">Ladies</span></div>
-    <div class="stat-card c-purple"><span class="sc-val"><?php echo isset($calendar_summary['individual'])?(int)$calendar_summary['individual']:(int)$sum_individual; ?></span><span class="sc-lbl">Individual Niyaaz</span></div>
-    <div class="stat-card c-teal"><span class="sc-val"><?php echo isset($calendar_summary['group'])?(int)$calendar_summary['group']:(int)$sum_group; ?></span><span class="sc-lbl">Group Niyaaz</span></div>
-    <div class="stat-card c-amber"><span class="sc-val"><?php echo isset($calendar_summary['fnn'])?(int)$calendar_summary['fnn']:(int)$sum_fnn; ?></span><span class="sc-lbl">Fala ni Niyaaz</span></div>
-    <div class="stat-card c-green"><span class="sc-val"><?php echo (int)$sum_individual_contributors; ?></span><span class="sc-lbl">Contributors</span></div>
-    <div class="stat-card c-red"><span class="sc-val"><?php echo (int)$non_contributors; ?></span><span class="sc-lbl">Fala Contributors</span></div>
+  <!-- Stats cards -->
+  <div class="miqaat-stats">
+    <div class="miqaat-scard sc-general">
+      <div class="sc-ico"><i class="fa fa-calendar"></i></div>
+      <div class="sc-val"><?php echo $sum_total_miqaats; ?></div>
+      <div class="sc-lbl">Total Miqaat</div>
+    </div>
+    <div class="miqaat-scard sc-ashara">
+      <div class="sc-ico"><i class="fa fa-calendar-check-o"></i></div>
+      <div class="sc-val"><?php echo $sum_ashara; ?></div>
+      <div class="sc-lbl">Ashara Miqaat</div>
+    </div>
+    <div class="miqaat-scard sc-shehrullah">
+      <div class="sc-ico"><i class="fa fa-moon-o"></i></div>
+      <div class="sc-val"><?php echo $sum_shehrullah; ?></div>
+      <div class="sc-lbl">Shehrullah Miqaat</div>
+    </div>
+    <div class="miqaat-scard sc-general">
+      <div class="sc-ico"><i class="fa fa-info-circle"></i></div>
+      <div class="sc-val"><?php echo $sum_general; ?></div>
+      <div class="sc-lbl">General Miqaat</div>
+    </div>
+    <div class="miqaat-scard sc-ladies">
+      <div class="sc-ico"><i class="fa fa-female"></i></div>
+      <div class="sc-val"><?php echo $sum_ladies; ?></div>
+      <div class="sc-lbl">Ladies Miqaat</div>
+    </div>
+    <div class="miqaat-scard sc-individual">
+      <div class="sc-ico"><i class="fa fa-user"></i></div>
+      <div class="sc-val"><?php echo $sum_individual; ?></div>
+      <div class="sc-lbl">Individual Niyaaz</div>
+    </div>
+    <div class="miqaat-scard sc-group">
+      <div class="sc-ico"><i class="fa fa-users"></i></div>
+      <div class="sc-val"><?php echo $sum_group; ?></div>
+      <div class="sc-lbl">Group Niyaaz</div>
+    </div>
+    <div class="miqaat-scard sc-fnn">
+      <div class="sc-ico"><i class="fa fa-star"></i></div>
+      <div class="sc-val"><?php echo $sum_fnn; ?></div>
+      <div class="sc-lbl">Fala ni Niyaaz</div>
+    </div>
+    <div class="miqaat-scard sc-contributors">
+      <div class="sc-ico"><i class="fa fa-user-circle"></i></div>
+      <div class="sc-val"><?php echo $sum_individual_contributors; ?></div>
+      <div class="sc-lbl">Individual Contributors</div>
+    </div>
+    <div class="miqaat-scard sc-noncontrib">
+      <div class="sc-ico"><i class="fa fa-times-circle-o"></i></div>
+      <div class="sc-val"><?php echo $non_contributors; ?></div>
+      <div class="sc-lbl">Fala Contributors</div>
+    </div>
   </div>
 
-  <!-- ── Main Table ── -->
-  <?php
-  $monthWiseMiqaats=[];
-  $totalVisibleRows=0;
-  if(!empty($miqaats)){
-    $filter_a=isset($assignment_filter)?$assignment_filter:'';
-    $filteredMiqaats=[];
-    if($filter_a==='unassigned'||$filter_a==='assigned'){
-      foreach($miqaats as $d){
-        if(empty($d['miqaats']))continue;
-        $dc=$d;$dc['miqaats']=[];
-        foreach($d['miqaats'] as $m){$hasA=!empty($m['assignments']);if($filter_a==='unassigned'&&!$hasA)$dc['miqaats'][]=$m;elseif($filter_a==='assigned'&&$hasA)$dc['miqaats'][]=$m;}
-        if(!empty($dc['miqaats']))$filteredMiqaats[]=$dc;
-      }
-    } else {
-      $filteredMiqaats=array_values(array_filter($miqaats,function($d){return!empty($d['miqaats']);}));
-    }
-    foreach($filteredMiqaats as $day){
-      $hijriMonth='';
-      if(!empty($day['hijri_date_with_month'])){$parts=explode(' ',$day['hijri_date_with_month'],2);$hijriMonth=isset($parts[1])?$parts[1]:'';}
-      if($hijriMonth){if(!isset($monthWiseMiqaats[$hijriMonth]))$monthWiseMiqaats[$hijriMonth]=[];$monthWiseMiqaats[$hijriMonth][]=$day;}
-      foreach($day['miqaats']??[] as $_)$totalVisibleRows++;
-    }
-  }
-  ?>
-
-  <div class="table-card miqaat-list-container">
-    <div class="table-card-hd">
-      <div class="table-card-hd-left">
-        <span class="tc-icon"><i class="fa fa-calendar-alt"></i></span>
-        <span class="tc-title">Miqaat Schedule</span>
-        <span class="tc-count" id="mq-row-count"><?php echo $totalVisibleRows; ?> entries</span>
-      </div>
+  <!-- Table card -->
+  <div class="miqaat-tcard">
+    <div class="miqaat-legend">
+      <span class="leg-lbl">Row Colors:</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#fffdf4;border-color:#b8860b"></span>Miqaat</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#fffbf0;border-color:#f59e0b"></span>Ashara</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#e6f7ff;border-color:#0284c7"></span>Shehrullah</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#fff5f8;border-color:#ec4899"></span>Ladies</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#f8faff;border-color:#3b82f6"></span>General</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#fff2f2;border-color:#ef4444"></span>Sunday</span>
+      <span class="miqaat-row-count" id="miqaatRowCount">— rows</span>
     </div>
 
-    <!-- On-screen table -->
-    <div class="miqaat-screen-only table-scroll">
-      <div class="table-inner-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th data-no-sort class="sno">#</th>
-              <th>Eng Date</th>
-              <th>Hijri Date</th>
-              <th>Day</th>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Assigned To</th>
-              <th>Status</th>
-              <th data-no-sort>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if(!empty($monthWiseMiqaats)): ?>
-              <?php $sno=1; ?>
-              <?php foreach($monthWiseMiqaats as $monthName=>$days): ?>
-                <tr class="month-header" data-hijri-month-name="<?php echo htmlspecialchars($monthName,ENT_QUOTES); ?>">
-                  <td colspan="9"><i class="fa fa-moon" style="margin-right:6px;"></i><?php echo htmlspecialchars($monthName); ?></td>
-                </tr>
-                <?php foreach($days as $day): ?>
-                  <?php $dayName=isset($day['date'])?date('l',strtotime($day['date'])):''; $isSun=($dayName==='Sunday'); ?>
-                  <?php foreach($day['miqaats'] as $miqaat): ?>
-                    <?php $typeL=strtolower(trim($miqaat['type']??'')); ?>
-                    <tr class="<?php echo $isSun?'sunday-row':''; ?>" data-hijri-month-name="<?php echo htmlspecialchars($monthName,ENT_QUOTES); ?>" data-eng-date="<?php echo htmlspecialchars($day['date'],ENT_QUOTES); ?>">
-                      <td class="sno"><?php echo $sno++; ?></td>
-                      <td data-sort-value="<?php echo htmlspecialchars($day['date'],ENT_QUOTES); ?>">
-                        <div class="eng-date"><?php echo date('d M Y',strtotime($day['date'])); ?></div>
-                      </td>
-                      <td>
-                        <div class="hijri-date"><?php echo htmlspecialchars($day['hijri_date_with_month']); ?></div>
-                      </td>
-                      <td data-sort-value="<?php echo strtolower($dayName); ?>">
-                        <span class="day-badge <?php echo $isSun?'sunday':''; ?>"><?php echo $dayName; ?></span>
-                      </td>
-                      <td data-sort-value="<?php echo htmlspecialchars(strtolower($miqaat['name']??''),ENT_QUOTES); ?>">
-                        <div class="mq-name"><?php echo htmlspecialchars($miqaat['name']??''); ?></div>
-                      </td>
-                      <td data-sort-value="<?php echo $typeL; ?>">
-                        <?php $typeClass=in_array($typeL,['ashara','shehrullah','general','ladies'])?$typeL:'default'; ?>
-                        <span class="mq-type-tag <?php echo $typeClass; ?>"><?php echo htmlspecialchars($miqaat['type']??''); ?></span>
-                      </td>
-                      <td>
-                        <?php if(!empty($miqaat['assignments'])): ?>
-                          <?php
-                          $grpA=[];$indA=[];
-                          foreach($miqaat['assignments'] as $as){
-                            $at=strtolower($as['assign_type']??'');
-                            if($at==='group')$grpA[]=$as; elseif($at==='individual')$indA[]=$as;
-                          }
-                          ?>
-                          <?php foreach($grpA as $as): ?>
-                            <div class="assign-group-name"><i class="fa fa-users"></i><?php echo htmlspecialchars($as['group_name']??''); ?></div>
-                            <div class="assign-label">Leader</div>
-                            <div class="assign-person"><?php echo htmlspecialchars($as['group_leader_name']??''); ?> <span class="its"><?php echo htmlspecialchars($as['group_leader_id']??''); ?></span></div>
-                            <?php if(!empty($as['members'])): ?>
-                              <div class="assign-label">Co-leader</div>
-                              <?php foreach($as['members'] as $mem): ?>
-                                <div class="assign-person"><?php echo htmlspecialchars($mem['name']??''); ?> <span class="its"><?php echo htmlspecialchars($mem['id']??''); ?></span></div>
-                              <?php endforeach; ?>
-                            <?php endif; ?>
-                          <?php endforeach; ?>
-                          <?php if(!empty($indA)): ?>
-                            <div class="assign-label">Individual</div>
-                            <?php foreach($indA as $as): ?>
-                              <div class="assign-person"><?php echo htmlspecialchars($as['member_name']??'',ENT_QUOTES); ?> <span class="its"><?php echo htmlspecialchars($as['member_id']??'',ENT_QUOTES); ?></span></div>
-                            <?php endforeach; ?>
-                          <?php endif; ?>
+    <div class="miqaat-tscroll">
+      <table class="miqaat-tbl" id="miqaatTable">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th class="sortable" data-col="eng" style="min-width:95px">Eng Date <span class="sort-indicator"></span></th>
+            <th class="sortable" data-col="hijri" style="min-width:210px">Hijri Date <span class="sort-indicator"></span></th>
+            <th class="sortable" data-col="day" style="min-width:80px">Day <span class="sort-indicator"></span></th>
+            <th style="min-width:180px">Name</th>
+            <th style="min-width:100px">Type</th>
+            <th style="min-width:180px">Assigned To</th>
+            <th style="min-width:100px">Status</th>
+            <th style="width:130px;text-align:center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="miqaatTbody">
+          <?php if (!empty($monthWiseMiqaats)): ?>
+            <?php $sno = 1; ?>
+            <?php foreach ($monthWiseMiqaats as $monthName => $days): ?>
+              <tr class="month-hdr" data-hijri-month-name="<?php echo htmlspecialchars($monthName, ENT_QUOTES); ?>">
+                <td colspan="9"><i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i><strong>Hijri Month: <?php echo htmlspecialchars($monthName, ENT_QUOTES); ?></strong></td>
+              </tr>
+              <?php foreach ($days as $day): ?>
+                <?php
+                $dayName = isset($day['date']) ? date('l', strtotime($day['date'])) : '';
+                $is_sunday = ($dayName === 'Sunday');
+                ?>
+                <?php if (!empty($day['miqaats'])): ?>
+                  <?php foreach ($day['miqaats'] as $miqaat): ?>
+                    <?php
+                    $row_cls = miqaat_row_class($miqaat['type'] ?? '', $is_sunday);
+                    $day_cls = $is_sunday ? 'day-sun' : (strtolower($dayName) === 'friday' ? 'day-fri' : '');
+                    $ato = isset($miqaat['assigned_to']) ? trim($miqaat['assigned_to']) : '';
+                    if ($ato === '') $ato = 'Assignment Pending';
+                    ?>
+                    <tr class="<?php echo htmlspecialchars($row_cls, ENT_QUOTES); ?>" 
+                        data-hijri-month-name="<?php echo htmlspecialchars($monthName, ENT_QUOTES); ?>" 
+                        data-eng-date="<?php echo htmlspecialchars($day['date'], ENT_QUOTES); ?>">
+                      <td><span class="miqaat-sno"><?php echo $sno++; ?></span></td>
+                      <td data-sort-value="<?php echo htmlspecialchars($day['date'], ENT_QUOTES); ?>" style="font-weight:600;white-space:nowrap;"><?php echo date('d M Y', strtotime($day['date'])); ?></td>
+                      <td style="white-space:nowrap;"><?php echo htmlspecialchars($day['hijri_date_with_month'] ?? '', ENT_QUOTES); ?></td>
+                      <td class="<?php echo $day_cls; ?>" style="white-space:nowrap;font-weight:<?php echo $is_sunday ? '700' : '500'; ?>;"><?php echo $dayName; ?></td>
+                      <td style="word-break:break-word;white-space:normal;font-weight:600;"><?php echo htmlspecialchars($miqaat['name'] ?? '', ENT_QUOTES); ?></td>
+                      <td><?php echo miqaat_badge($miqaat['type'] ?? ''); ?></td>
+                      <td style="word-break:break-word;white-space:normal;">
+                        <?php if (!empty($miqaat['assignments'])): ?>
+                          <?php $ajson = htmlspecialchars(json_encode($miqaat['assignments']), ENT_NOQUOTES, 'UTF-8'); ?>
+                          <a href="#" class="assign-link show-adet" data-assignments='<?php echo str_replace("'", "&#39;", $ajson); ?>'><i class="fa fa-users" style="font-size:.62rem;margin-right:3px;opacity:.7"></i><?php echo htmlspecialchars($ato, ENT_QUOTES); ?></a>
                         <?php else: ?>
-                          <?php $aTo=trim($miqaat['assigned_to']??''); ?>
-                          <?php if($aTo===''||strtolower($aTo)==='n/a'): ?>
-                            <span class="assign-pending"><i class="fa fa-clock"></i> Assignment Pending</span>
+                          <?php if ($ato === 'Assignment Pending'): ?>
+                            <span class="st-badge st-inactive">Assignment Pending</span>
                           <?php else: ?>
-                            <span class="assign-direct"><?php echo htmlspecialchars($aTo,ENT_QUOTES); ?></span>
+                            <span style="font-weight:600;"><?php echo htmlspecialchars($ato, ENT_QUOTES); ?></span>
                           <?php endif; ?>
                         <?php endif; ?>
                       </td>
                       <td>
                         <?php
-                        if(isset($miqaat['invoice_status'])&&$miqaat['invoice_status']==='Generated'){echo '<span class="status-badge completed"><i class="fa fa-check-circle"></i> Completed</span>';}
-                        elseif(isset($miqaat['invoice_status'])&&$miqaat['invoice_status']==='Partially Generated'){echo '<span class="status-badge partial"><i class="fa fa-adjust"></i> Partial Invoice</span>';}
-                        elseif(isset($miqaat['status'])){
-                          if($miqaat['status']==1)echo '<span class="status-badge active"><i class="fa fa-circle-check"></i> Active</span>';
-                          elseif($miqaat['status']==2)echo '<span class="status-badge inactive"><i class="fa fa-ban"></i> Inactive</span>';
-                          else echo '<span class="status-badge pending-status"><i class="fa fa-minus-circle"></i> Inactive</span>';
-                        }else echo '<span class="status-badge pending-status">N/A</span>';
+                        if (isset($miqaat['invoice_status']) && $miqaat['invoice_status'] == 'Generated') {
+                          echo '<span class="st-badge st-completed">Completed</span>';
+                        } elseif (isset($miqaat['invoice_status']) && $miqaat['invoice_status'] == 'Partially Generated') {
+                          echo '<span class="st-badge st-warning">Completed:<br>Partially Invoiced</span>';
+                        } else {
+                          if (isset($miqaat['status'])) {
+                            if ($miqaat['status'] == 1) {
+                              echo '<span class="st-badge st-active">Active</span>';
+                            } else {
+                              echo '<span class="st-badge st-inactive">Inactive</span>';
+                            }
+                          } else {
+                            echo '<span class="st-badge st-inactive">N/A</span>';
+                          }
+                        }
                         ?>
                       </td>
                       <td>
-                        <div class="act-row">
-                          <!-- Activate -->
-                          <form method="POST" action="<?php echo base_url('common/activate_miqaat'); ?>" style="margin:0;">
+                        <div style="display:flex;gap:4px;justify-content:center;">
+                          <!-- Activate Button -->
+                          <form method="POST" action="<?php echo base_url('common/activate_miqaat'); ?>" style="display:inline;">
                             <input type="hidden" name="miqaat_id" value="<?php echo $miqaat['id']; ?>">
-                            <button type="submit" class="act-btn activate" title="Activate"
-                              <?php $noA=empty($miqaat['assignments']); echo((isset($miqaat['status'])&&$miqaat['status']==1)||$noA?'disabled title="Assign first"':''); ?>>
+                            <button type="submit" class="btn-action btn-act-success" <?php
+                                                                                  $noAssignments = empty($miqaat['assignments']);
+                                                                                  echo (isset($miqaat['status']) && $miqaat['status'] == 1) || $noAssignments ? 'disabled title="Assign first to activate" style="opacity:0.4;cursor:not-allowed;"' : '';
+                                                                                  ?>>
                               <i class="fa fa-check"></i>
                             </button>
                           </form>
-                          <!-- Cancel -->
-                          <form method="POST" action="<?php echo base_url('common/cancel_miqaat'); ?>" style="margin:0;" onsubmit="return confirm('Make this Miqaat inactive?');">
+                          <!-- Cancel Button -->
+                          <form method="POST" action="<?php echo base_url('common/cancel_miqaat'); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to make this Miqaat inactive?');">
                             <input type="hidden" name="miqaat_id" value="<?php echo $miqaat['id']; ?>">
-                            <button type="submit" class="act-btn cancel" title="Deactivate"
-                              <?php echo(isset($miqaat['status'])&&$miqaat['status']==2)?'disabled':''; ?>>
+                            <button type="submit" class="btn-action btn-act-warning" <?php echo (isset($miqaat['status']) && $miqaat['status'] == 2) ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''; ?>>
                               <i class="fa fa-ban"></i>
                             </button>
                           </form>
-                          <!-- Edit -->
-                          <a href="<?php echo base_url('common/edit_miqaat?id='.$miqaat['id']); ?>" class="act-btn edit" title="Edit">
+                          <!-- Edit Button -->
+                          <a href="<?php echo base_url('common/edit_miqaat?id=' . $miqaat['id']); ?>" class="btn-action btn-act-primary">
                             <i class="fa fa-edit"></i>
                           </a>
-                          <!-- Delete -->
-                          <form method="POST" action="<?php echo base_url('common/delete_miqaat'); ?>" style="margin:0;" onsubmit="return confirm('Delete this Miqaat?');">
+                          <!-- Delete Button -->
+                          <form method="POST" action="<?php echo base_url('common/delete_miqaat'); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this Miqaat?');">
                             <input type="hidden" name="miqaat_id" value="<?php echo $miqaat['id']; ?>">
-                            <button type="submit" class="act-btn del" title="Delete"><i class="fa fa-trash"></i></button>
+                            <button type="submit" class="btn-action btn-act-danger">
+                              <i class="fa fa-trash"></i>
+                            </button>
                           </form>
                         </div>
                       </td>
                     </tr>
                   <?php endforeach; ?>
-                <?php endforeach; ?>
+                <?php endif; ?>
               <?php endforeach; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="9">
-                  <div class="empty-state">
-                    <i class="fa fa-calendar-times"></i>
-                    <p><?php
-                      $nm='No Miqaats found';
-                      if(!empty($member_name_filter))$nm.=' matching "'.htmlspecialchars($member_name_filter,ENT_QUOTES).'"';
-                      if(!empty($assignment_filter))$nm.=' ('.$assignment_filter.')';
-                      if(isset($miqaat_type)&&$miqaat_type!=='')$nm.=' of type '.htmlspecialchars($miqaat_type,ENT_QUOTES);
-                      echo $nm.'.';
-                    ?></p>
-                    <a href="<?php echo base_url('common/createmiqaat?date='.date('Y-m-d')); ?>" class="btn-add" style="margin:0 auto;display:inline-flex;"><i class="fa fa-plus"></i> Create Miqaat</a>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="9">
+                <div class="miqaat-no-results">
+                  <i class="fa fa-search"></i>
+                  <p>No Miqaats found matching the selected filters.</p>
+                  <div style="margin-top:12px;">
+                    <a href="<?php echo base_url('common/createmiqaat?date=' . date('Y-m-d')); ?>" class="miqaat-btn-add"><i class="fa fa-plus"></i> Create Miqaat</a>
+                    <a href="<?php echo base_url('common/managemiqaat?from=' . (isset($from) ? urlencode($from) : '')); ?>" class="miqaat-clear-btn" style="margin-left:8px;">Clear Filters</a>
                   </div>
-                </td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </td>
+            </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
     </div>
 
-    <!-- Print version -->
-    <div class="miqaat-print-only">
-      <?php if(!empty($monthWiseMiqaats)): ?>
-        <?php $printSno=1;$isFirst=true; ?>
-        <?php foreach($monthWiseMiqaats as $monthName=>$days): ?>
-          <div style="<?php echo $isFirst?'':'page-break-before:always;'; ?>">
-            <div style="font-weight:bold;text-align:center;margin:8px 0 5px;font-size:1.1rem;"><?php echo htmlspecialchars($monthName,ENT_QUOTES); ?></div>
-            <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
-              <thead><tr style="background:#1f2933;color:#fff;">
-                <th style="padding:8px;">#</th><th style="padding:8px;">Eng Date</th><th style="padding:8px;">Hijri Date</th>
-                <th style="padding:8px;">Day</th><th style="padding:8px;">Name</th><th style="padding:8px;">Type</th><th style="padding:8px;">Assigned To</th>
-              </tr></thead>
-              <tbody>
-                <?php foreach($days as $day): ?>
-                  <?php $dn=isset($day['date'])?date('l',strtotime($day['date'])):'';$rs=$dn==='Sunday'?' style="background:#ffe5e5"':''; ?>
-                  <?php foreach($day['miqaats'] as $mq): ?>
-                    <tr<?php echo $rs;?>>
-                      <td style="padding:6px;border:1px solid #ddd;"><?php echo $printSno++; ?></td>
-                      <td style="padding:6px;border:1px solid #ddd;"><?php echo date('d M Y',strtotime($day['date'])); ?></td>
-                      <td style="padding:6px;border:1px solid #ddd;"><?php echo htmlspecialchars($day['hijri_date_with_month']); ?></td>
-                      <td style="padding:6px;border:1px solid #ddd;"><?php echo $dn; ?></td>
-                      <td style="padding:6px;border:1px solid #ddd;"><?php echo htmlspecialchars($mq['name']??''); ?></td>
-                      <td style="padding:6px;border:1px solid #ddd;"><?php echo htmlspecialchars($mq['type']??''); ?></td>
-                      <td style="padding:6px;border:1px solid #ddd;">
-                        <?php if(!empty($mq['assignments'])){$grpP=[];$indP=[];foreach($mq['assignments'] as $a){$at=strtolower($a['assign_type']??'');if($at==='group')$grpP[]=$a;elseif($at==='individual')$indP[]=$a;}foreach($grpP as $a){echo'<strong>Group: '.htmlspecialchars($a['group_name']??'').'</strong><br>Leader: '.htmlspecialchars($a['group_leader_name']??'').' ('.htmlspecialchars($a['group_leader_id']??'').')<br>';}if(!empty($indP)){echo'Individual:<br>';foreach($indP as $a)echo htmlspecialchars($a['member_name']??'',ENT_QUOTES).' ('.htmlspecialchars($a['member_id']??'',ENT_QUOTES).')<br>';}}else{$aTo=trim($mq['assigned_to']??'');echo($aTo===''||strtolower($aTo)==='n/a')?'Pending':htmlspecialchars($aTo,ENT_QUOTES);} ?>
-                      </td>
-                    </tr>
-                  <?php endforeach; ?>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-          <?php $isFirst=false; ?>
-        <?php endforeach; ?>
-      <?php endif; ?>
+    <div class="miqaat-tfoot">
+      <span id="miqaatCnt" style="background:#f5e9c0;color:#b8860b;border-radius:20px;padding:2px 9px;font-size:.65rem;font-weight:800">— rows</span>
+      <span>Manage Miqaat For Year &mdash; <?php echo isset($hijri_year) ? htmlspecialchars($hijri_year, ENT_QUOTES) : ""; ?></span>
     </div>
   </div>
 
-</div><!-- /mq-wrap -->
-</div><!-- /#mqApp -->
+</div><!-- /#miqaatApp -->
+
+<!-- Assignment modal -->
+<div class="fmb-ov" id="modAdet">
+  <div class="fmb-modal">
+    <div class="fmb-mhd">
+      <span class="fmb-mtit"><i class="fa fa-users" style="color:#b8860b"></i> Assignment Details</span>
+      <button class="fmb-mclose" onclick="fmbCM('modAdet')">&#x2715;</button>
+    </div>
+    <div class="fmb-mbody" id="adetBody"></div>
+    <div class="fmb-mft"><button class="fmb-btn-c" onclick="fmbCM('modAdet')">Close</button></div>
+  </div>
+</div>
 
 <script>
-$('#hijri-month,#assignment-filter,#miqaat-type').on('change',function(){$('#filter-form').submit();});
-$('.flash').delay(3000).fadeOut(500);
+/* ── Modal helpers ── */
+function fmbOM(id){document.getElementById(id).classList.add('open')}
+function fmbCM(id){document.getElementById(id).classList.remove('open')}
+document.addEventListener('click',function(e){if(e.target.classList.contains('fmb-ov'))e.target.classList.remove('open')});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.fmb-ov.open').forEach(function(m){m.classList.remove('open')})});
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
-// Print
-document.getElementById('print-table-btn').addEventListener('click',function(){setTimeout(function(){window.print();},50);});
-
-// Sortable columns
-(function(){
-  var table=document.querySelector('#mqApp table');
-  if(!table)return;
-  var thead=table.querySelector('thead');
-  var tbody=table.querySelector('tbody');
-  if(!thead||!tbody)return;
-
-  thead.querySelectorAll('th').forEach(function(th,idx){
-    if(th.hasAttribute('data-no-sort'))return;
-    th.style.cursor='pointer';
-    var orig=th.innerHTML.trim();
-    th.innerHTML='<span>'+orig+'</span><span class="sort-indicator" style="margin-left:4px;font-size:.62rem;opacity:.5;"></span>';
-    th.addEventListener('click',function(){toggleSort(idx,th);});
-  });
-
-  function getCellValue(tr,index){
-    var cells=tr.querySelectorAll('td');
-    if(!cells[index])return'';
-    return cells[index].getAttribute('data-sort-value')||cells[index].textContent.trim();
-  }
-  function norm(v){
-    if(/^\d{4}-\d{2}-\d{2}$/.test(v))return new Date(v).getTime();
-    if(!isNaN(parseFloat(v))&&isFinite(v))return parseFloat(v);
-    return v.toLowerCase();
-  }
-  function toggleSort(idx,th){
-    var newDir=th.dataset.sortDir==='asc'?'desc':'asc';
-    thead.querySelectorAll('th').forEach(function(h){h.dataset.sortDir='';var i=h.querySelector('.sort-indicator');if(i)i.textContent='';});
-    th.dataset.sortDir=newDir;
-    var ind=th.querySelector('.sort-indicator');
-    if(ind){ind.textContent=newDir==='asc'?'▲':'▼';ind.style.opacity='1';}
-    var allRows=Array.from(tbody.querySelectorAll('tr'));
-    var monthHeaders=allRows.filter(function(r){return r.classList.contains('month-header');});
-    var dataRows=allRows.filter(function(r){return!r.classList.contains('month-header')&&!r.querySelector('.empty-state');});
-    dataRows.sort(function(a,b){
-      var va=norm(getCellValue(a,idx)),vb=norm(getCellValue(b,idx));
-      if(va<vb)return newDir==='asc'?-1:1;
-      if(va>vb)return newDir==='asc'?1:-1;
-      return 0;
+/* ── Assignment detail modal ── */
+document.addEventListener('click',function(e){
+  var a=e.target.closest('.show-adet');if(!a)return;e.preventDefault();
+  var raw=a.getAttribute('data-assignments');var asgns=[];
+  try{asgns=JSON.parse(raw||'[]')}catch(err){asgns=[]}
+  var html='';
+  if(asgns&&asgns.length){
+    asgns.forEach(function(asgn){
+      if(asgn.assign_type==='Individual'){
+        html+='<div class="adet-row"><div class="ak"><i class="fa fa-user" style="margin-right:4px"></i>Individual</div><div class="av">'+esc(asgn.member_name||'')+'</div><div class="asub"><i class="fa fa-phone" style="margin-right:3px;opacity:.5"></i>'+(asgn.member_mobile||'N/A')+'</div></div>';
+      } else if(asgn.assign_type==='Group'){
+        html+='<div class="adet-row"><div class="ak"><i class="fa fa-users" style="margin-right:4px"></i>Group / Sanstha</div><div class="av">'+esc(asgn.group_name||'')+'</div>';
+        html+='<div class="asub"><strong>Leader:</strong> '+esc(asgn.group_leader_name||'')+' &mdash; '+(asgn.group_leader_mobile||'N/A')+'</div>';
+        if(asgn.members&&asgn.members.length)html+='<div class="asub"><strong>Co-leader:</strong> '+esc(asgn.members[0].name||'')+' &mdash; '+(asgn.members[0].mobile||'N/A')+'</div>';
+        html+='</div>';
+      } else {
+        html+='<div class="adet-row"><div class="ak">'+esc(asgn.assign_type||'Assignment')+'</div><div class="av">'+esc(asgn.member_name||asgn.group_name||'—')+'</div></div>';
+      }
     });
+  } else {html='<p style="color:#9c8f7a;font-size:.82rem;padding:8px 0">No assignment details available.</p>'}
+  document.getElementById('adetBody').innerHTML=html;
+  fmbOM('modAdet');
+});
+
+/* ── Auto-submit dropdowns ── */
+document.getElementById('hijri-month').addEventListener('change',function(){document.getElementById('filter-form').submit()});
+document.getElementById('miqaat-type').addEventListener('change',function(){document.getElementById('filter-form').submit()});
+document.getElementById('assignment-filter').addEventListener('change',function(){document.getElementById('filter-form').submit()});
+
+/* ── Search Clear and Submit on Enter ── */
+var searchInput=document.getElementById('member-name-filter');
+var searchClr=document.getElementById('miqaatSearchClr');
+function updateSearchClr(){searchClr.classList.toggle('vis',searchInput.value.length>0)}
+searchInput.addEventListener('input',updateSearchClr);
+searchInput.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){e.preventDefault();document.getElementById('filter-form').submit()}
+});
+searchClr.addEventListener('click',function(){searchInput.value='';updateSearchClr();document.getElementById('filter-form').submit()});
+updateSearchClr();
+
+$(".alert").delay(3000).fadeOut(500);
+
+/* ── Print handler ── */
+var printBtn = document.getElementById('print-table-btn');
+if (printBtn) {
+  printBtn.addEventListener('click', function() {
+    setTimeout(function() { window.print(); }, 50);
+  });
+}
+
+/* ── Column sort keeping month headers grouped ── */
+(function(){
+  var tbody=document.getElementById('miqaatTbody');
+  if(!tbody) return;
+  var state={col:null,dir:'asc'};
+  var colIdx={eng:1,hijri:2,day:3};
+  document.querySelectorAll('#miqaatTable thead th.sortable').forEach(function(th){
+    th.addEventListener('click',function(){
+      var col=th.dataset.col;
+      state.dir=(state.col===col&&state.dir==='asc')?'desc':'asc';
+      state.col=col;
+      document.querySelectorAll('#miqaatTable thead th.sortable').forEach(function(h){
+        var ind = h.querySelector('.sort-indicator');
+        if (ind) ind.textContent = '';
+      });
+      var ind = th.querySelector('.sort-indicator');
+      if (ind) ind.textContent = state.dir === 'asc' ? '▲' : '▼';
+      sortRows(colIdx[col],state.dir);
+    });
+  });
+  function getCellVal(tr,idx){var c=tr.querySelectorAll('td');return c[idx]?(c[idx].getAttribute('data-sort-value')||c[idx].textContent.trim()):'';}
+  function norm(v){if(/^\d{4}-\d{2}-\d{2}$/.test(v))return new Date(v).getTime();if(!isNaN(parseFloat(v))&&isFinite(v))return parseFloat(v);return v.toLowerCase()}
+  function sortRows(idx,dir){
+    var all=Array.from(tbody.querySelectorAll('tr'));
+    var mhdrs=all.filter(function(r){return r.classList.contains('month-hdr')});
+    var data=all.filter(function(r){return!r.classList.contains('month-hdr') && !r.classList.contains('no-results-row')});
+    data.sort(function(a,b){
+      var va=norm(getCellVal(a,idx)),vb=norm(getCellVal(b,idx));
+      return va<vb?(dir==='asc'?-1:1):va>vb?(dir==='asc'?1:-1):0;
+    });
+    mhdrs.forEach(function(r){r.remove()});
     tbody.innerHTML='';
-    var inserted={};
-    dataRows.forEach(function(r){
-      var mName=r.getAttribute('data-hijri-month-name')||'';
-      if(mName&&!inserted[mName]){
-        var hdr=document.createElement('tr');
-        hdr.className='month-header';
-        hdr.setAttribute('data-hijri-month-name',mName);
+    var seen=new Set();
+    data.forEach(function(r){
+      var mn=r.getAttribute('data-hijri-month-name')||'';
+      if(!seen.has(mn)){
+        seen.add(mn);
+        var hdr=document.createElement('tr');hdr.className='month-hdr';
+        hdr.setAttribute('data-hijri-month-name',mn);
         var td=document.createElement('td');td.colSpan=9;
-        td.innerHTML='<i class="fa fa-moon" style="margin-right:6px;"></i>'+mName;
-        hdr.appendChild(td);tbody.appendChild(hdr);
-        inserted[mName]=true;
+        td.innerHTML='<i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i><strong>Hijri Month: '+esc(mn)+'</strong>';
+        hdr.appendChild(td);
+        tbody.appendChild(hdr);
       }
       tbody.appendChild(r);
     });
-    // renumber
-    var i=1;tbody.querySelectorAll('td.sno').forEach(function(td){td.textContent=i++;});
+    renumber();
+  }
+  function renumber(){
+    var i=1;
+    document.querySelectorAll('#miqaatTbody tr:not(.month-hdr)').forEach(function(tr){
+      var s=tr.querySelector('.miqaat-sno');if(s)s.textContent=i++;
+    });
   }
 })();
+
+function updateCount(){
+  var n=document.querySelectorAll('#miqaatTbody tr:not(.month-hdr):not(.no-results-row)').length;
+  var txt=n+' row'+(n!==1?'s':'');
+  var a=document.getElementById('miqaatCnt'),b=document.getElementById('miqaatRowCount');
+  if(a)a.textContent=txt;if(b)b.textContent=txt;
+}
+updateCount();
 </script>

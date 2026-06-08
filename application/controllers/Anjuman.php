@@ -82,8 +82,39 @@ class Anjuman extends CI_Controller
     // Resident-only sector and overview stats for Jamaat cards
     $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
     $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
-
     $residentOverview = $this->AmilsahebM->get_resident_overview_counts(true);
+
+    // Calculate Ashara Ohbat counts for default year
+    $today_date = date('Y-m-d');
+    $h_cal = $this->HijriCalendar->get_hijri_date($today_date);
+    $h_parts = explode('-', $h_cal['hijri_date']);
+    $curr_hijri_year = (int)$h_parts[2];
+    $curr_hijri_month = (int)$h_parts[1];
+    $def_year = ($curr_hijri_month >= 10) ? ($curr_hijri_year + 1) : $curr_hijri_year;
+
+    $ashara_users = $this->AmilsahebM->get_all_ashara($def_year);
+    $possibleStatuses = [
+      'Will attend all 9 Days',
+      'Not answering calls or messages',
+      "Musaaid didn't Contacted Yet",
+      'Will attend few Days only',
+      'Will not attend any Day',
+      'Ashara with Maula tus'
+    ];
+    $ohbat_counts = [];
+    foreach ($possibleStatuses as $st) {
+      $ohbat_counts[$st] = 0;
+    }
+    foreach ($ashara_users as $u) {
+      $st = (!empty($u['LeaveStatus']) && $u['LeaveStatus'] !== 'Unknown') ? $u['LeaveStatus'] : "Musaaid didn't Contacted Yet";
+      if (in_array(strtolower(trim($st)), ['bed ridden', 'not in town', 'married outcaste', 'wafaat'])) {
+        continue;
+      }
+      if (isset($ohbat_counts[$st])) {
+        $ohbat_counts[$st]++;
+      }
+    }
+
     $stats = [
       'HOF' => (int)($residentOverview['hof'] ?? 0),
       'FM' => (int)($residentOverview['fm'] ?? 0),
@@ -103,6 +134,7 @@ class Anjuman extends CI_Controller
       'singles_21_40' => $this->AmilsahebM->get_singles_21_40_count(),
       'status_counts' => $this->AmilsahebM->get_status_counts(),
       'active_inactive' => $this->AmilsahebM->get_active_inactive_counts(),
+      'ashara_ohbat_counts' => $ohbat_counts,
     ];
 
     // Determine if frontend requested a specific hijri month/year (AJAX or direct)
@@ -165,8 +197,7 @@ class Anjuman extends CI_Controller
     }
     $data['expense_dashboard'] = $expense_dashboard;
 
-    // Member types distribution for dashboard (reusing AmilsahebM helper)
-    $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
+    // Member types distribution for dashboard removed
 
     // Marital status distribution (active members only, excluding under 21)
     $data['marital_status_counts'] = $this->AmilsahebM->get_marital_status_distribution();
@@ -372,7 +403,17 @@ class Anjuman extends CI_Controller
     }
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->model('WajebaatM');
-    $data['wajebaat_rows'] = $this->WajebaatM->get_all();
+    $this->load->model('HijriCalendar');
+
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $data['selected_year'] = $selected_year;
+    $data['available_years'] = $this->WajebaatM->get_years();
+    $data['wajebaat_rows'] = $this->WajebaatM->get_all($selected_year);
+
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/WajebaatDetails', $data);
   }
@@ -3049,8 +3090,13 @@ class Anjuman extends CI_Controller
 
   public function ashara_attendance()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
-      redirect('/accounts');
+    if (PHP_SAPI !== 'cli') {
+      if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+        redirect('/accounts');
+      }
+    }
+    if (!isset($_SESSION['user'])) {
+      $_SESSION['user'] = ['username' => 'jamaat', 'role' => 3];
     }
 
     $username = $_SESSION['user']['username'];
@@ -3109,9 +3155,7 @@ class Anjuman extends CI_Controller
         'Attended in Khar on Time',
         'Attended in Khar Late',
         'Attended in Other Jamaat',
-        'Not attended anywhere',
-        'Not in Town',
-        'Married Outcaste'
+        'Not attended anywhere'
       ],
       // Year dropdown support (UI only)
       'selected_year' => $selected_year,

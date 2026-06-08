@@ -868,6 +868,16 @@ class Accounts extends CI_Controller
     }
     $this->load->model('AccountM');
     $this->load->model('WajebaatM');
+    $this->load->model('HijriCalendar');
+
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $data['selected_year'] = $selected_year;
+    $data['available_years'] = $this->WajebaatM->get_years();
+
     $username = isset($_SESSION['user']['username']) ? $_SESSION['user']['username'] : '';
     $data['user_name'] = $username;
 
@@ -888,7 +898,7 @@ class Accounts extends CI_Controller
     $total_due = 0.0;
     $lastUpdated = '';
     foreach ($memberIds as $mid) {
-      $row = $this->WajebaatM->get_by_its($mid);
+      $row = $this->WajebaatM->get_by_its($mid, $selected_year);
       if (!empty($row) && is_array($row)) {
         $total_amount += (float)($row['amount'] ?? 0);
         $total_due += (float)($row['due'] ?? 0);
@@ -2618,8 +2628,13 @@ class Accounts extends CI_Controller
     // Wajebaat outstanding for family
     $wajebaat_due = 0.0;
     $this->load->model('WajebaatM');
+    $this->load->model('HijriCalendar');
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
     foreach ($memberIds as $m) {
-      $waj_row = $this->WajebaatM->get_by_its($m);
+      $waj_row = $this->WajebaatM->get_by_its($m, $current_hijri_year);
       if (!empty($waj_row) && is_array($waj_row)) {
         $wajebaat_due += (float)($waj_row['due'] ?? 0);
       }
@@ -2855,8 +2870,13 @@ class Accounts extends CI_Controller
     // Wajebaat outstanding for family
     $wajebaat_due = 0.0;
     $this->load->model('WajebaatM');
+    $this->load->model('HijriCalendar');
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
     foreach ($memberIds as $m) {
-      $waj_row = $this->WajebaatM->get_by_its($m);
+      $waj_row = $this->WajebaatM->get_by_its($m, $current_hijri_year);
       if (!empty($waj_row) && is_array($waj_row)) {
         $wajebaat_due += (float)($waj_row['due'] ?? 0);
       }
@@ -4189,6 +4209,20 @@ class Accounts extends CI_Controller
 
   public function chat($id, $from = null)
   {
+    // Enforce that Umoor logins can only access chats belonging to their own Umoor's Raza requests
+    if (isset($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $raza = $this->db->select('razaType')->from('raza')->where('id', $id)->get()->row_array();
+      if ($raza) {
+        $allowed = $this->db->where('id', (int)$raza['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+        if (!$allowed) {
+          show_error('You do not have permission to view this chat.');
+        }
+      } else {
+        show_error('Raza request not found.');
+      }
+    }
+
     $data['user_name'] = $_SESSION['user']['username'] ?? "";
     if ($_SESSION['user_data'] != "") {
       $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
@@ -4220,6 +4254,21 @@ class Accounts extends CI_Controller
 
     // Get data from the POST request
     $raza_id = $this->input->post('raza_id');
+
+    // Enforce that Umoor logins can only message in chats belonging to their own Umoor's Raza requests
+    if (isset($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $raza = $this->db->select('razaType')->from('raza')->where('id', $raza_id)->get()->row_array();
+      if ($raza) {
+        $allowed = $this->db->where('id', (int)$raza['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+        if (!$allowed) {
+          show_error('You do not have permission to post messages to this chat.');
+        }
+      } else {
+        show_error('Raza request not found.');
+      }
+    }
+
     $user = $this->input->post('user');
     $message = $this->input->post('message');
 
@@ -4247,6 +4296,20 @@ class Accounts extends CI_Controller
 
   public function deleteMessage($message_id)
   {
+    // Enforce that Umoor logins can only delete messages belonging to their own Umoor's Raza requests
+    if (isset($_SESSION['user']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15) {
+      $umoor_name = $_SESSION['user']['username'];
+      $chatMsg = $this->db->select('raza_id')->from('chat')->where('id', $message_id)->get()->row_array();
+      if ($chatMsg) {
+        $raza = $this->db->select('razaType')->from('raza')->where('id', $chatMsg['raza_id'])->get()->row_array();
+        if ($raza) {
+          $allowed = $this->db->where('id', (int)$raza['razaType'])->where('umoor', $umoor_name)->get('raza_type')->row_array();
+          if (!$allowed) {
+            show_error('You do not have permission to delete this message.');
+          }
+        }
+      }
+    }
 
     $result = $this->AccountM->deleteMessage($message_id);
 

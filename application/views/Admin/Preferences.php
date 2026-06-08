@@ -677,7 +677,7 @@ if (!function_exists('is_notif_enabled')) {
   <div class="card p-3 mt-3">
     <h5 class="mb-1">Member Status Management</h5>
     <p class="text-muted small mb-3">
-      Recalculate ITS–Sabeel match status, Member Type, and Activity Status for <strong>all</strong> members.<br>
+      Recalculate ITS–Sabeel match status and Activity Status for <strong>all</strong> members.<br>
       This runs automatically after every ITS CSV import. Use this button to manually trigger a recalculation
       (e.g. after updating Sabeel records).
     </p>

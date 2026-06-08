@@ -164,9 +164,13 @@ class Common extends CI_Controller
     return $base_start;
   }
 
-  private function validateUser($user)
+  private function validateUser($user, $allow_umoor_deeniyah = false)
   {
-    if (empty($user) || ($user['role'] != 1 && $user['role'] != 3 && $user['role'] != 2 && $user['role'] != 16)) {
+    $allowed_roles = [1, 2, 3, 16];
+    if ($allow_umoor_deeniyah) {
+      $allowed_roles[] = 4;
+    }
+    if (empty($user) || !in_array((int)$user['role'], $allowed_roles, true)) {
       redirect('/accounts');
     }
   }
@@ -3183,7 +3187,7 @@ class Common extends CI_Controller
 
   public function miqaatattendance()
   {
-    $this->validateUser($_SESSION["user"]);
+    $this->validateUser($_SESSION["user"], true);
     $from = $this->input->get('from');
     $data['from'] = $from;
     $_SESSION["from"] = $from;
@@ -3211,7 +3215,7 @@ class Common extends CI_Controller
 
   public function miqaat_attendance_details($miqaat_id = null)
   {
-    $this->validateUser($_SESSION["user"]);
+    $this->validateUser($_SESSION["user"], true);
     if (!$miqaat_id) {
       $this->session->set_flashdata('error', 'Invalid Miqaat.');
       redirect('common/miqaatattendance');
@@ -3443,7 +3447,7 @@ class Common extends CI_Controller
 
   public function rsvp_list()
   {
-    $this->validateUser($_SESSION["user"]);
+    $this->validateUser($_SESSION["user"], true);
     $from = $this->input->get('from');
     $_SESSION["from"] = $from;
     $data['from'] = $from;

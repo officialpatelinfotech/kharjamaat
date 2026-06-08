@@ -1,157 +1,206 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
-.mumineen-container { max-width:1500px; margin:0 auto; padding:1.5rem; }
-.top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-
-/* Filter card */
-.filters-bar {
-  background:linear-gradient(135deg,#1e293b,#334155);
-  color:#fff; padding:.6rem 1rem; border-radius:6px 6px 0 0;
-  display:flex; align-items:center; justify-content:space-between;
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#b8860b;--gold-light:#e6c84a;--gold-muted:#f5e9c0;
+  --bg:#faf7f0;--surface:#fff;--surface-2:#f7f4ec;
+  --border:#e8e0cc;--border-light:#f0ece0;
+  --text-1:#1a1610;--text-2:#5a5244;--text-3:#9c8f7a;
+  --green:#1a6645;--green-bg:#eaf4ee;
+  --red:#b91c1c;--red-bg:#fef2f2;
+  --blue:#1d4ed8;--blue-bg:#eff6ff;
+  --amber:#b45309;--amber-bg:#fffbeb;
+  --purple:#5b21b6;--purple-bg:#f5f3ff;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh2:0 4px 16px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.04);
 }
-.filters-bar-title { display:flex; align-items:center; gap:.5rem; font-weight:700; font-size:.82rem; letter-spacing:.5px; }
-.filters-card { background:#fff; border:1px solid #dee2e6; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,.07); margin-bottom:1rem; overflow:hidden; }
-.filters-body { padding:1rem; }
 
-/* Filter section label */
-.filter-section-label {
-  font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.8px;
-  color:#94a3b8; margin-bottom:.5rem; margin-top:.25rem;
-  display:flex; align-items:center; gap:.4rem;
+.mumineen-container {
+  font-family:'Plus Jakarta Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text-1);
+  max-width:1500px;
+  margin:15px auto;
+  padding:18px;
 }
-.filter-section-label::after { content:''; flex:1; height:1px; background:#e2e8f0; }
+.mumineen-container *{box-sizing:border-box}
 
-.frow { display:grid; gap:.6rem; align-items:end; margin-bottom:.6rem; }
-.frow-6 { grid-template-columns: 2fr 1fr 1fr 1fr 1.1fr 1fr; }
-.frow-4 { grid-template-columns: repeat(4,1fr); }
+.md-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.md-back{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-size:.75rem;font-weight:700;text-decoration:none;transition:all .15s}
+.md-back:hover{background:var(--gold-muted);border-color:var(--gold);color:var(--gold);text-decoration:none}
+.md-export{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;background:var(--green-bg);border:1.5px solid rgba(26,102,69,.25);color:var(--green);font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s}
+.md-export:hover{background:#d1fae5}
 
-.flabel { font-size:.72rem; font-weight:700; color:#64748b; margin-bottom:.2rem; display:block; letter-spacing:.2px; }
-.finput, .fselect {
-  font-size:.82rem; height:36px; padding:.3rem .6rem;
-  border:1.5px solid #e2e8f0; border-radius:6px; background:#f8fafc;
-  color:#1e293b; outline:none; width:100%; transition:border-color .15s,box-shadow .15s;
-}
-.finput:focus, .fselect:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.12); background:#fff; }
-.age-row { display:flex; gap:.4rem; }
-.age-row .finput { flex:1; }
+.fc{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh);margin-bottom:12px;overflow:hidden}
+.fc-head{background:linear-gradient(135deg,#78520a,var(--gold));padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fc-head-left{display:flex;align-items:center;gap:8px;font-weight:800;font-size:.8rem;color:#fff;letter-spacing:.4px}
+.fc-head-right{display:flex;align-items:center;gap:6px}
+.fc-count{background:rgba(255,255,255,.2);color:#fff;border-radius:20px;padding:2px 9px;font-size:.65rem;font-weight:800}
+.fc-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;transition:background .15s;font-family:'Plus Jakarta Sans',sans-serif}
+.fc-btn:hover{background:rgba(255,255,255,.22)}
+.fc-body{padding:14px;}
 
-/* Chips */
-#chipRow { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:.75rem; }
-.chip { display:inline-flex; align-items:center; gap:4px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:40px; padding:3px 10px; font-size:.72rem; font-weight:700; }
-.chip-x { cursor:pointer; margin-left:2px; opacity:.6; } .chip-x:hover { opacity:1; }
-.chip-clear { display:inline-flex; align-items:center; background:#fff1f2; color:#be123c; border:1px solid #fecdd3; border-radius:40px; padding:3px 10px; font-size:.72rem; font-weight:700; cursor:pointer; }
-.chip-clear:hover { background:#ffe4e6; }
+.fsec{display:flex;align-items:center;gap:6px;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin:12px 0 8px}
+.fsec::after{content:'';flex:1;height:1px;background:var(--border-light)}
+.fsec:first-child{margin-top:0}
+.fsec i{font-size:.72rem}
 
-/* ── Sector Summary Cards ──────────────────────────────────────── */
+.frow{display:grid;gap:8px;margin-bottom:4px;align-items:end;}
+.frow-6{grid-template-columns:2fr 1fr 1fr 1fr 1.1fr 1fr}
+.frow-4{grid-template-columns:repeat(4,1fr)}
+.frow-3{grid-template-columns:repeat(3,1fr)}
+.flabel{display:block;font-size:.67rem;font-weight:700;color:var(--text-2);margin-bottom:4px;letter-spacing:.2px}
+.finput,.fselect{width:100%;height:32px;padding:0 9px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface-2);font-family:'Plus Jakarta Sans',sans-serif;font-size:.76rem;color:var(--text-1);outline:none;transition:border-color .15s,background .15s}
+.finput:focus,.fselect:focus{border-color:var(--gold);background:var(--surface);box-shadow:0 0 0 3px rgba(184,134,11,.1)}
+.age-row{display:flex;gap:5px}
+.age-row .finput{flex:1}
+
+.md-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--gold-muted);color:var(--gold);border:1px solid rgba(184,134,11,.3);border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700}
+.chip-x{cursor:pointer;opacity:.6;font-size:.8rem;line-height:1}
+.chip-x:hover{opacity:1}
+.chip-clear{display:inline-flex;align-items:center;gap:3px;background:var(--red-bg);color:var(--red);border:1px solid rgba(185,28,28,.2);border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700;cursor:pointer}
+.chip-clear:hover{background:#fee2e2}
+
 .sector-summary-card {
-  background:#fff; border:1px solid #e2e8f0; border-radius:8px;
-  box-shadow:0 2px 8px rgba(0,0,0,.06); margin-bottom:1rem; overflow:hidden;
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  box-shadow:var(--sh); margin-bottom:12px; overflow:hidden;
 }
 .sector-summary-bar {
-  background:linear-gradient(135deg,#0f172a,#1e3a5f);
-  color:#fff; padding:.55rem 1rem;
-  display:flex; align-items:center; justify-content:space-between;
+  background:linear-gradient(135deg,#78520a,var(--gold));
+  color:#fff; padding:10px 14px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
 }
-.sector-summary-bar-title { display:flex; align-items:center; gap:.5rem; font-weight:700; font-size:.82rem; letter-spacing:.5px; }
-.sector-summary-body { padding:.85rem 1rem; }
+.sector-summary-bar-title { display:flex; align-items:center; gap:8px; font-weight:800; font-size:.8rem; color:#fff; letter-spacing:.4px; }
+.sector-summary-body { padding:14px; }
 
-/* Total pill */
 .total-pill {
-  display:inline-flex; align-items:center; gap:.5rem;
-  background:linear-gradient(135deg,#1d4ed8,#2563eb);
-  color:#fff; border-radius:8px; padding:.5rem 1rem;
-  font-size:.82rem; font-weight:700; margin-bottom:.75rem;
-  box-shadow:0 2px 6px rgba(37,99,235,.3);
+  display:inline-flex; align-items:center; gap:8px;
+  background:linear-gradient(135deg,var(--gold-light),var(--gold));
+  color:#fff; border-radius:8px; padding:6px 12px;
+  font-size:.8rem; font-weight:700; margin-bottom:10px;
+  box-shadow:0 2px 6px rgba(184,134,11,.3);
 }
-.total-pill .total-num { font-size:1.2rem; font-weight:800; }
+.total-pill .total-num { font-size:1.1rem; font-weight:800; }
 
-/* Sector grid */
 .sector-grid {
   display:grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap:.6rem;
+  gap:8px;
 }
 .sec-card {
-  border:1.5px solid #e2e8f0; border-radius:8px; padding:.65rem .8rem;
-  background:#f8fafc; cursor:pointer; transition:all .18s;
+  border:1.5px solid var(--border); border-radius:8px; padding:10px 12px;
+  background:var(--surface-2); cursor:pointer; transition:all .18s;
   position:relative; overflow:hidden;
 }
 .sec-card::before {
   content:''; position:absolute; top:0; left:0; right:0; height:3px;
-  background:linear-gradient(90deg,#3b82f6,#6366f1);
+  background:linear-gradient(90deg,var(--gold-light),var(--gold));
   border-radius:8px 8px 0 0; opacity:0; transition:opacity .18s;
 }
-.sec-card:hover { border-color:#93c5fd; background:#eff6ff; transform:translateY(-1px); box-shadow:0 4px 12px rgba(59,130,246,.12); }
+.sec-card:hover { border-color:var(--gold); background:var(--gold-muted); transform:translateY(-1px); box-shadow:var(--sh2); }
 .sec-card:hover::before { opacity:1; }
-.sec-card.active-sector { border-color:#2563eb; background:#eff6ff; box-shadow:0 4px 14px rgba(37,99,235,.18); }
+.sec-card.active-sector { border-color:var(--gold); background:var(--gold-muted); box-shadow:var(--sh2); }
 .sec-card.active-sector::before { opacity:1; }
-.sec-card-name { font-size:.78rem; font-weight:800; color:#1e293b; margin-bottom:.45rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.sec-card-stats { display:flex; gap:.35rem; flex-wrap:wrap; }
+.sec-card-name { font-size:.78rem; font-weight:800; color:var(--text-1); margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sec-card-stats { display:flex; gap:5px; flex-wrap:wrap; }
 .sec-stat { display:inline-flex; align-items:center; gap:3px; font-size:.65rem; font-weight:700; padding:2px 6px; border-radius:4px; }
-.sec-stat-total { background:#dbeafe; color:#1d4ed8; }
-.sec-stat-hof   { background:#dcfce7; color:#15803d; }
-.sec-stat-fm    { background:#e0e7ff; color:#3730a3; }
+.sec-stat-total { background:var(--gold-muted); color:var(--gold); }
+.sec-stat-hof   { background:var(--green-bg); color:var(--green); }
+.sec-stat-fm    { background:var(--border-light); color:var(--text-2); }
 
-/* Sub-sector row (shown when a sector is active-filtered) */
-.subsec-row { margin-top:.6rem; display:flex; flex-wrap:wrap; gap:.4rem; }
+.subsec-row { margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; }
 .subsec-chip {
   display:inline-flex; align-items:center; gap:4px;
-  background:#f1f5f9; color:#475569; border:1.5px solid #cbd5e1;
+  background:var(--surface-2); color:var(--text-2); border:1.5px solid var(--border);
   border-radius:40px; padding:3px 10px; font-size:.68rem; font-weight:700;
   cursor:pointer; transition:all .15s;
 }
-.subsec-chip:hover { background:#e0f2fe; border-color:#7dd3fc; color:#0369a1; }
-.subsec-chip.active-subsector { background:#0369a1; color:#fff; border-color:#0369a1; }
+.subsec-chip:hover { background:var(--gold-muted); border-color:var(--gold); color:var(--gold); }
+.subsec-chip.active-subsector { background:var(--gold); color:#fff; border-color:var(--gold); }
 .subsec-chip .subsec-count { background:rgba(255,255,255,.25); border-radius:20px; padding:0 5px; margin-left:2px; }
-.subsec-chip:not(.active-subsector) .subsec-count { background:#e2e8f0; color:#64748b; }
+.subsec-chip:not(.active-subsector) .subsec-count { background:var(--border); color:var(--text-3); }
 
-/* Dashboard title */
-.dash-title { border-left:4px solid #2563eb; background:linear-gradient(90deg,#eff6ff,#fff); padding:.65rem 1rem; border-radius:4px; margin-bottom:.75rem; display:flex; align-items:center; justify-content:space-between; }
-.dash-title h5 { margin:0; color:#1d4ed8; font-weight:700; font-size:.9rem; }
-
-/* Table */
-.table-wrap { overflow-x:auto; border-radius:8px; border:1px solid #e2e8f0; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,.06); }
-table.dir { width:100%; border-collapse:collapse; font-size:.82rem; }
-table.dir thead th {
-  background:#f8fafc; padding:10px 12px; font-size:.67rem; font-weight:800;
-  text-transform:uppercase; letter-spacing:.5px; color:#64748b;
-  border-bottom:2px solid #e2e8f0; white-space:nowrap;
-  position:sticky; top:0; z-index:1; user-select:none;
+.dash-title {
+  background:var(--gold-muted);
+  border-left:4px solid var(--gold);
+  border-radius:0 8px 8px 0;
+  padding:9px 14px;
+  margin-bottom:10px;
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
 }
-th.sortable { cursor:pointer; }
-th.sortable:hover { background:#f1f5f9; color:#1e293b; }
-th.sortable .sort-icon { margin-left:4px; font-size:.6rem; }
-th.sortable.asc  .sort-icon::after { content:'▲'; }
-th.sortable.desc .sort-icon::after { content:'▼'; }
-th.sortable:not(.asc):not(.desc) .sort-icon::after { content:'⇅'; opacity:.4; }
+.dash-title h5 { margin:0; color:var(--gold); font-weight:800; font-size:.84rem; }
+.dash-title-clear {
+  padding:4px 10px;
+  border-radius:7px;
+  border:1px solid rgba(184,134,11,.3);
+  background:var(--surface);
+  color:var(--gold);
+  font-size:.72rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:background .15s;
+}
+.dash-title-clear:hover {
+  background:var(--gold-muted);
+}
 
-.mumineen-container:not(.umoor-view) table.dir tbody tr { border-bottom:1px solid #f1f5f9; transition:background .1s; cursor: pointer; }
-.mumineen-container.umoor-view table.dir tbody tr { border-bottom:1px solid #f1f5f9; transition:background .1s; }
-table.dir tbody tr:hover { background:#f8fbff; }
-table.dir td { padding:8px 12px; vertical-align:middle; }
-tr.hof-row td { background:#eff6ff; font-weight:700; border-top:2px solid #bfdbfe; }
-tr.hof-row td:first-child { border-left:3px solid #2563eb; }
-tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
+.results-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px }
+.results-count { font-size:.76rem; color:var(--text-2); font-weight:700; }
+.results-count span { color:var(--gold); font-weight:800; }
 
-.pill-hof { display:inline-block; background:#2563eb; color:#fff; font-size:.55rem; font-weight:800; padding:1px 6px; border-radius:40px; margin-left:4px; vertical-align:middle; }
-.pill-fm  { display:inline-block; background:#e0e7ff; color:#3730a3; font-size:.55rem; font-weight:700; padding:1px 6px; border-radius:40px; margin-left:4px; vertical-align:middle; }
-.badge-its { display:inline-block; background:#0369a1; color:#fff; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:4px; }
-.badge-active   { display:inline-block; background:#dcfce7; color:#15803d; border:1px solid #86efac; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
-.badge-inactive { display:inline-block; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
-.badge-temp     { display:inline-block; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:40px; }
+.table-wrap {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:var(--sh);
+  overflow-x:auto;
+  max-height:70vh;
+  overflow-y:auto;
+}
+table.dir { width:100%; border-collapse:collapse; font-size:.78rem; min-width:980px; }
+table.dir thead th {
+  background:linear-gradient(to bottom,var(--surface-2),#f0ebe0); padding:9px 11px; font-size:.6rem; font-weight:800;
+  text-transform:uppercase; letter-spacing:.7px; color:var(--text-3);
+  border-bottom:2px solid var(--border); white-space:nowrap;
+  position:sticky; top:0; z-index:1; user-select:none; text-align:left;
+}
+th.sortable { cursor:pointer; transition:color .14s; }
+th.sortable:hover { color:var(--gold); }
+th.sortable .si { margin-left:3px; opacity:.3; font-size:.57rem; }
+th.sortable.asc .si::after { content:'▲'; opacity:1; color:var(--gold); }
+th.sortable.desc .si::after { content:'▼'; opacity:1; color:var(--gold); }
+th.sortable:not(.asc):not(.desc) .si::after { content:'⇅'; }
 
-.act-btn { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; border:none; cursor:pointer; font-size:.78rem; text-decoration:none; transition:opacity .15s; }
-.act-btn:hover { opacity:.75; }
-.act-view { background:#dbeafe; color:#1d4ed8; }
-.act-edit { background:#fef9c3; color:#92400e; }
+.mumineen-container:not(.umoor-view) table.dir tbody tr { border-bottom:1px solid var(--border-light); transition:background .1s; cursor: pointer; }
+.mumineen-container.umoor-view table.dir tbody tr { border-bottom:1px solid var(--border-light); transition:background .1s; }
+table.dir tbody tr:hover { background:#fdf9ef; }
+table.dir td { padding:8px 11px; vertical-align:middle; color:var(--text-1); }
+tr.hof-row td { background:#fffbeb; font-weight:700; border-top:1.5px solid rgba(184,134,11,.25); }
+tr.hof-row td:first-child { border-left:3px solid var(--gold); }
+tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:none; }
+.empty-row td { text-align:center; padding:36px; color:var(--text-3); font-size:.84rem; }
 
-.empty-row td { text-align:center; padding:3rem; color:#94a3b8; font-size:.9rem; }
-.results-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
-.results-count { font-size:.8rem; color:#64748b; font-weight:600; }
+.pill-hof { display:inline-block; background:var(--gold); color:#fff; font-size:.52rem; font-weight:800; padding:1px 6px; border-radius:20px; margin-left:5px; vertical-align:middle; }
+.pill-fm  { display:inline-block; background:var(--surface-2); color:var(--text-2); border:1px solid var(--border); font-size:.52rem; font-weight:700; padding:1px 6px; border-radius:20px; margin-left:5px; vertical-align:middle; }
+.bid { display:inline-block; background:#0c447c; color:#fff; font-size:.65rem; font-weight:700; padding:2px 7px; border-radius:5px; letter-spacing:.2px; }
+.bact   { display:inline-block; background:var(--green-bg); color:var(--green); border:1px solid rgba(26,102,69,.2); font-size:.63rem; font-weight:700; padding:2px 8px; border-radius:20px; }
+.binact { display:inline-block; background:var(--red-bg); color:var(--red); border:1px solid rgba(185,28,28,.2); font-size:.63rem; font-weight:700; padding:2px 8px; border-radius:20px; }
+.btemp     { display:inline-block; background:var(--amber-bg); color:var(--amber); border:1px solid rgba(180,83,9,.2); font-size:.63rem; font-weight:700; padding:2px 8px; border-radius:20px; }
 
-@media(max-width:992px) { .frow-6,.frow-4 { grid-template-columns:1fr 1fr 1fr; } }
-@media(max-width:768px)  { .frow-6,.frow-4 { grid-template-columns:1fr 1fr; } .sector-grid { grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); } }
-@media(max-width:576px)  { .frow-6,.frow-4 { grid-template-columns:1fr; } .mumineen-container { padding:.75rem; } .sector-grid { grid-template-columns:1fr 1fr; } }
+.act-btn { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; border:none; cursor:pointer; font-size:.72rem; text-decoration:none; transition:all .14s; }
+.act-btn:hover { opacity:.8; text-decoration:none; }
+.act-view { background:var(--blue-bg); color:var(--blue); }
+.act-edit { background:var(--amber-bg); color:var(--amber); }
+
+@media(max-width:992px){.frow-6,.frow-4,.frow-3{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.frow-6,.frow-4,.frow-3{grid-template-columns:repeat(2,1fr)}.sector-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}}
+@media(max-width:576px){.frow-6,.frow-4,.frow-3{grid-template-columns:1fr}.mumineen-container{padding:10px}.sector-grid{grid-template-columns:1fr 1fr;}}
 </style>
 
 <?php
@@ -171,29 +220,33 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
 <div class="mumineen-container pt-5 <?= $is_umoor ? 'umoor-view' : '' ?>">
 
   <!-- Top bar -->
-  <div class="top-bar pt-3">
-    <a href="<?php echo isset($back_url) ? $back_url : base_url($back_fallback); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa fa-arrow-left"></i></a>
-    <button class="btn btn-outline-success btn-sm" onclick="exportCSV()"><i class="fa fa-file-excel-o"></i> Export Excel</button>
+  <div class="md-topbar pt-2">
+    <a href="<?php echo isset($back_url) ? $back_url : base_url($back_fallback); ?>" class="md-back">
+      <i class="fa fa-arrow-left"></i> Back
+    </a>
+    <button class="md-export" onclick="exportCSV()">
+      <i class="fa fa-file-excel-o"></i> Export Excel
+    </button>
   </div>
 
   <!-- Filter card -->
-  <div class="filters-card">
-    <div class="filters-bar">
-      <div class="filters-bar-title">
-        <i class="fa fa-sliders"></i> FILTERS
-        <span id="countBadge" style="margin-left:10px;font-size:.72rem;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-weight:600;"></span>
+  <div class="fc">
+    <div class="fc-head">
+      <div class="fc-head-left">
+        <i class="fa fa-sliders"></i> Filters
+        <span class="fc-count" id="countBadge"></span>
       </div>
-      <div style="display:flex;align-items:center;gap:.5rem;">
-        <button id="btnReset" class="btn btn-sm btn-outline-light" type="button"><i class="fa fa-refresh"></i> Reset</button>
-        <button id="btnToggle" class="btn btn-sm btn-outline-light" type="button"><i class="fa fa-chevron-down"></i> Show Filters</button>
+      <div class="fc-head-right">
+        <button id="btnReset" class="fc-btn" type="button"><i class="fa fa-refresh"></i> Reset</button>
+        <button id="btnToggle" class="fc-btn" type="button"><i class="fa fa-chevron-down"></i> Show Filters</button>
       </div>
     </div>
 
     <div id="filterBody" class="d-none">
-      <form id="filtersForm" onsubmit="return false;" class="filters-body">
+      <form id="filtersForm" onsubmit="return false;" class="fc-body">
 
         <!-- Section 1: Search & Location -->
-        <div class="filter-section-label"><i class="fa fa-search" style="color:#3b82f6;"></i> Search &amp; Location</div>
+        <div class="fsec"><i class="fa fa-search" style="color:var(--blue);"></i> Search &amp; Location</div>
         <div class="frow frow-6" id="baseFilterRow">
           <div>
             <label class="flabel">Name or ITS</label>
@@ -228,8 +281,8 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
         </div>
 
         <!-- Section 2: Member Details -->
-        <div class="filter-section-label" id="secLabel2"><i class="fa fa-user" style="color:#8b5cf6;"></i> Member Details</div>
-        <div class="frow frow-4" id="secRow2">
+        <div class="fsec" id="secLabel2"><i class="fa fa-user" style="color:var(--purple);"></i> Member Details</div>
+        <div class="frow frow-3" id="secRow2">
           <div>
             <label class="flabel">Active Inactive Status</label>
             <select id="fStatus" class="fselect">
@@ -247,10 +300,6 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
             </select>
           </div>
           <div>
-            <label class="flabel">Member Type</label>
-            <select id="fMemberType" class="fselect"><option value="">All</option></select>
-          </div>
-          <div>
             <label class="flabel">HOF / FM</label>
             <select id="fHOFType" class="fselect">
               <option value="">All</option>
@@ -261,7 +310,7 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
         </div>
 
         <!-- Section 3: Status Filters -->
-        <div class="filter-section-label" id="secLabel3"><i class="fa fa-heartbeat" style="color:#ef4444;"></i> Status Filters</div>
+        <div class="fsec" id="secLabel3"><i class="fa fa-heartbeat" style="color:var(--red);"></i> Status Filters</div>
         <div class="frow frow-4" id="secRow3">
           <div>
             <label class="flabel">Health Status</label>
@@ -325,7 +374,7 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
         <i class="fa fa-map-marker"></i> SECTOR SUMMARY
         <span id="sectorToggleHint" style="font-size:.68rem;opacity:.7;font-weight:500;">Click a sector to filter</span>
       </div>
-      <button id="btnSectorToggle" class="btn btn-sm btn-outline-light" type="button"><i class="fa fa-chevron-down"></i> Show</button>
+      <button id="btnSectorToggle" class="fc-btn" type="button"><i class="fa fa-chevron-down"></i> Show</button>
     </div>
     <div id="sectorSummaryBody" class="d-none">
       <div class="sector-summary-body">
@@ -344,9 +393,9 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
   <div id="chipRow"></div>
 
   <!-- Dashboard title -->
-  <div id="dashTitle" style="display:none;" class="dash-title mb-3">
-    <h5 id="dashTitleText"></h5>
-    <button class="btn btn-sm btn-outline-secondary" onclick="resetAll()">Clear Filter</button>
+  <div id="dashTitle" style="display:none;" class="dash-title">
+    <span class="md-banner-text" id="dashTitleText"></span>
+    <button class="dash-title-clear" onclick="resetAll()">&#x2715; Clear Filter</button>
   </div>
 
   <!-- Results bar -->
@@ -360,17 +409,17 @@ tr.family-sep td { padding:0; height:5px; background:#f8fafc; border:none; }
       <thead>
         <tr>
           <th>#</th>
-          <th class="sortable" data-col="Full_Name">Name <span class="sort-icon"></span></th>
-          <th class="sortable" data-col="ITS_ID">ITS ID <span class="sort-icon"></span></th>
-          <th class="sortable" data-col="Age">Age <span class="sort-icon"></span></th>
-          <th class="sortable" data-col="Gender">Gender <span class="sort-icon"></span></th>
-          <th class="sortable" data-col="Sector">Sector / Sub Sector <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="Full_Name">Name <span class="si"></span></th>
+          <th class="sortable" data-col="ITS_ID">ITS ID <span class="si"></span></th>
+          <th class="sortable" data-col="Age">Age <span class="si"></span></th>
+          <th class="sortable" data-col="Gender">Gender <span class="si"></span></th>
+          <th class="sortable" data-col="Sector">Sector /</br> Sub Sector <span class="si"></span></th>
           <th>Mobile</th>
-          <th class="sortable" data-col="_status">Status <span class="sort-icon"></span></th>
-          <th class="sortable" data-col="health_status">Health <span class="sort-icon"></span></th>
-          <th class="sortable" data-col="deeni_status">Deeni <span class="sort-icon"></span></th>
-          <th class="sortable" data-col="residential_status">Residential <span class="sort-icon"></span></th>
-          <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="sort-icon"></span></th>
+          <th class="sortable" data-col="_status">Status <span class="si"></span></th>
+          <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="si"></span></th>
+          <th class="sortable" data-col="health_status">Health <span class="si"></span></th>
+          <th class="sortable" data-col="deeni_status">Deeni <span class="si"></span></th>
+          <th class="sortable" data-col="residential_status">Residential <span class="si"></span></th>
           <?php if (!$is_umoor): ?>
           <th>Actions</th>
           <?php endif; ?>
@@ -396,6 +445,15 @@ const ITS_MATCH_LABELS = {
   both_not_khar: 'Both not in Khar'
 };
 
+const HEALTH_MAP = {};
+document.querySelectorAll('#fHealth option').forEach(opt => { if (opt.value) HEALTH_MAP[opt.value] = opt.textContent.trim(); });
+
+const DEENI_MAP = {};
+document.querySelectorAll('#fDeeni option').forEach(opt => { if (opt.value) DEENI_MAP[opt.value] = opt.textContent.trim(); });
+
+const RESIDENTIAL_MAP = {};
+document.querySelectorAll('#fResidential option').forEach(opt => { if (opt.value) RESIDENTIAL_MAP[opt.value] = opt.textContent.trim(); });
+
 let filtered  = [...ALL_DATA];
 let sortCol   = null, sortDir = 'asc';
 
@@ -413,13 +471,12 @@ readURLAndApply();
 
 // ── Fill selects ──────────────────────────────────────────────────────────────
 function fillSelects() {
-  const sectors = new Set(), subs = new Set(), hofs = new Map(), marital = new Set(), mTypes = new Set();
+  const sectors = new Set(), subs = new Set(), hofs = new Map(), marital = new Set();
   ALL_DATA.forEach(u => {
     if (u.Sector)     sectors.add(u.Sector);
     if (u.Sub_Sector) subs.add(u.Sub_Sector);
     const ms = (u.Marital_Status || '').trim();
     if (ms) marital.add(ms.charAt(0).toUpperCase() + ms.slice(1).toLowerCase());
-    if (u.Member_Type) mTypes.add(u.Member_Type);
     const hid = (u.HOF_ID || u.HOF || '').toString();
     if (hid) hofs.set(hid, itsMap[hid] || u.HOF_Name || hid);
   });
@@ -431,7 +488,6 @@ function fillSelects() {
   };
   fill('fSector',     Array.from(sectors).sort().map(v => [v,v]));
   fill('fSubSector',  Array.from(subs).sort().map(v => [v,v]));
-  fill('fMemberType', Array.from(mTypes).sort().map(v => [v,v]));
   fill('fHOF',        Array.from(hofs.entries()).sort((a,b) => (a[1]||'').localeCompare(b[1]||'')));
 
   const pref = ['Single','Married','Engaged','Separated','Divorced','Widowed'];
@@ -480,7 +536,22 @@ function readURLAndApply() {
 
   if (legFilter === 'health_status')      setv('fHealth',      legValue);
   if (legFilter === 'deeni_status')       setv('fDeeni',       legValue);
-  if (legFilter === 'residential_status') setv('fResidential', legValue);
+  if (legFilter === 'residential_status') {
+    setv('fResidential', legValue);
+    if (legValue === 'Madresa in Khar') {
+      sortCol = 'Age';
+      sortDir = 'asc';
+      setTimeout(() => {
+        document.querySelectorAll('th.sortable').forEach(th => {
+          if (th.dataset.col === 'Age') {
+            th.classList.add('asc');
+          } else {
+            th.classList.remove('asc', 'desc');
+          }
+        });
+      }, 50);
+    }
+  }
   if (legFilter === 'sector')             setv('fSector',      legValue);
 
   if (!['','all','age_range','sector','gender','hof_fm_type','health_status','deeni_status','residential_status','its_sabeel_match'].includes(legFilter) && legValue) {
@@ -577,7 +648,6 @@ function run() {
 
   const status   = gv('fStatus');
   const gender   = gv('fGender').toLowerCase();
-  const mType    = gv('fMemberType');
   const hofType  = gv('fHOFType').toUpperCase();
   const health   = gv('fHealth');
   const deeni    = gv('fDeeni');
@@ -615,7 +685,6 @@ function run() {
 
     const wg = gender || dsGender;
     if (wg && (u.Gender || '').toLowerCase() !== wg) return false;
-    if (mType && u.Member_Type !== mType) return false;
 
     const wh = hofType || dsHofType;
     if (wh && (u.HOF_FM_TYPE || '').toUpperCase() !== wh) return false;
@@ -642,7 +711,7 @@ function run() {
 
   const n = filtered.length;
   document.getElementById('countBadge').textContent  = n + ' result' + (n !== 1 ? 's' : '');
-  document.getElementById('resultsCount').textContent = n + ' member' + (n !== 1 ? 's' : '') + ' found';
+  document.getElementById('resultsCount').innerHTML = '<span>' + n + '</span> member' + (n !== 1 ? 's' : '') + ' found';
 }
 
 // ── Sector Summary Cards ──────────────────────────────────────────────────────
@@ -734,7 +803,6 @@ function buildBaseFiltered() {
   const ageMax  = document.getElementById('fAgeMax').value !== '' ? parseInt(document.getElementById('fAgeMax').value) : null;
   const status   = gv('fStatus');
   const gender   = gv('fGender').toLowerCase();
-  const mType    = gv('fMemberType');
   const hofType  = gv('fHOFType').toUpperCase();
   const health   = gv('fHealth');
   const deeni    = gv('fDeeni');
@@ -757,7 +825,6 @@ function buildBaseFiltered() {
     if (ageMax !== null && (parseInt(u.Age)||0) > ageMax) return false;
     if (status) { const inact=(u.Inactive_Status||u.inactive_status||'').trim(),act=(u.activity_status||'').toLowerCase(),isAct=!inact&&(!act||act==='active'); if(status==='Active'&&!isAct) return false; if(status==='Inactive'&&isAct) return false; }
     const wg=gender||dsGender; if(wg&&(u.Gender||'').toLowerCase()!==wg) return false;
-    if(mType&&u.Member_Type!==mType) return false;
     const wh=hofType||dsHofType; if(wh&&(u.HOF_FM_TYPE||'').toUpperCase()!==wh) return false;
     if(health&&(u.health_status||'').trim()!==health) return false;
     if(deeni&&(u.deeni_status||'').trim()!==deeni) return false;
@@ -816,58 +883,109 @@ function renderTable() {
     const act   = (u.activity_status || '').toLowerCase();
     const inact = (u.Inactive_Status || u.inactive_status || '').trim();
     const isAct = !inact && (!act || act === 'active');
-    const badge = isAct ? '<span class="badge-active">Active</span>'
-      : act === 'temporary' ? '<span class="badge-temp">Temporary</span>'
-      : '<span class="badge-inactive">Inactive</span>';
+    const badge = isAct ? '<span class="bact">Active</span>'
+      : act === 'temporary' ? '<span class="btemp">Temp</span>'
+      : '<span class="binact">Inactive</span>';
 
-    let html = `<td style="color:#9ca3af;font-weight:600;font-size:.78rem;">${rowNum}</td>` +
-      `<td><div style="font-weight:${isHOF?700:500};">${esc(u.Full_Name||'')}` +
-        (isHOF ? '<span class="pill-hof">HOF</span>' : '<span class="pill-fm">FM</span>') +
-      `</div></td>` +
-      `<td><span class="badge-its">${esc(String(u.ITS_ID||u.ITS||''))}</span></td>` +
+    let html = `<td style="color:var(--text-3);font-size:.72rem;font-weight:600">${rowNum}</td>` +
+      `<td><span style="font-weight:${isHOF?800:500}">${esc(u.Full_Name||'')}${isHOF?'<span class="pill-hof">HOF</span>':'<span class="pill-fm">FM</span>'}</span></td>` +
+      `<td><span class="bid">${esc(String(u.ITS_ID||u.ITS||''))}</span></td>` +
       `<td>${esc(u.Age||'—')}</td>` +
-      `<td style="text-transform:capitalize;">${esc(u.Gender||'—')}</td>` +
-      `<td><div style="font-size:.78rem;">${esc(u.Sector||'—')}</div><div style="font-size:.7rem;color:#9ca3af;">${esc(u.Sub_Sector||'')}</div></td>` +
-      `<td style="font-size:.78rem;">${esc(u.Mobile||'—')}</td>` +
+      `<td style="text-transform:capitalize;font-size:.75rem">${esc(u.Gender||'—')}</td>` +
+      `<td><div style="font-size:.76rem;font-weight:600">${esc(u.Sector||'—')}</div><div style="font-size:.68rem;color:var(--text-3)">${esc(u.Sub_Sector||'')}</div></td>` +
+      `<td style="font-size:.75rem;color:var(--text-2)">${esc(u.Mobile||'—')}</td>` +
       `<td>${badge}</td>` +
-      `<td style="font-size:.75rem;">${esc(u.health_status||'—')}</td>` +
-      `<td style="font-size:.75rem;">${esc(u.deeni_status||'—')}</td>` +
-      `<td style="font-size:.75rem;">${esc(u.residential_status||'—')}</td>` +
-      `<td style="font-size:.75rem;">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>`;
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>` +
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>` +
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(DEENI_MAP[(u.deeni_status||'').trim()] || u.deeni_status || '—')}</td>` +
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(RESIDENTIAL_MAP[(u.residential_status||'').trim()] || u.residential_status || '—')}</td>`;
 
     if (!IS_UMOOR) {
       html += `<td>` +
         `<a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>` +
-        (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}?redirect=${redirectParam}" class="act-btn act-edit ms-1" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
+        (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}?redirect=${redirectParam}" class="act-btn act-edit" style="margin-left:4px" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
       `</td>`;
     }
     return html;
   }
 
-  if (sortCol) {
-    filtered.forEach((u, i) => {
-      const tr = tbody.insertRow();
-      tr.dataset.its = u.ITS_ID;
-      if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') tr.className = 'hof-row';
-      tr.innerHTML = rowHTML(u, i + 1);
-    });
-    return;
-  }
-
   const groups = {}, order = [];
   filtered.forEach(u => {
     const hid = (u.HOF_ID || u.HOF || u.ITS_ID || '').toString();
-    if (!groups[hid]) { groups[hid] = { hid, hname: itsMap[hid] || u.HOF_Name || hid, members:[] }; order.push(hid); }
+    if (!groups[hid]) {
+      groups[hid] = {
+        hid,
+        hname: itsMap[hid] || u.HOF_Name || hid,
+        members: [],
+        hofUser: null
+      };
+      order.push(hid);
+    }
+    if ((u.HOF_FM_TYPE || '').toUpperCase() === 'HOF') {
+      groups[hid].hofUser = u;
+    }
     groups[hid].members.push(u);
   });
+
+  // Sort members within each group: HOF first, then FMs sorted by Age ascending
+  Object.keys(groups).forEach(hid => {
+    groups[hid].members.sort((a, b) => {
+      const aIsH = (a.HOF_FM_TYPE || '').toUpperCase() === 'HOF';
+      const bIsH = (b.HOF_FM_TYPE || '').toUpperCase() === 'HOF';
+      if (aIsH && !bIsH) return -1;
+      if (!aIsH && bIsH) return 1;
+      const ageA = parseInt(a.Age) || 0;
+      const ageB = parseInt(b.Age) || 0;
+      return ageA - ageB;
+    });
+  });
+
   const seen = new Set();
-  const sortedGroups = order
-    .filter(k => { if (seen.has(k)) return false; seen.add(k); return true; })
-    .map(k => groups[k])
-    .sort((a, b) => (a.hname||'').localeCompare(b.hname||''));
+  let sg = order.filter(k => { if (seen.has(k)) return false; seen.add(k); return true; }).map(k => groups[k]);
+
+  if (sortCol) {
+    const getSortVal = (grp) => {
+      const refUser = grp.hofUser || grp.members[0];
+      if (!refUser) return '';
+      if (sortCol === '_status') {
+        const inact = (refUser.Inactive_Status || refUser.inactive_status || '').trim();
+        const act   = (refUser.activity_status || '').toLowerCase();
+        return (!inact && (!act || act === 'active')) ? 'Active' : 'Inactive';
+      }
+      if (sortCol === 'Age') {
+        return parseInt(refUser.Age) || 0;
+      }
+      return (refUser[sortCol] || '').toString().toLowerCase();
+    };
+    sg.sort((a, b) => {
+      // Families with HOF come before families without HOF
+      const aHas = !!a.hofUser, bHas = !!b.hofUser;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      const va = getSortVal(a);
+      const vb = getSortVal(b);
+      if (sortCol === 'Age') {
+        return sortDir === 'asc' ? va - vb : vb - va;
+      }
+      if (typeof va === 'string' && typeof vb === 'string') {
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      }
+      return 0;
+    });
+  } else {
+    sg.sort((a, b) => {
+      // Families with HOF come before orphan FM-only groups
+      const aHas = !!a.hofUser, bHas = !!b.hofUser;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      const ageA = parseInt((a.hofUser && a.hofUser.Age) || (a.members[0] && a.members[0].Age)) || 0;
+      const ageB = parseInt((b.hofUser && b.hofUser.Age) || (b.members[0] && b.members[0].Age)) || 0;
+      return ageA - ageB;
+    });
+  }
 
   let idx = 1;
-  sortedGroups.forEach((grp, gi) => {
+  sg.forEach((grp, gi) => {
     if (gi > 0) {
       const sep = tbody.insertRow();
       sep.className = 'family-sep';
@@ -887,7 +1005,7 @@ function renderChips() {
   const defs = [
     ['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],
     ['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],
-    ['fStatus','Status'],['fGender','Gender'],['fMemberType','Member Type'],
+    ['fStatus','Status'],['fGender','Gender'],
     ['fHOFType','HOF/FM'],['fHealth','Health'],['fDeeni','Deeni'],
     ['fResidential','Residential'],['fItsMatch','ITS Match'],
   ];
@@ -914,9 +1032,7 @@ function renderChips() {
     const el = document.getElementById(id);
     if (!el || !el.value) return;
     any = true;
-    const display = id === 'fHOF'      ? (el.options[el.selectedIndex]?.text || el.value)
-                  : id === 'fItsMatch' ? (ITS_MATCH_LABELS[el.value] || el.value)
-                  : el.value;
+    const display = el.tagName === 'SELECT' ? (el.options[el.selectedIndex]?.text || el.value) : el.value;
     const chip = document.createElement('span');
     chip.className = 'chip';
     chip.innerHTML = `<b>${esc(label)}:</b>&nbsp;${esc(display)} <span class="chip-x" data-id="${id}">&times;</span>`;
@@ -970,7 +1086,7 @@ function resetAll() {
   renderTable();
   renderSectorCards();
   const n = filtered.length;
-  document.getElementById('resultsCount').textContent = n + ' members';
+  document.getElementById('resultsCount').innerHTML = '<span>' + n + '</span> members';
   document.getElementById('countBadge').textContent   = '';
 }
 
@@ -978,7 +1094,7 @@ function resetAll() {
 function exportCSV() {
   if (!filtered.length) { alert('No data to export.'); return; }
   const preferred = ['ITS_ID','Full_Name','Age','Gender','Sector','Sub_Sector','Mobile','Email',
-    'Marital_Status','HOF_FM_TYPE','Member_Type','activity_status','health_status',
+    'Marital_Status','HOF_FM_TYPE','activity_status','health_status',
     'deeni_status','residential_status','its_sabeel_match','Qualification','Occupation','Address','Vatan'];
   const extra = new Set();
   filtered.forEach(r => Object.keys(r).forEach(k => { if (!preferred.includes(k)) extra.add(k); }));
@@ -1000,7 +1116,7 @@ function setv(id, val) { const el = document.getElementById(id); if (el && val !
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''; }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
-['fSector','fSubSector','fMarital','fHOF','fStatus','fGender','fMemberType',
+['fSector','fSubSector','fMarital','fHOF','fStatus','fGender',
  'fHOFType','fHealth','fDeeni','fResidential','fItsMatch'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', run);
@@ -1017,8 +1133,8 @@ document.getElementById('btnToggle').addEventListener('click', function() {
   const willHide = !body.classList.contains('d-none');
   body.classList.toggle('d-none');
   this.innerHTML = willHide
-    ? '<i class="fa fa-chevron-down"></i> Show Filters'
-    : '<i class="fa fa-chevron-up"></i> Hide Filters';
+    ? '<i class="fa fa-chevron-down"></i> Show'
+    : '<i class="fa fa-chevron-up"></i> Hide';
 });
 
 // Sector summary toggle

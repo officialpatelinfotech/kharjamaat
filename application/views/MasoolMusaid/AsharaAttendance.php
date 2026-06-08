@@ -41,19 +41,20 @@ html{background:var(--bg)}
 
 /* ── Stats grid ── */
 #ashApp .ash-stats{background:var(--surface-2);border-bottom:1px solid var(--border);padding:14px 16px}
-#ashApp .ash-stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}
+#ashApp .ash-stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
 #ashApp .ash-day-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;cursor:pointer;transition:box-shadow .18s,transform .18s;box-shadow:var(--sh)}
 #ashApp .ash-day-card:hover{box-shadow:var(--sh2);transform:translateY(-2px)}
 #ashApp .ash-day-card.ashura-card .ash-day-head{background:var(--red)!important}
-#ashApp .ash-day-head{background:linear-gradient(135deg,#78520a,var(--gold));padding:5px 8px;text-align:center;color:#fff;font-size:.7rem;font-weight:800;letter-spacing:.3px}
-#ashApp .ash-day-body{padding:7px 8px;display:flex;flex-direction:column;gap:4px}
-#ashApp .ash-stat-row{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:3px 6px;border-radius:5px;border-left:3px solid}
-#ashApp .ash-stat-row .asl{font-size:.6rem;font-weight:700;color:inherit;display:flex;align-items:center;gap:3px;line-height:1.2}
-#ashApp .ash-stat-row .asv{font-size:.74rem;font-weight:800}
+#ashApp .ash-day-head{background:linear-gradient(135deg,#78520a,var(--gold));padding:8px 12px;text-align:center;color:#fff;font-size:.85rem;font-weight:800;letter-spacing:.3px}
+#ashApp .ash-day-body{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+#ashApp .ash-stat-row{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:5px 8px;border-radius:5px;border-left:3px solid;transition:background-color 0.15s;}
+#ashApp .ash-stat-row:hover{background-color:rgba(184,134,11,.1) !important;}
+#ashApp .ash-stat-row .asl{font-size:.72rem;font-weight:700;color:inherit;display:flex;align-items:center;gap:3px;line-height:1.2}
+#ashApp .ash-stat-row .asv{font-size:.85rem;font-weight:800}
 #ashApp .sr-maula{background:var(--green-bg);border-color:var(--green);color:var(--green)}
-#ashApp .sr-ontime{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+#ashApp .sr-ontime{background:var(--green-bg);border-color:var(--green);color:var(--green)}
 #ashApp .sr-late{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
-#ashApp .sr-other{background:var(--teal-bg);border-color:var(--teal);color:var(--teal)}
+#ashApp .sr-other{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ashApp .sr-absent{background:var(--red-bg);border-color:var(--red);color:var(--red)}
 #ashApp .sr-town{background:#f1f5f9;border-color:#64748b;color:#334155}
 #ashApp .sr-out{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
@@ -90,9 +91,9 @@ html{background:var(--bg)}
 #ashApp .ab{width:26px;height:26px;border-radius:6px;border:none;font-size:.65rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform .1s,opacity .15s;line-height:1}
 #ashApp .ab:hover{transform:scale(1.12);opacity:.85}
 #ashApp .ab-maula{background:var(--green);color:#fff}
-#ashApp .ab-ontime{background:var(--blue);color:#fff}
+#ashApp .ab-ontime{background:var(--green);color:#fff}
 #ashApp .ab-late{background:#f59e0b;color:#fff}
-#ashApp .ab-other{background:var(--teal);color:#fff}
+#ashApp .ab-other{background:#f59e0b;color:#fff}
 #ashApp .ab-absent{background:var(--red);color:#fff}
 #ashApp .ab-town{background:#334155;color:#fff}
 #ashApp .ab-outcaste{background:#7c3aed;color:#fff}
@@ -142,9 +143,9 @@ html{background:var(--bg)}
 
 /* ── Status text colors in DD table ── */
 #ashApp .sc-maula{color:var(--green);font-weight:700}
-#ashApp .sc-ontime{color:var(--blue);font-weight:700}
+#ashApp .sc-ontime{color:var(--green);font-weight:700}
 #ashApp .sc-late{color:var(--amber);font-weight:700}
-#ashApp .sc-other{color:var(--teal);font-weight:700}
+#ashApp .sc-other{color:var(--amber);font-weight:700}
 #ashApp .sc-absent{color:var(--red);font-weight:700}
 #ashApp .sc-town{color:#334155;font-weight:700}
 #ashApp .sc-out{color:var(--purple);font-weight:700}
@@ -210,24 +211,24 @@ function ash_btn($u, $day) {
 function ash_stats_card($st, $day) {
   $title = $day === 'Ashura' ? 'Ashura' : "Day $day";
   $hdcls = $day === 'Ashura' ? 'style="background:var(--red)"' : '';
+  $jp = htmlspecialchars(jamaat_place() ?? 'Khar', ENT_QUOTES);
   $rows  = [
-    ['sr-maula','fa-star','With Maula',        $st['with_maula']  ??0],
-    ['sr-ontime','fa-location-dot','On Time',  $st['khar_on_time']??0],
-    ['sr-late','fa-clock','Late',              $st['khar_late']   ??0],
-    ['sr-other','fa-mosque','Other',           $st['other_jamaat']??0],
-    ['sr-absent','fa-xmark','Absent',          $st['not_attended']??0],
-    ['sr-town','fa-plane','Not in Town',       $st['not_in_town'] ??0],
-    ['sr-out','fa-user-slash','Outcaste',      $st['outcaste']    ??0],
+    ['sr-maula','fa-star','Attended with Maula',        $st['with_maula']  ??0, 'Attended with Maula'],
+    ['sr-ontime','fa-location-dot',"Attended in $jp on Time",  $st['khar_on_time']??0, "Attended in $jp on Time"],
+    ['sr-late','fa-clock',"Attended in $jp Late",              $st['khar_late']   ??0, "Attended in $jp Late"],
+    ['sr-other','fa-mosque','Attended in Other Jamaat',           $st['other_jamaat']??0, 'Attended in Other Jamaat'],
+    ['sr-absent','fa-xmark','Not attended anywhere',          $st['not_attended']??0, 'Not attended anywhere'],
   ];
   $html = "<div class='ash-day-card".($day==='Ashura'?' ashura-card':'')."' data-day='".htmlspecialchars($day,ENT_QUOTES)."'>";
   $html .= "<div class='ash-day-head' $hdcls>$title</div><div class='ash-day-body'>";
-  foreach ($rows as [$cls,$ico,$lbl,$val]) {
-    $html .= "<div class='ash-stat-row $cls'><span class='asl'><i class='fa-solid $ico fa-xs'></i>$lbl</span><span class='asv'>$val</span></div>";
+  foreach ($rows as [$cls,$ico,$lbl,$val,$statusVal]) {
+    $html .= "<div class='ash-stat-row $cls' data-status-val='".htmlspecialchars($statusVal,ENT_QUOTES)."'><span class='asl'><i class='fa-solid $ico fa-xs'></i>$lbl</span><span class='asv'>$val</span></div>";
   }
   $html .= "</div></div>";
   return $html;
 }
-
+?>
+<?php
 $can_edit   = in_array($user_name ?? '', ['amilsaheb','jamaat']);
 $back_href  = isset($back_url) ? $back_url : 'javascript:void(0)';
 $back_attr  = isset($back_url) ? '' : 'onclick="window.history.back()"';
@@ -239,131 +240,274 @@ if ($this->session->userdata('role') === 'amilsaheb' || (isset($_SESSION['user']
 } else if ($this->session->userdata('role') === 'MasoolMusaid' || (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 16)) {
   $view_member_base = 'MasoolMusaid/viewmember/';
 }
+
+$pageDay = $this->input->get('day');
+$initialStatus = $this->input->get('status');
 ?>
 
 <div id="ashApp">
 <div class="ash-toast" id="ashToast"></div>
 
-<!-- ── Banner ── -->
-<div class="ash-banner">
-  <div class="ash-banner-inner">
-    <div class="ash-banner-left">
-      <a href="<?php echo $back_href ?>" <?php echo $back_attr ?> class="ash-back">
-        <i class="fa-solid fa-arrow-left"></i> Back
-      </a>
-      <div>
-        <div class="ash-banner-title">
-          <i class="fa-solid fa-calendar-days" style="margin-right:6px"></i>
-          <?php echo htmlspecialchars($sel_sector.($sel_sub?" – $sel_sub":''), ENT_QUOTES) ?>
+<?php if ($pageDay): ?>
+  <!-- ═══════════ SINGLE DAY VIEW ═══════════ -->
+  <div class="container pt-4 mb-5" style="max-width:1200px; font-family:'Plus Jakarta Sans',sans-serif;">
+    <!-- Single Day Header -->
+    <div class="ash-banner mb-3" style="border-radius: 14px;">
+      <div class="ash-banner-inner">
+        <div class="ash-banner-left">
+          <a href="<?php echo base_url($this->uri->uri_string() . (isset($_GET['year']) ? '?year='.(int)$_GET['year'] : '')) ?>" class="ash-back">
+            <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+          </a>
+          <div>
+            <div class="ash-banner-title">
+              <i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>
+              <?php echo $pageDay === 'Ashura' ? 'Ashura' : "Day $pageDay" ?> Attendance Details
+            </div>
+            <div class="ash-banner-sub" id="pageBannerSub">
+              Status: <?php echo htmlspecialchars($initialStatus ?: 'All Statuses', ENT_QUOTES) ?> | 
+              Sector: <?php echo htmlspecialchars($sel_sector ?: 'All Sectors', ENT_QUOTES) ?> | 
+              Sub-Sector: <?php echo htmlspecialchars($sel_sub ?: 'All Sub-Sectors', ENT_QUOTES) ?>
+            </div>
+          </div>
         </div>
-        <div class="ash-banner-sub">Ashara Attendance Dashboard</div>
+        <div class="ash-banner-right">
+          <div class="ash-count-badge" id="singleDayCount">
+            0 shown
+          </div>
+        </div>
       </div>
     </div>
-    <div class="ash-banner-right">
-      <?php if (!empty($year_options) && is_array($year_options)): ?>
-      <select id="yearSelect" class="ash-year-sel">
-        <?php foreach ($year_options as $y): ?>
-        <option value="<?php echo (int)$y ?>" <?php echo (isset($selected_year)&&(int)$selected_year===(int)$y)?'selected':'' ?>><?php echo (int)$y ?>H</option>
+
+    <!-- Filters -->
+    <div class="card mb-3 border-0 shadow-sm" style="background:var(--surface); border:1px solid var(--border) !important; border-radius:12px;">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+          <div style="flex:1; min-width:160px;">
+            <label class="ash-lbl" style="margin-bottom:4px;">Status</label>
+            <select class="ash-sel" style="margin-bottom:0; height:32px; padding:0 10px;" id="pageStatus" onchange="filterPageDay()">
+              <option value="">All Statuses</option>
+              <option <?php echo $initialStatus === 'Attended with Maula' ? 'selected' : '' ?>>Attended with Maula</option>
+              <option <?php echo $initialStatus === 'Attended in ' . $jp . ' on Time' ? 'selected' : '' ?>>Attended in <?php echo $jp ?> on Time</option>
+              <option <?php echo $initialStatus === 'Attended in ' . $jp . ' Late' ? 'selected' : '' ?>>Attended in <?php echo $jp ?> Late</option>
+              <option <?php echo $initialStatus === 'Attended in Other Jamaat' ? 'selected' : '' ?>>Attended in Other Jamaat</option>
+              <option <?php echo $initialStatus === 'Not attended anywhere' ? 'selected' : '' ?>>Not attended anywhere</option>
+              <option <?php echo $initialStatus === 'Not Marked' ? 'selected' : '' ?>>Not Marked</option>
+            </select>
+          </div>
+          <div style="flex:1; min-width:160px;">
+            <label class="ash-lbl" style="margin-bottom:4px;">Sector</label>
+            <select class="ash-sel" style="margin-bottom:0; height:32px; padding:0 10px;" id="pageSector" onchange="filterPageDay()">
+              <option value="">All Sectors</option>
+              <?php foreach (array_unique(array_filter(array_column($users,'Sector'))) as $sec): ?>
+              <option value="<?php echo htmlspecialchars($sec,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sec,ENT_QUOTES) ?></option>
+              <?php endforeach ?>
+            </select>
+          </div>
+          <div style="flex:1; min-width:160px;">
+            <label class="ash-lbl" style="margin-bottom:4px;">Sub-Sector</label>
+            <select class="ash-sel" style="margin-bottom:0; height:32px; padding:0 10px;" id="pageSub" onchange="filterPageDay()">
+              <option value="">All Sub-Sectors</option>
+              <?php foreach (array_unique(array_filter(array_column($users,'Sub_Sector'))) as $sub): ?>
+              <option value="<?php echo htmlspecialchars($sub,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sub,ENT_QUOTES) ?></option>
+              <?php endforeach ?>
+            </select>
+          </div>
+          <div style="margin-left:auto;">
+            <button class="btn-green" style="height:32px; padding:0 14px;" onclick="exportPageDayExcel()">
+              <i class="fa-solid fa-file-excel" style="margin-right:4px;"></i> Export Excel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="ash-tcard rounded border shadow-sm overflow-hidden" style="border-radius:12px;">
+      <div class="ash-tscroll" style="max-height: 70vh;">
+        <table class="ash" id="pageDayTable">
+          <thead>
+            <tr>
+              <th style="width: 45px;">#</th>
+              <th onclick="sortPageDay(1)">ITS ID <i class="fa-solid fa-sort ms-1 text-muted"></i></th>
+              <th onclick="sortPageDay(2)">Name <i class="fa-solid fa-sort ms-1 text-muted"></i></th>
+              <th onclick="sortPageDay(3)">HOF ID <i class="fa-solid fa-sort ms-1 text-muted"></i></th>
+              <th onclick="sortPageDay(4)">Mobile <i class="fa-solid fa-sort ms-1 text-muted"></i></th>
+              <th onclick="sortPageDay(5)">Sector <i class="fa-solid fa-sort ms-1 text-muted"></i></th>
+              <th onclick="sortPageDay(6)">Sub-Sector <i class="fa-solid fa-sort ms-1 text-muted"></i></th>
+              <th onclick="sortPageDay(7)">Status <i class="fa-solid fa-sort ms-1 text-muted"></i></th>
+              <th onclick="sortPageDay(8)">Comment <i class="fa-solid fa-sort ms-1 text-muted"></i></th>
+              <?php if ($can_edit): ?>
+              <th>Edit</th>
+              <?php endif; ?>
+            </tr>
+          </thead>
+          <tbody id="pageDayBody">
+            <?php foreach ($users as $u): 
+              $key = $pageDay === 'Ashura' ? 'Ashura' : "Day$pageDay";
+              $ckey = $pageDay === 'Ashura' ? 'CommentAshura' : "Comment$pageDay";
+              $s = $u[$key] ?? 'Not Marked';
+              $c = $u[$ckey] ?? '';
+            ?>
+            <tr data-its="<?php echo htmlspecialchars($u['ITS_ID']??'',ENT_QUOTES) ?>"
+                data-status="<?php echo htmlspecialchars($s,ENT_QUOTES) ?>"
+                data-sector="<?php echo htmlspecialchars($u['Sector']??'',ENT_QUOTES) ?>"
+                data-sub="<?php echo htmlspecialchars($u['Sub_Sector']??'',ENT_QUOTES) ?>">
+              <td class="sr-num" style="font-weight:700;color:var(--text-3);font-size:.72rem"></td>
+              <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['ITS_ID']??'—',ENT_QUOTES) ?></td>
+              <td style="font-weight:600; min-width:140px;"><?php echo htmlspecialchars($u['Full_Name']??'—',ENT_QUOTES) ?></td>
+              <td style="font-weight:700;font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['HOF_ID']??'—',ENT_QUOTES) ?></td>
+              <td style="font-size:.72rem;color:var(--text-2);white-space:nowrap"><?php echo htmlspecialchars($u['Mobile']??'—',ENT_QUOTES) ?></td>
+              <td style="font-size:.74rem"><?php echo htmlspecialchars($u['Sector']??'—',ENT_QUOTES) ?></td>
+              <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['Sub_Sector']??'—',ENT_QUOTES) ?></td>
+              <td class="<?php echo ash_status_text_class($s) ?>"><?php echo htmlspecialchars($s,ENT_QUOTES) ?></td>
+              <td style="font-size:.7rem;color:var(--text-3)"><?php echo htmlspecialchars($c,ENT_QUOTES) ?></td>
+              <?php if ($can_edit): ?>
+              <td>
+                <button class="ash-edit-mini"
+                        data-its="<?php echo htmlspecialchars($u['ITS_ID']??'',ENT_QUOTES) ?>"
+                        data-day="<?php echo htmlspecialchars($pageDay,ENT_QUOTES) ?>"
+                        data-status="<?php echo htmlspecialchars($s,ENT_QUOTES) ?>"
+                        data-comment="<?php echo htmlspecialchars($c,ENT_QUOTES) ?>">
+                  <i class="fa-solid fa-pen fa-xs"></i>
+                </button>
+              </td>
+              <?php endif; ?>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<?php else: ?>
+  <!-- ═══════════ MAIN DASHBOARD VIEW ═══════════ -->
+  <!-- ── Banner ── -->
+  <div class="ash-banner">
+    <div class="ash-banner-inner">
+      <div class="ash-banner-left">
+        <a href="<?php echo $back_href ?>" <?php echo $back_attr ?> class="ash-back">
+          <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+        <div>
+          <div class="ash-banner-title">
+            <i class="fa-solid fa-calendar-days" style="margin-right:6px"></i>
+            <?php echo htmlspecialchars($sel_sector.($sel_sub?" – $sel_sub":''), ENT_QUOTES) ?>
+          </div>
+          <div class="ash-banner-sub">Ashara Attendance Dashboard</div>
+        </div>
+      </div>
+      <div class="ash-banner-right">
+        <?php if (!empty($year_options) && is_array($year_options)): ?>
+        <select id="yearSelect" class="ash-year-sel">
+          <?php foreach ($year_options as $y): ?>
+          <option value="<?php echo (int)$y ?>" <?php echo (isset($selected_year)&&(int)$selected_year===(int)$y)?'selected':'' ?>><?php echo (int)$y ?>H</option>
+          <?php endforeach ?>
+        </select>
+        <?php endif ?>
+        <div class="ash-count-badge">
+          <i class="fa-solid fa-users fa-xs"></i> <?php echo count($users) ?> Mumineen
+        </div>
+        <?php if ($can_edit): ?>
+        <button class="ash-bulk-btn" onclick="ashOM('modBulk')">
+          <i class="fa-solid fa-bolt fa-xs"></i> Bulk Update
+        </button>
+        <?php endif ?>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Stats cards ── -->
+  <div class="ash-stats">
+    <div class="ash-stats-grid" id="statsGrid">
+      <?php foreach ($days as $d): ?>
+      <?php echo ash_stats_card($stats["Day$d"] ?? [], $d) ?>
+      <?php endforeach ?>
+      <?php echo ash_stats_card($stats['Ashura'] ?? [], 'Ashura') ?>
+    </div>
+  </div>
+
+  <!-- ── Filter bar ── -->
+  <div class="ash-filters">
+    <div class="ash-frow">
+      <div class="ash-srchwrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" class="ash-finput" id="ashSearch" placeholder="Search name, ITS, sector…" oninput="ashFilter()">
+      </div>
+      <select class="ash-fsel" id="ashSector" onchange="ashFilter()">
+        <option value="">All Sectors</option>
+        <?php foreach (array_unique(array_filter(array_column($users,'Sector'))) as $sec): ?>
+        <option value="<?php echo htmlspecialchars($sec,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sec,ENT_QUOTES) ?></option>
         <?php endforeach ?>
       </select>
-      <?php endif ?>
-      <div class="ash-count-badge">
-        <i class="fa-solid fa-users fa-xs"></i> <?php echo count($users) ?> Mumineen
-      </div>
-      <?php if ($can_edit): ?>
-      <button class="ash-bulk-btn" onclick="ashOM('modBulk')">
-        <i class="fa-solid fa-bolt fa-xs"></i> Bulk Update
-      </button>
-      <?php endif ?>
-    </div>
-  </div>
-</div>
-
-<!-- ── Stats cards ── -->
-<div class="ash-stats">
-  <div class="ash-stats-grid" id="statsGrid">
-    <?php foreach ($days as $d): ?>
-    <?php echo ash_stats_card($stats["Day$d"] ?? [], $d) ?>
-    <?php endforeach ?>
-    <?php echo ash_stats_card($stats['Ashura'] ?? [], 'Ashura') ?>
-  </div>
-</div>
-
-<!-- ── Filter bar ── -->
-<div class="ash-filters">
-  <div class="ash-frow">
-    <div class="ash-srchwrap">
-      <i class="fa-solid fa-magnifying-glass"></i>
-      <input type="text" class="ash-finput" id="ashSearch" placeholder="Search name, ITS, sector…" oninput="ashFilter()">
-    </div>
-    <select class="ash-fsel" id="ashSector" onchange="ashFilter()">
-      <option value="">All Sectors</option>
-      <?php foreach (array_unique(array_filter(array_column($users,'Sector'))) as $sec): ?>
-      <option value="<?php echo htmlspecialchars($sec,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sec,ENT_QUOTES) ?></option>
-      <?php endforeach ?>
-    </select>
-    <select class="ash-fsel" id="ashSub" onchange="ashFilter()">
-      <option value="">All Sub-Sectors</option>
-      <?php foreach (array_unique(array_filter(array_column($users,'Sub_Sector'))) as $sub): ?>
-      <option value="<?php echo htmlspecialchars($sub,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sub,ENT_QUOTES) ?></option>
-      <?php endforeach ?>
-    </select>
-    <div class="ash-absent-toggle" id="ashAbsentToggle" onclick="ashToggleAbsent()">
-      <i class="fa-solid fa-user-slash fa-xs"></i> Not Attended Anywhere
-    </div>
-    <button class="ash-export-btn" onclick="ashOM('modExport')">
-      <i class="fa-solid fa-download fa-xs"></i> Export
-    </button>
-  </div>
-</div>
-
-<!-- ── Table ── -->
-<div class="ash-tcard">
-  <div class="ash-tscroll">
-    <table class="ash" id="ashTable">
-      <thead>
-        <tr>
-          <th>HOF ID</th>
-          <th>ITS</th>
-          <th>Name</th>
-          <th>Mobile</th>
-          <th>Sector</th>
-          <th>Sub-Sector</th>
-          <?php foreach ($days as $d): ?>
-          <th class="c">D<?php echo $d ?></th>
-          <?php endforeach ?>
-          <th class="c" style="color:var(--red)">A</th>
-        </tr>
-      </thead>
-      <tbody id="ashTbody">
-        <?php foreach ($users as $u): ?>
-        <tr data-name="<?php echo htmlspecialchars(strtolower($u['Full_Name']??''),ENT_QUOTES) ?>"
-            data-its="<?php echo htmlspecialchars($u['ITS_ID']??'',ENT_QUOTES) ?>"
-            data-hof="<?php echo htmlspecialchars($u['HOF_ID']??'',ENT_QUOTES) ?>"
-            data-sector="<?php echo htmlspecialchars($u['Sector']??'',ENT_QUOTES) ?>"
-            data-sub="<?php echo htmlspecialchars($u['Sub_Sector']??'',ENT_QUOTES) ?>">
-          <td style="font-weight:700;font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['HOF_ID']??'—',ENT_QUOTES) ?></td>
-          <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['ITS_ID']??'—',ENT_QUOTES) ?></td>
-          <td style="font-weight:600;min-width:130px"><?php echo htmlspecialchars($u['Full_Name']??'—',ENT_QUOTES) ?></td>
-          <td style="font-size:.72rem;color:var(--text-2);white-space:nowrap"><?php echo htmlspecialchars($u['Mobile']??'—',ENT_QUOTES) ?></td>
-          <td style="font-size:.74rem"><?php echo htmlspecialchars($u['Sector']??'—',ENT_QUOTES) ?></td>
-          <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['Sub_Sector']??'—',ENT_QUOTES) ?></td>
-          <?php foreach ($days as $d): ?>
-          <td class="c"><?php echo ash_btn($u, $d) ?></td>
-          <?php endforeach ?>
-          <td class="c"><?php echo ash_btn($u, 'Ashura') ?></td>
-        </tr>
+      <select class="ash-fsel" id="ashSub" onchange="ashFilter()">
+        <option value="">All Sub-Sectors</option>
+        <?php foreach (array_unique(array_filter(array_column($users,'Sub_Sector'))) as $sub): ?>
+        <option value="<?php echo htmlspecialchars($sub,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sub,ENT_QUOTES) ?></option>
         <?php endforeach ?>
-      </tbody>
-    </table>
+      </select>
+      <select class="ash-fsel" id="ashCommonStatus" onchange="ashFilter()">
+        <option value="">All Days Common Status</option>
+        <option value="Attended with Maula">Attended with Maula</option>
+        <option value="Attended in <?php echo $jp ?> on Time">Attended in <?php echo $jp ?> on Time</option>
+        <option value="Attended in <?php echo $jp ?> Late">Attended in <?php echo $jp ?> Late</option>
+        <option value="Attended in Other Jamaat">Attended in Other Jamaat</option>
+        <option value="Not attended anywhere">Not attended anywhere</option>
+        <option value="Not Marked">Not Marked</option>
+      </select>
+      <button class="ash-export-btn" onclick="ashOM('modExport')">
+        <i class="fa-solid fa-download fa-xs"></i> Export
+      </button>
+    </div>
   </div>
-</div>
 
-<!-- ── Footer ── -->
-<div class="ash-footer">
-  <span class="ash-footer-time">Updated: <?php echo date('M j, Y H:i') ?></span>
-  <span class="ash-result-count" id="ashResultCount"><span><?php echo count($users) ?></span> members shown</span>
-</div>
+  <!-- ── Table ── -->
+  <div class="ash-tcard">
+    <div class="ash-tscroll">
+      <table class="ash" id="ashTable">
+        <thead>
+          <tr>
+            <th>HOF ID</th>
+            <th>ITS</th>
+            <th>Name</th>
+            <th>Mobile</th>
+            <th>Sector</th>
+            <th>Sub-Sector</th>
+            <?php foreach ($days as $d): ?>
+            <th class="c">D<?php echo $d ?></th>
+            <?php endforeach ?>
+            <th class="c" style="color:var(--red)">A</th>
+          </tr>
+        </thead>
+        <tbody id="ashTbody">
+          <?php foreach ($users as $u): ?>
+          <tr data-name="<?php echo htmlspecialchars(strtolower($u['Full_Name']??''),ENT_QUOTES) ?>"
+              data-its="<?php echo htmlspecialchars($u['ITS_ID']??'',ENT_QUOTES) ?>"
+              data-hof="<?php echo htmlspecialchars($u['HOF_ID']??'',ENT_QUOTES) ?>"
+              data-sector="<?php echo htmlspecialchars($u['Sector']??'',ENT_QUOTES) ?>"
+              data-sub="<?php echo htmlspecialchars($u['Sub_Sector']??'',ENT_QUOTES) ?>">
+            <td style="font-weight:700;font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['HOF_ID']??'—',ENT_QUOTES) ?></td>
+            <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['ITS_ID']??'—',ENT_QUOTES) ?></td>
+            <td style="font-weight:600;min-width:130px"><?php echo htmlspecialchars($u['Full_Name']??'—',ENT_QUOTES) ?></td>
+            <td style="font-size:.72rem;color:var(--text-2);white-space:nowrap"><?php echo htmlspecialchars($u['Mobile']??'—',ENT_QUOTES) ?></td>
+            <td style="font-size:.74rem"><?php echo htmlspecialchars($u['Sector']??'—',ENT_QUOTES) ?></td>
+            <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['Sub_Sector']??'—',ENT_QUOTES) ?></td>
+            <?php foreach ($days as $d): ?>
+            <td class="c"><?php echo ash_btn($u, $d) ?></td>
+            <?php endforeach ?>
+            <td class="c"><?php echo ash_btn($u, 'Ashura') ?></td>
+          </tr>
+          <?php endforeach ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="ash-footer">
+    <span class="ash-footer-time">Updated: <?php echo date('M j, Y H:i') ?></span>
+    <span class="ash-result-count" id="ashResultCount"><span><?php echo count($users) ?></span> members shown</span>
+  </div>
+<?php endif; ?>
 
 <!-- ═══════════ MODALS ═══════════ -->
 
@@ -378,13 +522,12 @@ if ($this->session->userdata('role') === 'amilsaheb' || (isset($_SESSION['user']
       <div id="editMeta" style="font-size:.75rem;color:var(--text-2);margin-bottom:12px;padding:8px 10px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border-light)"></div>
       <label class="ash-lbl">Status</label>
       <select class="ash-sel" id="editStatus">
+        <option value="Not Marked">Select</option>
         <option>Attended with Maula</option>
         <option>Attended in <?php echo $jp ?> on Time</option>
         <option>Attended in <?php echo $jp ?> Late</option>
         <option>Attended in Other Jamaat</option>
         <option>Not attended anywhere</option>
-        <option>Not in Town</option>
-        <option>Married Outcaste</option>
       </select>
       <label class="ash-lbl">Comment</label>
       <textarea class="ash-ta" id="editComment" placeholder="Add notes…"></textarea>
@@ -394,44 +537,6 @@ if ($this->session->userdata('role') === 'amilsaheb' || (isset($_SESSION['user']
     <div class="ash-mft">
       <button class="btn-c" onclick="ashCM('modEdit')">Cancel</button>
       <button class="btn-ok" id="editSaveBtn" onclick="ashSaveAttendance()">Save Changes</button>
-    </div>
-  </div>
-</div>
-
-<!-- Day detail -->
-<div class="ash-ov" id="modDay">
-  <div class="ash-modal" style="max-width:900px">
-    <div class="ash-mhd">
-      <span class="ash-mtit" id="ddTitle"><i class="fa-solid fa-calendar-day" style="color:var(--gold)"></i> Day Details</span>
-      <button class="ash-mclose" onclick="ashCM('modDay')">&#x2715;</button>
-    </div>
-    <div class="ash-mbody">
-      <div class="dd-frow">
-        <select class="dd-fsel" id="ddStatus" onchange="filterDD()"><option value="">All Statuses</option>
-          <option>Attended with Maula</option><option>Attended in <?php echo $jp ?> on Time</option>
-          <option>Attended in <?php echo $jp ?> Late</option><option>Attended in Other Jamaat</option>
-          <option>Not attended anywhere</option><option>Not in Town</option><option>Married Outcaste</option>
-        </select>
-        <select class="dd-fsel" id="ddSector" onchange="filterDD()"><option value="">All Sectors</option></select>
-        <select class="dd-fsel" id="ddSub" onchange="filterDD()"><option value="">All Sub-Sectors</option></select>
-        <span id="ddCount" style="font-size:.72rem;color:var(--text-3);margin-left:auto;font-weight:700"></span>
-      </div>
-      <div style="overflow-x:auto;max-height:55vh;overflow-y:auto">
-        <table class="dd-tbl" id="ddTable">
-          <thead><tr>
-            <th onclick="sortDD(0)">ITS</th><th onclick="sortDD(1)">Name</th>
-            <th onclick="sortDD(2)">HOF</th><th onclick="sortDD(3)">Mobile</th>
-            <th onclick="sortDD(4)">Sector</th><th onclick="sortDD(5)">Sub-Sector</th>
-            <th onclick="sortDD(6)">Status</th><th onclick="sortDD(7)">Comment</th>
-            <th>Edit</th>
-          </tr></thead>
-          <tbody id="ddBody"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="ash-mft">
-      <button class="btn-c" onclick="ashCM('modDay')">Close</button>
-      <button class="btn-green" onclick="exportDDExcel()"><i class="fa-solid fa-file-excel fa-xs"></i> Export Excel</button>
     </div>
   </div>
 </div>
@@ -458,13 +563,12 @@ if ($this->session->userdata('role') === 'amilsaheb' || (isset($_SESSION['user']
         <div>
           <label class="ash-lbl">Select Status</label>
           <select class="ash-sel" id="bulkStatus">
+            <option value="">Select Status</option>
             <option>Attended with Maula</option>
             <option>Attended in <?php echo $jp ?> on Time</option>
             <option>Attended in <?php echo $jp ?> Late</option>
             <option>Attended in Other Jamaat</option>
             <option>Not attended anywhere</option>
-            <option>Not in Town</option>
-            <option>Married Outcaste</option>
           </select>
         </div>
       </div>
@@ -520,6 +624,8 @@ const ASH_USERS = <?php echo json_encode($users, JSON_HEX_TAG|JSON_HEX_APOS|JSON
 const ASH_DAYS  = <?php echo json_encode($days) ?>;
 const BASE_URL  = '<?php echo base_url() ?>';
 const VIEW_MEMBER_BASE_URL = '<?php echo base_url($view_member_base) ?>';
+const pageDay = '<?php echo htmlspecialchars($pageDay ?? '', ENT_QUOTES) ?>';
+const SELECTED_YEAR = '<?php echo (int)($selected_year ?? 1447) ?>';
 
 /* ── Modal helpers ── */
 function ashOM(id){document.getElementById(id).classList.add('open')}
@@ -559,7 +665,7 @@ function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 /* ── Open edit modal (from table button) ── */
 document.addEventListener('click',e=>{
-  const btn=e.target.closest('.ab');
+  const btn=e.target.closest('.ab, .ash-edit-mini');
   if(!btn)return;
   const {its,day,status,comment}=btn.dataset;
   document.getElementById('editIts').value=its;
@@ -577,7 +683,7 @@ function ashSaveAttendance(){
   const day=document.getElementById('editDay').value;
   const status=document.getElementById('editStatus').value;
   const comment=document.getElementById('editComment').value;
-  const year=yearSel?yearSel.value:null;
+  const year=yearSel?yearSel.value:SELECTED_YEAR;
   btn.disabled=true;btn.textContent='Saving…';
   fetch(BASE_URL+'MasoolMusaid/update_attendance',{
     method:'POST',credentials:'same-origin',
@@ -585,13 +691,35 @@ function ashSaveAttendance(){
     body:new URLSearchParams({its,day,status,comment,...(year?{year}:{})})
   }).then(r=>r.ok?r.text():Promise.reject(r))
   .then(()=>{
-    /* Update button in table */
+    /* Update button in main table if exists */
     const b=document.querySelector(`.ab[data-its="${CSS.escape(its)}"][data-day="${CSS.escape(day)}"]`);
     if(b){
       b.className='ab '+abCls(status);
       b.dataset.status=status;b.dataset.comment=comment;
       b.title=status+(comment?': '+comment:'');
     }
+    
+    /* Update row in single-day page if exists */
+    const tr = document.querySelector(`#pageDayBody tr[data-its="${CSS.escape(its)}"]`);
+    if(tr){
+      tr.dataset.status = status;
+      const statusCell = tr.querySelector('td:nth-child(8)');
+      if(statusCell){
+        statusCell.className = stCls(status);
+        statusCell.textContent = status;
+      }
+      const commentCell = tr.querySelector('td:nth-child(9)');
+      if(commentCell){
+        commentCell.textContent = comment;
+      }
+      const editBtn = tr.querySelector('.ash-edit-mini');
+      if(editBtn){
+        editBtn.dataset.status = status;
+        editBtn.dataset.comment = comment;
+      }
+      filterPageDay();
+    }
+    
     ashCM('modEdit');
     ashToast('Attendance updated','ok');
   }).catch(()=>ashToast('Update failed — please try again','er'))
@@ -599,27 +727,38 @@ function ashSaveAttendance(){
 }
 
 /* ── Filter ── */
-let _absentOnly=false;
-function ashToggleAbsent(){
-  _absentOnly=!_absentOnly;
-  document.getElementById('ashAbsentToggle').classList.toggle('active',_absentOnly);
-  ashFilter();
-}
 function ashFilter(){
   const q=(document.getElementById('ashSearch').value||'').toLowerCase().trim();
   const sec=(document.getElementById('ashSector').value||'').toLowerCase();
   const sub=(document.getElementById('ashSub').value||'').toLowerCase();
-  const absent=['not attended anywhere','not marked',''];
+  const commonStatus = document.getElementById('ashCommonStatus').value;
+  
   let vis=0;
   document.querySelectorAll('#ashTbody tr').forEach(tr=>{
     let show=true;
     if(q&&!( tr.dataset.name.includes(q)||tr.dataset.its.includes(q)||tr.dataset.hof.includes(q)||tr.dataset.sector.toLowerCase().includes(q)))show=false;
     if(sec&&tr.dataset.sector.toLowerCase()!==sec)show=false;
     if(sub&&tr.dataset.sub.toLowerCase()!==sub)show=false;
-    if(_absentOnly&&show){
+    
+    if(commonStatus && show){
       const btns=tr.querySelectorAll('.ab');
-      for(const b of btns){if(!absent.includes((b.dataset.status||'').toLowerCase())){show=false;break}}
+      const targetStatus = commonStatus.toLowerCase();
+      for(const b of btns){
+        const bStatus = (b.dataset.status||'').toLowerCase().trim();
+        if(targetStatus === 'not marked'){
+          if(bStatus !== 'not marked' && bStatus !== ''){
+            show=false;
+            break;
+          }
+        } else {
+          if(bStatus !== targetStatus){
+            show=false;
+            break;
+          }
+        }
+      }
     }
+    
     tr.style.display=show?'':'none';
     if(show)vis++;
   });
@@ -627,100 +766,36 @@ function ashFilter(){
   if(rc)rc.innerHTML=`<span>${vis}</span> members shown`;
 }
 
-/* ── Stats card → Day detail modal ── */
-let _ddDay=null,_ddSortCol=-1,_ddSortDir=1;
-document.addEventListener('click',e=>{
-  const card=e.target.closest('.ash-day-card');
-  if(!card)return;
-  _ddDay=card.dataset.day;
-  _ddSortCol=-1;_ddSortDir=1;
-  document.getElementById('ddTitle').innerHTML=`<i class="fa-solid fa-calendar-day" style="color:var(--gold)"></i> ${_ddDay==='Ashura'?'Ashura':'Day '+_ddDay} — Attendance`;
-  buildDD();
-  ashOM('modDay');
+/* ── Stats card → Single Day details view redirect ── */
+document.addEventListener('click', e => {
+  const statRow = e.target.closest('.ash-stat-row');
+  const card = e.target.closest('.ash-day-card');
+  if (!card) return;
+  
+  const day = card.dataset.day;
+  let status = '';
+  if (statRow) {
+    status = statRow.dataset.statusVal || '';
+  }
+  
+  const url = new URL(window.location.href);
+  url.searchParams.set('day', day);
+  if (status) {
+    url.searchParams.set('status', status);
+  } else {
+    url.searchParams.delete('status');
+  }
+  window.location.href = url.toString();
 });
-
-function buildDD(){
-  const key=_ddDay==='Ashura'?'Ashura':'Day'+_ddDay;
-  const ckey=_ddDay==='Ashura'?'CommentAshura':'Comment'+_ddDay;
-  /* populate sector/sub filters */
-  const sectors=new Set(),subs=new Set();
-  ASH_USERS.forEach(u=>{if(u.Sector)sectors.add(u.Sector);if(u.Sub_Sector)subs.add(u.Sub_Sector)});
-  const ss=document.getElementById('ddSector'),sb=document.getElementById('ddSub');
-  ss.innerHTML='<option value="">All Sectors</option>'+[...sectors].sort().map(v=>`<option>${esc(v)}</option>`).join('');
-  sb.innerHTML='<option value="">All Sub-Sectors</option>'+[...subs].sort().map(v=>`<option>${esc(v)}</option>`).join('');
-  document.getElementById('ddStatus').value='';ss.value='';sb.value='';
-  const tb=document.getElementById('ddBody');
-  tb.innerHTML=ASH_USERS.map(u=>{
-    const s=u[key]??'Not Marked',c=u[ckey]??'';
-    return`<tr data-its="${esc(u.ITS_ID??'')}" data-status="${esc(s)}" data-sector="${esc(u.Sector??'')}" data-sub="${esc(u.Sub_Sector??'')}">
-      <td>${esc(u.ITS_ID??'')}</td><td>${esc(u.Full_Name??'')}</td><td>${esc(u.HOF_ID??'')}</td>
-      <td>${esc(u.Mobile??'')}</td><td>${esc(u.Sector??'')}</td><td>${esc(u.Sub_Sector??'')}</td>
-      <td class="${stCls(s)}">${esc(s)}</td><td style="font-size:.7rem;color:var(--text-3)">${esc(c)}</td>
-      <td><button class="ash-edit-mini" data-its="${esc(u.ITS_ID??'')}" data-day="${esc(_ddDay)}" data-status="${esc(s)}" data-comment="${esc(c)}" onclick="ashDDEdit(this)"><i class="fa-solid fa-pen fa-xs"></i></button></td>
-    </tr>`;
-  }).join('');
-  filterDD();
-}
-
-function filterDD(){
-  const st=(document.getElementById('ddStatus').value||'').toLowerCase();
-  const sec=(document.getElementById('ddSector').value||'').toLowerCase();
-  const sub=(document.getElementById('ddSub').value||'').toLowerCase();
-  let n=0;
-  document.querySelectorAll('#ddBody tr').forEach(tr=>{
-    const show=(!st||(tr.dataset.status||'').toLowerCase()===st)&&(!sec||(tr.dataset.sector||'').toLowerCase()===sec)&&(!sub||(tr.dataset.sub||'').toLowerCase()===sub);
-    tr.style.display=show?'':'none';if(show)n++;
-  });
-  document.getElementById('ddCount').textContent=n+' shown';
-}
-
-function sortDD(col){
-  const dir=_ddSortCol===col?_ddSortDir*-1:1;
-  _ddSortCol=col;_ddSortDir=dir;
-  const tb=document.getElementById('ddBody');
-  const rows=[...tb.querySelectorAll('tr:not([style*="none"])')];
-  rows.sort((a,b)=>{const va=a.children[col].textContent.trim().toLowerCase(),vb=b.children[col].textContent.trim().toLowerCase();return va<vb?-dir:va>vb?dir:0});
-  rows.forEach(r=>tb.appendChild(r));
-}
-
-function ashDDEdit(btn){
-  const {its,day,status,comment}=btn.dataset;
-  document.getElementById('editIts').value=its;
-  document.getElementById('editDay').value=day;
-  document.getElementById('editStatus').value=status;
-  document.getElementById('editComment').value=comment||'';
-  document.getElementById('editMeta').innerHTML=`<strong>${esc(its)}</strong> &mdash; ${day==='Ashura'?'Ashura':'Day '+day}`;
-  ashCM('modDay');
-  ashOM('modEdit');
-}
-
-function exportDDExcel(){
-  const key=_ddDay==='Ashura'?'Ashura':'Day'+_ddDay;
-  const ckey=_ddDay==='Ashura'?'CommentAshura':'Comment'+_ddDay;
-  const hdrs=['ITS_ID','Full_Name','HOF_ID','Mobile','Sector','Sub_Sector','Status','Comment'];
-  const rows=ASH_USERS.filter(u=>{
-    const tr=document.querySelector(`#ddBody tr[data-status="${CSS.escape(u[key]??'Not Marked')}"]`);
-    return true; /* export all visible — we'll re-filter */
-  });
-  /* collect visible row data */
-  const visData=[hdrs];
-  document.querySelectorAll('#ddBody tr').forEach(tr=>{
-    if(tr.style.display==='none')return;
-    const cells=[...tr.querySelectorAll('td:not(:last-child)')].map(td=>td.textContent.trim());
-    visData.push(cells);
-  });
-  const ws=XLSX.utils.aoa_to_sheet(visData);
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,_ddDay==='Ashura'?'Ashura':'Day'+_ddDay);
-  XLSX.writeFile(wb,`attendance_${_ddDay}_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
 
 /* ── Bulk update ── */
 function ashBulkUpdate(){
   const day=document.getElementById('bulkDay').value;
   const status=document.getElementById('bulkStatus').value;
   const raw=document.getElementById('bulkITS').value;
-  const year=yearSel?yearSel.value:null;
+  const year=yearSel?yearSel.value:SELECTED_YEAR;
   const itsList=raw.split(/[\n,]+/).map(i=>i.trim()).filter(i=>i.length>0);
+  if(!status){ashToast('Select a status','er');return}
   if(!itsList.length){ashToast('Enter at least one ITS number','er');return}
   if(!confirm(`Update ${itsList.length} records to "${status}" for ${day==='Ashura'?'Ashura':'Day '+day}?`))return;
   fetch(BASE_URL+'MasoolMusaid/bulk_update_attendance',{
@@ -747,11 +822,8 @@ function ashExport(){
   ashCM('modExport');ashToast('Export started','ok');
 }
 
-/* ── "Not attended anywhere" shortcut from stats card ── */
-/* handled by day-card click → opens detail modal */
-
-/* ── Clickable Rows ── */
-document.querySelector('#ashTable tbody').addEventListener('click', e => {
+/* ── Clickable Rows for Member Profile ── */
+document.querySelector('#ashTable tbody')?.addEventListener('click', e => {
   const tr = e.target.closest('tr');
   if (!tr) return;
   if (e.target.closest('button, a, input, select, option, label') || e.target.classList.contains('ab')) {
@@ -763,15 +835,128 @@ document.querySelector('#ashTable tbody').addEventListener('click', e => {
   }
 });
 
-document.querySelector('#ddTable tbody').addEventListener('click', e => {
+/* ── Single-Day Details Page Functions ── */
+let _pageSortCol = -1, _pageSortDir = 1;
+
+function filterPageDay() {
+  const statusSel = document.getElementById('pageStatus');
+  const sectorSel = document.getElementById('pageSector');
+  const subSel = document.getElementById('pageSub');
+  
+  if (!statusSel || !sectorSel || !subSel) return;
+  
+  const st = statusSel.value.toLowerCase().trim();
+  const sec = sectorSel.value.toLowerCase().trim();
+  const sub = subSel.value.toLowerCase().trim();
+  
+  let visibleCount = 0;
+  document.querySelectorAll('#pageDayBody tr').forEach(tr => {
+    const trStatus = (tr.dataset.status || '').toLowerCase().trim();
+    const trSector = (tr.dataset.sector || '').toLowerCase().trim();
+    const trSub = (tr.dataset.sub || '').toLowerCase().trim();
+    
+    const matchesStatus = !st || trStatus === st || (st === 'not marked' && (trStatus === '' || trStatus === 'not marked'));
+    const matchesSector = !sec || trSector === sec;
+    const matchesSub = !sub || trSub === sub;
+    
+    if (matchesStatus && matchesSector && matchesSub) {
+      tr.style.display = '';
+      visibleCount++;
+      const srCell = tr.querySelector('.sr-num');
+      if (srCell) srCell.textContent = visibleCount;
+    } else {
+      tr.style.display = 'none';
+    }
+  });
+  
+  const countBadge = document.getElementById('singleDayCount');
+  if (countBadge) {
+    countBadge.textContent = visibleCount + ' shown';
+  }
+
+  const bannerSub = document.getElementById('pageBannerSub');
+  if (bannerSub) {
+    const statusText = statusSel.value || 'All Statuses';
+    const sectorText = sectorSel.value || 'All Sectors';
+    const subText = subSel.value || 'All Sub-Sectors';
+    bannerSub.textContent = `Status: ${statusText} | Sector: ${sectorText} | Sub-Sector: ${subText}`;
+  }
+}
+
+function sortPageDay(col) {
+  const dir = _pageSortCol === col ? _pageSortDir * -1 : 1;
+  _pageSortCol = col;
+  _pageSortDir = dir;
+  
+  const tbody = document.getElementById('pageDayBody');
+  if (!tbody) return;
+  
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const cellA = a.children[col].textContent.trim().toLowerCase();
+    const cellB = b.children[col].textContent.trim().toLowerCase();
+    
+    const numA = parseInt(cellA, 10);
+    const numB = parseInt(cellB, 10);
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return (numA - numB) * dir;
+    }
+    
+    return cellA.localeCompare(cellB) * dir;
+  });
+  
+  tbody.innerHTML = '';
+  rows.forEach(r => tbody.appendChild(r));
+  
+  const headers = document.querySelectorAll('#pageDayTable thead th');
+  headers.forEach((th, idx) => {
+    const icon = th.querySelector('i');
+    if (icon) {
+      if (idx === col) {
+        icon.className = dir === 1 ? 'fa-solid fa-sort-up ms-1 text-primary' : 'fa-solid fa-sort-down ms-1 text-primary';
+      } else {
+        icon.className = 'fa-solid fa-sort ms-1 text-muted';
+      }
+    }
+  });
+
+  // Re-index the row numbers after sorting
+  filterPageDay();
+}
+
+function exportPageDayExcel() {
+  const hdrs = ['#', 'ITS ID', 'Name', 'HOF ID', 'Mobile', 'Sector', 'Sub-Sector', 'Status', 'Comment'];
+  const visData = [hdrs];
+  
+  document.querySelectorAll('#pageDayBody tr').forEach(tr => {
+    if (tr.style.display === 'none') return;
+    const cells = Array.from(tr.querySelectorAll('td')).slice(0, 9).map(td => td.textContent.trim());
+    visData.push(cells);
+  });
+  
+  const ws = XLSX.utils.aoa_to_sheet(visData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Day Attendance');
+  
+  const pageDayVal = '<?php echo htmlspecialchars($pageDay ?? '', ENT_QUOTES) ?>';
+  XLSX.writeFile(wb, `attendance_day_${pageDayVal}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+document.querySelector('#pageDayTable tbody')?.addEventListener('click', e => {
   const tr = e.target.closest('tr');
   if (!tr) return;
-  if (e.target.closest('button, a, input, select, option, label, .ash-edit-mini') || e.target.classList.contains('ash-edit-mini')) {
+  if (e.target.closest('button, a, input, select, option, label') || e.target.classList.contains('ash-edit-mini')) {
     return;
   }
   const its = tr.dataset.its;
   if (its) {
     window.location.href = VIEW_MEMBER_BASE_URL + its;
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (pageDay) {
+    filterPageDay();
   }
 });
 </script>

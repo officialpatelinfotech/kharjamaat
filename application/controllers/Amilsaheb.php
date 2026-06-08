@@ -379,8 +379,6 @@ class Amilsaheb extends CI_Controller
     }
     $data['expense_dashboard'] = $expense_dashboard;
 
-    $data['member_type_counts'] = $this->AmilsahebM->get_member_type_distribution();
-
     // Marital status distribution (excluding members under 21)
     $data['marital_status_counts'] = $this->AmilsahebM->get_marital_status_distribution();
 
@@ -902,7 +900,17 @@ class Amilsaheb extends CI_Controller
     }
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->model('WajebaatM');
-    $data['wajebaat_rows'] = $this->WajebaatM->get_all();
+    $this->load->model('HijriCalendar');
+
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $parts = explode('-', $today_hijri['hijri_date']);
+    $current_hijri_year = (int)$parts[2];
+
+    $selected_year = (int)($this->input->get('year') ?: $current_hijri_year);
+    $data['selected_year'] = $selected_year;
+    $data['available_years'] = $this->WajebaatM->get_years();
+    $data['wajebaat_rows'] = $this->WajebaatM->get_all($selected_year);
+
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/WajebaatDetails', $data);
   }
@@ -2204,9 +2212,7 @@ class Amilsaheb extends CI_Controller
         'Attended in Khar on Time',
         'Attended in Khar Late',
         'Attended in Other Jamaat',
-        'Not attended anywhere',
-        'Not in Town',
-        'Married Outcaste'
+        'Not attended anywhere'
       ],
       // Year dropdown support (UI only)
       'selected_year' => $selected_year,

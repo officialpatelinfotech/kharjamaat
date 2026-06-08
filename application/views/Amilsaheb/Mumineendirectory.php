@@ -48,7 +48,9 @@
 /* ── Filter grid ── */
 .fgrid{display:grid;gap:8px;margin-bottom:4px}
 .fg-6{grid-template-columns:2fr 1fr 1fr 1fr 1.1fr 1fr}
+.fg-5{grid-template-columns:repeat(5,1fr)}
 .fg-4{grid-template-columns:repeat(4,1fr)}
+.fg-3{grid-template-columns:repeat(3,1fr)}
 .flabel{display:block;font-size:.67rem;font-weight:700;color:var(--text-2);margin-bottom:4px;letter-spacing:.2px}
 .finput,.fselect{width:100%;height:32px;padding:0 9px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface-2);font-family:'Plus Jakarta Sans',sans-serif;font-size:.76rem;color:var(--text-1);outline:none;transition:border-color .15s,background .15s}
 .finput:focus,.fselect:focus{border-color:var(--gold);background:var(--surface);box-shadow:0 0 0 3px rgba(184,134,11,.1)}
@@ -77,7 +79,7 @@
 
 /* ── Table card ── */
 .md-tcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh);overflow:hidden}
-.md-tscroll{overflow-x:auto}
+.md-tscroll{overflow-x:auto;max-height:70vh;overflow-y:auto}
 table.dir{width:100%;border-collapse:collapse;font-size:.78rem;min-width:980px}
 table.dir thead th{background:linear-gradient(to bottom,var(--surface-2),#f0ebe0);padding:9px 11px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;user-select:none;text-align:left;position:sticky;top:0;z-index:1}
 table.dir th.sortable{cursor:pointer;transition:color .14s}
@@ -109,9 +111,9 @@ table.dir .empty-row td{text-align:center;padding:36px;color:var(--text-3);font-
 .act-edit{background:var(--amber-bg);color:var(--amber)}
 
 /* ── Responsive ── */
-@media(max-width:992px){.fg-6,.fg-4{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:768px){.fg-6,.fg-4{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:576px){.fg-6,.fg-4{grid-template-columns:1fr}.md-wrap{padding:10px}}
+@media(max-width:992px){.fg-6,.fg-5,.fg-4,.fg-3{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.fg-6,.fg-5,.fg-4,.fg-3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:576px){.fg-6,.fg-5,.fg-4,.fg-3{grid-template-columns:1fr}.md-wrap{padding:10px}}
 </style>
 
 <?php
@@ -130,9 +132,19 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
     <a href="<?php echo $back_url_val ?>" class="md-back">
       <i class="fa fa-arrow-left"></i> Back
     </a>
-    <button class="md-export" onclick="exportCSV()">
-      <i class="fa fa-file-excel-o"></i> Export Excel
-    </button>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <?php if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 1): ?>
+        <a href="<?php echo base_url('admin/importlatest'); ?>" class="md-export" style="text-decoration:none;">
+          <i class="fa fa-upload"></i> Import Latest Data
+        </a>
+        <a href="<?php echo base_url('admin/addmember'); ?>" class="md-export" style="text-decoration:none; background:var(--blue-bg); color:var(--blue); border-color:rgba(29,78,216,.25);">
+          <i class="fa fa-user-plus"></i> Add Member
+        </a>
+      <?php endif; ?>
+      <button class="md-export" onclick="exportCSV()">
+        <i class="fa fa-file-excel-o"></i> Export Excel
+      </button>
+    </div>
   </div>
 
   <!-- Filter card -->
@@ -196,16 +208,22 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
             </select>
           </div>
           <div>
+            <label class="flabel">ITS-Sabeel Match</label>
+            <select id="fItsMatch" class="fselect">
+              <option value="">All</option>
+              <option value="its_sabeel_both_khar">ITS &amp; Sabeel both in Khar</option>
+              <option value="its_khar_sabeel_out">ITS in Khar, Sabeel out</option>
+              <option value="sabeel_khar_its_out">Sabeel in Khar, ITS out</option>
+              <option value="both_not_khar">Both not in Khar</option>
+            </select>
+          </div>
+          <div>
             <label class="flabel">Gender</label>
             <select id="fGender" class="fselect">
               <option value="">All</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
-          </div>
-          <div>
-            <label class="flabel">Member Type</label>
-            <select id="fMemberType" class="fselect"><option value="">All</option></select>
           </div>
           <div>
             <label class="flabel">HOF / FM</label>
@@ -219,7 +237,7 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
 
         <!-- Status Filters -->
         <div class="fsec" id="secLabel3"><i class="fa fa-heartbeat" style="color:var(--red)"></i> Status Filters</div>
-        <div class="fgrid fg-4" id="secRow3">
+        <div class="fgrid fg-3" id="secRow3">
           <div>
             <label class="flabel">Health Status</label>
             <select id="fHealth" class="fselect">
@@ -259,16 +277,6 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
               <option value="Unknown or Not Traceable">Unknown / Not Traceable</option>
             </select>
           </div>
-          <div>
-            <label class="flabel">ITS-Sabeel Match</label>
-            <select id="fItsMatch" class="fselect">
-              <option value="">All</option>
-              <option value="its_sabeel_both_khar">ITS &amp; Sabeel both in Khar</option>
-              <option value="its_khar_sabeel_out">ITS in Khar, Sabeel out</option>
-              <option value="sabeel_khar_its_out">Sabeel in Khar, ITS out</option>
-              <option value="both_not_khar">Both not in Khar</option>
-            </select>
-          </div>
         </div>
 
       </form>
@@ -300,9 +308,10 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
             <th class="sortable" data-col="ITS_ID">ITS ID <span class="si"></span></th>
             <th class="sortable" data-col="Age">Age <span class="si"></span></th>
             <th class="sortable" data-col="Gender">Gender <span class="si"></span></th>
-            <th class="sortable" data-col="Sector">Sector / Sub Sector <span class="si"></span></th>
+            <th class="sortable" data-col="Sector">Sector /</br> Sub Sector <span class="si"></span></th>
             <th>Mobile</th>
             <th class="sortable" data-col="_status">Status <span class="si"></span></th>
+            <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="si"></span></th>
             <th class="sortable" data-col="health_status">Health <span class="si"></span></th>
             <th class="sortable" data-col="deeni_status">Deeni <span class="si"></span></th>
             <th class="sortable" data-col="residential_status">Residential <span class="si"></span></th>
@@ -321,6 +330,21 @@ const ALL_DATA = <?= json_encode(isset($all_users) ? $all_users : $users) ?>;
 const VIEW_URL = '<?= base_url($view_base) ?>';
 const EDIT_URL = '<?= base_url('admin/editmember/') ?>';
 const CAN_EDIT = <?= $can_edit ? 'true' : 'false' ?>;
+const ITS_MATCH_LABELS = {
+  its_sabeel_both_khar: 'ITS & Sabeel both in Khar',
+  its_khar_sabeel_out: 'ITS in Khar, Sabeel out',
+  sabeel_khar_its_out: 'Sabeel in Khar, ITS out',
+  both_not_khar: 'Both not in Khar'
+};
+
+const HEALTH_MAP = {};
+document.querySelectorAll('#fHealth option').forEach(opt => { if (opt.value) HEALTH_MAP[opt.value] = opt.textContent.trim(); });
+
+const DEENI_MAP = {};
+document.querySelectorAll('#fDeeni option').forEach(opt => { if (opt.value) DEENI_MAP[opt.value] = opt.textContent.trim(); });
+
+const RESIDENTIAL_MAP = {};
+document.querySelectorAll('#fResidential option').forEach(opt => { if (opt.value) RESIDENTIAL_MAP[opt.value] = opt.textContent.trim(); });
 
 let filtered = [...ALL_DATA];
 let sortCol = null, sortDir = 'asc';
@@ -334,13 +358,12 @@ readURLAndApply();
 
 /* ── Fill selects ── */
 function fillSelects(){
-  const sectors=new Set(),subs=new Set(),hofs=new Map(),marital=new Set(),mTypes=new Set();
+  const sectors=new Set(),subs=new Set(),hofs=new Map(),marital=new Set();
   ALL_DATA.forEach(u=>{
     if(u.Sector) sectors.add(u.Sector);
     if(u.Sub_Sector) subs.add(u.Sub_Sector);
     const ms=(u.Marital_Status||'').trim();
     if(ms) marital.add(ms.charAt(0).toUpperCase()+ms.slice(1).toLowerCase());
-    if(u.Member_Type) mTypes.add(u.Member_Type);
     const hid=(u.HOF_ID||u.HOF||'').toString();
     if(hid) hofs.set(hid,itsMap[hid]||u.HOF_Name||hid);
   });
@@ -350,7 +373,6 @@ function fillSelects(){
   };
   fill('fSector',Array.from(sectors).sort().map(v=>[v,v]));
   fill('fSubSector',Array.from(subs).sort().map(v=>[v,v]));
-  fill('fMemberType',Array.from(mTypes).sort().map(v=>[v,v]));
   fill('fHOF',Array.from(hofs.entries()).sort((a,b)=>(a[1]||'').localeCompare(b[1]||'')));
   const pref=['Single','Married','Engaged','Separated','Divorced','Widowed'];
   const rem=new Set(marital);
@@ -389,7 +411,22 @@ function readURLAndApply(){
   if(madresaP) form.dataset.madresa=madresaP;
   if(legFilter==='health_status') setv('fHealth',legValue);
   if(legFilter==='deeni_status') setv('fDeeni',legValue);
-  if(legFilter==='residential_status') setv('fResidential',legValue);
+  if (legFilter === 'residential_status') {
+    setv('fResidential', legValue);
+    if (legValue === 'Madresa in Khar') {
+      sortCol = 'Age';
+      sortDir = 'asc';
+      setTimeout(() => {
+        document.querySelectorAll('th.sortable').forEach(th => {
+          if (th.dataset.col === 'Age') {
+            th.classList.add('asc');
+          } else {
+            th.classList.remove('asc', 'desc');
+          }
+        });
+      }, 50);
+    }
+  }
   if(legFilter==='sector') setv('fSector',legValue);
   if(!['','all','age_range','sector','gender','hof_fm_type','health_status','deeni_status','residential_status','its_sabeel_match'].includes(legFilter)&&legValue){
     form.dataset.legacyField=legFilter;form.dataset.legacyValue=legValue;
@@ -447,7 +484,7 @@ function run(){
   const hof=document.getElementById('fHOF').value;
   const ageMin=document.getElementById('fAgeMin').value!==''?parseInt(document.getElementById('fAgeMin').value):null;
   const ageMax=document.getElementById('fAgeMax').value!==''?parseInt(document.getElementById('fAgeMax').value):null;
-  const status=gv('fStatus'),gender=gv('fGender').toLowerCase(),mType=gv('fMemberType'),hofType=gv('fHOFType').toUpperCase();
+  const status=gv('fStatus'),gender=gv('fGender').toLowerCase(),hofType=gv('fHOFType').toUpperCase();
   const health=gv('fHealth'),deeni=gv('fDeeni'),resi=gv('fResidential'),itsMatch=gv('fItsMatch');
   const form=document.getElementById('filtersForm');
   const dsGender=(form.dataset.gender||'').toLowerCase(),dsHofType=(form.dataset.hofFmType||'').toUpperCase();
@@ -463,7 +500,6 @@ function run(){
     if(ageMax!==null&&(parseInt(u.Age)||0)>ageMax)return false;
     if(status){const inact=(u.Inactive_Status||u.inactive_status||'').trim(),act=(u.activity_status||'').toLowerCase(),isAct=!inact&&(!act||act==='active');if(status==='Active'&&!isAct)return false;if(status==='Inactive'&&isAct)return false}
     const wg=gender||dsGender;if(wg&&(u.Gender||'').toLowerCase()!==wg)return false;
-    if(mType&&u.Member_Type!==mType)return false;
     const wh=hofType||dsHofType;if(wh&&(u.HOF_FM_TYPE||'').toUpperCase()!==wh)return false;
     if(health&&(u.health_status||'').trim()!==health)return false;
     if(deeni&&(u.deeni_status||'').trim()!==deeni)return false;
@@ -496,7 +532,7 @@ function applySortToFiltered(){
 function renderTable(){
   const tbody=document.getElementById('tbody');
   tbody.innerHTML='';
-  if(!filtered.length){tbody.innerHTML='<tr class="empty-row"><td colspan="12"><i class="fa fa-search"></i> No members found.</td></tr>';return}
+  if(!filtered.length){tbody.innerHTML='<tr class="empty-row"><td colspan="13"><i class="fa fa-search"></i> No members found.</td></tr>';return}
   const rp=encodeURIComponent(window.location.pathname+window.location.search);
   function rowHTML(u,n){
     const isHOF=(u.HOF_FM_TYPE||'').toUpperCase()==='HOF';
@@ -511,20 +547,91 @@ function renderTable(){
       `<td><div style="font-size:.76rem;font-weight:600">${esc(u.Sector||'—')}</div><div style="font-size:.68rem;color:var(--text-3)">${esc(u.Sub_Sector||'')}</div></td>`+
       `<td style="font-size:.75rem;color:var(--text-2)">${esc(u.Mobile||'—')}</td>`+
       `<td>${badge}</td>`+
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.health_status||'—')}</td>`+
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.deeni_status||'—')}</td>`+
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(u.residential_status||'—')}</td>`+
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>`+
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>`+
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(DEENI_MAP[(u.deeni_status||'').trim()] || u.deeni_status || '—')}</td>`+
+      `<td style="font-size:.72rem;color:var(--text-2)">${esc(RESIDENTIAL_MAP[(u.residential_status||'').trim()] || u.residential_status || '—')}</td>`+
       `<td><a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>`+
       (CAN_EDIT?`<a href="${EDIT_URL}${u.ITS_ID}?redirect=${rp}" class="act-btn act-edit" style="margin-left:4px" title="Edit"><i class="fa fa-pencil"></i></a>`:'')+`</td>`;
   }
-  if(sortCol){filtered.forEach((u,i)=>{const tr=tbody.insertRow();tr.dataset.its=u.ITS_ID;if((u.HOF_FM_TYPE||'').toUpperCase()==='HOF')tr.className='hof-row';tr.innerHTML=rowHTML(u,i+1)});return}
   const groups={},order=[];
-  filtered.forEach(u=>{const hid=(u.HOF_ID||u.HOF||u.ITS_ID||'').toString();if(!groups[hid]){groups[hid]={hid,hname:itsMap[hid]||u.HOF_Name||hid,members:[]};order.push(hid)}groups[hid].members.push(u)});
+  filtered.forEach(u=>{
+    const hid=(u.HOF_ID||u.HOF||u.ITS_ID||'').toString();
+    if(!groups[hid]){
+      groups[hid]={
+        hid,
+        hname:itsMap[hid]||u.HOF_Name||hid,
+        members:[],
+        hofUser:null
+      };
+      order.push(hid);
+    }
+    if ((u.HOF_FM_TYPE||'').toUpperCase()==='HOF') {
+      groups[hid].hofUser = u;
+    }
+    groups[hid].members.push(u);
+  });
+
+  // Sort members within each group: HOF first, then FMs sorted by Age ascending
+  Object.keys(groups).forEach(hid => {
+    groups[hid].members.sort((a,b) => {
+      const aIsH = (a.HOF_FM_TYPE||'').toUpperCase()==='HOF';
+      const bIsH = (b.HOF_FM_TYPE||'').toUpperCase()==='HOF';
+      if (aIsH && !bIsH) return -1;
+      if (!aIsH && bIsH) return 1;
+      const ageA = parseInt(a.Age) || 0;
+      const ageB = parseInt(b.Age) || 0;
+      return ageA - ageB;
+    });
+  });
+
   const seen=new Set();
-  const sg=order.filter(k=>{if(seen.has(k))return false;seen.add(k);return true}).map(k=>groups[k]).sort((a,b)=>(a.hname||'').localeCompare(b.hname||''));
+  let sg=order.filter(k=>{if(seen.has(k))return false;seen.add(k);return true}).map(k=>groups[k]);
+
+  if (sortCol) {
+    const getSortVal = (grp) => {
+      const refUser = grp.hofUser || grp.members[0];
+      if (!refUser) return '';
+      if (sortCol === '_status') {
+        const inact=(refUser.Inactive_Status||refUser.inactive_status||'').trim();
+        const act=(refUser.activity_status||'').toLowerCase();
+        return (!inact&&(!act||act==='active'))?'Active':'Inactive';
+      }
+      if (sortCol === 'Age') {
+        return parseInt(refUser.Age) || 0;
+      }
+      return (refUser[sortCol] || '').toString().toLowerCase();
+    };
+    sg.sort((a,b) => {
+      // Families with HOF come before families without HOF
+      const aHas = !!a.hofUser, bHas = !!b.hofUser;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      const va = getSortVal(a);
+      const vb = getSortVal(b);
+      if (sortCol === 'Age') {
+        return sortDir==='asc'? va - vb : vb - va;
+      }
+      if (typeof va === 'string' && typeof vb === 'string') {
+        return sortDir==='asc'? va.localeCompare(vb) : vb.localeCompare(va);
+      }
+      return 0;
+    });
+  } else {
+    sg.sort((a,b) => {
+      // Families with HOF come before orphan FM-only groups
+      const aHas = !!a.hofUser, bHas = !!b.hofUser;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      const ageA = parseInt((a.hofUser && a.hofUser.Age) || (a.members[0] && a.members[0].Age)) || 0;
+      const ageB = parseInt((b.hofUser && b.hofUser.Age) || (b.members[0] && b.members[0].Age)) || 0;
+      return ageA - ageB;
+    });
+  }
+
   let idx=1;
   sg.forEach((grp,gi)=>{
-    if(gi>0){const sep=tbody.insertRow();sep.className='family-sep';sep.innerHTML='<td colspan="12"></td>'}
+    if(gi>0){const sep=tbody.insertRow();sep.className='family-sep';sep.innerHTML='<td colspan="13"></td>'}
     grp.members.forEach(u=>{const tr=tbody.insertRow();tr.dataset.its=u.ITS_ID;if((u.HOF_FM_TYPE||'').toUpperCase()==='HOF')tr.className='hof-row';tr.innerHTML=rowHTML(u,idx++)});
   });
 }
@@ -532,12 +639,12 @@ function renderTable(){
 /* ── Chips ── */
 function renderChips(){
   const ITS_L={its_sabeel_both_khar:'ITS & Sabeel in Khar',its_khar_sabeel_out:'ITS in Khar',sabeel_khar_its_out:'Sabeel in Khar',both_not_khar:'Both Not in Khar'};
-  const defs=[['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],['fStatus','Status'],['fGender','Gender'],['fMemberType','Member Type'],['fHOFType','HOF/FM'],['fHealth','Health'],['fDeeni','Deeni'],['fResidential','Residential'],['fItsMatch','ITS Match']];
+  const defs=[['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],['fStatus','Status'],['fGender','Gender'],['fHOFType','HOF/FM'],['fHealth','Health'],['fDeeni','Deeni'],['fResidential','Residential'],['fItsMatch','ITS Match']];
   const row=document.getElementById('chipRow');
   row.innerHTML='';let any=false;
   defs.forEach(([id,label])=>{
     const el=document.getElementById(id);if(!el||!el.value)return;any=true;
-    const display=id==='fHOF'?(el.options[el.selectedIndex]?.text||el.value):id==='fItsMatch'?(ITS_L[el.value]||el.value):el.value;
+    const display=el.tagName==='SELECT'?(el.options[el.selectedIndex]?.text||el.value):el.value;
     const chip=document.createElement('span');chip.className='chip';
     chip.innerHTML=`<b>${esc(label)}:</b>&nbsp;${esc(display)}&nbsp;<span class="chip-x" data-id="${id}">&times;</span>`;
     row.appendChild(chip);
@@ -567,7 +674,7 @@ function resetAll(){
 /* ── Export CSV ── */
 function exportCSV(){
   if(!filtered.length){alert('No data to export.');return}
-  const pref=['ITS_ID','Full_Name','Age','Gender','Sector','Sub_Sector','Mobile','Email','Marital_Status','HOF_FM_TYPE','Member_Type','activity_status','health_status','deeni_status','residential_status','its_sabeel_match','Qualification','Occupation','Address','Vatan'];
+  const pref=['ITS_ID','Full_Name','Age','Gender','Sector','Sub_Sector','Mobile','Email','Marital_Status','HOF_FM_TYPE','activity_status','health_status','deeni_status','residential_status','its_sabeel_match','Qualification','Occupation','Address','Vatan'];
   const extra=new Set();filtered.forEach(r=>Object.keys(r).forEach(k=>{if(!pref.includes(k))extra.add(k)}));
   const headers=[...pref,...Array.from(extra)];
   let csv=headers.map(h=>'"'+h+'"').join(',')+'\n';
@@ -584,7 +691,8 @@ function setv(id,val){const el=document.getElementById(id);if(el&&val!=null)el.v
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1).toLowerCase():''}
 
 /* ── Events ── */
-['fSector','fSubSector','fMarital','fHOF','fStatus','fGender','fMemberType','fHOFType','fHealth','fDeeni','fResidential','fItsMatch'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',run)});
+['fSector','fSubSector','fMarital','fHOF','fStatus','fGender',
+ 'fHOFType','fHealth','fDeeni','fResidential','fItsMatch'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',run)});
 ['fName','fAgeMin','fAgeMax'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',run)});
 document.getElementById('btnReset').addEventListener('click',resetAll);
 document.getElementById('btnToggle').addEventListener('click',function(){

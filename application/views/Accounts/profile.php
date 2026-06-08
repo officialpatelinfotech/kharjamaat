@@ -238,12 +238,20 @@
 
   <!-- MEMBER STATUS PANEL (optional, only if fields exist) -->
   <?php
+    if (!class_exists('MemberStatusM')) {
+      CI_Controller::get_instance()->load->model('MemberStatusM');
+    }
+    $health_options      = MemberStatusM::health_status_options();
+    $residential_options = MemberStatusM::residential_status_options();
+
+    $stripActiveInactive = function($str) {
+      return trim(preg_replace('/\s*\((Active|Inactive)\)\s*$/i', '', $str));
+    };
+
     $itsMatch = $member['its_sabeel_match'] ?? '';
     $actStatus = $member['activity_status'] ?? '';
     $healthStatus = $member['health_status'] ?? '';
     $residentialStatus = $member['residential_status'] ?? '';
-    $showDeeni = false;
-    $deeniStatus = $member['deeni_status'] ?? '';
 
     $matchLabels = [
       'its_sabeel_both_khar' => ['ITS & Sabeel both in Khar', 'success'],
@@ -292,7 +300,7 @@
           <div>
             <div style="font-size:0.78rem;color:#888;margin-bottom:3px;">
               Member Status
-              <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span>
+              <span style="font-size:0.65rem;background:#e2e8f0;padding:1px 5px;border-radius:10px;color:#555;">Auto</span>
             </div>
             <div style="font-weight:600;" class="text-<?php echo $actCls; ?>">
               <?php echo !empty($actStatus) ? ucfirst(htmlspecialchars($actStatus)) : '—'; ?>
@@ -305,7 +313,10 @@
               <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span>
             </div>
             <div style="font-weight:600;color:#222;">
-              <?php echo !empty($healthStatus) ? htmlspecialchars($healthStatus) : '—'; ?>
+              <?php
+                $healthLabel = !empty($healthStatus) ? ($health_options[$healthStatus] ?? $healthStatus) : '—';
+                echo htmlspecialchars($stripActiveInactive($healthLabel));
+              ?>
             </div>
           </div>
 
@@ -315,7 +326,10 @@
               <span style="font-size:0.65rem;background:#fef3c7;padding:1px 5px;border-radius:10px;color:#92400e;">Manual</span>
             </div>
             <div style="font-weight:600;color:#222;">
-              <?php echo !empty($residentialStatus) ? htmlspecialchars($residentialStatus) : '—'; ?>
+              <?php
+                $resLabel = !empty($residentialStatus) ? ($residential_options[$residentialStatus] ?? $residentialStatus) : '—';
+                echo htmlspecialchars($stripActiveInactive($resLabel));
+              ?>
             </div>
           </div>
         </div>
@@ -353,7 +367,7 @@
                   <?php echo htmlspecialchars($name); ?>
                 </div>
                 <div class="fm-its">
-                  ITS: <?php echo htmlspecialchars($fm['ITS_ID'] ?? ''); ?>
+                  ITS: <?php echo htmlspecialchars($fm['ITS_ID'] ?? ''); ?><?php echo !empty($fm['Age']) ? ' &bull; Age: ' . htmlspecialchars($fm['Age']) : ''; ?>
                 </div>
               </div>
             </div>

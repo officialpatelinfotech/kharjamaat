@@ -195,7 +195,9 @@ class MasoolMusaidM extends CI_Model
       'SUM(CASE WHEN u.Age BETWEEN 16 AND 25 THEN 1 ELSE 0 END) as age_16_25',
       'SUM(CASE WHEN u.Age BETWEEN 26 AND 65 THEN 1 ELSE 0 END) as age_26_65',
       'SUM(CASE WHEN u.Age > 65 THEN 1 ELSE 0 END) as seniors_count',
-      'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
+      'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count',
+      'MAX(u.Sub_Sector_Incharge_Name) as Sub_Sector_Incharge_Name',
+      'MAX(u.Sub_Sector_Incharge_Female_Name) as Sub_Sector_Incharge_Female_Name'
     ]);
 
     $this->db->from('user u');
@@ -1197,4 +1199,53 @@ class MasoolMusaidM extends CI_Model
       'combined_summary' => $combined_summary
     ];
   }
+
+  public function get_members_for_husaini($sector, $subsector = '')
+  {
+    $subsector = trim((string)($subsector ?? ''));
+    $sector_escaped = $this->db->escape($sector);
+    $sub_filter     = '';
+ 
+    if ($subsector !== '') {
+      $sub_filter = ' AND u.Sub_Sector = ' . $this->db->escape($subsector);
+    }
+ 
+    // Active = Inactive_Status IS NULL/empty AND activity_status = 'active'/NULL/empty
+    $sql = "
+      SELECT
+        u.ITS_ID, u.HOF_ID, u.HOF_FM_TYPE, u.Full_Name,
+        u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector
+      FROM user u
+      WHERE u.Sector = {$sector_escaped}
+        {$sub_filter}
+        AND (u.Inactive_Status IS NULL OR u.Inactive_Status = '')
+        AND (u.activity_status IS NULL OR u.activity_status = '' OR u.activity_status = 'active')
+      ORDER BY u.Sub_Sector ASC, (u.HOF_FM_TYPE = 'HOF') DESC, u.Full_Name ASC
+    ";
+ 
+    return $this->db->query($sql)->result_array();
+  }
+ 
+ 
+// ============================================================
+// ADD THIS METHOD TO: application/models/QardanHasanaM.php
+// ============================================================
+ 
+  /**
+   * Get all distinct ITS values that have ever paid into the Husaini scheme.
+   * Returns a flat array of ITS strings: ['12345678', '87654321', ...]
+   * Used for O(1) lookup via array_flip() in the controller.
+   */
+  public function get_husaini_payer_its_list()
+{
+  if (!$this->db->table_exists('qardan_hasana_husain_scheme')) {
+    return [];
+  }
+  $rows = $this->db->query("
+    SELECT DISTINCT ITS FROM qardan_hasana_husain_scheme
+    WHERE ITS IS NOT NULL AND ITS != ''
+  ")->result_array();
+
+  return array_column($rows, 'ITS');
+}
 }

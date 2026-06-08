@@ -23,9 +23,163 @@ class Umoor extends CI_Controller
       redirect('/accounts');
     }
 
+    $role = (int)$_SESSION['user']['role'];
     $data['user_name'] = $_SESSION['user']['username'];
-    $this->load->view('Umoor/Header', $data);
-    $this->load->view('Umoor/Home');
+
+    if ($role === 4) {
+      // Early JSON endpoints: handle AJAX requests before rendering any views
+      $fmt = $this->input->get('format');
+      if ($fmt === 'json') {
+        // Miqaat RSVP counts/lists
+        $miqaat_rsvp = $this->input->get('miqaat_rsvp');
+        if ($miqaat_rsvp) {
+          $miqaat_id = $this->input->get('miqaat_id');
+          $m = $miqaat_id ? $this->CommonM->get_next_miqaat_rsvp_stats((int)$miqaat_id)
+            : $this->CommonM->get_next_miqaat_rsvp_stats();
+          $payload = ['success' => true, 'miqaat_rsvp' => $m];
+          return $this->output->set_content_type('application/json')->set_output(json_encode($payload));
+        }
+
+        // Previous miqaat before a given date
+        $miqaat_prev = $this->input->get('miqaat_prev');
+        if ($miqaat_prev) {
+          $before_date = $this->input->get('before_date');
+          $payload = ['success' => false, 'miqaat' => null];
+          if ($before_date) {
+            $row = $this->db->query(
+              "SELECT id, name, type, date, assigned_to FROM miqaat WHERE date < ? ORDER BY date DESC LIMIT 1",
+              [$before_date]
+            )->row_array();
+            if ($row) {
+              $hparts = $this->HijriCalendar->get_hijri_parts_by_greg_date($row['date']);
+              if ($hparts && isset($hparts['hijri_day'])) {
+                $row['hijri_label'] = trim((($hparts['hijri_day'] ?? '')) . ' ' . (($hparts['hijri_month_name'] ?? $hparts['hijri_month'] ?? '')) . ' ' . (($hparts['hijri_year'] ?? '')));
+              } else {
+                $row['hijri_label'] = '';
+              }
+              $row['hijri_parts'] = $hparts;
+              $payload = ['success' => true, 'miqaat' => $row];
+            }
+          }
+          return $this->output->set_content_type('application/json')->set_output(json_encode($payload));
+        }
+
+        return $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Unknown request']));
+      }
+
+      // Demographic & overall stats (non-financial)
+      $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
+      $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
+      $residentOverview = $this->AmilsahebM->get_resident_overview_counts(true);
+
+      // Calculate Ashara Ohbat counts for default year
+      $today_date = date('Y-m-d');
+      $h_cal = $this->HijriCalendar->get_hijri_date($today_date);
+      $h_parts = explode('-', $h_cal['hijri_date']);
+      $curr_hijri_year = (int)$h_parts[2];
+      $curr_hijri_month = (int)$h_parts[1];
+      $def_year = ($curr_hijri_month >= 10) ? ($curr_hijri_year + 1) : $curr_hijri_year;
+
+      $ashara_users = $this->AmilsahebM->get_all_ashara($def_year);
+      $possibleStatuses = [
+        'Will attend all 9 Days',
+        'Not answering calls or messages',
+        "Musaaid didn't Contacted Yet",
+        'Will attend few Days only',
+        'Will not attend any Day',
+        'Ashara with Maula tus'
+      ];
+      $ohbat_counts = [];
+      foreach ($possibleStatuses as $st) {
+        $ohbat_counts[$st] = 0;
+      }
+      foreach ($ashara_users as $u) {
+        $st = (!empty($u['LeaveStatus']) && $u['LeaveStatus'] !== 'Unknown') ? $u['LeaveStatus'] : "Musaaid didn't Contacted Yet";
+        if (in_array(strtolower(trim($st)), ['bed ridden', 'not in town', 'married outcaste', 'wafaat'])) {
+          continue;
+        }
+        if (isset($ohbat_counts[$st])) {
+          $ohbat_counts[$st]++;
+        }
+      }
+
+      $stats = [
+        'HOF' => (int)($residentOverview['hof'] ?? 0),
+        'FM' => (int)($residentOverview['fm'] ?? 0),
+        'Mardo' => (int)($residentOverview['male'] ?? 0),
+        'Bairo' => (int)($residentOverview['female'] ?? 0),
+        'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
+        'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
+        'Age_16_25' => (int)($residentOverview['age_16_25'] ?? 0),
+        'Age_26_65' => (int)($residentOverview['age_26_65'] ?? 0),
+        'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
+        'LeaveStatus' => [],
+        'Sectors' => $sectorsData,
+        'SubSectors' => $subSectorsData,
+        'deeni_eligible' => $this->AmilsahebM->get_deeni_eligible_count(),
+        'deeni_taking' => $this->AmilsahebM->get_deeni_taking_count(),
+        'madresa_deprived' => $this->AmilsahebM->get_madresa_deprived_count(),
+        'singles_21_40' => $this->AmilsahebM->get_singles_21_40_count(),
+        'status_counts' => $this->AmilsahebM->get_status_counts(),
+        'active_inactive' => $this->AmilsahebM->get_active_inactive_counts(),
+        'ashara_ohbat_counts' => $ohbat_counts,
+      ];
+
+      $data['stats'] = $stats;
+      $data['current_sector'] = '';
+      $data['current_sub_sector'] = '';
+      $data['marital_status_counts'] = $this->AmilsahebM->get_marital_status_distribution();
+      $data['year_daytype_stats'] = $this->CommonM->get_year_calendar_daytypes();
+
+      // Raza Summary
+      $data['raza_summary'] = $this->get_raza_summary($data['user_name']);
+
+      // Madresa Hijri Year
+      $data['dashboard_madresa_hijri_year'] = isset($data['year_daytype_stats']['hijri_year']) ? (int)$data['year_daytype_stats']['hijri_year'] : null;
+
+      // Upcoming miqaats enriched
+      $upcoming_miqaats = $this->get_upcoming_miqaats(5);
+      if (!empty($upcoming_miqaats)) {
+        foreach ($upcoming_miqaats as &$um) {
+          $um_date = isset($um['date']) ? $um['date'] : null;
+          $hparts = null;
+          if ($um_date) {
+            $hparts = $this->HijriCalendar->get_hijri_parts_by_greg_date($um_date);
+          }
+          if ($hparts && isset($hparts['hijri_day'])) {
+            $um['hijri_label'] = trim(($hparts['hijri_day'] ?? '') . ' ' . ($hparts['hijri_month_name'] ?? $hparts['hijri_month'] ?? '') . ' ' . ($hparts['hijri_year'] ?? ''));
+          } else {
+            $um['hijri_label'] = '';
+          }
+          $um['hijri_parts'] = $hparts;
+        }
+        unset($um);
+      }
+
+      $data['dashboard_data'] = [
+        'upcoming_miqaats' => $upcoming_miqaats,
+        'miqaat_rsvp' => $this->CommonM->get_next_miqaat_rsvp_stats(),
+        'raza_summary' => $data['raza_summary'],
+      ];
+
+      // Qardan Hasana schemes totals for dashboard
+      $this->load->model('QardanHasanaM');
+      $qh_moh = (float)$this->QardanHasanaM->get_scheme_total_amount('mohammedi');
+      $qh_tah = (float)$this->QardanHasanaM->get_scheme_total_amount('taher');
+      $qh_hus = (float)$this->QardanHasanaM->get_scheme_total_amount('husain');
+      $data['qh_all_schemes_totals'] = [
+        'mohammedi' => $qh_moh,
+        'taher' => $qh_tah,
+        'husain' => $qh_hus,
+        'total' => ($qh_moh + $qh_tah + $qh_hus)
+      ];
+
+      $this->load->view('Umoor/Header', $data);
+      $this->load->view('Umoor/Home_Deeniyah', $data);
+    } else {
+      $this->load->view('Umoor/Header', $data);
+      $this->load->view('Umoor/Home');
+    }
   }
   public function success($redirectto)
   {
@@ -594,9 +748,7 @@ class Umoor extends CI_Controller
         'Attended in Khar on Time',
         'Attended in Khar Late',
         'Attended in Other Jamaat',
-        'Not attended anywhere',
-        'Not in Town',
-        'Married Outcaste'
+        'Not attended anywhere'
       ],
       // Year dropdown support (UI only)
       'selected_year' => $selected_year,
@@ -667,5 +819,198 @@ class Umoor extends CI_Controller
 
     $this->load->view('Umoor/Header', $data);
     $this->load->view('MasoolMusaid/Mumineendirectory', $data);
+  }
+
+  private function get_raza_summary($umoor = null)
+  {
+    if ($umoor) {
+      $row = $this->db->query(
+        "SELECT 
+            SUM(CASE WHEN r.status = 1 THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN r.status = 2 THEN 1 ELSE 0 END) AS approved,
+            SUM(CASE WHEN r.status = 3 THEN 1 ELSE 0 END) AS rejected
+          FROM raza r
+          JOIN raza_type rt ON rt.id = r.razaType
+          WHERE r.active = 1 AND rt.umoor = ?",
+        [$umoor]
+      )->row_array();
+    } else {
+      $row = $this->db->query(
+        "SELECT 
+            SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS approved,
+            SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS rejected
+          FROM raza
+          WHERE active = 1"
+      )->row_array();
+    }
+    return [
+      'pending' => (int)($row['pending'] ?? 0),
+      'approved' => (int)($row['approved'] ?? 0),
+      'rejected' => (int)($row['rejected'] ?? 0)
+    ];
+  }
+
+  private function get_upcoming_miqaats($limit = 5)
+  {
+    $limit = (int)$limit;
+    $sql = "SELECT m.id, m.name, m.type, m.date, m.assigned_to
+        FROM miqaat m
+        WHERE m.date >= CURDATE()
+        ORDER BY m.date ASC
+        LIMIT $limit";
+    return $this->db->query($sql)->result_array();
+  }
+
+  public function qardanhasana($scheme = null, $action = null, $id = null)
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15)) {
+      redirect('/accounts');
+    }
+
+    $data = [];
+    $data['user_name'] = $_SESSION['user']['username'] ?? '';
+    $data['qh_prefix'] = 'umoor';
+    $data['can_manage'] = false;
+    $data['can_import'] = false;
+
+    $scheme = $scheme !== null ? strtolower(trim((string)$scheme)) : null;
+    $action = $action !== null ? strtolower(trim((string)$action)) : null;
+
+    $this->load->view('Umoor/Header', $data);
+
+    $this->load->model('QardanHasanaM');
+    $qh_moh = (float)$this->QardanHasanaM->get_scheme_total_amount('mohammedi');
+    $qh_tah = (float)$this->QardanHasanaM->get_scheme_total_amount('taher');
+    $qh_hus = (float)$this->QardanHasanaM->get_scheme_total_amount('husain');
+    $data['qh_scheme_totals'] = [
+      'mohammedi' => $qh_moh,
+      'taher' => $qh_tah,
+      'husain' => $qh_hus,
+    ];
+    $data['qh_total_all'] = $qh_moh + $qh_tah + $qh_hus;
+
+    if ($scheme === null || $scheme === '') {
+      $this->load->view('Admin/QardanHasana', $data);
+      return;
+    }
+
+    if (!in_array($scheme, ['mohammedi', 'taher', 'husain'], true)) {
+      redirect('umoor/qardanhasana');
+      return;
+    }
+
+    $titles = [
+      'mohammedi' => 'Mohammedi Scheme',
+      'taher' => 'Taher Scheme',
+      'husain' => 'Husain Scheme'
+    ];
+    $data['scheme'] = $scheme;
+    $data['scheme_key'] = $scheme;
+    $data['scheme_title'] = $titles[$scheme] ?? ucfirst($scheme) . ' Scheme';
+
+    // Delete disabled (read-only)
+    if ($action === 'delete') {
+      $this->session->set_flashdata('qh_import_error', 'Delete is not allowed.');
+      redirect('umoor/qardanhasana/' . $scheme);
+      return;
+    }
+
+    // Update disabled (read-only)
+    if ($action === 'update') {
+      $this->session->set_flashdata('qh_import_error', 'Update is not allowed.');
+      redirect('umoor/qardanhasana/' . $scheme);
+      return;
+    }
+
+    // Import CSV disabled
+    if ($action === 'import') {
+      $this->session->set_flashdata('qh_import_error', 'Import is not allowed.');
+      redirect('umoor/qardanhasana/' . $scheme);
+      return;
+    }
+
+    // Filters (GET) - keep same shape as Admin/Anjuman for shared view
+    $data['filters'] = [
+      'miqaat_id' => $this->input->get('miqaat_id'),
+      'hijri_date' => $this->input->get('hijri_date'),
+      'greg_date' => $this->input->get('greg_date'),
+      'deposit_date' => $this->input->get('deposit_date'),
+      'maturity_date' => $this->input->get('maturity_date'),
+      'duration' => $this->input->get('duration'),
+      'its' => $this->input->get('its'),
+      'member_name' => $this->input->get('member_name')
+    ];
+
+    // Miqaat list for filters
+    $data['miqaats'] = $this->db
+      ->select('m.id, m.name, m.date, hc.hijri_date')
+      ->from('miqaat m')
+      ->join('hijri_calendar hc', 'hc.greg_date = m.date', 'left')
+      ->order_by('m.date', 'DESC')
+      ->get()->result_array();
+
+    // Import messages
+    $data['qh_import_message'] = $this->session->flashdata('qh_import_message');
+    $data['qh_import_error'] = $this->session->flashdata('qh_import_error');
+
+    // Resolve miqaat_id -> miqaat_name for filtering scheme table (which stores miqaat_name as text)
+    $miqaatNameFilter = '';
+    $miqaatId = isset($data['filters']['miqaat_id']) ? trim((string)$data['filters']['miqaat_id']) : '';
+    if ($miqaatId !== '') {
+      $row = $this->db->select('name')->from('miqaat')->where('id', (int)$miqaatId)->get()->row_array();
+      $miqaatNameFilter = isset($row['name']) ? (string)$row['name'] : '';
+    }
+
+    if ($scheme === 'mohammedi') {
+      $data['records'] = $this->QardanHasanaM->get_mohammedi_records([
+        'miqaat_name' => $miqaatNameFilter,
+        'hijri_date' => isset($data['filters']['hijri_date']) ? trim((string)$data['filters']['hijri_date']) : '',
+        'eng_date' => isset($data['filters']['greg_date']) ? trim((string)$data['filters']['greg_date']) : ''
+      ]);
+    } elseif ($scheme === 'taher') {
+      $data['records'] = $this->QardanHasanaM->get_taher_records([
+        'miqaat_name' => $miqaatNameFilter,
+        'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
+        'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
+      ]);
+    } elseif ($scheme === 'husain') {
+      $depositDate = isset($data['filters']['deposit_date']) ? trim((string)$data['filters']['deposit_date']) : '';
+      if ($depositDate === '') {
+        $depositDate = isset($data['filters']['greg_date']) ? trim((string)$data['filters']['greg_date']) : '';
+      }
+      $maturityDate = isset($data['filters']['maturity_date']) ? trim((string)$data['filters']['maturity_date']) : '';
+      $duration = isset($data['filters']['duration']) ? trim((string)$data['filters']['duration']) : '';
+      $data['records'] = $this->QardanHasanaM->get_husain_records([
+        'deposit_date' => $depositDate,
+        'maturity_date' => $maturityDate,
+        'duration' => $duration,
+        'ITS' => isset($data['filters']['its']) ? trim((string)$data['filters']['its']) : '',
+        'member_name' => isset($data['filters']['member_name']) ? trim((string)$data['filters']['member_name']) : ''
+      ]);
+    }
+
+    // Total amount for header display (sum of fetched records)
+    $total = 0.0;
+    if (!empty($data['records']) && is_array($data['records'])) {
+      foreach ($data['records'] as $row) {
+        if ($scheme === 'husain') {
+          $total += (float)($row['amount'] ?? 0);
+        } else {
+          if (isset($row['collection_amount'])) {
+            $total += (float)$row['collection_amount'];
+          } else {
+            $unit = (float)($row['unit'] ?? 0);
+            $units = (int)($row['units'] ?? 0);
+            if ($unit > 0 && $units > 0) {
+              $total += $unit * $units;
+            }
+          }
+        }
+      }
+    }
+    $data['total_amount'] = $total;
+
+    $this->load->view('Admin/QardanHasanaScheme', $data);
   }
 }

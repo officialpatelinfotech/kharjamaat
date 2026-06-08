@@ -465,7 +465,7 @@
                    type="text"
                    id="id_username"
                    name="username"
-                   placeholder="Enter your ITS ID"
+                   placeholder="Enter your User Id or ITS ID"
                    autofocus
                    autocomplete="username"
                    required
