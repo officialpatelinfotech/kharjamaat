@@ -220,44 +220,71 @@ class MemberStatusM extends CI_Model
 
     public static function deeni_status_options(): array
     {
-        return [
-            ''                                                                 => '— None —',
-            'Normal'                                                           => 'Normal (Active)',
-            'Deen Badli Lidu che'                                              => 'Deen Badli Lidu che (Inactive)',
-            'Married Outside'                                                  => 'Married Outside (Inactive)',
-            'Misaq Not Given'                                                  => 'Not given Misaq to Syedna Mufaddal Saifuddin AQA tus after Takht Nashini (Inactive)',
-            'Mustajeeb'                                                        => 'Mustajeeb (Inactive)',
-            'No Ashara / LQ'                                                   => 'No Ashara / LQ attended for past 3 years (Inactive)',
-            'No Vajebaat / Sabeel'                                             => 'Not paid Sila Fitra / Vajeebaat / Sabeel for last 3 years (Inactive)',
-            'Zero Days Scanned in Ashara Mubaraka'                             => 'Zero Days Scanned in Ashara Mubaraka (Inactive)',
-        ];
+        $CI =& get_instance();
+        if (!$CI->db->table_exists('status_options')) {
+            return [
+                ''                                                                 => '— None —',
+                'Normal'                                                           => 'Normal (Active)',
+                'Deen Badli Lidu che'                                              => 'Deen Badli Lidu che (Inactive)',
+                'Married Outside'                                                  => 'Married Outside (Inactive)',
+                'Misaq Not Given'                                                  => 'Not given Misaq to Syedna Mufaddal Saifuddin AQA tus after Takht Nashini (Inactive)',
+                'Mustajeeb'                                                        => 'Mustajeeb (Inactive)',
+                'No Ashara / LQ'                                                   => 'No Ashara / LQ attended for past 3 years (Inactive)',
+                'No Vajebaat / Sabeel'                                             => 'Not paid Sila Fitra / Vajeebaat / Sabeel for last 3 years (Inactive)',
+                'Zero Days Scanned in Ashara Mubaraka'                             => 'Zero Days Scanned in Ashara Mubaraka (Inactive)',
+            ];
+        }
+        $rows = $CI->db->where('type', 'deeni')->order_by('id', 'ASC')->get('status_options')->result_array();
+        $options = ['' => '— None —'];
+        foreach ($rows as $row) {
+            $options[$row['status_key']] = $row['status_label'];
+        }
+        return $options;
     }
 
     public static function residential_status_options(): array
     {
-        return [
-            ''                                            => '— None —',
-            'Residing in Khar'                            => 'Residing in Khar (Active)',
-            'Madresa in Khar'                             => 'Madresa in Khar (Active)',
-            'FMB Thaali in Khar'                          => 'FMB Thaali in Khar (Active)',
-            'Moved for Job'                               => 'Moved for Job (Inactive)',
-            'Moved for Studies'                           => 'Moved for Studies (Inactive)',
-            'Moved after Marriage'                        => 'Permanently moved after Marriage (Inactive)',
-            'Permanently Migrated'                        => 'Permanently Migrated (Inactive)',
-            'Unknown or Not Traceable'                    => 'Unknown or Not Traceable (Inactive)',
-        ];
+        $CI =& get_instance();
+        if (!$CI->db->table_exists('status_options')) {
+            return [
+                ''                                            => '— None —',
+                'Residing in Khar'                            => 'Residing in Khar (Active)',
+                'Madresa in Khar'                             => 'Madresa in Khar (Active)',
+                'FMB Thaali in Khar'                          => 'FMB Thaali in Khar (Active)',
+                'Moved for Job'                               => 'Moved for Job (Inactive)',
+                'Moved for Studies'                           => 'Moved for Studies (Inactive)',
+                'Moved after Marriage'                        => 'Permanently moved after Marriage (Inactive)',
+                'Permanently Migrated'                        => 'Permanently Migrated (Inactive)',
+                'Unknown or Not Traceable'                    => 'Unknown or Not Traceable (Inactive)',
+            ];
+        }
+        $rows = $CI->db->where('type', 'residential')->order_by('id', 'ASC')->get('status_options')->result_array();
+        $options = ['' => '— None —'];
+        foreach ($rows as $row) {
+            $options[$row['status_key']] = $row['status_label'];
+        }
+        return $options;
     }
 
     public static function health_status_options(): array
     {
-        return [
-            ''                     => '— None —',
-            'Healthy'              => 'Fit & Healthy (Active)',
-            'Medically Unfit'      => 'Handicapped Medically Unfit (Active)',
-            'Hospitalised'         => 'Major Disease Patient (Active)',
-            'Lazimul Firash'       => 'Lazimul Firash / Bedridden (Active)',
-            'Wafaat'               => 'Wafaat (Inactive)',
-        ];
+        $CI =& get_instance();
+        if (!$CI->db->table_exists('status_options')) {
+            return [
+                ''                     => '— None —',
+                'Healthy'              => 'Fit & Healthy (Active)',
+                'Medically Unfit'      => 'Handicapped Medically Unfit (Active)',
+                'Hospitalised'         => 'Major Disease Patient (Active)',
+                'Lazimul Firash'       => 'Lazimul Firash / Bedridden (Active)',
+                'Wafaat'               => 'Wafaat (Inactive)',
+            ];
+        }
+        $rows = $CI->db->where('type', 'health')->order_by('id', 'ASC')->get('status_options')->result_array();
+        $options = ['' => '— None —'];
+        foreach ($rows as $row) {
+            $options[$row['status_key']] = $row['status_label'];
+        }
+        return $options;
     }
 
     public static function activity_status_options(): array
@@ -284,42 +311,114 @@ class MemberStatusM extends CI_Model
      * Compute whether a member should be auto-marked Inactive based on their
      * deeni_status, health_status, and residential_status.
      *
-     * Returns 'inactive' if any triggering status is set, null otherwise
-     * (null = do not override manually-set active/temporary status).
+     * Returns 'inactive' if any triggering status is set, null otherwise.
      */
     public static function compute_auto_inactive(string $deeni = '', string $health = '', string $residential = ''): ?string
     {
-        // Deeni statuses that trigger Inactive (any status except Normal and None/empty)
-        $inactiveDeeni = [
-            'Deen Badli Lidu che',
-            'Married Outside',
-            'Misaq Not Given',
-            'Mustajeeb',
-            'No Ashara / LQ',
-            'No Vajebaat / Sabeel',
-            'Zero Days Scanned in Ashara Mubaraka',
-        ];
-        // Health statuses that trigger Inactive
-        $inactiveHealth = [
-            'Wafaat',
-        ];
-        // Residential statuses that trigger Inactive (any status except Residing in Khar and None/empty)
-        $inactiveResidential = [
-            'Moved for Job',
-            'Moved for Studies',
-            'Moved after Marriage',
-            'Moved Permanently but not taken transfer',
-            'Permanently moved but ITS not Transferred',
-            'Permanently Moved and ITS also Transferred',
-            'Permanently Migrated',
-            'Unknown or Not Traceable',
-        ];
+        $CI =& get_instance();
+        if (!$CI->db->table_exists('status_options')) {
+            $inactiveDeeni = [
+                'Deen Badli Lidu che', 'Married Outside', 'Misaq Not Given', 'Mustajeeb',
+                'No Ashara / LQ', 'No Vajebaat / Sabeel', 'Zero Days Scanned in Ashara Mubaraka',
+            ];
+            $inactiveHealth = ['Wafaat'];
+            $inactiveResidential = [
+                'Moved for Job', 'Moved for Studies', 'Moved after Marriage',
+                'Moved Permanently but not taken transfer', 'Permanently moved but ITS not Transferred',
+                'Permanently Moved and ITS also Transferred', 'Permanently Migrated', 'Unknown or Not Traceable',
+            ];
 
-        if (in_array($deeni, $inactiveDeeni, true)) return self::ACTIVITY_INACTIVE;
-        if (in_array($health, $inactiveHealth, true)) return self::ACTIVITY_INACTIVE;
-        if (in_array($residential, $inactiveResidential, true)) return self::ACTIVITY_INACTIVE;
+            if (in_array($deeni, $inactiveDeeni, true)) return self::ACTIVITY_INACTIVE;
+            if (in_array($health, $inactiveHealth, true)) return self::ACTIVITY_INACTIVE;
+            if (in_array($residential, $inactiveResidential, true)) return self::ACTIVITY_INACTIVE;
+            return null;
+        }
 
-        return null; // No auto-inactive trigger
+        if ($deeni !== '') {
+            $check = $CI->db->where([
+                'type' => 'deeni',
+                'status_key' => $deeni,
+                'is_inactive_trigger' => 1
+            ])->get('status_options')->num_rows();
+            if ($check > 0) return self::ACTIVITY_INACTIVE;
+        }
+        if ($health !== '') {
+            $check = $CI->db->where([
+                'type' => 'health',
+                'status_key' => $health,
+                'is_inactive_trigger' => 1
+            ])->get('status_options')->num_rows();
+            if ($check > 0) return self::ACTIVITY_INACTIVE;
+        }
+        if ($residential !== '') {
+            $check = $CI->db->where([
+                'type' => 'residential',
+                'status_key' => $residential,
+                'is_inactive_trigger' => 1
+            ])->get('status_options')->num_rows();
+            if ($check > 0) return self::ACTIVITY_INACTIVE;
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if a status option triggers the inactive state.
+     */
+    public static function is_inactive_trigger(string $type, ?string $key): bool
+    {
+        if (empty($key)) return false;
+        $CI =& get_instance();
+        if (!$CI->db->table_exists('status_options')) {
+            $inactiveDeeni = [
+                'Deen Badli Lidu che', 'Married Outside', 'Misaq Not Given', 'Mustajeeb',
+                'No Ashara / LQ', 'No Vajebaat / Sabeel', 'Zero Days Scanned in Ashara Mubaraka'
+            ];
+            $inactiveHealth = ['Wafaat'];
+            $inactiveResidential = [
+                'Moved for Job', 'Moved for Studies', 'Moved after Marriage',
+                'Moved Permanently but not taken transfer', 'Permanently moved but ITS not Transferred',
+                'Permanently Moved and ITS also Transferred', 'Permanently Migrated', 'Unknown or Not Traceable'
+            ];
+            if ($type === 'deeni') return in_array($key, $inactiveDeeni, true);
+            if ($type === 'health') return in_array($key, $inactiveHealth, true);
+            if ($type === 'residential') return in_array($key, $inactiveResidential, true);
+            return false;
+        }
+        $row = $CI->db->where([
+            'type' => $type,
+            'status_key' => $key,
+            'is_inactive_trigger' => 1
+        ])->get('status_options')->row_array();
+        return !empty($row);
+    }
+
+    /**
+     * Get list of keys that trigger inactive status for a given type.
+     */
+    public static function get_inactive_trigger_keys(string $type): array
+    {
+        $CI =& get_instance();
+        if (!$CI->db->table_exists('status_options')) {
+            $inactiveDeeni = [
+                'Deen Badli Lidu che', 'Married Outside', 'Misaq Not Given', 'Mustajeeb',
+                'No Ashara / LQ', 'No Vajebaat / Sabeel', 'Zero Days Scanned in Ashara Mubaraka'
+            ];
+            $inactiveHealth = ['Wafaat'];
+            $inactiveResidential = [
+                'Moved for Job', 'Moved for Studies', 'Moved after Marriage',
+                'Moved Permanently but not taken transfer', 'Permanently moved but ITS not Transferred',
+                'Permanently Moved and ITS also Transferred', 'Permanently Migrated', 'Unknown or Not Traceable'
+            ];
+            if ($type === 'deeni') return $inactiveDeeni;
+            if ($type === 'health') return $inactiveHealth;
+            if ($type === 'residential') return $inactiveResidential;
+            return [];
+        }
+        $rows = $CI->db->select('status_key')
+            ->where(['type' => $type, 'is_inactive_trigger' => 1])
+            ->get('status_options')->result_array();
+        return array_column($rows, 'status_key');
     }
 
     public static function match_status_badge_class(string $val): string

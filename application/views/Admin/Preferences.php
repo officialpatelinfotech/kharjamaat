@@ -675,6 +675,16 @@ if (!function_exists('is_notif_enabled')) {
   <hr />
 
   <div class="card p-3 mt-3">
+    <h5 class="mb-1">Status Options Settings</h5>
+    <p class="text-muted small mb-3">
+      Manage options for Deeni, Health, and Residential statuses. Mark specific options as inactive triggers to automatically set member statuses.
+    </p>
+    <a href="<?php echo base_url('admin/status_options'); ?>" class="btn btn-primary" style="background: #b8860b; border-color: #b8860b;">
+      <i class="fa-solid fa-gear me-1"></i> Manage Status Options
+    </a>
+  </div>
+
+  <div class="card p-3 mt-3">
     <h5 class="mb-1">Member Status Management</h5>
     <p class="text-muted small mb-3">
       Recalculate ITS–Sabeel match status and Activity Status for <strong>all</strong> members.<br>

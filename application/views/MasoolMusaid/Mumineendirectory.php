@@ -63,6 +63,21 @@
 .chip-x:hover{opacity:1}
 .chip-clear{display:inline-flex;align-items:center;gap:3px;background:var(--red-bg);color:var(--red);border:1px solid rgba(185,28,28,.2);border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700;cursor:pointer}
 .chip-clear:hover{background:#fee2e2}
+.chip-excl{display:inline-flex;align-items:center;gap:4px;background:#fff0f0;color:var(--red);border:1px solid rgba(185,28,28,.35);border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700}
+/* Exclude checkbox dropdown */
+.excl-wrap{position:relative;width:100%}
+.excl-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;height:32px;padding:0 10px;border:1.5px solid rgba(185,28,28,.4);border-radius:7px;background:#fff8f8;font-family:inherit;font-size:.76rem;color:var(--text-1);cursor:pointer;transition:border-color .15s;user-select:none}
+.excl-trigger:hover{border-color:var(--red)}
+.excl-trigger .excl-count{display:inline-flex;align-items:center;justify-content:center;background:var(--red);color:#fff;border-radius:20px;min-width:18px;height:18px;padding:0 5px;font-size:.6rem;font-weight:800;margin-left:6px}
+.excl-trigger .excl-arrow{font-size:.65rem;color:var(--red);transition:transform .2s}
+.excl-trigger.open .excl-arrow{transform:rotate(180deg)}
+.excl-panel{display:none;position:fixed;background:#fff;border:1.5px solid rgba(185,28,28,.35);border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,.15);z-index:9999;max-height:280px;overflow-y:auto;padding:6px 0;min-width:260px}
+.excl-panel.open{display:block}
+.excl-grp-hd{padding:5px 12px 3px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--red);opacity:.75;background:#fff8f8;border-top:1px solid rgba(185,28,28,.12);margin-top:2px}
+.excl-grp-hd:first-child{border-top:none;margin-top:0}
+.excl-item{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;transition:background .1s;font-size:.76rem;color:var(--text-1)}
+.excl-item:hover{background:#fff0f0}
+.excl-item input[type=checkbox]{accent-color:var(--red);width:14px;height:14px;cursor:pointer;flex-shrink:0}
 
 .sector-summary-card {
   background:var(--surface); border:1px solid var(--border); border-radius:14px;
@@ -204,6 +219,9 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
 </style>
 
 <?php
+  if (!class_exists('MemberStatusM')) {
+    CI_Controller::get_instance()->load->model('MemberStatusM');
+  }
   $is_umoor = isset($is_umoor) ? $is_umoor : (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] >= 4 && $_SESSION['user']['role'] <= 15);
   $view_base = 'admin/viewmember/';
   $back_fallback = $is_umoor ? 'umoor' : 'amilsaheb';
@@ -363,7 +381,42 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
           </div>
         </div>
 
-      </form>
+        <!-- Exclude Status Filters -->
+        <div class="fsec" id="secLabel4" style="margin-top:10px"><i class="fa fa-ban" style="color:var(--red)"></i> <span style="color:var(--red)">Exclude by Status</span></div>
+        <div id="secRow4">
+          <div class="excl-wrap">
+            <div id="exclTrigger" class="excl-trigger" role="button" tabindex="0">
+              <span id="exclTriggerText"><span style="color:var(--text-3);font-style:italic">Select statuses to exclude&hellip;</span></span>
+              <span class="excl-arrow"><i class="fa fa-chevron-down"></i></span>
+            </div>
+            <div id="exclPanel" class="excl-panel">
+              <div class="excl-grp-hd"><i class="fa fa-heartbeat"></i>&nbsp; Health Status</div>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Healthy"> Fit &amp; Healthy</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Medically Unfit"> Handicapped / Medically Unfit</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Hospitalised"> Major Disease Patient</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Lazimul Firash"> Lazimul Firash / Bedridden</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Wafaat"> Wafaat</label>
+              <div class="excl-grp-hd"><i class="fa fa-star-o"></i>&nbsp; Deeni Status</div>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Normal"> Normal</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Deen Badli Lidu che"> Deen Badli Lidu che</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Married Outside"> Married Outside</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Misaq Not Given"> Misaq Not Given</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Mustajeeb"> Mustajeeb</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|No Ashara / LQ"> No Ashara / LQ (3 yrs)</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|No Vajebaat / Sabeel"> No Vajebaat / Sabeel (3 yrs)</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Zero Days Scanned in Ashara Mubaraka"> Zero Days Scanned in Ashara</label>
+              <div class="excl-grp-hd"><i class="fa fa-home"></i>&nbsp; Residential Status</div>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Residing in Khar"> Residing in Khar</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Madresa in Khar"> Madresa in Khar</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|FMB Thaali in Khar"> FMB Thaali in Khar</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Moved for Job"> Moved for Job</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Moved for Studies"> Moved for Studies</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Moved after Marriage"> Moved after Marriage</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Permanently Migrated"> Permanently Migrated</label>
+              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Unknown or Not Traceable"> Unknown / Not Traceable</label>
+            </div>
+          </div>
+        </div>
     </div>
   </div>
 
@@ -438,6 +491,9 @@ const VIEW_URL = '<?= base_url($view_base) ?>';
 const EDIT_URL = '<?= base_url('admin/editmember/') ?>';
 const CAN_EDIT = <?= $can_edit ? 'true' : 'false' ?>;
 const IS_UMOOR = <?= $is_umoor ? 'true' : 'false' ?>;
+const INACTIVE_DEENI_KEYS = <?= json_encode(MemberStatusM::get_inactive_trigger_keys('deeni')) ?>;
+const INACTIVE_HEALTH_KEYS = <?= json_encode(MemberStatusM::get_inactive_trigger_keys('health')) ?>;
+const INACTIVE_RESIDENTIAL_KEYS = <?= json_encode(MemberStatusM::get_inactive_trigger_keys('residential')) ?>;
 const ITS_MATCH_LABELS = {
   its_sabeel_both_khar: 'ITS & Sabeel both in Khar',
   its_khar_sabeel_out: 'ITS in Khar, Sabeel out',
@@ -653,6 +709,11 @@ function run() {
   const deeni    = gv('fDeeni');
   const resi     = gv('fResidential');
   const itsMatch = gv('fItsMatch');
+  // Exclude checkboxes
+  const exclAll  = Array.from(document.querySelectorAll('.excl-cb:checked')).map(cb=>cb.value);
+  const exclHealth = exclAll.filter(v=>v.startsWith('health|')).map(v=>v.slice(7));
+  const exclDeeni  = exclAll.filter(v=>v.startsWith('deeni|')).map(v=>v.slice(6));
+  const exclResi   = exclAll.filter(v=>v.startsWith('resi|')).map(v=>v.slice(5));
 
   const form       = document.getElementById('filtersForm');
   const dsGender   = (form.dataset.gender    || '').toLowerCase();
@@ -693,6 +754,10 @@ function run() {
     if (deeni  && (u.deeni_status       || '').trim() !== deeni)   return false;
     if (resi   && (u.residential_status || '').trim() !== resi)    return false;
     if (itsMatch && (u.its_sabeel_match || '')         !== itsMatch) return false;
+    // Exclude filters
+    if (exclHealth.length && exclHealth.includes((u.health_status      || '').trim())) return false;
+    if (exclDeeni.length  && exclDeeni.includes((u.deeni_status        || '').trim())) return false;
+    if (exclResi.length   && exclResi.includes((u.residential_status   || '').trim())) return false;
     if (dsMadresa && String(u.madresa_deprived ?? '') !== dsMadresa) return false;
 
     if (dsLegField && dsLegValue) {
@@ -887,6 +952,14 @@ function renderTable() {
       : act === 'temporary' ? '<span class="btemp">Temp</span>'
       : '<span class="binact">Inactive</span>';
 
+    const isHealthRed = INACTIVE_HEALTH_KEYS.includes((u.health_status||'').trim());
+    const isDeeniRed = INACTIVE_DEENI_KEYS.includes((u.deeni_status||'').trim());
+    const isResRed = INACTIVE_RESIDENTIAL_KEYS.includes((u.residential_status||'').trim());
+    
+    const healthStyle = isHealthRed ? 'color: var(--red); font-weight: bold;' : '';
+    const deeniStyle = isDeeniRed ? 'color: var(--red); font-weight: bold;' : '';
+    const resStyle = isResRed ? 'color: var(--red); font-weight: bold;' : '';
+
     let html = `<td style="color:var(--text-3);font-size:.72rem;font-weight:600">${rowNum}</td>` +
       `<td><span style="font-weight:${isHOF?800:500}">${esc(u.Full_Name||'')}${isHOF?'<span class="pill-hof">HOF</span>':'<span class="pill-fm">FM</span>'}</span></td>` +
       `<td><span class="bid">${esc(String(u.ITS_ID||u.ITS||''))}</span></td>` +
@@ -896,9 +969,9 @@ function renderTable() {
       `<td style="font-size:.75rem;color:var(--text-2)">${esc(u.Mobile||'—')}</td>` +
       `<td>${badge}</td>` +
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>` +
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>` +
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(DEENI_MAP[(u.deeni_status||'').trim()] || u.deeni_status || '—')}</td>` +
-      `<td style="font-size:.72rem;color:var(--text-2)">${esc(RESIDENTIAL_MAP[(u.residential_status||'').trim()] || u.residential_status || '—')}</td>`;
+      `<td style="font-size:.72rem;color:var(--text-2);${healthStyle}">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>` +
+      `<td style="font-size:.72rem;color:var(--text-2);${deeniStyle}">${esc(DEENI_MAP[(u.deeni_status||'').trim()] || u.deeni_status || '—')}</td>` +
+      `<td style="font-size:.72rem;color:var(--text-2);${resStyle}">${esc(RESIDENTIAL_MAP[(u.residential_status||'').trim()] || u.residential_status || '—')}</td>`;
 
     if (!IS_UMOOR) {
       html += `<td>` +
@@ -1001,6 +1074,23 @@ function renderTable() {
 }
 
 // ── Chips ─────────────────────────────────────────────────────────────────────
+const EXCL_LABELS = {'health':'Health','deeni':'Deeni','resi':'Residential'};
+function getExclChecked(){return Array.from(document.querySelectorAll('.excl-cb:checked'));}
+function updateExclTrigger(){
+  const checked=getExclChecked();
+  const trigger=document.getElementById('exclTrigger');
+  const textEl=document.getElementById('exclTriggerText');
+  if(!trigger||!textEl)return;
+  if(!checked.length){
+    textEl.innerHTML='<span style="color:var(--text-3);font-style:italic">Select statuses to exclude&hellip;</span>';
+    trigger.querySelectorAll('.excl-count').forEach(el=>el.remove());
+  } else {
+    textEl.innerHTML=`<span style="color:var(--red);font-weight:700">${checked.length} status${checked.length>1?'es':''} excluded</span>`;
+    let badge=trigger.querySelector('.excl-count');
+    if(!badge){badge=document.createElement('span');badge.className='excl-count';trigger.insertBefore(badge,trigger.querySelector('.excl-arrow'));}
+    badge.textContent=checked.length;
+  }
+}
 function renderChips() {
   const defs = [
     ['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],
@@ -1039,6 +1129,17 @@ function renderChips() {
     row.appendChild(chip);
   });
 
+  // Exclude chips
+  getExclChecked().forEach(cb=>{
+    const [type]=cb.value.split('|');
+    const label=EXCL_LABELS[type]||type;
+    const txt=cb.closest('label')?.textContent.trim()||cb.value;
+    any=true;
+    const chip=document.createElement('span');chip.className='chip-excl';
+    chip.innerHTML=`<i class="fa fa-ban" style="font-size:.6rem"></i>&nbsp;<b>Excl.${esc(label)}:</b>&nbsp;${esc(txt)}&nbsp;<span class="chip-x" data-excl-val="${esc(cb.value)}" style="color:var(--red)">&times;</span>`;
+    row.appendChild(chip);
+  });
+
   if (any || activeSectorCard) {
     const cl = document.createElement('span');
     cl.className = 'chip-clear';
@@ -1049,6 +1150,10 @@ function renderChips() {
 
   row.querySelectorAll('.chip-x').forEach(x => {
     x.addEventListener('click', () => {
+      if (x.dataset.exclVal) {
+        const cb=document.querySelector(`.excl-cb[value="${x.dataset.exclVal}"]`);
+        if(cb){cb.checked=false;updateExclTrigger();run();} return;
+      }
       if (x.dataset.type === 'sector')    { activeSectorCard = null; activeSubSecCard = null; run(); return; }
       if (x.dataset.type === 'subsector') { activeSubSecCard = null; run(); return; }
       const el = document.getElementById(x.dataset.id);
@@ -1060,13 +1165,15 @@ function renderChips() {
 // ── Reset ─────────────────────────────────────────────────────────────────────
 function resetAll() {
   document.getElementById('filtersForm').reset();
+  document.querySelectorAll('.excl-cb').forEach(cb=>cb.checked=false);
+  updateExclTrigger();
   const form = document.getElementById('filtersForm');
   ['gender','hofFmType','madresa','legacyField','legacyValue'].forEach(k => delete form.dataset[k]);
 
   document.querySelectorAll('[id$="_hidden"]').forEach(el => { el.id = el.id.replace('_hidden', ''); });
 
-  ['secLabel2','secRow2','secLabel3','secRow3','maritalCol'].forEach(id => {
-    document.getElementById(id).style.display = '';
+  ['secLabel2','secRow2','secLabel3','secRow3','secLabel4','secRow4','maritalCol'].forEach(id => {
+    const e=document.getElementById(id);if(e)e.style.display = '';
   });
   const slot = document.getElementById('dashInlineSlot');
   slot.style.display = 'none';
@@ -1125,6 +1232,28 @@ function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(
   const el = document.getElementById(id);
   if (el) el.addEventListener('input', run);
 });
+// Exclude checkboxes
+document.querySelectorAll('.excl-cb').forEach(cb=>cb.addEventListener('change',()=>{updateExclTrigger();run();}));
+// Exclude dropdown toggle
+(()=>{
+  const trigger=document.getElementById('exclTrigger');
+  const panel=document.getElementById('exclPanel');
+  if(!trigger||!panel)return;
+  document.body.appendChild(panel);
+  function positionPanel(){
+    const r=trigger.getBoundingClientRect();
+    panel.style.top=(r.bottom+4)+'px';
+    panel.style.left=r.left+'px';
+    panel.style.width=r.width+'px';
+  }
+  function openPanel(){positionPanel();panel.classList.add('open');trigger.classList.add('open');}
+  function closePanel(){panel.classList.remove('open');trigger.classList.remove('open');}
+  trigger.addEventListener('click',e=>{e.stopPropagation();panel.classList.contains('open')?closePanel():openPanel();});
+  trigger.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();trigger.click();}});
+  document.addEventListener('click',e=>{if(!trigger.contains(e.target)&&!panel.contains(e.target))closePanel();});
+  window.addEventListener('scroll',()=>{if(panel.classList.contains('open'))positionPanel();},{passive:true});
+  window.addEventListener('resize',()=>{if(panel.classList.contains('open'))positionPanel();},{passive:true});
+})();
 
 document.getElementById('btnReset').addEventListener('click', resetAll);
 

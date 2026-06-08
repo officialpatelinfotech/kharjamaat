@@ -2405,4 +2405,69 @@ class Amilsaheb extends CI_Controller
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Admin/ViewMember', $data);
   }
+
+  public function editmember($its_id = null)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+    if (!$its_id) {
+      redirect('amilsaheb');
+      return;
+    }
+    $member = $this->AdminM->get_member_by_its($its_id);
+    if (!$member) {
+      redirect('amilsaheb');
+      return;
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member'] = $member;
+    $hof_list = [];
+    $hof_list = $this->AdminM->get_family_members_by_hof_id($member['HOF_ID']);
+    $data['hof_list'] = $hof_list;
+
+    $hof_name = '';
+    if (!empty($member['HOF_ID'])) {
+      $hof_row = $this->AdminM->get_member_by_its($member['HOF_ID']);
+      if ($hof_row) {
+        $hof_name = $hof_row['Full_Name'];
+      }
+    }
+    $data['hof_name'] = $hof_name;
+
+    $data['sector_map'] = $this->AdminM->get_sector_hierarchy();
+    $data['sector_list'] = array_keys($data['sector_map']);
+    $data['incharges_map'] = $this->AdminM->get_sector_incharges_map();
+    $this->load->model('MemberStatusM');
+    $data['deeni_status_options']       = MemberStatusM::deeni_status_options();
+    $data['residential_status_options'] = MemberStatusM::residential_status_options();
+    $data['health_status_options']      = MemberStatusM::health_status_options();
+    $data['activity_status_options']    = MemberStatusM::activity_status_options();
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Admin/EditMember', $data);
+  }
+
+  public function add_confidential_comment()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+    $its_id = (int)$this->input->post('its_id');
+    $comment = trim((string)$this->input->post('comment'));
+    if ($its_id <= 0 || $comment === '') {
+      echo json_encode(['success' => false, 'error' => 'Invalid inputs']);
+      return;
+    }
+
+    $created_by = $_SESSION['user']['username'];
+    $created_by_name = 'Amil Saheb';
+    if (!empty($_SESSION['user_data']['First_Name']) || !empty($_SESSION['user_data']['Surname'])) {
+      $created_by_name = trim(($_SESSION['user_data']['First_Name'] ?? '') . ' ' . ($_SESSION['user_data']['Surname'] ?? ''));
+    }
+
+    $this->load->model('ConfidentialCommentM');
+    $ok = $this->ConfidentialCommentM->add_comment($its_id, $comment, $created_by, $created_by_name);
+    echo json_encode(['success' => $ok]);
+  }
 }

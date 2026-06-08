@@ -298,6 +298,21 @@
   border-radius: 12px; background: var(--blue-bg); color: var(--blue);
   margin-left: 5px; flex-shrink: 0;
 }
+#vmApp .fm-status-active {
+  font-size: .62rem; font-weight: 700; padding: 1px 7px;
+  border-radius: 12px; background: var(--green-bg); color: var(--green);
+  margin-left: 5px; flex-shrink: 0;
+}
+#vmApp .fm-status-inactive {
+  font-size: .62rem; font-weight: 700; padding: 1px 7px;
+  border-radius: 12px; background: var(--red-bg); color: var(--red);
+  margin-left: 5px; flex-shrink: 0;
+}
+#vmApp .fm-status-temporary {
+  font-size: .62rem; font-weight: 700; padding: 1px 7px;
+  border-radius: 12px; background: var(--orange-bg); color: var(--orange);
+  margin-left: 5px; flex-shrink: 0;
+}
 
 /* ── Financial sidebar ── */
 #vmApp .fin-row {
@@ -615,9 +630,10 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
         </div>
       </div>
       <?php if($show_deeni_status): ?>
+      <?php $isDeeniRed = MemberStatusM::is_inactive_trigger('deeni', $member['deeni_status'] ?? ''); ?>
       <div class="sg-item">
         <div class="sg-label">Deeni Status <span class="sg-badge sensitive">Sensitive</span></div>
-        <div class="sg-val <?php echo empty($member['deeni_status'])?'muted':''; ?>">
+        <div class="sg-val <?php echo $isDeeniRed ? 'red' : (empty($member['deeni_status']) ? 'muted' : ''); ?>">
           <?php
             $deeniVal = $member['deeni_status'] ?? '';
             $deeniLabel = !empty($deeniVal) ? ($deeni_status_options[$deeniVal] ?? $deeniVal) : '—';
@@ -626,9 +642,10 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
         </div>
       </div>
       <?php endif; ?>
+      <?php $isHealthRed = MemberStatusM::is_inactive_trigger('health', $member['health_status'] ?? ''); ?>
       <div class="sg-item">
         <div class="sg-label">Health Status <span class="sg-badge manual">Manual</span></div>
-        <div class="sg-val <?php echo empty($member['health_status'])?'muted':''; ?>">
+        <div class="sg-val <?php echo $isHealthRed ? 'red' : (empty($member['health_status']) ? 'muted' : ''); ?>">
           <?php
             $healthVal = $member['health_status'] ?? '';
             $healthLabel = !empty($healthVal) ? ($health_status_options[$healthVal] ?? $healthVal) : '—';
@@ -636,9 +653,10 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
           ?>
         </div>
       </div>
+      <?php $isResRed = MemberStatusM::is_inactive_trigger('residential', $member['residential_status'] ?? ''); ?>
       <div class="sg-item">
         <div class="sg-label">Residential Status <span class="sg-badge manual">Manual</span></div>
-        <div class="sg-val <?php echo empty($member['residential_status'])?'muted':''; ?>">
+        <div class="sg-val <?php echo $isResRed ? 'red' : (empty($member['residential_status']) ? 'muted' : ''); ?>">
           <?php
             $resVal = $member['residential_status'] ?? '';
             $resLabel = !empty($resVal) ? ($residential_status_options[$resVal] ?? $resVal) : '—';
@@ -676,6 +694,11 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
           <div class="fm-name">
             <?php echo htmlspecialchars($fmName); ?>
             <?php if($fmHof): ?><span class="fm-hof">HOF</span><?php endif; ?>
+            <?php
+              $fmAct = $fm['activity_status'] ?? 'active';
+              $fmActClass = 'fm-status-' . $fmAct;
+            ?>
+            <span class="<?php echo $fmActClass; ?>"><?php echo ucfirst(htmlspecialchars($fmAct)); ?></span>
           </div>
           <div class="fm-its">ITS: <?php echo htmlspecialchars($fm['ITS_ID']??''); ?><?php echo !empty($fm['Age']) ? ' &bull; Age: ' . htmlspecialchars($fm['Age']) : ''; ?></div>
         </div>
@@ -690,6 +713,7 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
 <div class="row" style="margin-top:4px;">
   <!-- Left: detail panels -->
   <div class="<?php echo ($role===16)?'col-12':'col-lg-8 col-md-7'; ?> mb-4">
+
     <div class="masonry-grid">
 
     <?php foreach($groups as $groupName => $fields):
@@ -809,5 +833,7 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
       if(finChev) finChev.style.transform = finOpen ? 'rotate(180deg)' : '';
     });
   }
+
+
 })();
 </script>

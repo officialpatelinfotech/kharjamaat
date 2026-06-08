@@ -62,6 +62,9 @@
         <img src="<?php echo base_url('assets/main_logo.png') ?>" class="logo">
       </a>
     </div>
+    <a href="<?php echo base_url('/amilsaheb') ?>" class="d-lg-none ml-auto mr-3" style="font-size: 20px; color: #ad7e05 !important;">
+      <i class="fa fa-home"></i>
+    </a>
     <button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse" aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler">
       <span class="navbar-toggler-icon"></span>
     </button>

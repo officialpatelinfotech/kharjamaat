@@ -58,7 +58,11 @@
 <div>
   <nav class="fixed-top navbar navbar-expand-lg navbar-light main-navbar">
     <div class="navbar-brand"><a href="<?php echo base_url("/") ?>"><img src="<?php echo base_url('assets/main_logo.png') ?>" class="logo"></a>
-    </div><button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse"
+    </div>
+    <a href="<?php echo base_url('/MasoolMusaid') ?>" class="d-lg-none ml-auto mr-3" style="font-size: 20px; color: #ad7e05 !important;">
+      <i class="fa fa-home"></i>
+    </a>
+    <button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse"
       aria-controls="sj-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation"
       class="navbar-toggler"><span class="navbar-toggler-icon"></span></button>
     <div id="sj-navbar-collapse" class="collapse navbar-collapse">

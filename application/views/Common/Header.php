@@ -67,6 +67,9 @@
       </a>
     </div>
 
+    <a href="<?php echo isset($from) ? base_url(explode("/", $from)[0]) : ""; ?>" class="d-lg-none ml-auto mr-3" style="font-size: 20px; color: #ad7e05 !important;">
+      <i class="fa fa-home"></i>
+    </a>
     <button type="button" data-toggle="collapse" data-target="#sj-navbar-collapse" class="navbar-toggler">
       <span class="navbar-toggler-icon"></span>
     </button>

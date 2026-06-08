@@ -69,7 +69,7 @@ $config['migration_auto_latest'] = TRUE;
 | be upgraded / downgraded to.
 |
 */
-$config['migration_version'] = 52; // Add sabeel rent and deposit columns
+$config['migration_version'] = 54; // Create confidential comments table
 
 /*
 |--------------------------------------------------------------------------

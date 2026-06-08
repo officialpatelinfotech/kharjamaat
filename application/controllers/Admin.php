@@ -4674,7 +4674,7 @@ HTML;
 // ─────────────────────────────────────────────────────────────────────────────
   public function updatemember()
   {
-    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 2 && $_SESSION['user']['role'] != 3)) {
       redirect('/accounts');
     }
 
@@ -5288,5 +5288,107 @@ HTML;
 
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Preferences', $data);
+  }
+
+  public function status_options()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['options'] = $this->db->order_by('type ASC, status_label ASC')->get('status_options')->result_array();
+
+    $data['deeni_options'] = array_filter($data['options'], fn($o) => $o['type'] === 'deeni');
+    $data['health_options'] = array_filter($data['options'], fn($o) => $o['type'] === 'health');
+    $data['residential_options'] = array_filter($data['options'], fn($o) => $o['type'] === 'residential');
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/StatusOptions', $data);
+  }
+
+  public function save_status_option()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    $id = $this->input->post('id');
+    $type = $this->input->post('type');
+    $status_key = trim((string)$this->input->post('status_key'));
+    $status_label = trim((string)$this->input->post('status_label'));
+    $is_inactive_trigger = $this->input->post('is_inactive_trigger') ? 1 : 0;
+
+    if (empty($type) || empty($status_key) || empty($status_label)) {
+      $this->session->set_flashdata('error', 'All fields are required.');
+      redirect('admin/status_options');
+      return;
+    }
+
+    $db_data = [
+      'type' => $type,
+      'status_key' => $status_key,
+      'status_label' => $status_label,
+      'is_inactive_trigger' => $is_inactive_trigger
+    ];
+
+    if ($id) {
+      $this->db->where('id', $id)->update('status_options', $db_data);
+      $this->session->set_flashdata('success', 'Status option updated successfully.');
+    } else {
+      $exists = $this->db->where(['type' => $type, 'status_key' => $status_key])->get('status_options')->num_rows();
+      if ($exists > 0) {
+        $this->session->set_flashdata('error', 'A status option with this key already exists.');
+      } else {
+        $this->db->insert('status_options', $db_data);
+        $this->session->set_flashdata('success', 'Status option added successfully.');
+      }
+    }
+
+    // Force run dynamic triggers on all users to apply the changes
+    $this->db->query("UPDATE user SET ITS_ID = ITS_ID");
+
+    redirect('admin/status_options');
+  }
+
+  public function delete_status_option($id)
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      redirect('/accounts');
+    }
+
+    if ($id) {
+      $this->db->where('id', $id)->delete('status_options');
+      $this->session->set_flashdata('success', 'Status option deleted successfully.');
+      
+      // Force run dynamic triggers on all users to apply the changes
+      $this->db->query("UPDATE user SET ITS_ID = ITS_ID");
+    }
+
+    redirect('admin/status_options');
+  }
+
+  public function add_confidential_comment()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+    $its_id = (int)$this->input->post('its_id');
+    $comment = trim((string)$this->input->post('comment'));
+    if ($its_id <= 0 || $comment === '') {
+      echo json_encode(['success' => false, 'error' => 'Invalid inputs']);
+      return;
+    }
+
+    $created_by = $_SESSION['user']['username'];
+    $created_by_name = 'Jamaat Administration';
+    if (!empty($_SESSION['user_data']['First_Name']) || !empty($_SESSION['user_data']['Surname'])) {
+      $created_by_name = trim(($_SESSION['user_data']['First_Name'] ?? '') . ' ' . ($_SESSION['user_data']['Surname'] ?? ''));
+    }
+
+    $this->load->model('ConfidentialCommentM');
+    $ok = $this->ConfidentialCommentM->add_comment($its_id, $comment, $created_by, $created_by_name);
+    echo json_encode(['success' => $ok]);
   }
 }

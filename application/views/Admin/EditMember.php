@@ -1,5 +1,8 @@
 <?php /* Edit Member — Inline edit matching ViewMember layout */ ?>
 <?php
+if (!class_exists('MemberStatusM')) {
+  CI_Controller::get_instance()->load->model('MemberStatusM');
+}
 if (!function_exists('norm_date_input')) {
   function norm_date_input($val) {
     if (empty($val)) return '';
@@ -180,6 +183,10 @@ if (empty($redirect)) {
   box-shadow:none !important;
 }
 #emApp .er-val select{cursor:pointer;}
+#emApp .er-val select.is-inactive-trigger {
+  color: var(--red) !important;
+  font-weight: bold;
+}
 
 /* Status grid inside Member Status panel */
 #emApp .status-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;padding:16px 18px;border-bottom:1px solid var(--border-light);}
@@ -317,12 +324,20 @@ if (empty($redirect)) {
           </div>
         </div>
       </div>
+      <?php 
+        $isDeeniInactive = MemberStatusM::is_inactive_trigger('deeni', $member['deeni_status'] ?? '');
+        $isHealthInactive = MemberStatusM::is_inactive_trigger('health', $member['health_status'] ?? '');
+        $isResInactive = MemberStatusM::is_inactive_trigger('residential', $member['residential_status'] ?? '');
+      ?>
       <ul class="edit-list">
         <li class="edit-row">
           <div class="er-key">Deeni Status <span class="auto-lbl">Manual</span></div>
           <div class="er-val">
-            <select name="deeni_status" id="deeniStatusSel">
-              <?php foreach($deeni_status_options as $v=>$l): ?><option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['deeni_status']??'')===$v)?'selected':''; ?>><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?>
+            <select name="deeni_status" id="deeniStatusSel" class="<?php echo $isDeeniInactive ? 'is-inactive-trigger' : ''; ?>">
+              <?php foreach($deeni_status_options as $v=>$l): ?>
+                <?php $isOptInactive = MemberStatusM::is_inactive_trigger('deeni', $v); ?>
+                <option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['deeni_status']??'')===$v)?'selected':''; ?> style="<?php echo $isOptInactive ? 'color: var(--red);' : ''; ?>"><?php echo htmlspecialchars($l); ?></option>
+              <?php endforeach; ?>
               <?php if(!empty($member['deeni_status'])&&!array_key_exists($member['deeni_status'],$deeni_status_options)): ?><option value="<?php echo htmlspecialchars($member['deeni_status']); ?>" selected><?php echo htmlspecialchars($member['deeni_status']); ?> (Legacy)</option><?php endif; ?>
             </select>
           </div>
@@ -330,8 +345,11 @@ if (empty($redirect)) {
         <li class="edit-row">
           <div class="er-key">Health Status <span class="auto-lbl">Manual</span></div>
           <div class="er-val">
-            <select name="health_status" id="healthStatusSel">
-              <?php foreach($health_status_options as $v=>$l): ?><option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['health_status']??'')===$v)?'selected':''; ?>><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?>
+            <select name="health_status" id="healthStatusSel" class="<?php echo $isHealthInactive ? 'is-inactive-trigger' : ''; ?>">
+              <?php foreach($health_status_options as $v=>$l): ?>
+                <?php $isOptInactive = MemberStatusM::is_inactive_trigger('health', $v); ?>
+                <option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['health_status']??'')===$v)?'selected':''; ?> style="<?php echo $isOptInactive ? 'color: var(--red);' : ''; ?>"><?php echo htmlspecialchars($l); ?></option>
+              <?php endforeach; ?>
               <?php if(!empty($member['health_status'])&&!array_key_exists($member['health_status'],$health_status_options)): ?><option value="<?php echo htmlspecialchars($member['health_status']); ?>" selected><?php echo htmlspecialchars($member['health_status']); ?> (Legacy)</option><?php endif; ?>
             </select>
           </div>
@@ -339,8 +357,11 @@ if (empty($redirect)) {
         <li class="edit-row">
           <div class="er-key">Residential Status <span class="auto-lbl">Manual</span></div>
           <div class="er-val">
-            <select name="residential_status" id="residentialStatusSel">
-              <?php foreach($residential_status_options as $v=>$l): ?><option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['residential_status']??'')===$v)?'selected':''; ?>><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?>
+            <select name="residential_status" id="residentialStatusSel" class="<?php echo $isResInactive ? 'is-inactive-trigger' : ''; ?>">
+              <?php foreach($residential_status_options as $v=>$l): ?>
+                <?php $isOptInactive = MemberStatusM::is_inactive_trigger('residential', $v); ?>
+                <option value="<?php echo htmlspecialchars($v); ?>" <?php echo (($member['residential_status']??'')===$v)?'selected':''; ?> style="<?php echo $isOptInactive ? 'color: var(--red);' : ''; ?>"><?php echo htmlspecialchars($l); ?></option>
+              <?php endforeach; ?>
               <?php if(!empty($member['residential_status'])&&!array_key_exists($member['residential_status'],$residential_status_options)): ?><option value="<?php echo htmlspecialchars($member['residential_status']); ?>" selected><?php echo htmlspecialchars($member['residential_status']); ?> (Legacy)</option><?php endif; ?>
             </select>
           </div>
@@ -453,6 +474,76 @@ if (empty($redirect)) {
         </ul>
       </div>
     </div>
+
+    <!-- Confidential Remarks Panel (same as ViewMember but with edit capabilities) -->
+    <?php 
+      $comments = [];
+      if (in_array($role, [2, 3])) {
+        if (!class_exists('ConfidentialCommentM')) {
+          CI_Controller::get_instance()->load->model('ConfidentialCommentM');
+        }
+        $comments = CI_Controller::get_instance()->ConfidentialCommentM->get_comments($member['ITS_ID']);
+      }
+    ?>
+    <?php if (in_array($role, [2, 3])): ?>
+      <!-- ── Confidential Remarks ── -->
+      <div class="panel" id="grp-remarks" style="border-color: #fca5a5 !important; display: block; width: 100%; break-inside: avoid; margin-bottom: 16px;">
+        <div class="panel-hd open" data-pt="remarks-content" style="background: var(--red-bg); border-bottom-color: rgba(185, 28, 28, 0.15);">
+          <div class="ph-left">
+            <span class="ph-icon" style="background: rgba(185, 28, 28, 0.1); color: var(--red);"><i class="fa fa-lock"></i></span>
+            <span class="ph-title" style="color: var(--red); font-weight: 800;">Confidential Remarks &amp; Notes</span>
+            <span class="ph-badge" style="background: rgba(185, 28, 28, 0.15); color: var(--red);"><?php echo count($comments); ?></span>
+          </div>
+          <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+        </div>
+        <div class="panel-bd" id="remarks-content" style="padding: 16px 18px; background: #fff;">
+          <div id="remarks-list">
+            <?php if (empty($comments)): ?>
+              <div class="text-muted text-center py-4" id="no-remarks-msg" style="font-size: 0.85rem; font-style: italic;">
+                <i class="fa fa-sticky-note-o d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                No confidential remarks recorded for this member.
+              </div>
+            <?php else: ?>
+              <div class="remarks-feed" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; padding-right: 5px;">
+                <?php foreach ($comments as $c): ?>
+                  <div class="remark-item" style="border: 1px solid var(--border-light); border-radius: 8px; padding: 12px 14px; background: var(--surface-2);">
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="font-size: 0.72rem; color: var(--text-3);">
+                      <div>
+                        <span style="font-weight: 700; color: var(--text-1); font-size: 0.78rem;">
+                          <?php echo htmlspecialchars($c['created_by_name']); ?>
+                        </span>
+                        <span class="badge" style="background: <?php echo ($c['created_by'] === 'amilsaheb') ? 'var(--gold-muted)' : 'var(--blue-bg)'; ?>; color: <?php echo ($c['created_by'] === 'amilsaheb') ? 'var(--gold)' : 'var(--blue)'; ?>; font-size: 0.6rem; margin-left: 6px; font-weight: 700; text-transform: uppercase;">
+                          <?php echo ($c['created_by'] === 'amilsaheb') ? 'Amil Saheb' : 'Jamaat'; ?>
+                        </span>
+                      </div>
+                      <div style="font-weight: 500;">
+                        <?php echo date('d M Y, h:i A', strtotime($c['created_at'])); ?>
+                      </div>
+                    </div>
+                    <div style="font-size: 0.84rem; color: var(--text-2); white-space: pre-wrap; line-height: 1.4; word-break: break-word;">
+                      <?php echo htmlspecialchars($c['comment']); ?>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          </div>
+
+          <!-- Add Remark Section (No nested form tags) -->
+          <div id="addRemarkSection" style="margin-top: 16px; border-top: 1px dashed var(--border-light); padding-top: 16px;">
+            <input type="hidden" id="remarkItsId" value="<?php echo htmlspecialchars($member['ITS_ID']); ?>">
+            <div class="form-group mb-2">
+              <textarea id="remarkCommentText" class="form-control" rows="3" placeholder="Add confidential note, observation, follow-up or remark..." style="font-size: 0.84rem; border-radius: 8px; resize: vertical; border: 1.5px solid var(--border);" required></textarea>
+            </div>
+            <div class="text-right">
+              <button type="button" id="submitRemarkBtn" class="btn btn-sm text-white" style="background: var(--red); border-color: var(--red); font-weight: 700; border-radius: 6px; padding: 6px 16px; font-size: 0.8rem;">
+                <i class="fa fa-plus-circle mr-1"></i> Add Remark
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
 
     <!-- ─ Origin & Community ─ -->
     <div class="panel">
@@ -620,6 +711,14 @@ if (empty($redirect)) {
       var hasA=t.some(function(x){return x.indexOf('(Active)')>-1;});
       if(hasI) aS.value='inactive'; else if(hasA) aS.value='active';
       if(aD){var v=aS.value;aD.textContent=v?v.charAt(0).toUpperCase()+v.slice(1):'— None —';}
+      
+      // Dynamic red highlight toggling
+      if(dS.options[dS.selectedIndex]?.text.indexOf('(Inactive)') > -1) dS.classList.add('is-inactive-trigger');
+      else dS.classList.remove('is-inactive-trigger');
+      if(hS.options[hS.selectedIndex]?.text.indexOf('(Inactive)') > -1) hS.classList.add('is-inactive-trigger');
+      else hS.classList.remove('is-inactive-trigger');
+      if(rS.options[rS.selectedIndex]?.text.indexOf('(Inactive)') > -1) rS.classList.add('is-inactive-trigger');
+      else rS.classList.remove('is-inactive-trigger');
     }
     if(dS)dS.addEventListener('change',upStatus);
     if(hS)hS.addEventListener('change',upStatus);
@@ -687,6 +786,46 @@ if (empty($redirect)) {
         },300);
       });
       document.addEventListener('click',function(e){if(e.target!==hofIn&&!hofList.contains(e.target))hofList.classList.remove('open');});
+    }
+
+    /* Confidential Remarks submit */
+    var submitRemarkBtn = document.getElementById('submitRemarkBtn');
+    if (submitRemarkBtn) {
+      submitRemarkBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        var textarea = document.getElementById('remarkCommentText');
+        var comment = textarea.value.trim();
+        var itsId = document.getElementById('remarkItsId').value;
+        if (!comment) return;
+
+        submitRemarkBtn.disabled = true;
+
+        var currentRole = <?php echo (int)$role; ?>;
+        var ajaxUrl = currentRole === 2 ? '<?php echo base_url("amilsaheb/add_confidential_comment"); ?>' : '<?php echo base_url("admin/add_confidential_comment"); ?>';
+
+        var fd = new FormData();
+        fd.append('its_id', itsId);
+        fd.append('comment', comment);
+
+        fetch(ajaxUrl, {
+          method: 'POST',
+          body: fd
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(j) {
+          submitRemarkBtn.disabled = false;
+          if (j.success) {
+            textarea.value = '';
+            window.location.reload();
+          } else {
+            alert(j.error || 'Failed to add comment');
+          }
+        })
+        .catch(function() {
+          submitRemarkBtn.disabled = false;
+          alert('Network error. Failed to add comment.');
+        });
+      });
     }
 
     /* AJAX submit */
