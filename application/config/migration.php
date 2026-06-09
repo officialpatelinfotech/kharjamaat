@@ -69,7 +69,7 @@ $config['migration_auto_latest'] = TRUE;
 | be upgraded / downgraded to.
 |
 */
-$config['migration_version'] = 54; // Create confidential comments table
+$config['migration_version'] = 55; // Add miqaat type to FMB general contribution
 
 /*
 |--------------------------------------------------------------------------
