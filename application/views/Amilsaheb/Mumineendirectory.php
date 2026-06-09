@@ -143,6 +143,9 @@ if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 2) {
 }
 $can_edit = isset($_SESSION['user']['role']) && in_array($_SESSION['user']['role'], [1, 3]);
 $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
+$deeni_options = MemberStatusM::deeni_status_options();
+$health_options = MemberStatusM::health_status_options();
+$residential_options = MemberStatusM::residential_status_options();
 ?>
 
 <div class="md-wrap pt-5">
@@ -262,39 +265,33 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
             <label class="flabel">Health Status</label>
             <select id="fHealth" class="fselect">
               <option value="">All</option>
-              <option value="Healthy">Fit &amp; Healthy</option>
-              <option value="Medically Unfit">Handicapped / Medically Unfit</option>
-              <option value="Hospitalised">Major Disease Patient</option>
-              <option value="Lazimul Firash">Lazimul Firash / Bedridden</option>
-              <option value="Wafaat">Wafaat</option>
+              <?php foreach ($health_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <option value="<?php echo htmlspecialchars($k); ?>"><?php echo htmlspecialchars($v); ?></option>
+                <?php endif; ?>
+              <?php endforeach; ?>
             </select>
           </div>
           <div>
             <label class="flabel">Deeni Status</label>
             <select id="fDeeni" class="fselect">
               <option value="">All</option>
-              <option value="Normal">Normal</option>
-              <option value="Deen Badli Lidu che">Deen Badli Lidu che</option>
-              <option value="Married Outside">Married Outside</option>
-              <option value="Misaq Not Given">Misaq Not Given</option>
-              <option value="Mustajeeb">Mustajeeb</option>
-              <option value="No Ashara / LQ">No Ashara / LQ (3 yrs)</option>
-              <option value="No Vajebaat / Sabeel">No Vajebaat / Sabeel (3 yrs)</option>
-              <option value="Zero Days Scanned in Ashara Mubaraka">Zero Days Scanned in Ashara</option>
+              <?php foreach ($deeni_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <option value="<?php echo htmlspecialchars($k); ?>"><?php echo htmlspecialchars($v); ?></option>
+                <?php endif; ?>
+              <?php endforeach; ?>
             </select>
           </div>
           <div>
             <label class="flabel">Residential Status</label>
             <select id="fResidential" class="fselect">
               <option value="">All</option>
-              <option value="Residing in Khar">Residing in Khar</option>
-              <option value="Madresa in Khar">Madresa in Khar</option>
-              <option value="FMB Thaali in Khar">FMB Thaali in Khar</option>
-              <option value="Moved for Job">Moved for Job</option>
-              <option value="Moved for Studies">Moved for Studies</option>
-              <option value="Moved after Marriage">Moved after Marriage</option>
-              <option value="Permanently Migrated">Permanently Migrated</option>
-              <option value="Unknown or Not Traceable">Unknown / Not Traceable</option>
+              <?php foreach ($residential_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <option value="<?php echo htmlspecialchars($k); ?>"><?php echo htmlspecialchars($v); ?></option>
+                <?php endif; ?>
+              <?php endforeach; ?>
             </select>
           </div>
         </div>
@@ -310,31 +307,25 @@ $back_url_val = isset($back_url) ? $back_url : base_url('amilsaheb');
             <div id="exclPanel" class="excl-panel">
               <!-- Health -->
               <div class="excl-grp-hd"><i class="fa fa-heartbeat"></i>&nbsp; Health Status</div>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Healthy"> Fit &amp; Healthy</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Medically Unfit"> Handicapped / Medically Unfit</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Hospitalised"> Major Disease Patient</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Lazimul Firash"> Lazimul Firash / Bedridden</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|Wafaat"> Wafaat</label>
+              <?php foreach ($health_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
+                <?php endif; ?>
+              <?php endforeach; ?>
               <!-- Deeni -->
               <div class="excl-grp-hd"><i class="fa fa-star-o"></i>&nbsp; Deeni Status</div>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Normal"> Normal</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Deen Badli Lidu che"> Deen Badli Lidu che</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Married Outside"> Married Outside</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Misaq Not Given"> Misaq Not Given</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Mustajeeb"> Mustajeeb</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|No Ashara / LQ"> No Ashara / LQ (3 yrs)</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|No Vajebaat / Sabeel"> No Vajebaat / Sabeel (3 yrs)</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|Zero Days Scanned in Ashara Mubaraka"> Zero Days Scanned in Ashara</label>
+              <?php foreach ($deeni_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
+                <?php endif; ?>
+              <?php endforeach; ?>
               <!-- Residential -->
               <div class="excl-grp-hd"><i class="fa fa-home"></i>&nbsp; Residential Status</div>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Residing in Khar"> Residing in Khar</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Madresa in Khar"> Madresa in Khar</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|FMB Thaali in Khar"> FMB Thaali in Khar</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Moved for Job"> Moved for Job</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Moved for Studies"> Moved for Studies</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Moved after Marriage"> Moved after Marriage</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Permanently Migrated"> Permanently Migrated</label>
-              <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|Unknown or Not Traceable"> Unknown / Not Traceable</label>
+              <?php foreach ($residential_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
+                <?php endif; ?>
+              <?php endforeach; ?>
             </div>
           </div>
         </div>
@@ -410,7 +401,7 @@ const RESIDENTIAL_MAP = {};
 document.querySelectorAll('#fResidential option').forEach(opt => { if (opt.value) RESIDENTIAL_MAP[opt.value] = opt.textContent.trim(); });
 
 let filtered = [...ALL_DATA];
-let sortCol = null, sortDir = 'asc';
+let sortCol = 'Full_Name', sortDir = 'asc';
 
 const itsMap = {};
 ALL_DATA.forEach(u => { const k = String(u.ITS_ID||u.ITS||''); if(k) itsMap[k] = u.Full_Name||''; });
@@ -418,6 +409,11 @@ ALL_DATA.forEach(u => { const k = String(u.ITS_ID||u.ITS||''); if(k) itsMap[k] =
 /* ── Boot ── */
 fillSelects();
 readURLAndApply();
+/* Mark Full_Name header as default sort indicator */
+document.querySelectorAll('th.sortable').forEach(th => {
+  if (th.dataset.col === 'Full_Name') th.classList.add('asc');
+  else th.classList.remove('asc', 'desc');
+});
 
 /* ── Fill selects ── */
 function fillSelects(){
@@ -783,8 +779,11 @@ function resetAll(){
   const slot=document.getElementById('dashInlineSlot');slot.style.display='none';slot.innerHTML='';
   document.getElementById('dashTitle').classList.remove('show');
   document.getElementById('chipRow').innerHTML='';
-  sortCol=null;sortDir='asc';
-  document.querySelectorAll('th.sortable').forEach(th=>th.classList.remove('asc','desc'));
+  sortCol='Full_Name';sortDir='asc';
+  document.querySelectorAll('th.sortable').forEach(th=>{
+    if(th.dataset.col==='Full_Name') th.classList.add('asc');
+    else th.classList.remove('asc','desc');
+  });
   history.replaceState(null,'',window.location.pathname);
   filtered=[...ALL_DATA];renderTable();
   document.getElementById('resultsCount').innerHTML='<span>'+filtered.length+'</span> members';

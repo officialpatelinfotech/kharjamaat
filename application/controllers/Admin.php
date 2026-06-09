@@ -3516,8 +3516,9 @@ HTML;
 
     $fmb_type = $this->input->post("fmb_type");
     $contri_for = $this->input->post("contri_for");
+    $miqaat_type = $this->input->post("miqaat_type");
 
-    $result = $this->AdminM->addfmbcontritype($fmb_type, $contri_for);
+    $result = $this->AdminM->addfmbcontritype($fmb_type, $contri_for, $miqaat_type);
 
     if ($result) {
       redirect("admin/success/fmbgeneralcontributionmaster");
@@ -3536,12 +3537,14 @@ HTML;
     $name = $this->input->post("name");
     $fmb_type = $this->input->post("fmb_type");
     $status = $this->input->post("status");
+    $miqaat_type = $this->input->post("miqaat_type");
 
     $result = $this->AdminM->updatefmbgc(
       $id,
       $name,
       $fmb_type,
-      $status
+      $status,
+      $miqaat_type
     );
 
     if ($result) {

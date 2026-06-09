@@ -3659,6 +3659,7 @@ class Anjuman extends CI_Controller
     $user_id = $this->input->post("user_id");
     $fmb_type = $this->input->post("fmb_type");
     $contri_type = $this->input->post("contri_type");
+    $miqaat_type = $this->input->post("miqaat_type");
     $amount = $this->input->post("amount");
     $description = $this->input->post("description");
 
@@ -3667,6 +3668,7 @@ class Anjuman extends CI_Controller
       "user_id" => $user_id,
       "fmb_type" => $fmb_type,
       "contri_type" => $contri_type,
+      "miqaat_type" => $miqaat_type,
       "amount" => $amount,
       "description" => $description,
     );
@@ -3820,6 +3822,62 @@ class Anjuman extends CI_Controller
     $res = $this->AnjumanM->delete_fmbgc_invoice($invoice_id);
     echo json_encode($res);
   }
+
+  public function updatefmbgcinvoice()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+      return;
+    }
+
+    $id = (int)$this->input->post('invoice_id');
+    $contri_year = $this->input->post('contri_year');
+    $contri_type = $this->input->post('contri_type');
+    $miqaat_type = $this->input->post('miqaat_type');
+    $amount = (float)$this->input->post('amount');
+    $description = $this->input->post('description');
+
+    if (!$id || empty($contri_year) || empty($contri_type) || $amount < 0) {
+      echo json_encode(['success' => false, 'message' => 'Invalid inputs']);
+      return;
+    }
+
+    // Check if amount is less than total received
+    $summary = $this->AnjumanM->get_fmbgc_invoice_summary($id);
+    $received = isset($summary['total_received']) ? (float)$summary['total_received'] : 0.0;
+
+    if ($amount < $received) {
+      echo json_encode(['success' => false, 'message' => 'New amount cannot be less than the already received amount (₹' . round($received) . ')']);
+      return;
+    }
+
+    $data = [
+      'contri_year' => $contri_year,
+      'contri_type' => $contri_type,
+      'miqaat_type' => $miqaat_type,
+      'amount' => $amount,
+      'description' => $description
+    ];
+
+    $this->db->where('id', $id);
+    $result = $this->db->update('fmb_general_contribution', $data);
+
+    if ($result) {
+      $updated = $this->AnjumanM->get_fmbgc_invoice_summary($id);
+      echo json_encode([
+        'success' => true,
+        'message' => 'Invoice updated successfully',
+        'summary' => [
+          'amount' => $amount,
+          'total_received' => $updated['total_received'] ?? 0,
+          'balance_due' => $updated['balance_due'] ?? ($amount - $received)
+        ]
+      ]);
+    } else {
+      echo json_encode(['success' => false, 'message' => 'Database update failed']);
+    }
+  }
+
   // FMB General Contribution section
 
   public function update_fmb_payment()

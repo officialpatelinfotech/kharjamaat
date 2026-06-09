@@ -102,41 +102,6 @@ if (!empty($rows)) {
     </div>
   </div>
 
-  <?php if (!empty($typeCounts)): ?>
-    <div class="row g-2 mb-3">
-      <?php foreach ($typeCounts as $tc):
-        $t = $tc['contri_type'] ?? '';
-        $cnt = (int)($tc['count'] ?? 0);
-        $sum = (float)($tc['total_amount'] ?? 0);
-        // Build link preserving filters but setting contri_type
-        $qs = [
-          'contri_year' => $filters['contri_year'] ?? $selectedYear,
-          'fmb_type' => $filters['fmb_type'] ?? '',
-          'payment_status' => $filters['payment_status'] ?? '',
-          'user_id' => $filters['user_id'] ?? '',
-          'contri_type' => $t,
-        ];
-        $href = site_url('common/fmb_general_contributions') . '?' . http_build_query(array_filter($qs, function ($v) {
-          return $v !== null;
-        }));
-      ?>
-        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-          <a href="<?= $href ?>" class="text-decoration-none">
-            <div class="card shadow-sm h-100">
-              <div class="card-body py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="fw-bold text-dark" title="<?= htmlspecialchars($t) ?>"><?= htmlspecialchars($t) ?: 'Unknown' ?></div>
-                  <span class="badge bg-primary rounded-pill"><?= $cnt ?></span>
-                </div>
-                <div class="small text-muted mt-1">₹<?= number_format($sum, 2) ?> • <?= $cnt ?></div>
-                <div class="text-end mt-1"><span class="text-primary small">View details →</span></div>
-              </div>
-            </div>
-          </a>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
 
   <form method="get" action="<?php echo site_url('common/fmb_general_contributions'); ?>" class="row g-2 align-items-center mb-2" id="gcFilterForm">
     <?php if (!empty($from)): ?>
@@ -164,6 +129,16 @@ if (!empty($rows)) {
       </select>
     </div>
     <div class="col-12 col-sm-auto">
+      <label for="miqaat_type" class="form-label me-2 mr-2 mb-0">Miqaat Type</label>
+      <select class="form-control form-select" name="miqaat_type" id="miqaat_type" onchange="document.getElementById('gcFilterForm').submit();">
+        <option value="">All</option>
+        <option value="Shehrullah" <?php echo (($filters['miqaat_type'] ?? '') === 'Shehrullah') ? 'selected' : ''; ?>>Shehrullah</option>
+        <option value="Ashara" <?php echo (($filters['miqaat_type'] ?? '') === 'Ashara') ? 'selected' : ''; ?>>Ashara</option>
+        <option value="General" <?php echo (($filters['miqaat_type'] ?? '') === 'General') ? 'selected' : ''; ?>>General</option>
+        <option value="Ladies" <?php echo (($filters['miqaat_type'] ?? '') === 'Ladies') ? 'selected' : ''; ?>>Ladies</option>
+      </select>
+    </div>
+    <div class="col-12 col-sm-auto">
       <label for="payment_status" class="form-label me-2 mr-2 mb-0">Payment Status</label>
       <select class="form-control form-select" name="payment_status" id="payment_status" onchange="document.getElementById('gcFilterForm').submit();">
         <option value="">All</option>
@@ -181,6 +156,7 @@ if (!empty($rows)) {
   $chips = [];
   if (!empty($filters['fmb_type'])) $chips[] = ['label' => 'FMB Type: ' . $filters['fmb_type'], 'param' => 'fmb_type'];
   if (!empty($filters['contri_type'])) $chips[] = ['label' => 'Type: ' . $filters['contri_type'], 'param' => 'contri_type'];
+  if (!empty($filters['miqaat_type'])) $chips[] = ['label' => 'Miqaat: ' . $filters['miqaat_type'], 'param' => 'miqaat_type'];
   if (isset($filters['payment_status']) && $filters['payment_status'] !== '' && $filters['payment_status'] !== null) {
     $chips[] = ['label' => 'Status: ' . (($filters['payment_status'] === '1') ? 'Paid' : 'Pending'), 'param' => 'payment_status'];
   }
@@ -221,6 +197,7 @@ if (!empty($rows)) {
             <th data-type="number">Hijri Year</th>
             <th data-type="string">FMB Type</th>
             <th data-type="string">Contribution Type</th>
+            <th data-type="string">Miqaat Type</th>
             <th data-type="number">Amount</th>
             <th data-no-sort>Payments</th>
           </tr>
@@ -228,7 +205,7 @@ if (!empty($rows)) {
         <tbody>
           <?php if (empty($rows)): ?>
             <tr>
-              <td colspan="9" class="text-center py-4 text-muted">No contributions found for the selected filters.</td>
+              <td colspan="10" class="text-center py-4 text-muted">No contributions found for the selected filters.</td>
             </tr>
           <?php endif; ?>
           <?php foreach ($rows as $r): ?>
@@ -240,6 +217,7 @@ if (!empty($rows)) {
               <td data-sort-value="<?= htmlspecialchars($r['contri_year'] ?? '') ?>"><?= htmlspecialchars($r['contri_year'] ?? '') ?></td>
               <td><?= htmlspecialchars($r['fmb_type'] ?? '') ?></td>
               <td><?= htmlspecialchars($r['contri_type'] ?? '') ?></td>
+              <td><?= htmlspecialchars($r['miqaat_type'] ?? '') ?></td>
               <td data-sort-value="<?= (float)($r['amount'] ?? 0) ?>">₹<?= number_format((float)($r['amount'] ?? 0), 2) ?></td>
               <td>
                 <?php

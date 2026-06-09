@@ -1334,6 +1334,9 @@ class CommonM extends CI_Model
     if (!empty($filters['contri_type'])) {
       $this->db->where('gc.contri_type', $filters['contri_type']);
     }
+    if (!empty($filters['miqaat_type'])) {
+      $this->db->where('gc.miqaat_type', $filters['miqaat_type']);
+    }
     if (isset($filters['payment_status']) && $filters['payment_status'] !== '') {
       $this->db->where('gc.payment_status', $filters['payment_status']);
     }
@@ -1344,14 +1347,19 @@ class CommonM extends CI_Model
 
   public function get_distinct_fmb_contribution_years()
   {
-    $rows = $this->db->distinct()
-      ->select('contri_year')
-      ->from('fmb_general_contribution')
-      ->order_by('contri_year', 'DESC')
+    $rows = $this->db->select("DISTINCT SUBSTRING_INDEX(hijri_date, '-', -1) as hy")
+      ->from('hijri_calendar')
+      ->order_by('hy', 'DESC')
       ->get()->result_array();
-    return array_map(function ($r) {
-      return $r['contri_year'];
-    }, $rows);
+    
+    $years = [];
+    foreach ($rows as $r) {
+      $y = (int)$r['hy'];
+      if ($y > 0) {
+        $years[] = $y . '-' . substr((string)($y + 1), -2);
+      }
+    }
+    return $years;
   }
 
   public function get_distinct_fmb_contribution_types($filters = [])
@@ -1524,7 +1532,7 @@ class CommonM extends CI_Model
     return $query->row_array();
   }
 
-  /**
+  /*
     $this->db->select('COALESCE(est.grade, "Unknown") AS grade,
    */
   public function get_miqaat_by_date($date)
@@ -1545,14 +1553,16 @@ class CommonM extends CI_Model
     return $this->db->update('miqaat', $data);
   }
 
-  public function get_full_calendar($hijri_month_id = null, $sort_type = 'asc')
+  public function get_full_calendar($hijri_month_id = null, $sort_type = 'asc', $hijri_year = null)
   {
     // Get hijri year and month filter
     $today = date('Y-m-d');
     $CI = &get_instance();
     $CI->load->model('HijriCalendar');
-    $hijri_today = $CI->HijriCalendar->get_hijri_date($today);
-    $hijri_year = explode('-', $hijri_today['hijri_date'])[2];
+    if (empty($hijri_year)) {
+      $hijri_today = $CI->HijriCalendar->get_hijri_date($today);
+      $hijri_year = explode('-', $hijri_today['hijri_date'])[2];
+    }
 
     // Filter by month/year if provided
     $CI->db->select('greg_date, hijri_date, hijri_month_id');
@@ -2270,14 +2280,17 @@ class CommonM extends CI_Model
     $sort_type = isset($filter_data['sort_type']) ? $filter_data['sort_type'] : 'asc';
 
     if (!$hijri_month_id || $hijri_month_id == -1) {
-      $today = date('Y-m-d');
-      $this->db->select('hijri_month_id, hijri_date');
-      $this->db->from('hijri_calendar');
-      $this->db->where('greg_date', $today);
-      $row = $this->db->get()->row();
-      if (!$row)
-        return [];
-      $hijri_year = explode("-", $row->hijri_date)[2];
+      // Only auto-detect today's year when no explicit year was provided
+      if (empty($hijri_year)) {
+        $today = date('Y-m-d');
+        $this->db->select('hijri_month_id, hijri_date');
+        $this->db->from('hijri_calendar');
+        $this->db->where('greg_date', $today);
+        $row = $this->db->get()->row();
+        if (!$row)
+          return [];
+        $hijri_year = explode("-", $row->hijri_date)[2];
+      }
       $hijri_month_id = -1;
     }
 
@@ -2286,9 +2299,9 @@ class CommonM extends CI_Model
     $this->db->from('hijri_calendar');
     if ($hijri_month_id > 0) {
       $this->db->where('hijri_month_id', $hijri_month_id);
-      $this->db->like('hijri_date', $hijri_year);
+      $this->db->where("hijri_date LIKE '%-{$hijri_year}'");
     } else {
-      $this->db->like('hijri_date', $hijri_year);
+      $this->db->where("hijri_date LIKE '%-{$hijri_year}'");
     }
     $this->db->order_by('greg_date', $sort_type == 'desc' ? 'DESC' : 'ASC');
     $hijri_dates = $this->db->get()->result_array();

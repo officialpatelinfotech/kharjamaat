@@ -58,7 +58,7 @@
         <select id="mf-year" class="form-control form-control-sm" data-default-year="<?php echo htmlspecialchars($defaultYear, ENT_QUOTES); ?>">
           <option value="">All Years</option>
           <?php foreach ($years as $y): ?>
-            <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ($defaultYear === $y ? 'selected' : ''); ?>><?php echo htmlspecialchars($y); ?></option>
+            <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ((string)$defaultYear === (string)$y ? 'selected' : ''); ?>><?php echo htmlspecialchars($y); ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -70,9 +70,9 @@
 
   <div class="col-12 mb-3">
     <?php
-    $displayYear = isset($current_hijri_year) && $current_hijri_year !== ''
-      ? $current_hijri_year
-      : (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years) ? $hijri_years[0] : '');
+    $displayYear = isset($selected_year) && $selected_year !== ''
+      ? $selected_year
+      : (isset($current_hijri_year) && $current_hijri_year !== '' ? $current_hijri_year : (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years) ? $hijri_years[0] : ''));
     ?>
     <h4 class="heading text-center mb-0">
       <span class="text-primary"><?php echo isset($miqaat_type) ? $miqaat_type : ''; ?></span>
@@ -416,6 +416,7 @@
         </tbody>
       </table>
     </div>
+  <?php endif; ?>
 
     <!-- Edit Invoice Modal -->
     <div class="modal fade" id="editInvoiceModal" tabindex="-1" role="dialog" aria-labelledby="editInvoiceModalLabel" aria-hidden="true">
@@ -603,6 +604,12 @@
         const sectorSel = document.getElementById('mf-sector');
         const subSel = document.getElementById('mf-subsector');
         const yearSel = document.getElementById('mf-year');
+        if (yearSel) {
+          const defYear = yearSel.getAttribute('data-default-year');
+          if (defYear) {
+            yearSel.value = defYear;
+          }
+        }
         if (nameInput) nameInput.addEventListener('input', applyFilters);
         if (sectorSel) sectorSel.addEventListener('change', applyFilters);
         if (subSel) subSel.addEventListener('change', applyFilters);
@@ -1577,5 +1584,4 @@
         });
       })();
     </script>
-  <?php endif; ?>
 </div>

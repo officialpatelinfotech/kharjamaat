@@ -598,6 +598,13 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
       <?php endif; ?>
     </div>
   </div>
+  <?php if(in_array($role, [1, 2, 3])): ?>
+  <div style="flex-shrink:0;">
+    <button type="button" id="btn-open-remarks-modal" onclick="openRemarksModal()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:9px;border:1.5px solid #fca5a5;background:var(--red-bg);color:var(--red);font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='var(--red-bg)'">
+      <i class="fa fa-lock"></i> Comments
+    </button>
+  </div>
+  <?php endif; ?>
 </div>
 
 <!-- ── Status pills ── -->
@@ -781,6 +788,54 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
     </div>
     <?php endif; ?>
 
+    <?php if (in_array($role, [1, 2, 3])): ?>
+    <?php
+      $conf_comments = [];
+      if (!class_exists('ConfidentialCommentM')) {
+        CI_Controller::get_instance()->load->model('ConfidentialCommentM');
+      }
+      $conf_comments = CI_Controller::get_instance()->ConfidentialCommentM->get_comments($member['ITS_ID']);
+    ?>
+    <!-- ── Confidential Remarks (View-only, Admin & Amilsaheb only) ── -->
+    <div class="panel" id="vm-grp-remarks" style="border-color: #fca5a5 !important; break-inside: avoid;">
+      <div class="panel-hd open" data-panel-target="vm-remarks-content" style="background: var(--red-bg); border-bottom-color: rgba(185,28,28,.15);">
+        <div class="ph-left">
+          <span class="ph-icon" style="background: rgba(185,28,28,.1); color: var(--red);"><i class="fa fa-lock"></i></span>
+          <span class="ph-title" style="color: var(--red); font-weight: 800;">Comments / Remarks</span>
+          <span class="ph-badge" style="background: rgba(185,28,28,.15); color: var(--red);"><?php echo count($conf_comments); ?></span>
+        </div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div class="panel-bd" id="vm-remarks-content" style="padding: 16px 18px; background: #fff;">
+        <?php if (empty($conf_comments)): ?>
+          <div class="text-muted text-center py-4" style="font-size: 0.85rem; font-style: italic;">
+            <i class="fa fa-sticky-note-o d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+            No confidential remarks recorded for this member.
+          </div>
+        <?php else: ?>
+          <div style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px;">
+            <?php foreach ($conf_comments as $c): ?>
+              <div style="border: 1px solid var(--border-light); border-radius: 8px; padding: 12px 14px; background: var(--surface-2);">
+                <div class="d-flex justify-content-between align-items-center mb-2" style="font-size: 0.72rem; color: var(--text-3);">
+                  <div>
+                    <span style="font-weight: 700; color: var(--text-1); font-size: 0.78rem;"><?php echo htmlspecialchars($c['created_by_name']); ?></span>
+                    <span class="badge" style="background: <?php echo ($c['created_by'] === 'amilsaheb') ? 'var(--gold-muted)' : 'var(--blue-bg)'; ?>; color: <?php echo ($c['created_by'] === 'amilsaheb') ? 'var(--gold)' : 'var(--blue)'; ?>; font-size: 0.6rem; margin-left: 6px; font-weight: 700; text-transform: uppercase;">
+                      <?php echo ($c['created_by'] === 'amilsaheb') ? 'Amil Saheb' : 'Jamaat'; ?>
+                    </span>
+                  </div>
+                  <div style="font-weight: 500;"><?php echo date('d M Y, h:i A', strtotime($c['created_at'])); ?></div>
+                </div>
+                <div style="font-size: 0.84rem; color: var(--text-2); white-space: pre-wrap; line-height: 1.4; word-break: break-word;">
+                  <?php echo htmlspecialchars($c['comment']); ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
     </div><!-- /masonry-grid -->
   </div><!-- /col-lg-8 -->
 
@@ -801,6 +856,84 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
 <?php endif; ?>
 </div><!-- /container -->
 </div><!-- /#vmApp -->
+
+<?php if(in_array($role, [1, 2, 3])): ?>
+<!-- ── Confidential Remarks Modal ── -->
+<div id="remarksModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.45); backdrop-filter:blur(3px); align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#fff; border-radius:18px; width:100%; max-width:560px; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.25); overflow:hidden; animation:rmSlideUp .22s ease;">
+    <!-- Modal Header -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:var(--red-bg); border-bottom:1.5px solid #fca5a5;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="width:30px;height:30px;border-radius:8px;background:rgba(185,28,28,.12);color:var(--red);display:inline-flex;align-items:center;justify-content:center;"><i class="fa fa-lock"></i></span>
+        <span style="font-size:.85rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.5px;">Comments / Remarks</span>
+        <span id="rmBadge" style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(185,28,28,.15);color:var(--red);"></span>
+      </div>
+      <button onclick="closeRemarksModal()" style="border:none;background:none;cursor:pointer;font-size:1.1rem;color:var(--text-3);padding:4px 8px;border-radius:6px;" title="Close">&times;</button>
+    </div>
+    <!-- Modal Body -->
+    <div id="rmBody" style="flex:1; overflow-y:auto; padding:18px 20px; display:flex; flex-direction:column; gap:12px;">
+      <?php
+        $modal_comments = [];
+        if (!class_exists('ConfidentialCommentM')) {
+          CI_Controller::get_instance()->load->model('ConfidentialCommentM');
+        }
+        $modal_comments = CI_Controller::get_instance()->ConfidentialCommentM->get_comments($member['ITS_ID']);
+      ?>
+      <?php if(empty($modal_comments)): ?>
+        <div style="text-align:center;padding:36px 16px;color:var(--text-3);font-style:italic;font-size:.85rem;">
+          <i class="fa fa-sticky-note-o" style="font-size:2rem;opacity:.4;display:block;margin-bottom:10px;"></i>
+          No confidential remarks recorded for this member.
+        </div>
+      <?php else: ?>
+        <?php foreach($modal_comments as $mc): ?>
+          <div style="border:1px solid var(--border-light);border-radius:10px;padding:13px 15px;background:var(--surface-2);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;gap:7px;">
+                <span style="font-weight:700;font-size:.8rem;color:var(--text-1);"><?php echo htmlspecialchars($mc['created_by_name']); ?></span>
+                <span style="font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:12px;text-transform:uppercase;background:<?php echo ($mc['created_by']==='amilsaheb')?'var(--gold-muted)':'var(--blue-bg)'; ?>;color:<?php echo ($mc['created_by']==='amilsaheb')?'var(--gold)':'var(--blue)'; ?>;">
+                  <?php echo ($mc['created_by']==='amilsaheb')?'Amil Saheb':'Jamaat'; ?>
+                </span>
+              </div>
+              <span style="font-size:.72rem;color:var(--text-3);font-weight:500;"><?php echo date('d M Y, h:i A', strtotime($mc['created_at'])); ?></span>
+            </div>
+            <div style="font-size:.84rem;color:var(--text-2);white-space:pre-wrap;line-height:1.5;word-break:break-word;"><?php echo htmlspecialchars($mc['comment']); ?></div>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes rmSlideUp {
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+</style>
+
+<script>
+var _rmCount = <?php echo count($modal_comments); ?>;
+function openRemarksModal() {
+  var m = document.getElementById('remarksModal');
+  var b = document.getElementById('rmBadge');
+  if(b) b.textContent = _rmCount;
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeRemarksModal() {
+  document.getElementById('remarksModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+// Close on backdrop click
+document.getElementById('remarksModal').addEventListener('click', function(e) {
+  if(e.target === this) closeRemarksModal();
+});
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+  if(e.key === 'Escape') closeRemarksModal();
+});
+</script>
+<?php endif; ?>
 
 <script>
 (function(){

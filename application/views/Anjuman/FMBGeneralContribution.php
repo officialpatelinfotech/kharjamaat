@@ -39,11 +39,11 @@
     <div class="card-body p-0 table-responsive">
       <div id="gc-filters" class="p-3 border-bottom bg-light">
         <div class="form-row">
-          <div class="col-md-4 mb-2">
+          <div class="col-md-3 mb-2">
             <label for="gc-filter-name" class="small text-muted mb-1">Name or ITS</label>
             <input type="text" id="gc-filter-name" class="form-control form-control-sm" placeholder="Search name or ITS...">
           </div>
-          <div class="col-md-4 mb-2">
+          <div class="col-md-3 mb-2">
             <label for="gc-filter-ctype" class="small text-muted mb-1">Contribution Type</label>
             <select id="gc-filter-ctype" class="form-control form-control-sm">
               <option value="">All Types</option>
@@ -52,7 +52,17 @@
               <?php endforeach; endif; ?>
             </select>
           </div>
-          <div class="col-md-4 mb-2 d-flex align-items-end">
+          <div class="col-md-3 mb-2">
+            <label for="gc-filter-miqaat-type" class="small text-muted mb-1">Miqaat Type</label>
+            <select id="gc-filter-miqaat-type" class="form-control form-control-sm">
+              <option value="">All Miqaats</option>
+              <option value="shehrullah">Shehrullah</option>
+              <option value="ashara">Ashara</option>
+              <option value="general">General</option>
+              <option value="ladies">Ladies</option>
+            </select>
+          </div>
+          <div class="col-md-3 mb-2 d-flex align-items-end">
             <button type="button" id="gc-filter-clear" class="btn btn-outline-secondary btn-sm w-100"><i class="fa fa-times mr-1"></i> Clear Filters</button>
           </div>
         </div>
@@ -65,6 +75,7 @@
             <th class="gc-sort" data-sort-type="number">ITS ID <span class="sort-indicator"></span></th>
             <th class="gc-sort" data-sort-type="text">Member Name <span class="sort-indicator"></span></th>
             <th class="gc-sort" data-sort-type="text">Contribution Type <span class="sort-indicator"></span></th>
+            <th class="gc-sort" data-sort-type="text">Miqaat Type <span class="sort-indicator"></span></th>
             <th class="gc-sort" data-sort-type="number">Amount (₹) <span class="sort-indicator"></span></th>
             <th class="gc-sort" data-sort-type="number">Received (₹) <span class="sort-indicator"></span></th>
             <th class="gc-sort" data-sort-type="number">Balance (₹) <span class="sort-indicator"></span></th>
@@ -80,7 +91,8 @@
                 <td><?php echo date("d-m-Y", strtotime($row["created_at"])); ?></td>
                 <td><?php echo $row["ITS_ID"]; ?></td>
                 <td><?php echo $row["Full_Name"]; ?></td>
-                <td><?php echo $row["contri_type"]; ?></td>
+                <td class="gc-contri-type-td" data-fmbgc-id="<?php echo $row['id']; ?>"><?php echo $row["contri_type"]; ?></td>
+                <td class="gc-miqaat-type-td" data-fmbgc-id="<?php echo $row['id']; ?>"><?php echo htmlspecialchars($row["miqaat_type"] ?? ''); ?></td>
                 <td><span class="gc-amount" data-fmbgc-id="<?php echo $row['id'];?>">₹<?php echo number_format($row["amount"],0); ?></span></td>
                 <td><span class="gc-received" data-fmbgc-id="<?php echo $row['id'];?>">₹<?php echo number_format($row["total_received"],0); ?></span></td>
                 <td><span class="gc-balance" data-fmbgc-id="<?php echo $row['id'];?>">₹<?php echo number_format($row["balance_due"],0); ?></span></td>
@@ -96,13 +108,16 @@
                 <td>
                   <div class="gc-action-grid">
                     <button class="update-payment-btn btn btn-sm btn-success" data-fmbgc-id="<?php echo $row["id"]; ?>" data-user-id="<?php echo $row["user_id"]; ?>" data-member-name="<?php echo htmlspecialchars($row["Full_Name"], ENT_QUOTES); ?>" data-amount="<?php echo $row["amount"]; ?>" data-total-received="<?php echo $row['total_received']; ?>" data-balance-due="<?php echo $row['balance_due']; ?>" data-toggle="modal" data-target="#update-payment-modal">Receive Payment</button>
+                    <button class="edit-invoice-btn btn btn-sm btn-primary" data-fmbgc-id="<?php echo $row["id"]; ?>" data-contri-year="<?php echo htmlspecialchars($row["contri_year"], ENT_QUOTES); ?>" data-contri-type="<?php echo htmlspecialchars($row["contri_type"], ENT_QUOTES); ?>" data-miqaat-type="<?php echo htmlspecialchars($row["miqaat_type"] ?? '', ENT_QUOTES); ?>" data-amount="<?php echo $row["amount"]; ?>" data-description="<?php echo htmlspecialchars($row["description"], ENT_QUOTES); ?>" data-member-name="<?php echo htmlspecialchars($row["Full_Name"], ENT_QUOTES); ?>" data-its="<?php echo $row["ITS_ID"]; ?>">
+                      <i class="fa-solid fa-pencil"></i> Update Invoice
+                    </button>
                     <button class="btn btn-sm btn-info view-history-btn" data-fmbgc-id="<?php echo $row['id']; ?>" data-member-name="<?php echo htmlspecialchars($row['Full_Name'], ENT_QUOTES); ?>" data-toggle="modal" data-target="#payment-history-modal">
                       <i class="fa-solid fa-clock-rotate-left"></i> Payment History
                     </button>
                     <button class="view-description btn btn-sm btn-outline-primary" data-description="<?php echo $row["description"]; ?>" data-toggle="modal" data-target="#description-modal">
                       <i class="fa-solid fa-eye"></i> View Description
                     </button>
-                    <button class="btn btn-sm btn-outline-danger delete-invoice-btn" data-invoice-id="<?php echo $row['id']; ?>" data-member-name="<?php echo htmlspecialchars($row['Full_Name'], ENT_QUOTES); ?>" data-total-received="<?php echo $row['total_received']; ?>">
+                    <button class="btn btn-sm btn-outline-danger delete-invoice-btn" data-invoice-id="<?php echo $row['id']; ?>" data-member-name="<?php echo htmlspecialchars($row['Full_Name'], ENT_QUOTES); ?>" data-total-received="<?php echo $row['total_received']; ?>" style="grid-column: span 2;">
                       <i class="fa-solid fa-trash"></i> Delete Invoice
                     </button>
                   </div>
@@ -157,9 +172,19 @@
                 <option value="">Select Type</option>
                 <?php if (isset($contri_type_gc)): ?>
                   <?php foreach ($contri_type_gc as $key => $value): ?>
-                    <option value="<?php echo $value["name"]; ?>"><?php echo $value["name"]; ?></option>
+                    <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"><?php echo htmlspecialchars($value["name"]); ?></option>
                   <?php endforeach; ?>
                 <?php endif; ?>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="miqaat-type">Miqaat Type</label>
+              <select name="miqaat_type" id="miqaat-type" class="form-control" required>
+                <option value="">Select Miqaat Type</option>
+                <option value="Shehrullah">Shehrullah</option>
+                <option value="Ashara">Ashara</option>
+                <option value="General">General</option>
+                <option value="Ladies">Ladies</option>
               </select>
             </div>
             <div class="mb-3">
@@ -172,6 +197,86 @@
             </div>
             <button type="submit" id="save-fmbgc-btn" class="btn btn-success w-100">
               <i class="fa-solid fa-circle-check me-2"></i> Generate Invoice
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Invoice Modal -->
+  <div class="modal fade" id="editInvoiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="fa-solid fa-pencil me-2"></i> Update Invoice</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="edit-fmbgc-form">
+            <input type="hidden" name="invoice_id" id="edit-invoice-id" value="">
+            
+            <div class="mb-3">
+              <p class="mb-1"><strong>Member:</strong> <span id="edit-member-name"></span></p>
+              <p class="mb-1"><strong>ITS ID:</strong> <span id="edit-member-its"></span></p>
+            </div>
+            <hr>
+
+            <div class="mb-3">
+              <label for="edit-contri-year">Contribution Year</label>
+              <select name="contri_year" id="edit-contri-year" class="form-control" required>
+                <option value="">Select Contribution Year</option>
+                <option value="1446-47">1446-47</option>
+                <option value="1447-48">1447-48</option>
+                <option value="1448-49">1448-49</option>
+                <option value="1449-50">1449-50</option>
+                <option value="1450-51">1450-51</option>
+                <option value="1451-52">1451-52</option>
+                <option value="1452-53">1452-53</option>
+                <option value="1453-54">1453-54</option>
+                <option value="1454-55">1454-55</option>
+                <option value="1455-56">1455-56</option>
+                <option value="1456-57">1456-57</option>
+                <option value="1457-58">1457-58</option>
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label for="edit-contri-type">Contribution Type</label>
+              <select name="contri_type" id="edit-contri-type" class="form-control" required>
+                <option value="">Select Type</option>
+                <?php if (isset($contri_type_gc)): ?>
+                  <?php foreach ($contri_type_gc as $key => $value): ?>
+                    <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"><?php echo htmlspecialchars($value["name"]); ?></option>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="edit-miqaat-type">Miqaat Type</label>
+              <select name="miqaat_type" id="edit-miqaat-type" class="form-control" required>
+                <option value="">Select Miqaat Type</option>
+                <option value="Shehrullah">Shehrullah</option>
+                <option value="Ashara">Ashara</option>
+                <option value="General">General</option>
+                <option value="Ladies">Ladies</option>
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label for="edit-amount" class="form-label">Amount (₹)</label>
+              <input type="number" name="amount" id="edit-amount" class="form-control" placeholder="Enter amount" min="1" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="edit-description" class="form-label">Description</label>
+              <textarea name="description" id="edit-description" class="form-control" rows="2" placeholder="Optional"></textarea>
+            </div>
+            
+            <button type="submit" id="edit-fmbgc-save-btn" class="btn btn-primary w-100">
+              <i class="fa-solid fa-circle-check me-2"></i> Save Changes
             </button>
           </form>
         </div>
@@ -304,6 +409,124 @@
 </div>
 <script>
   $(document).ready(function() {
+    // Auto-fill Miqaat Type based on selected Contribution Type in generate/edit modals
+    $("#contri-type").on("change", function() {
+      const selectedMiqaatType = $(this).find("option:selected").data("miqaat-type");
+      if (selectedMiqaatType) {
+        $("#miqaat-type").val(selectedMiqaatType);
+      } else {
+        $("#miqaat-type").val("");
+      }
+    });
+
+    $("#edit-contri-type").on("change", function() {
+      const selectedMiqaatType = $(this).find("option:selected").data("miqaat-type");
+      if (selectedMiqaatType) {
+        $("#edit-miqaat-type").val(selectedMiqaatType);
+      } else {
+        $("#edit-miqaat-type").val("");
+      }
+    });
+
+    // Update Invoice button click
+    $(document).on("click", ".edit-invoice-btn", function() {
+      const fmbgcId = $(this).data("fmbgc-id");
+      const contriYear = $(this).data("contri-year");
+      const contriType = $(this).data("contri-type");
+      const miqaatType = $(this).data("miqaat-type");
+      const amount = $(this).data("amount");
+      const description = $(this).data("description");
+      const memberName = $(this).data("member-name");
+      const its = $(this).data("its");
+
+      $("#edit-invoice-id").val(fmbgcId);
+      $("#edit-member-name").text(memberName);
+      $("#edit-member-its").text(its);
+      $("#edit-contri-year").val(contriYear);
+      $("#edit-contri-type").val(contriType);
+      $("#edit-miqaat-type").val(miqaatType);
+      $("#edit-amount").val(amount);
+      $("#edit-description").val(description);
+
+      $("#editInvoiceModal").modal("show");
+    });
+
+    // Save edited invoice
+    $("#edit-fmbgc-form").on("submit", function(e) {
+      e.preventDefault();
+      const $btn = $("#edit-fmbgc-save-btn");
+      $btn.prop("disabled", true);
+
+      const fmbgcId = $("#edit-invoice-id").val();
+      const amount = $("#edit-amount").val();
+      const contriYear = $("#edit-contri-year").val();
+      const contriType = $("#edit-contri-type").val();
+      const miqaatType = $("#edit-miqaat-type").val();
+      const description = $("#edit-description").val();
+
+      $.ajax({
+        url: "<?php echo base_url('anjuman/updatefmbgcinvoice'); ?>",
+        type: "POST",
+        dataType: "json",
+        data: {
+          invoice_id: fmbgcId,
+          amount: amount,
+          contri_year: contriYear,
+          contri_type: contriType,
+          miqaat_type: miqaatType,
+          description: description
+        },
+        success: function(res) {
+          if (!res.success) {
+            alert(res.message || "Update failed");
+            return;
+          }
+          // Refresh row details in the main table
+          const $tr = $('button.edit-invoice-btn[data-fmbgc-id="' + fmbgcId + '"]').closest('tr');
+          if ($tr.length) {
+            $('.gc-contri-type-td[data-fmbgc-id="' + fmbgcId + '"]').text(contriType);
+            $('.gc-miqaat-type-td[data-fmbgc-id="' + fmbgcId + '"]').text(miqaatType);
+            
+            const fmt = function(v){ return '₹' + Math.round(parseFloat(v)||0).toLocaleString('en-IN'); };
+            $('.gc-amount[data-fmbgc-id="' + fmbgcId + '"]').text(fmt(res.summary.amount));
+            $('.gc-received[data-fmbgc-id="' + fmbgcId + '"]').text(fmt(res.summary.total_received));
+            $('.gc-balance[data-fmbgc-id="' + fmbgcId + '"]').text(fmt(res.summary.balance_due));
+
+            let badgeHtml = '<span class="badge badge-secondary">Unpaid</span>';
+            if (res.summary.balance_due <= 0) {
+              badgeHtml = '<span class="badge badge-success">Paid</span>';
+            } else if (res.summary.total_received > 0) {
+              badgeHtml = '<span class="badge badge-warning">Partial</span>';
+            }
+            $('.gc-status[data-fmbgc-id="' + fmbgcId + '"]').html(badgeHtml);
+
+            // Update attributes on buttons in this row
+            const $editBtn = $tr.find('.edit-invoice-btn');
+            $editBtn.attr('data-contri-year', contriYear);
+            $editBtn.attr('data-contri-type', contriType);
+            $editBtn.attr('data-miqaat-type', miqaatType);
+            $editBtn.attr('data-amount', res.summary.amount);
+            $editBtn.attr('data-description', description);
+
+            const $payBtn = $tr.find('.update-payment-btn');
+            $payBtn.attr('data-amount', res.summary.amount);
+            $payBtn.attr('data-total-received', res.summary.total_received);
+            $payBtn.attr('data-balance-due', res.summary.balance_due);
+
+            const $viewDescBtn = $tr.find('.view-description');
+            $viewDescBtn.attr('data-description', description);
+          }
+          $("#editInvoiceModal").modal("hide");
+        },
+        error: function() {
+          alert("Server error");
+        },
+        complete: function() {
+          $btn.prop("disabled", false);
+        }
+      });
+    });
+
     window.toggleFmbPaymentFields = function(method) {
       if (method === 'Cheque' || method === 'NEFT') {
         $('#extra-fmb-payment-fields').show();
@@ -545,6 +768,7 @@
             $('#history-meta').html(
               'Invoice ID: ' + inv.id + ' | Created: ' + (inv.created_at || '') +
               ' | Type: ' + inv.fmb_type + ' | Contribution: ' + inv.contri_type +
+              (inv.miqaat_type ? ' | Miqaat: ' + inv.miqaat_type : '') +
               ' | Amount: ₹' + Math.round(inv.amount)
             );
             if (!res.payments || res.payments.length === 0) {
@@ -686,14 +910,17 @@
     function applyGcFilters(){
       const nameVal = $('#gc-filter-name').val().trim().toLowerCase();
       const typeVal = $('#gc-filter-ctype').val().trim(); // already lowercased in option values
+      const miqaatVal = $('#gc-filter-miqaat-type').val().trim().toLowerCase();
       $('#gc-invoice-table tbody tr').each(function(){
         const $tr = $(this);
         const its = $tr.children('td').eq(2).text().trim().toLowerCase();
         const member = $tr.children('td').eq(3).text().trim().toLowerCase();
         const ctype = $tr.children('td').eq(4).text().trim().toLowerCase();
+        const miqaat = $tr.children('td').eq(5).text().trim().toLowerCase();
         let show = true;
         if(nameVal && (member.indexOf(nameVal) === -1) && (its.indexOf(nameVal) === -1)) show = false;
         if(typeVal && ctype !== typeVal) show = false;
+        if(miqaatVal && miqaat !== miqaatVal) show = false;
         $tr.toggle(show);
       });
       // Renumber visible rows only
@@ -701,9 +928,11 @@
     }
     $('#gc-filter-name').on('input', applyGcFilters);
     $('#gc-filter-ctype').on('change', applyGcFilters);
+    $('#gc-filter-miqaat-type').on('change', applyGcFilters);
     $('#gc-filter-clear').on('click', function(){
       $('#gc-filter-name').val('');
       $('#gc-filter-ctype').val('');
+      $('#gc-filter-miqaat-type').val('');
       $('#gc-invoice-table tbody tr').show();
       renumberGcTable();
     });

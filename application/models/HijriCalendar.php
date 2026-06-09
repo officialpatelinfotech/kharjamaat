@@ -48,6 +48,27 @@ class HijriCalendar extends CI_Model
     $result = $this->db->get();
     if ($result->num_rows() > 0) {
       $hijri_date = $result->row_array();
+
+      // Switch to next Hijri year 30 days before the current year end
+      if (date('Y-m-d', strtotime($gerg_date)) === date('Y-m-d')) {
+        $parts = explode('-', $hijri_date['hijri_date']);
+        $year = (int)$parts[2];
+        
+        $query = $this->db->select('COUNT(*) as cnt')
+                          ->from('hijri_calendar')
+                          ->where("SUBSTRING_INDEX(hijri_date, '-', -1) =", (string)$year)
+                          ->where('id >=', (int)$hijri_date['id'])
+                          ->get();
+        if ($query->num_rows() > 0) {
+          $row = $query->row_array();
+          $days_left = (int)$row['cnt'];
+          if ($days_left <= 30) {
+            $parts[2] = $year + 1;
+            $hijri_date['hijri_date'] = implode('-', $parts);
+          }
+        }
+      }
+
       self::$_hijri_date_cache[$gerg_date] = $hijri_date;
       return $hijri_date;
     }
@@ -79,14 +100,18 @@ class HijriCalendar extends CI_Model
   }
   public function getPendingDaysInYear()
   {
-    $this->db->from("hijri_calendar");
-    $this->db->where("greg_date", date("Y-m-d"));
-    $hijri_date = $this->db->get()->result_array()[0];
-    $todays_hijri_date_id = $hijri_date["id"];
+    $hijri_date = $this->get_hijri_date(date("Y-m-d"));
+    if (!$hijri_date) return [];
+    
     $hijri_year = explode("-", $hijri_date["hijri_date"])[2];
 
     $this->db->from("hijri_calendar");
-    $this->db->like("hijri_date", $hijri_year);
+    $this->db->where("greg_date", date("Y-m-d"));
+    $db_row = $this->db->get()->row_array();
+    $todays_hijri_date_id = $db_row ? $db_row["id"] : 0;
+
+    $this->db->from("hijri_calendar");
+    $this->db->where("SUBSTRING_INDEX(hijri_date, '-', -1) =", (string)$hijri_year);
     $this->db->where("id >=", $todays_hijri_date_id);
     $pendingDaysInYear = $this->db->get()->result_array();
     return $pendingDaysInYear;

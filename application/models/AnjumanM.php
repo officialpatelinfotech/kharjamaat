@@ -239,8 +239,6 @@ class AnjumanM extends CI_Model
     $this->db->where("inv.id IS NULL");
     $this->db->where("m.type", $miqaat_type);
     $this->db->where("m.assigned_to !=", "Fala ni Niyaz");
-    // If raza exists it must be approved; but allow rows with no raza.
-    $this->db->where("(r.id IS NULL OR r.`Janab-status` = 1)", null, false);
 
     if ($razaIdFilter !== '') {
       $this->db->where('r.id IS NOT NULL', null, false);
@@ -296,13 +294,17 @@ class AnjumanM extends CI_Model
     $this->db->join("user u", "u.ITS_ID = ma.member_id", "left");
     $this->db->join("user gl", "gl.ITS_ID = ma.group_leader_id", "left");
     $this->db->join("raza r", "r.miqaat_id = m.id 
-      AND (r.user_id = ma.member_id OR r.user_id = ma.group_leader_id)", "inner");
-    $this->db->join("miqaat_invoice inv", "inv.miqaat_id = m.id AND inv.raza_id = r.id", "left");
+      AND (r.user_id = ma.member_id OR r.user_id = ma.group_leader_id)", "left");
+    
+    // Pending invoice means: no invoice for this miqaat + invoice user + (raza match OR both have no raza)
+    $invoiceUserExpr = "(CASE WHEN TRIM(LOWER(ma.assign_type)) = 'group' THEN ma.group_leader_id ELSE ma.member_id END)";
+    $razaMatchExpr = "((r.id IS NOT NULL AND inv.raza_id = r.id) OR (r.id IS NULL AND inv.raza_id IS NULL))";
+    $invOn = "inv.miqaat_id = m.id AND inv.user_id = {$invoiceUserExpr} AND {$razaMatchExpr}";
+    $this->db->join("miqaat_invoice inv", $invOn, "left", false);
 
     $this->db->where("inv.id IS NULL");
     $this->db->where("m.type", $miqaat_type);
     $this->db->where("m.assigned_to", "Fala ni Niyaz");
-    $this->db->where("r.`Janab-status`", 1);
     $this->db->order_by("m.date ASC, u.Full_Name ASC");
 
     $fala_ni_niyaz = $this->db->get()->result_array();
@@ -2327,7 +2329,7 @@ class AnjumanM extends CI_Model
    */
   public function get_fmbgc_payment_history($fmbgc_id)
   {
-    $invoice = $this->db->select('gc.id, gc.amount, gc.fmb_type, gc.contri_type, u.Full_Name, u.ITS_ID, gc.created_at')
+    $invoice = $this->db->select('gc.id, gc.amount, gc.fmb_type, gc.contri_type, gc.miqaat_type, u.Full_Name, u.ITS_ID, gc.created_at')
       ->from('fmb_general_contribution gc')
       ->join('user u', 'u.ITS_ID = gc.user_id', 'left')
       ->where('gc.id', $fmbgc_id)

@@ -269,9 +269,9 @@ class AdminM extends CI_Model
     }
     return $this->db->get()->result_array();
   }
-  public function addfmbcontritype($fmb_type, $contri_for)
+  public function addfmbcontritype($fmb_type, $contri_for, $miqaat_type)
   {
-    $result = $this->db->insert("fmb_general_contribution_master", ["name" => $contri_for, "fmb_type" => $fmb_type]);
+    $result = $this->db->insert("fmb_general_contribution_master", ["name" => $contri_for, "fmb_type" => $fmb_type, "miqaat_type" => $miqaat_type]);
     if ($result) {
       return true;
     } else {
@@ -282,10 +282,11 @@ class AdminM extends CI_Model
     $id,
     $name,
     $fmb_type,
-    $status
+    $status,
+    $miqaat_type
   ) {
     $this->db->where("id", $id);
-    $result = $this->db->update("fmb_general_contribution_master", ["name" => $name, "fmb_type" => $fmb_type, "status" => $status]);
+    $result = $this->db->update("fmb_general_contribution_master", ["name" => $name, "fmb_type" => $fmb_type, "status" => $status, "miqaat_type" => $miqaat_type]);
     if ($result) {
       return true;
     } else {

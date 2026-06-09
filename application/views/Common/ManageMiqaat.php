@@ -100,7 +100,9 @@
 #miqaatApp tr.row-miqaat td:first-child{border-left:3px solid #b8860b}
 
 /* Month header */
-#miqaatApp tr.month-hdr td{background:linear-gradient(90deg,#f5e9c0,#fdf5d6)!important;font-weight:800;font-size:.76rem;color:#b8860b;border-top:2px solid rgba(184,134,11,.22);border-bottom:1px solid rgba(184,134,11,.15);padding:7px 11px;white-space:nowrap;filter:none!important}
+#miqaatApp tr.month-hdr td{background:linear-gradient(90deg,#f5e9c0,#fdf5d6)!important;font-weight:800;font-size:.76rem;color:#b8860b;border-top:2px solid rgba(184,134,11,.22);border-bottom:1px solid rgba(184,134,11,.15);padding:7px 11px;white-space:nowrap;filter:none!important;cursor:pointer;user-select:none;}
+#miqaatApp tr.month-hdr td:hover { filter: brightness(0.98); }
+#miqaatApp tr.month-hdr .toggle-icon { float: right; margin-right: 10px; font-size: 0.8rem; color: #5a5244; }
 
 /* Cells */
 #miqaatApp .miqaat-sno{width:26px;height:26px;border-radius:50%;background:#f5e9c0;color:#b8860b;font-weight:800;font-size:.63rem;display:inline-flex;align-items:center;justify-content:center}
@@ -239,17 +241,14 @@ function miqaat_badge($type) {
         <input type="hidden" name="from" value="<?php echo isset($from) ? htmlspecialchars($from, ENT_QUOTES) : ''; ?>" />
         <div class="miqaat-frow">
 
-          <!-- Month / Year -->
+          <!-- Hijri Year -->
           <div class="miqaat-fg" style="max-width:180px">
-            <label class="miqaat-lbl">Month / Year</label>
-            <select name="hijri_month" id="hijri-month" class="miqaat-sel">
-              <option value="">Select Month / Year</option>
-              <option value="-3" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -3 ? "selected" : ""; ?>>Last Year</option>
-              <option value="-1" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -1 ? "selected" : ""; ?>>Current Year</option>
-              <?php if (isset($hijri_months)) foreach ($hijri_months as $hm): ?>
-                <option value="<?php echo $hm['id']; ?>" <?php echo isset($hijri_month_id) && $hm['id'] == $hijri_month_id ? 'selected' : ''; ?>><?php echo htmlspecialchars($hm['hijri_month'], ENT_QUOTES); ?></option>
+            <label class="miqaat-lbl">Hijri Year</label>
+            <select name="hijri_year" id="hijri-year" class="miqaat-sel">
+              <option value="">Select Hijri Year</option>
+              <?php if (isset($hijri_years)) foreach ($hijri_years as $yr): ?>
+                <option value="<?php echo htmlspecialchars($yr, ENT_QUOTES); ?>" <?php echo isset($hijri_year) && $yr == $hijri_year ? 'selected' : ''; ?>><?php echo htmlspecialchars($yr, ENT_QUOTES); ?></option>
               <?php endforeach ?>
-              <option value="-2" <?php echo (isset($hijri_month_id) ? $hijri_month_id : 0) == -2 ? "selected" : ""; ?>>Next Year</option>
             </select>
           </div>
 
@@ -538,7 +537,11 @@ function miqaat_badge($type) {
             <?php $sno = 1; ?>
             <?php foreach ($monthWiseMiqaats as $monthName => $days): ?>
               <tr class="month-hdr" data-hijri-month-name="<?php echo htmlspecialchars($monthName, ENT_QUOTES); ?>">
-                <td colspan="9"><i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i><strong>Hijri Month: <?php echo htmlspecialchars($monthName, ENT_QUOTES); ?></strong></td>
+                <td colspan="9">
+                  <i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i>
+                  <strong>Hijri Month: <?php echo htmlspecialchars($monthName, ENT_QUOTES); ?></strong>
+                  <span class="toggle-icon"><i class="fa fa-chevron-down"></i></span>
+                </td>
               </tr>
               <?php foreach ($days as $day): ?>
                 <?php
@@ -701,7 +704,7 @@ document.addEventListener('click',function(e){
 });
 
 /* ── Auto-submit dropdowns ── */
-document.getElementById('hijri-month').addEventListener('change',function(){document.getElementById('filter-form').submit()});
+document.getElementById('hijri-year').addEventListener('change',function(){document.getElementById('filter-form').submit()});
 document.getElementById('miqaat-type').addEventListener('change',function(){document.getElementById('filter-form').submit()});
 document.getElementById('assignment-filter').addEventListener('change',function(){document.getElementById('filter-form').submit()});
 
@@ -766,7 +769,7 @@ if (printBtn) {
         var hdr=document.createElement('tr');hdr.className='month-hdr';
         hdr.setAttribute('data-hijri-month-name',mn);
         var td=document.createElement('td');td.colSpan=9;
-        td.innerHTML='<i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i><strong>Hijri Month: '+esc(mn)+'</strong>';
+        td.innerHTML='<i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i><strong>Hijri Month: '+esc(mn)+'</strong><span class="toggle-icon"><i class="fa fa-chevron-down"></i></span>';
         hdr.appendChild(td);
         tbody.appendChild(hdr);
       }
@@ -789,4 +792,44 @@ function updateCount(){
   if(a)a.textContent=txt;if(b)b.textContent=txt;
 }
 updateCount();
+
+/* Collapsible month headers */
+function toggleMonth(header, forceCollapse) {
+  var isCollapsed;
+  if (typeof forceCollapse !== 'undefined') {
+    isCollapsed = forceCollapse;
+    header.classList.toggle('collapsed', isCollapsed);
+  } else {
+    isCollapsed = header.classList.toggle('collapsed');
+  }
+  
+  var chevron = header.querySelector('.toggle-icon i');
+  if (chevron) {
+    if (isCollapsed) {
+      chevron.className = 'fa fa-chevron-right';
+    } else {
+      chevron.className = 'fa fa-chevron-down';
+    }
+  }
+  
+  var next = header.nextElementSibling;
+  while (next && !next.classList.contains('month-hdr')) {
+    if (isCollapsed) {
+      next.style.display = 'none';
+    } else {
+      next.style.display = '';
+    }
+    next = next.nextElementSibling;
+  }
+}
+
+document.getElementById('miqaatTbody').addEventListener('click', function(e) {
+  var header = e.target.closest('.month-hdr');
+  if (header) toggleMonth(header);
+});
+
+/* Collapse all months by default on load */
+document.querySelectorAll('#miqaatTbody tr.month-hdr').forEach(function(header) {
+  toggleMonth(header, true);
+});
 </script>

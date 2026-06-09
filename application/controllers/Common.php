@@ -1539,29 +1539,40 @@ class Common extends CI_Controller
     $data["from"] = $from;
 
     // Get filter options
-    $hijri_month_id = $this->input->post('hijri_month');
+    $hijri_year = $this->input->post('hijri_year');
     $sort_type = $this->input->post('sort_type');
     $assignment_filter = $this->input->post('assignment_filter');
     $miqaat_type = $this->input->post('miqaat_type');
     $member_name_filter = $this->input->post('member_name_filter');
     $today_hijri_date = $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"];
     $today_hijri_year = explode("-", $today_hijri_date)[2];
-    if (empty($hijri_month_id) || $hijri_month_id == '') {
-      $hijri_month_id = -1;
-    }
-    if ($hijri_month_id == -1) {
-      $this_hijri_year = $today_hijri_year;
-    } else if ($hijri_month_id == -2) {
-      $this_hijri_year = $today_hijri_year + 1;
-    } else if ($hijri_month_id == -3) {
-      $this_hijri_year = $today_hijri_year - 1;
-    } else {
-      $this_hijri_year = $today_hijri_year;
+
+    if (empty($hijri_year)) {
+      $today_greg = date('Y-m-d');
+      $hijri_today_row = $this->db->get_where('hijri_calendar', ['greg_date' => $today_greg])->row_array();
+      if ($hijri_today_row) {
+        $parts = explode('-', $hijri_today_row['hijri_date']);
+        $yr = (int)$parts[2];
+        $days_left_q = $this->db->select('COUNT(*) as cnt')
+                               ->from('hijri_calendar')
+                               ->where("SUBSTRING_INDEX(hijri_date, '-', -1) =", (string)$yr)
+                               ->where('id >=', (int)$hijri_today_row['id'])
+                               ->get()
+                               ->row_array();
+        $days_left = isset($days_left_q['cnt']) ? (int)$days_left_q['cnt'] : 999;
+        if ($days_left <= 30) {
+          $hijri_year = $yr + 1;
+        } else {
+          $hijri_year = $yr;
+        }
+      } else {
+        $hijri_year = $today_hijri_year;
+      }
     }
 
     $filter_data = [
-      'hijri_month_id' => $hijri_month_id,
-      'hijri_year' => $this_hijri_year,
+      'hijri_month_id' => -1,
+      'hijri_year' => $hijri_year,
       'sort_type' => $sort_type,
       'assignment_filter' => $assignment_filter,
       'miqaat_type' => $miqaat_type,
@@ -1570,7 +1581,7 @@ class Common extends CI_Controller
 
     $data['miqaats'] = $this->CommonM->get_miqaats_with_assignments($filter_data);
     // Also fetch full calendar rows to mirror FMB Calendar cards/totals
-    $calendar = $this->CommonM->get_full_calendar($hijri_month_id, $sort_type);
+    $calendar = $this->CommonM->get_full_calendar(-1, $sort_type, $hijri_year);
     // Apply optional filters similar to fmbcalendar
     if (!empty($miqaat_type)) {
       $calendar = array_values(array_filter($calendar, function ($row) use ($miqaat_type) {
@@ -1626,6 +1637,7 @@ class Common extends CI_Controller
     $summary_holidays_excl_sundays = 0;
     $summary_sundays_without_miqaat_thaali = 0;
     $summary_thaali_days = 0;
+    $summary_total_thaali_days = 0;
     if (!empty($calendar)) {
       foreach ($calendar as $row) {
         $type = isset($row['miqaat_type']) ? $row['miqaat_type'] : '';
@@ -1647,6 +1659,9 @@ class Common extends CI_Controller
         // Thaali day
         if (strtolower($type) === 'thaali') {
           $summary_thaali_days++;
+        }
+        if (!empty($row['menu']) && !empty($row['menu']['items'])) {
+            $summary_total_thaali_days++;
         }
         if (!$isHoliday && $type !== 'Thaali') {
           $assignments = isset($row['assignments']) ? $row['assignments'] : [];
@@ -1687,6 +1702,55 @@ class Common extends CI_Controller
         }
       }
     }
+    // Sundays + Utlat count
+    $summary_sundays = $summary_holidays_excl_sundays + $summary_sundays_without_miqaat_thaali;
+
+    $sunday_no_miqaat_dates = [];
+    $no_miqaat_no_thaali_dates = [];
+    if (!empty($calendar)) {
+      foreach ($calendar as $day) {
+        if (!empty($day['miqaat_type']) || !empty($day['miqaat_name']) || (!empty($day['menu']) && !empty($day['menu']['items']))) {
+          // not empty
+        } else {
+          $dayName = '';
+          if (!empty($day['date'])) {
+            $dayName = date('l', strtotime($day['date']));
+          }
+          $hasMiqaat = (isset($day['miqaats']) && is_array($day['miqaats']) && count($day['miqaats']) > 0);
+          $hasThaali = (!empty($day['menu']) && !empty($day['menu']['items']));
+          if ($dayName === 'Sunday' && !$hasMiqaat) {
+            $summary_sundays++;
+            if (!empty($day['date']))
+              $sunday_no_miqaat_dates[] = $day['date'];
+          } elseif (!$hasMiqaat && !$hasThaali) {
+            // Any day (including non-Sundays) with neither miqaat nor thaali
+            $summary_sundays++;
+            if (!empty($day['date']))
+              $no_miqaat_no_thaali_dates[] = $day['date'];
+          }
+        }
+      }
+    }
+    $data['summary_miqaat_days'] = $summary_miqaat_days_excl_ladies;
+    $data['summary_total_thaali_days'] = $summary_total_thaali_days;
+    $data['summary_sundays'] = $summary_sundays;
+    // Optional debug payload to inspect which dates contributed to Sundays + Utlat
+    if ($this->input->get('debug_sundays') === '1') {
+      $data['debug_sundays_union'] = [
+        'sundays_without_miqaat' => $sunday_no_miqaat_dates,
+        'no_miqaat_no_thaali' => $no_miqaat_no_thaali_dates,
+        'total_count' => (int) $summary_sundays
+      ];
+    }
+
+    $from = $_SESSION["from"];
+    $data["from"] = $from;
+    $data['hijri_years'] = $this->HijriCalendar->get_distinct_hijri_years();
+    $data['hijri_year'] = $hijri_year;
+    $data['sort_type'] = $sort_type;
+    $data['assignment_filter'] = $assignment_filter;
+    $data['miqaat_type'] = $miqaat_type;
+    $data['member_name_filter'] = $member_name_filter;
     $data['calendar_summary'] = [
       'total_miqaat_days' => (int) $summary_miqaat_days_excl_ladies,
       'total_thaali_days' => (int) $summary_thaali_days,
@@ -1696,6 +1760,7 @@ class Common extends CI_Controller
       'fnn' => (int) $summary_fnn,
     ];
     $data["hijri_months"] = $this->HijriCalendar->get_hijri_month();
+    $hijri_month_id = -1;
     $data['hijri_month_id'] = $hijri_month_id;
     $data['sort_type'] = $sort_type;
     $data['assignment_filter'] = $assignment_filter;
@@ -4182,6 +4247,7 @@ class Common extends CI_Controller
     $filters['contri_year'] = $this->input->get_post('contri_year');
     $filters['fmb_type'] = $this->input->get_post('fmb_type');
     $filters['contri_type'] = $this->input->get_post('contri_type');
+    $filters['miqaat_type'] = $this->input->get_post('miqaat_type');
     $filters['payment_status'] = $this->input->get_post('payment_status');
     $filters['user_id'] = $this->input->get_post('user_id');
 

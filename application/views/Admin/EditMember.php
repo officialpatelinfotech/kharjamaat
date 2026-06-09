@@ -533,7 +533,7 @@ if (empty($redirect)) {
           <div id="addRemarkSection" style="margin-top: 16px; border-top: 1px dashed var(--border-light); padding-top: 16px;">
             <input type="hidden" id="remarkItsId" value="<?php echo htmlspecialchars($member['ITS_ID']); ?>">
             <div class="form-group mb-2">
-              <textarea id="remarkCommentText" class="form-control" rows="3" placeholder="Add confidential note, observation, follow-up or remark..." style="font-size: 0.84rem; border-radius: 8px; resize: vertical; border: 1.5px solid var(--border);" required></textarea>
+              <textarea id="remarkCommentText" class="form-control" rows="3" placeholder="Add confidential note, observation, follow-up or remark..." style="font-size: 0.84rem; border-radius: 8px; resize: vertical; border: 1.5px solid var(--border);"></textarea>
             </div>
             <div class="text-right">
               <button type="button" id="submitRemarkBtn" class="btn btn-sm text-white" style="background: var(--red); border-color: var(--red); font-weight: 700; border-radius: 6px; padding: 6px 16px; font-size: 0.8rem;">
