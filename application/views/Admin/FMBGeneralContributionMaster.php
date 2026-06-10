@@ -77,13 +77,7 @@
           <option value="Thaali">Thaali</option>
           <option value="Niyaz">Niyaz</option>
         </select>
-        <select class="form-control col-12 col-md-3 mr-3" name="miqaat_type" id="miqaat-type" required>
-          <option value="">Select Miqaat Type</option>
-          <option value="Shehrullah">Shehrullah</option>
-          <option value="Ashara">Ashara</option>
-          <option value="General">General</option>
-          <option value="Ladies">Ladies</option>
-        </select>
+
         <input type="text" class="form-control col-12 col-md-3 mr-3" name="contri_for" placeholder="Enter contribution type name" required>
         <button type="submit" class="btn btn-success">
           Submit
@@ -101,7 +95,7 @@
           <th>#</th>
           <th>Contribution Type</th>
           <th>FMB Type</th>
-          <th>Miqaat Type</th>
+
           <th>Status</th>
           <th>Action</th>
         </tr>
@@ -123,16 +117,7 @@
                   <option value="Niyaz" <?php echo $value["fmb_type"] === "Niyaz" ? "selected" : ""; ?>>Niyaz</option>
                 </select>
               </td>
-              <td>
-                <p id="miqaat-type-<?php echo $value["id"]; ?>"><?php echo htmlspecialchars($value["miqaat_type"] ?? ''); ?></p>
-                <select name="edit_miqaat_type" id="edit-miqaat-type-<?php echo $value["id"]; ?>" class="hidden form-control">
-                  <option value="">Select Miqaat Type</option>
-                  <option value="Shehrullah" <?php echo ($value["miqaat_type"] ?? '') === "Shehrullah" ? "selected" : ""; ?>>Shehrullah</option>
-                  <option value="Ashara" <?php echo ($value["miqaat_type"] ?? '') === "Ashara" ? "selected" : ""; ?>>Ashara</option>
-                  <option value="General" <?php echo ($value["miqaat_type"] ?? '') === "General" ? "selected" : ""; ?>>General</option>
-                  <option value="Ladies" <?php echo ($value["miqaat_type"] ?? '') === "Ladies" ? "selected" : ""; ?>>Ladies</option>
-                </select>
-              </td>
+
               <td>
                 <p id="status-<?php echo $value["id"]; ?>"><?php echo $value["status"] ? "Active" : "Inactive"; ?></p>
                 <select name="edit_status" id="edit-status-<?php echo $value["id"]; ?>" class="hidden form-control">
@@ -171,11 +156,9 @@
       $id = $(this).data("fmbgc-id");
       $("#contri-for-" + $id).addClass("hidden");
       $("#fmb-type-" + $id).addClass("hidden");
-      $("#miqaat-type-" + $id).addClass("hidden");
       $("#status-" + $id).addClass("hidden");
       $("#edit-contri-for-" + $id).removeClass("hidden");
       $("#edit-fmb-type-" + $id).removeClass("hidden");
-      $("#edit-miqaat-type-" + $id).removeClass("hidden");
       $("#edit-status-" + $id).removeClass("hidden");
       $(this).addClass("hidden");
       $("#save-fmbgc-btn-" + $id).removeClass("hidden");
@@ -186,7 +169,6 @@
       $id = $(this).data("fmbgc-id");
       $contriFor = $("#edit-contri-for-" + $id).val();
       $fmbType = $("#edit-fmb-type-" + $id).val();
-      $miqaatType = $("#edit-miqaat-type-" + $id).val();
       $status = $("#edit-status-" + $id).val();
 
       $.ajax({
@@ -196,7 +178,6 @@
           "id": $id,
           "name": $contriFor,
           "fmb_type": $fmbType,
-          "miqaat_type": $miqaatType,
           "status": $status,
         },
         success: function(res) {

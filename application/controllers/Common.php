@@ -3987,12 +3987,8 @@ class Common extends CI_Controller
 
     // echo json_encode($data['selected_hijri_year']);exit;
 
-    // Years for dropdown
-    // Prefer distinct years actually present in `sabeel_takhmeen`; fall back to calendar list
-    $years = $this->CommonM->get_sabeel_distinct_years();
-    if (empty($years)) {
-      $years = $this->HijriCalendar->get_distinct_hijri_years();
-    }
+    // Fetch years directly from HijriCalendar for the dropdown
+    $years = $this->HijriCalendar->get_distinct_composite_years();
     $data['hijri_years'] = $years;
 
     // Allow debug output of allocations/payments when ?debug_alloc=1 is provided

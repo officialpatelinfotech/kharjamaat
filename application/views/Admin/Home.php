@@ -356,6 +356,22 @@
           </div>
         </div>
       </a>
+      <a href="<?php echo base_url('admin/notification_settings'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Notifications Settings</div>
+            <i class="icon fa-solid fa-bell"></i>
+          </div>
+        </div>
+      </a>
+      <a href="<?php echo base_url('admin/status_options'); ?>" class="col-6 col-md-3 col-xxl-2 py-2 ">
+        <div class="card text-center">
+          <div class="card-body d-flex flex-column justify-content-between">
+            <div class="title">Manage Status Options</div>
+            <i class="icon fa-solid fa-sliders"></i>
+          </div>
+        </div>
+      </a>
     </div>
   </div>
 </div>

@@ -81,21 +81,15 @@ class Reports extends CI_Controller
       if ($currentYear === '') $currentYear = null;
     }
 
-    // Default to latest year present in sabeel_takhmeen
+    $this->load->model('HijriCalendar');
+    $years = $this->HijriCalendar->get_distinct_composite_years();
+
+    // Default to latest year
     if (empty($currentYear)) {
-      $row = $this->db->select('DISTINCT year', false)->from('sabeel_takhmeen')->order_by('year', 'DESC')->get()->row_array();
-      $currentYear = !empty($row['year']) ? (string)$row['year'] : null;
+      $currentYear = !empty($years) ? $years[0] : null;
     }
 
     $previousYear = $this->compute_previous_composite_year($currentYear);
-
-    // For dropdown: all available composite years
-    $yearRows = $this->db->select('DISTINCT year', false)->from('sabeel_takhmeen')->order_by('year', 'DESC')->get()->result_array();
-    $years = array_values(array_filter(array_map(function ($r) {
-      return isset($r['year']) ? (string)$r['year'] : '';
-    }, $yearRows), function ($y) {
-      return $y !== '';
-    }));
 
     $rows = [];
     if (!empty($currentYear) && !empty($previousYear)) {

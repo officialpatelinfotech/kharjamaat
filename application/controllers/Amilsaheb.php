@@ -2224,6 +2224,80 @@ class Amilsaheb extends CI_Controller
     $this->load->view('MasoolMusaid/AsharaAttendance', $data);
   }
 
+  public function ashara_attendance_list()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+
+    $username = $_SESSION['user']['username'];
+
+    // Use GET parameters if available
+    $sel_sector = $this->input->get('sector');
+    $sel_sub = $this->input->get('subsector');
+
+    // Hijri Year selection (UI scope only; attendance table not year-scoped) — default to next year if month >= 10
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $hijri_parts_att = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts_att[2];
+    $current_hijri_month_att = (int)$hijri_parts_att[1];
+    $default_year_att = $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year_att);
+    $year_options = $this->HijriCalendar->get_distinct_hijri_years();
+    $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
+    if (empty($year_options)) {
+      $year_options = [$current_hijri_year - 1, $current_hijri_year, $current_hijri_year + 1];
+    }
+    if (!in_array($selected_year, $year_options, true)) {
+      array_unshift($year_options, $selected_year);
+    }
+
+    // Fetch all sectors and sub-sectors for dropdowns
+    $all_sectors = $this->MasoolMusaidM->get_all_sectors();
+    $all_sub_sectors = $sel_sector ? $this->MasoolMusaidM->get_all_sub_sectors($sel_sector) : [];
+
+    // Fetch attendance data
+    if ($this->input->post('search')) {
+      $kw = $this->input->post('search', true);
+      $users = $this->MasoolMusaidM->search_attendance_by_sector($kw, $sel_sector, $sel_sub, $selected_year);
+    } else {
+      $users = $this->MasoolMusaidM->get_attendance_by_sector($sel_sector, $sel_sub, $selected_year);
+    }
+
+    // Stats
+    $stats = $this->MasoolMusaidM->get_sector_stats($sel_sector, $sel_sub, $selected_year);
+
+    // View Data
+    $data = [
+      'username' => $username,
+      'user_sector' => '',
+      'user_sub' => '',
+      'sel_sector' => $sel_sector,
+      'sel_sub' => $sel_sub,
+      'all_sectors' => $all_sectors,
+      'all_sub_sectors' => $all_sub_sectors,
+      'users' => $users,
+      'stats' => $stats,
+      'user_name' => $username,
+      'days' => range(2, 9),
+      'status_options' => [
+        'Attended with Maula',
+        'Attended in Khar on Time',
+        'Attended in Khar Late',
+        'Attended in Other Jamaat',
+        'Not attended anywhere'
+      ],
+      // Year dropdown support (UI only)
+      'selected_year' => $selected_year,
+      'year_options' => $year_options,
+    ];
+
+    // Load view
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('MasoolMusaid/AsharaAttendanceList', $data);
+  }
+
   // Qardan Hasana (Amilsaheb)
   // - /amilsaheb/qardanhasana
   // - /amilsaheb/qardanhasana/mohammedi | taher | husain

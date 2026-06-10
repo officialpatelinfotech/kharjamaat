@@ -336,6 +336,17 @@
 					</div>
 				</div>
 			</a>
+			<a class="col-12 col-md-3 col-xxl-2 py-2"
+				href="<?= base_url('accounts/NewRaza') ?>">
+				<div class="card text-center">
+					<div class="card-body" style="padding: 0.25rem;">
+						<div class="title">Others</div>
+						<div style="height: 140px; display: flex; align-items: center; justify-content: center; width: 100%;">
+							<i class="fa fa-ellipsis-h" style="font-size: 40pt; color: #AD7E05; opacity: 0.8;"></i>
+						</div>
+					</div>
+				</div>
+			</a>
 		</div>
 	</div>
 </div>
@@ -348,13 +359,9 @@
 
 		// Add static cards to search data
 		razaData.unshift({
-			name: "Private Event",
-			umoor: "Private-Event",
-			id: "private"
-		}, {
-			name: "Public Event",
-			umoor: "Public-Event",
-			id: "public"
+			name: "Others",
+			umoor: "Others",
+			id: "others"
 		});
 
 		function showSuggestions(filteredResults) {
@@ -401,6 +408,11 @@
 		$(document).on('click', '.suggestion-item', function() {
 			const umoorValue = $(this).data('umoor');
 			const razaId = $(this).data('id');
+
+			if (umoorValue === 'Others') {
+				window.location.href = `<?= base_url('accounts/NewRaza') ?>`;
+				return;
+			}
 
 			// Create hidden form
 			const $form = $('<form>', {

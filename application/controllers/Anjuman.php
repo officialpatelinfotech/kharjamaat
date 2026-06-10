@@ -667,25 +667,8 @@ class Anjuman extends CI_Controller
     ];
     $data['filters'] = $filters;
 
-    // Hijri year dropdown options (descending)
-    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
-    $current_hijri_year = null;
-    if (isset($today_hijri['hijri_date'])) {
-      $parts = explode('-', (string)$today_hijri['hijri_date']);
-      if (count($parts) === 3 && is_numeric($parts[2])) {
-        $current_hijri_year = (int)$parts[2];
-      }
-    }
-    if (!$current_hijri_year) {
-      $current_hijri_year = 1442;
-    }
-    $start_year = 1442;
-    $end_year = max($start_year, (int)$current_hijri_year);
-    $year_ranges = [];
-    for ($y = $start_year; $y <= $end_year; $y++) {
-      $year_ranges[] = $y . '-' . substr((string)($y + 1), -2);
-    }
-    $data['hijri_year_options'] = array_reverse($year_ranges);
+    // Fetch year options dynamically from HijriCalendar
+    $data['hijri_year_options'] = $this->HijriCalendar->get_distinct_composite_years();
 
     $data['flash_success'] = $this->session->flashdata('laagat_flash_success');
     $data['flash_error'] = $this->session->flashdata('laagat_flash_error');
@@ -713,8 +696,8 @@ class Anjuman extends CI_Controller
 
     $data['invoices'] = $this->LaagatRentM->get_invoices($filters);
 
-    $distinctYears = $this->db->distinct()->select('hijri_year')->from('laagat_rent')->order_by('hijri_year', 'DESC')->get()->result_array();
-    $data['hijri_years'] = array_column($distinctYears, 'hijri_year');
+    $this->load->model('HijriCalendar');
+    $data['hijri_years'] = $this->HijriCalendar->get_distinct_composite_years();
 
     // Fetch all active master records for the Edit modal dropdown
     $data['all_masters'] = $this->LaagatRentM->get_all(['is_active' => 1]);
@@ -740,8 +723,8 @@ class Anjuman extends CI_Controller
 
     $data['invoices'] = $this->LaagatRentM->get_invoices($filters);
 
-    $distinctYears = $this->db->distinct()->select('hijri_year')->from('laagat_rent')->order_by('hijri_year', 'DESC')->get()->result_array();
-    $data['hijri_years'] = array_column($distinctYears, 'hijri_year');
+    $this->load->model('HijriCalendar');
+    $data['hijri_years'] = $this->HijriCalendar->get_distinct_composite_years();
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/LaagatRentPayments', $data);
@@ -3167,6 +3150,85 @@ class Anjuman extends CI_Controller
     $this->load->view('MasoolMusaid/AsharaAttendance', $data);
   }
 
+  public function ashara_attendance_list()
+  {
+    if (PHP_SAPI !== 'cli') {
+      if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+        redirect('/accounts');
+      }
+    }
+    if (!isset($_SESSION['user'])) {
+      $_SESSION['user'] = ['username' => 'jamaat', 'role' => 3];
+    }
+
+    $username = $_SESSION['user']['username'];
+
+    // Use GET parameters if available
+    $sel_sector = $this->input->get('sector');
+    $sel_sub = $this->input->get('subsector');
+
+    // Hijri Year selection (UI scope only) — default to next year if Hijri month >= 10
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $hijri_parts_att = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts_att[2];
+    $current_hijri_month_att = (int)$hijri_parts_att[1];
+    $default_year_att = $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year_att);
+    $year_options = $this->HijriCalendar->get_distinct_hijri_years();
+    $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
+    if (empty($year_options)) {
+      $year_options = [$current_hijri_year - 1, $current_hijri_year, $current_hijri_year + 1];
+    }
+    if (!in_array($selected_year, $year_options, true)) {
+      array_unshift($year_options, $selected_year);
+    }
+
+    // Fetch all sectors and sub-sectors for dropdowns
+    $all_sectors = $this->MasoolMusaidM->get_all_sectors();
+    $all_sub_sectors = $sel_sector ? $this->MasoolMusaidM->get_all_sub_sectors($sel_sector) : [];
+
+    // Fetch attendance data
+    if ($this->input->post('search')) {
+      $kw = $this->input->post('search', true);
+      $users = $this->MasoolMusaidM->search_attendance_by_sector($kw, $sel_sector, $sel_sub, $selected_year);
+    } else {
+      $users = $this->MasoolMusaidM->get_attendance_by_sector($sel_sector, $sel_sub, $selected_year);
+    }
+
+    // Stats
+    $stats = $this->MasoolMusaidM->get_sector_stats($sel_sector, $sel_sub, $selected_year);
+
+    // View Data
+    $data = [
+      'username' => $username,
+      'user_sector' => '',
+      'user_sub' => '',
+      'sel_sector' => $sel_sector,
+      'sel_sub' => $sel_sub,
+      'all_sectors' => $all_sectors,
+      'all_sub_sectors' => $all_sub_sectors,
+      'users' => $users,
+      'stats' => $stats,
+      'user_name' => $username,
+      'days' => range(2, 9),
+      'status_options' => [
+        'Attended with Maula',
+        'Attended in Khar on Time',
+        'Attended in Khar Late',
+        'Attended in Other Jamaat',
+        'Not attended anywhere'
+      ],
+      // Year dropdown support (UI only)
+      'selected_year' => $selected_year,
+      'year_options' => $year_options,
+    ];
+
+    // Load view
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('MasoolMusaid/AsharaAttendanceList', $data);
+  }
+
   // Updated by Patel Infotech Services
 
   public function getmemberdetails()
@@ -3371,12 +3433,8 @@ class Anjuman extends CI_Controller
     }
 
     $username = $_SESSION['user']['username'];
-    $this->load->model('PerDayThaaliCostM');
-    // Build year options from fmb_takhmeen table distinct years (DESC)
-    $yearRows = $this->db->select('DISTINCT year', false)->from('fmb_takhmeen')->order_by('year', 'DESC')->get()->result_array();
-    $yearOptions = array_values(array_map(function ($r) {
-      return $r['year'];
-    }, $yearRows));
+    // Fetch year options dynamically from HijriCalendar
+    $yearOptions = $this->HijriCalendar->get_distinct_composite_years();
 
     // Compute current Hijri financial year
     // FY boundary: Hijri months 07–12 belong to current FY start year; 01–03 belong to previous FY.
@@ -3403,8 +3461,9 @@ class Anjuman extends CI_Controller
     }
 
     // Default strictly to current Hijri FY (no table fallback)
-    $selectedYear = $this->input->post('fmb_year') ?: $currentCompositeYear;
+    $selectedYear = $this->input->get_post('fmb_year') ?: $currentCompositeYear;
 
+    $this->load->model('PerDayThaaliCostM');
     $perDayCostRow = null;
     $perDayCostAmount = null;
     if (!empty($selectedYear)) {
@@ -3617,6 +3676,9 @@ class Anjuman extends CI_Controller
     $data["contri_type_gc"] = $this->AnjumanM->get_fmbgc_by_type($type);
 
     $data["all_user_fmbgc"] = $this->AnjumanM->get_user_fmbgc($type);
+
+    $this->load->model('HijriCalendar');
+    $data['hijri_years'] = $this->HijriCalendar->get_distinct_composite_years();
 
     $data["user_name"] = $username;
     $data["type"] = $type;
@@ -3937,11 +3999,8 @@ class Anjuman extends CI_Controller
 
     $username = $_SESSION['user']['username'];
 
-    // Build year options from sabeel_takhmeen table distinct years (DESC)
-    $yearRows = $this->db->select('DISTINCT year', false)->from('sabeel_takhmeen')->order_by('year', 'DESC')->get()->result_array();
-    $yearOptions = array_values(array_map(function ($r) {
-      return $r['year'];
-    }, $yearRows));
+    // Fetch year options dynamically from HijriCalendar
+    $yearOptions = $this->HijriCalendar->get_distinct_composite_years();
     // Compute current Hijri financial composite year (months 09–12 + next 01–08)
     $today = date('Y-m-d');
     $h = $this->HijriCalendar->get_hijri_date($today);
@@ -4020,11 +4079,8 @@ class Anjuman extends CI_Controller
 
     $data["all_user_sabeel_takhmeen"] = $this->AnjumanM->get_user_sabeel_takhmeen_details($filter_data);
 
-    // Build year options from table (DESC) for header
-    $yearRows = $this->db->select('DISTINCT year', false)->from('sabeel_takhmeen')->order_by('year', 'DESC')->get()->result_array();
-    $yearOptions = array_values(array_map(function ($r) {
-      return $r['year'];
-    }, $yearRows));
+    // Fetch year options dynamically from HijriCalendar
+    $yearOptions = $this->HijriCalendar->get_distinct_composite_years();
 
     $data["user_name"] = $username;
     $data["member_name"] = $member_name;
@@ -4236,7 +4292,7 @@ class Anjuman extends CI_Controller
     $data['extra_contributions'] = $this->db->get()->result_array();
 
     // Fetch already-generated invoices to calculate Niyaz & Fala amounts
-    $this->db->select('inv.amount, inv.description, m.assigned_to, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, inv.invoice_year, inv.miqaat_type');
+    $this->db->select('inv.amount, inv.description, m.assigned_to, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, inv.miqaat_type');
     $this->db->from('miqaat_invoice inv');
     $this->db->join('miqaat m', 'm.id = inv.miqaat_id', 'left');
     $this->db->join('user u', 'u.ITS_ID = inv.user_id', 'left');

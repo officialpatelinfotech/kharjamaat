@@ -3516,7 +3516,7 @@ HTML;
 
     $fmb_type = $this->input->post("fmb_type");
     $contri_for = $this->input->post("contri_for");
-    $miqaat_type = $this->input->post("miqaat_type");
+    $miqaat_type = $this->input->post("miqaat_type") ?: NULL;
 
     $result = $this->AdminM->addfmbcontritype($fmb_type, $contri_for, $miqaat_type);
 
@@ -3537,7 +3537,7 @@ HTML;
     $name = $this->input->post("name");
     $fmb_type = $this->input->post("fmb_type");
     $status = $this->input->post("status");
-    $miqaat_type = $this->input->post("miqaat_type");
+    $miqaat_type = $this->input->post("miqaat_type") ?: NULL;
 
     $result = $this->AdminM->updatefmbgc(
       $id,
@@ -5241,7 +5241,35 @@ HTML;
       if ($managed_by !== null) $this->SettingsM->set('managed_by', $managed_by);
       if ($admin_emails !== null) $this->SettingsM->set('admin_emails', $admin_emails);
 
-      // Save notification configurations
+      $this->session->set_flashdata('success', 'Preferences updated successfully.');
+      redirect('admin/preferences');
+      return;
+    }
+
+    $data['jamaat_name'] = $this->SettingsM->get('jamaat_name', jamaat_name());
+    $data['jamaat_place'] = $this->SettingsM->get('jamaat_place', jamaat_place());
+    $data['address_line'] = $this->SettingsM->get('address_line', '');
+    $data['city_state'] = $this->SettingsM->get('city_state', '');
+    $data['pincode'] = $this->SettingsM->get('pincode', '');
+    $data['support_email'] = $this->SettingsM->get('support_email', '');
+    $data['registration_email'] = $this->SettingsM->get('registration_email', 'anjuman@kharjamaat.in');
+    $data['receipt_jamaat_name'] = $this->SettingsM->get('receipt_jamaat_name', 'Anjuman-e-Saifee Dawoodi Bohra Jamaat, KHAR');
+    $data['trust_regn_no'] = $this->SettingsM->get('trust_regn_no', 'E/24158 (Mumbai)');
+    $data['managed_by'] = $this->SettingsM->get('managed_by', 'Anjuman-e-Saifee');
+    $data['admin_emails'] = $this->SettingsM->get('admin_emails', "amilsaheb@kharjamaat.in,\n3042@carmelnmh.in,\nkharjamaat@gmail.com,\nkharamilsaheb@gmail.com,\nkharjamaat786@gmail.com,\nkhozemtopiwalla@gmail.com,\nybookwala@gmail.com");
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/Preferences', $data);
+  }
+
+  public function notification_settings()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    $this->load->model('SettingsM');
+
+    if ($this->input->server('REQUEST_METHOD') === 'POST') {
       $notification_keys = [
         'miqaat_assignment',
         'miqaat_activation',
@@ -5271,26 +5299,15 @@ HTML;
       }
       $this->SettingsM->set('notification_settings', json_encode($notification_settings));
 
-      $this->session->set_flashdata('success', 'Preferences updated successfully.');
-      redirect('admin/preferences');
+      $this->session->set_flashdata('success', 'Notification settings updated successfully.');
+      redirect('admin/notification_settings');
       return;
     }
 
-    $data['jamaat_name'] = $this->SettingsM->get('jamaat_name', jamaat_name());
-    $data['jamaat_place'] = $this->SettingsM->get('jamaat_place', jamaat_place());
-    $data['address_line'] = $this->SettingsM->get('address_line', '');
-    $data['city_state'] = $this->SettingsM->get('city_state', '');
-    $data['pincode'] = $this->SettingsM->get('pincode', '');
-    $data['support_email'] = $this->SettingsM->get('support_email', '');
-    $data['registration_email'] = $this->SettingsM->get('registration_email', 'anjuman@kharjamaat.in');
-    $data['receipt_jamaat_name'] = $this->SettingsM->get('receipt_jamaat_name', 'Anjuman-e-Saifee Dawoodi Bohra Jamaat, KHAR');
-    $data['trust_regn_no'] = $this->SettingsM->get('trust_regn_no', 'E/24158 (Mumbai)');
-    $data['managed_by'] = $this->SettingsM->get('managed_by', 'Anjuman-e-Saifee');
-    $data['admin_emails'] = $this->SettingsM->get('admin_emails', "amilsaheb@kharjamaat.in,\n3042@carmelnmh.in,\nkharjamaat@gmail.com,\nkharamilsaheb@gmail.com,\nkharjamaat786@gmail.com,\nkhozemtopiwalla@gmail.com,\nybookwala@gmail.com");
     $data['notification_settings'] = json_decode((string)$this->SettingsM->get('notification_settings', '{}'), true);
 
     $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/Preferences', $data);
+    $this->load->view('Admin/NotificationSettings', $data);
   }
 
   public function status_options()

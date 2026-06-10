@@ -197,4 +197,26 @@ class HijriCalendar extends CI_Model
       'hijri_month_name' => $month_row ? $month_row['hijri_month'] : $parts[1]
     ];
   }
+
+  public function get_distinct_composite_years()
+  {
+    $sql = "SELECT DISTINCT
+      CASE
+        WHEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 7 AND 12
+          THEN CONCAT(
+            CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED),
+            '-',
+            LPAD(RIGHT(CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED) + 1, 2), 2, '0')
+          )
+        ELSE CONCAT(
+          CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED) - 1,
+          '-',
+          LPAD(RIGHT(CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED), 2), 2, '0')
+        )
+      END AS fy
+    FROM hijri_calendar
+    ORDER BY fy DESC";
+    $result = $this->db->query($sql)->result_array();
+    return array_column($result, 'fy');
+  }
 }

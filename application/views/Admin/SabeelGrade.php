@@ -19,24 +19,9 @@
         <select name="sabeel_year" id="sabeel-year" class="form-filter form-control" required>
           <option value="">Select Year</option>
           <?php
-          $yearRanges = [
-            '1442-43',
-            '1443-44',
-            '1444-45',
-            '1445-46',
-            '1446-47',
-            '1447-48',
-            '1448-49',
-            '1449-50',
-            '1450-51',
-            '1451-52',
-            '1452-53',
-            '1453-54',
-            '1454-55',
-            '1455-56',
-            '1456-57',
-            '1457-58'
-          ];
+          $CI =& get_instance();
+          $CI->load->model('HijriCalendar');
+          $yearRanges = $CI->HijriCalendar->get_distinct_composite_years();
           if (!function_exists('renderYearOption')) {
             function renderYearOption($yr, $current)
             {
@@ -75,24 +60,9 @@
                 <select name="e_sabeel_year" id="e-sabeel-year" class="sabeel-year form-control" required>
                   <option value="">Select Year</option>
                   <?php
-                  $yearRanges = [
-                    '1442-43',
-                    '1443-44',
-                    '1444-45',
-                    '1445-46',
-                    '1446-47',
-                    '1447-48',
-                    '1448-49',
-                    '1449-50',
-                    '1450-51',
-                    '1451-52',
-                    '1452-53',
-                    '1453-54',
-                    '1454-55',
-                    '1455-56',
-                    '1456-57',
-                    '1457-58'
-                  ];
+                  $CI =& get_instance();
+                  $CI->load->model('HijriCalendar');
+                  $yearRanges = $CI->HijriCalendar->get_distinct_composite_years();
                   if (!function_exists('renderYearOption')) {
                     function renderYearOption($yr, $current)
                     {
@@ -183,24 +153,9 @@
                 <select name="r_sabeel_year" id="r-sabeel-year" class="sabeel-year form-control" required>
                   <option value="">Select Year</option>
                   <?php
-                  $yearRanges = [
-                    '1442-43',
-                    '1443-44',
-                    '1444-45',
-                    '1445-46',
-                    '1446-47',
-                    '1447-48',
-                    '1448-49',
-                    '1449-50',
-                    '1450-51',
-                    '1451-52',
-                    '1452-53',
-                    '1453-54',
-                    '1454-55',
-                    '1455-56',
-                    '1456-57',
-                    '1457-58'
-                  ];
+                  $CI =& get_instance();
+                  $CI->load->model('HijriCalendar');
+                  $yearRanges = $CI->HijriCalendar->get_distinct_composite_years();
                   if (!function_exists('renderYearOption')) {
                     function renderYearOption($yr, $current)
                     {

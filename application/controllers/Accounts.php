@@ -452,18 +452,18 @@ class Accounts extends CI_Controller
       'updated_at' => $waj_last,
     ];
 
-    // Qardan Hasana summary for family (used on Home page)
+    // Qardan Hasana summary for individual (used on Home page)
     // Note: scheme tables store deposits/collections; a separate due table may not exist.
     $this->load->model('QardanHasanaM');
-    $qh_taher_total = $this->QardanHasanaM->get_scheme_total_amount_for_its('taher', $memberIds);
-    $qh_husain_total = $this->QardanHasanaM->get_scheme_total_amount_for_its('husain', $memberIds);
+    $qh_taher_total = $this->QardanHasanaM->get_scheme_total_amount_for_its('taher', [$user_id]);
+    $qh_husain_total = $this->QardanHasanaM->get_scheme_total_amount_for_its('husain', [$user_id]);
     $qh_due_total = 0.0;
     // Backward-compatible: if legacy table exists (some deployments), show its due.
     if ($this->db->table_exists('qardan_hasana') && $this->db->field_exists('due', 'qardan_hasana')) {
       $rowQhDue = $this->db
         ->select('COALESCE(SUM(due),0) AS total_due', false)
         ->from('qardan_hasana')
-        ->where_in('ITS_ID', $memberIds)
+        ->where_in('ITS_ID', [$user_id])
         ->get()->row_array();
       $qh_due_total = isset($rowQhDue['total_due']) ? (float)$rowQhDue['total_due'] : 0.0;
     }
@@ -648,23 +648,8 @@ class Accounts extends CI_Controller
     $memberIts = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
     $memberIts = trim((string)$memberIts);
 
-    // Build family ITS list (HOF + family members) so members can view admin-imported records tied to HOF/family.
-    $familyIts = [];
-    $hofId = $this->AccountM->get_hof_id_for_member($memberIts);
-    if (!empty($hofId)) {
-      $familyIts[] = (string)$hofId;
-      $familyRows = $this->AccountM->get_all_family_member($hofId);
-      if (!empty($familyRows) && is_array($familyRows)) {
-        foreach ($familyRows as $r) {
-          if (!empty($r['ITS_ID'])) {
-            $familyIts[] = (string)$r['ITS_ID'];
-          }
-        }
-      }
-    } else {
-      $familyIts[] = $memberIts;
-    }
-    $familyIts = array_values(array_unique(array_filter(array_map('trim', $familyIts))));
+    // Scope to individual ITS only (individual-wise, not family-wise)
+    $familyIts = [$memberIts];
 
     // Optional narrowing: if user selects a specific ITS, use it only if it is within family list.
     $itsNarrow = trim((string)$this->input->get('its'));

@@ -103,16 +103,9 @@ class ExpenseM extends CI_Model
      */
     public function get_distinct_hijri_years()
     {
-        $rows = $this->db->select('DISTINCT hijri_year', false)
-            ->from($this->table)
-            ->order_by('hijri_year', 'DESC')
-            ->get()->result_array();
-        $years = [];
-        foreach ($rows as $r) {
-            if (isset($r['hijri_year'])) {
-                $years[] = (int)$r['hijri_year'];
-            }
-        }
+        $this->load->model('HijriCalendar');
+        $years = $this->HijriCalendar->get_distinct_hijri_years();
+        rsort($years);
         return $years;
     }
 }

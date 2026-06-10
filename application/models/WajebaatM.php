@@ -82,18 +82,8 @@ class WajebaatM extends CI_Model
 
     public function get_years()
     {
-        $rows = $this->db->select('DISTINCT(year) as year')->from('wajebaat')->order_by('year', 'DESC')->get()->result_array();
-        $years = array_filter(array_map('intval', array_column($rows, 'year')));
-        
         $this->load->model('HijriCalendar');
-        $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
-        $parts = explode('-', $today_hijri['hijri_date']);
-        $current_hijri_year = (int)$parts[2];
-        
-        for ($y = $current_hijri_year - 2; $y <= $current_hijri_year + 2; $y++) {
-            $years[] = $y;
-        }
-        $years = array_values(array_unique($years));
+        $years = $this->HijriCalendar->get_distinct_hijri_years();
         rsort($years);
         return $years;
     }

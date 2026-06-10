@@ -20,8 +20,8 @@
 
   <div class="row mb-4 p-0">
     <div class="col-12 col-md-6">
-      <a href="<?php echo base_url('admin/preferences'); ?>" class="btn btn-outline-secondary">
-        <i class="fa fa-arrow-left"></i> Back to Preferences
+      <a href="<?php echo base_url('admin'); ?>" class="btn btn-outline-secondary">
+        <i class="fa fa-arrow-left"></i> Back to Dashboard
       </a>
     </div>
   </div>

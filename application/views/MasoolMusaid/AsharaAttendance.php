@@ -208,8 +208,6 @@ function ash_status_class($stat) {
     'Attended in Khar Late'    => 'ab-late',
     'Attended in Other Jamaat' => 'ab-other',
     'Not attended anywhere'    => 'ab-absent',
-    'Not in Town'              => 'ab-town',
-    'Married Outcaste'         => 'ab-outcaste',
     default                    => 'ab-unmarked',
   };
 }
@@ -220,8 +218,6 @@ function ash_status_text_class($stat) {
     'Attended in Khar Late'    => 'sc-late',
     'Attended in Other Jamaat' => 'sc-other',
     'Not attended anywhere'    => 'sc-absent',
-    'Not in Town'              => 'sc-town',
-    'Married Outcaste'         => 'sc-out',
     default                    => 'sc-none',
   };
 }
@@ -343,6 +339,7 @@ $initialStatus = $this->input->get('status');
               <option value="<?php echo htmlspecialchars($sub,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sub,ENT_QUOTES) ?></option>
               <?php endforeach ?>
             </select>
+          </div>
           <div style="flex:1; min-width:160px;">
             <label class="ash-lbl" style="margin-bottom:4px;">Member Status</label>
             <select class="ash-sel" style="margin-bottom:0; height:32px; padding:0 10px;" id="pageMemberStatus" onchange="filterPageDay()">
@@ -411,8 +408,6 @@ $initialStatus = $this->input->get('status');
                   <option value="Attended in <?php echo $jp ?> Late" <?php echo $s === 'Attended in ' . $jp . ' Late' ? 'selected' : '' ?>>Attended in <?php echo $jp ?> Late</option>
                   <option value="Attended in Other Jamaat" <?php echo $s === 'Attended in Other Jamaat' ? 'selected' : '' ?>>Attended in Other Jamaat</option>
                   <option value="Not attended anywhere" <?php echo $s === 'Not attended anywhere' ? 'selected' : '' ?>>Not attended anywhere</option>
-                  <option value="Not in Town" <?php echo $s === 'Not in Town' ? 'selected' : '' ?>>Not in Town</option>
-                  <option value="Married Outcaste" <?php echo $s === 'Married Outcaste' ? 'selected' : '' ?>>Married Outcaste</option>
                 </select>
                 <?php else: ?>
                 <span class="<?php echo ash_status_text_class($s) ?>"><?php echo htmlspecialchars($s,ENT_QUOTES) ?></span>
@@ -481,96 +476,31 @@ $initialStatus = $this->input->get('status');
       <?php echo ash_stats_card($stats["Day$d"] ?? [], $d) ?>
       <?php endforeach ?>
       <?php echo ash_stats_card($stats['Ashura'] ?? [], 'Ashura') ?>
-    </div>
-  </div>
 
-  <!-- ── Filter bar ── -->
-  <div class="ash-filters">
-    <div class="ash-frow">
-      <div class="ash-srchwrap">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" class="ash-finput" id="ashSearch" placeholder="Search name, ITS, sector…" oninput="ashFilter()">
-      </div>
-      <select class="ash-fsel" id="ashSector" onchange="ashFilter()">
-        <option value="">All Sectors</option>
-        <?php foreach (array_unique(array_filter(array_column($users,'Sector'))) as $sec): ?>
-        <option value="<?php echo htmlspecialchars($sec,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sec,ENT_QUOTES) ?></option>
-        <?php endforeach ?>
-      </select>
-      <select class="ash-fsel" id="ashSub" onchange="ashFilter()">
-        <option value="">All Sub-Sectors</option>
-        <?php foreach (array_unique(array_filter(array_column($users,'Sub_Sector'))) as $sub): ?>
-        <option value="<?php echo htmlspecialchars($sub,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sub,ENT_QUOTES) ?></option>
-        <?php endforeach ?>
-      </select>
-      <select class="ash-fsel" id="ashCommonStatus" onchange="ashFilter()">
-        <option value="">All Days Common Status</option>
-        <option value="Attended with Maula">Attended with Maula</option>
-        <option value="Attended in <?php echo $jp ?> on Time">Attended in <?php echo $jp ?> on Time</option>
-        <option value="Attended in <?php echo $jp ?> Late">Attended in <?php echo $jp ?> Late</option>
-        <option value="Attended in Other Jamaat">Attended in Other Jamaat</option>
-        <option value="Not attended anywhere">Not attended anywhere</option>
-        <option value="Not Marked">Not Marked</option>
-      </select>
-      <select class="ash-fsel" id="ashMemberStatus" onchange="ashFilter()">
-        <option value="Active">Active</option>
-        <option value="Inactive">Inactive</option>
-        <option value="All">All Member Statuses</option>
-      </select>
-      <button class="ash-export-btn" onclick="ashOM('modExport')">
-        <i class="fa-solid fa-download fa-xs"></i> Export
-      </button>
+      <?php
+      $list_query = [];
+      if ($this->input->get('sector')) {
+        $list_query['sector'] = $this->input->get('sector');
+      }
+      if ($this->input->get('subsector')) {
+        $list_query['subsector'] = $this->input->get('subsector');
+      }
+      if (isset($selected_year)) {
+        $list_query['year'] = $selected_year;
+      }
+      $list_url = base_url(str_replace('ashara_attendance', 'ashara_attendance_list', $this->uri->uri_string()) . ($list_query ? '?' . http_build_query($list_query) : ''));
+      ?>
+      <a href="<?php echo $list_url ?>" class="ash-day-card ash-link-card" style="text-decoration:none; display:flex; flex-direction:column; border:1px dashed var(--gold); background:rgba(245,233,192,0.15);">
+        <div class="ash-day-head" style="background:linear-gradient(135deg,#78520a,var(--gold));">Attendance List</div>
+        <div class="ash-day-body" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px 12px; gap:8px;">
+          <div class="ash-link-icon" style="width:48px; height:48px; border-radius:50%; background:var(--gold-muted); display:flex; align-items:center; justify-content:center; color:var(--gold); margin-bottom:4px; transition:transform 0.2s;">
+            <i class="fa-solid fa-table-list fa-xl"></i>
+          </div>
+          <div style="font-size:0.82rem; font-weight:800; color:var(--gold);">Detailed Table</div>
+          <div style="font-size:0.68rem; color:var(--text-2); font-weight:500; line-height:1.3;">View, search, filter and export the full attendance sheet</div>
+        </div>
+      </a>
     </div>
-  </div>
-
-  <!-- ── Table ── -->
-  <div class="ash-tcard">
-    <div class="ash-tscroll">
-      <table class="ash" id="ashTable">
-        <thead>
-          <tr>
-            <th>HOF ID</th>
-            <th>ITS</th>
-            <th>Name</th>
-            <th>Mobile</th>
-            <th>Sector</th>
-            <th>Sub-Sector</th>
-            <?php foreach ($days as $d): ?>
-            <th class="c">D<?php echo $d ?></th>
-            <?php endforeach ?>
-            <th class="c" style="color:var(--red)">A</th>
-          </tr>
-        </thead>
-        <tbody id="ashTbody">
-          <?php foreach ($users as $u): ?>
-          <tr data-name="<?php echo htmlspecialchars(strtolower($u['Full_Name']??''),ENT_QUOTES) ?>"
-              data-its="<?php echo htmlspecialchars($u['ITS_ID']??'',ENT_QUOTES) ?>"
-              data-hof="<?php echo htmlspecialchars($u['HOF_ID']??'',ENT_QUOTES) ?>"
-              data-sector="<?php echo htmlspecialchars($u['Sector']??'',ENT_QUOTES) ?>"
-              data-sub="<?php echo htmlspecialchars($u['Sub_Sector']??'',ENT_QUOTES) ?>"
-              data-inactive="<?php echo htmlspecialchars($u['Inactive_Status']??'',ENT_QUOTES) ?>"
-              data-activity="<?php echo htmlspecialchars($u['activity_status']??'',ENT_QUOTES) ?>">
-            <td style="font-weight:700;font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['HOF_ID']??'—',ENT_QUOTES) ?></td>
-            <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['ITS_ID']??'—',ENT_QUOTES) ?></td>
-            <td style="font-weight:600;min-width:130px"><?php echo htmlspecialchars($u['Full_Name']??'—',ENT_QUOTES) ?></td>
-            <td style="font-size:.72rem;color:var(--text-2);white-space:nowrap"><?php echo htmlspecialchars($u['Mobile']??'—',ENT_QUOTES) ?></td>
-            <td style="font-size:.74rem"><?php echo htmlspecialchars($u['Sector']??'—',ENT_QUOTES) ?></td>
-            <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['Sub_Sector']??'—',ENT_QUOTES) ?></td>
-            <?php foreach ($days as $d): ?>
-            <td class="c"><?php echo ash_btn($u, $d) ?></td>
-            <?php endforeach ?>
-            <td class="c"><?php echo ash_btn($u, 'Ashura') ?></td>
-          </tr>
-          <?php endforeach ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── Footer ── -->
-  <div class="ash-footer">
-    <span class="ash-footer-time">Updated: <?php echo date('M j, Y H:i') ?></span>
-    <span class="ash-result-count" id="ashResultCount"><span><?php echo count($users) ?></span> members shown</span>
   </div>
 <?php endif; ?>
 
@@ -712,8 +642,6 @@ const STATUS_CLS={
   'Attended in Khar Late':'ab-late','Attended in <?php echo $jp ?> Late':'ab-late',
   'Attended in Other Jamaat':'ab-other',
   'Not attended anywhere':'ab-absent',
-  'Not in Town':'ab-town',
-  'Married Outcaste':'ab-outcaste',
 };
 const STATUS_TEXT_CLS={
   'Attended with Maula':'sc-maula',
@@ -721,8 +649,6 @@ const STATUS_TEXT_CLS={
   'Attended in Khar Late':'sc-late','Attended in <?php echo $jp ?> Late':'sc-late',
   'Attended in Other Jamaat':'sc-other',
   'Not attended anywhere':'sc-absent',
-  'Not in Town':'sc-town',
-  'Married Outcaste':'sc-out',
 };
 function abCls(s){return STATUS_CLS[s]||'ab-unmarked'}
 function stCls(s){return STATUS_TEXT_CLS[s]||'sc-none'}
@@ -791,65 +717,16 @@ function ashSaveAttendance(){
   .finally(()=>{btn.disabled=false;btn.textContent='Save Changes'});
 }
 
-/* ── Filter ── */
-function ashFilter(){
-  const q=(document.getElementById('ashSearch').value||'').toLowerCase().trim();
-  const sec=(document.getElementById('ashSector').value||'').toLowerCase();
-  const sub=(document.getElementById('ashSub').value||'').toLowerCase();
-  const commonStatus = document.getElementById('ashCommonStatus').value;
-  const memStatusSel = document.getElementById('ashMemberStatus');
-  const memStatus = memStatusSel ? memStatusSel.value : 'Active';
-  
-  let vis=0;
-  document.querySelectorAll('#ashTbody tr').forEach(tr=>{
-    let show=true;
-    if(q&&!( tr.dataset.name.includes(q)||tr.dataset.its.includes(q)||tr.dataset.hof.includes(q)||tr.dataset.sector.toLowerCase().includes(q)))show=false;
-    if(sec&&tr.dataset.sector.toLowerCase()!==sec)show=false;
-    if(sub&&tr.dataset.sub.toLowerCase()!==sub)show=false;
-    
-    if (memStatus !== 'All' && show) {
-      const inact = (tr.dataset.inactive || '').trim();
-      const act = (tr.dataset.activity || '').toLowerCase().trim();
-      const isAct = !inact && (!act || act === 'active');
-      if (memStatus === 'Active' && !isAct) show = false;
-      if (memStatus === 'Inactive' && isAct) show = false;
-    }
-    
-    if(commonStatus && show){
-      const btns=tr.querySelectorAll('.ab');
-      const targetStatus = commonStatus.toLowerCase();
-      for(const b of btns){
-        const bStatus = (b.dataset.status||'').toLowerCase().trim();
-        if(targetStatus === 'not marked'){
-          if(bStatus !== 'not marked' && bStatus !== ''){
-            show=false;
-            break;
-          }
-        } else {
-          if(bStatus !== targetStatus){
-            show=false;
-            break;
-          }
-        }
-      }
-    }
-    
-    tr.style.display=show?'':'none';
-    if(show)vis++;
-  });
-  const rc=document.getElementById('ashResultCount');
-  if(rc)rc.innerHTML=`<span>${vis}</span> members shown`;
-  const cb=document.getElementById('dashCountBadge');
-  if(cb)cb.innerHTML=`<i class="fa-solid fa-users fa-xs"></i> ${vis} Mumineen`;
-}
+
 
 /* ── Stats card → Single Day details view redirect ── */
 document.addEventListener('click', e => {
   const statRow = e.target.closest('.ash-stat-row');
   const card = e.target.closest('.ash-day-card');
-  if (!card) return;
+  if (!card || card.classList.contains('ash-link-card')) return;
   
   const day = card.dataset.day;
+  if (!day) return;
   let status = '';
   if (statRow) {
     status = statRow.dataset.statusVal || '';
@@ -894,33 +771,7 @@ function ashBulkUpdate(){
   });
 }
 
-/* ── Export CSV ── */
-function toggleAllDays(chk){document.querySelectorAll('.day-cb').forEach(c=>c.checked=chk.checked)}
-document.querySelectorAll('.day-cb').forEach(c=>c.addEventListener('change',()=>{document.getElementById('selAllDays').checked=[...document.querySelectorAll('.day-cb')].every(c=>c.checked)}));
-function ashExport(){
-  const selected=[...document.querySelectorAll('.day-cb:checked')].map(c=>c.value);
-  if(!selected.length){ashToast('Select at least one day','er');return}
-  const hdrs=['ITS_ID','Full_Name','HOF_ID','Mobile','Sector','Sub_Sector',...selected];
-  const rows=ASH_USERS.map(u=>[u.ITS_ID??'',u.Full_Name??'',u.HOF_ID??'',u.Mobile??'',u.Sector??'',u.Sub_Sector??'',...selected.map(d=>u[d]??'Not Marked')]);
-  let csv=hdrs.join(',')+'\n'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const link=document.createElement('a');link.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
-  link.download=`ashara_attendance_${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(link);link.click();document.body.removeChild(link);
-  ashCM('modExport');ashToast('Export started','ok');
-}
 
-/* ── Clickable Rows for Member Profile ── */
-document.querySelector('#ashTable tbody')?.addEventListener('click', e => {
-  const tr = e.target.closest('tr');
-  if (!tr) return;
-  if (e.target.closest('button, a, input, select, option, label') || e.target.classList.contains('ab')) {
-    return;
-  }
-  const its = tr.dataset.its;
-  if (its) {
-    window.location.href = VIEW_MEMBER_BASE_URL + its;
-  }
-});
 
 /* ── Single-Day Details Page Functions ── */
 let _pageSortCol = -1, _pageSortDir = 1;
@@ -1109,8 +960,6 @@ document.querySelector('#pageDayTable tbody')?.addEventListener('change', e => {
 document.addEventListener('DOMContentLoaded', () => {
   if (pageDay) {
     filterPageDay();
-  } else {
-    ashFilter();
   }
 });
 </script>

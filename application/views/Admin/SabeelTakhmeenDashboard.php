@@ -37,12 +37,10 @@
       <form method="POST" action="<?php echo base_url("admin/filteruserinsabeeltakhmeen"); ?>" class="d-flex m-0 filter-form">
         <input type="text" name="member_name" id="member-name" class="form-control" placeholder="Name or ITS" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
         <?php
-          $headerYearRanges = [
-            '1442-43','1443-44','1444-45','1445-46','1446-47','1447-48','1448-49','1449-50','1450-51','1451-52','1452-53','1453-54','1454-55','1455-56','1456-57','1457-58'
-          ];
-          $hdrComposite = '';
           $CI =& get_instance();
           $CI->load->model('HijriCalendar');
+          $headerYearRanges = $CI->HijriCalendar->get_distinct_composite_years();
+          $hdrComposite = '';
           $parts = $CI->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
           $hy = isset($parts['hijri_year']) ? (int)$parts['hijri_year'] : 0;
           $hm = isset($parts['hijri_month']) ? (int)$parts['hijri_month'] : 0;
@@ -322,10 +320,9 @@
           <select name="sabeel_takhmeen_year" id="takhmeen-year" class="form-control" required>
             <option value="">-----</option>
             <?php
-            $yearRanges = [
-              '1442-43','1443-44','1444-45','1445-46','1446-47','1447-48','1448-49','1449-50',
-              '1450-51','1451-52','1452-53','1453-54','1454-55','1455-56','1456-57','1457-58'
-            ];
+            $CI =& get_instance();
+            $CI->load->model('HijriCalendar');
+            $yearRanges = $CI->HijriCalendar->get_distinct_composite_years();
             if (!function_exists('renderYearOption')) {
               function renderYearOption($yr, $current) {
                 $sel = ($current === $yr) ? 'selected' : '';

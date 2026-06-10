@@ -731,6 +731,93 @@ class MasoolMusaid extends CI_Controller
     $this->load->view('MasoolMusaid/AsharaAttendance', $data);
   }
 
+  public function ashara_attendance_list()
+  {
+    // Authorization
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 16) {
+      redirect('/accounts');
+    }
+
+    $username = $_SESSION['user']['username'];
+
+    // Extract sector and sub-sector from username
+    preg_match('/^(Burhani|Mohammedi|Saifee|Taheri|Najmi)([A-Z]?)$/i', $username, $m);
+    $user_sector = ucfirst(strtolower($m[1] ?? ''));
+    $user_sub = strtoupper($m[2] ?? '');
+
+    // Use GET parameters if available, else fallback to user's sector/sub-sector
+    $sel_sector = $this->input->get('sector') ?? $user_sector;
+    $sel_sub = $this->input->get('subsector') ?? $user_sub;
+
+    // Hijri Year selection (UI scope only; attendance table is not year-scoped)
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $hijri_parts_att = explode('-', $h['hijri_date']);
+    $current_hijri_year = (int)$hijri_parts_att[2];
+    $current_hijri_month_att = (int)$hijri_parts_att[1];
+    $default_year_att = $current_hijri_year;
+    $selected_year = (int)($this->input->get('year') ?: $default_year_att);
+    $year_options = $this->HijriCalendar->get_distinct_hijri_years();
+    $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
+    if (empty($year_options)) {
+      $year_options = [$current_hijri_year - 1, $current_hijri_year, $current_hijri_year + 1];
+    }
+    if (!in_array($selected_year, $year_options, true)) {
+      array_unshift($year_options, $selected_year);
+    }
+
+    // Validate selected sector
+    $all_sectors = $this->MasoolMusaidM->get_all_sectors();
+    if (!in_array($sel_sector, array_column($all_sectors, 'sector'))) {
+      $sel_sector = $user_sector;
+      $sel_sub = $user_sub;
+    }
+
+    // Determine whether to filter by sub-sector or allow search
+    if (!empty($user_sub)) {
+      $sel_sub = $user_sub;
+      $users = $this->MasoolMusaidM->get_attendance_by_sub_sector($user_sector, $user_sub, $selected_year);
+      $stats = $this->MasoolMusaidM->get_sub_sector_stats($user_sector, $user_sub, $selected_year);
+    } else {
+      if ($this->input->post('search')) {
+        $kw = $this->input->post('search', true);
+        $users = $this->MasoolMusaidM->search_attendance_by_sector($kw, $sel_sector, $sel_sub, $selected_year);
+      } else {
+        $users = $this->MasoolMusaidM->get_attendance_by_sector($sel_sector, $sel_sub, $selected_year);
+      }
+      $stats = $this->MasoolMusaidM->get_sector_stats($sel_sector, $sel_sub, $selected_year);
+    }
+
+    // Prepare view data
+    $data = [
+      'username' => $username,
+      'user_sector' => $user_sector,
+      'user_sub' => $user_sub,
+      'sel_sector' => $sel_sector,
+      'sel_sub' => $sel_sub,
+      'all_sectors' => $all_sectors,
+      'users' => $users,
+      'stats' => $stats,
+      'user_name' => $username,
+      'days' => range(2, 9),
+      'status_options' => [
+        'Attended with Maula',
+        'Attended in Khar on Time',
+        'Attended in Khar Late',
+        'Attended in Other Jamaat',
+        'Not attended anywhere'
+      ],
+      'all_sub_sectors' => $this->MasoolMusaidM->get_all_sub_sectors($sel_sector),
+      // Year dropdown support (UI only)
+      'selected_year' => $selected_year,
+      'year_options' => $year_options,
+    ];
+
+    // Load views
+    $this->load->view('MasoolMusaid/Header', $data);
+    $this->load->view('MasoolMusaid/AsharaAttendanceList', $data);
+  }
+
 
 
 
