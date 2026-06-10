@@ -557,13 +557,12 @@ class AnjumanM extends CI_Model
     COALESCE(fm.Sub_Sector, iu.Sub_Sector) as member_sub_sector
     ");
     $this->db->from('user u');
-    // join invoices for HOF or any FM under that HOF
-    $this->db->join('miqaat_invoice i', '(i.user_id = u.ITS_ID OR i.user_id IN (SELECT uf.ITS_ID FROM user uf WHERE uf.HOF_ID = u.ITS_ID))', 'left', false);
+    // join invoices for HOF or any FM under that HOF (optimized to avoid correlated subquery)
+    $this->db->join('user iu', 'iu.HOF_ID = u.ITS_ID AND iu.Inactive_Status IS NULL AND (iu.ITS_ID = u.ITS_ID OR EXISTS (SELECT 1 FROM miqaat_invoice WHERE user_id = iu.ITS_ID))', 'left', false);
+    $this->db->join('miqaat_invoice i', 'i.user_id = iu.ITS_ID', 'left');
 
     // join miqaat if available
     $this->db->join('miqaat m', 'm.id = i.miqaat_id', 'left');
-    // join the actual invoice user (HOF or direct FM) to fetch their details
-    $this->db->join('user iu', 'iu.ITS_ID = i.user_id', 'left');
     // also join raza to map historical invoices (assigned to HOF) to the intended FM
     $this->db->join('raza r', 'r.id = i.raza_id', 'left');
     $this->db->join('user fm', 'fm.ITS_ID = r.user_id', 'left');

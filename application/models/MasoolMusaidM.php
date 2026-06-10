@@ -63,7 +63,7 @@ class MasoolMusaidM extends CI_Model
     $this->db->select(
       'u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, 
          u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, 
-         u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector'
+         u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector, u.Inactive_Status, u.activity_status'
     );
     $this->db->from('user u');
     // Left join ashara_ohbat, scoping by year in the JOIN so roster remains when no rows for that year
@@ -72,10 +72,6 @@ class MasoolMusaidM extends CI_Model
     } else {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
     }
-
-    // Add active filter
-    $active_cond = "((u.inactive_status IS NULL OR u.inactive_status = '') AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = ''))";
-    $this->db->where($active_cond, null, false);
 
     $this->db->where('u.Sector', $sector);
     if (!empty($subsector)) {
@@ -89,7 +85,7 @@ class MasoolMusaidM extends CI_Model
     $this->db->select(
       'u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, 
          u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, 
-         u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector'
+         u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector, u.Inactive_Status, u.activity_status'
     );
     $this->db->from('user u');
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
@@ -97,10 +93,6 @@ class MasoolMusaidM extends CI_Model
     } else {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS', 'left');
     }
-
-    // Add active filter
-    $active_cond = "((u.inactive_status IS NULL OR u.inactive_status = '') AND (u.activity_status = 'active' OR u.activity_status IS NULL OR u.activity_status = ''))";
-    $this->db->where($active_cond, null, false);
 
     $this->db->group_start();
     $this->db->like('ao.ITS', $keyword);
@@ -309,7 +301,7 @@ class MasoolMusaidM extends CI_Model
 
   private function get_ashara_attendance($sector, $sub_sector = '', $year = null)
   {
-    $this->db->select('u.ITS_ID, u.HOF_ID, u.Full_Name, u.Mobile, u.Sector, u.Sub_Sector, 
+    $this->db->select('u.ITS_ID, u.HOF_ID, u.Full_Name, u.Mobile, u.Sector, u.Sub_Sector, u.Inactive_Status, u.activity_status, 
         a.Day2, a.Comment2, a.Day3, a.Comment3, a.Day4, a.Comment4, 
         a.Day5, a.Comment5, a.Day6, a.Comment6, a.Day7, a.Comment7, 
         a.Day8, a.Comment8, a.Day9, a.Comment9, a.Ashura, a.CommentAshura');
@@ -329,7 +321,7 @@ class MasoolMusaidM extends CI_Model
 
   public function get_all_attendance($year = null)
   {
-    $this->db->select('u.ITS_ID, u.HOF_ID, u.Full_Name, u.Mobile, u.Sector, u.Sub_Sector, 
+    $this->db->select('u.ITS_ID, u.HOF_ID, u.Full_Name, u.Mobile, u.Sector, u.Sub_Sector, u.Inactive_Status, u.activity_status, 
         a.Day2, a.Comment2, a.Day3, a.Comment3, a.Day4, a.Comment4, 
         a.Day5, a.Comment5, a.Day6, a.Comment6, a.Day7, a.Comment7, 
         a.Day8, a.Comment8, a.Day9, a.Comment9, a.Ashura, a.CommentAshura');
@@ -373,7 +365,7 @@ class MasoolMusaidM extends CI_Model
 
   public function search_attendance_by_sector($keyword, $sector = '', $sub_sector = '', $year = null)
   {
-    $this->db->select('u.ITS_ID, u.HOF_ID, u.Full_Name, u.Mobile, u.Sector, u.Sub_Sector, 
+    $this->db->select('u.ITS_ID, u.HOF_ID, u.Full_Name, u.Mobile, u.Sector, u.Sub_Sector, u.Inactive_Status, u.activity_status, 
         a.Day2, a.Comment2, a.Day3, a.Comment3, a.Day4, a.Comment4, 
         a.Day5, a.Comment5, a.Day6, a.Comment6, a.Day7, a.Comment7, 
         a.Day8, a.Comment8, a.Day9, a.Comment9, a.Ashura, a.CommentAshura');

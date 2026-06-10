@@ -90,7 +90,7 @@ class Anjuman extends CI_Controller
     $h_parts = explode('-', $h_cal['hijri_date']);
     $curr_hijri_year = (int)$h_parts[2];
     $curr_hijri_month = (int)$h_parts[1];
-    $def_year = ($curr_hijri_month >= 10) ? ($curr_hijri_year + 1) : $curr_hijri_year;
+    $def_year = $curr_hijri_year;
 
     $ashara_users = $this->AmilsahebM->get_all_ashara($def_year);
     $possibleStatuses = [
@@ -357,7 +357,7 @@ class Anjuman extends CI_Controller
     $hijri_parts = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts[2];
     $current_hijri_month = (int)$hijri_parts[1];
-    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year);
 
     $ohbat_rows = $this->db->where('year', $selected_year)->get('ashara_ohbat')->result_array();
@@ -2975,7 +2975,7 @@ class Anjuman extends CI_Controller
     $hijri_parts = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts[2];
     $current_hijri_month = (int)$hijri_parts[1];
-    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year);
     // Pull available Hijri years from calendar for the dropdown
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
@@ -3111,7 +3111,7 @@ class Anjuman extends CI_Controller
     $hijri_parts_att = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts_att[2];
     $current_hijri_month_att = (int)$hijri_parts_att[1];
-    $default_year_att = ($current_hijri_month_att >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year_att = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year_att);
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
@@ -4140,6 +4140,15 @@ class Anjuman extends CI_Controller
     rsort($yearsList);
     $data['hijri_years'] = $yearsList;
 
+    // Query Extra Contributions with user sector/subsector details and contri_year for JS year filter
+    $this->db->select('gc.id, gc.amount, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, gc.contri_year, COALESCE(paid.total_received, 0) as paid_amount');
+    $this->db->from('fmb_general_contribution gc');
+    $this->db->join('user u', 'u.ITS_ID = gc.user_id', 'left');
+    $this->db->join('(SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) paid', 'paid.fmbgc_id = gc.id', 'left');
+    $this->db->where('gc.fmb_type', 'Niyaz');
+    $this->db->where('gc.miqaat_type', $miqaat_type);
+    $data['extra_contributions'] = $this->db->get()->result_array();
+
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/MiqaatInvoicePayment', $data);
   }
@@ -4217,6 +4226,28 @@ class Anjuman extends CI_Controller
       $currentHijriYear = $currentHijriYear !== null ? trim((string)$currentHijriYear) : null;
     }
     $data['current_hijri_year'] = $currentHijriYear;
+
+    // Fetch Extra Contributions for JS filtering & summary counts
+    $this->db->select('gc.amount, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, gc.contri_year');
+    $this->db->from('fmb_general_contribution gc');
+    $this->db->join('user u', 'u.ITS_ID = gc.user_id', 'left');
+    $this->db->where('gc.fmb_type', 'Niyaz');
+    $this->db->where('gc.miqaat_type', $miqaat_type);
+    $data['extra_contributions'] = $this->db->get()->result_array();
+
+    // Fetch already-generated invoices to calculate Niyaz & Fala amounts
+    $this->db->select('inv.amount, inv.description, m.assigned_to, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, inv.invoice_year, inv.miqaat_type');
+    $this->db->from('miqaat_invoice inv');
+    $this->db->join('miqaat m', 'm.id = inv.miqaat_id', 'left');
+    $this->db->join('user u', 'u.ITS_ID = inv.user_id', 'left');
+    $this->db->group_start();
+    $this->db->where('m.type', $miqaat_type);
+    $this->db->or_where('inv.miqaat_type', $miqaat_type);
+    $this->db->group_end();
+    if ($razaIdFilter !== '') {
+      $this->db->where('inv.raza_id', $razaIdFilter);
+    }
+    $data['generated_invoices'] = $this->db->get()->result_array();
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/GenerateMiqaatInvoice', $data);
@@ -4322,6 +4353,20 @@ class Anjuman extends CI_Controller
     $data['hijri_years'] = $yearsList;
     $data['current_hijri_year'] = $currentHijriYear; // explicit current hijri year
     $data['selected_year'] = $selectedYear; // currently selected filter year
+
+    // Query Extra Contributions with user sector/subsector details
+    $this->db->select('gc.amount, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID');
+    $this->db->from('fmb_general_contribution gc');
+    $this->db->join('user u', 'u.ITS_ID = gc.user_id', 'left');
+    $this->db->where('gc.fmb_type', 'Niyaz');
+    $this->db->where('gc.miqaat_type', $miqaat_type);
+    if (!empty($selectedYear)) {
+      $this->db->group_start();
+      $this->db->where('gc.contri_year', $selectedYear);
+      $this->db->or_like('gc.contri_year', $selectedYear);
+      $this->db->group_end();
+    }
+    $data['extra_contributions'] = $this->db->get()->result_array();
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/UpdateMiqaatInvoice', $data);
@@ -4435,14 +4480,16 @@ class Anjuman extends CI_Controller
         $miqaat_ids = array_column($miqaats, 'id');
 
         if (!empty($miqaat_ids)) {
-          $all_hofs = $this->db
-            ->distinct()
+          $hasActivityCol = $this->db->field_exists('activity_status', 'user');
+          $this->db->distinct()
             ->select('HOF_ID')
             ->from('user')
             ->where("HOF_FM_TYPE", 'HOF')
-            ->where('Inactive_Status IS NULL')
-            ->get()
-            ->result_array();
+            ->where('(Inactive_Status IS NULL OR Inactive_Status = "")', null, false);
+          if ($hasActivityCol) {
+            $this->db->where("(activity_status = 'active' OR activity_status IS NULL OR activity_status = '')", null, false);
+          }
+          $all_hofs = $this->db->get()->result_array();
           $all_hof_ids = array_column($all_hofs, 'HOF_ID');
 
           $sql = "SELECT DISTINCT member_id AS participant_id

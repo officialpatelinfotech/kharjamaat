@@ -415,10 +415,12 @@ class AmilsahebM extends CI_Model
 
   public function get_all_ashara($year = null)
   {
-    $this->db->select('u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector');
+    $sel = 'u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector, u.Inactive_Status';
+    if ($this->has_activity_status) {
+      $sel .= ', u.activity_status';
+    }
+    $this->db->select($sel);
     $this->db->from('user u');
-    $actFilter = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
-    $this->db->where("((u.inactive_status is null or u.inactive_status = '')$actFilter)", null, false);
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'ao.ITS = u.ITS_ID AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -429,10 +431,12 @@ class AmilsahebM extends CI_Model
 
   public function search_all_ashara($keyword, $year = null)
   {
-    $this->db->select('u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector');
+    $sel = 'u.ITS_ID as ITS, ao.LeaveStatus, ao.Comment, u.Full_Name, u.HOF_ID, u.HOF_FM_TYPE, u.Age, u.Gender, u.Mobile, u.Sector, u.Sub_Sector, u.Inactive_Status';
+    if ($this->has_activity_status) {
+      $sel .= ', u.activity_status';
+    }
+    $this->db->select($sel);
     $this->db->from('user u');
-    $actFilter = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
-    $this->db->where("((u.inactive_status is null or u.inactive_status = '')$actFilter)", null, false);
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'ao.ITS = u.ITS_ID AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -467,8 +471,6 @@ class AmilsahebM extends CI_Model
       'MAX(u.Sector_Incharge_Female_Name) as Sector_Incharge_Female_Name'
     ]);
     $this->db->from('user u');
-    $actFilter = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
-    $this->db->where("((u.inactive_status is null or u.inactive_status = '')$actFilter)", null, false);
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {
@@ -523,8 +525,6 @@ class AmilsahebM extends CI_Model
       'SUM(CASE WHEN ao.LeaveStatus IS NULL OR ao.LeaveStatus = "" THEN 1 ELSE 0 END) as no_status_count'
     ]);
     $this->db->from('user u');
-    $actFilter2 = $this->has_activity_status ? " and (u.activity_status = 'active' or u.activity_status is null or u.activity_status = '')" : '';
-    $this->db->where("((u.inactive_status is null or u.inactive_status = '')$actFilter2)", null, false);
     if (!is_null($year) && $this->db->field_exists('year', 'ashara_ohbat')) {
       $this->db->join('ashara_ohbat ao', 'u.ITS_ID = ao.ITS AND ao.year = ' . $this->db->escape((int)$year), 'left');
     } else {

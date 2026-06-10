@@ -491,7 +491,6 @@
       <li><a class="nav-item" href="<?php echo base_url('common/miqaatattendance?from=amilsaheb') ?>"><span class="nav-icon"><i class="fa fa-users"></i></span><span>Miqaat Attendance</span></a></li>
       <li><a class="nav-item" href="<?php echo base_url('common/thaali_signups_breakdown?from=amilsaheb') ?>"><span class="nav-icon"><i class="fa fa-bar-chart"></i></span><span>FMB Thaali Signups</span></a></li>
       <li><a class="nav-item" href="<?php echo base_url('common/rsvp_list?from=amilsaheb') ?>"><span class="nav-icon"><i class="fa fa-check-square-o"></i></span><span>RSVP Report</span></a></li>
-      <li><a class="nav-item" href="<?php echo base_url('amilsaheb/mumineendirectory') ?>"><span class="nav-icon"><i class="fa fa-address-book"></i></span><span>Mumineen Directory</span></a></li>
     </ul>
 
     <div class="nav-section" data-target="navAppt">Appointments</div>

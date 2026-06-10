@@ -151,6 +151,32 @@ html{background:var(--bg)}
 #ashApp .sc-out{color:var(--purple);font-weight:700}
 #ashApp .sc-none{color:var(--text-3)}
 
+#ashApp select.page-status-select {
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 24px 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a5244' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 8px;
+  max-width: 170px;
+  transition: all 0.15s;
+}
+#ashApp select.page-status-select.sc-maula { background-color: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+#ashApp select.page-status-select.sc-ontime { background-color: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+#ashApp select.page-status-select.sc-late { background-color: var(--amber-bg); color: var(--amber); border-color: var(--amber-border); }
+#ashApp select.page-status-select.sc-other { background-color: var(--amber-bg); color: var(--amber); border-color: var(--amber-border); }
+#ashApp select.page-status-select.sc-absent { background-color: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+#ashApp select.page-status-select.sc-town { background-color: #f1f5f9; color: #334155; border-color: #e2e8f0; }
+#ashApp select.page-status-select.sc-out { background-color: var(--purple-bg); color: var(--purple); border-color: var(--purple); }
+#ashApp select.page-status-select.sc-none { background-color: var(--surface-2); color: var(--text-3); }
+
 /* ── Toast ── */
 #ashApp .ash-toast{position:fixed;top:14px;right:14px;padding:9px 16px;border-radius:10px;font-size:.78rem;font-weight:700;z-index:9999;display:none;box-shadow:var(--sh2);animation:ashTin .25s}
 #ashApp .ash-toast.ok{background:var(--green);color:#fff}
@@ -229,7 +255,8 @@ function ash_stats_card($st, $day) {
 }
 ?>
 <?php
-$can_edit   = in_array($user_name ?? '', ['amilsaheb','jamaat']);
+$role = isset($_SESSION['user']['role']) ? (int)$_SESSION['user']['role'] : 0;
+$can_edit = ($role >= 2 && $role <= 16) || in_array($user_name ?? '', ['amilsaheb','jamaat']);
 $back_href  = isset($back_url) ? $back_url : 'javascript:void(0)';
 $back_attr  = isset($back_url) ? '' : 'onclick="window.history.back()"';
 $jp         = htmlspecialchars(jamaat_place() ?? 'Khar', ENT_QUOTES);
@@ -270,10 +297,15 @@ $initialStatus = $this->input->get('status');
             </div>
           </div>
         </div>
-        <div class="ash-banner-right">
+        <div class="ash-banner-right" style="display: flex; gap: 8px; align-items: center;">
           <div class="ash-count-badge" id="singleDayCount">
             0 shown
           </div>
+          <?php if ($can_edit): ?>
+          <button class="ash-bulk-btn" onclick="ashOM('modBulk')">
+            <i class="fa-solid fa-bolt fa-xs"></i> Bulk Update
+          </button>
+          <?php endif ?>
         </div>
       </div>
     </div>
@@ -310,6 +342,13 @@ $initialStatus = $this->input->get('status');
               <?php foreach (array_unique(array_filter(array_column($users,'Sub_Sector'))) as $sub): ?>
               <option value="<?php echo htmlspecialchars($sub,ENT_QUOTES) ?>"><?php echo htmlspecialchars($sub,ENT_QUOTES) ?></option>
               <?php endforeach ?>
+            </select>
+          <div style="flex:1; min-width:160px;">
+            <label class="ash-lbl" style="margin-bottom:4px;">Member Status</label>
+            <select class="ash-sel" style="margin-bottom:0; height:32px; padding:0 10px;" id="pageMemberStatus" onchange="filterPageDay()">
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="All">All Member Statuses</option>
             </select>
           </div>
           <div style="margin-left:auto;">
@@ -351,7 +390,9 @@ $initialStatus = $this->input->get('status');
             <tr data-its="<?php echo htmlspecialchars($u['ITS_ID']??'',ENT_QUOTES) ?>"
                 data-status="<?php echo htmlspecialchars($s,ENT_QUOTES) ?>"
                 data-sector="<?php echo htmlspecialchars($u['Sector']??'',ENT_QUOTES) ?>"
-                data-sub="<?php echo htmlspecialchars($u['Sub_Sector']??'',ENT_QUOTES) ?>">
+                data-sub="<?php echo htmlspecialchars($u['Sub_Sector']??'',ENT_QUOTES) ?>"
+                data-inactive="<?php echo htmlspecialchars($u['Inactive_Status']??'',ENT_QUOTES) ?>"
+                data-activity="<?php echo htmlspecialchars($u['activity_status']??'',ENT_QUOTES) ?>">
               <td class="sr-num" style="font-weight:700;color:var(--text-3);font-size:.72rem"></td>
               <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['ITS_ID']??'—',ENT_QUOTES) ?></td>
               <td style="font-weight:600; min-width:140px;"><?php echo htmlspecialchars($u['Full_Name']??'—',ENT_QUOTES) ?></td>
@@ -359,7 +400,24 @@ $initialStatus = $this->input->get('status');
               <td style="font-size:.72rem;color:var(--text-2);white-space:nowrap"><?php echo htmlspecialchars($u['Mobile']??'—',ENT_QUOTES) ?></td>
               <td style="font-size:.74rem"><?php echo htmlspecialchars($u['Sector']??'—',ENT_QUOTES) ?></td>
               <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['Sub_Sector']??'—',ENT_QUOTES) ?></td>
-              <td class="<?php echo ash_status_text_class($s) ?>"><?php echo htmlspecialchars($s,ENT_QUOTES) ?></td>
+              <td>
+                <?php if ($can_edit): ?>
+                <select class="page-status-select <?php echo ash_status_text_class($s) ?>"
+                        data-its="<?php echo htmlspecialchars($u['ITS_ID']??'',ENT_QUOTES) ?>"
+                        data-day="<?php echo htmlspecialchars($pageDay,ENT_QUOTES) ?>">
+                  <option value="Not Marked" <?php echo ($s === 'Not Marked' || $s === '') ? 'selected' : '' ?>>Not Marked</option>
+                  <option value="Attended with Maula" <?php echo $s === 'Attended with Maula' ? 'selected' : '' ?>>Attended with Maula</option>
+                  <option value="Attended in <?php echo $jp ?> on Time" <?php echo $s === 'Attended in ' . $jp . ' on Time' ? 'selected' : '' ?>>Attended in <?php echo $jp ?> on Time</option>
+                  <option value="Attended in <?php echo $jp ?> Late" <?php echo $s === 'Attended in ' . $jp . ' Late' ? 'selected' : '' ?>>Attended in <?php echo $jp ?> Late</option>
+                  <option value="Attended in Other Jamaat" <?php echo $s === 'Attended in Other Jamaat' ? 'selected' : '' ?>>Attended in Other Jamaat</option>
+                  <option value="Not attended anywhere" <?php echo $s === 'Not attended anywhere' ? 'selected' : '' ?>>Not attended anywhere</option>
+                  <option value="Not in Town" <?php echo $s === 'Not in Town' ? 'selected' : '' ?>>Not in Town</option>
+                  <option value="Married Outcaste" <?php echo $s === 'Married Outcaste' ? 'selected' : '' ?>>Married Outcaste</option>
+                </select>
+                <?php else: ?>
+                <span class="<?php echo ash_status_text_class($s) ?>"><?php echo htmlspecialchars($s,ENT_QUOTES) ?></span>
+                <?php endif; ?>
+              </td>
               <td style="font-size:.7rem;color:var(--text-3)"><?php echo htmlspecialchars($c,ENT_QUOTES) ?></td>
               <?php if ($can_edit): ?>
               <td>
@@ -404,7 +462,7 @@ $initialStatus = $this->input->get('status');
           <?php endforeach ?>
         </select>
         <?php endif ?>
-        <div class="ash-count-badge">
+        <div class="ash-count-badge" id="dashCountBadge">
           <i class="fa-solid fa-users fa-xs"></i> <?php echo count($users) ?> Mumineen
         </div>
         <?php if ($can_edit): ?>
@@ -454,6 +512,11 @@ $initialStatus = $this->input->get('status');
         <option value="Not attended anywhere">Not attended anywhere</option>
         <option value="Not Marked">Not Marked</option>
       </select>
+      <select class="ash-fsel" id="ashMemberStatus" onchange="ashFilter()">
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+        <option value="All">All Member Statuses</option>
+      </select>
       <button class="ash-export-btn" onclick="ashOM('modExport')">
         <i class="fa-solid fa-download fa-xs"></i> Export
       </button>
@@ -484,7 +547,9 @@ $initialStatus = $this->input->get('status');
               data-its="<?php echo htmlspecialchars($u['ITS_ID']??'',ENT_QUOTES) ?>"
               data-hof="<?php echo htmlspecialchars($u['HOF_ID']??'',ENT_QUOTES) ?>"
               data-sector="<?php echo htmlspecialchars($u['Sector']??'',ENT_QUOTES) ?>"
-              data-sub="<?php echo htmlspecialchars($u['Sub_Sector']??'',ENT_QUOTES) ?>">
+              data-sub="<?php echo htmlspecialchars($u['Sub_Sector']??'',ENT_QUOTES) ?>"
+              data-inactive="<?php echo htmlspecialchars($u['Inactive_Status']??'',ENT_QUOTES) ?>"
+              data-activity="<?php echo htmlspecialchars($u['activity_status']??'',ENT_QUOTES) ?>">
             <td style="font-weight:700;font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['HOF_ID']??'—',ENT_QUOTES) ?></td>
             <td style="font-size:.72rem;color:var(--text-2)"><?php echo htmlspecialchars($u['ITS_ID']??'—',ENT_QUOTES) ?></td>
             <td style="font-weight:600;min-width:130px"><?php echo htmlspecialchars($u['Full_Name']??'—',ENT_QUOTES) ?></td>
@@ -555,9 +620,9 @@ $initialStatus = $this->input->get('status');
           <label class="ash-lbl">Select Day</label>
           <select class="ash-sel" id="bulkDay">
             <?php foreach (range(2,9) as $d): ?>
-            <option value="<?php echo $d ?>">Day <?php echo $d ?></option>
+            <option value="<?php echo $d ?>" <?php echo (isset($pageDay) && $pageDay == $d) ? 'selected' : '' ?>>Day <?php echo $d ?></option>
             <?php endforeach ?>
-            <option value="Ashura">Ashura</option>
+            <option value="Ashura" <?php echo (isset($pageDay) && $pageDay === 'Ashura') ? 'selected' : '' ?>>Ashura</option>
           </select>
         </div>
         <div>
@@ -732,6 +797,8 @@ function ashFilter(){
   const sec=(document.getElementById('ashSector').value||'').toLowerCase();
   const sub=(document.getElementById('ashSub').value||'').toLowerCase();
   const commonStatus = document.getElementById('ashCommonStatus').value;
+  const memStatusSel = document.getElementById('ashMemberStatus');
+  const memStatus = memStatusSel ? memStatusSel.value : 'Active';
   
   let vis=0;
   document.querySelectorAll('#ashTbody tr').forEach(tr=>{
@@ -739,6 +806,14 @@ function ashFilter(){
     if(q&&!( tr.dataset.name.includes(q)||tr.dataset.its.includes(q)||tr.dataset.hof.includes(q)||tr.dataset.sector.toLowerCase().includes(q)))show=false;
     if(sec&&tr.dataset.sector.toLowerCase()!==sec)show=false;
     if(sub&&tr.dataset.sub.toLowerCase()!==sub)show=false;
+    
+    if (memStatus !== 'All' && show) {
+      const inact = (tr.dataset.inactive || '').trim();
+      const act = (tr.dataset.activity || '').toLowerCase().trim();
+      const isAct = !inact && (!act || act === 'active');
+      if (memStatus === 'Active' && !isAct) show = false;
+      if (memStatus === 'Inactive' && isAct) show = false;
+    }
     
     if(commonStatus && show){
       const btns=tr.querySelectorAll('.ab');
@@ -764,6 +839,8 @@ function ashFilter(){
   });
   const rc=document.getElementById('ashResultCount');
   if(rc)rc.innerHTML=`<span>${vis}</span> members shown`;
+  const cb=document.getElementById('dashCountBadge');
+  if(cb)cb.innerHTML=`<i class="fa-solid fa-users fa-xs"></i> ${vis} Mumineen`;
 }
 
 /* ── Stats card → Single Day details view redirect ── */
@@ -804,7 +881,17 @@ function ashBulkUpdate(){
     body:JSON.stringify({its_list:itsList,day,status,...(year?{year}:{})})
   }).then(r=>r.ok?r.json():Promise.reject(r))
   .then(()=>{ashCM('modBulk');ashToast('Bulk update successful','ok');location.reload()})
-  .catch(()=>ashToast('Bulk update failed','er'));
+  .catch(err => {
+    console.error(err);
+    if (err instanceof Response) {
+      err.text().then(t => {
+        console.error("Response text:", t);
+        ashToast('Bulk update failed: ' + t.slice(0, 50), 'er');
+      });
+    } else {
+      ashToast('Bulk update failed: ' + err.message, 'er');
+    }
+  });
 }
 
 /* ── Export CSV ── */
@@ -842,24 +929,30 @@ function filterPageDay() {
   const statusSel = document.getElementById('pageStatus');
   const sectorSel = document.getElementById('pageSector');
   const subSel = document.getElementById('pageSub');
+  const memStatusSel = document.getElementById('pageMemberStatus');
   
   if (!statusSel || !sectorSel || !subSel) return;
   
   const st = statusSel.value.toLowerCase().trim();
   const sec = sectorSel.value.toLowerCase().trim();
   const sub = subSel.value.toLowerCase().trim();
+  const memStatus = memStatusSel ? memStatusSel.value : 'Active';
   
   let visibleCount = 0;
   document.querySelectorAll('#pageDayBody tr').forEach(tr => {
     const trStatus = (tr.dataset.status || '').toLowerCase().trim();
     const trSector = (tr.dataset.sector || '').toLowerCase().trim();
     const trSub = (tr.dataset.sub || '').toLowerCase().trim();
+    const trInactive = (tr.dataset.inactive || '').trim();
+    const trActivity = (tr.dataset.activity || '').toLowerCase().trim();
+    const isAct = !trInactive && (!trActivity || trActivity === 'active');
     
     const matchesStatus = !st || trStatus === st || (st === 'not marked' && (trStatus === '' || trStatus === 'not marked'));
     const matchesSector = !sec || trSector === sec;
     const matchesSub = !sub || trSub === sub;
+    const matchesMemStatus = memStatus === 'All' || (memStatus === 'Active' ? isAct : !isAct);
     
-    if (matchesStatus && matchesSector && matchesSub) {
+    if (matchesStatus && matchesSector && matchesSub && matchesMemStatus) {
       tr.style.display = '';
       visibleCount++;
       const srCell = tr.querySelector('.sr-num');
@@ -893,8 +986,13 @@ function sortPageDay(col) {
   
   const rows = Array.from(tbody.querySelectorAll('tr'));
   rows.sort((a, b) => {
-    const cellA = a.children[col].textContent.trim().toLowerCase();
-    const cellB = b.children[col].textContent.trim().toLowerCase();
+    const getVal = (td) => {
+      const select = td.querySelector('select');
+      if (select) return select.value.trim().toLowerCase();
+      return td.textContent.trim().toLowerCase();
+    };
+    const cellA = getVal(a.children[col]);
+    const cellB = getVal(b.children[col]);
     
     const numA = parseInt(cellA, 10);
     const numB = parseInt(cellB, 10);
@@ -954,9 +1052,65 @@ document.querySelector('#pageDayTable tbody')?.addEventListener('click', e => {
   }
 });
 
+document.querySelector('#pageDayTable tbody')?.addEventListener('change', e => {
+  if (e.target.classList.contains('page-status-select')) {
+    const select = e.target;
+    const its = select.dataset.its;
+    const day = select.dataset.day;
+    const status = select.value;
+    const year = typeof yearSel !== 'undefined' && yearSel ? yearSel.value : SELECTED_YEAR;
+    
+    select.style.opacity = '0.5';
+    
+    fetch(BASE_URL + 'MasoolMusaid/update_attendance', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ its, day, status, comment: '', year })
+    })
+    .then(r => r.ok ? r.json() : Promise.reject(r))
+    .then(res => {
+      select.style.opacity = '1';
+      if (res && res.success) {
+        const tr = select.closest('tr');
+        if (tr) {
+          tr.dataset.status = status;
+          const editBtn = tr.querySelector('.ash-edit-mini');
+          if (editBtn) {
+            editBtn.dataset.status = status;
+          }
+        }
+        select.className = 'page-status-select ' + stCls(status);
+        filterPageDay();
+        ashToast('Attendance updated', 'ok');
+      } else {
+        throw new Error();
+      }
+    })
+    .catch(err => {
+      select.style.opacity = '1';
+      const tr = select.closest('tr');
+      if (tr) {
+        select.value = tr.dataset.status || 'Not Marked';
+        select.className = 'page-status-select ' + stCls(tr.dataset.status);
+      }
+      if (err instanceof Response) {
+        err.text().then(t => {
+          console.error("Response text:", t);
+          ashToast('Update failed: ' + t.slice(0, 50), 'er');
+        });
+      } else {
+        ashToast('Update failed: ' + err.message, 'er');
+      }
+    });
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   if (pageDay) {
     filterPageDay();
+  } else {
+    ashFilter();
   }
 });
 </script>

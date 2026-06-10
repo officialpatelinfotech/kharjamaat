@@ -27,7 +27,7 @@
       <!-- <h5 class="mb-0 text-center">Invoice List</h5> -->
     </div>
     <div class="card-body p-0 table-responsive">
-      <table class="table table-bordered">
+      <table class="table table-bordered" style="min-width: 1000px;">
         <thead>
           <tr>
             <th>#</th>
@@ -94,7 +94,7 @@
   <div class="col-12 mt-4">
     <div class="card-header"></div>
     <div class="card-body p-0 table-responsive">
-      <table class="table table-bordered">
+      <table class="table table-bordered" style="min-width: 1000px;">
         <thead>
           <tr>
             <th>#</th>

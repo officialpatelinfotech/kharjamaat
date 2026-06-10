@@ -1,124 +1,295 @@
-<div class="margintopcontainer mx-2 mx-md-5 pt-3">
-  <style>
-    /* Slightly widen the Payment History modal on larger screens */
-    @media (min-width: 576px) {
-      #memberPaymentsModal .modal-dialog {
-        max-width: 95% !important;
-        width: 95%;
-      }
+<style>
+  :root {
+    --gold: #b8860b;
+    --gold-light: #e6c84a;
+    --gold-muted: #f5e9c0;
+    --bg: #faf7f0;
+    --surface: #fff;
+    --surface-2: #f7f4ec;
+    --border: #e8e0cc;
+    --text-1: #1a1610;
+    --text-2: #5a5244;
+    --text-3: #9c8f7a;
+    --green: #1a6645;
+    --green-bg: #eaf4ee;
+    --green-border: rgba(26,102,69,.25);
+    --red: #b91c1c;
+    --red-bg: #fef2f2;
+    --red-border: rgba(185,28,28,.2);
+    --blue: #1d4ed8;
+    --blue-bg: #eff6ff;
+    --blue-border: rgba(29,78,216,.2);
+    --amber: #b45309;
+    --amber-bg: #fffbeb;
+    --amber-border: rgba(180,83,9,.2);
+    --sh: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --sh2: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+  }
+
+  body {
+    background-color: var(--bg) !important;
+  }
+
+  /* ── Banner ── */
+  .miqaat-banner {
+    background: linear-gradient(135deg, #78520a 0%, var(--gold) 60%, #c9a227 100%);
+    padding: 16px 20px;
+    border-radius: 12px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--sh);
+  }
+  .miqaat-banner::after {
+    content: '';
+    position: absolute;
+    right: -60px;
+    top: -60px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .miqaat-banner-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+  }
+  .miqaat-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .miqaat-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.3);
+    background: rgba(255,255,255,.15);
+    color: #fff !important;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none !important;
+    transition: background .15s;
+    backdrop-filter: blur(4px);
+  }
+  .miqaat-back:hover {
+    background: rgba(255,255,255,.25);
+  }
+  .miqaat-banner-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+  }
+  .miqaat-banner-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,.75);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* ── Filters Card ── */
+  .miqaat-filters-card {
+    background: var(--surface);
+    border: 1px solid var(--border) !important;
+    border-radius: 12px;
+    box-shadow: var(--sh);
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .miqaat-filters-card label {
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .miqaat-filters-card input,
+  .miqaat-filters-card select {
+    height: 34px !important;
+    border-radius: 8px !important;
+    border: 1.5px solid var(--border) !important;
+    background: var(--surface-2) !important;
+    font-size: 13px !important;
+    color: var(--text-1) !important;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .miqaat-filters-card input:focus,
+  .miqaat-filters-card select:focus {
+    border-color: var(--gold) !important;
+    background: var(--surface) !important;
+    box-shadow: none !important;
+  }
+
+  /* ── Stats grid ── */
+  .miqaat-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .miqaat-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--sh);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .miqaat-stat-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-2);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    margin-top: 4px;
+    border-bottom: 1px dashed rgba(0,0,0,0.05);
+    padding-bottom: 4px;
+  }
+  .stat-breakdown-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .stat-breakdown-row span {
+    font-weight: 500;
+    color: var(--text-2);
+  }
+  .stat-breakdown-row strong {
+    font-weight: 700;
+  }
+
+  /* ── Table Card ── */
+  .miqaat-table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--sh);
+    overflow: hidden;
+    margin-bottom: 30px;
+  }
+  .miqaat-table-responsive {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .miqaat-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+  }
+  .miqaat-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--text-1) !important;
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border: none;
+    border-bottom: 2px solid var(--border);
+  }
+  .miqaat-table tbody tr {
+    transition: background-color 0.15s;
+  }
+  .miqaat-table tbody tr:nth-of-type(even) {
+    background-color: var(--surface-2);
+  }
+  .miqaat-table tbody tr:hover {
+    background-color: rgba(184, 134, 11, 0.05);
+  }
+  .miqaat-table tbody td {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .miqaat-table tbody td b {
+    color: var(--text-1);
+  }
+
+  /* Prevent long text from forcing table overflow */
+  .km-table-fixed {
+    table-layout: fixed;
+    width: 100%;
+    min-width: 1720px;
+  }
+  .km-table-fixed th,
+  .km-table-fixed td {
+    overflow-wrap: anywhere;
+  }
+  .km-cell-nowrap {
+    white-space: nowrap;
+  }
+  .km-cell-wrap {
+    white-space: normal;
+  }
+  .km-actions {
+    white-space: nowrap;
+  }
+  
+  /* Flash highlight for updated rows */
+  .flash-highlight {
+    animation: km-flash-bg 1.2s ease-in-out 1;
+  }
+  @keyframes km-flash-bg {
+    0% {
+      background-color: #fff3cd;
     }
-
-    /* Allow natural column widths (auto layout) */
-    .km-flex-columns th,
-    .km-flex-columns td {
-      word-break: break-word;
+    100% {
+      background-color: transparent;
     }
+  }
 
-    /* Prevent long text from forcing table overflow */
-    .km-table-fixed {
-      table-layout: fixed;
-      width: 100%;
+  /* Sortable headers */
+  th.km-sortable {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  th.km-sortable .sort-indicator {
+    font-size: 11px;
+    margin-left: 4px;
+    opacity: 0.8;
+  }
+  
+  /* Visually disable buttons but keep them clickable to show reason */
+  .km-disabled-btn {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  /* Stacked modals z-indexing */
+  @media (min-width: 576px) {
+    #memberPaymentsModal .modal-dialog {
+      max-width: 95% !important;
+      width: 95%;
     }
+  }
+</style>
 
-    .km-table-fixed th,
-    .km-table-fixed td {
-      overflow-wrap: anywhere;
-    }
-
-    .km-cell-nowrap {
-      white-space: nowrap;
-    }
-
-    .km-cell-wrap {
-      white-space: normal;
-    }
-
-    .km-actions {
-      white-space: nowrap;
-    }
-
-    /* Flash highlight for updated rows */
-    .flash-highlight {
-      animation: km-flash-bg 1.2s ease-in-out 1;
-    }
-
-    @keyframes km-flash-bg {
-      0% {
-        background-color: #fff3cd;
-      }
-
-      /* light warning */
-      100% {
-        background-color: transparent;
-      }
-    }
-
-    /* Table accent theme */
-    .km-table-accent thead.thead-light th {
-      background-color: #e9f3ff;
-      /* soft primary tint */
-      color: #0b5ed7;
-      border-color: #cfe2ff;
-    }
-
-    .km-table-accent tbody tr:nth-of-type(odd) {
-      background-color: #f8fbff;
-    }
-
-    .km-table-accent tbody tr:hover {
-      background-color: #eef7ff;
-    }
-
-    .km-table-accent tfoot th {
-      background-color: #f1f6ff;
-      border-top: 2px solid #cfe2ff;
-    }
-
-    /* Sortable headers */
-    th.km-sortable {
-      cursor: pointer;
-      position: relative;
-      user-select: none;
-    }
-
-    /* Visually disable buttons but keep them clickable to show reason */
-    .km-disabled-btn {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    th.km-sortable .sort-indicator {
-      font-size: 11px;
-      margin-left: 4px;
-      color: #666;
-    }
-
-    th.km-sortable[data-sort-dir="asc"] .sort-indicator {
-      color: #0b5ed7;
-    }
-
-    th.km-sortable[data-sort-dir="desc"] .sort-indicator {
-      color: #0b5ed7;
-    }
-
-    #miqaat-payment-filters label {
-      font-weight: 600;
-      font-size: 12px;
-    }
-
-    #miqaat-payment-filters input,
-    #miqaat-payment-filters select {
-      font-size: 13px;
-    }
-  </style>
-  <div class="row">
-    <div class="col-12">
-      <div class="col-12 col-md-6 m-0 mb-2">
-        <a href="<?php echo base_url("anjuman/fmbniyaz") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
-      </div>
-    </div>
-  </div>
-
+<div class="margintopcontainer mx-2 mx-md-5 pt-3" style="font-family:'Plus Jakarta Sans',sans-serif;">
   <?php
   $members = [];
   if (isset($member_miqaat_payments)) {
@@ -170,18 +341,54 @@
   } elseif (!empty($filter_hijri_years)) {
     $default_hijri_year = $filter_hijri_years[0];
   }
+
+  $title_display_year = $default_hijri_year;
+
+  if (!function_exists('inr_format')) {
+    function inr_format($num)
+    {
+      $num = (int)round($num);
+      $n = (string)$num;
+      if (strlen($n) <= 3) return $n; // no grouping needed
+      $last3 = substr($n, -3);
+      $rest = substr($n, 0, -3);
+      $rest = preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', $rest);
+      return $rest . ',' . $last3;
+    }
+  }
   ?>
 
-  <?php if (!empty($members)) : ?>
-    <div id="miqaat-payment-filters" class="p-3 bg-light border m-3">
-      <div class="form-row">
-        <div class="col-md-2 mb-2">
-          <label for="pf-name" class="mb-1 text-muted">Name or ITS</label>
-          <input type="text" id="pf-name" class="form-control form-control-sm" placeholder="Search name or ITS...">
+  <!-- Premium Banner -->
+  <div class="miqaat-banner">
+    <div class="miqaat-banner-inner">
+      <div class="miqaat-banner-left">
+        <a href="<?php echo base_url("anjuman/fmbniyaz") ?>" class="miqaat-back">
+          <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+        <div>
+          <div class="miqaat-banner-title">
+            <i class="fa-solid fa-credit-card" style="margin-right:6px"></i>
+            <?php echo isset($miqaat_type) ? htmlspecialchars($miqaat_type) : ''; ?> Miqaat Invoice Payments
+            <span id="payment-title-hijri-year" style="font-size:0.9em; font-weight:normal; opacity:0.85; margin-left:4px;">
+              <?php echo $title_display_year ? '(Hijri ' . htmlspecialchars($title_display_year) . ')' : ''; ?>
+            </span>
+          </div>
+          <div class="miqaat-banner-sub">View and receive payments for the selected year</div>
         </div>
-        <div class="col-md-2 mb-2">
-          <label for="pf-sector" class="mb-1 text-muted">Sector</label>
-          <select id="pf-sector" class="form-control form-control-sm">
+      </div>
+    </div>
+  </div>
+
+  <?php if (!empty($members)) : ?>
+    <div id="miqaat-payment-filters" class="miqaat-filters-card">
+      <div class="form-row">
+        <div class="col-md-3 mb-2">
+          <label for="pf-name">Name or ITS</label>
+          <input type="text" id="pf-name" class="form-control" placeholder="Search name or ITS...">
+        </div>
+        <div class="col-md-3 mb-2">
+          <label for="pf-sector">Sector</label>
+          <select id="pf-sector" class="form-control">
             <option value="">All Sectors</option>
             <?php if (!empty($sectors)) : foreach ($sectors as $s) : if ($s === '') continue; ?>
                 <option value="<?php echo htmlspecialchars(strtolower($s), ENT_QUOTES); ?>"><?php echo htmlspecialchars($s); ?></option>
@@ -189,9 +396,9 @@
             endif; ?>
           </select>
         </div>
-        <div class="col-md-2 mb-2">
-          <label for="pf-subsector" class="mb-1 text-muted">Sub Sector</label>
-          <select id="pf-subsector" class="form-control form-control-sm">
+        <div class="col-md-3 mb-2">
+          <label for="pf-subsector">Sub Sector</label>
+          <select id="pf-subsector" class="form-control">
             <option value="">All Sub Sectors</option>
             <?php if (!empty($sub_sectors)) : foreach ($sub_sectors as $ss) : if ($ss === '') continue; ?>
                 <option value="<?php echo htmlspecialchars(strtolower($ss), ENT_QUOTES); ?>"><?php echo htmlspecialchars($ss); ?></option>
@@ -200,8 +407,8 @@
           </select>
         </div>
         <div class="col-md-2 mb-2">
-          <label for="pf-year" class="mb-1 text-muted">Hijri Year</label>
-          <select id="pf-year" class="form-control form-control-sm" data-default-year="<?php echo htmlspecialchars($default_hijri_year, ENT_QUOTES); ?>">
+          <label for="pf-year">Hijri Year</label>
+          <select id="pf-year" class="form-control" data-default-year="<?php echo htmlspecialchars($default_hijri_year, ENT_QUOTES); ?>">
             <option value="">All Years</option>
             <?php if (!empty($filter_hijri_years)) : foreach ($filter_hijri_years as $y) : ?>
                 <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ($default_hijri_year === $y ? 'selected' : ''); ?>><?php echo htmlspecialchars($y); ?></option>
@@ -209,43 +416,12 @@
             endif; ?>
           </select>
         </div>
-        <div class="col-md-2 mb-2 d-flex align-items-end">
-          <button type="button" id="pf-clear" class="btn btn-outline-secondary btn-sm w-100">Clear Filters</button>
+        <div class="col-md-1 mb-2 d-flex align-items-end">
+          <button type="button" id="pf-clear" class="btn btn-outline-secondary w-100" style="height:34px; border-radius:8px;">Clear</button>
         </div>
       </div>
     </div>
   <?php endif; ?>
-
-  <div class="col-12 mb-3">
-    <?php
-    // Prefer current Hijri year passed from controller; fallback will be updated later by JS when default year inferred.
-    $title_display_year = '';
-    if (isset($current_hijri_year) && $current_hijri_year !== '') {
-      $title_display_year = $current_hijri_year;
-    }
-
-    // Simple helper for Indian number grouping without decimals (e.g., 1234567 -> 12,34,567)
-    if (!function_exists('inr_format')) {
-      function inr_format($num)
-      {
-        $num = (int)round($num);
-        $n = (string)$num;
-        if (strlen($n) <= 3) return $n; // no grouping needed
-        $last3 = substr($n, -3);
-        $rest = substr($n, 0, -3);
-        $rest = preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', $rest);
-        return $rest . ',' . $last3;
-      }
-    }
-    ?>
-    <h4 class="heading text-center mb-0">
-      <span class="text-primary"><?php echo isset($miqaat_type) ? $miqaat_type : ''; ?></span>
-      Miqaat Invoice Payments
-      <span id="payment-title-hijri-year" class="text-muted" style="font-size:0.9em;">
-        <?php echo $title_display_year ? '(Hijri ' . htmlspecialchars($title_display_year) . ')' : ''; ?>
-      </span>
-    </h4>
-  </div>
 
   <?php
   // Prefer full Hijri years list passed from controller (hijri_calendar); fallback to deriving from invoice data.
@@ -370,26 +546,40 @@
   <?php if (empty($members)) : ?>
     <div class="col-12 alert alert-info">No invoices found for members.</div>
   <?php else : ?>
-    <div class="d-flex flex-wrap justify-content-between align-items-center p-2 bg-white border mb-3 col-10 mx-auto" style="border-radius:10px; gap:10px;">
-      <div>
-        <strong>Total Invoiced:</strong>
-        <span id="miqaat-payment-total-amount" class="text-primary">₹<?php echo inr_format($grand_total); ?></span>
-      </div>
-      <div>
-        <strong>Total Collected:</strong>
-        <span id="miqaat-payment-total-collected" class="text-success">₹<?php echo inr_format($grand_collected_total); ?></span>
-      </div>
-      <div>
-        <strong>Total Due:</strong>
-        <span id="miqaat-payment-total-due" class="text-danger">₹<?php echo inr_format($grand_due_total); ?></span>
-      </div>
-      <div class="text-dark">
-        Invoices shown:
-        <span id="miqaat-payment-invoices-count"><?php echo isset($rows) && is_array($rows) ? count($rows) : 0; ?></span>
-      </div>
+  <div class="miqaat-stats-grid">
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Overall Totals</div>
+      <div class="stat-breakdown-row text-primary"><span>Invoiced:</span> <strong id="overall-invoiced">₹0</strong></div>
+      <div class="stat-breakdown-row text-success"><span>Collected:</span> <strong id="overall-collected">₹0</strong></div>
+      <div class="stat-breakdown-row text-danger"><span>Due:</span> <strong id="overall-due">₹0</strong></div>
     </div>
-    <div class="col-12 table-responsive">
-      <table class="table table-striped table-bordered km-flex-columns km-table-accent km-table-fixed" id="miqaat-payments-table">
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Individual Niyaz</div>
+      <div class="stat-breakdown-row text-primary"><span>Invoiced:</span> <strong id="individual-invoiced">₹0</strong></div>
+      <div class="stat-breakdown-row text-success"><span>Collected:</span> <strong id="individual-collected">₹0</strong></div>
+      <div class="stat-breakdown-row text-danger"><span>Due:</span> <strong id="individual-due">₹0</strong></div>
+    </div>
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Fala ni Niyaz</div>
+      <div class="stat-breakdown-row text-primary"><span>Invoiced:</span> <strong id="fala-invoiced">₹0</strong></div>
+      <div class="stat-breakdown-row text-success"><span>Collected:</span> <strong id="fala-collected">₹0</strong></div>
+      <div class="stat-breakdown-row text-danger"><span>Due:</span> <strong id="fala-due">₹0</strong></div>
+    </div>
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Extra Contribution</div>
+      <div class="stat-breakdown-row text-primary"><span>Invoiced:</span> <strong id="extra-invoiced">₹0</strong></div>
+      <div class="stat-breakdown-row text-success"><span>Collected:</span> <strong id="extra-collected">₹0</strong></div>
+      <div class="stat-breakdown-row text-danger"><span>Due:</span> <strong id="extra-due">₹0</strong></div>
+    </div>
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Invoices Shown</div>
+      <div class="miqaat-stat-value text-dark" id="miqaat-payment-invoices-count">0</div>
+    </div>
+  </div>
+
+  <div class="miqaat-table-card mt-3">
+    <div class="miqaat-table-responsive">
+      <table class="miqaat-table" id="miqaat-payments-table">
         <colgroup>
           <col style="width: 44px;">
           <col style="width: 128px;">
@@ -406,7 +596,7 @@
           <col style="width: 96px;">
           <col style="width: 160px;">
         </colgroup>
-        <thead class="thead-light">
+        <thead class="thead-dark table-dark">
           <tr>
             <th class="km-sortable" data-sort-key="index" data-sort-type="number"># <span class="sort-indicator"></span></th>
             <th class="km-sortable" data-sort-key="date" data-sort-type="date">Date <span class="sort-indicator"></span></th>
@@ -513,6 +703,7 @@
         </tbody>
       </table>
     </div>
+  </div>
     <!-- Member Payments Modal -->
     <div class="modal fade" id="memberPaymentsModal" tabindex="-1" role="dialog" aria-labelledby="memberPaymentsModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
@@ -625,6 +816,7 @@
     </div>
 
     <script>
+      const extraContributions = <?php echo json_encode($extra_contributions ?? []); ?>;
       (function() {
         function currency(n) {
           if (n === undefined || n === null) return '₹0';
@@ -661,16 +853,21 @@
         // Filters for invoice list (name/its/sector/sub-sector/year) with totals
         function applyPaymentFilters() {
           const nameVal = (document.getElementById('pf-name').value || '').trim().toLowerCase();
-          const sectorVal = (document.getElementById('pf-sector').value || '').trim();
-          const subVal = (document.getElementById('pf-subsector').value || '').trim();
-          const yearVal = (document.getElementById('pf-year').value || '').trim();
+          const sectorVal = (document.getElementById('pf-sector').value || '').trim().toLowerCase();
+          const subVal = (document.getElementById('pf-subsector').value || '').trim().toLowerCase();
+          const yearVal = (document.getElementById('pf-year').value || '').trim().toLowerCase();
 
           const rows = document.querySelectorAll('#miqaat-payments-table tbody tr.miqaat-payment-row');
           let index = 1;
           let visibleCount = 0;
-          let visibleAmountTotal = 0;
-          let visibleCollectedTotal = 0;
-          let visibleDueTotal = 0;
+
+          let individualInvoiced = 0;
+          let individualCollected = 0;
+          let individualDue = 0;
+
+          let falaInvoiced = 0;
+          let falaCollected = 0;
+          let falaDue = 0;
 
           rows.forEach(r => {
             const rName = (r.getAttribute('data-name') || '').trim();
@@ -683,7 +880,7 @@
             if (nameVal && rName.indexOf(nameVal) === -1 && rIts.indexOf(nameVal) === -1) show = false;
             if (sectorVal && rSector !== sectorVal) show = false;
             if (subVal && rSub !== subVal) show = false;
-            if (yearVal && rYear !== yearVal) show = false;
+            if (yearVal && rYear.toLowerCase() !== yearVal) show = false;
 
             if (!show) {
               r.style.display = 'none';
@@ -695,20 +892,87 @@
             if (firstCell) firstCell.textContent = index++;
 
             visibleCount += 1;
-            visibleAmountTotal += parseFloat(r.getAttribute('data-amount') || '0') || 0;
-            visibleCollectedTotal += parseFloat(r.getAttribute('data-paid') || '0') || 0;
-            visibleDueTotal += parseFloat(r.getAttribute('data-due') || '0') || 0;
+            
+            const amt = parseFloat(r.getAttribute('data-amount') || '0') || 0;
+            const paid = parseFloat(r.getAttribute('data-paid') || '0') || 0;
+            const due = parseFloat(r.getAttribute('data-due') || '0') || 0;
+            const assignedTo = (r.getAttribute('data-assigned-to') || '').trim();
+            if (assignedTo === 'fala ni niyaz' || assignedTo.startsWith('fala ni niyaz')) {
+              falaInvoiced += amt;
+              falaCollected += paid;
+              falaDue += due;
+            } else {
+              individualInvoiced += amt;
+              individualCollected += paid;
+              individualDue += due;
+            }
           });
 
-          const totalEl = document.getElementById('miqaat-payment-total-amount');
-          if (totalEl) totalEl.textContent = currency(visibleAmountTotal);
+          let extraInvoiced = 0;
+          let extraCollected = 0;
+          let extraDue = 0;
 
-          const collectedEl = document.getElementById('miqaat-payment-total-collected');
-          if (collectedEl) collectedEl.textContent = currency(visibleCollectedTotal);
+          extraContributions.forEach(function(c) {
+            const cName = (c.Full_Name || '').trim().toLowerCase();
+            const cIts = (c.ITS_ID || '').trim().toLowerCase();
+            const cSector = (c.Sector || '').trim().toLowerCase();
+            const cSub = (c.Sub_Sector || '').trim().toLowerCase();
+            const cYear = (c.contri_year || '').trim().toLowerCase();
 
-          const dueEl = document.getElementById('miqaat-payment-total-due');
-          if (dueEl) dueEl.textContent = currency(visibleDueTotal);
+            let show = true;
+            if (nameVal && cName.indexOf(nameVal) === -1 && cIts.indexOf(nameVal) === -1) show = false;
+            if (sectorVal && cSector !== sectorVal) show = false;
+            if (subVal && cSub !== subVal) show = false;
+            if (yearVal && !cYear.includes(yearVal)) show = false;
 
+            if (show) {
+              const amt = parseFloat(c.amount || '0') || 0;
+              const paid = parseFloat(c.paid_amount || '0') || 0;
+              const due = Math.max(0, amt - paid);
+              extraInvoiced += amt;
+              extraCollected += paid;
+              extraDue += due;
+            }
+          });
+
+          // Overall totals
+          const overallInvoiced = individualInvoiced + falaInvoiced + extraInvoiced;
+          const overallCollected = individualCollected + falaCollected + extraCollected;
+          const overallDue = individualDue + falaDue + extraDue;
+
+          // Populate Overall Totals
+          const oInv = document.getElementById('overall-invoiced');
+          if (oInv) oInv.textContent = currency(overallInvoiced);
+          const oCol = document.getElementById('overall-collected');
+          if (oCol) oCol.textContent = currency(overallCollected);
+          const oDue = document.getElementById('overall-due');
+          if (oDue) oDue.textContent = currency(overallDue);
+
+          // Populate Individual Niyaz
+          const iInv = document.getElementById('individual-invoiced');
+          if (iInv) iInv.textContent = currency(individualInvoiced);
+          const iCol = document.getElementById('individual-collected');
+          if (iCol) iCol.textContent = currency(individualCollected);
+          const iDue = document.getElementById('individual-due');
+          if (iDue) iDue.textContent = currency(individualDue);
+
+          // Populate Fala ni Niyaz
+          const fInv = document.getElementById('fala-invoiced');
+          if (fInv) fInv.textContent = currency(falaInvoiced);
+          const fCol = document.getElementById('fala-collected');
+          if (fCol) fCol.textContent = currency(falaCollected);
+          const fDue = document.getElementById('fala-due');
+          if (fDue) fDue.textContent = currency(falaDue);
+
+          // Populate Extra Contribution
+          const eInv = document.getElementById('extra-invoiced');
+          if (eInv) eInv.textContent = currency(extraInvoiced);
+          const eCol = document.getElementById('extra-collected');
+          if (eCol) eCol.textContent = currency(extraCollected);
+          const eDue = document.getElementById('extra-due');
+          if (eDue) eDue.textContent = currency(extraDue);
+
+          // Populate Count
           const countEl = document.getElementById('miqaat-payment-invoices-count');
           if (countEl) countEl.textContent = String(visibleCount);
         }

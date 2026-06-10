@@ -443,7 +443,7 @@ class MasoolMusaid extends CI_Controller
     $hijri_parts = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts[2];
     $current_hijri_month = (int)$hijri_parts[1];
-    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year);
 
     $ohbat_rows = $this->db->where('year', $selected_year)->get('ashara_ohbat')->result_array();
@@ -512,7 +512,7 @@ class MasoolMusaid extends CI_Controller
     $hijri_parts = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts[2];
     $current_hijri_month = (int)$hijri_parts[1];
-    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year);
     // Fetch available Hijri years from calendar (fallback to +/-1 range if empty)
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
@@ -668,7 +668,7 @@ class MasoolMusaid extends CI_Controller
     $hijri_parts_att = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts_att[2];
     $current_hijri_month_att = (int)$hijri_parts_att[1];
-    $default_year_att = ($current_hijri_month_att >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year_att = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year_att);
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
@@ -821,22 +821,24 @@ class MasoolMusaid extends CI_Controller
       show_error('Invalid data provided.', 400);
     }
 
+    $dayColumn = ($day === 'Ashura' || strpos((string)$day, 'Day') === 0) ? $day : 'Day' . $day;
+
     foreach ($its_list as $its) {
       if ($this->db->field_exists('year', 'ashara_attendance')) {
         // Try update first
         $this->db->where('ITS', $its)->where('year', $year);
         $exists = $this->db->get('ashara_attendance')->row();
         if ($exists) {
-          $this->db->where('ITS', $its)->where('year', $year)->update('ashara_attendance', [ $day => $status ]);
+          $this->db->where('ITS', $its)->where('year', $year)->update('ashara_attendance', [ $dayColumn => $status ]);
         } else {
-          $row = [ 'ITS' => $its, 'year' => $year, $day => $status ];
+          $row = [ 'ITS' => $its, 'year' => $year, $dayColumn => $status ];
           $this->db->insert('ashara_attendance', $row);
         }
       } else {
-        $this->db->where('ITS', $its)->update('ashara_attendance', [ $day => $status ]);
+        $this->db->where('ITS', $its)->update('ashara_attendance', [ $dayColumn => $status ]);
       }
     }
-    echo 'success';
+    $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true]));
   }
 
   // Updated by Patel Infotech Services

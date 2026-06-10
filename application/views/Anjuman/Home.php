@@ -436,7 +436,6 @@ if (!function_exists('format_inr')) {
 
       <div class="menu-section">Activity</div>
       <ul class="menu-list">
-        <li><a class="menu-item" href="<?php echo base_url('anjuman/mumineendirectory') ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Mumineen Directory</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>

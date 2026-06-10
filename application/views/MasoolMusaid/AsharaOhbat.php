@@ -283,11 +283,11 @@
   <!-- Filter Section -->
   <div class="filter-section mt-2">
     <div class="row">
-      <div class="col-md-8">
+      <div class="col-md-6">
         <input type="text" id="searchInput" placeholder="Search by name, ITS, mobile, or status..."
           class="form-control shadow-sm" oninput="performSearch()">
       </div>
-      <div class="col-md-4 mt-2 mt-md-0">
+      <div class="col-md-3 mt-2 mt-md-0">
         <select id="statusFilter" class="form-control form-select shadow-sm" onchange="filterByStatus()">
           <option value="">All Statuses</option>
           <option value="no-status">No Status</option>
@@ -297,6 +297,13 @@
           <option value="Will attend few Days only">Will attend few Days only</option>
           <option value="Will not attend any Day">Will not attend any Day</option>
           <option value="Ashara with Maula tus">Ashara with Maula tus</option>
+        </select>
+      </div>
+      <div class="col-md-3 mt-2 mt-md-0">
+        <select id="memberStatusFilter" class="form-control form-select shadow-sm" onchange="performSearch()">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+          <option value="All">All Member Statuses</option>
         </select>
       </div>
     </div>
@@ -385,9 +392,7 @@
   // ── Init ──────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function() {
     initSectorDropdowns();
-    updateMemberSummary(originalData);
-    updateOhbatStatusGrid(originalData);
-    updateUserTable(originalData);
+    performSearch();
 
     const urlParams = new URLSearchParams(window.location.search);
     const statusParam = urlParams.get('status');
@@ -400,11 +405,21 @@
   // ── Search / filter pipeline ───────────────────────────────
   function performSearch() {
     const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+    const memStatus = document.getElementById('memberStatusFilter').value;
 
-    // Scoped = filtered by sector/subsector only (used for status grid)
+    // Scoped = filtered by sector/subsector AND Member Status (used for status grid and totals)
     let scoped = originalData;
     if (currentSectorFilter)    scoped = scoped.filter(u => u.Sector    === currentSectorFilter);
     if (currentSubSectorFilter) scoped = scoped.filter(u => u.Sub_Sector === currentSubSectorFilter);
+    
+    if (memStatus !== 'All') {
+      scoped = scoped.filter(u => {
+        const inact = (u.Inactive_Status || '').trim();
+        const act   = (u.activity_status || '').toLowerCase();
+        const isAct = !inact && (!act || act === 'active');
+        return (memStatus === 'Active') ? isAct : !isAct;
+      });
+    }
 
     // Table data = scoped + status + keyword
     let tableData = scoped;

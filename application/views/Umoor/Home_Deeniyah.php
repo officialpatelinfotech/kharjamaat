@@ -382,7 +382,6 @@
 
       <div class="menu-section">Activity</div>
       <ul class="menu-list">
-        <li><a class="menu-item" href="<?php echo base_url('Umoor/Mumineendirectory') ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Mumineen Directory</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('umoor/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('umoor/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>

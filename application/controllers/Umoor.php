@@ -78,7 +78,7 @@ class Umoor extends CI_Controller
       $h_parts = explode('-', $h_cal['hijri_date']);
       $curr_hijri_year = (int)$h_parts[2];
       $curr_hijri_month = (int)$h_parts[1];
-      $def_year = ($curr_hijri_month >= 10) ? ($curr_hijri_year + 1) : $curr_hijri_year;
+      $def_year = $curr_hijri_year;
 
       $ashara_users = $this->AmilsahebM->get_all_ashara($def_year);
       $possibleStatuses = [
@@ -579,7 +579,7 @@ class Umoor extends CI_Controller
     $hijri_parts = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts[2];
     $current_hijri_month = (int)$hijri_parts[1];
-    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year);
     // Fetch years directly from HijriCalendar for the dropdown
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
@@ -704,7 +704,7 @@ class Umoor extends CI_Controller
     $hijri_parts_att = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts_att[2];
     $current_hijri_month_att = (int)$hijri_parts_att[1];
-    $default_year_att = ($current_hijri_month_att >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year_att = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year_att);
     $year_options = $this->HijriCalendar->get_distinct_hijri_years();
     $year_options = is_array($year_options) ? array_map('intval', $year_options) : [];
@@ -781,7 +781,7 @@ class Umoor extends CI_Controller
     $hijri_parts = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts[2];
     $current_hijri_month = (int)$hijri_parts[1];
-    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year);
 
     $ohbat_rows = $this->db->where('year', $selected_year)->get('ashara_ohbat')->result_array();

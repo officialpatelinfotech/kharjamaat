@@ -1,4 +1,35 @@
 <style>
+  :root {
+    --gold: #b8860b;
+    --gold-light: #e6c84a;
+    --gold-muted: #f5e9c0;
+    --bg: #faf7f0;
+    --surface: #fff;
+    --surface-2: #f7f4ec;
+    --border: #e8e0cc;
+    --text-1: #1a1610;
+    --text-2: #5a5244;
+    --text-3: #9c8f7a;
+    --green: #1a6645;
+    --green-bg: #eaf4ee;
+    --green-border: rgba(26,102,69,.25);
+    --red: #b91c1c;
+    --red-bg: #fef2f2;
+    --red-border: rgba(185,28,28,.2);
+    --blue: #1d4ed8;
+    --blue-bg: #eff6ff;
+    --blue-border: rgba(29,78,216,.2);
+    --amber: #b45309;
+    --amber-bg: #fffbeb;
+    --amber-border: rgba(180,83,9,.2);
+    --sh: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --sh2: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+  }
+
+  body {
+    background-color: var(--bg) !important;
+  }
+
   /* Improved pill counter for Fala ni Niyaz button */
   .fala-ni-niyaz-count {
     display: inline-flex;
@@ -44,34 +75,237 @@
     margin-left: 4px;
     opacity: 0.8;
   }
+
+  /* ── Banner ── */
+  .miqaat-banner {
+    background: linear-gradient(135deg, #78520a 0%, var(--gold) 60%, #c9a227 100%);
+    padding: 16px 20px;
+    border-radius: 12px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--sh);
+  }
+  .miqaat-banner::after {
+    content: '';
+    position: absolute;
+    right: -60px;
+    top: -60px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .miqaat-banner-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+  }
+  .miqaat-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .miqaat-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.3);
+    background: rgba(255,255,255,.15);
+    color: #fff !important;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none !important;
+    transition: background .15s;
+    backdrop-filter: blur(4px);
+  }
+  .miqaat-back:hover {
+    background: rgba(255,255,255,.25);
+  }
+  .miqaat-banner-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+  }
+  .miqaat-banner-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,.75);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .miqaat-banner-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* ── Filters Card ── */
+  .miqaat-filters-card {
+    background: var(--surface);
+    border: 1px solid var(--border) !important;
+    border-radius: 12px;
+    box-shadow: var(--sh);
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .miqaat-filters-card label {
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .miqaat-filters-card input,
+  .miqaat-filters-card select {
+    height: 34px !important;
+    border-radius: 8px !important;
+    border: 1.5px solid var(--border) !important;
+    background: var(--surface-2) !important;
+    font-size: 13px !important;
+    color: var(--text-1) !important;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .miqaat-filters-card input:focus,
+  .miqaat-filters-card select:focus {
+    border-color: var(--gold) !important;
+    background: var(--surface) !important;
+    box-shadow: none !important;
+  }
+
+  /* ── Table Card ── */
+  .miqaat-table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--sh);
+    overflow: hidden;
+    margin-bottom: 30px;
+  }
+  .miqaat-table-responsive {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .miqaat-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+  }
+  .miqaat-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--text-1) !important;
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border: none;
+    border-bottom: 2px solid var(--border);
+  }
+  .miqaat-table tbody tr {
+    transition: background-color 0.15s;
+  }
+  .miqaat-table tbody tr:nth-of-type(even) {
+    background-color: var(--surface-2);
+  }
+  .miqaat-table tbody tr:hover {
+    background-color: rgba(184, 134, 11, 0.05);
+  }
+  .miqaat-table tbody td {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .miqaat-table tbody td b {
+    color: var(--text-1);
+  }
+
+  /* ── Stats grid ── */
+  .miqaat-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .miqaat-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--sh);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .miqaat-stat-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-2);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .miqaat-stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-1);
+  }
 </style>
 
-<div class="margintopcontainer mx-5 pt-3">
+<div class="margintopcontainer mx-2 mx-md-5 pt-3" style="font-family:'Plus Jakarta Sans',sans-serif;">
   <?php if ($this->session->flashdata('error')): ?>
-    <div class="alert alert-danger">
+    <div class="alert alert-danger rounded-3">
       <?php echo $this->session->flashdata('error'); ?>
     </div>
   <?php endif; ?>
 
   <?php if ($this->session->flashdata('success')): ?>
-    <div class="alert alert-success">
+    <div class="alert alert-success rounded-3">
       <?php echo $this->session->flashdata('success'); ?>
     </div>
   <?php endif; ?>
 
   <?php if ($this->session->flashdata('warning')): ?>
-    <div class="alert alert-warning">
+    <div class="alert alert-warning rounded-3">
       <?php echo $this->session->flashdata('warning'); ?>
     </div>
   <?php endif; ?>
-  <div class="col-12 mb-4">
-    <div class="row p-0">
-      <div class="col-12 col-md-6">
-        <a href="<?php echo base_url("anjuman/fmbniyaz") ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+
+  <!-- Premium Banner -->
+  <div class="miqaat-banner">
+    <div class="miqaat-banner-inner">
+      <div class="miqaat-banner-left">
+        <a href="<?php echo base_url("anjuman/fmbniyaz") ?>" class="miqaat-back">
+          <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+        <div>
+          <div class="miqaat-banner-title">
+            <i class="fa-solid fa-file-invoice-dollar" style="margin-right:6px"></i>
+            <?php echo isset($miqaat_type) ? htmlspecialchars($miqaat_type) : ""; ?> Miqaat Pending Invoices
+            <span id="generate-title-hijri-year" style="font-size:0.9em; font-weight:normal; opacity:0.85; margin-left:4px;"></span>
+          </div>
+          <div class="miqaat-banner-sub">Generate Niyaz invoices for members and groups</div>
+        </div>
       </div>
-      <div class="col-12 col-md-6 text-right ml-auto">
-        <button id="fala-ni-niyaz-invoices" class="btn btn-primary">
-          <?php echo isset($miqaat_type) ? $miqaat_type : ""; ?> Niyaz Fala Takhmeen <span class="fala-ni-niyaz-count text-primary"><?php echo isset($miqaats["Fala_ni_Niyaz"]) ? count($miqaats["Fala_ni_Niyaz"]) : 0; ?></span>
+      <div class="miqaat-banner-right">
+        <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold" style="border-radius: 8px; padding: 6px 16px;">
+          <i class="fa-solid fa-bolt text-warning me-1"></i> <?php echo isset($miqaat_type) ? htmlspecialchars($miqaat_type) : ""; ?> Niyaz Fala Takhmeen
+          <span class="badge badge-primary ml-1" style="border-radius: 10px; font-size: 12px; padding: 4px 8px;"><?php echo isset($miqaats["Fala_ni_Niyaz"]) ? count($miqaats["Fala_ni_Niyaz"]) : 0; ?></span>
         </button>
       </div>
     </div>
@@ -127,26 +361,15 @@
   ?>
 
   <?php if (!empty($pending)) : ?>
-    <style>
-      #miqaat-generate-filters label {
-        font-weight: 600;
-        font-size: 12px;
-      }
-
-      #miqaat-generate-filters input,
-      #miqaat-generate-filters select {
-        font-size: 13px;
-      }
-    </style>
-    <div id="miqaat-generate-filters" class="p-3 bg-light border m-md-3">
+    <div id="miqaat-generate-filters" class="miqaat-filters-card">
       <div class="form-row">
-        <div class="col-md-2 mb-2">
-          <label for="pf-name" class="mb-1 text-muted">Name or ITS</label>
-          <input type="text" id="pf-name" class="form-control form-control-sm" placeholder="Search name or ITS...">
+        <div class="col-md-3 mb-2">
+          <label for="pf-name">Name or ITS</label>
+          <input type="text" id="pf-name" class="form-control" placeholder="Search name or ITS...">
         </div>
-        <div class="col-md-2 mb-2">
-          <label for="pf-sector" class="mb-1 text-muted">Sector</label>
-          <select id="pf-sector" class="form-control form-control-sm">
+        <div class="col-md-3 mb-2">
+          <label for="pf-sector">Sector</label>
+          <select id="pf-sector" class="form-control">
             <option value="">All Sectors</option>
             <?php if (!empty($gen_sectors)) : foreach ($gen_sectors as $s) : if ($s === '') continue; ?>
                 <option value="<?php echo htmlspecialchars(strtolower($s), ENT_QUOTES); ?>"><?php echo htmlspecialchars($s); ?></option>
@@ -154,9 +377,9 @@
             endif; ?>
           </select>
         </div>
-        <div class="col-md-2 mb-2">
-          <label for="pf-subsector" class="mb-1 text-muted">Sub Sector</label>
-          <select id="pf-subsector" class="form-control form-control-sm">
+        <div class="col-md-3 mb-2">
+          <label for="pf-subsector">Sub Sector</label>
+          <select id="pf-subsector" class="form-control">
             <option value="">All Sub Sectors</option>
             <?php if (!empty($gen_sub_sectors)) : foreach ($gen_sub_sectors as $ss) : if ($ss === '') continue; ?>
                 <option value="<?php echo htmlspecialchars(strtolower($ss), ENT_QUOTES); ?>"><?php echo htmlspecialchars($ss); ?></option>
@@ -165,8 +388,8 @@
           </select>
         </div>
         <div class="col-md-2 mb-2">
-          <label for="pf-year" class="mb-1 text-muted">Hijri Year</label>
-          <select id="pf-year" class="form-control form-control-sm" data-default-year="<?php echo htmlspecialchars($default_gen_year, ENT_QUOTES); ?>">
+          <label for="pf-year">Hijri Year</label>
+          <select id="pf-year" class="form-control" data-default-year="<?php echo htmlspecialchars($default_gen_year, ENT_QUOTES); ?>">
             <option value="">All Years</option>
             <?php if (!empty($gen_years)) : foreach ($gen_years as $y) : ?>
                 <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ($default_gen_year === $y ? 'selected' : ''); ?>><?php echo htmlspecialchars($y); ?></option>
@@ -174,69 +397,53 @@
             endif; ?>
           </select>
         </div>
-        <div class="col-md-2 mb-2 d-flex align-items-end">
-          <button type="button" id="pf-clear" class="btn btn-outline-secondary btn-sm w-100">Clear Filters</button>
+        <div class="col-md-1 mb-2 d-flex align-items-end">
+          <button type="button" id="pf-clear" class="btn btn-outline-secondary w-100" style="height:34px; border-radius:8px;">Clear</button>
         </div>
       </div>
     </div>
   <?php endif; ?>
 
-  <h4 class="text-center">
-    <?php echo isset($miqaat_type) ? $miqaat_type : ""; ?> Miqaat <span class="text-primary">Pending Invoices</span>
-    <span id="generate-title-hijri-year" class="text-muted" style="font-size:0.9em;"></span>
-  </h4>
-
-  <!-- <div class="col-12 mt-3 text-center">
-    <?php
-    $totalAmt = isset($generated_invoice_total) ? (float)$generated_invoice_total : 0.0;
-    $totalFmt = function_exists('format_inr_no_decimals') ? format_inr_no_decimals($totalAmt) : number_format($totalAmt, 0);
-    ?>
-    <div class="d-inline-block px-3 py-2" style="background:#f8f9fa; border:1px solid #e5e7eb; border-radius:10px;">
-      <b>Total Invoice Amount:</b> ₹<?php echo $totalFmt; ?>
-      <span class="text-muted" style="font-size:12px;">(generated)</span>
+  <!-- Stats Grid for already generated / extra contribution totals -->
+  <div class="miqaat-stats-grid">
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Total Invoice Amount (Generated)</div>
+      <div class="miqaat-stat-value text-primary" id="miqaat-total-amount">₹0</div>
+    </div>
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Individual Niyaz (Generated)</div>
+      <div class="miqaat-stat-value text-success" id="miqaat-individual-total">₹0</div>
+    </div>
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Fala ni Niyaz (Generated)</div>
+      <div class="miqaat-stat-value text-info" id="miqaat-fala-total">₹0</div>
+    </div>
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Extra Contribution</div>
+      <div class="miqaat-stat-value text-warning" id="miqaat-extra-total">₹0</div>
+    </div>
+    <div class="miqaat-stat-card">
+      <div class="miqaat-stat-title">Pending Invoices Shown</div>
+      <div class="miqaat-stat-value text-dark" id="miqaat-invoices-count">0</div>
     </div>
   </div>
 
-  <div class="col-12 mt-3">
-    <form method="get" action="<?php echo base_url('anjuman/generatemiqaatinvoice'); ?>" class="form-inline justify-content-center" style="gap:8px; flex-wrap:wrap;">
-      <input type="hidden" name="miqaat_type" value="<?php echo htmlspecialchars($this->input->get('miqaat_type') ?? '', ENT_QUOTES); ?>">
-      <div class="form-group">
-        <label for="raza-id-filter" class="mr-2"><b>Raza ID:</b></label>
-        <input
-          type="text"
-          class="form-control"
-          id="raza-id-filter"
-          name="raza_id"
-          placeholder="Raza ID (optional)"
-          value="<?php echo isset($raza_id_filter) ? htmlspecialchars($raza_id_filter, ENT_QUOTES) : ''; ?>"
-          style="min-width:220px;"
-        />
-      </div>
-      <button type="submit" class="btn btn-primary">Filter</button>
-      <a href="<?php echo base_url('anjuman/generatemiqaatinvoice?miqaat_type=' . htmlspecialchars($this->input->get('miqaat_type') ?? '', ENT_QUOTES)); ?>" class="btn btn-outline-secondary">Clear</a>
-    </form>
-  </div> -->
-
-  <div class="col-12 mt-4">
-    <div class="card-header">
-      <!-- <h5 class="mb-0 text-center">Invoice List</h5> -->
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive" style="max-height:80vh; overflow:auto;">
-        <table class="table table-bordered table-striped" id="miqaat-generate-table">
-          <thead class="table-dark">
-            <tr>
-              <th class="km-sortable" data-sort-key="index" data-sort-type="number"># <span class="sort-indicator"></span></th>
-              <th class="km-sortable" data-sort-key="date" data-sort-type="date">Date <span class="sort-indicator"></span></th>
-              <th class="km-sortable" data-sort-key="hijri" data-sort-type="string">Hijri Date <span class="sort-indicator"></span></th>
-              <th class="km-sortable" data-sort-key="miqaatId" data-sort-type="number">Miqaat ID <span class="sort-indicator"></span></th>
-              <th class="km-sortable" data-sort-key="razaId" data-sort-type="number">Raza ID <span class="sort-indicator"></span></th>
-              <th class="km-sortable" data-sort-key="miqaatName" data-sort-type="string">Miqaat Name <span class="sort-indicator"></span></th>
-              <th class="km-sortable" data-sort-key="assignedTo" data-sort-type="string">Assigned To <span class="sort-indicator"></span></th>
-              <th class="km-sortable" data-sort-key="details" data-sort-type="string">Details <span class="sort-indicator"></span></th>
-              <th>Actions</th>
-            </tr>
-          </thead>
+  <div class="miqaat-table-card">
+    <div class="miqaat-table-responsive">
+      <table class="miqaat-table" id="miqaat-generate-table">
+        <thead>
+          <tr>
+            <th class="km-sortable" data-sort-key="index" data-sort-type="number" style="width: 50px;"># <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="date" data-sort-type="date" style="width: 140px;">Date <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="hijri" data-sort-type="string" style="width: 160px;">Hijri Date <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="miqaatId" data-sort-type="number" style="width: 110px;">Miqaat ID <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="razaId" data-sort-type="number" style="width: 110px;">Raza ID <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="miqaatName" data-sort-type="string">Miqaat Name <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="assignedTo" data-sort-type="string" style="width: 150px;">Assigned To <span class="sort-indicator"></span></th>
+            <th class="km-sortable" data-sort-key="details" data-sort-type="string">Details <span class="sort-indicator"></span></th>
+            <th style="width: 160px;">Actions</th>
+          </tr>
+        </thead>
           <tbody>
             <?php if (!isset($miqaats["miqaats"]) || empty($miqaats["miqaats"])): ?>
               <tr>
@@ -523,6 +730,8 @@
 </script>
 
 <script>
+  const generatedInvoices = <?php echo json_encode($generated_invoices ?? []); ?>;
+  const extraContributions = <?php echo json_encode($extra_contributions ?? []); ?>;
   // Pending invoices table filters (client-side)
   (function() {
     function toLower(s) {
@@ -567,6 +776,86 @@
       }
 
       renumberVisibleRows();
+
+      // Local helper for INR grouping (no decimals)
+      function formatRupees(n) {
+        if (n === undefined || n === null) n = 0;
+        let num = parseFloat(n);
+        if (isNaN(num)) num = 0;
+        num = Math.round(num);
+        const neg = num < 0;
+        if (neg) num = Math.abs(num);
+        let s = String(num);
+        if (s.length > 3) {
+          const last3 = s.slice(-3);
+          let rest = s.slice(0, -3);
+          rest = rest.replace(/\B(?=(?:\d{2})+(?!\d))/g, ',');
+          s = rest + ',' + last3;
+        }
+        return (neg ? '-' : '') + '₹' + s;
+      }
+
+      let individualTotal = 0;
+      let falaTotal = 0;
+
+      generatedInvoices.forEach(function(inv) {
+        const iName = toLower(inv.Full_Name || '');
+        const iIts = toLower(inv.ITS_ID || '');
+        const iSector = toLower(inv.Sector || '');
+        const iSub = toLower(inv.Sub_Sector || '');
+        const iYear = (inv.invoice_year || '').toString().trim();
+
+        let show = true;
+        if (nameQ && iName.indexOf(nameQ) === -1 && iIts.indexOf(nameQ) === -1) show = false;
+        if (sectorV && iSector !== sectorV) show = false;
+        if (subSectorV && iSub !== subSectorV) show = false;
+        if (yearV && iYear !== yearV) show = false;
+
+        if (show) {
+          const amt = parseFloat(inv.amount || '0') || 0;
+          const assigned = toLower(inv.assigned_to || '');
+          const desc = toLower(inv.description || '');
+          if (assigned === 'fala ni niyaz' || desc.indexOf('fala ni niyaz') !== -1) {
+            falaTotal += amt;
+          } else {
+            individualTotal += amt;
+          }
+        }
+      });
+
+      let extraTotal = 0;
+      extraContributions.forEach(function(c) {
+        const cName = toLower(c.Full_Name || '');
+        const cIts = toLower(c.ITS_ID || '');
+        const cSector = toLower(c.Sector || '');
+        const cSub = toLower(c.Sub_Sector || '');
+        const cYear = (c.contri_year || '').toString().trim().toLowerCase();
+
+        let show = true;
+        if (nameQ && cName.indexOf(nameQ) === -1 && cIts.indexOf(nameQ) === -1) show = false;
+        if (sectorV && cSector !== sectorV) show = false;
+        if (subSectorV && cSub !== subSectorV) show = false;
+        if (yearV && !cYear.includes(yearV)) show = false;
+
+        if (show) {
+          extraTotal += parseFloat(c.amount || '0') || 0;
+        }
+      });
+
+      const totalEl = document.getElementById('miqaat-total-amount');
+      if (totalEl) totalEl.textContent = formatRupees(individualTotal + falaTotal + extraTotal);
+
+      const indEl = document.getElementById('miqaat-individual-total');
+      if (indEl) indEl.textContent = formatRupees(individualTotal);
+
+      const falaEl = document.getElementById('miqaat-fala-total');
+      if (falaEl) falaEl.textContent = formatRupees(falaTotal);
+
+      const extraEl = document.getElementById('miqaat-extra-total');
+      if (extraEl) extraEl.textContent = formatRupees(extraTotal);
+
+      const cntEl = document.getElementById('miqaat-invoices-count');
+      if (cntEl) cntEl.textContent = String(visible);
     }
 
     function renumberVisibleRows() {

@@ -4361,7 +4361,7 @@ HTML;
     $hijri_parts = explode('-', $h['hijri_date']);
     $current_hijri_year = (int)$hijri_parts[2];
     $current_hijri_month = (int)$hijri_parts[1];
-    $default_year = ($current_hijri_month >= 10) ? ($current_hijri_year + 1) : $current_hijri_year;
+    $default_year = $current_hijri_year;
     $selected_year = (int)($this->input->get('year') ?: $default_year);
 
     $ohbat_rows = $this->db->where('year', $selected_year)->get('ashara_ohbat')->result_array();
