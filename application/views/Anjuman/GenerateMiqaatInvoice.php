@@ -303,6 +303,18 @@
         </div>
       </div>
       <div class="miqaat-banner-right">
+        <a href="<?php 
+          $mtype_num = 1;
+          if (isset($miqaat_type)) {
+            if ($miqaat_type === 'Shehrullah') $mtype_num = 1;
+            elseif ($miqaat_type === 'Ashara') $mtype_num = 2;
+            elseif ($miqaat_type === 'General') $mtype_num = 3;
+            elseif ($miqaat_type === 'Ladies') $mtype_num = 4;
+          }
+          echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=" . $mtype_num); 
+        ?>" class="btn btn-light font-weight-bold mr-2" style="border-radius: 8px; padding: 6px 16px;">
+          Update Invoice
+        </a>
         <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold" style="border-radius: 8px; padding: 6px 16px;">
           <i class="fa-solid fa-bolt text-warning me-1"></i> <?php echo isset($miqaat_type) ? htmlspecialchars($miqaat_type) : ""; ?> Niyaz Fala Takhmeen
           <span class="badge badge-primary ml-1" style="border-radius: 10px; font-size: 12px; padding: 4px 8px;"><?php echo isset($miqaats["Fala_ni_Niyaz"]) ? count($miqaats["Fala_ni_Niyaz"]) : 0; ?></span>
@@ -1070,6 +1082,7 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
         'count' => $count,
         'earliest_date' => $earliest,
         'latest_date' => $latest,
+        'is_generated' => !empty($group['is_generated']) ? true : false,
       ];
       if (!empty($group['miqaats']) && is_array($group['miqaats'])) {
         foreach ($group['miqaats'] as $m) {
@@ -1147,17 +1160,33 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
         const yearRows = FALA_NI_NIYAZ_SUMMARY.map(g => {
           const start = formatLongDate(g.earliest_date || '');
           const end = formatLongDate(g.latest_date || '');
+          const isGenerated = g.is_generated ? true : false;
+          let actionButtonHtml = '';
+          if (isGenerated) {
+            actionButtonHtml = `
+              <span class="badge badge-success mr-2 p-2" style="font-size: 13px;">Takhmeen Done</span>
+              <button type="button" class="btn btn-sm btn-outline-primary generate-new-active-members-btn"
+                data-hijri_year="${escapeHtml(g.year)}"
+                data-miqaat_type="${escapeHtml(CURRENT_MIQAAT_TYPE)}"
+              >Active Members</button>
+            `;
+          } else {
+            actionButtonHtml = `
+              <button type="button" class="btn btn-sm btn-primary generate-year-invoice-btn"
+                data-hijri_year="${escapeHtml(g.year)}"
+                data-count="${escapeHtml(String(g.count))}"
+                data-range_start="${escapeHtml(start)}"
+                data-range_end="${escapeHtml(end)}"
+                data-miqaat_type="${escapeHtml(CURRENT_MIQAAT_TYPE)}"
+              >Do Takhmeen for this Year</button>
+            `;
+          }
+
           return `
             <tr>
               <td>${escapeHtml(g.year)}</td>
               <td>
-                <button type="button" class="btn btn-sm btn-primary generate-year-invoice-btn"
-                  data-hijri_year="${escapeHtml(g.year)}"
-                  data-count="${escapeHtml(String(g.count))}"
-                  data-range_start="${escapeHtml(start)}"
-                  data-range_end="${escapeHtml(end)}"
-                  data-miqaat_type="${escapeHtml(CURRENT_MIQAAT_TYPE)}"
-                >Do Takhmeen for this Year</button>
+                ${actionButtonHtml}
               </td>
             </tr>
           `;
@@ -1343,6 +1372,56 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
               const genModal = new bootstrap.Modal(genModalElLocal);
               genModal.show();
             }
+          });
+        });
+
+        wrapper.querySelectorAll('.generate-new-active-members-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            const year = btn.getAttribute('data-hijri_year') || '';
+            const mtype = btn.getAttribute('data-miqaat_type') || '';
+            
+            if (!confirm('Are you sure you want to generate Fala ni Niyaz invoices for newly added active members for ' + mtype + ' (' + year + ')?')) {
+              return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            fetch('<?php echo base_url("anjuman/generate_fala_ni_niyaz_for_new_hofs"); ?>', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: `year=${encodeURIComponent(year)}&miqaat_type=${encodeURIComponent(mtype)}`
+            })
+            .then(async res => {
+              const text = await res.text();
+              let data;
+              try {
+                data = JSON.parse(text);
+              } catch (e) {
+                throw new Error('Response is not valid JSON. Raw response: ' + text.substring(0, 300));
+              }
+              if (!res.ok) {
+                throw new Error(data.error || 'Server error ' + res.status);
+              }
+              return data;
+            })
+            .then(data => {
+              if (data && data.status) {
+                alert(`Successfully generated ${data.created_count} new invoices.`);
+                window.location.reload();
+              } else {
+                alert('Generation failed: ' + (data.error || 'unknown error'));
+                btn.disabled = false;
+                btn.textContent = 'Active Members';
+              }
+            })
+            .catch(err => {
+              alert('An error occurred during generation: ' + err.message);
+              btn.disabled = false;
+              btn.textContent = 'Active Members';
+            });
           });
         });
       }

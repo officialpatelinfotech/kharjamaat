@@ -2152,7 +2152,9 @@ class Admin extends CI_Controller
    */
   public function importlatest()
   {
-    $this->validateUser($_SESSION['user']);
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      redirect('/accounts');
+    }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $summary = ['processed' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'moved_out' => 0, 'errors' => []];
       $importedIds = [];
@@ -2339,14 +2341,22 @@ class Admin extends CI_Controller
       $summary['match_distribution'] = $statusResult['match_distribution'] ?? [];
 
       $data['summary'] = $summary;
-      $this->load->view('Admin/Header', $data);
+      if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 3) {
+        $this->load->view('Anjuman/Header', $data);
+      } else {
+        $this->load->view('Admin/Header', $data);
+      }
       $this->load->view('Admin/ImportMembers', $data);
       return;
     }
     // GET: show form
     $data['user_name'] = $_SESSION['user']['username'];
     $data['summary'] = null;
-    $this->load->view('Admin/Header', $data);
+    if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 3) {
+      $this->load->view('Anjuman/Header', $data);
+    } else {
+      $this->load->view('Admin/Header', $data);
+    }
     $this->load->view('Admin/ImportMembers', $data);
   }
   public function RazaRequest()
@@ -4910,7 +4920,7 @@ HTML;
   // ================= Member Create =================
   public function addmember()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -4920,7 +4930,11 @@ HTML;
     $data['sector_map'] = $this->AdminM->get_sector_hierarchy();
     $data['sector_list'] = array_keys($data['sector_map']);
     $data['incharges_map'] = $this->AdminM->get_sector_incharges_map();
-    $this->load->view('Admin/Header', $data);
+    if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 3) {
+      $this->load->view('Anjuman/Header', $data);
+    } else {
+      $this->load->view('Admin/Header', $data);
+    }
     $this->load->view('Admin/AddMember', $data);
   }
 

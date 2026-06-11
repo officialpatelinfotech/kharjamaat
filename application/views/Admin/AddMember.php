@@ -16,6 +16,11 @@ function fval($m, $k)
 {
   return isset($m[$k]) ? htmlspecialchars($m[$k]) : '';
 }
+$role = isset($_SESSION['user']['role']) ? (int)$_SESSION['user']['role'] : 0;
+$back_url = base_url('admin/managemembers');
+if ($role === 3) {
+  $back_url = base_url('anjuman/mumineendirectory');
+}
 ?>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
 <style>
@@ -603,7 +608,7 @@ function fval($m, $k)
 
   <div class="am-page-header">
     <h1 class="am-page-title">Add Member</h1>
-    <a href="<?php echo base_url('admin/managemembers'); ?>" class="am-back-btn">
+    <a href="<?php echo $back_url; ?>" class="am-back-btn">
       <i class="ti ti-arrow-left"></i> Back to Members
     </a>
   </div>
@@ -1133,7 +1138,7 @@ function fval($m, $k)
     <div class="am-sticky">
       <div class="am-sticky-inner">
         <span id="addMemberStatus" class="am-status"></span>
-        <a href="<?php echo base_url('admin/managemembers'); ?>" class="am-btn-cancel">Cancel</a>
+        <a href="<?php echo $back_url; ?>" class="am-btn-cancel">Cancel</a>
         <button type="submit" class="am-btn-submit">Save Member</button>
       </div>
     </div>

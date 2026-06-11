@@ -1969,7 +1969,7 @@ class Common extends CI_Controller
 
     $data['miqaats'] = $this->CommonM->get_miqaats_with_assignments();
 
-    $from = $_SESSION["from"];
+    $from = $this->input->get('from') ?? $_SESSION["from"] ?? '';
     $data["from"] = $from;
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/CreateMiqaat', $data);
@@ -2071,10 +2071,8 @@ class Common extends CI_Controller
   {
     $this->validateUser($_SESSION["user"]);
 
-    $from = $this->input->get('from') ?? $_SESSION["from"];
-    if ($from) {
-      $data["from"] = $from;
-    }
+    $from = $this->input->get('from') ?? $_SESSION["from"] ?? '';
+    $data["from"] = $from;
 
     $data["active_controller"] = $_SESSION["from"];
     $data['user_name'] = $_SESSION['user']['username'];
@@ -2118,8 +2116,6 @@ class Common extends CI_Controller
 
     $data['miqaats'] = $this->CommonM->get_miqaats_with_assignments();
 
-    $from = $_SESSION["from"];
-    $data["from"] = $from;
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/CreateMiqaat', $data);
   }
@@ -2538,7 +2534,8 @@ class Common extends CI_Controller
       }
 
       $this->session->set_flashdata('success', 'Miqaat created successfully!');
-      redirect('common/managemiqaat');
+      $from = $_SESSION["from"] ?? '';
+      redirect('common/managemiqaat' . (!empty($from) ? '?from=' . urlencode($from) : ''));
     } else {
       $this->load->view('common/managemiqaat');
     }
@@ -2919,10 +2916,12 @@ class Common extends CI_Controller
         $this->CommonM->update_miqaat_by_id($miqaat_id, $miqaat_data);
       }
       $this->session->set_flashdata('success', 'Miqaat updated successfully!');
-      redirect('common/managemiqaat');
+      $from = $_SESSION["from"] ?? '';
+      redirect('common/managemiqaat' . (!empty($from) ? '?from=' . urlencode($from) : ''));
     } else {
       $this->session->set_flashdata('error', 'No data received for update.');
-      redirect('common/managemiqaat');
+      $from = $_SESSION["from"] ?? '';
+      redirect('common/managemiqaat' . (!empty($from) ? '?from=' . urlencode($from) : ''));
     }
   }
 
@@ -2940,7 +2939,8 @@ class Common extends CI_Controller
     } else {
       $this->session->set_flashdata('error', 'No Miqaat ID provided.');
     }
-    redirect('common/managemiqaat');
+    $from = $_SESSION["from"] ?? '';
+    redirect('common/managemiqaat' . (!empty($from) ? '?from=' . urlencode($from) : ''));
   }
   // Create Miqaat
 

@@ -156,7 +156,7 @@ $residential_options = MemberStatusM::residential_status_options();
       <i class="fa fa-arrow-left"></i> Back
     </a>
     <div style="display:flex; gap:8px; align-items:center;">
-      <?php if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 1): ?>
+      <?php if (isset($_SESSION['user']['role']) && in_array($_SESSION['user']['role'], [1, 3])): ?>
         <a href="<?php echo base_url('admin/importlatest'); ?>" class="md-export" style="text-decoration:none;">
           <i class="fa fa-upload"></i> Import Latest Data
         </a>
@@ -258,6 +258,40 @@ $residential_options = MemberStatusM::residential_status_options();
           </div>
         </div>
 
+        <!-- Exclude Status Filters -->
+        <div class="fsec" id="secLabel4" style="margin-top:20px"><i class="fa fa-ban" style="color:var(--red)"></i> <span style="color:var(--red)">Exclude by Status</span></div>
+        <div id="secRow4">
+          <div class="excl-wrap">
+            <div id="exclTrigger" class="excl-trigger" role="button" tabindex="0">
+              <span id="exclTriggerText"><span style="color:var(--text-3);font-style:italic">Select statuses to exclude&hellip;</span></span>
+              <span class="excl-arrow"><i class="fa fa-chevron-down"></i></span>
+            </div>
+            <div id="exclPanel" class="excl-panel">
+              <!-- Health -->
+              <div class="excl-grp-hd"><i class="fa fa-heartbeat"></i>&nbsp; Health Status</div>
+              <?php foreach ($health_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
+                <?php endif; ?>
+              <?php endforeach; ?>
+              <!-- Deeni -->
+              <div class="excl-grp-hd"><i class="fa fa-star-o"></i>&nbsp; Deeni Status</div>
+              <?php foreach ($deeni_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
+                <?php endif; ?>
+              <?php endforeach; ?>
+              <!-- Residential -->
+              <div class="excl-grp-hd"><i class="fa fa-home"></i>&nbsp; Residential Status</div>
+              <?php foreach ($residential_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        </div>
+
         <!-- Status Filters -->
         <div class="fsec" id="secLabel3"><i class="fa fa-heartbeat" style="color:var(--red)"></i> Status Filters</div>
         <div class="fgrid fg-3" id="secRow3">
@@ -296,40 +330,6 @@ $residential_options = MemberStatusM::residential_status_options();
           </div>
         </div>
 
-        <!-- Exclude Status Filters -->
-        <div class="fsec" id="secLabel4" style="margin-top:10px"><i class="fa fa-ban" style="color:var(--red)"></i> <span style="color:var(--red)">Exclude by Status</span></div>
-        <div id="secRow4">
-          <div class="excl-wrap">
-            <div id="exclTrigger" class="excl-trigger" role="button" tabindex="0">
-              <span id="exclTriggerText"><span style="color:var(--text-3);font-style:italic">Select statuses to exclude&hellip;</span></span>
-              <span class="excl-arrow"><i class="fa fa-chevron-down"></i></span>
-            </div>
-            <div id="exclPanel" class="excl-panel">
-              <!-- Health -->
-              <div class="excl-grp-hd"><i class="fa fa-heartbeat"></i>&nbsp; Health Status</div>
-              <?php foreach ($health_options as $k => $v): ?>
-                <?php if ($k !== ''): ?>
-                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
-                <?php endif; ?>
-              <?php endforeach; ?>
-              <!-- Deeni -->
-              <div class="excl-grp-hd"><i class="fa fa-star-o"></i>&nbsp; Deeni Status</div>
-              <?php foreach ($deeni_options as $k => $v): ?>
-                <?php if ($k !== ''): ?>
-                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
-                <?php endif; ?>
-              <?php endforeach; ?>
-              <!-- Residential -->
-              <div class="excl-grp-hd"><i class="fa fa-home"></i>&nbsp; Residential Status</div>
-              <?php foreach ($residential_options as $k => $v): ?>
-                <?php if ($k !== ''): ?>
-                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
-                <?php endif; ?>
-              <?php endforeach; ?>
-            </div>
-          </div>
-        </div>
-
       </form>
     </div>
   </div>
@@ -363,8 +363,8 @@ $residential_options = MemberStatusM::residential_status_options();
             <th>Mobile</th>
             <th class="sortable" data-col="_status">Status <span class="si"></span></th>
             <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="si"></span></th>
-            <th class="sortable" data-col="health_status">Health <span class="si"></span></th>
             <th class="sortable" data-col="deeni_status">Deeni <span class="si"></span></th>
+            <th class="sortable" data-col="health_status">Health <span class="si"></span></th>
             <th class="sortable" data-col="residential_status">Residential <span class="si"></span></th>
             <th>Actions</th>
           </tr>
@@ -625,8 +625,8 @@ function renderTable(){
       `<td style="font-size:.75rem;color:var(--text-2)">${esc(u.Mobile||'—')}</td>`+
       `<td>${badge}</td>`+
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>`+
-      `<td style="font-size:.72rem;color:var(--text-2);${healthStyle}">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>`+
       `<td style="font-size:.72rem;color:var(--text-2);${deeniStyle}">${esc(DEENI_MAP[(u.deeni_status||'').trim()] || u.deeni_status || '—')}</td>`+
+      `<td style="font-size:.72rem;color:var(--text-2);${healthStyle}">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>`+
       `<td style="font-size:.72rem;color:var(--text-2);${resStyle}">${esc(RESIDENTIAL_MAP[(u.residential_status||'').trim()] || u.residential_status || '—')}</td>`+
       `<td><a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>`+
       (CAN_EDIT?`<a href="${EDIT_URL}${u.ITS_ID}?redirect=${rp}" class="act-btn act-edit" style="margin-left:4px" title="Edit"><i class="fa fa-pencil"></i></a>`:'')+`</td>`;

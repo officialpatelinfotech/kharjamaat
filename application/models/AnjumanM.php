@@ -326,11 +326,11 @@ class AnjumanM extends CI_Model
         $row['hijri_year'] = null;
       }
 
-      $miqaat_type = $row['miqaat_type'];
+      $m_type = $row['miqaat_type'];
       $hijri_year = $row['hijri_year'];
 
       $result = $this->db->from('miqaat_invoice')
-        ->where('miqaat_type', $miqaat_type)
+        ->where('miqaat_type', $m_type)
         ->where('year', $hijri_year)
         ->get();
 
@@ -349,6 +349,7 @@ class AnjumanM extends CI_Model
             'count'       => 0,
             'earliest_date' => $row['miqaat_date'],
             'latest_date'   => $row['miqaat_date'],
+            'is_generated'  => false
           ];
         }
 
@@ -364,6 +365,56 @@ class AnjumanM extends CI_Model
       }
     }
     unset($row);
+
+    // Retrieve generated years for Fala ni Niyaz of this miqaat type
+    $this->db->distinct()
+      ->select('year')
+      ->from('miqaat_invoice')
+      ->where('miqaat_type', $miqaat_type)
+      ->group_start()
+        ->like('description', 'Niyaz Fund')
+        ->or_where('miqaat_id IS NULL', null, false)
+        ->or_where('miqaat_id', 0)
+        ->or_where('miqaat_id', '')
+      ->group_end();
+    $generated_years_rows = $this->db->get()->result_array();
+    $generated_years = array_filter(array_column($generated_years_rows, 'year'));
+
+    foreach ($generated_years as $gen_year) {
+      if (!isset($fala_grouped_by_year[$gen_year])) {
+        // Query calendar range for synthetic entries
+        $dates = $this->db->select('greg_date')
+          ->from('hijri_calendar')
+          ->like('hijri_date', $gen_year)
+          ->get()
+          ->result_array();
+        $greg_dates = array_column($dates, 'greg_date');
+        $earliest_date = '';
+        $latest_date = '';
+        if (!empty($greg_dates)) {
+          $miqaats_dates = $this->db->select('MIN(date) as min_date, MAX(date) as max_date')
+            ->from('miqaat')
+            ->where_in('date', $greg_dates)
+            ->where('type', $miqaat_type)
+            ->get()
+            ->row_array();
+          $earliest_date = $miqaats_dates['min_date'] ?? '';
+          $latest_date = $miqaats_dates['max_date'] ?? '';
+        }
+
+        $fala_grouped_by_year[$gen_year] = [
+          'year'        => $gen_year,
+          'assigned_to' => 'Fala ni Niyaz',
+          'miqaats'     => [],
+          'count'       => 0,
+          'earliest_date' => $earliest_date,
+          'latest_date'   => $latest_date,
+          'is_generated'  => true
+        ];
+      } else {
+        $fala_grouped_by_year[$gen_year]['is_generated'] = true;
+      }
+    }
 
     if ($miqaat_type === "Shehrullah" || $miqaat_type === "Ashara") {
       return [

@@ -1,4 +1,11 @@
 <?php /* Import Members View */ ?>
+<?php
+$role = isset($_SESSION['user']['role']) ? (int)$_SESSION['user']['role'] : 0;
+$back_url = base_url('admin/managemembers');
+if ($role === 3) {
+  $back_url = base_url('anjuman/mumineendirectory');
+}
+?>
 <style>
   .import-layout { max-width: 880px; }
   .drop-zone { border:2px dashed #ced4da; border-radius:8px; padding:28px 22px; text-align:center; transition:.25s; background:#fafafa; }
@@ -14,7 +21,7 @@
     <h5 class="mb-2 mb-sm-0">Import Latest Members Data</h5>
     <div class="btn-group btn-group-sm">
       <a href="<?php echo base_url('admin/exportmembers'); ?>" class="btn btn-outline-success"><i class="fa fa-download me-1"></i>Export Current</a>
-      <a href="<?php echo base_url('admin/managemembers'); ?>" class="btn btn-outline-secondary">Back</a>
+      <a href="<?php echo $back_url; ?>" class="btn btn-outline-secondary">Back</a>
     </div>
   </div>
   <div class="alert alert-info py-2 px-3 small mb-3">

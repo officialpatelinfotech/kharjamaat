@@ -637,8 +637,8 @@
       <?php
       $status_counts = isset($stats['status_counts']) ? $stats['status_counts'] : [];
       $statusGroups = [
-        'health_status'      => ['label'=>'Health Status',      'icon'=>'fa-heartbeat',      'bg'=>'#fef2f2','color'=>'#b91c1c','key'=>'health',      'id'=>'collapseAmilHealth'],
         'deeni_status'       => ['label'=>'Deeni Status',       'icon'=>'fa-star',           'bg'=>'#f5f3ff','color'=>'#7c3aed','key'=>'deeni',       'id'=>'collapseAmilDeeni'],
+        'health_status'      => ['label'=>'Health Status',      'icon'=>'fa-heartbeat',      'bg'=>'#fef2f2','color'=>'#b91c1c','key'=>'health',      'id'=>'collapseAmilHealth'],
         'residential_status' => ['label'=>'Residential Status', 'icon'=>'fa-building',       'bg'=>'#eff6ff','color'=>'#1d4ed8','key'=>'residential', 'id'=>'collapseAmilResidential'],
         'Qualification'      => ['label'=>'Dunyavi Education',  'icon'=>'fa-graduation-cap', 'bg'=>'#eaf4ee','color'=>'#1a6645','key'=>'education',   'id'=>'collapseAmilEducation'],
       ];

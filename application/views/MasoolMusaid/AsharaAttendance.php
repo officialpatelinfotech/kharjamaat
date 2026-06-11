@@ -4,92 +4,322 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --gold:#b8860b;--gold-light:#e6c84a;--gold-muted:#f5e9c0;
-  --bg:#faf7f0;--surface:#fff;--surface-2:#f7f4ec;
-  --border:#e8e0cc;--border-light:#f0ece0;
-  --text-1:#1a1610;--text-2:#5a5244;--text-3:#9c8f7a;
-  --green:#1a6645;--green-bg:#eaf4ee;--green-border:rgba(26,102,69,.25);
-  --red:#b91c1c;--red-bg:#fef2f2;--red-border:rgba(185,28,28,.2);
-  --blue:#1d4ed8;--blue-bg:#eff6ff;--blue-border:rgba(29,78,216,.2);
-  --amber:#b45309;--amber-bg:#fffbeb;--amber-border:rgba(180,83,9,.2);
-  --teal:#0891b2;--teal-bg:#ecfeff;
-  --purple:#5b21b6;--purple-bg:#f5f3ff;
-  --slate:#334155;--slate-bg:#f1f5f9;
-  --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-  --sh2:0 4px 16px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.04);
-  --sh3:0 8px 32px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.05);
+  --gold: #b8860b;
+  --gold-light: #e6c84a;
+  --gold-muted: #f5e9c0;
+  --bg: #faf7f0;
+  --surface: #ffffff;
+  --surface-2: #fdfcf9;
+  --border: #e8e0cc;
+  --border-light: #f2ede0;
+  --text-1: #1a1610;
+  --text-2: #5a5244;
+  --text-3: #9c8f7a;
+  --green: #1a6645;
+  --green-bg: #f3faf6;
+  --green-border: rgba(26,102,69,.15);
+  --red: #b91c1c;
+  --red-bg: #fff5f5;
+  --red-border: rgba(185,28,28,.12);
+  --blue: #1d4ed8;
+  --blue-bg: #f0f7ff;
+  --blue-border: rgba(29,78,216,.12);
+  --amber: #b45309;
+  --amber-bg: #fffbeb;
+  --amber-border: rgba(180,83,9,.12);
+  --purple: #5b21b6;
+  --purple-bg: #faf8ff;
+  --sh: 0 4px 12px rgba(26, 22, 16, 0.03), 0 1px 2px rgba(26, 22, 16, 0.02);
+  --sh2: 0 10px 24px rgba(26, 22, 16, 0.06), 0 3px 6px rgba(26, 22, 16, 0.03);
+  --sh3: 0 20px 48px rgba(26, 22, 16, 0.12), 0 6px 16px rgba(26, 22, 16, 0.05);
 }
 html{background:var(--bg)}
 #ashApp{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text-1);min-height:100vh;margin-top: 60px;}
 #ashApp *{box-sizing:border-box}
 
 /* ── Page header banner ── */
-#ashApp .ash-banner{background:linear-gradient(135deg,#78520a 0%,var(--gold) 60%,#c9a227 100%);padding:14px 20px;position:relative;overflow:hidden}
-#ashApp .ash-banner::after{content:'';position:absolute;right:-60px;top:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,255,255,.12) 0%,transparent 70%);pointer-events:none}
-#ashApp .ash-banner-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:relative;z-index:1}
-#ashApp .ash-banner-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-#ashApp .ash-back{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:.74rem;font-weight:700;text-decoration:none;transition:background .15s;backdrop-filter:blur(4px)}
-#ashApp .ash-back:hover{background:rgba(255,255,255,.25);text-decoration:none;color:#fff}
-#ashApp .ash-banner-title{font-size:.95rem;font-weight:800;color:#fff;line-height:1.2}
-#ashApp .ash-banner-sub{font-size:.7rem;color:rgba(255,255,255,.75);font-weight:500;margin-top:2px}
-#ashApp .ash-banner-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#ashApp .ash-count-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:4px 12px;color:#fff;font-size:.72rem;font-weight:700;backdrop-filter:blur(4px);display:flex;align-items:center;gap:5px}
-#ashApp .ash-year-sel{height:30px;padding:0 8px;border-radius:7px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:.73rem;font-weight:600;outline:none;backdrop-filter:blur(4px);cursor:pointer}
+#ashApp .ash-banner{
+  background: linear-gradient(135deg, #78520a 0%, var(--gold) 50%, #c9a227 100%);
+  padding: 22px 28px;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(120, 82, 10, 0.12);
+}
+#ashApp .ash-banner::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 0l40 40-40 40L0 40z' fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E") repeat;
+  pointer-events: none;
+}
+#ashApp .ash-banner-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;z-index:1}
+#ashApp .ash-banner-left{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+#ashApp .ash-back{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all .2s;
+  backdrop-filter: blur(8px);
+}
+#ashApp .ash-back:hover{background:rgba(255,255,255,.24);transform:translateX(-2px);text-decoration:none;color:#fff}
+#ashApp .ash-banner-title{font-size:1.35rem;font-weight:800;color:#fff;line-height:1.2;letter-spacing:-0.2px}
+#ashApp .ash-banner-sub{font-size:.8rem;color:rgba(255,255,255,.8);font-weight:500;margin-top:4px}
+#ashApp .ash-banner-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#ashApp .ash-count-badge{
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  padding: 6px 16px;
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+#ashApp .ash-year-sel{
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-family: inherit;
+  font-size: .8rem;
+  font-weight: 700;
+  outline: none;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+#ashApp .ash-year-sel:focus{
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.5);
+}
 #ashApp .ash-year-sel option{background:#78520a;color:#fff}
-#ashApp .ash-bulk-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:#fff;font-size:.73rem;font-weight:700;cursor:pointer;transition:background .15s;backdrop-filter:blur(4px);font-family:'Plus Jakarta Sans',sans-serif}
-#ashApp .ash-bulk-btn:hover{background:rgba(255,255,255,.25)}
+#ashApp .ash-bulk-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  backdrop-filter: blur(8px);
+  font-family: inherit;
+}
+#ashApp .ash-bulk-btn:hover{background:rgba(255,255,255,.24);transform:translateY(-1px)}
 
-/* ── Stats grid ── */
-#ashApp .ash-stats{background:var(--surface-2);border-bottom:1px solid var(--border);padding:14px 16px}
-#ashApp .ash-stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-#ashApp .ash-day-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;cursor:pointer;transition:box-shadow .18s,transform .18s;box-shadow:var(--sh)}
-#ashApp .ash-day-card:hover{box-shadow:var(--sh2);transform:translateY(-2px)}
-#ashApp .ash-day-card.ashura-card .ash-day-head{background:var(--red)!important}
-#ashApp .ash-day-head{background:linear-gradient(135deg,#78520a,var(--gold));padding:8px 12px;text-align:center;color:#fff;font-size:.85rem;font-weight:800;letter-spacing:.3px}
-#ashApp .ash-day-body{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
-#ashApp .ash-stat-row{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:5px 8px;border-radius:5px;border-left:3px solid;transition:background-color 0.15s;}
-#ashApp .ash-stat-row:hover{background-color:rgba(184,134,11,.1) !important;}
-#ashApp .ash-stat-row .asl{font-size:.72rem;font-weight:700;color:inherit;display:flex;align-items:center;gap:3px;line-height:1.2}
-#ashApp .ash-stat-row .asv{font-size:.85rem;font-weight:800}
+/* ── Stats Grid & Cards ── */
+#ashApp .ash-stats{
+  background: var(--bg);
+  padding: 24px 20px 40px 20px;
+}
+#ashApp .ash-stats-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 18px;
+}
+#ashApp .ash-day-card{
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--sh);
+  display: flex;
+  flex-direction: column;
+}
+#ashApp .ash-day-card:hover{
+  box-shadow: var(--sh2);
+  transform: translateY(-4px);
+  border-color: var(--gold-light);
+}
+#ashApp .ash-day-card.ashura-card{
+  border-color: rgba(185, 28, 28, 0.25);
+}
+#ashApp .ash-day-card.ashura-card:hover{
+  border-color: var(--red);
+  box-shadow: 0 10px 24px rgba(185, 28, 28, 0.08);
+}
+#ashApp .ash-day-card.ashura-card .ash-day-head{
+  background: linear-gradient(135deg, #991b1b 0%, var(--red) 100%) !important;
+}
+#ashApp .ash-day-head{
+  background: linear-gradient(135deg, #78520a 0%, var(--gold) 100%);
+  padding: 12px;
+  text-align: center;
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 800;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+#ashApp .ash-day-body{
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+#ashApp .ash-stat-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-left: none;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.01);
+}
+#ashApp .ash-stat-row:hover{
+  transform: scale(1.02);
+  filter: brightness(0.97);
+}
+#ashApp .ash-stat-row .asl{
+  font-size: .75rem;
+  font-weight: 700;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.25;
+}
+#ashApp .ash-stat-row .asv{
+  font-size: .92rem;
+  font-weight: 800;
+}
 #ashApp .sr-maula{background:var(--green-bg);border-color:var(--green);color:var(--green)}
 #ashApp .sr-ontime{background:var(--green-bg);border-color:var(--green);color:var(--green)}
 #ashApp .sr-late{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ashApp .sr-other{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ashApp .sr-absent{background:var(--red-bg);border-color:var(--red);color:var(--red)}
-#ashApp .sr-town{background:#f1f5f9;border-color:#64748b;color:#334155}
+#ashApp .sr-town{background:#f8fafc;border-color:#64748b;color:#334155}
 #ashApp .sr-out{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
 
-/* ── Filter bar ── */
-#ashApp .ash-filters{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;position:sticky;top:57px;z-index:50;box-shadow:var(--sh)}
-#ashApp .ash-frow{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-#ashApp .ash-fsel,#ashApp .ash-finput{height:30px;padding:0 9px;border:1.5px solid var(--border);border-radius:7px;background:var(--surface-2);font-family:'Plus Jakarta Sans',sans-serif;font-size:.73rem;color:var(--text-1);outline:none;transition:border-color .15s}
-#ashApp .ash-fsel:focus,#ashApp .ash-finput:focus{border-color:var(--gold);background:var(--surface)}
-#ashApp .ash-srchwrap{position:relative;flex:1;min-width:160px}
-#ashApp .ash-srchwrap i{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:.72rem;pointer-events:none}
-#ashApp .ash-finput{padding:0 8px 0 26px;width:100%}
-#ashApp .ash-absent-toggle{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .15s;user-select:none}
+/* ── Filter Bar ── */
+#ashApp .ash-filters{
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  position: sticky;
+  top: 57px;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(26,22,16,0.02);
+}
+#ashApp .ash-frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#ashApp .ash-fsel,#ashApp .ash-finput{
+  height: 34px;
+  padding: 0 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-family: inherit;
+  font-size: .78rem;
+  color: var(--text-1);
+  outline: none;
+  transition: all .2s;
+}
+#ashApp .ash-fsel:focus,#ashApp .ash-finput:focus{
+  border-color: var(--gold);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.1);
+}
+#ashApp .ash-srchwrap{position:relative;flex:1;min-width:180px}
+#ashApp .ash-srchwrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:.78rem;pointer-events:none}
+#ashApp .ash-finput{padding:0 8px 0 30px;width:100%}
+#ashApp .ash-absent-toggle{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: .76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  user-select: none;
+}
 #ashApp .ash-absent-toggle.active{background:var(--red-bg);border-color:var(--red);color:var(--red)}
-#ashApp .ash-export-btn{display:inline-flex;align-items:center;gap:5px;padding:0 12px;height:30px;border-radius:7px;background:var(--green-bg);border:1.5px solid var(--green-border);color:var(--green);font-size:.72rem;font-weight:700;cursor:pointer;margin-left:auto;transition:background .15s;font-family:'Plus Jakarta Sans',sans-serif}
-#ashApp .ash-export-btn:hover{background:#d1fae5}
+#ashApp .ash-export-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--green-bg);
+  border: 1.5px solid var(--green-border);
+  color: var(--green);
+  font-size: .76rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: auto;
+  transition: all .2s;
+  font-family: inherit;
+}
+#ashApp .ash-export-btn:hover{background:#d1fae5; transform: translateY(-1px);}
 
-/* ── Table ── */
+/* ── Table & List ── */
 #ashApp .ash-tcard{background:var(--surface);border-top:1px solid var(--border)}
 #ashApp .ash-tscroll{overflow-x:auto;max-height:65vh;overflow-y:auto}
-#ashApp .ash-tscroll::-webkit-scrollbar{width:5px;height:5px}
-#ashApp .ash-tscroll::-webkit-scrollbar-track{background:transparent}
-#ashApp .ash-tscroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
-#ashApp table.ash{width:100%;border-collapse:collapse;font-size:.76rem;min-width:820px}
-#ashApp table.ash thead th{background:var(--surface-2);padding:8px 10px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text-3);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:5;text-align:left}
-#ashApp table.ash thead th.c{text-align:center}
-#ashApp table.ash tbody tr{border-bottom:1px solid var(--border-light);transition:background .1s;cursor:pointer}
-#ashApp table.ash tbody tr:hover{background:#fdf9ef}
-#ashApp table.ash tbody tr.hidden-row{display:none}
-#ashApp table.ash td{padding:7px 10px;vertical-align:middle;color:var(--text-1)}
-#ashApp table.ash td.c{text-align:center;padding:5px 3px}
+#ashApp table.ash{width:100%;border-collapse:collapse;font-size:.8rem;min-width:820px}
+#ashApp table.ash thead th{
+  background: var(--surface-2);
+  padding: 10px 12px;
+  font-size: .65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--text-3);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  text-align: left;
+}
+#ashApp table.ash tbody tr{border-bottom:1px solid var(--border-light);transition:all .15s;cursor:pointer}
+#ashApp table.ash tbody tr:hover{background:#fdfaf2}
+#ashApp table.ash td{padding:9px 12px;vertical-align:middle;color:var(--text-1)}
 
-/* ── Attendance day buttons ── */
-#ashApp .ab{width:26px;height:26px;border-radius:6px;border:none;font-size:.65rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform .1s,opacity .15s;line-height:1}
-#ashApp .ab:hover{transform:scale(1.12);opacity:.85}
+/* ── Day Action Buttons ── */
+#ashApp .ab{
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  font-size: .7rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1;
+}
+#ashApp .ab:hover{transform:scale(1.15) translateY(-1px);box-shadow: 0 4px 8px rgba(0,0,0,0.12)}
 #ashApp .ab-maula{background:var(--green);color:#fff}
 #ashApp .ab-ontime{background:var(--green);color:#fff}
 #ashApp .ab-late{background:#f59e0b;color:#fff}
@@ -100,32 +330,31 @@ html{background:var(--bg)}
 #ashApp .ab-unmarked{background:var(--surface-2);color:var(--text-3);border:1px solid var(--border)}
 
 /* ── Footer ── */
-#ashApp .ash-footer{padding:10px 16px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
-#ashApp .ash-footer-time{font-size:.68rem;color:var(--text-3)}
-#ashApp .ash-result-count{font-size:.72rem;color:var(--text-2);font-weight:700}
+#ashApp .ash-footer{padding:12px 20px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+#ashApp .ash-footer-time{font-size:.72rem;color:var(--text-3)}
+#ashApp .ash-result-count{font-size:.78rem;color:var(--text-2);font-weight:700}
 #ashApp .ash-result-count span{color:var(--gold);font-weight:800}
 
-/* ── Modals ── */
-#ashApp .ash-ov{position:fixed;inset:0;background:rgba(26,22,16,.48);z-index:1000;display:none;align-items:center;justify-content:center;padding:14px}
+/* ── Modals & Popups ── */
+#ashApp .ash-ov{position:fixed;inset:0;background:rgba(26,22,16,.54);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
 #ashApp .ash-ov.open{display:flex}
-#ashApp .ash-modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;width:100%;box-shadow:var(--sh3);max-height:90vh;display:flex;flex-direction:column}
-#ashApp .ash-mhd{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border-light);flex-shrink:0;background:var(--surface-2);border-radius:18px 18px 0 0}
-#ashApp .ash-mtit{font-weight:800;font-size:.88rem;color:var(--text-1);display:flex;align-items:center;gap:6px}
-#ashApp .ash-mclose{width:28px;height:28px;border-radius:7px;border:none;background:var(--border);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:all .14s}
-#ashApp .ash-mclose:hover{background:var(--gold-muted);color:var(--gold)}
-#ashApp .ash-mbody{overflow-y:auto;flex:1;padding:14px 16px}
-#ashApp .ash-mft{padding:11px 16px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:7px;flex-shrink:0}
-#ashApp .ash-lbl{display:block;font-size:.67rem;font-weight:800;color:var(--text-2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
-#ashApp .ash-inp,#ashApp .ash-sel,#ashApp .ash-ta{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.8rem;color:var(--text-1);background:var(--surface-2);outline:none;transition:border-color .15s;margin-bottom:12px}
-#ashApp .ash-inp:focus,#ashApp .ash-sel:focus,#ashApp .ash-ta:focus{border-color:var(--gold);background:var(--surface)}
-#ashApp .ash-sel{height:36px;padding:0 10px}
-#ashApp .ash-ta{resize:vertical;min-height:70px}
-#ashApp .btn-c{padding:7px 15px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-weight:700;font-size:.75rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .14s}
-#ashApp .btn-c:hover{background:var(--surface-2)}
-#ashApp .btn-ok{padding:7px 15px;border-radius:8px;border:none;background:var(--gold);color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity .14s}
-#ashApp .btn-ok:hover{opacity:.88}
-#ashApp .btn-red{padding:7px 15px;border-radius:8px;border:none;background:var(--red);color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity .14s}
-#ashApp .btn-green{padding:7px 15px;border-radius:8px;border:none;background:var(--green);color:#fff;font-weight:700;font-size:.75rem;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:opacity .14s}
+#ashApp .ash-modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;width:100%;box-shadow:var(--sh3);max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+#ashApp .ash-mhd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-light);flex-shrink:0;background:var(--surface-2)}
+#ashApp .ash-mtit{font-weight:800;font-size:1rem;color:var(--text-1);display:flex;align-items:center;gap:8px}
+#ashApp .ash-mclose{width:30px;height:30px;border-radius:8px;border:none;background:var(--border-light);color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .15s}
+#ashApp .ash-mclose:hover{background:var(--gold-muted);color:var(--gold);transform:rotate(90deg)}
+#ashApp .ash-mbody{overflow-y:auto;flex:1;padding:18px 20px}
+#ashApp .ash-mft{padding:14px 20px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
+#ashApp .ash-lbl{display:block;font-size:.72rem;font-weight:800;color:var(--text-2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+#ashApp .ash-inp,#ashApp .ash-sel,#ashApp .ash-ta{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:.82rem;color:var(--text-1);background:var(--surface-2);outline:none;transition:all .2s;margin-bottom:14px}
+#ashApp .ash-inp:focus,#ashApp .ash-sel:focus,#ashApp .ash-ta:focus{border-color:var(--gold);background:var(--surface);box-shadow:0 0 0 3px rgba(184, 134, 11, 0.1)}
+#ashApp .btn-c{padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-weight:700;font-size:.78rem;cursor:pointer;transition:all .2s}
+#ashApp .btn-c:hover{background:var(--surface-2);border-color:var(--text-3)}
+#ashApp .btn-ok{padding:8px 18px;border-radius:10px;border:none;background:linear-gradient(135deg, var(--gold) 0%, #8f6808 100%);color:#fff;font-weight:700;font-size:.78rem;cursor:pointer;transition:all .2s;box-shadow: 0 4px 12px rgba(184, 134, 11, 0.25)}
+#ashApp .btn-ok:hover{opacity:.95;transform:translateY(-1px);box-shadow: 0 6px 16px rgba(184, 134, 11, 0.35)}
+#ashApp .btn-green{padding:8px 18px;border-radius:10px;border:none;background:var(--green);color:#fff;font-weight:700;font-size:.78rem;cursor:pointer;transition:all .2s}
+#ashApp .btn-green:hover{opacity:.9}
+
 
 /* ── Day detail modal table ── */
 #ashApp .dd-tbl{width:100%;border-collapse:collapse;font-size:.75rem}
@@ -194,7 +423,7 @@ html{background:var(--bg)}
   #ashApp .ash-banner{padding:10px 12px}
   #ashApp .ash-stats{padding:10px 12px}
   #ashApp .ash-filters{padding:8px 12px;top:57px}
-  #ashApp .ash-stats-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px}
+  #ashApp .ash-stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
   #ashApp table.ash{min-width:680px}
 }
 </style>
@@ -491,7 +720,7 @@ $initialStatus = $this->input->get('status');
       $list_url = base_url(str_replace('ashara_attendance', 'ashara_attendance_list', $this->uri->uri_string()) . ($list_query ? '?' . http_build_query($list_query) : ''));
       ?>
       <a href="<?php echo $list_url ?>" class="ash-day-card ash-link-card" style="text-decoration:none; display:flex; flex-direction:column; border:1px dashed var(--gold); background:rgba(245,233,192,0.15);">
-        <div class="ash-day-head" style="background:linear-gradient(135deg,#78520a,var(--gold));">Attendance List</div>
+        <div class="ash-day-head" style="background:linear-gradient(135deg,#78520a,var(--gold));">Member Wise Attendance Table for all days</div>
         <div class="ash-day-body" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px 12px; gap:8px;">
           <div class="ash-link-icon" style="width:48px; height:48px; border-radius:50%; background:var(--gold-muted); display:flex; align-items:center; justify-content:center; color:var(--gold); margin-bottom:4px; transition:transform 0.2s;">
             <i class="fa-solid fa-table-list fa-xl"></i>

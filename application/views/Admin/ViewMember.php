@@ -363,9 +363,9 @@ $back_url = 'javascript:history.back();';
 $view_member_base = 'admin/viewmember/';
 if ($role === 1)      { $back_url = base_url('admin'); }
 elseif ($role === 2)  { $back_url = base_url('amilsaheb'); $view_member_base = 'amilsaheb/viewmember/'; }
-elseif ($role === 3)  { $back_url = base_url('anjuman'); }
-elseif ($role === 16) { $back_url = base_url('MasoolMusaid'); $view_member_base = 'MasoolMusaid/viewmember/'; }
-elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
+elseif ($role === 3)  { $back_url = base_url('anjuman/mumineendirectory'); }
+elseif ($role === 16) { $back_url = base_url('MasoolMusaid/mumineendirectory'); $view_member_base = 'MasoolMusaid/viewmember/'; }
+elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor/mumineendirectory'); }
 ?>
 
 <div id="vmApp">
@@ -410,7 +410,7 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor'); }
   });
 
   $is_admin_or_amilsaheb = in_array($role,[1,2,3]);
-  $show_deeni_status = in_array($role,[1,2,3]);
+  $show_deeni_status = in_array($role,[1,2,3]) || ($role >= 4 && $role <= 15) || $role === 16;
 
   $matchLabels = [
     'its_sabeel_both_khar' => ['ITS & Sabeel both in Khar','success'],

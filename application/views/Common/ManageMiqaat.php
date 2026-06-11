@@ -290,7 +290,7 @@ function miqaat_badge($type) {
               <button type="submit" class="miqaat-btn-filter" id="apply-filters-btn"><i class="fa fa-filter"></i> Filter</button>
               <a href="<?php echo base_url('common/managemiqaat?from=' . (isset($from) ? urlencode($from) : '')); ?>" class="miqaat-clear-btn"><i class="fa fa-times"></i> Clear All</a>
               <button type="button" id="print-table-btn" class="miqaat-btn-print" title="Print table"><i class="fa fa-print"></i> Print</button>
-              <a href="<?php echo base_url('common/createmiqaat?date=' . date('Y-m-d')); ?>" class="miqaat-btn-add"><i class="fa fa-plus"></i> Add Miqaat</a>
+              <a href="<?php echo base_url('common/createmiqaat?date=' . date('Y-m-d') . (!empty($from) ? '&from=' . urlencode($from) : '')); ?>" class="miqaat-btn-add"><i class="fa fa-plus"></i> Add Miqaat</a>
             </div>
           </div>
 
@@ -616,7 +616,7 @@ function miqaat_badge($type) {
                             </button>
                           </form>
                           <!-- Edit Button -->
-                          <a href="<?php echo base_url('common/edit_miqaat?id=' . $miqaat['id']); ?>" class="btn-action btn-act-primary">
+                          <a href="<?php echo base_url('common/edit_miqaat?id=' . $miqaat['id'] . (!empty($from) ? '&from=' . urlencode($from) : '')); ?>" class="btn-action btn-act-primary">
                             <i class="fa fa-edit"></i>
                           </a>
                           <!-- Delete Button -->
@@ -640,7 +640,7 @@ function miqaat_badge($type) {
                   <i class="fa fa-search"></i>
                   <p>No Miqaats found matching the selected filters.</p>
                   <div style="margin-top:12px;">
-                    <a href="<?php echo base_url('common/createmiqaat?date=' . date('Y-m-d')); ?>" class="miqaat-btn-add"><i class="fa fa-plus"></i> Create Miqaat</a>
+                    <a href="<?php echo base_url('common/createmiqaat?date=' . date('Y-m-d') . (!empty($from) ? '&from=' . urlencode($from) : '')); ?>" class="miqaat-btn-add"><i class="fa fa-plus"></i> Create Miqaat</a>
                     <a href="<?php echo base_url('common/managemiqaat?from=' . (isset($from) ? urlencode($from) : '')); ?>" class="miqaat-clear-btn" style="margin-left:8px;">Clear Filters</a>
                   </div>
                 </div>

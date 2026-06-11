@@ -2948,6 +2948,214 @@ class Anjuman extends CI_Controller
     }
   }
 
+  // Generate Fala ni Niyaz invoices for newly added active HOFs (AJAX)
+  public function generate_fala_ni_niyaz_for_new_hofs()
+  {
+    if (is_cli()) {
+      if (getenv('YEAR')) {
+        $_POST['year'] = getenv('YEAR');
+      }
+      if (getenv('MIQAAT_TYPE')) {
+        $_POST['miqaat_type'] = getenv('MIQAAT_TYPE');
+      }
+      global $argv;
+      foreach ($argv as $arg) {
+        if (strpos($arg, '=') !== false) {
+          list($key, $val) = explode('=', $arg, 2);
+          $_POST[$key] = $val;
+        }
+      }
+    } else {
+      if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+        $this->output
+          ->set_content_type('application/json')
+          ->set_status_header(401)
+          ->set_output(json_encode(['status' => false, 'error' => 'Unauthorized']));
+        return;
+      }
+    }
+
+    $invoice_ids_raw = $this->input->post('invoice_ids');
+    $invoice_ids = !empty($invoice_ids_raw) ? json_decode($invoice_ids_raw, true) : null;
+
+    if (empty($invoice_ids) || !is_array($invoice_ids)) {
+      $year = $this->input->post('year');
+      $miqaat_type = $this->input->post('miqaat_type');
+      if (empty($year) || empty($miqaat_type)) {
+        $this->output
+          ->set_content_type('application/json')
+          ->set_status_header(400)
+          ->set_output(json_encode(['status' => false, 'error' => 'Invalid or empty parameters']));
+        return;
+      }
+
+      // Query database for existing invoices of this year and type that are Fala ni Niyaz
+      $existing_invoices = $this->db->select('id')
+        ->from('miqaat_invoice')
+        ->where('year', $year)
+        ->where('miqaat_type', $miqaat_type)
+        ->group_start()
+          ->like('description', 'Niyaz Fund')
+          ->or_group_start()
+            ->where('miqaat_id IS NULL', null, false)
+            ->or_where('miqaat_id', 0)
+            ->or_where('miqaat_id', '')
+          ->group_end()
+        ->group_end()
+        ->get()
+        ->result_array();
+      $invoice_ids = array_column($existing_invoices, 'id');
+    }
+
+    if (empty($invoice_ids) || !is_array($invoice_ids)) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_status_header(400)
+        ->set_output(json_encode(['status' => false, 'error' => 'No existing invoices found to replicate']));
+      return;
+    }
+
+    // Fetch details of the first existing invoice in the group
+    $existing_invoice = $this->db->select('*')
+      ->from('miqaat_invoice')
+      ->where_in('id', $invoice_ids)
+      ->limit(1)
+      ->get()
+      ->row_array();
+
+    if (!$existing_invoice) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_status_header(404)
+        ->set_output(json_encode(['status' => false, 'error' => 'No existing invoices found to replicate']));
+      return;
+    }
+
+    $year = $existing_invoice['year'];
+    $miqaat_type = $existing_invoice['miqaat_type'];
+    $date = $existing_invoice['date'];
+    $amount = $existing_invoice['amount'];
+    $description = $existing_invoice['description'];
+    $miqaat_id_orig = $existing_invoice['miqaat_id'];
+    $raza_id = $existing_invoice['raza_id'];
+
+    // Resolve greg dates for the selected year
+    $dates = $this->db->select('greg_date')
+      ->from('hijri_calendar')
+      ->like('hijri_date', $year)
+      ->get()
+      ->result_array();
+    $greg_dates = array_column($dates, 'greg_date');
+
+    $miqaat_ids = [];
+    if (!empty($greg_dates)) {
+      $miqaats = $this->db->select('id')
+        ->from('miqaat')
+        ->where_in('date', $greg_dates)
+        ->where('type', $miqaat_type)
+        ->get()
+        ->result_array();
+      $miqaat_ids = array_column($miqaats, 'id');
+    }
+
+    // Find all active HOFs
+    $hasActivityCol = $this->db->field_exists('activity_status', 'user');
+    $this->db->distinct()
+      ->select('HOF_ID')
+      ->from('user')
+      ->where("HOF_FM_TYPE", 'HOF')
+      ->where('(Inactive_Status IS NULL OR Inactive_Status = "")', null, false);
+    if ($hasActivityCol) {
+      $this->db->where("(activity_status = 'active' OR activity_status IS NULL OR activity_status = '')", null, false);
+    }
+    $all_hofs = $this->db->get()->result_array();
+    $all_hof_ids = array_column($all_hofs, 'HOF_ID');
+
+    // Find participated HOFs
+    $participated_hof_ids = [];
+    if (!empty($miqaat_ids)) {
+      $sql = "SELECT DISTINCT member_id AS participant_id
+              FROM miqaat_assignments
+              WHERE miqaat_id IN (" . implode(',', $miqaat_ids) . ")
+                AND member_id IS NOT NULL
+                AND member_id <> ''
+                AND TRIM(LOWER(assign_type)) = 'Individual'";
+      $participated = $this->db->query($sql)->result_array();
+      $participated_ids = array_column($participated, 'participant_id');
+
+      if (!empty($participated_ids)) {
+        $participated_hofs = $this->db
+          ->distinct()
+          ->select('HOF_ID')
+          ->from('user')
+          ->where_in('ITS_ID', $participated_ids)
+          ->get()
+          ->result_array();
+        $participated_hof_ids = array_column($participated_hofs, 'HOF_ID');
+      }
+    }
+
+    // HOFs that should receive Fala ni Niyaz
+    $not_participated_hofs = array_diff($all_hof_ids, $participated_hof_ids);
+
+    if (empty($not_participated_hofs)) {
+      $this->output
+        ->set_content_type('application/json')
+        ->set_status_header(200)
+        ->set_output(json_encode(['status' => true, 'created_count' => 0, 'message' => 'All active HOFs have already participated.']));
+      return;
+    }
+
+    // Find which of these HOFs already have an invoice for this year and miqaat_type
+    $this->db->select('user_id')
+      ->from('miqaat_invoice')
+      ->where('year', $year)
+      ->where('miqaat_type', $miqaat_type)
+      ->where_in('user_id', $not_participated_hofs);
+    if ($miqaat_id_orig !== null && $miqaat_id_orig !== '') {
+      $this->db->where('miqaat_id', $miqaat_id_orig);
+    } else {
+      $this->db->where('miqaat_id', null);
+    }
+    $already_invoiced_hofs = $this->db->get()->result_array();
+    $already_invoiced_hof_ids = array_column($already_invoiced_hofs, 'user_id');
+
+    $to_generate_hof_ids = array_diff($not_participated_hofs, $already_invoiced_hof_ids);
+
+    $created_count = 0;
+    foreach ($to_generate_hof_ids as $hof_id) {
+      if (!$hof_id) continue;
+      if ($miqaat_type == "General" || $miqaat_type == "Ladies") {
+        $data = [
+          'date'          => $date,
+          'year'          => $year,
+          'miqaat_id'     => $miqaat_id_orig,
+          'miqaat_type'   => $miqaat_type,
+          'raza_id'       => $raza_id,
+          'user_id'       => $hof_id,
+          'amount'        => $amount,
+          'description'   => $description
+        ];
+      } else {
+        $data = [
+          'date'          => $date,
+          'year'          => $year,
+          'miqaat_type'   => $miqaat_type,
+          'user_id'       => $hof_id,
+          'amount'        => $amount,
+          'description'   => $description
+        ];
+      }
+      $this->AnjumanM->create_miqaat_invoice($data);
+      $created_count++;
+    }
+
+    $this->output
+      ->set_content_type('application/json')
+      ->set_status_header(200)
+      ->set_output(json_encode(['status' => true, 'created_count' => $created_count]));
+  }
+
   public function asharaohbat()
   {
     $username = $_SESSION['user']['username'];
@@ -4292,7 +4500,7 @@ class Anjuman extends CI_Controller
     $data['extra_contributions'] = $this->db->get()->result_array();
 
     // Fetch already-generated invoices to calculate Niyaz & Fala amounts
-    $this->db->select('inv.amount, inv.description, m.assigned_to, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, inv.miqaat_type');
+    $this->db->select('inv.amount, inv.description, m.assigned_to, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, inv.miqaat_type, inv.year AS invoice_year');
     $this->db->from('miqaat_invoice inv');
     $this->db->join('miqaat m', 'm.id = inv.miqaat_id', 'left');
     $this->db->join('user u', 'u.ITS_ID = inv.user_id', 'left');

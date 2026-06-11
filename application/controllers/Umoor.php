@@ -1087,4 +1087,26 @@ class Umoor extends CI_Controller
 
     $this->load->view('Admin/QardanHasanaScheme', $data);
   }
+
+  public function viewmember($its_id = null)
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] < 4 || $_SESSION['user']['role'] > 15)) {
+      redirect('/accounts');
+    }
+    if (!$its_id) {
+      redirect('Umoor/mumineendirectory');
+      return;
+    }
+    $member = $this->AdminM->get_member_by_its($its_id);
+    if (!$member) {
+      redirect('Umoor/mumineendirectory');
+      return;
+    }
+    $data['user_name']         = $_SESSION['user']['username'];
+    $data['member']            = $member;
+    $data['family_members']    = $this->AdminM->get_family_members($its_id);
+    $data['family_financials'] = $this->AdminM->get_family_financial_data($its_id, array_column($data['family_members'], 'ITS_ID'));
+    $this->load->view('Umoor/Header', $data);
+    $this->load->view('Admin/ViewMember', $data);
+  }
 }

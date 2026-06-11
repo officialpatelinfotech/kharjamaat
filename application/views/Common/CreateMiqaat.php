@@ -815,7 +815,7 @@
     <!-- ── Compact Header ── -->
     <div class="cm-header">
       <div class="cm-header-left">
-        <a href="<?php echo base_url('common/managemiqaat'); ?>" class="cm-back-btn"><i
+        <a href="<?php echo base_url('common/managemiqaat' . (!empty($from) ? '?from=' . urlencode($from) : '')); ?>" class="cm-back-btn"><i
             class="fa-solid fa-arrow-left"></i></a>
         <div class="cm-header-title">
           <div class="cm-icon-wrap">
@@ -1122,7 +1122,7 @@
 
         <!-- ── Footer ── -->
         <div class="form-footer">
-          <a href="<?php echo base_url('common/managemiqaat'); ?>"
+          <a href="<?php echo base_url('common/managemiqaat' . (!empty($from) ? '?from=' . urlencode($from) : '')); ?>"
             style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-2);font-size:.84rem;font-weight:700;text-decoration:none;transition:all .15s;"
             onmouseover="this.style.borderColor='var(--gold)';this.style.background='var(--gold-muted)';this.style.color='var(--gold)';"
             onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface)';this.style.color='var(--text-2)';">

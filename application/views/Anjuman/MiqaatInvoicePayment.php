@@ -338,10 +338,7 @@
   $default_hijri_year = '';
   if (isset($current_hijri_year) && $current_hijri_year !== '') {
     $default_hijri_year = $current_hijri_year;
-  } elseif (!empty($filter_hijri_years)) {
-    $default_hijri_year = $filter_hijri_years[0];
   }
-
   $title_display_year = $default_hijri_year;
 
   if (!function_exists('inr_format')) {
@@ -356,74 +353,7 @@
       return $rest . ',' . $last3;
     }
   }
-  ?>
 
-  <!-- Premium Banner -->
-  <div class="miqaat-banner">
-    <div class="miqaat-banner-inner">
-      <div class="miqaat-banner-left">
-        <a href="<?php echo base_url("anjuman/fmbniyaz") ?>" class="miqaat-back">
-          <i class="fa-solid fa-arrow-left"></i> Back
-        </a>
-        <div>
-          <div class="miqaat-banner-title">
-            <i class="fa-solid fa-credit-card" style="margin-right:6px"></i>
-            <?php echo isset($miqaat_type) ? htmlspecialchars($miqaat_type) : ''; ?> Miqaat Invoice Payments
-            <span id="payment-title-hijri-year" style="font-size:0.9em; font-weight:normal; opacity:0.85; margin-left:4px;">
-              <?php echo $title_display_year ? '(Hijri ' . htmlspecialchars($title_display_year) . ')' : ''; ?>
-            </span>
-          </div>
-          <div class="miqaat-banner-sub">View and receive payments for the selected year</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <?php if (!empty($members)) : ?>
-    <div id="miqaat-payment-filters" class="miqaat-filters-card">
-      <div class="form-row">
-        <div class="col-md-3 mb-2">
-          <label for="pf-name">Name or ITS</label>
-          <input type="text" id="pf-name" class="form-control" placeholder="Search name or ITS...">
-        </div>
-        <div class="col-md-3 mb-2">
-          <label for="pf-sector">Sector</label>
-          <select id="pf-sector" class="form-control">
-            <option value="">All Sectors</option>
-            <?php if (!empty($sectors)) : foreach ($sectors as $s) : if ($s === '') continue; ?>
-                <option value="<?php echo htmlspecialchars(strtolower($s), ENT_QUOTES); ?>"><?php echo htmlspecialchars($s); ?></option>
-            <?php endforeach;
-            endif; ?>
-          </select>
-        </div>
-        <div class="col-md-3 mb-2">
-          <label for="pf-subsector">Sub Sector</label>
-          <select id="pf-subsector" class="form-control">
-            <option value="">All Sub Sectors</option>
-            <?php if (!empty($sub_sectors)) : foreach ($sub_sectors as $ss) : if ($ss === '') continue; ?>
-                <option value="<?php echo htmlspecialchars(strtolower($ss), ENT_QUOTES); ?>"><?php echo htmlspecialchars($ss); ?></option>
-            <?php endforeach;
-            endif; ?>
-          </select>
-        </div>
-        <div class="col-md-2 mb-2">
-          <label for="pf-year">Hijri Year</label>
-          <select id="pf-year" class="form-control" data-default-year="<?php echo htmlspecialchars($default_hijri_year, ENT_QUOTES); ?>">
-            <option value="">All Years</option>
-            <?php if (!empty($filter_hijri_years)) : foreach ($filter_hijri_years as $y) : ?>
-                <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ($default_hijri_year === $y ? 'selected' : ''); ?>><?php echo htmlspecialchars($y); ?></option>
-            <?php endforeach;
-            endif; ?>
-          </select>
-        </div>
-        <div class="col-md-1 mb-2 d-flex align-items-end">
-          <button type="button" id="pf-clear" class="btn btn-outline-secondary w-100" style="height:34px; border-radius:8px;">Clear</button>
-        </div>
-      </div>
-    </div>
-  <?php endif; ?>
-
-  <?php
   // Prefer full Hijri years list passed from controller (hijri_calendar); fallback to deriving from invoice data.
   $all_hijri_years = [];
   if (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years)) {
@@ -448,8 +378,6 @@
       return $na < $nb ? -1 : 1;
     });
   }
-
-  // Show both HOF and FM rows: remove prior HOF-only filter so family members with invoices/payments appear too.
 
   $rows = [];
   $invoicePaymentsMap = [];
@@ -519,7 +447,7 @@
             'due'          => $due,
             'description'  => isset($inv['description']) ? $inv['description'] : '',
             'details'      => trim($name . ($its !== '' ? (' (' . $its . ')') : '')),
-            'payments'     => ($invoiceId !== '' && isset($invoicePaymentsMap[$invoiceId]) ? $invoicePaymentsMap[$invoiceId] : []),
+            'payments'     => ($invoiceId !== '' && isset($invoicePaymentsMap[$invoiceId]) ? $invoicePaymentsMap[$invId] : []),
           ];
           $rows[] = $row;
 
@@ -534,13 +462,143 @@
     }
     sort($sectors);
     sort($sub_sectors);
-    rsort($years_from_invoices); // show latest first if present
+    rsort($years_from_invoices);
   }
 
-  // Year dropdown should list all years available; prefer controller list.
   $hijri_years = !empty($all_hijri_years) ? $all_hijri_years : ($years_from_invoices ?? []);
+  if ($default_hijri_year === '' && !empty($hijri_years)) $default_hijri_year = $hijri_years[0];
 
-  // Note: Payment view is read-only; Fala ni Niyaz edit/delete logic removed.
+  $fala_groups = [];
+  foreach ($rows as $r) {
+    $assigned_key = strtolower(trim($r['assigned_to'] ?? ''));
+    if ($assigned_key === 'fala ni niyaz' || (empty($r['miqaat_id']) && stripos($r['miqaat_name'] ?? '', 'Fala') !== false)) {
+      $year = $r['invoice_year'] ?? '';
+      $group_key = (isset($miqaat_type) ? $miqaat_type : '') . ' ' . $year;
+      if (!isset($fala_groups[$group_key])) {
+        $fala_groups[$group_key] = [
+          'group_key'   => $group_key,
+          'miqaat_id'   => null,
+          'miqaat_name' => 'Fala ni Niyaz ' . $year,
+          'miqaat_type' => isset($miqaat_type) ? $miqaat_type : '',
+          'miqaat_date' => null,
+          'year'        => $year,
+          'amount'      => $r['amount'],
+          'invoice_ids' => [],
+          'amount_counts' => [],
+        ];
+      }
+      $fala_groups[$group_key]['invoice_ids'][] = (int)$r['invoice_id'];
+      $amtKey = number_format($r['amount'], 2, '.', '');
+      if (!isset($fala_groups[$group_key]['amount_counts'][$amtKey])) {
+        $fala_groups[$group_key]['amount_counts'][$amtKey] = 0;
+      }
+      $fala_groups[$group_key]['amount_counts'][$amtKey]++;
+    }
+  }
+
+  foreach ($fala_groups as $gk => &$fg) {
+    if (!empty($fg['amount_counts'])) {
+      $modeAmountKey = null;
+      $modeCount = -1;
+      foreach ($fg['amount_counts'] as $amountKey => $count) {
+        if ($count > $modeCount || ($count === $modeCount && (float)$amountKey > (float)$modeAmountKey)) {
+          $modeCount = $count;
+          $modeAmountKey = $amountKey;
+        }
+      }
+      $fg['amount'] = (float)$modeAmountKey;
+    }
+    unset($fg['amount_counts']);
+  }
+  unset($fg);
+  $miqaats_list = array_values($fala_groups);
+  ?>
+
+  <!-- Premium Banner -->
+  <div class="miqaat-banner">
+    <div class="miqaat-banner-inner">
+      <div class="miqaat-banner-left">
+        <a href="<?php echo base_url("anjuman/fmbniyaz") ?>" class="miqaat-back">
+          <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+        <div>
+          <div class="miqaat-banner-title">
+            <i class="fa-solid fa-credit-card" style="margin-right:6px"></i>
+            <?php echo isset($miqaat_type) ? htmlspecialchars($miqaat_type) : ''; ?> Miqaat Invoice Payments
+            <span id="payment-title-hijri-year" style="font-size:0.9em; font-weight:normal; opacity:0.85; margin-left:4px;">
+              <?php echo $title_display_year ? '(Hijri ' . htmlspecialchars($title_display_year) . ')' : ''; ?>
+            </span>
+          </div>
+          <div class="miqaat-banner-sub">View and receive payments for the selected year</div>
+        </div>
+      </div>
+      <div class="miqaat-banner-right d-flex align-items-center" style="gap: 8px;">
+        <a href="<?php
+          $mtype_num = 1;
+          if (isset($miqaat_type)) {
+            if ($miqaat_type === 'Ashara') $mtype_num = 2;
+            elseif ($miqaat_type === 'General') $mtype_num = 3;
+            elseif ($miqaat_type === 'Ladies') $mtype_num = 4;
+          }
+          echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=" . $mtype_num); 
+        ?>" class="btn btn-light font-weight-bold" style="border-radius: 8px; padding: 6px 16px;">
+          Create Invoice
+        </a>
+        <?php if (!empty($miqaats_list)) : ?>
+          <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold" data-toggle="modal" data-target="#falaNiyazInvoicesModal" style="border-radius: 8px; padding: 6px 16px;">
+            Update Fala ni Niyaz Invoice
+          </button>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <?php if (!empty($members)) : ?>
+    <div id="miqaat-payment-filters" class="miqaat-filters-card">
+      <div class="form-row">
+        <div class="col-md-3 mb-2">
+          <label for="pf-name">Name or ITS</label>
+          <input type="text" id="pf-name" class="form-control" placeholder="Search name or ITS...">
+        </div>
+        <div class="col-md-3 mb-2">
+          <label for="pf-sector">Sector</label>
+          <select id="pf-sector" class="form-control">
+            <option value="">All Sectors</option>
+            <?php if (!empty($sectors)) : foreach ($sectors as $s) : if ($s === '') continue; ?>
+                <option value="<?php echo htmlspecialchars(strtolower($s), ENT_QUOTES); ?>"><?php echo htmlspecialchars($s); ?></option>
+            <?php endforeach;
+            endif; ?>
+          </select>
+        </div>
+        <div class="col-md-3 mb-2">
+          <label for="pf-subsector">Sub Sector</label>
+          <select id="pf-subsector" class="form-control">
+            <option value="">All Sub Sectors</option>
+            <?php if (!empty($sub_sectors)) : foreach ($sub_sectors as $ss) : if ($ss === '') continue; ?>
+                <option value="<?php echo htmlspecialchars(strtolower($ss), ENT_QUOTES); ?>"><?php echo htmlspecialchars($ss); ?></option>
+            <?php endforeach;
+            endif; ?>
+          </select>
+        </div>
+        <div class="col-md-2 mb-2">
+          <label for="pf-year">Hijri Year</label>
+          <select id="pf-year" class="form-control" data-default-year="<?php echo htmlspecialchars($default_hijri_year, ENT_QUOTES); ?>">
+            <option value="">All Years</option>
+            <?php if (!empty($filter_hijri_years)) : foreach ($filter_hijri_years as $y) : ?>
+                <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo ($default_hijri_year === $y ? 'selected' : ''); ?>><?php echo htmlspecialchars($y); ?></option>
+            <?php endforeach;
+            endif; ?>
+          </select>
+        </div>
+        <div class="col-md-1 mb-2 d-flex align-items-end">
+          <button type="button" id="pf-clear" class="btn btn-outline-secondary w-100" style="height:34px; border-radius:8px;">Clear</button>
+        </div>
+      </div>
+    </div>
+  <?php endif; ?>
+
+  <?php
+  // Processing done above.
   ?>
 
   <?php if (empty($members)) : ?>
@@ -681,7 +739,7 @@
               <td class="text-right amount-cell">₹<?php echo inr_format($amount); ?></td>
               <td class="text-right paid-cell">₹<?php echo inr_format($paid); ?></td>
               <td class="text-right due-cell"><span class="<?php echo $dueClass; ?>">₹<?php echo inr_format($due); ?></span></td>
-              <td class="text-center km-actions">
+               <td class="text-center km-actions">
                 <div class="btn-group-vertical btn-group-sm" role="group" aria-label="Actions">
                   <button type="button" class="btn btn-success receive-payment-btn<?php echo $btnExtraClass; ?>"
                     data-invoice-id="<?php echo htmlspecialchars((string)($r['invoice_id'] ?? ''), ENT_QUOTES); ?>"
@@ -689,6 +747,10 @@
                     data-block-reason="<?php echo htmlspecialchars($blockReason, ENT_QUOTES); ?>"
                     aria-disabled="<?php echo $ariaDisabled; ?>"
                     title="<?php echo htmlspecialchars($blockReason, ENT_QUOTES); ?>">Receive Payment</button>
+                  <button type="button" class="btn btn-outline-primary invoice-edit-btn"
+                    data-invoice-id="<?php echo htmlspecialchars((string)($r['invoice_id'] ?? ''), ENT_QUOTES); ?>">Edit Invoice</button>
+                  <button type="button" class="btn btn-outline-danger invoice-delete-btn"
+                    data-invoice-id="<?php echo htmlspecialchars((string)($r['invoice_id'] ?? ''), ENT_QUOTES); ?>">Delete Invoice</button>
                   <button type="button" class="btn btn-outline-info view-payments-btn"
                     data-toggle="modal"
                     data-target="#memberPaymentsModal"
@@ -721,6 +783,80 @@
               <strong>Invoice:</strong> <span id="payments-modal-invoice"></span>
             </div>
             <div id="payments-modal-table-wrapper" class="table-responsive"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Invoice Modal -->
+    <div class="modal fade" id="editInvoiceModal" tabindex="-1" role="dialog" aria-labelledby="editInvoiceModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editInvoiceModalLabel">Edit Invoice</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form id="editInvoiceForm">
+            <div class="modal-body">
+              <input type="hidden" id="edit-invoice-id" value="">
+
+              <div class="mb-2">
+                <label class="form-label mb-0"><b>Miqaat Details:</b></label>
+                <div id="edit-invoice-details" class="form-control-plaintext"></div>
+              </div>
+              <hr>
+
+              <div class="mb-2">
+                <label class="mb-1 text-muted" for="edit-amount">Amount</label>
+                <div class="input-group">
+                  <div class="input-group-prepend"><span class="input-group-text">₹</span></div>
+                  <input type="number" class="form-control" id="edit-amount" min="0" step="1" required>
+                </div>
+              </div>
+
+              <div class="mb-2">
+                <label class="mb-1 text-muted" for="edit-description">Description</label>
+                <textarea class="form-control" id="edit-description" rows="2"></textarea>
+              </div>
+
+              <div class="mb-2">
+                <label class="mb-1 text-muted" for="edit-invoice-date">Invoice Date</label>
+                <input type="date" class="form-control" id="edit-invoice-date" required>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="edit-invoice-save">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fala ni Niyaz Invoices Modal -->
+    <div class="modal fade" id="falaNiyazInvoicesModal" tabindex="-1" role="dialog" aria-labelledby="falaNiyazInvoicesModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="falaNiyazInvoicesModalLabel">Invoices Generated for Miqaats</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div id="fala-modal-table-wrapper" class="table-responsive"></div>
+            <!-- Loading overlay for bulk operations -->
+            <div id="fala-loading-overlay" class="fala-loading-overlay d-none">
+              <div class="fala-loading-inner text-center">
+                <div class="mb-2"><i class="fa-solid fa-circle-notch fa-spin fa-2x"></i></div>
+                <div class="message">Please wait...</div>
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -817,6 +953,7 @@
 
     <script>
       const extraContributions = <?php echo json_encode($extra_contributions ?? []); ?>;
+      let FALA_MIQAATS = <?php echo json_encode($miqaats_list ?? []); ?>;
       (function() {
         function currency(n) {
           if (n === undefined || n === null) return '₹0';
@@ -1675,6 +1812,510 @@
               submitBtn.disabled = false;
             });
         });
+
+        // Edit Invoice button click
+        document.addEventListener('click', function(e) {
+          const btn = e.target.closest('.invoice-edit-btn');
+          if (!btn) return;
+          const invoiceId = btn.getAttribute('data-invoice-id');
+          const row = btn.closest('tr.miqaat-payment-row');
+          const amount = parseFloat(row.getAttribute('data-amount') || '0');
+          const description = row.getAttribute('data-description') || '';
+          const invoiceDateIso = row.getAttribute('data-invoice-date') || '';
+
+          // Prefill details
+          let miqaatIdText = '-';
+          let razaIdText = '-';
+          let miqaatNameText = '-';
+          let dateText = '-';
+          let hijriText = '-';
+          let assignedText = '-';
+          let assignmentDetailsText = '-';
+          if (row) {
+            const tds = row.querySelectorAll('td');
+            if (tds && tds.length >= 11) {
+              dateText = (tds[1].textContent || '-').trim();
+              hijriText = (tds[2].textContent || '-').trim();
+              miqaatIdText = (tds[3].textContent || '-').trim();
+              razaIdText = (tds[4].textContent || '-').trim();
+              miqaatNameText = (tds[6].textContent || '-').trim();
+              assignedText = (tds[7].textContent || '-').trim();
+              assignmentDetailsText = (tds[8].textContent || '-').trim();
+            }
+          }
+
+          const detailsHtml = `
+            <div><b>Miqaat ID:</b> ${escapeHtml(miqaatIdText)}</div>
+            <div><b>Raza ID:</b> ${escapeHtml(razaIdText)}</div>
+            <div><b>Miqaat Name:</b> ${escapeHtml(miqaatNameText)}</div>
+            <div><b>Date:</b> ${escapeHtml(dateText)}</div>
+            <div><b>Hijri:</b> ${escapeHtml(hijriText)}</div>
+            <div><b>Assigned:</b> ${escapeHtml(assignedText)}</div>
+            <div><b>Assignment Details:</b> ${escapeHtml(assignmentDetailsText)}</div>
+          `;
+
+          document.getElementById('edit-invoice-id').value = invoiceId || '';
+          document.getElementById('edit-amount').value = Math.round(amount);
+          document.getElementById('edit-description').value = description;
+          document.getElementById('edit-invoice-date').value = invoiceDateIso;
+          document.getElementById('edit-invoice-details').innerHTML = detailsHtml;
+
+          if (window.jQuery && typeof jQuery.fn !== 'undefined' && typeof jQuery.fn.modal === 'function') {
+            jQuery('#editInvoiceModal').modal('show');
+          }
+        });
+
+        // Submit handler for Edit Invoice
+        document.getElementById('editInvoiceForm').addEventListener('submit', function(e) {
+          e.preventDefault();
+          const invoiceId = document.getElementById('edit-invoice-id').value;
+          const amount = parseFloat(document.getElementById('edit-amount').value || '0');
+          const description = document.getElementById('edit-description').value;
+          const invoiceDate = document.getElementById('edit-invoice-date').value;
+
+          if (!invoiceId || isNaN(amount) || amount < 0) {
+            alert('Please enter a valid amount.');
+            return;
+          }
+
+          const saveBtn = document.getElementById('edit-invoice-save');
+          saveBtn.disabled = true;
+
+          fetch('<?php echo base_url("anjuman/updateMiqaatInvoiceAmount"); ?>', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: `invoice_id=${encodeURIComponent(invoiceId)}&amount=${encodeURIComponent(amount.toFixed(2))}&description=${encodeURIComponent(description)}&invoice_date=${encodeURIComponent(invoiceDate)}`
+            })
+            .then(res => res.json().catch(() => ({})))
+            .then(data => {
+              if (data && data.status === true) {
+                // Find row in table
+                const row = document.querySelector(`tr.miqaat-payment-row[data-invoice-id="${invoiceId}"]`);
+                if (row) {
+                  const oldAmt = parseFloat(row.getAttribute('data-amount') || '0');
+                  const oldPaid = parseFloat(row.getAttribute('data-paid') || '0');
+                  const diff = amount - oldAmt;
+
+                  // Update amount, due
+                  const newAmt = amount;
+                  const newDue = Math.max(0, newAmt - oldPaid);
+
+                  row.setAttribute('data-amount', String(newAmt));
+                  row.setAttribute('data-due', String(newDue));
+                  row.setAttribute('data-description', description);
+                  row.setAttribute('data-invoice-date', invoiceDate);
+
+                  // Update cells
+                  const amountCell = row.querySelector('.amount-cell');
+                  const dueCell = row.querySelector('.due-cell');
+                  const invoiceDateCell = row.querySelector('.invoice-date-cell');
+
+                  if (amountCell) amountCell.textContent = currency(newAmt);
+                  if (dueCell) {
+                    dueCell.innerHTML = '<span class="' + (newDue > 0 ? 'text-danger font-weight-bold' : 'text-success font-weight-bold') + '">' + currency(newDue) + '</span>';
+                  }
+                  if (invoiceDateCell && invoiceDate) {
+                    const d = new Date(invoiceDate + 'T00:00:00');
+                    if (!isNaN(d.getTime())) {
+                      const day = String(d.getDate()).padStart(2, '0');
+                      const month = d.toLocaleString('en-US', { month: 'long' });
+                      const year = String(d.getFullYear());
+                      invoiceDateCell.textContent = `${day} ${month} ${year}`;
+                    } else {
+                      invoiceDateCell.textContent = invoiceDate;
+                    }
+                  }
+
+                  // Update receive button data-amount/disabled state
+                  const rbtn = row.querySelector('.receive-payment-btn');
+                  if (rbtn) {
+                    rbtn.setAttribute('data-amount', String(newDue));
+                    const reason = (rbtn.getAttribute('data-block-reason') || '').trim();
+                    if (newDue <= 0.000001) {
+                      rbtn.setAttribute('data-block-reason', 'Invoice has no due amount (already fully paid).');
+                      rbtn.setAttribute('aria-disabled', 'true');
+                      rbtn.classList.add('disabled', 'km-disabled-btn');
+                      rbtn.title = 'Invoice has no due amount (already fully paid).';
+                    } else if (reason === 'Invoice has no due amount (already fully paid).') {
+                      rbtn.setAttribute('data-block-reason', '');
+                      rbtn.setAttribute('aria-disabled', 'false');
+                      rbtn.classList.remove('disabled', 'km-disabled-btn');
+                      rbtn.title = '';
+                    }
+                  }
+
+                  // Flash row
+                  row.classList.remove('flash-highlight');
+                  void row.offsetWidth;
+                  row.classList.add('flash-highlight');
+                }
+
+                if (window.jQuery) {
+                  jQuery('#editInvoiceModal').modal('hide');
+                }
+                applyPaymentFilters();
+              } else {
+                alert((data && data.error) ? data.error : 'Update failed.');
+              }
+            })
+            .catch(() => {
+              alert('Network error. Please try again.');
+            })
+            .finally(() => {
+              saveBtn.disabled = false;
+            });
+        });
+
+        // Delete Invoice button click
+        document.addEventListener('click', function(e) {
+          const btn = e.target.closest('.invoice-delete-btn');
+          if (!btn) return;
+          const invoiceId = btn.getAttribute('data-invoice-id');
+          if (!invoiceId) return;
+          if (!confirm('Are you sure you want to delete this invoice? This cannot be undone.')) return;
+          
+          btn.disabled = true;
+          
+          fetch('<?php echo base_url("anjuman/deleteMiqaatInvoice"); ?>', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: `invoice_id=${encodeURIComponent(invoiceId)}`
+            }).then(r => r.json().catch(() => ({
+              success: false
+            })))
+            .then(data => {
+              if (data && data.status === true) {
+                // Find row in table
+                const row = document.querySelector(`tr.miqaat-payment-row[data-invoice-id="${invoiceId}"]`);
+                if (row) {
+                  // Fade out and remove
+                  row.style.transition = 'opacity 0.3s';
+                  row.style.opacity = 0;
+                  setTimeout(() => {
+                    row.parentNode.removeChild(row);
+                    applyPaymentFilters();
+                  }, 300);
+                } else {
+                  window.location.reload();
+                }
+              } else {
+                alert((data && data.error) ? data.error : 'Delete failed.');
+                btn.disabled = false;
+              }
+            })
+            .catch(() => {
+              alert('Network error while deleting invoice.');
+              btn.disabled = false;
+            });
+        });
+
+        // Styles for loading overlay (scoped to Fala modal)
+        (function addFalaOverlayStyles() {
+          try {
+            const tag = document.createElement('style');
+            tag.textContent = `
+              #falaNiyazInvoicesModal .modal-body { position: relative; }
+              .fala-loading-overlay { position: absolute; left:0; top:0; right:0; bottom:0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; z-index: 1050; }
+            `;
+            document.head.appendChild(tag);
+          } catch (e) {
+            /* no-op */
+          }
+        })();
+
+        // ========== Fala ni Niyaz Modal Logic: render miqaats ==========
+        function buildFalaMiqaatsTable(miqaList) {
+          if (!miqaList || !miqaList.length) {
+            return '<div class="alert alert-info">No miqaats found.</div>';
+          }
+          // Deduplicate groups by group_key to avoid repeated rows
+          const unique = [];
+          const seenGK = new Set();
+          (Array.isArray(miqaList) ? miqaList : []).forEach(m => {
+            const gk = m.group_key || '';
+            const key = String(gk);
+            if (key && seenGK.has(key)) return;
+            if (key) seenGK.add(key);
+            unique.push(m);
+          });
+          const rows = unique.map((m, idx) => {
+            const gk = m.group_key || '';
+            const name = m.miqaat_name || '';
+            const type = m.miqaat_type || '';
+            const date = m.miqaat_date ? formatDate(m.miqaat_date) : '';
+            const year = (m.year !== undefined && m.year !== null) ? String(m.year) : '';
+            const amt = (m.amount !== undefined && m.amount !== null) ? parseFloat(m.amount) : null;
+            const amtText = (amt !== null && !Number.isNaN(amt)) ? currency(amt) : '-';
+            const invoiceIds = Array.isArray(m.invoice_ids) ? m.invoice_ids : [];
+            return `
+              <tr data-group-key="${gk}" data-invoice-ids='${JSON.stringify(invoiceIds)}'>
+                <td>${idx + 1}</td>
+                <td>${gk}</td>
+                <td>${name}</td>
+                <td>${date}</td>
+                <td>${year || '-'}</td>
+                <td class="text-right align-middle">
+                  <div class="fala-amount-view d-flex align-items-center justify-content-end">
+                    <span class="fala-amount-text mr-2">${amtText}</span>
+                    <button type="button" class="btn btn-link btn-sm fala-edit-amount" title="Edit amount"><i class="fa-solid fa-pencil"></i></button>
+                  </div>
+                  <div class="fala-amount-edit d-none">
+                    <div class="input-group input-group-sm">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text">₹</span>
+                      </div>
+                      <input type="number" class="form-control fala-amount-input" value="${(amt !== null && !Number.isNaN(amt)) ? Math.round(amt) : '0'}" step="1" min="0">
+                    </div>
+                    <div class="mt-2 text-right">
+                      <button type="button" class="btn btn-sm btn-primary fala-save-amount">Save</button>
+                      <button type="button" class="btn btn-sm btn-secondary fala-cancel-amount">Cancel</button>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center align-middle">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-success fala-generate-new-hofs" title="Generate invoices for newly added active HOFs"><i class="fa-solid fa-user-plus"></i> Generate for New HOFs</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger fala-delete-group ml-2" title="Delete all invoices in this group"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+          return `
+            <table class="table table-striped table-bordered">
+              <thead class="thead-light">
+                <tr>
+                  <th>#</th>
+                  <th>Miqaat ID</th>
+                  <th>Miqaat Name</th>
+                  <th>Date</th>
+                  <th>Year</th>
+                  <th class="text-right">Amount</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          `;
+        }
+
+        const falaBtn = document.getElementById('fala-ni-niyaz-invoices');
+        if (falaBtn) {
+          falaBtn.addEventListener('click', function() {
+            const list = Array.isArray(FALA_MIQAATS) ? FALA_MIQAATS : [];
+            document.getElementById('fala-modal-table-wrapper').innerHTML = buildFalaMiqaatsTable(list);
+          });
+        }
+
+        // Group-level edit/delete/generate handlers for Fala modal
+        const falaWrapper = document.getElementById('fala-modal-table-wrapper');
+        const falaOverlay = document.getElementById('fala-loading-overlay');
+        const falaLoading = {
+          show(msg) {
+            if (!falaOverlay) return;
+            falaOverlay.classList.remove('d-none');
+            const m = falaOverlay.querySelector('.message');
+            if (m) m.textContent = msg || 'Please wait...';
+          },
+          hide() {
+            if (!falaOverlay) return;
+            falaOverlay.classList.add('d-none');
+          }
+        };
+
+        if (falaWrapper) {
+          falaWrapper.addEventListener('click', function(e) {
+            const row = e.target.closest('tr[data-group-key]');
+            if (!row) return;
+            const amountCell = row.querySelector('.text-right');
+            const groupKey = row.getAttribute('data-group-key') || '';
+            const invoiceIds = (() => {
+              try {
+                return JSON.parse(row.getAttribute('data-invoice-ids') || '[]');
+              } catch {
+                return [];
+              }
+            })();
+
+            // Edit amount
+            if (e.target.closest('.fala-edit-amount')) {
+              const view = amountCell.querySelector('.fala-amount-view');
+              const edit = amountCell.querySelector('.fala-amount-edit');
+              view.classList.add('d-none');
+              edit.classList.remove('d-none');
+              const input = edit.querySelector('.fala-amount-input');
+              if (input) input.focus();
+              return;
+            }
+
+            // Cancel amount edit
+            if (e.target.closest('.fala-cancel-amount')) {
+              const view = amountCell.querySelector('.fala-amount-view');
+              const edit = amountCell.querySelector('.fala-amount-edit');
+              edit.classList.add('d-none');
+              view.classList.remove('d-none');
+              return;
+            }
+
+            // Save amount edit: apply to all invoices in the group
+            if (e.target.closest('.fala-save-amount')) {
+              const edit = amountCell.querySelector('.fala-amount-edit');
+              const input = edit.querySelector('.fala-amount-input');
+              const newVal = parseFloat(input.value);
+              if (isNaN(newVal) || newVal < 0) {
+                alert('Please enter a valid amount.');
+                return;
+              }
+              const saveBtn = edit.querySelector('.fala-save-amount');
+              const cancelBtn = edit.querySelector('.fala-cancel-amount');
+              saveBtn.disabled = true;
+              cancelBtn.disabled = true;
+
+              // Update all invoices in the group sequentially
+              const updateOne = (invoiceId) => fetch('<?php echo base_url("anjuman/updateMiqaatInvoiceAmount"); ?>', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `invoice_id=${encodeURIComponent(invoiceId)}&amount=${encodeURIComponent(newVal.toFixed(2))}`
+              }).then(res => {
+                if (!res.ok) throw new Error('fail');
+                return res;
+              });
+
+              (async () => {
+                try {
+                  falaLoading.show('Updating invoices...');
+                  for (const id of invoiceIds) {
+                    await updateOne(id);
+                  }
+                  // Update UI cell
+                  const view = amountCell.querySelector('.fala-amount-view');
+                  const amtText = view.querySelector('.fala-amount-text');
+                  amtText.textContent = currency(newVal);
+                  const edit = amountCell.querySelector('.fala-amount-edit');
+                  edit.classList.add('d-none');
+                  view.classList.remove('d-none');
+                  // Update FALA_MIQAATS cached list
+                  const idx = (Array.isArray(FALA_MIQAATS) ? FALA_MIQAATS : []).findIndex(m => (m.group_key || '') === groupKey);
+                  if (idx > -1) {
+                    FALA_MIQAATS[idx].amount = newVal;
+                  }
+                } catch (err) {
+                  alert('Update failed for one or more invoices.');
+                } finally {
+                  saveBtn.disabled = false;
+                  cancelBtn.disabled = false;
+                  falaLoading.hide();
+                }
+              })();
+              return;
+            }
+
+            // Generate for new HOFs
+            if (e.target.closest('.fala-generate-new-hofs')) {
+              if (!invoiceIds.length) {
+                alert('No existing invoices in this group to copy.');
+                return;
+              }
+              if (!confirm('Are you sure you want to generate Fala ni Niyaz invoices for any newly added active HOFs for this year?')) return;
+
+              falaLoading.show('Generating invoices for new active HOFs...');
+              fetch('<?php echo base_url("anjuman/generate_fala_ni_niyaz_for_new_hofs"); ?>', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `invoice_ids=${encodeURIComponent(JSON.stringify(invoiceIds))}`
+              })
+              .then(async res => {
+                const text = await res.text();
+                let data;
+                try {
+                  data = JSON.parse(text);
+                } catch (e) {
+                  throw new Error('Response is not valid JSON. Raw response: ' + text.substring(0, 300));
+                }
+                if (!res.ok) {
+                  throw new Error(data.error || 'Server error ' + res.status);
+                }
+                return data;
+              })
+              .then(data => {
+                if (data && data.status) {
+                  alert(`Successfully generated ${data.created_count} new invoices.`);
+                  window.location.reload(); // Reload the page to reflect new invoices
+                } else {
+                  alert('Generation failed: ' + (data.error || 'unknown error'));
+                }
+              })
+              .catch(err => {
+                alert('An error occurred during generation: ' + err.message);
+              })
+              .finally(() => {
+                falaLoading.hide();
+              });
+              return;
+            }
+
+            // Delete all invoices in the group
+            if (e.target.closest('.fala-delete-group')) {
+              if (!invoiceIds.length) {
+                alert('No invoices to delete in this group.');
+                return;
+              }
+              if (!confirm('Delete ALL invoices in this group? This cannot be undone.')) return;
+
+              const deleteOne = (invoiceId) => fetch('<?php echo base_url("anjuman/deleteMiqaatInvoice"); ?>', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `invoice_id=${encodeURIComponent(invoiceId)}`
+              }).then(res => {
+                if (!res.ok) throw new Error('fail');
+                return res;
+              });
+
+              (async () => {
+                try {
+                  falaLoading.show('Deleting invoices...');
+                  for (const id of invoiceIds) {
+                    await deleteOne(id);
+                  }
+                  // Remove row from table
+                  row.parentNode.removeChild(row);
+                  // Remove from cached list
+                  FALA_MIQAATS = (Array.isArray(FALA_MIQAATS) ? FALA_MIQAATS : []).filter(m => (m.group_key || '') !== groupKey);
+                } catch (err) {
+                  alert('Delete failed for one or more invoices.');
+                } finally {
+                  falaLoading.hide();
+                }
+              })();
+            }
+          });
+        }
+
+        // Refresh the page when the Fala modal is closed
+        (function setupFalaModalCloseRefresh() {
+          const modalEl = document.getElementById('falaNiyazInvoicesModal');
+          if (!modalEl) return;
+          const refresh = function() {
+            window.location.reload();
+          };
+          if (window.jQuery && typeof jQuery.fn !== 'undefined' && typeof jQuery.fn.modal === 'function') {
+            jQuery(modalEl).on('hidden.bs.modal', refresh);
+          } else {
+            modalEl.addEventListener('hidden.bs.modal', refresh);
+          }
+        })();
 
         // ---- Sortable table headers for invoice rows ----
         (function enableInvoiceTableSorting() {

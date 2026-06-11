@@ -188,41 +188,49 @@
 #anjApp .action-buttons-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
 }
 #anjApp .btn-action {
   font-family: inherit;
-  font-weight: 700;
-  font-size: 0.78rem;
-  padding: 8px 14px;
-  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 10px 16px;
+  border-radius: 12px;
   text-decoration: none;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
+  letter-spacing: 0.2px;
+  cursor: pointer;
 }
 #anjApp .btn-action-primary {
-  background: var(--card-accent);
+  background: linear-gradient(135deg, var(--card-accent) 0%, var(--card-accent-hover) 100%);
   color: #fff;
-  border: 1px solid var(--card-accent);
+  border: 1px solid transparent;
+  box-shadow: 0 4px 12px rgba(184, 134, 11, 0.15);
 }
 #anjApp .btn-action-primary:hover {
-  background: var(--card-accent-hover);
-  border-color: var(--card-accent-hover);
   color: #fff;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 20px rgba(184, 134, 11, 0.3);
+  transform: translateY(-2px);
+  text-decoration: none;
 }
 #anjApp .btn-action-secondary {
-  background: transparent;
+  background: var(--surface);
   color: var(--card-accent);
-  border: 1px solid var(--card-accent);
+  border: 1.5px solid var(--card-accent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
 }
 #anjApp .btn-action-secondary:hover {
   background: var(--card-accent-bg);
   color: var(--card-accent);
+  border-color: var(--card-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(184, 134, 11, 0.12);
+  text-decoration: none;
 }
 </style>
 
@@ -261,11 +269,8 @@
             <a href="<?php echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=1"); ?>" class="btn-action btn-action-primary">
               <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
             </a>
-            <a href="<?php echo base_url("anjuman/updatemiqaatinvoice?miqaat_type=1"); ?>" class="btn-action btn-action-secondary">
-              <i class="fa-solid fa-file-pen"></i> Update Invoice
-            </a>
-            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=1"); ?>" class="btn-action btn-action-primary">
-              <i class="fa-solid fa-wallet"></i> Receive Payment
+            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=1"); ?>" class="btn-action btn-action-secondary">
+              <i class="fa-solid fa-wallet"></i> Update Invoice and Receive Payment
             </a>
           </div>
         </div>
@@ -285,11 +290,8 @@
             <a href="<?php echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=2"); ?>" class="btn-action btn-action-primary">
               <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
             </a>
-            <a href="<?php echo base_url("anjuman/updatemiqaatinvoice?miqaat_type=2"); ?>" class="btn-action btn-action-secondary">
-              <i class="fa-solid fa-file-pen"></i> Update Invoice
-            </a>
-            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=2"); ?>" class="btn-action btn-action-primary">
-              <i class="fa-solid fa-wallet"></i> Receive Payment
+            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=2"); ?>" class="btn-action btn-action-secondary">
+              <i class="fa-solid fa-wallet"></i> Update Invoice and Receive Payment
             </a>
           </div>
         </div>
@@ -309,11 +311,8 @@
             <a href="<?php echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=3"); ?>" class="btn-action btn-action-primary">
               <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
             </a>
-            <a href="<?php echo base_url("anjuman/updatemiqaatinvoice?miqaat_type=3"); ?>" class="btn-action btn-action-secondary">
-              <i class="fa-solid fa-file-pen"></i> Update Invoice
-            </a>
-            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=3"); ?>" class="btn-action btn-action-primary">
-              <i class="fa-solid fa-wallet"></i> Receive Payment
+            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=3"); ?>" class="btn-action btn-action-secondary">
+              <i class="fa-solid fa-wallet"></i> Update Invoice and Receive Payment
             </a>
           </div>
         </div>
@@ -333,11 +332,8 @@
             <a href="<?php echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=4"); ?>" class="btn-action btn-action-primary">
               <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
             </a>
-            <a href="<?php echo base_url("anjuman/updatemiqaatinvoice?miqaat_type=4"); ?>" class="btn-action btn-action-secondary">
-              <i class="fa-solid fa-file-pen"></i> Update Invoice
-            </a>
-            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=4"); ?>" class="btn-action btn-action-primary">
-              <i class="fa-solid fa-wallet"></i> Receive Payment
+            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=4"); ?>" class="btn-action btn-action-secondary">
+              <i class="fa-solid fa-wallet"></i> Update Invoice and Receive Payment
             </a>
           </div>
         </div>

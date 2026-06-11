@@ -441,7 +441,7 @@ if (!function_exists('format_inr')) {
         <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/thaali_signups_breakdown?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-bar-chart"></i></span><span class="menu-label">FMB Thaali Signups</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbthaalimenu?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">Add FMB Menu</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('common/managemiqaat?from=common/managemiqaat') ?>"><span class="menu-icon"><i class="fa fa-plus-circle"></i></span><span class="menu-label">Create Miqaat</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('common/managemiqaat?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-plus-circle"></i></span><span class="menu-label">Create Miqaat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/miqaatattendance?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Miqaat Attendance Report</span></a></li>
       </ul>
@@ -616,8 +616,8 @@ if (!function_exists('format_inr')) {
       <?php
       $status_counts = isset($stats['status_counts']) ? $stats['status_counts'] : [];
       $groups1 = [
-        'health_status'      => ['label'=>'Health Status',      'icon'=>'fa-heartbeat',     'bg'=>'#fef2f2','color'=>'#b91c1c','count_key'=>'health',      'id'=>'collapseHealth'],
         'deeni_status'       => ['label'=>'Deeni Status',       'icon'=>'fa-star',          'bg'=>'#f5f3ff','color'=>'#7c3aed','count_key'=>'deeni',       'id'=>'collapseDeeni'],
+        'health_status'      => ['label'=>'Health Status',      'icon'=>'fa-heartbeat',     'bg'=>'#fef2f2','color'=>'#b91c1c','count_key'=>'health',      'id'=>'collapseHealth'],
         'residential_status' => ['label'=>'Residential Status', 'icon'=>'fa-building',      'bg'=>'#eff6ff','color'=>'#1d4ed8','count_key'=>'residential', 'id'=>'collapseResidential'],
         'Qualification'      => ['label'=>'Dunyavi Education',  'icon'=>'fa-graduation-cap','bg'=>'#eaf4ee','color'=>'#1a6645','count_key'=>'education',   'id'=>'collapseEducation'],
       ];

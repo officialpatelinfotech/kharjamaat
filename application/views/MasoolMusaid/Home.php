@@ -636,8 +636,8 @@ $hs_pct_not_given = $hs['active_total'] > 0 ? round($hs['active_not_given'] / $h
       <?php
       $status_counts = isset($stats['status_counts']) ? $stats['status_counts'] : [];
       $statusGroups = [
-        'health_status'      => ['label'=>'Health Status',      'icon'=>'fa-heartbeat',      'bg'=>'#fef2f2','color'=>'#b91c1c','key'=>'health',      'id'=>'collapseMMPHealth'],
         'deeni_status'       => ['label'=>'Deeni Status',       'icon'=>'fa-star',           'bg'=>'#f5f3ff','color'=>'#7c3aed','key'=>'deeni',       'id'=>'collapseMMPDeeni'],
+        'health_status'      => ['label'=>'Health Status',      'icon'=>'fa-heartbeat',      'bg'=>'#fef2f2','color'=>'#b91c1c','key'=>'health',      'id'=>'collapseMMPHealth'],
         'residential_status' => ['label'=>'Residential Status', 'icon'=>'fa-building',       'bg'=>'#eff6ff','color'=>'#1d4ed8','key'=>'residential', 'id'=>'collapseMMPResidential'],
         'Qualification'      => ['label'=>'Dunyavi Education',  'icon'=>'fa-graduation-cap', 'bg'=>'#eaf4ee','color'=>'#1a6645','key'=>'education',   'id'=>'collapseMMPEducation'],
       ];

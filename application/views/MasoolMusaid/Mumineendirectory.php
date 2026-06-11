@@ -231,6 +231,9 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
   } else if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 16) {
     $view_base = 'MasoolMusaid/viewmember/';
     $back_fallback = 'MasoolMusaid';
+  } else if ($is_umoor) {
+    $view_base = 'Umoor/viewmember/';
+    $back_fallback = 'umoor';
   }
   $can_edit = !$is_umoor && isset($_SESSION['user']['role']) && in_array($_SESSION['user']['role'], [1, 3]);
   $deeni_options = MemberStatusM::deeni_status_options();
@@ -330,6 +333,37 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
           </div>
         </div>
 
+        <!-- Exclude Status Filters -->
+        <div class="fsec" id="secLabel4" style="margin-top:20px"><i class="fa fa-ban" style="color:var(--red)"></i> <span style="color:var(--red)">Exclude by Status</span></div>
+        <div id="secRow4">
+          <div class="excl-wrap">
+            <div id="exclTrigger" class="excl-trigger" role="button" tabindex="0">
+              <span id="exclTriggerText"><span style="color:var(--text-3);font-style:italic">Select statuses to exclude&hellip;</span></span>
+              <span class="excl-arrow"><i class="fa fa-chevron-down"></i></span>
+            </div>
+            <div id="exclPanel" class="excl-panel">
+              <div class="excl-grp-hd"><i class="fa fa-heartbeat"></i>&nbsp; Health Status</div>
+              <?php foreach ($health_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
+                <?php endif; ?>
+              <?php endforeach; ?>
+              <div class="excl-grp-hd"><i class="fa fa-star-o"></i>&nbsp; Deeni Status</div>
+              <?php foreach ($deeni_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
+                <?php endif; ?>
+              <?php endforeach; ?>
+              <div class="excl-grp-hd"><i class="fa fa-home"></i>&nbsp; Residential Status</div>
+              <?php foreach ($residential_options as $k => $v): ?>
+                <?php if ($k !== ''): ?>
+                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        </div>
+
         <!-- Section 3: Status Filters -->
         <div class="fsec" id="secLabel3"><i class="fa fa-heartbeat" style="color:var(--red);"></i> Status Filters</div>
         <div class="frow frow-4" id="secRow3">
@@ -375,37 +409,6 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
               <option value="sabeel_khar_its_out">Sabeel in Khar, ITS out</option>
               <option value="both_not_khar">Both not in Khar</option>
             </select>
-          </div>
-        </div>
-
-        <!-- Exclude Status Filters -->
-        <div class="fsec" id="secLabel4" style="margin-top:10px"><i class="fa fa-ban" style="color:var(--red)"></i> <span style="color:var(--red)">Exclude by Status</span></div>
-        <div id="secRow4">
-          <div class="excl-wrap">
-            <div id="exclTrigger" class="excl-trigger" role="button" tabindex="0">
-              <span id="exclTriggerText"><span style="color:var(--text-3);font-style:italic">Select statuses to exclude&hellip;</span></span>
-              <span class="excl-arrow"><i class="fa fa-chevron-down"></i></span>
-            </div>
-            <div id="exclPanel" class="excl-panel">
-              <div class="excl-grp-hd"><i class="fa fa-heartbeat"></i>&nbsp; Health Status</div>
-              <?php foreach ($health_options as $k => $v): ?>
-                <?php if ($k !== ''): ?>
-                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="health|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
-                <?php endif; ?>
-              <?php endforeach; ?>
-              <div class="excl-grp-hd"><i class="fa fa-star-o"></i>&nbsp; Deeni Status</div>
-              <?php foreach ($deeni_options as $k => $v): ?>
-                <?php if ($k !== ''): ?>
-                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="deeni|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
-                <?php endif; ?>
-              <?php endforeach; ?>
-              <div class="excl-grp-hd"><i class="fa fa-home"></i>&nbsp; Residential Status</div>
-              <?php foreach ($residential_options as $k => $v): ?>
-                <?php if ($k !== ''): ?>
-                  <label class="excl-item"><input type="checkbox" class="excl-cb" value="resi|<?php echo htmlspecialchars($k); ?>"> <?php echo htmlspecialchars($v); ?></label>
-                <?php endif; ?>
-              <?php endforeach; ?>
-            </div>
           </div>
         </div>
     </div>
@@ -461,12 +464,10 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
           <th>Mobile</th>
           <th class="sortable" data-col="_status">Status <span class="si"></span></th>
           <th class="sortable" data-col="its_sabeel_match">ITS Match <span class="si"></span></th>
-          <th class="sortable" data-col="health_status">Health <span class="si"></span></th>
           <th class="sortable" data-col="deeni_status">Deeni <span class="si"></span></th>
+          <th class="sortable" data-col="health_status">Health <span class="si"></span></th>
           <th class="sortable" data-col="residential_status">Residential <span class="si"></span></th>
-          <?php if (!$is_umoor): ?>
           <th>Actions</th>
-          <?php endif; ?>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -934,7 +935,7 @@ function renderTable() {
   tbody.innerHTML = '';
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="${IS_UMOOR ? 12 : 13}"><i class="fa fa-search"></i> No members found.</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="13"><i class="fa fa-search"></i> No members found.</td></tr>`;
     return;
   }
 
@@ -966,16 +967,14 @@ function renderTable() {
       `<td style="font-size:.75rem;color:var(--text-2)">${esc(u.Mobile||'—')}</td>` +
       `<td>${badge}</td>` +
       `<td style="font-size:.72rem;color:var(--text-2)">${esc(ITS_MATCH_LABELS[u.its_sabeel_match] || u.its_sabeel_match || '—')}</td>` +
-      `<td style="font-size:.72rem;color:var(--text-2);${healthStyle}">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>` +
       `<td style="font-size:.72rem;color:var(--text-2);${deeniStyle}">${esc(DEENI_MAP[(u.deeni_status||'').trim()] || u.deeni_status || '—')}</td>` +
+      `<td style="font-size:.72rem;color:var(--text-2);${healthStyle}">${esc(HEALTH_MAP[(u.health_status||'').trim()] || u.health_status || '—')}</td>` +
       `<td style="font-size:.72rem;color:var(--text-2);${resStyle}">${esc(RESIDENTIAL_MAP[(u.residential_status||'').trim()] || u.residential_status || '—')}</td>`;
 
-    if (!IS_UMOOR) {
-      html += `<td>` +
-        `<a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>` +
-        (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}?redirect=${redirectParam}" class="act-btn act-edit" style="margin-left:4px" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
-      `</td>`;
-    }
+    html += `<td>` +
+      `<a href="${VIEW_URL}${u.ITS_ID}" class="act-btn act-view" title="View"><i class="fa fa-eye"></i></a>` +
+      (CAN_EDIT ? `<a href="${EDIT_URL}${u.ITS_ID}?redirect=${redirectParam}" class="act-btn act-edit" style="margin-left:4px" title="Edit"><i class="fa fa-pencil"></i></a>` : '') +
+    `</td>`;
     return html;
   }
 
@@ -1059,7 +1058,7 @@ function renderTable() {
     if (gi > 0) {
       const sep = tbody.insertRow();
       sep.className = 'family-sep';
-      sep.innerHTML = `<td colspan="${IS_UMOOR ? 12 : 13}"></td>`;
+      sep.innerHTML = `<td colspan="13"></td>`;
     }
     grp.members.forEach(u => {
       const tr = tbody.insertRow();
@@ -1291,7 +1290,6 @@ document.querySelectorAll('th.sortable').forEach(th => {
 
 // Clickable rows for Mumineen directory table
 document.querySelector('table.dir tbody').addEventListener('click', e => {
-  if (IS_UMOOR) return;
   const tr = e.target.closest('tr');
   if (!tr || tr.classList.contains('family-sep') || tr.classList.contains('empty-row')) return;
   if (e.target.closest('button, a, input, select, option, label') || e.target.classList.contains('act-btn')) {
