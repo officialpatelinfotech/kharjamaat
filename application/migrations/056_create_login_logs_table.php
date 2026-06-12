@@ -55,7 +55,7 @@ class Migration_Create_login_logs_table extends CI_Migration
             $this->dbforge->add_key('its_id');
             $this->dbforge->add_key('login_time');
 
-            $this->dbforge->create_table('login_logs', TRUE, ['ENGINE' => 'InnoDB', 'DEFAULT CHARSET' => 'utf8mb4']);
+            $this->dbforge->create_table('login_logs', TRUE, ['ENGINE' => 'InnoDB']);
 
             // If we want the default timestamp for login_time
             $this->db->query("ALTER TABLE login_logs MODIFY COLUMN login_time DATETIME DEFAULT CURRENT_TIMESTAMP");
