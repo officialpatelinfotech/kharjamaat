@@ -33,6 +33,26 @@
               <h3 class="card-title"><i class="fas fa-list-alt mr-2"></i> All System Logins</h3>
             </div>
             <div class="card-body">
+              <form method="GET" action="" class="mb-4">
+                <div class="row">
+                  <div class="col-md-4 mb-2">
+                    <label style="font-size: 0.85rem; color: var(--text-2);">Search (Name, ITS, IP, Role)</label>
+                    <input type="text" name="search" class="form-control" value="<?= htmlspecialchars($filters['search'] ?? '') ?>" placeholder="Search...">
+                  </div>
+                  <div class="col-md-3 mb-2">
+                    <label style="font-size: 0.85rem; color: var(--text-2);">Start Date</label>
+                    <input type="date" name="start_date" class="form-control" value="<?= htmlspecialchars($filters['start_date'] ?? '') ?>">
+                  </div>
+                  <div class="col-md-3 mb-2">
+                    <label style="font-size: 0.85rem; color: var(--text-2);">End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="<?= htmlspecialchars($filters['end_date'] ?? '') ?>">
+                  </div>
+                  <div class="col-md-2 mb-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100 mr-2" style="background-color: #b8860b; border-color: #b8860b;"><i class="fas fa-filter"></i> Filter</button>
+                    <a href="<?= base_url('admin/login_report') ?>" class="btn btn-secondary w-100"><i class="fas fa-undo"></i> Reset</a>
+                  </div>
+                </div>
+              </form>
               <div class="table-responsive">
                 <table id="loginLogsTable" class="table table-bordered table-striped table-hover">
                   <thead>

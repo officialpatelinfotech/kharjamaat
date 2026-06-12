@@ -45,7 +45,14 @@ class Admin extends CI_Controller
   {
     $this->validateUser($_SESSION['user']);
     $data['user_name'] = $_SESSION['user']['username'];
-    $data['logs'] = $this->AccountM->get_login_logs();
+    $filters = [
+      'search' => $this->input->get('search'),
+      'start_date' => $this->input->get('start_date'),
+      'end_date' => $this->input->get('end_date')
+    ];
+
+    $data['filters'] = $filters;
+    $data['logs'] = $this->AccountM->get_login_logs($filters);
     
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/LoginReport', $data);

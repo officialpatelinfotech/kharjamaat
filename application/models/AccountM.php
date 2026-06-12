@@ -2585,10 +2585,30 @@ class AccountM extends CI_Model
     return $this->db->insert_id();
   }
 
-  public function get_login_logs()
+  public function get_login_logs($filters = [])
   {
+    $this->db->from('login_logs');
+
+    if (!empty($filters['search'])) {
+        $search = $filters['search'];
+        $this->db->group_start();
+        $this->db->like('name', $search);
+        $this->db->or_like('its_id', $search);
+        $this->db->or_like('role', $search);
+        $this->db->or_like('ip_address', $search);
+        $this->db->or_like('location', $search);
+        $this->db->group_end();
+    }
+
+    if (!empty($filters['start_date'])) {
+        $this->db->where('DATE(login_time) >=', $filters['start_date']);
+    }
+    if (!empty($filters['end_date'])) {
+        $this->db->where('DATE(login_time) <=', $filters['end_date']);
+    }
+
     $this->db->order_by('login_time', 'DESC');
-    $query = $this->db->get('login_logs');
+    $query = $this->db->get();
     return $query->result_array();
   }
 }
