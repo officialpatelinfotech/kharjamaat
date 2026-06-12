@@ -4658,13 +4658,6 @@ HTML;
 
     $this->db->select('ITS_ID, Full_Name, Sector, Sub_Sector, Sector_Incharge_ITSID, Sector_Incharge_Name, Sector_Incharge_Female_ITSID, Sector_Incharge_Female_Name, Sub_Sector_Incharge_ITSID, Sub_Sector_Incharge_Name, Sub_Sector_Incharge_Female_ITSID, Sub_Sector_Incharge_Female_Name');
     $this->db->from('user');
-    
-    $this->db->group_start();
-    $this->db->where('its_sabeel_match IS NULL', null, false);
-    $this->db->or_where('its_sabeel_match', '');
-    $this->db->or_where('its_sabeel_match', 'sabeel_khar_its_out');
-    $this->db->or_where('its_sabeel_match', 'both_not_khar');
-    $this->db->group_end();
 
     if ($q !== '') {
       $this->db->group_start();
