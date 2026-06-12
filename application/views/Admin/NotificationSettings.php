@@ -418,11 +418,11 @@ if (!function_exists('is_notif_enabled')) {
               </div>
             </td>
           </tr>
-          <!-- 13. 3 Days before the event 01:00 pm to Amil Saheb -->
+          <!-- 13. 3 Days before the event 01:00 pm to Amil Saheb (Public Event) -->
           <tr>
             <td>
-              <div class="font-weight-bold">13. Amil Saheb Reminder (3 Days Before Event at 01:00 PM)</div>
-              <small class="text-muted">First pre-event alert to Amil Saheb.</small>
+              <div class="font-weight-bold">13. Amil Saheb Reminder - Public Event (3 Days Before at 01:00 PM)</div>
+              <small class="text-muted">First pre-event alert to Amil Saheb for Public Events.</small>
             </td>
             <td class="text-center align-middle">
               <div class="custom-control custom-switch">
@@ -449,11 +449,11 @@ if (!function_exists('is_notif_enabled')) {
               </div>
             </td>
           </tr>
-          <!-- 14. Again 1 Day before the event at 09:00 pm to Amil Saheb -->
+          <!-- 14. Again 1 Day before the event at 09:00 pm to Amil Saheb (Public Event) -->
           <tr>
             <td>
-              <div class="font-weight-bold">14. Amil Saheb Reminder (1 Day Before Event at 09:00 PM)</div>
-              <small class="text-muted">Second pre-event alert to Amil Saheb.</small>
+              <div class="font-weight-bold">14. Amil Saheb Reminder - Public Event (1 Day Before at 09:00 PM)</div>
+              <small class="text-muted">Second pre-event alert to Amil Saheb for Public Events.</small>
             </td>
             <td class="text-center align-middle">
               <div class="custom-control custom-switch">
@@ -480,11 +480,11 @@ if (!function_exists('is_notif_enabled')) {
               </div>
             </td>
           </tr>
-          <!-- 15. On the Event day at 9:00 am to Amil Saheb -->
+          <!-- 15. On the Event day at 9:00 am to Amil Saheb (Public Event) -->
           <tr>
             <td>
-              <div class="font-weight-bold">15. Amil Saheb Reminder (On Event Day at 09:00 AM)</div>
-              <small class="text-muted">Final event day alert to Amil Saheb.</small>
+              <div class="font-weight-bold">15. Amil Saheb Reminder - Public Event (On Event Day at 09:00 AM)</div>
+              <small class="text-muted">Final event day alert to Amil Saheb for Public Events.</small>
             </td>
             <td class="text-center align-middle">
               <div class="custom-control custom-switch">
@@ -508,6 +508,192 @@ if (!function_exists('is_notif_enabled')) {
               <div class="custom-control custom-switch">
                 <input type="checkbox" class="custom-control-input" id="notify_admin_email_amil_event_day" name="notify_admin_email_amil_event_day" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_event_day', 'admin_email') ? 'checked' : ''; ?>>
                 <label class="custom-control-label" for="notify_admin_email_amil_event_day"></label>
+              </div>
+            </td>
+          </tr>
+          <!-- 16. 3 Days before the event 01:00 pm to Amil Saheb (Private Event) -->
+          <tr>
+            <td>
+              <div class="font-weight-bold">16. Amil Saheb Reminder - Kaaraj/Private Event (3 Days Before)</div>
+              <small class="text-muted">First pre-event alert to Amil Saheb for Kaaraj/Private Events.</small>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_whatsapp_amil_3days_before_private" name="notify_member_whatsapp_amil_3days_before_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_3days_before_private', 'member_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_whatsapp_amil_3days_before_private"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_email_amil_3days_before_private" name="notify_member_email_amil_3days_before_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_3days_before_private', 'member_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_email_amil_3days_before_private"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_whatsapp_amil_3days_before_private" name="notify_admin_whatsapp_amil_3days_before_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_3days_before_private', 'admin_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_whatsapp_amil_3days_before_private"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_email_amil_3days_before_private" name="notify_admin_email_amil_3days_before_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_3days_before_private', 'admin_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_email_amil_3days_before_private"></label>
+              </div>
+            </td>
+          </tr>
+          <!-- 17. Again 1 Day before the event at 09:00 pm to Amil Saheb (Private Event) -->
+          <tr>
+            <td>
+              <div class="font-weight-bold">17. Amil Saheb Reminder - Kaaraj/Private Event (1 Day Before)</div>
+              <small class="text-muted">Second pre-event alert to Amil Saheb for Kaaraj/Private Events.</small>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_whatsapp_amil_1day_before_private" name="notify_member_whatsapp_amil_1day_before_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_1day_before_private', 'member_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_whatsapp_amil_1day_before_private"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_email_amil_1day_before_private" name="notify_member_email_amil_1day_before_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_1day_before_private', 'member_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_email_amil_1day_before_private"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_whatsapp_amil_1day_before_private" name="notify_admin_whatsapp_amil_1day_before_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_1day_before_private', 'admin_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_whatsapp_amil_1day_before_private"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_email_amil_1day_before_private" name="notify_admin_email_amil_1day_before_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_1day_before_private', 'admin_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_email_amil_1day_before_private"></label>
+              </div>
+            </td>
+          </tr>
+          <!-- 18. On the Event day at 9:00 am to Amil Saheb (Private Event) -->
+          <tr>
+            <td>
+              <div class="font-weight-bold">18. Amil Saheb Reminder - Kaaraj/Private Event (On Event Day)</div>
+              <small class="text-muted">Final event day alert to Amil Saheb for Kaaraj/Private Events.</small>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_whatsapp_amil_event_day_private" name="notify_member_whatsapp_amil_event_day_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_event_day_private', 'member_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_whatsapp_amil_event_day_private"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_email_amil_event_day_private" name="notify_member_email_amil_event_day_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_event_day_private', 'member_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_email_amil_event_day_private"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_whatsapp_amil_event_day_private" name="notify_admin_whatsapp_amil_event_day_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_event_day_private', 'admin_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_whatsapp_amil_event_day_private"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_email_amil_event_day_private" name="notify_admin_email_amil_event_day_private" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_event_day_private', 'admin_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_email_amil_event_day_private"></label>
+              </div>
+            </td>
+          </tr>
+          <!-- 19. 3 Days before the event 01:00 pm to Amil Saheb (Non Event) -->
+          <tr>
+            <td>
+              <div class="font-weight-bold">19. Amil Saheb Reminder - Non Event (3 Days Before)</div>
+              <small class="text-muted">First pre-event alert to Amil Saheb for Non Events.</small>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_whatsapp_amil_3days_before_non" name="notify_member_whatsapp_amil_3days_before_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_3days_before_non', 'member_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_whatsapp_amil_3days_before_non"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_email_amil_3days_before_non" name="notify_member_email_amil_3days_before_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_3days_before_non', 'member_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_email_amil_3days_before_non"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_whatsapp_amil_3days_before_non" name="notify_admin_whatsapp_amil_3days_before_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_3days_before_non', 'admin_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_whatsapp_amil_3days_before_non"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_email_amil_3days_before_non" name="notify_admin_email_amil_3days_before_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_3days_before_non', 'admin_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_email_amil_3days_before_non"></label>
+              </div>
+            </td>
+          </tr>
+          <!-- 20. Again 1 Day before the event at 09:00 pm to Amil Saheb (Non Event) -->
+          <tr>
+            <td>
+              <div class="font-weight-bold">20. Amil Saheb Reminder - Non Event (1 Day Before)</div>
+              <small class="text-muted">Second pre-event alert to Amil Saheb for Non Events.</small>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_whatsapp_amil_1day_before_non" name="notify_member_whatsapp_amil_1day_before_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_1day_before_non', 'member_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_whatsapp_amil_1day_before_non"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_email_amil_1day_before_non" name="notify_member_email_amil_1day_before_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_1day_before_non', 'member_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_email_amil_1day_before_non"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_whatsapp_amil_1day_before_non" name="notify_admin_whatsapp_amil_1day_before_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_1day_before_non', 'admin_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_whatsapp_amil_1day_before_non"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_email_amil_1day_before_non" name="notify_admin_email_amil_1day_before_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_1day_before_non', 'admin_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_email_amil_1day_before_non"></label>
+              </div>
+            </td>
+          </tr>
+          <!-- 21. On the Event day at 9:00 am to Amil Saheb (Non Event) -->
+          <tr>
+            <td>
+              <div class="font-weight-bold">21. Amil Saheb Reminder - Non Event (On Event Day)</div>
+              <small class="text-muted">Final event day alert to Amil Saheb for Non Events.</small>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_whatsapp_amil_event_day_non" name="notify_member_whatsapp_amil_event_day_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_event_day_non', 'member_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_whatsapp_amil_event_day_non"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_member_email_amil_event_day_non" name="notify_member_email_amil_event_day_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_event_day_non', 'member_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_member_email_amil_event_day_non"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_whatsapp_amil_event_day_non" name="notify_admin_whatsapp_amil_event_day_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_event_day_non', 'admin_whatsapp') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_whatsapp_amil_event_day_non"></label>
+              </div>
+            </td>
+            <td class="text-center align-middle">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="notify_admin_email_amil_event_day_non" name="notify_admin_email_amil_event_day_non" value="1" <?php echo is_notif_enabled($notif_settings, 'amil_event_day_non', 'admin_email') ? 'checked' : ''; ?>>
+                <label class="custom-control-label" for="notify_admin_email_amil_event_day_non"></label>
               </div>
             </td>
           </tr>

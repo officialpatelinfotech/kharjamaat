@@ -59,6 +59,39 @@ class Accounts extends CI_Controller
       } else {
         $_SESSION['user_data'] = "";
       }
+
+      // Log login tracking data
+      $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+      $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+      $location = 'Unknown';
+
+      if (!empty($ip) && $ip !== '127.0.0.1' && $ip !== '::1') {
+        $ch = curl_init("http://ip-api.com/json/{$ip}?fields=status,message,country,city");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        if ($response) {
+          $locData = json_decode($response, true);
+          if (isset($locData['status']) && $locData['status'] === 'success') {
+            $location = ($locData['city'] ?? '') . ', ' . ($locData['country'] ?? '');
+            $location = trim($location, ', ');
+          }
+        }
+      }
+
+      $fullName = isset($_SESSION['user_data']['First_Name']) ? trim($_SESSION['user_data']['First_Name'] . ' ' . ($_SESSION['user_data']['Surname'] ?? '')) : 'Unknown';
+      $logData = [
+        'its_id' => $username,
+        'name' => $fullName,
+        'role' => isset($check[0]['role']) ? (int)$check[0]['role'] : 0,
+        'ip_address' => $ip,
+        'user_agent' => $user_agent,
+        'location' => $location,
+        'login_time' => date('Y-m-d H:i:s')
+      ];
+      $this->AccountM->log_user_login($logData);
+
       // If a redirect target was saved before login, validate and use it
       $savedRedirect = isset($_SESSION['redirect_to_url']) ? $_SESSION['redirect_to_url'] : null;
       if (!empty($savedRedirect)) {
@@ -2012,6 +2045,56 @@ class Accounts extends CI_Controller
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/FMB/ViewTakhmeen', $data);
+  }
+
+  public function miqaat_invoices()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+    $member_id = $_SESSION['user_data']['ITS_ID'];
+
+    // Family-wise: HOF + all members linked to HOF
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_id);
+    $memberIds = [$hof_id];
+    $family = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) {
+          $memberIds[] = (int)$f['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    // Family-wise Miqaat invoices listing
+    $miqaat_invoices = [];
+    foreach ($memberIds as $mid) {
+      $inv = $this->AccountM->get_user_miqaat_invoices($mid);
+      if (!empty($inv)) {
+        foreach ($inv as $r) {
+          $r['user_id'] = $mid;
+          $miqaat_invoices[] = $r;
+        }
+      }
+    }
+    if (!empty($miqaat_invoices)) {
+      usort($miqaat_invoices, function ($a, $b) {
+        $ad = $a['invoice_date'] ?? '';
+        $bd = $b['invoice_date'] ?? '';
+        if ($ad === $bd) {
+          return ((int)($b['id'] ?? 0)) <=> ((int)($a['id'] ?? 0));
+        }
+        return strcmp((string)$bd, (string)$ad);
+      });
+    }
+    $data['miqaat_invoices'] = $miqaat_invoices;
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/FMB/MiqaatInvoices', $data);
   }
 
   /**

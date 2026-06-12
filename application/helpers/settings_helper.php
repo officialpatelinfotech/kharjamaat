@@ -181,11 +181,29 @@ if (!function_exists('should_send_notification')) {
 
     // 13, 14, 15: Event Reminders (3 days, 1 day, event day)
     if (strpos($subject_lower, '3 days before') !== false || strpos($template_lower, 'd3') !== false || strpos($subject_lower, '3 days') !== false) {
-      $notif_type = 'amil_3days_before';
+      if (strpos($subject_lower, 'private') !== false || strpos($subject_lower, 'kaaraj') !== false) {
+          $notif_type = 'amil_3days_before_private';
+      } elseif (strpos($subject_lower, 'public') !== false) {
+          $notif_type = 'amil_3days_before';
+      } else {
+          $notif_type = 'amil_3days_before_non';
+      }
     } elseif (strpos($subject_lower, '1 day before') !== false || strpos($subject_lower, '1 day') !== false) {
-      $notif_type = 'amil_1day_before';
+      if (strpos($subject_lower, 'private') !== false || strpos($subject_lower, 'kaaraj') !== false) {
+          $notif_type = 'amil_1day_before_private';
+      } elseif (strpos($subject_lower, 'public') !== false) {
+          $notif_type = 'amil_1day_before';
+      } else {
+          $notif_type = 'amil_1day_before_non';
+      }
     } elseif (strpos($subject_lower, 'event day') !== false || strpos($subject_lower, 'eventday') !== false) {
-      $notif_type = 'amil_event_day';
+      if (strpos($subject_lower, 'private') !== false || strpos($subject_lower, 'kaaraj') !== false) {
+          $notif_type = 'amil_event_day_private';
+      } elseif (strpos($subject_lower, 'public') !== false) {
+          $notif_type = 'amil_event_day';
+      } else {
+          $notif_type = 'amil_event_day_non';
+      }
     }
     // 1. Miqaat Assignment
     elseif (strpos($subject_lower, 'assignment') !== false || strpos($subject_lower, 'assigned') !== false || strpos($subject_lower, 'appointed group leader') !== false || strpos($template_lower, 'assigned') !== false) {

@@ -144,6 +144,7 @@ $param_tail = '?from='.urlencode((string)($from??''))
   <div class="fmt-top">
     <a href="<?php echo $back_href?>" class="fmt-back"><i class="fa fa-arrow-left"></i> Back</a>
     <div class="fmt-heading"><i class="fa fa-cutlery" style="margin-right:6px;opacity:.7"></i>FMB Thaali Menu</div>
+    <?php if (!in_array((int)$_SESSION['user']['role'], [9, 12], true)): ?>
     <div class="fmt-actions">
       <a href="<?php echo base_url('common/add_menu_item?from='.$from_val)?>" class="fmt-btn fmt-btn-outline">
         <i class="fa fa-pencil"></i> Edit Items
@@ -152,6 +153,7 @@ $param_tail = '?from='.urlencode((string)($from??''))
         <i class="fa fa-plus"></i> Add Menu
       </a>
     </div>
+    <?php endif; ?>
   </div>
 
   <!-- ② FILTER CARD -->
@@ -255,7 +257,9 @@ $param_tail = '?from='.urlencode((string)($from??''))
             <th class="sortable" data-col="day" style="min-width:80px">Day <span class="si"></span></th>
             <th style="min-width:180px">Menu</th>
             <th style="min-width:150px">Assigned To</th>
+            <?php if (!in_array((int)$_SESSION['user']['role'], [9, 12], true)): ?>
             <th class="fmt-act-col" style="width:76px">Actions</th>
+            <?php endif; ?>
           </tr>
         </thead>
         <tbody id="fmt-tbody">
@@ -269,7 +273,7 @@ $param_tail = '?from='.urlencode((string)($from??''))
             if($key===0||$curMonthStr!==$prevMonthStr):
           ?>
           <tr class="month-hdr" data-hijri-month-name="<?php echo htmlspecialchars($curMonthStr,ENT_QUOTES)?>">
-            <td colspan="7">
+            <td colspan="<?= in_array((int)$_SESSION['user']['role'], [9, 12], true) ? '6' : '7' ?>">
               <i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i>
               Hijri Month: <strong><?php echo htmlspecialchars($curMonthStr,ENT_QUOTES)?></strong>
             </td>
@@ -306,6 +310,7 @@ $param_tail = '?from='.urlencode((string)($from??''))
             <td style="font-size:.76rem">
               <?php echo!empty($item['assigned_to'])?htmlspecialchars($item['assigned_to'],ENT_QUOTES):''?>
             </td>
+            <?php if (!in_array((int)$_SESSION['user']['role'], [9, 12], true)): ?>
             <td class="fmt-act-col" style="white-space:nowrap">
               <?php if(!$isEmpty): ?>
               <a href="<?php echo base_url('common/edit_menu/'.$item['id'].'?from='.urlencode((string)($from??'')).(isset($hijri_month_id)&&$hijri_month_id!==''?'&hijri_month='.urlencode((string)$hijri_month_id):'').(!empty($assigned_filter)?'&assigned_filter='.urlencode((string)$assigned_filter):''))?>"
@@ -320,11 +325,12 @@ $param_tail = '?from='.urlencode((string)($from??''))
                  class="act-btn act-add" title="Add menu"><i class="fa fa-plus"></i></a>
               <?php endif?>
             </td>
+            <?php endif; ?>
           </tr>
           <?php endforeach?>
           <?php else:?>
           <tr>
-            <td colspan="7" style="text-align:center;padding:40px;color:#9c8f7a;font-size:.82rem">
+            <td colspan="<?= in_array((int)$_SESSION['user']['role'], [9, 12], true) ? '6' : '7' ?>" style="text-align:center;padding:40px;color:#9c8f7a;font-size:.82rem">
               <i class="fa fa-cutlery" style="font-size:1.8rem;display:block;margin-bottom:8px;color:#e8e0cc"></i>
               No menu items found.
             </td>

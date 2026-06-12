@@ -551,7 +551,12 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor/mumineendirecto
     <?php endif; ?>
   </div>
 </div>
-<?php $financial_panel_html = ob_get_clean(); ?>
+<?php 
+$financial_panel_html = ob_get_clean(); 
+if (isset($_SESSION['user']['role']) && in_array((int)$_SESSION['user']['role'], [9, 5], true)) {
+  $financial_panel_html = '';
+}
+?>
 
 <!-- ── Page Header ── -->
 <div class="vm-header">

@@ -62,700 +62,476 @@ $takh_pct = $fmb_overall_amount > 0 ? ($fmb_overall_paid / $fmb_overall_amount) 
 $gc_pct   = $gc_total_amount > 0 ? ($gc_total_paid / $gc_total_amount) * 100 : 0;
 $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amount) * 100 : 0;
 ?>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
 <div class="container margintopcontainer pt-5">
-  <div class="mb-4 p-0 pt-5">
-    <a href="<?php echo base_url('accounts'); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+  <div class="mb-4">
+    <a href="<?php echo base_url('accounts'); ?>" class="btn-view"><i class="fa fa-arrow-left"></i> Back to Dashboard</a>
   </div>
-  <h4 class="mb-3 heading text-center d-flex justify-content-center align-items-center gap-3 flex-wrap">
-    <span>FMB Details Overview</span>
-  </h4>
+  <h1 class="text-center page-heading mb-4">FMB Details Overview</h1>
   <!-- Toggle buttons relocated inside cards as View Details -->
   <style>
-    .overview-card-upscaled .metric-box {
-      position: relative;
-      overflow: hidden;
-      background: linear-gradient(145deg, #ffffff, #f4f6f9);
-      border: 1px solid #e1e5ec;
-      border-radius: 18px;
-      padding: 22px 20px;
-      min-height: 170px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: box-shadow .25s, transform .18s, border-color .3s;
-      height: 100%;
-    }
-
-    .overview-card-upscaled .metric-box:before {
-      content: "";
-      position: absolute;
-      top: -35%;
-      right: -35%;
-      width: 220px;
-      height: 220px;
-      background: radial-gradient(circle at center, rgba(0, 123, 255, .15), transparent 70%);
-      transform: rotate(25deg);
-    }
-
-    .overview-card-upscaled .metric-box:hover {
-      box-shadow: 0 8px 26px -6px rgba(0, 0, 0, .15);
-      transform: translateY(-4px);
-    }
-
-    .overview-card-upscaled h6 {
-      font-size: .8rem;
-      letter-spacing: .65px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .overview-card-upscaled .sub-metrics span {
-      display: inline-block;
-      margin: 4px 8px 0 0;
-      font-size: .62rem;
-      text-transform: uppercase;
-      color: #6c757d;
-      letter-spacing: .55px;
-      background: #eef1f5;
-      padding: 3px 6px;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-
-    .overview-card-upscaled .accent-bar {
-      position: absolute;
-      left: 0;
-      top: 0;
-      height: 100%;
-      width: 6px;
-      background: linear-gradient(180deg, var(--accent-from), var(--accent-to));
-    }
-
-    .overview-card-upscaled .icon-wrap {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      margin-right: 10px;
-      color: #fff;
-      box-shadow: 0 3px 8px -2px rgba(0, 0, 0, .25);
-    }
-
-    .overview-card-upscaled .progress {
-      height: 6px;
-      margin-top: 6px;
-      background: #dfe3e8;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .overview-card-upscaled .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent-from), var(--accent-to));
-    }
-
-    .metric-head {
-      display: flex;
-      align-items: center;
-    }
-
-    .metric-inline {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 24px;
-      margin-top: 4px;
-    }
-
-    .metric-inline>div {
-      min-width: 90px;
-    }
-
-    .metric-inline .label {
-      font-size: .65rem;
-      font-weight: 600;
-      letter-spacing: .5px;
-      color: #6c757d;
-      text-transform: uppercase;
-    }
-
-    .metric-inline .val {
-      font-size: 1.05rem;
-      font-weight: 600;
-    }
-
-    .theme-takhmeen {
-      --accent-from: #0069d9;
-      --accent-to: #48a8ff;
-    }
-
-    .theme-gc {
-      --accent-from: #198754;
-      --accent-to: #4cc790;
-    }
-
-    .theme-miqaat {
-      --accent-from: #6f42c1;
-      --accent-to: #b08cff;
-    }
-
-    .theme-takhmeen .icon-wrap {
-      background: linear-gradient(135deg, #007bff, #3296ff);
-    }
-
-    .theme-gc .icon-wrap {
-      background: linear-gradient(135deg, #1aa160, #28c76f);
-    }
-
-    .theme-miqaat .icon-wrap {
-      background: linear-gradient(135deg, #7b4dd6, #b38dff);
-    }
-
-    @media (max-width:991.98px) {
-      .overview-card-upscaled .metric-box {
-        min-height: unset;
-      }
-
-      .metric-inline {
-        gap: 16px;
-      }
-    }
-
-    @media (max-width:575.98px) {
-      .metric-inline>div {
-        min-width: 70px;
-      }
-
-      .overview-card-upscaled .metric-box {
-        padding: 18px 16px;
-        width: 100%;
-      }
-    }
-
-    /* Modal stacking fixes */
-    /* Base z-index for stacking; will be incremented dynamically */
-    #details-modal.modal {
-      z-index: 1060;
-    }
-
-    .modal-backdrop {
-      z-index: 1050;
-    }
-
-    .modal.dimmed-underlay {
-      filter: blur(2px) brightness(.9);
-    }
-
-    .modal.dimmed-underlay .modal-content {
-      pointer-events: none;
-    }
-
-    /* ================= GC Payments Modal Mobile Optimization ================= */
-    @media (max-width:575.98px) {
-      #gc-payments-modal .modal-dialog {
-        margin: .6rem auto;
-        max-width: 100%;
-      }
-
-      #gc-payments-modal .table thead {
-        display: none;
-      }
-
-      #gc-payments-modal .table tbody tr {
-        display: block;
-        background: #fff;
-        margin: 0 0 .75rem;
-        border: 1px solid #e2e6ea;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, .05);
-        padding: .5rem .65rem;
-      }
-
-      #gc-payments-modal .table tbody tr:last-child {
-        margin-bottom: 0;
-      }
-
-      #gc-payments-modal .table tbody td {
-        display: flex;
-        padding: .35rem .25rem;
-        border: none !important;
-        font-size: .76rem;
-        line-height: 1.1rem;
-      }
-
-      #gc-payments-modal .table tbody td[data-label] {
-        justify-content: space-between;
-        gap: 8px;
-      }
-
-      #gc-payments-modal .table tbody td[data-label]::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #495057;
-        text-transform: uppercase;
-        letter-spacing: .5px;
-        font-size: .63rem;
-      }
-
-      #gc-payments-modal .table tbody td:last-child {
-        justify-content: flex-end;
-      }
-
-      #gc-payments-modal .table tbody td .btn {
-        padding: .3rem .45rem;
-        font-size: .65rem;
-      }
-
-      #gc-payments-modal .table-sm {
-        font-size: inherit;
-      }
-
-      #gc-payments-modal .modal-header,
-      #gc-payments-modal .modal-footer {
-        padding: .5rem .75rem;
-      }
-
-      #gc-payments-modal .border-bottom.small.bg-light {
-        font-size: .68rem;
-      }
-
-      #gc-payments-modal .border-bottom.small.bg-light .mr-2 {
-        margin-right: .75rem !important;
-      }
-
-      /* Meta info wrap */
-      #gc-payments-modal .border-bottom.small.bg-light>.d-flex {
-        gap: .4rem !important;
-      }
-    }
-
-    /* ================= Revamped GC Payments Modal ================= */
-    #gc-payments-modal .gcph-summary-wrapper {
-      padding: 1rem 1rem .85rem;
-      background: linear-gradient(135deg, #f8fafc, #eef3f7);
-      border-bottom: 1px solid #dfe5ea;
-    }
-    #gc-payments-modal .gcph-summary-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.25rem 2.5rem;
-      font-size: .78rem;
-      line-height: 1.05rem;
-    }
-    #gc-payments-modal .gcph-summary-grid .item .lbl {
-      text-transform: uppercase;
-      font-size: .6rem;
-      letter-spacing: .5px;
-      color: #6c7b88;
-      font-weight: 600;
-      display:block;
-    }
-    #gc-payments-modal .gcph-summary-grid .item .val {
-      font-weight: 600;
-      font-size: .85rem;
-    }
-    #gc-payments-modal .gcph-status-badge {
-      display: inline-block;
-      padding: .25rem .55rem;
-      border-radius: 30px;
-      font-size: .62rem;
-      font-weight: 600;
-      letter-spacing: .5px;
-      text-transform: uppercase;
-    }
-    #gc-payments-modal .gcph-status-paid { background: #1aa160; color:#fff; }
-    #gc-payments-modal .gcph-status-partial { background: #ffc107; color:#212529; }
-    #gc-payments-modal .gcph-status-unpaid { background: #dc3545; color:#fff; }
-    #gc-payments-modal .gcph-progress-wrap { margin-top:.6rem; }
-    #gc-payments-modal .progress.gcph-progress { height:8px; background:#d8dee3; }
-    #gc-payments-modal .progress.gcph-progress .progress-bar { background:linear-gradient(90deg,#198754,#48c98a); }
-    #gc-payments-modal .table thead th.sticky-head { position: sticky; top:0; background:#1f2d3a; color:#fff; z-index:2; }
-    #gc-payments-modal .table tbody tr:hover { background:#f4f9fc; }
-    #gc-payments-modal .method-icon { margin-right:4px; opacity:.85; }
-    #gc-payments-modal .loading-overlay { position:absolute; inset:0; background:rgba(255,255,255,.75); display:flex; align-items:center; justify-content:center; z-index:15; }
-    #gc-payments-modal .loading-overlay.d-none { display:none !important; }
-  #gc-payments-modal .btn.gc-view-receipt.btn-shrink { padding:.25rem .45rem; font-size:.55rem; line-height:1; }
-  #gc-payments-modal .btn.gc-view-receipt.btn-shrink i { font-size:.7rem; }
-    @media (max-width:575.98px){
-      #gc-payments-modal .gcph-summary-grid { gap:.9rem 1.25rem; }
-      #gc-payments-modal .gcph-summary-wrapper { padding:.75rem .75rem .65rem; }
-    }
-
-    /* ================= Revamped Miqaat Payments Modal ================= */
-    #miqaat-history-modal .miqaat-summary-wrapper {
-      padding: 1rem 1rem .85rem;
-      background: linear-gradient(135deg, #f9f8fc, #f0eef9);
-      border-bottom: 1px solid #ddd7ef;
-    }
-    #miqaat-history-modal .miqaat-summary-grid {
-      display:flex;
-      flex-wrap:wrap;
-      gap:1.25rem 2.5rem;
-      font-size:.78rem;
-      line-height:1.05rem;
-    }
-    #miqaat-history-modal .miqaat-summary-grid .item .lbl {
-      text-transform:uppercase;
-      font-size:.6rem;
-      letter-spacing:.5px;
-      color:#6c5d92;
-      font-weight:600;
-      display:block;
-    }
-    #miqaat-history-modal .miqaat-summary-grid .item .val {
-      font-weight:600;
-      font-size:.85rem;
-    }
-    #miqaat-history-modal .miqaat-status-badge {
-      display:inline-block;
-      padding:.25rem .55rem;
-      border-radius:30px;
-      font-size:.62rem;
-      font-weight:600;
-      letter-spacing:.5px;
-      text-transform:uppercase;
-    }
-    #miqaat-history-modal .miqaat-status-paid { background:#6f42c1; color:#fff; }
-    #miqaat-history-modal .miqaat-status-partial { background:#ffc107; color:#212529; }
-    #miqaat-history-modal .miqaat-status-unpaid { background:#dc3545; color:#fff; }
-    #miqaat-history-modal .miqaat-progress-wrap { margin-top:.6rem; }
-    #miqaat-history-modal .progress.miqaat-progress { height:8px; background:#d8d2ef; }
-    #miqaat-history-modal .progress.miqaat-progress .progress-bar { background:linear-gradient(90deg,#7b4dd6,#b38dff); }
-    #miqaat-history-modal .table thead th.sticky-head { position:sticky; top:0; background:#3d2f52; color:#fff; z-index:2; }
-    #miqaat-history-modal .table tbody tr:hover { background:#f8f5fc; }
-    #miqaat-history-modal .method-icon { margin-right:4px; opacity:.85; }
-    #miqaat-history-modal .loading-overlay { position:absolute; inset:0; background:rgba(255,255,255,.75); display:flex; align-items:center; justify-content:center; z-index:15; }
-    #miqaat-history-modal .loading-overlay.d-none { display:none !important; }
-    #miqaat-history-modal .btn.miqaat-view-receipt.btn-shrink { padding:.25rem .45rem; font-size:.55rem; line-height:1; }
-    #miqaat-history-modal .btn.miqaat-view-receipt.btn-shrink i { font-size:.7rem; }
-    @media (max-width:575.98px){
-      #miqaat-history-modal .miqaat-summary-grid { gap:.9rem 1.25rem; }
-      #miqaat-history-modal .miqaat-summary-wrapper { padding:.75rem .75rem .65rem; }
-      #miqaat-history-modal .table thead { display:none; }
-      #miqaat-history-modal .table tbody tr { display:block; background:#fff; margin:0 0 .75rem; border:1px solid #e2e6ea; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,.05); padding:.5rem .65rem; }
-      #miqaat-history-modal .table tbody tr:last-child { margin-bottom:0; }
-      #miqaat-history-modal .table tbody td { display:flex; padding:.35rem .25rem; border:none !important; font-size:.76rem; line-height:1.1rem; }
-      #miqaat-history-modal .table tbody td[data-label] { justify-content:space-between; gap:8px; }
-      #miqaat-history-modal .table tbody td[data-label]::before { content:attr(data-label); font-weight:600; color:#4d3f63; text-transform:uppercase; letter-spacing:.5px; font-size:.63rem; }
-      #miqaat-history-modal .table tbody td:last-child { justify-content:flex-end; }
-      #miqaat-history-modal .table tbody td .btn { padding:.3rem .45rem; font-size:.65rem; }
-    }
-
-    /* General Contributions card list (table removed) */
-    #gc-card-list {
-      display: block;
-      /* Desktop grid layout will be applied via media queries */
-    }
-
-    .gc-card {
-      background: #fff;
-      border: 1px solid #e3e6eb;
-      border-radius: 14px;
-      padding: .85rem .9rem;
-      margin-bottom: .9rem;
-      position: relative;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, .05);
-    }
-
-    /* Desktop 3-column grid (>=992px) */
-    @media (min-width: 992px) {
-      #gc-card-list {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem 1.15rem;
-        padding: 1rem 1rem 1.2rem;
-      }
-      #gc-card-list .gc-card {
-        margin-bottom: 0; /* grid gap handles spacing */
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
-      #gc-card-list .gc-actions {
-        flex-wrap: wrap;
-      }
-      #gc-card-list .gc-history-btn-wrapper {
-        margin-top: auto; /* push to bottom */
-      }
-    }
-
-    /* Medium screens (>=768px <992px) fallback to 2 columns */
-    @media (min-width: 768px) and (max-width: 991.98px) {
-      #gc-card-list {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: .9rem 1rem;
-        padding: .75rem .75rem 1rem;
-      }
-      #gc-card-list .gc-card {
-        margin-bottom: 0;
-      }
-    }
-
-    .gc-card:last-child {
-      margin-bottom: 0;
-    }
-
-    .gc-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: .5rem;
-      gap: .5rem;
-    }
-
-    .gc-badge {
-      font-size: .62rem;
-      padding: .25rem .45rem;
-      border-radius: 4px;
-      font-weight: 600;
-      letter-spacing: .5px;
-      text-transform: uppercase;
-    }
-
-    .gc-badge.paid {
-      background: #28a745;
-      color: #fff;
-    }
-
-    .gc-badge.partial {
-      background: #ffc107;
-      color: #212529;
-    }
-
-    .gc-badge.unpaid {
-      background: #dc3545;
-      color: #fff;
-    }
-
-    .gc-meta {
-      font-size: .64rem;
-      color: #59626b;
-      display: flex;
-      flex-wrap: wrap;
-      gap: .55rem .9rem;
-      margin-bottom: .4rem;
-    }
-
-    .gc-meta span {
-      white-space: nowrap;
-    }
-
-    .gc-amounts {
-      display: flex;
-      gap: 1.25rem;
-      flex-wrap: wrap;
-      margin-bottom: .45rem;
-    }
-
-    .gc-amounts .amt {
-      flex: 1 1 90px;
-    }
-
-    .gc-amounts .lbl {
-      font-size: .58rem;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      color: #6c757d;
-      font-weight: 600;
-    }
-
-    .gc-amounts .val {
-      font-size: .9rem;
-      font-weight: 600;
-    }
-
-    .gc-inline-divider {
-      height: 1px;
-      background: linear-gradient(90deg, #dee2e6, rgba(0, 0, 0, 0));
-      margin: .4rem 0 .55rem;
-    }
-
-    .gc-actions {
-      display: flex;
-      gap: .5rem;
-      margin-top: .3rem;
-    }
-
-    .gc-actions .btn {
-      padding: .4rem .6rem;
-      font-size: .7rem;
-    }
-
-    .gc-history-btn-wrapper {
-      margin-top: .55rem;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .gc-history-btn-wrapper .btn {
-      font-size: .7rem;
-      padding: .45rem .9rem;
-    }
-
-    @media (max-width:575.98px) {
-      .gc-history-btn-wrapper {
-        justify-content: stretch;
-      }
-      .gc-history-btn-wrapper .btn {
-        width: 100%;
-        padding: .5rem .75rem;
-      }
-    }
-
-    .gc-desc-empty {
-      font-size: .6rem;
-      color: #999;
-    }
-
-    /* Miqaat card layout (mirrors GC) */
-    #miqaat-card-list { display:block; }
-    .miq-card { background:#fff; border:1px solid #e3e1eb; border-radius:14px; padding:.85rem .9rem; margin-bottom:.9rem; position:relative; box-shadow:0 2px 4px rgba(0,0,0,.05); display:flex; flex-direction:column; }
-    .miq-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem; gap:.5rem; }
-    .miq-badge { font-size:.62rem; padding:.25rem .45rem; border-radius:4px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; }
-    .miq-badge.paid { background:#6f42c1; color:#fff; }
-    .miq-badge.partial { background:#ffc107; color:#212529; }
-    .miq-badge.unpaid { background:#dc3545; color:#fff; }
-    .miq-meta { font-size:.64rem; color:#5a5661; display:flex; flex-wrap:wrap; gap:.55rem .9rem; margin-bottom:.4rem; }
-    .miq-meta span { white-space:nowrap; }
-    .miq-amounts { display:flex; gap:1.25rem; flex-wrap:wrap; margin-bottom:.45rem; }
-    .miq-amounts .amt { flex:1 1 90px; }
-    .miq-amounts .lbl { font-size:.58rem; text-transform:uppercase; letter-spacing:.5px; color:#6c757d; font-weight:600; }
-    .miq-amounts .val { font-size:.9rem; font-weight:600; }
-    .miq-inline-divider { height:1px; background:linear-gradient(90deg,#dee2e6,rgba(0,0,0,0)); margin:.4rem 0 .55rem; }
-    .miq-actions { display:flex; gap:.5rem; margin-top:.3rem; }
-    .miq-actions .btn { padding:.4rem .6rem; font-size:.7rem; }
-    .miq-history-btn-wrapper { margin-top:.55rem; display:flex; justify-content:flex-end; }
-    .miq-history-btn-wrapper .btn { font-size:.7rem; padding:.45rem .9rem; }
-    @media (max-width:575.98px){
-      .miq-history-btn-wrapper { justify-content:stretch; }
-      .miq-history-btn-wrapper .btn { width:100%; padding:.5rem .75rem; }
-      .miq-amounts { gap:.75rem; }
-      .miq-amounts .amt { flex:1 1 70px; }
-      .miq-amounts .val { font-size:.85rem; }
-    }
-    /* Desktop grid */
-    @media (min-width: 992px){
-      #miqaat-card-list { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem 1.15rem; padding:1rem 1rem 1.2rem; }
-      #miqaat-card-list .miq-card { margin-bottom:0; }
-      #miqaat-card-list .miq-history-btn-wrapper { margin-top:auto; }
-    }
-    /* Medium 2-col */
-    @media (min-width:768px) and (max-width:991.98px){
-      #miqaat-card-list { display:grid; grid-template-columns:repeat(2,1fr); gap:.9rem 1rem; padding:.75rem .75rem 1rem; }
-      #miqaat-card-list .miq-card { margin-bottom:0; }
-    }
-
-    @media (max-width:575.98px) {
-      .gc-amounts {
-        gap: .75rem;
-      }
-
-      .gc-amounts .amt {
-        flex: 1 1 70px;
-      }
-
-      .gc-amounts .val {
-        font-size: .85rem;
-      }
-    }
-  </style>
-  <div class="card shadow-sm mb-4 border-0 overview-card overview-card-upscaled">
-    <div class="card-body pt-0 pt-md-2">
-      <div class="row g-3 align-items-stretch">
-        <div class="col-12 col-md-4 d-flex mb-3 mb-md-0">
-          <div class="metric-box theme-takhmeen">
-            <span class="accent-bar"></span>
-            <div class="metric-head mb-2">
-              <div class="icon-wrap"><i class="fa-solid fa-layer-group"></i></div>
-              <div>
-                <h6 class="mb-1">THAALI TAKHMEEN</h6>
-                <div class="metric-inline">
-                  <div>
-                    <div class="label">Amount</div>
-                    <div class="val text-primary">₹<?php echo format_inr_no_decimals($fmb_overall_amount); ?></div>
-                  </div>
-                  <div>
-                    <div class="label">Due</div>
-                    <div class="val text-danger">₹<?php echo format_inr_no_decimals($fmb_overall_due); ?></div>
-                  </div>
-                </div>
-              </div>
+  :root {
+    --gold:        #b8860b;
+    --gold-light:  #e6c84a;
+    --gold-muted:  #f5e9c0;
+    --bg:          #faf7f0;
+    --surface:     #ffffff;
+    --surface-2:   #f7f4ec;
+    --border:      #e8e0cc;
+    --text-1:      #1a1610;
+    --text-2:      #5a5244;
+    --text-3:      #9c8f7a;
+    --green:       #1a6645;
+    --green-bg:    #eaf4ee;
+    --red:         #b91c1c;
+    --red-bg:      #fef2f2;
+    --blue:        #1d4ed8;
+    --blue-bg:     #eff6ff;
+    --amber:       #b45309;
+    --amber-bg:    #fffbeb;
+    --radius-sm:   8px;
+    --radius:      14px;
+    --radius-lg:   20px;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow:      0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  body { background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-1); }
+
+  /* ── Page heading ── */
+  .page-heading { font-family: 'Literata', Georgia, serif; color: var(--gold); font-size: 1.6rem; font-weight: 600; letter-spacing: -.3px; }
+
+  /* ── Dashboard cards ── */
+  .dash-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: box-shadow .2s;
+  }
+  .dash-card:hover { box-shadow: var(--shadow-lg); }
+
+  .dash-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .dash-card-header .card-title {
+    font-size: 0.82rem; font-weight: 700; letter-spacing: .6px;
+    text-transform: uppercase; color: var(--text-2);
+    display: flex; align-items: center; gap: 8px;
+    margin: 0;
+  }
+  .dash-card-header .card-title i {
+    width: 26px; height: 26px; border-radius: 7px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; background: var(--gold-muted); color: var(--gold);
+  }
+  .dash-card-header .badge-pill {
+    font-size: 0.65rem; font-weight: 700; padding: 3px 10px;
+    border-radius: 40px; letter-spacing: .4px;
+  }
+  .badge-danger  { background: var(--red-bg);   color: var(--red);   border: 1px solid #fecaca; }
+  .badge-success { background: var(--green-bg); color: var(--green); border: 1px solid #bbf7d0; }
+
+  .dash-card-body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; }
+
+  /* ── Stat tiles ── */
+  .stat-tile {
+    background: var(--surface-2); border-radius: var(--radius);
+    border: 1px solid var(--border); padding: 14px 12px;
+    text-align: center; transition: background .15s;
+    width: 100%;
+  }
+  .stat-tile:hover { background: var(--gold-muted); }
+  .stat-tile .tile-label { font-size: 0.68rem; font-weight: 600; color: var(--text-3); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-tile .tile-value { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+  .tile-value.green  { color: var(--green); }
+  .tile-value.red    { color: var(--red); }
+  .tile-value.blue   { color: var(--blue); }
+  .tile-value.amber  { color: var(--amber); }
+  .tile-value.gold   { color: var(--gold); }
+
+  /* ── Amount display ── */
+  .amount-big { font-size: 1.6rem; font-weight: 800; letter-spacing: -1px; }
+
+  /* ── View details btn ── */
+  .btn-view {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: .5px;
+    text-transform: uppercase; padding: 7px 16px;
+    border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+    color: var(--text-2); background: var(--surface); text-decoration: none;
+    transition: all .15s;
+    cursor: pointer;
+  }
+  .btn-view:hover { background: var(--gold-muted); border-color: var(--gold); color: var(--gold); text-decoration: none; }
+
+  /* ── Breakdown row ── */
+  .breakdown-row { display: flex; gap: 10px; margin-top: 12px; width: 100%; }
+  .breakdown-row .stat-tile { flex: 1; }
+
+  /* ── Modal stacking & general styles ── */
+  #details-modal.modal { z-index: 1060; }
+  .modal-backdrop { z-index: 1050; }
+  .modal.dimmed-underlay { filter: blur(2px) brightness(.9); }
+  .modal.dimmed-underlay .modal-content { pointer-events: none; }
+
+  .modal-content {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+  }
+  .modal-header {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+  }
+  .modal-title {
+    font-family: 'Literata', Georgia, serif;
+    color: var(--gold);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .modal-footer {
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+    padding: 12px 24px;
+  }
+  .modal-header .close {
+    color: var(--text-2);
+    text-shadow: none;
+    opacity: 0.7;
+  }
+  .modal-header .close:hover {
+    opacity: 1;
+    color: var(--gold);
+  }
+
+  /* ── Premium Tables styling ── */
+  .table {
+    font-size: 0.8rem;
+    border-collapse: collapse;
+    background: var(--surface);
+  }
+  .table thead th {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--text-3);
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border) !important;
+    background: var(--surface-2);
+    border-top: none;
+  }
+  .table tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-1);
+    vertical-align: middle;
+  }
+  .table tbody tr:hover {
+    background: var(--gold-muted) !important;
+    transition: background 0.15s;
+  }
+  .table tr.table-warning {
+    background-color: var(--gold-muted) !important;
+    font-weight: 700;
+    color: var(--gold) !important;
+  }
+
+  /* ── GC payments modal ── */
+  #gc-payments-modal .gcph-summary-wrapper {
+    padding: 1rem 1rem .85rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  #gc-payments-modal .gcph-summary-grid {
+    display: flex; flex-wrap: wrap; gap: 1.25rem 2.5rem;
+    font-size: .78rem; line-height: 1.05rem;
+  }
+  #gc-payments-modal .gcph-summary-grid .item .lbl {
+    text-transform: uppercase; font-size: .6rem; letter-spacing: .5px;
+    color: var(--text-3); font-weight: 600; display: block;
+  }
+  #gc-payments-modal .gcph-summary-grid .item .val { font-weight: 600; font-size: .85rem; }
+  #gc-payments-modal .gcph-status-badge {
+    display: inline-block; padding: .25rem .55rem; border-radius: 30px;
+    font-size: .62rem; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
+  }
+  #gc-payments-modal .gcph-status-paid { background: var(--green); color: #fff; }
+  #gc-payments-modal .gcph-status-partial { background: var(--amber); color: #fff; }
+  #gc-payments-modal .gcph-status-unpaid { background: var(--red); color: #fff; }
+  #gc-payments-modal .gcph-progress-wrap { margin-top: .6rem; }
+  #gc-payments-modal .progress.gcph-progress { height: 8px; background: var(--border); }
+  #gc-payments-modal .progress.gcph-progress .progress-bar { background: linear-gradient(90deg, var(--green), var(--gold-light)); }
+  #gc-payments-modal .table thead th.sticky-head { position: sticky; top: 0; background: var(--surface-2); color: var(--text-1); z-index: 2; }
+  #gc-payments-modal .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,.75); display: flex; align-items: center; justify-content: center; z-index: 15; }
+  #gc-payments-modal .loading-overlay.d-none { display: none !important; }
+  #gc-payments-modal .btn.gc-view-receipt.btn-shrink { padding: .25rem .45rem; font-size: .55rem; line-height: 1; }
+  #gc-payments-modal .btn.gc-view-receipt.btn-shrink i { font-size: .7rem; }
+
+  /* ── Miqaat history modal ── */
+  #miqaat-history-modal .miqaat-summary-wrapper {
+    padding: 1rem 1rem .85rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  #miqaat-history-modal .miqaat-summary-grid {
+    display: flex; flex-wrap: wrap; gap: 1.25rem 2.5rem;
+    font-size: .78rem; line-height: 1.05rem;
+  }
+  #miqaat-history-modal .miqaat-summary-grid .item .lbl {
+    text-transform: uppercase; font-size: .6rem; letter-spacing: .5px;
+    color: var(--text-3); font-weight: 600; display: block;
+  }
+  #miqaat-history-modal .miqaat-summary-grid .item .val { font-weight: 600; font-size: .85rem; }
+  #miqaat-history-modal .miqaat-status-badge {
+    display: inline-block; padding: .25rem .55rem; border-radius: 30px;
+    font-size: .62rem; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
+  }
+  #miqaat-history-modal .miqaat-status-paid { background: var(--blue); color: #fff; }
+  #miqaat-history-modal .miqaat-status-partial { background: var(--amber); color: #fff; }
+  #miqaat-history-modal .miqaat-status-unpaid { background: var(--red); color: #fff; }
+  #miqaat-history-modal .miqaat-progress-wrap { margin-top: .6rem; }
+  #miqaat-history-modal .progress.miqaat-progress { height: 8px; background: var(--border); }
+  #miqaat-history-modal .progress.miqaat-progress .progress-bar { background: linear-gradient(90deg, var(--blue), var(--gold-light)); }
+  #miqaat-history-modal .table thead th.sticky-head { position: sticky; top: 0; background: var(--surface-2); color: var(--text-1); z-index: 2; }
+  #miqaat-history-modal .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,.75); display: flex; align-items: center; justify-content: center; z-index: 15; }
+  #miqaat-history-modal .loading-overlay.d-none { display: none !important; }
+  #miqaat-history-modal .btn.miqaat-view-receipt.btn-shrink { padding: .25rem .45rem; font-size: .55rem; line-height: 1; }
+  #miqaat-history-modal .btn.miqaat-view-receipt.btn-shrink i { font-size: .7rem; }
+
+  /* ── GC & Miqaat card lists ── */
+  #gc-card-list, #miqaat-card-list { display: block; }
+  .gc-card, .miq-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .85rem .9rem;
+    margin-bottom: .9rem;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+  }
+  .miq-card { display: flex; flex-direction: column; }
+
+  .gc-card-header, .miq-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; gap: .5rem; }
+  .gc-badge, .miq-badge { font-size: .62rem; padding: .25rem .45rem; border-radius: 4px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; }
+  .gc-badge.paid, .miq-badge.paid { background: var(--green-bg); color: var(--green); border: 1px solid #bbf7d0; }
+  .gc-badge.partial, .miq-badge.partial { background: var(--amber-bg); color: var(--amber); border: 1px solid #fde68a; }
+  .gc-badge.unpaid, .miq-badge.unpaid { background: var(--red-bg); color: var(--red); border: 1px solid #fecaca; }
+
+  .gc-meta, .miq-meta { font-size: .64rem; color: var(--text-3); display: flex; flex-wrap: wrap; gap: .55rem .9rem; margin-bottom: .4rem; }
+  .gc-meta span, .miq-meta span { white-space: nowrap; }
+
+  .gc-amounts, .miq-amounts { display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: .45rem; }
+  .gc-amounts .amt, .miq-amounts .amt { flex: 1 1 90px; }
+  .gc-amounts .lbl, .miq-amounts .lbl { font-size: .58rem; text-transform: uppercase; letter-spacing: .5px; color: var(--text-3); font-weight: 600; }
+  .gc-amounts .val, .miq-amounts .val { font-size: .9rem; font-weight: 600; }
+
+  .gc-inline-divider, .miq-inline-divider { height: 1px; background: linear-gradient(90deg, var(--border), rgba(0, 0, 0, 0)); margin: .4rem 0 .55rem; }
+  .gc-actions, .miq-actions { display: flex; gap: .5rem; margin-top: .3rem; }
+  .gc-actions .btn, .miq-actions .btn { padding: .4rem .6rem; font-size: .7rem; }
+  .gc-history-btn-wrapper, .miq-history-btn-wrapper { margin-top: .55rem; display: flex; justify-content: flex-end; }
+  .gc-history-btn-wrapper .btn, .miq-history-btn-wrapper .btn { font-size: .7rem; padding: .45rem .9rem; }
+
+  @media (max-width:575.98px) {
+    #gc-payments-modal .modal-dialog, #miqaat-history-modal .modal-dialog { margin: .6rem auto; max-width: 100%; }
+    #gc-payments-modal .table thead, #miqaat-history-modal .table thead { display: none; }
+    #gc-payments-modal .table tbody tr, #miqaat-history-modal .table tbody tr {
+      display: block; background: var(--surface); margin: 0 0 .75rem; border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-sm); padding: .5rem .65rem;
+    }
+    #gc-payments-modal .table tbody tr:last-child, #miqaat-history-modal .table tbody tr:last-child { margin-bottom: 0; }
+    #gc-payments-modal .table tbody td, #miqaat-history-modal .table tbody td { display: flex; padding: .35rem .25rem; border: none !important; font-size: .76rem; line-height: 1.1rem; }
+    #gc-payments-modal .table tbody td[data-label], #miqaat-history-modal .table tbody td[data-label] { justify-content: space-between; gap: 8px; }
+    #gc-payments-modal .table tbody td[data-label]::before, #miqaat-history-modal .table tbody td[data-label]::before {
+      content: attr(data-label); font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .5px; font-size: .63rem;
+    }
+    #gc-payments-modal .table tbody td:last-child, #miqaat-history-modal .table tbody td:last-child { justify-content: flex-end; }
+    #gc-payments-modal .table tbody td .btn, #miqaat-history-modal .table tbody td .btn { padding: .3rem .45rem; font-size: .65rem; }
+    #gc-payments-modal .table-sm, #miqaat-history-modal .table-sm { font-size: inherit; }
+    #gc-payments-modal .modal-header, #gc-payments-modal .modal-footer, #miqaat-history-modal .modal-header, #miqaat-history-modal .modal-footer { padding: .5rem .75rem; }
+
+    .gc-history-btn-wrapper, .miq-history-btn-wrapper { justify-content: stretch; }
+    .gc-history-btn-wrapper .btn, .miq-history-btn-wrapper .btn { width: 100%; padding: .5rem .75rem; }
+    .gc-amounts, .miq-amounts { gap: .75rem; }
+    .gc-amounts .amt, .miq-amounts .amt { flex: 1 1 70px; }
+    .gc-amounts .val, .miq-amounts .val { font-size: .85rem; }
+  }
+
+  /* ── Desktop & Tablet grid layouts ── */
+  @media (min-width: 992px) {
+    #gc-card-list, #miqaat-card-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem 1.15rem; padding: 1rem 1rem 1.2rem; }
+    #gc-card-list .gc-card, #miqaat-card-list .miq-card { margin-bottom: 0; display: flex; flex-direction: column; height: 100%; }
+    #gc-card-list .gc-history-btn-wrapper, #miqaat-card-list .miq-history-btn-wrapper { margin-top: auto; }
+  }
+  @media (min-width: 768px) and (max-width: 991.98px) {
+    #gc-card-list, #miqaat-card-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: .9rem 1rem; padding: .75rem .75rem 1rem; }
+    #gc-card-list .gc-card, #miqaat-card-list .miq-card { margin-bottom: 0; }
+  }
+
+  /* Striped table row background customization */
+  .table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--surface-2) !important;
+  }
+  .table-striped tbody tr:nth-of-type(even) {
+    background-color: var(--surface) !important;
+  }
+
+  /* ── Detail sections cards inside modals ── */
+  .detail-section.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: none;
+    overflow: hidden;
+  }
+  .detail-section.card .card-header {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+  }
+  .detail-section.card .card-header h5.card-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-2);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .detail-section.card .card-header h5.card-title i {
+    width: 26px; height: 26px; border-radius: 7px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; background: var(--gold-muted); color: var(--gold);
+  }
+</style>
+  <div class="row g-3 align-items-stretch mb-4">
+    <!-- Card 1: Thaali Takhmeen -->
+    <div class="col-12 col-md-4 d-flex">
+      <div class="dash-card w-100 h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-cutlery"></i> Thaali Takhmeen</span>
+          <?php if ($fmb_overall_due > 0): ?>
+            <span class="badge-pill badge-danger">Pending</span>
+          <?php else: ?>
+            <span class="badge-pill badge-success">Clear</span>
+          <?php endif; ?>
+        </div>
+        <div class="dash-card-body">
+          <div class="stat-tile mb-3">
+            <div class="tile-label">Total Due</div>
+            <div class="tile-value red amount-big">₹<?php echo format_inr_no_decimals($fmb_overall_due); ?></div>
+          </div>
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Amount</div>
+              <div class="tile-value blue">₹<?php echo format_inr_no_decimals($fmb_overall_amount); ?></div>
             </div>
-            <div class="progress" aria-label="Takhmeen Paid Progress">
-              <div class="progress-bar" style="width:<?php echo number_format($takh_pct, 2); ?>%"></div>
-            </div>
-            <div class="sub-metrics mt-2"><span>Years: <?php echo $fmb_takhmeen_count; ?></span><span><?php echo number_format($takh_pct, 1); ?>% Paid</span></div>
-            <div class="mt-3 text-end">
-              <button type="button" class="btn btn-sm btn-outline-primary view-details-btn" data-target="#sec-takhmeen"><i class="fa fa-eye me-1"></i> View Details</button>
+            <div class="stat-tile">
+              <div class="tile-label">Paid</div>
+              <div class="tile-value green">₹<?php echo format_inr_no_decimals($fmb_overall_paid); ?></div>
             </div>
           </div>
-        </div>
-        <div class="col-12 col-md-4 d-flex mb-3 mb-md-0">
-          <div class="metric-box theme-miqaat">
-            <span class="accent-bar"></span>
-            <div class="metric-head mb-2">
-              <div class="icon-wrap"><i class="fa-solid fa-calendar-day"></i></div>
-              <div>
-                <h6 class="mb-1">MIQAAT NIYAZ INVOICES</h6>
-                <div class="metric-inline">
-                  <div>
-                    <div class="label">Amount</div>
-                    <div class="val text-primary">₹<?php echo format_inr_no_decimals($miqaat_total_amount); ?></div>
-                  </div>
-                  <div>
-                    <div class="label">Paid</div>
-                    <div class="val text-success">₹<?php echo format_inr_no_decimals($miqaat_total_paid); ?></div>
-                  </div>
-                  <div>
-                    <div class="label">Due</div>
-                    <div class="val text-danger">₹<?php echo format_inr_no_decimals($miqaat_total_due); ?></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="progress" aria-label="Miqaat Paid Progress">
-              <div class="progress-bar" style="width:<?php echo number_format($miq_pct, 2); ?>%"></div>
-            </div>
-            <div class="sub-metrics mt-2"><span>Invoices: <?php echo $miqaat_invoice_count; ?></span><span>Paid: <?php echo $miqaat_paid_count; ?></span><span>Partial: <?php echo $miqaat_partial; ?></span><span>Unpaid: <?php echo $miqaat_unpaid; ?></span><span><?php echo number_format($miq_pct, 1); ?>% Paid</span></div>
-            <div class="mt-3 text-end">
-              <button type="button" class="btn btn-sm btn-outline-purple view-details-btn" data-target="#sec-miqaat" style="--bs-btn-color:#6f42c1;border-color:#6f42c1;color:#6f42c1"><i class="fa fa-eye me-1"></i> View Details</button>
-            </div>
+          <div class="progress mb-2" aria-label="Takhmeen Paid Progress" style="height:6px; background:var(--border); border-radius:4px; overflow:hidden;">
+            <div class="progress-bar" style="width:<?php echo number_format($takh_pct, 2); ?>%; background:linear-gradient(90deg, var(--blue), var(--gold-light)); height:100%;"></div>
+          </div>
+          <div style="font-size:0.65rem; color:var(--text-3); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;" class="mb-3">
+            <span>Years: <?php echo $fmb_takhmeen_count; ?></span> | <span><?php echo number_format($takh_pct, 1); ?>% Paid</span>
+          </div>
+          <div class="mt-auto text-end">
+            <button type="button" class="btn-view view-details-btn" data-target="#sec-takhmeen"><i class="fa fa-arrow-right"></i> View Details</button>
           </div>
         </div>
-        <div class="col-12 col-md-4 d-flex mb-3 mb-md-0">
-          <div class="metric-box theme-gc">
-            <span class="accent-bar"></span>
-            <div class="metric-head mb-2">
-              <div class="icon-wrap"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-              <div>
-                <h6 class="mb-1">FMB EXTRA CONTRIBUTIONS</h6>
-                <div class="metric-inline">
-                  <div>
-                    <div class="label">Amount</div>
-                    <div class="val text-primary">₹<?php echo format_inr_no_decimals($gc_total_amount); ?></div>
-                  </div>
-                  <div>
-                    <div class="label">Paid</div>
-                    <div class="val text-success">₹<?php echo format_inr_no_decimals($gc_total_paid); ?></div>
-                  </div>
-                  <div>
-                    <div class="label">Due</div>
-                    <div class="val text-danger">₹<?php echo format_inr_no_decimals($gc_total_due); ?></div>
-                  </div>
-                </div>
-              </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Miqaat Niyaz Invoices -->
+    <div class="col-12 col-md-4 d-flex">
+      <div class="dash-card w-100 h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-calendar"></i> Miqaat Niyaz Invoices</span>
+          <?php if ($miqaat_total_due > 0): ?>
+            <span class="badge-pill badge-danger">Pending</span>
+          <?php else: ?>
+            <span class="badge-pill badge-success">Clear</span>
+          <?php endif; ?>
+        </div>
+        <div class="dash-card-body">
+          <div class="stat-tile mb-3">
+            <div class="tile-label">Total Due</div>
+            <div class="tile-value red amount-big">₹<?php echo format_inr_no_decimals($miqaat_total_due); ?></div>
+          </div>
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Amount</div>
+              <div class="tile-value blue">₹<?php echo format_inr_no_decimals($miqaat_total_amount); ?></div>
             </div>
-            <div class="progress" aria-label="General Contributions Paid Progress">
-              <div class="progress-bar" style="width:<?php echo number_format($gc_pct, 2); ?>%"></div>
+            <div class="stat-tile">
+              <div class="tile-label">Paid</div>
+              <div class="tile-value green">₹<?php echo format_inr_no_decimals($miqaat_total_paid); ?></div>
             </div>
-            <div class="sub-metrics mt-2"><span>Invoices: <?php echo $gc_invoice_count; ?></span><span>Paid: <?php echo $gc_fully_paid; ?></span><span>Partial: <?php echo $gc_partial; ?></span><span>Unpaid: <?php echo $gc_unpaid; ?></span><span><?php echo number_format($gc_pct, 1); ?>% Paid</span></div>
-            <div class="mt-3 text-end">
-              <button type="button" class="btn btn-sm btn-outline-success view-details-btn" data-target="#sec-gc"><i class="fa fa-eye me-1"></i> View Details</button>
+          </div>
+          <div class="progress mb-2" aria-label="Miqaat Paid Progress" style="height:6px; background:var(--border); border-radius:4px; overflow:hidden;">
+            <div class="progress-bar" style="width:<?php echo number_format($miq_pct, 2); ?>%; background:linear-gradient(90deg, var(--gold), var(--gold-light)); height:100%;"></div>
+          </div>
+          <div style="font-size:0.65rem; color:var(--text-3); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;" class="mb-3">
+            <span>Invoices: <?php echo $miqaat_invoice_count; ?></span> | <span><?php echo number_format($miq_pct, 1); ?>% Paid</span>
+          </div>
+          <div class="mt-auto text-end">
+            <a href="<?php echo base_url('accounts/miqaat_invoices'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: FMB Extra Contributions -->
+    <div class="col-12 col-md-4 d-flex">
+      <div class="dash-card w-100 h-100">
+        <div class="dash-card-header">
+          <span class="card-title"><i class="fa fa-gift"></i> Extra Contributions</span>
+          <?php if ($gc_total_due > 0): ?>
+            <span class="badge-pill badge-danger">Pending</span>
+          <?php else: ?>
+            <span class="badge-pill badge-success">Clear</span>
+          <?php endif; ?>
+        </div>
+        <div class="dash-card-body">
+          <div class="stat-tile mb-3">
+            <div class="tile-label">Total Due</div>
+            <div class="tile-value red amount-big">₹<?php echo format_inr_no_decimals($gc_total_due); ?></div>
+          </div>
+          <div class="breakdown-row mb-3">
+            <div class="stat-tile">
+              <div class="tile-label">Amount</div>
+              <div class="tile-value blue">₹<?php echo format_inr_no_decimals($gc_total_amount); ?></div>
             </div>
+            <div class="stat-tile">
+              <div class="tile-label">Paid</div>
+              <div class="tile-value green">₹<?php echo format_inr_no_decimals($gc_total_paid); ?></div>
+            </div>
+          </div>
+          <div class="progress mb-2" aria-label="General Contributions Paid Progress" style="height:6px; background:var(--border); border-radius:4px; overflow:hidden;">
+            <div class="progress-bar" style="width:<?php echo number_format($gc_pct, 2); ?>%; background:linear-gradient(90deg, var(--green), var(--gold-light)); height:100%;"></div>
+          </div>
+          <div style="font-size:0.65rem; color:var(--text-3); text-transform:uppercase; font-weight:600; letter-spacing:0.5px;" class="mb-3">
+            <span>Invoices: <?php echo $gc_invoice_count; ?></span> | <span><?php echo number_format($gc_pct, 1); ?>% Paid</span>
+          </div>
+          <div class="mt-auto text-end">
+            <button type="button" class="btn-view view-details-btn" data-target="#sec-gc"><i class="fa fa-arrow-right"></i> View Details</button>
           </div>
         </div>
       </div>
@@ -765,13 +541,13 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
   <div id="details-sections" class="mb-5" style="display:none !important;">
     <!-- TAKHMEEN SECTION -->
     <div id="sec-takhmeen" class="detail-section card shadow-sm mb-4 d-none">
-      <div class="card-header text-center bg-light">
-        <h5 class="mb-0">FMB Takhmeen (All Years)</h5>
+      <div class="card-header text-center">
+        <h5 class="mb-0 card-title"><i class="fa fa-cutlery"></i> FMB Takhmeen (All Years)</h5>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
           <table class="table table-striped align-middle mb-0">
-            <thead class="thead-dark">
+            <thead>
               <tr>
                 <th>Year</th>
                 <!-- <th class="text-end">Thaali Days</th> -->
@@ -847,7 +623,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
           </div>
           <div class="table-responsive">
             <table class="table table-sm table-striped mb-0">
-              <thead class="thead-dark">
+              <thead>
                 <tr>
                   <th>Date</th>
                   <th class="text-end">Amount (₹)</th>
@@ -882,7 +658,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
     <!-- GENERAL CONTRIBUTIONS SECTION (Cards Only) -->
     <div id="sec-gc" class="detail-section card shadow-sm d-none">
       <div class="card-header text-center">
-        <h5 class="mb-0">FMB General Contributions</h5>
+        <h5 class="mb-0 card-title"><i class="fa fa-gift"></i> FMB General Contributions</h5>
       </div>
       <div class="card-body p-0">
         <div id="gc-card-list" class="p-2">
@@ -950,68 +726,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
         </div>
       </div>
 
-      <!-- MIQAAT SECTION (Cards) -->
-      <div id="sec-miqaat" class="detail-section card shadow-sm mt-4 d-none">
-        <div class="card-header text-center bg-light">
-          <h5 class="mb-0">Miqaat Niyaz Invoices</h5>
-        </div>
-        <div class="card-body p-0">
-          <div id="miqaat-card-list" class="p-2">
-            <?php if (!empty($miqaat_invoices)): ?>
-              <?php foreach ($miqaat_invoices as $i => $inv): ?>
-                <?php
-                  $amt  = (float)($inv['amount'] ?? 0);
-                  $paid = (float)($inv['paid_amount'] ?? 0);
-                  $due  = max(0, $amt - $paid);
-                  $badgeClass = 'unpaid';
-                  $badgeText  = 'Unpaid';
-                  if ($paid > 0 && $due > 0) { $badgeClass='partial'; $badgeText='Partial'; }
-                  if ($due <= 0.00001 && $amt > 0) { $badgeClass='paid'; $badgeText='Paid'; $due = 0; }
-                ?>
-                <div class="miq-card" data-miqaat-id="<?php echo (int)$inv['id']; ?>">
-                  <div class="miq-card-header">
-                    <strong>#<?php echo $i+1; ?> • <?php echo htmlspecialchars($inv['miqaat_name'] ?? ''); ?></strong>
-                    <span class="miq-badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span>
-                  </div>
-                  <div class="miq-meta">
-                    <span>Type: <strong><?php echo htmlspecialchars($inv['miqaat_type'] ?? ''); ?></strong></span>
-                    <span>Date: <strong><?php echo !empty($inv['invoice_date']) ? date('d-M-Y', strtotime($inv['invoice_date'])) : '-'; ?></strong></span>
-                    <span>Invoice ID: <strong><?php echo (int)$inv['id']; ?></strong></span>
-                  </div>
-                  <div class="miq-amounts">
-                    <div class="amt"><div class="lbl">Amount</div><div class="val text-primary">₹<?php echo format_inr_no_decimals($amt); ?></div></div>
-                    <div class="amt"><div class="lbl">Paid</div><div class="val text-success">₹<?php echo format_inr_no_decimals(min($paid,$amt)); ?></div></div>
-                    <div class="amt"><div class="lbl">Due</div><div class="val text-danger">₹<?php echo format_inr_no_decimals($due); ?></div></div>
-                  </div>
-                  <div class="miq-inline-divider"></div>
-                    <?php 
-                      $miqDesc = isset($inv['description']) ? trim((string)$inv['description']) : ''; 
-                      $miqType = isset($inv['miqaat_type']) ? trim((string)($inv['miqaat_type'])) : ''; 
-                    ?>
-                    <div class="miq-actions">
-                      <?php if ($miqType !== '' || $miqDesc !== ''): ?>
-                        <span class="text-muted small" title="<?php echo htmlspecialchars(($miqType ? ('Type: ' . $miqType . ($miqDesc !== '' ? ' — ' : '')) : '') . $miqDesc); ?>">
-                          <?php if ($miqType !== ''): ?><strong><?php echo htmlspecialchars($miqType); ?></strong><?php endif; ?>
-                          <?php if ($miqType !== '' && $miqDesc !== ''): ?> • <?php endif; ?>
-                          <?php echo $miqDesc !== '' ? htmlspecialchars($miqDesc) : ''; ?>
-                        </span>
-                      <?php else: ?>
-                        <span class="gc-desc-empty">No description</span>
-                      <?php endif; ?>
-                    </div>
-                  <div class="miq-history-btn-wrapper">
-                    <button class="btn btn-outline-secondary btn-sm view-miqaat-history" data-invoice-id="<?php echo (int)$inv['id']; ?>" title="View Payment History"><i class="fa-solid fa-clock-rotate-left me-1"></i> Payment History</button>
-                  </div>
-                </div>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <div class="text-center text-muted small py-3">No miqaat invoices found.</div>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
-
-      <!-- Payments merged into Takhmeen section above -->
+      
     </div><!-- /#details-sections -->
   </div>
 
@@ -1019,8 +734,8 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
   <div class="modal fade" id="description-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header bg-success text-white">
-          <h5 class="modal-title"><i class="fa-solid fa-plus-circle me-2"></i> Description</h5>
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-info-circle me-2"></i> Description</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -1035,9 +750,9 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
   <div class="modal fade" id="gc-payments-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title text-center"><i class="fa-solid fa-receipt me-2"></i> General Contribution Payments</h5>
-          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <div class="modal-header">
+          <h5 class="modal-title text-center"><i class="fa fa-file-text-o me-2"></i> General Contribution Payments</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div>
         <div class="modal-body p-0 position-relative">
           <div class="gcph-summary-wrapper">
@@ -1085,7 +800,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
           </div>
           <div class="table-responsive">
             <table class="table table-sm table-striped mb-0" id="gc-payments-table">
-              <thead class="thead-dark">
+              <thead>
                 <tr>
                   <th class="sticky-head">#</th>
                   <th class="sticky-head">Date</th>
@@ -1116,9 +831,9 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
   <div class="modal fade" id="miqaat-history-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header bg-purple text-white" style="background:#6f42c1;">
-          <h5 class="modal-title"><i class="fa-solid fa-clock-rotate-left me-2"></i> Miqaat Invoice Payments</h5>
-          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-history me-2"></i> Miqaat Invoice Payments</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div>
         <div class="modal-body p-0 position-relative">
           <div class="miqaat-summary-wrapper">
@@ -1138,7 +853,7 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
           </div>
           <div class="table-responsive">
             <table class="table table-sm table-striped mb-0" id="miqaat-history-table">
-              <thead class="thead-dark">
+              <thead>
                 <tr>
                   <th class="sticky-head">#</th>
                   <th class="sticky-head">Payment ID</th>
@@ -1168,9 +883,9 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
   <div class="modal fade" id="details-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
+        <div class="modal-header">
           <h5 class="modal-title" id="details-modal-title">Details</h5>
-          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div>
         <div class="modal-body" id="details-modal-body">
           <div class="text-center text-muted py-5">Loading...</div>

@@ -1781,7 +1781,7 @@ class AccountM extends CI_Model
               i.id,
               i.miqaat_id,
               m.name AS miqaat_name,
-              m.type AS miqaat_type,
+              COALESCE(m.type, i.miqaat_type, '') AS miqaat_type,
               i.date AS invoice_date,
               i.amount,
               i.description,
@@ -1791,7 +1791,7 @@ class AccountM extends CI_Model
             LEFT JOIN miqaat_payment p ON p.miqaat_invoice_id = i.id
             LEFT JOIN miqaat m ON m.id = i.miqaat_id
             WHERE i.user_id = ?
-            GROUP BY i.id, i.miqaat_id, m.name, m.type, i.date, i.amount, i.description
+            GROUP BY i.id, i.miqaat_id, m.name, m.type, i.miqaat_type, i.date, i.amount, i.description
             ORDER BY i.date DESC, i.id DESC";
     $query = $this->db->query($sql, [$user_id]);
     return $query->result_array();
@@ -1806,7 +1806,7 @@ class AccountM extends CI_Model
     if (!$user_id || !$invoice_id) {
       return ['invoice' => null, 'payments' => []];
     }
-    $inv = $this->db->select('i.id, i.miqaat_id, m.name AS miqaat_name, m.type AS miqaat_type, i.date AS invoice_date, i.amount, i.description, i.user_id')
+    $inv = $this->db->select('i.id, i.miqaat_id, m.name AS miqaat_name, COALESCE(m.type, i.miqaat_type, "") AS miqaat_type, i.date AS invoice_date, i.amount, i.description, i.user_id')
       ->from('miqaat_invoice i')
       ->join('miqaat m', 'm.id = i.miqaat_id', 'left')
       ->where('i.id', $invoice_id)
@@ -2576,6 +2576,19 @@ class AccountM extends CI_Model
   {
     $sql = 'SELECT id, name, umoor from `raza_type` where `active`=1 and umoor like "%Umoor%"';
     $query = $this->db->query($sql);
+    return $query->result_array();
+  }
+
+  public function log_user_login($data)
+  {
+    $this->db->insert('login_logs', $data);
+    return $this->db->insert_id();
+  }
+
+  public function get_login_logs()
+  {
+    $this->db->order_by('login_time', 'DESC');
+    $query = $this->db->get('login_logs');
     return $query->result_array();
   }
 }

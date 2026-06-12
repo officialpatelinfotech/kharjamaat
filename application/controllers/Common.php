@@ -170,8 +170,32 @@ class Common extends CI_Controller
     if ($allow_umoor_deeniyah) {
       $allowed_roles[] = 4;
     }
+    // Allow UmoorFMB (role 12), UmoorDakheliyah (role 9) and UmoorTalimiyah (role 5) globally in validateUser
+    $allowed_roles[] = 12;
+    $allowed_roles[] = 9;
+    $allowed_roles[] = 5;
+
     if (empty($user) || !in_array((int)$user['role'], $allowed_roles, true)) {
       redirect('/accounts');
+    }
+
+    // Intercept and block write/edit access for UmoorFMB (role 12) and UmoorDakheliyah (role 9)
+    if (in_array((int)$user['role'], [9, 12], true)) {
+      $method = strtolower($this->router->fetch_method());
+      $write_methods = [
+        'update_day', 'add_menu', 'delete_menu', 'insert_menu', 
+        'add_menu_item', 'insert_item_type', 'insert_menu_item', 
+        'edit_menu_item', 'delete_menu_item', 'createmiqaat', 
+        'add_miqaat', 'update_miqaat', 'delete_miqaat', 'cancel_miqaat', 
+        'activate_miqaat', 'edit_miqaat', 'updatedpmapping', 
+        'signupforaday', 'adddeliveryperson', 'updatedeliveryperson', 
+        'substitutedeliveryperson', 'assigndeliveryperson', 
+        'update_delivery_override', 'delete_delivery_override',
+        'createmenu', 'edit_menu'
+      ];
+      if (in_array($method, $write_methods, true)) {
+        show_error('Edit access is disabled for this login.');
+      }
     }
   }
 
@@ -3323,7 +3347,7 @@ class Common extends CI_Controller
     // ================= AUTH =================
     $user = $_SESSION['user'] ?? null;
 
-    if (empty($user) || !in_array((int) ($user['role'] ?? 0), [1, 2, 3, 16], true)) {
+    if (empty($user) || !in_array((int) ($user['role'] ?? 0), [1, 2, 3, 16, 9, 12], true)) {
       redirect('/accounts');
     }
 
@@ -4078,6 +4102,174 @@ class Common extends CI_Controller
   }
 
   // ===================== FMB (Thaali) Takhmeen Pages =====================
+  public function fmbthaalitakhmeen()
+  {
+    $this->validateUser($_SESSION['user']);
+
+    $username = $_SESSION['user']['username'];
+    // Fetch year options dynamically from HijriCalendar
+    $yearOptions = $this->HijriCalendar->get_distinct_composite_years();
+
+    // Compute current Hijri financial year
+    $today = date('Y-m-d');
+    $h = $this->HijriCalendar->get_hijri_date($today);
+    $currentCompositeYear = null;
+    if ($h && isset($h['hijri_date'])) {
+      $parts = explode('-', $h['hijri_date']); // d-m-Y
+      $hm = isset($parts[1]) ? str_pad($parts[1], 2, '0', STR_PAD_LEFT) : null;
+      $hy = isset($parts[2]) ? (int)$parts[2] : null;
+      if ($hy) {
+        if ($hm >= '04' && $hm <= '06') {
+          $currentCompositeYear = sprintf('%d-%s', $hy, substr($hy + 1, -2));
+        } elseif ($hm >= '01' && $hm <= '03') {
+          $currentCompositeYear = sprintf('%d-%s', $hy - 1, substr($hy, -2));
+        } else {
+          $currentCompositeYear = sprintf('%d-%s', $hy, substr($hy + 1, -2));
+        }
+      }
+    }
+
+    $selectedYear = $this->input->get_post('fmb_year') ?: $currentCompositeYear;
+
+    $this->load->model('PerDayThaaliCostM');
+    $perDayCostRow = null;
+    $perDayCostAmount = null;
+    if (!empty($selectedYear)) {
+      $perDayCostRow = $this->PerDayThaaliCostM->get_by_year($selectedYear);
+      if ($perDayCostRow && isset($perDayCostRow['amount'])) {
+        $perDayCostAmount = (float) $perDayCostRow['amount'];
+      }
+    }
+
+    $this->load->model('AnjumanM');
+    // Fetch per-user takhmeen details
+    $users = $this->AnjumanM->get_user_takhmeen_details();
+
+    // Prepare selected-year display fields per user
+    foreach ($users as $idx => $u) {
+      $selTotal = 0.0;
+      if (!empty($u['all_takhmeen']) && is_array($u['all_takhmeen'])) {
+        foreach ($u['all_takhmeen'] as $yr) {
+          if (isset($yr['year']) && $yr['year'] == $selectedYear) {
+            $selTotal = (float)($yr['total_amount'] ?? 0);
+            break;
+          }
+        }
+      }
+      $users[$idx]['selected_total_takhmeen'] = $selTotal;
+      $users[$idx]['selected_takhmeen_year'] = $selectedYear;
+    }
+
+    $assignedCountsByUserYear = [];
+    if ($this->db->table_exists('fmb_thaali_day_assignment')) {
+      $rows = [];
+      if ($this->db->table_exists('hijri_calendar')) {
+        $sql = "SELECT
+                  a.user_id,
+                  CASE
+                    WHEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 7 AND 12
+                      THEN CONCAT(
+                        CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED),
+                        '-',
+                        LPAD(RIGHT(CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) + 1, 2), 2, '0')
+                      )
+                    ELSE CONCAT(
+                      CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) - 1,
+                      '-',
+                      LPAD(RIGHT(CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED), 2), 2, '0')
+                    )
+                  END AS fy,
+                  COUNT(DISTINCT DATE(a.menu_date)) AS c
+                FROM fmb_thaali_day_assignment a
+                JOIN hijri_calendar hc ON hc.greg_date = DATE(a.menu_date)
+                GROUP BY a.user_id, fy";
+        $rows = $this->db->query($sql)->result_array();
+      } else {
+        $rows = $this->db->query(
+          "SELECT user_id, year AS fy, COUNT(DISTINCT DATE(menu_date)) AS c
+           FROM fmb_thaali_day_assignment
+           GROUP BY user_id, year"
+        )->result_array();
+      }
+
+      foreach ($rows as $r) {
+        $uid = isset($r['user_id']) ? (string)$r['user_id'] : '';
+        $fy = isset($r['fy']) ? (string)$r['fy'] : '';
+        if ($uid !== '' && $fy !== '') {
+          if (!isset($assignedCountsByUserYear[$uid])) {
+            $assignedCountsByUserYear[$uid] = [];
+          }
+          $assignedCountsByUserYear[$uid][$fy] = (int)($r['c'] ?? 0);
+        }
+      }
+    }
+
+    foreach ($users as $idx => $u) {
+      $uid = isset($u['ITS_ID']) ? (string)$u['ITS_ID'] : '';
+      $users[$idx]['assigned_thaali_days'] = ($uid !== '' && $selectedYear !== '' && isset($assignedCountsByUserYear[$uid][$selectedYear])) ? (int)$assignedCountsByUserYear[$uid][$selectedYear] : 0;
+
+      if (!empty($users[$idx]['all_takhmeen']) && is_array($users[$idx]['all_takhmeen'])) {
+        foreach ($users[$idx]['all_takhmeen'] as $k => $yr) {
+          $fy = isset($yr['year']) ? (string)$yr['year'] : '';
+          $users[$idx]['all_takhmeen'][$k]['assigned_thaali_days'] = ($uid !== '' && $fy !== '' && isset($assignedCountsByUserYear[$uid][$fy])) ? (int)$assignedCountsByUserYear[$uid][$fy] : 0;
+        }
+      }
+    }
+
+    $filter_its = trim($this->input->get('its') ?? $this->input->get('its_id') ?? '');
+    $filter_sector = trim($this->input->get('sector') ?? '');
+    $filter_sub_sector = trim($this->input->get('sub_sector') ?? '');
+
+    $filtered = $users;
+    if ($filter_its !== '') {
+      $filtered = array_filter($filtered, function ($row) use ($filter_its) {
+        return (strpos((string)$row['ITS_ID'], $filter_its) !== false);
+      });
+    }
+    if ($filter_sector !== '') {
+      $filtered = array_filter($filtered, function ($row) use ($filter_sector) {
+        return (isset($row['Sector']) && stripos($row['Sector'], $filter_sector) !== false);
+      });
+    }
+    if ($filter_sub_sector !== '') {
+      $filtered = array_filter($filtered, function ($row) use ($filter_sub_sector) {
+        return (isset($row['Sub_Sector']) && stripos($row['Sub_Sector'], $filter_sub_sector) !== false);
+      });
+    }
+
+    $filtered = array_values($filtered);
+
+    $data["all_user_fmb_takhmeen"] = $filtered;
+    $data["user_name"] = $username;
+    $data['hijri_years'] = $yearOptions;
+    $data['current_year'] = $currentCompositeYear;
+    $data['selected_year'] = $selectedYear;
+    $data['per_day_thaali_cost_amount'] = $perDayCostAmount;
+    $data['per_day_thaali_cost_year'] = $selectedYear;
+    $data['filter_its'] = $filter_its;
+    $data['filter_sector'] = $filter_sector;
+    $data['filter_sub_sector'] = $filter_sub_sector;
+
+    $from = $this->input->get('from');
+    if ($from) {
+      $data['from'] = $from;
+      $_SESSION['from'] = $from;
+    }
+    $data['active_controller'] = isset($_SESSION['from']) ? $_SESSION['from'] : '';
+
+    $this->load->view('Common/Header', $data);
+    $this->load->view('Common/FMBThaaliTakhmeen', $data);
+  }
+
+  public function getPaymentHistory($for)
+  {
+    $this->validateUser($_SESSION['user']);
+    $this->load->model('AnjumanM');
+    $user_id = $this->input->post('user_id');
+    $result = $this->AnjumanM->getPaymentHistory($user_id, $for);
+    echo json_encode($result);
+  }
+
   public function fmbtakhmeen()
   {
     $this->validateUser($_SESSION["user"]);

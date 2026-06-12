@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   :root {
     --gold: #b8860b;
@@ -287,6 +288,29 @@
       width: 95%;
     }
   }
+
+  /* Autocomplete for extra contribution modal */
+  #extra-member-autocomplete-list .autocomplete-item {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    cursor: pointer;
+    background: #fff;
+    border: none;
+    border-bottom: 1px solid #f0ece0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1a1610;
+    text-align: left;
+  }
+  #extra-member-autocomplete-list .autocomplete-item:hover {
+    background: #f5e9c0;
+    color: #b8860b;
+    text-decoration: none;
+  }
+  #extra-member-autocomplete-list .autocomplete-item:last-child {
+    border-bottom: none;
+  }
 </style>
 
 <div class="margintopcontainer mx-2 mx-md-5 pt-3" style="font-family:'Plus Jakarta Sans',sans-serif;">
@@ -318,21 +342,44 @@
         }
       }
     }
-    sort($sectors);
-    sort($sub_sectors);
-    rsort($years_from_invoices);
   }
+  if (!empty($extra_contributions) && is_array($extra_contributions)) {
+    foreach ($extra_contributions as $ec) {
+      $sector = isset($ec['Sector']) ? $ec['Sector'] : '';
+      $subSector = isset($ec['Sub_Sector']) ? $ec['Sub_Sector'] : '';
+      if ($sector !== '' && !in_array($sector, $sectors, true)) $sectors[] = $sector;
+      if ($subSector !== '' && !in_array($subSector, $sub_sectors, true)) {
+        $sub_sectors[] = $subSector;
+      }
+      $iy = '';
+      if (!empty($ec['contri_year'])) {
+        $iy = (string)substr($ec['contri_year'], 0, 4);
+      }
+      if (empty($iy) && !empty($ec['hijri_year_from_cal'])) {
+        $iy = (string)$ec['hijri_year_from_cal'];
+      }
+      if ($iy !== '' && !in_array($iy, $years_from_invoices, true)) $years_from_invoices[] = $iy;
+    }
+  }
+  $sectors = array_values(array_unique(array_filter($sectors)));
+  $sub_sectors = array_values(array_unique(array_filter($sub_sectors)));
+  $years_from_invoices = array_values(array_unique(array_filter($years_from_invoices)));
+  sort($sectors);
+  sort($sub_sectors);
+  rsort($years_from_invoices);
 
-  // Prefer controller-provided Hijri years list; fallback to deriving from invoice data.
+  // Combine both lists (controller-provided from calendar and derived from invoices)
   $filter_hijri_years = [];
-  if (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years)) {
-    $filter_hijri_years = array_values(array_unique(array_filter($hijri_years, function ($y) {
-      return $y !== null && (string)$y !== '';
-    })));
-    rsort($filter_hijri_years);
-  } else {
-    $filter_hijri_years = $years_from_invoices;
+  if (isset($hijri_years) && is_array($hijri_years)) {
+    $filter_hijri_years = $hijri_years;
   }
+  if (!empty($years_from_invoices)) {
+    $filter_hijri_years = array_merge($filter_hijri_years, $years_from_invoices);
+  }
+  $filter_hijri_years = array_values(array_unique(array_filter($filter_hijri_years, function ($y) {
+    return $y !== null && (string)$y !== '';
+  })));
+  rsort($filter_hijri_years);
 
   // Determine default year: prefer controller-provided $current_hijri_year if set, else latest from list.
   $default_hijri_year = '';
@@ -355,13 +402,8 @@
   }
 
   // Prefer full Hijri years list passed from controller (hijri_calendar); fallback to deriving from invoice data.
-  $all_hijri_years = [];
-  if (isset($hijri_years) && is_array($hijri_years) && !empty($hijri_years)) {
-    $all_hijri_years = array_values(array_unique(array_filter($hijri_years, function ($y) {
-      return $y !== null && (string)$y !== '';
-    })));
-    rsort($all_hijri_years);
-  }
+  $all_hijri_years = $filter_hijri_years;
+  rsort($all_hijri_years);
 
   // Default sorting: Sector -> Sub_Sector -> Full_Name (case-insensitive)
   if (!empty($members) && is_array($members)) {
@@ -385,17 +427,11 @@
   $grand_collected_total = 0.0;
   $grand_due_total = 0.0;
   if (!empty($members)) {
-    // Build distinct Sectors, Sub Sectors, and Hijri Years from data
-    $sectors = [];
-    $sub_sectors = [];
-    $years_from_invoices = [];
     foreach ($members as $m) {
       $its = isset($m['ITS_ID']) ? $m['ITS_ID'] : '';
       $name = isset($m['Full_Name']) ? $m['Full_Name'] : '';
       $sector = isset($m['Sector']) ? $m['Sector'] : (isset($m['sector']) ? $m['sector'] : '');
       $subSector = isset($m['Sub_Sector']) ? $m['Sub_Sector'] : (isset($m['sub_sector']) ? $m['sub_sector'] : '');
-      if ($sector !== '' && !in_array($sector, $sectors, true)) $sectors[] = $sector;
-      if ($subSector !== '' && !in_array($subSector, $sub_sectors, true)) $sub_sectors[] = $subSector;
 
       // Group payments by invoice_id so each invoice row can show its own history
       $memberPayments = isset($m['payments']) && is_array($m['payments']) ? $m['payments'] : [];
@@ -403,6 +439,7 @@
         $invId = isset($p['invoice_id']) ? (string)$p['invoice_id'] : '';
         if ($invId === '') continue;
         if (!isset($invoicePaymentsMap[$invId])) $invoicePaymentsMap[$invId] = [];
+        $p['invoice_type'] = 'regular';
         $invoicePaymentsMap[$invId][] = $p;
       }
 
@@ -447,22 +484,106 @@
             'due'          => $due,
             'description'  => isset($inv['description']) ? $inv['description'] : '',
             'details'      => trim($name . ($its !== '' ? (' (' . $its . ')') : '')),
-            'payments'     => ($invoiceId !== '' && isset($invoicePaymentsMap[$invoiceId]) ? $invoicePaymentsMap[$invId] : []),
+            'payments'     => ($invoiceId !== '' && isset($invoicePaymentsMap[$invoiceId]) ? $invoicePaymentsMap[$invoiceId] : []),
+            'invoice_type' => 'regular',
           ];
           $rows[] = $row;
 
           $grand_total += (float)$amount;
           $grand_collected_total += (float)$paid;
           $grand_due_total += (float)$due;
-          if (isset($inv['invoice_year']) && $inv['invoice_year'] !== '' && !in_array($inv['invoice_year'], $years_from_invoices, true)) {
-            $years_from_invoices[] = $inv['invoice_year'];
-          }
         }
       }
     }
-    sort($sectors);
-    sort($sub_sectors);
-    rsort($years_from_invoices);
+  }
+
+  // Merge extra contributions
+  if (!empty($extra_contributions) && is_array($extra_contributions)) {
+    foreach ($extra_contributions as $ec) {
+      $invoiceId = isset($ec['id']) ? (string)$ec['id'] : '';
+      $amount = isset($ec['amount']) ? (float)$ec['amount'] : 0.0;
+      $paid = isset($ec['paid_amount']) ? (float)$ec['paid_amount'] : 0.0;
+      $due = $amount - $paid;
+      if ($due < 0) $due = 0.0;
+
+      $its = isset($ec['ITS_ID']) ? $ec['ITS_ID'] : '';
+      $name = isset($ec['Full_Name']) ? $ec['Full_Name'] : '';
+      $sector = isset($ec['Sector']) ? $ec['Sector'] : '';
+      $subSector = isset($ec['Sub_Sector']) ? $ec['Sub_Sector'] : '';
+      $contri_type = isset($ec['contri_type']) ? $ec['contri_type'] : '';
+
+      $payments = isset($extra_payments_map[$invoiceId]) ? $extra_payments_map[$invoiceId] : [];
+      $normalized_payments = [];
+      foreach ($payments as $p) {
+        $normalized_payments[] = [
+          'payment_id' => $p['payment_id'] ?? $p['id'] ?? '',
+          'amount' => $p['amount'] ?? 0.0,
+          'payment_date' => $p['payment_date'] ?? $p['date'] ?? '',
+          'payment_method' => $p['payment_method'] ?? '',
+          'invoice_id' => $invoiceId,
+          'miqaat_name' => $contri_type,
+          'invoice_type' => 'extra',
+        ];
+      }
+
+      // Use the hijri year derived from contri_year first, fallback to hijri_year_from_cal
+      $hijri_year_for_filter = '';
+      if (!empty($ec['contri_year'])) {
+        $hijri_year_for_filter = (string)substr($ec['contri_year'], 0, 4);
+      }
+      if (empty($hijri_year_for_filter) && !empty($ec['hijri_year_from_cal'])) {
+        $hijri_year_for_filter = (string)$ec['hijri_year_from_cal'];
+      }
+
+      $hijriLabel = '-';
+      if (!empty($ec['hijri_date_from_cal'])) {
+        $parts = explode('-', (string)$ec['hijri_date_from_cal']);
+        if (count($parts) === 3) {
+          $day = $parts[0] ?? '';
+          $month_id = $parts[1] ?? '';
+          $hy = '';
+          if (!empty($ec['contri_year'])) {
+            $hy = (string)substr($ec['contri_year'], 0, 4);
+          }
+          if (empty($hy)) {
+            $hy = $parts[2] ?? '';
+          }
+          $month_name = $this->HijriCalendar->hijri_month_name($month_id);
+          $hijriLabel = trim($day . ' ' . ($month_name['hijri_month'] ?? '') . ' ' . $hy);
+        }
+      }
+
+      $row = [
+        'invoice_id'       => $invoiceId,
+        'its_id'           => $its,
+        'full_name'        => $name,
+        'sector'           => $sector,
+        'sub_sector'       => $subSector,
+        'invoice_year'     => $hijri_year_for_filter,
+        'display_date_iso' => isset($ec['created_at']) ? (string)$ec['created_at'] : '',
+        'invoice_date_iso' => isset($ec['created_at']) ? (string)$ec['created_at'] : '',
+        'hijri_date'       => $hijriLabel,
+        'miqaat_id'        => '',
+        'raza_id'          => '',
+        'miqaat_name'      => $contri_type,
+        'assigned_to'      => 'Niyaz Extra Contribution',
+        'assigned_display' => 'Niyaz Extra Contribution',
+        'individual_count' => 0,
+        'amount'           => $amount,
+        'paid'             => $paid,
+        'due'              => $due,
+        'description'      => isset($ec['description']) ? $ec['description'] : '',
+        'details'          => trim($name . ($its !== '' ? (' (' . $its . ')') : '')),
+        'payments'         => $normalized_payments,
+        'invoice_type'     => 'extra',
+        'contri_year'      => isset($ec['contri_year']) ? (string)$ec['contri_year'] : ''
+      ];
+      $rows[] = $row;
+
+      $grand_total += $amount;
+      $grand_collected_total += $paid;
+      $grand_due_total += $due;
+    }
   }
 
   $hijri_years = !empty($all_hijri_years) ? $all_hijri_years : ($years_from_invoices ?? []);
@@ -541,26 +662,29 @@
             elseif ($miqaat_type === 'Ladies') $mtype_num = 4;
           }
           echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=" . $mtype_num); 
-        ?>" class="btn btn-light font-weight-bold" style="border-radius: 8px; padding: 6px 16px;">
-          Create Invoice
+        ?>" class="btn btn-light font-weight-bold d-inline-flex align-items-center" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
+          <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
         </a>
+        <button type="button" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#createExtraContributionModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
+          <i class="fa-solid fa-plus-circle"></i> Create Extra Contribution
+        </button>
         <?php if (!empty($miqaats_list)) : ?>
-          <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold" data-toggle="modal" data-target="#falaNiyazInvoicesModal" style="border-radius: 8px; padding: 6px 16px;">
-            Update Fala ni Niyaz Invoice
+          <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#falaNiyazInvoicesModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
+            <i class="fa-solid fa-file-signature"></i> Update Fala ni Niyaz Invoice
           </button>
         <?php endif; ?>
       </div>
     </div>
   </div>
 
-  <?php if (!empty($members)) : ?>
+  <?php if (!empty($rows)) : ?>
     <div id="miqaat-payment-filters" class="miqaat-filters-card">
       <div class="form-row">
         <div class="col-md-3 mb-2">
           <label for="pf-name">Name or ITS</label>
           <input type="text" id="pf-name" class="form-control" placeholder="Search name or ITS...">
         </div>
-        <div class="col-md-3 mb-2">
+        <div class="col-md-2 mb-2">
           <label for="pf-sector">Sector</label>
           <select id="pf-sector" class="form-control">
             <option value="">All Sectors</option>
@@ -570,7 +694,7 @@
             endif; ?>
           </select>
         </div>
-        <div class="col-md-3 mb-2">
+        <div class="col-md-2 mb-2">
           <label for="pf-subsector">Sub Sector</label>
           <select id="pf-subsector" class="form-control">
             <option value="">All Sub Sectors</option>
@@ -578,6 +702,15 @@
                 <option value="<?php echo htmlspecialchars(strtolower($ss), ENT_QUOTES); ?>"><?php echo htmlspecialchars($ss); ?></option>
             <?php endforeach;
             endif; ?>
+          </select>
+        </div>
+        <div class="col-md-2 mb-2">
+          <label for="pf-invoice-type">Category</label>
+          <select id="pf-invoice-type" class="form-control">
+            <option value="">All Categories</option>
+            <option value="individual">Individual Niyaz</option>
+            <option value="fala">Fala ni Niyaz</option>
+            <option value="extra">Niyaz Extra Contribution</option>
           </select>
         </div>
         <div class="col-md-2 mb-2">
@@ -591,7 +724,7 @@
           </select>
         </div>
         <div class="col-md-1 mb-2 d-flex align-items-end">
-          <button type="button" id="pf-clear" class="btn btn-outline-secondary w-100" style="height:34px; border-radius:8px;">Clear</button>
+          <button type="button" id="pf-clear" class="btn btn-outline-secondary w-100 d-inline-flex align-items-center justify-content-center" style="height:34px; border-radius:8px; gap: 6px;"><i class="fa-solid fa-filter-circle-xmark"></i> Clear</button>
         </div>
       </div>
     </div>
@@ -601,7 +734,7 @@
   // Processing done above.
   ?>
 
-  <?php if (empty($members)) : ?>
+  <?php if (empty($rows)) : ?>
     <div class="col-12 alert alert-info">No invoices found for members.</div>
   <?php else : ?>
   <div class="miqaat-stats-grid">
@@ -708,6 +841,7 @@
             $dueClass = ($due > 0.0) ? 'text-danger font-weight-bold' : 'text-success font-weight-bold';
             ?>
             <tr class="miqaat-payment-row"
+              data-invoice-type="<?php echo htmlspecialchars($r['invoice_type'], ENT_QUOTES); ?>"
               data-name="<?php echo htmlspecialchars(strtolower($r['full_name']), ENT_QUOTES); ?>"
               data-its="<?php echo htmlspecialchars(strtolower($r['its_id']), ENT_QUOTES); ?>"
               data-sector="<?php echo htmlspecialchars(strtolower($r['sector']), ENT_QUOTES); ?>"
@@ -732,7 +866,12 @@
               <td class="km-cell-wrap"><?php echo $miqaatId !== '' ? ('M#' . htmlspecialchars($miqaatId)) : '-'; ?></td>
               <td class="km-cell-wrap"><?php echo $razaId !== '' ? ('R#' . htmlspecialchars($razaId)) : '-'; ?></td>
               <td class="km-cell-wrap"><?php echo !empty($r['invoice_id']) ? ('I#' . htmlspecialchars((string)$r['invoice_id'])) : '-'; ?></td>
-              <td class="km-cell-wrap"><b><?php echo htmlspecialchars((string)($r['miqaat_name'] ?? '')); ?></b></td>
+              <td class="km-cell-wrap">
+                <b><?php echo htmlspecialchars((string)($r['miqaat_name'] ?? '')); ?></b>
+                <?php if ($r['invoice_type'] === 'extra' && !empty($r['contri_year'])) : ?>
+                  <div class="small text-muted" style="font-size: 0.8em; margin-top: 2px;">(<?php echo htmlspecialchars($r['contri_year']); ?>)</div>
+                <?php endif; ?>
+              </td>
               <td class="km-cell-wrap"><b><?php echo htmlspecialchars((string)($r['assigned_display'] ?? '')); ?></b></td>
               <td class="km-cell-wrap"><?php echo htmlspecialchars((string)($r['details'] ?? '')); ?></td>
               <td class="invoice-date-cell km-cell-wrap"><?php echo htmlspecialchars($invFmt); ?></td>
@@ -951,6 +1090,69 @@
       </div>
     </div>
 
+    <!-- Create Extra Contribution Modal -->
+    <div class="modal fade" id="createExtraContributionModal" tabindex="-1" role="dialog" aria-labelledby="createExtraContributionModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createExtraContributionModalLabel">Create Niyaz Extra Contribution</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form id="create-extra-contribution-form">
+              <div class="form-group position-relative">
+                <label for="extra-member-autocomplete">Name or ITS</label>
+                <input type="text" id="extra-member-autocomplete" class="form-control" placeholder="Type name or ITS..." autocomplete="off" required />
+                <input type="hidden" name="user_id" id="extra-user-id" required />
+                <div id="extra-member-autocomplete-list" class="autocomplete-dropdown" style="display:none; position: absolute; z-index: 1050; left: 0; right: 0; background: #fff; border: 1px solid #ccc; border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></div>
+              </div>
+              <div class="form-group">
+                <label for="extra-contri-year">Contribution Year</label>
+                <select name="contri_year" id="extra-contri-year" class="form-control" required>
+                  <option value="">Select Contribution Year</option>
+                  <?php if (!empty($composite_hijri_years)): ?>
+                    <?php foreach ($composite_hijri_years as $y): ?>
+                      <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>"><?php echo htmlspecialchars($y); ?></option>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="extra-contri-type">Contribution Type</label>
+                <select name="contri_type" id="extra-contri-type" class="form-control" required>
+                  <option value="">Select Type</option>
+                  <?php if (!empty($contri_type_gc)): ?>
+                    <?php foreach ($contri_type_gc as $value): ?>
+                      <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>"><?php echo htmlspecialchars($value["name"]); ?></option>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Miqaat Type</label>
+                <input type="text" class="form-control" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" readonly />
+                <input type="hidden" name="miqaat_type" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" />
+              </div>
+              <div class="form-group">
+                <label for="extra-amount">Amount (₹)</label>
+                <input type="number" name="amount" id="extra-amount" class="form-control" placeholder="Enter amount" min="1" required />
+              </div>
+              <div class="form-group">
+                <label for="extra-description">Description</label>
+                <textarea name="description" id="extra-description" class="form-control" rows="2" placeholder="Optional remarks..."></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" id="create-extra-contribution-submit" class="btn btn-primary" onclick="jQuery('#create-extra-contribution-form').submit();">Create Invoice</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
       const extraContributions = <?php echo json_encode($extra_contributions ?? []); ?>;
       let FALA_MIQAATS = <?php echo json_encode($miqaats_list ?? []); ?>;
@@ -987,12 +1189,13 @@
           return `${dd}-${mm}-${yyyy}`;
         }
 
-        // Filters for invoice list (name/its/sector/sub-sector/year) with totals
+        // Filters for invoice list (name/its/sector/sub-sector/year/type) with totals
         function applyPaymentFilters() {
           const nameVal = (document.getElementById('pf-name').value || '').trim().toLowerCase();
           const sectorVal = (document.getElementById('pf-sector').value || '').trim().toLowerCase();
           const subVal = (document.getElementById('pf-subsector').value || '').trim().toLowerCase();
           const yearVal = (document.getElementById('pf-year').value || '').trim().toLowerCase();
+          const typeVal = (document.getElementById('pf-invoice-type').value || '').trim().toLowerCase();
 
           const rows = document.querySelectorAll('#miqaat-payments-table tbody tr.miqaat-payment-row');
           let index = 1;
@@ -1006,18 +1209,32 @@
           let falaCollected = 0;
           let falaDue = 0;
 
+          let extraInvoiced = 0;
+          let extraCollected = 0;
+          let extraDue = 0;
+
           rows.forEach(r => {
             const rName = (r.getAttribute('data-name') || '').trim();
             const rIts = (r.getAttribute('data-its') || '').trim();
             const rSector = (r.getAttribute('data-sector') || '').trim();
             const rSub = (r.getAttribute('data-subsector') || '').trim();
             const rYear = (r.getAttribute('data-year') || '').trim();
+            const rType = (r.getAttribute('data-invoice-type') || '').trim();
+            const assignedTo = (r.getAttribute('data-assigned-to') || '').trim();
+
+            let category = 'individual';
+            if (rType === 'extra') {
+              category = 'extra';
+            } else if (assignedTo === 'fala ni niyaz' || assignedTo.startsWith('fala ni niyaz')) {
+              category = 'fala';
+            }
 
             let show = true;
             if (nameVal && rName.indexOf(nameVal) === -1 && rIts.indexOf(nameVal) === -1) show = false;
             if (sectorVal && rSector !== sectorVal) show = false;
             if (subVal && rSub !== subVal) show = false;
             if (yearVal && rYear.toLowerCase() !== yearVal) show = false;
+            if (typeVal && category !== typeVal) show = false;
 
             if (!show) {
               r.style.display = 'none';
@@ -1033,8 +1250,12 @@
             const amt = parseFloat(r.getAttribute('data-amount') || '0') || 0;
             const paid = parseFloat(r.getAttribute('data-paid') || '0') || 0;
             const due = parseFloat(r.getAttribute('data-due') || '0') || 0;
-            const assignedTo = (r.getAttribute('data-assigned-to') || '').trim();
-            if (assignedTo === 'fala ni niyaz' || assignedTo.startsWith('fala ni niyaz')) {
+            
+            if (category === 'extra') {
+              extraInvoiced += amt;
+              extraCollected += paid;
+              extraDue += due;
+            } else if (category === 'fala') {
               falaInvoiced += amt;
               falaCollected += paid;
               falaDue += due;
@@ -1042,33 +1263,6 @@
               individualInvoiced += amt;
               individualCollected += paid;
               individualDue += due;
-            }
-          });
-
-          let extraInvoiced = 0;
-          let extraCollected = 0;
-          let extraDue = 0;
-
-          extraContributions.forEach(function(c) {
-            const cName = (c.Full_Name || '').trim().toLowerCase();
-            const cIts = (c.ITS_ID || '').trim().toLowerCase();
-            const cSector = (c.Sector || '').trim().toLowerCase();
-            const cSub = (c.Sub_Sector || '').trim().toLowerCase();
-            const cYear = (c.contri_year || '').trim().toLowerCase();
-
-            let show = true;
-            if (nameVal && cName.indexOf(nameVal) === -1 && cIts.indexOf(nameVal) === -1) show = false;
-            if (sectorVal && cSector !== sectorVal) show = false;
-            if (subVal && cSub !== subVal) show = false;
-            if (yearVal && !cYear.includes(yearVal)) show = false;
-
-            if (show) {
-              const amt = parseFloat(c.amount || '0') || 0;
-              const paid = parseFloat(c.paid_amount || '0') || 0;
-              const due = Math.max(0, amt - paid);
-              extraInvoiced += amt;
-              extraCollected += paid;
-              extraDue += due;
             }
           });
 
@@ -1118,9 +1312,11 @@
         const pfSector = document.getElementById('pf-sector');
         const pfSub = document.getElementById('pf-subsector');
         const pfYear = document.getElementById('pf-year');
+        const pfType = document.getElementById('pf-invoice-type');
         if (pfName) pfName.addEventListener('input', applyPaymentFilters);
         if (pfSector) pfSector.addEventListener('change', applyPaymentFilters);
         if (pfSub) pfSub.addEventListener('change', applyPaymentFilters);
+        if (pfType) pfType.addEventListener('change', applyPaymentFilters);
         if (pfYear) pfYear.addEventListener('change', function() {
           applyPaymentFilters();
           const titleYearEl = document.getElementById('payment-title-hijri-year');
@@ -1142,6 +1338,7 @@
             if (pfSector) pfSector.value = '';
             if (pfSub) pfSub.value = '';
             if (pfYear) pfYear.value = '';
+            if (pfType) pfType.value = '';
             applyPaymentFilters();
           });
         }
@@ -1198,6 +1395,7 @@
             const method = p.payment_method || '';
             const invId = p.invoice_id || '';
             const miqaatName = p.miqaat_name || '';
+            const invoiceType = p.invoice_type || 'regular';
             const viewBtn = `<button type="button" class="btn btn-sm btn-outline-secondary view-receipt-btn" data-payment-id="${p.payment_id || ''}"><i class="fa-solid fa-file-pdf"></i></button>`;
             const actionBtns = showActions ? `
                 <td class="text-center">
@@ -1205,10 +1403,12 @@
                   <button type="button" class="btn btn-sm btn-outline-primary ml-2 edit-payment-btn" 
                           data-payment-id="${p.payment_id || ''}" 
                           data-amount="${isNaN(amt) ? 0 : amt}" 
+                          data-invoice-type="${invoiceType}"
                           data-invoice-id="${invId}"><i class="fa-solid fa-pen"></i></button>
                   <button type="button" class="btn btn-sm btn-outline-danger ml-2 delete-payment-btn" 
                           data-payment-id="${p.payment_id || ''}" 
                           data-amount="${isNaN(amt) ? 0 : amt}" 
+                          data-invoice-type="${invoiceType}"
                           data-invoice-id="${invId}"><i class="fa-solid fa-trash"></i></button>
                 </td>` : '';
             return `
@@ -1359,10 +1559,18 @@
           const pid = btn.getAttribute('data-payment-id');
           const amt = parseFloat(btn.getAttribute('data-amount') || '0');
           const invId = btn.getAttribute('data-invoice-id') || '';
+          const invoiceType = btn.getAttribute('data-invoice-type') || 'regular';
+
           document.getElementById('ep-payment-id').value = pid || '';
           document.getElementById('ep-invoice-id').value = invId || '';
           document.getElementById('ep-payment-id-display').value = pid || '';
           document.getElementById('ep-amount').value = isNaN(amt) ? '' : amt.toFixed(2);
+          
+          const form = document.getElementById('edit-payment-form');
+          if (form) {
+            form.setAttribute('data-invoice-type', invoiceType);
+          }
+
           // Set max for editing: cannot exceed (invoice total - other payments)
           // We don't have full context for invoice total here, so we'll compute max from current modal/payment table if available
           (function setEditMax() {
@@ -1398,6 +1606,8 @@
         document.getElementById('ep-submit').addEventListener('click', function() {
           const pid = document.getElementById('ep-payment-id').value;
           const invId = document.getElementById('ep-invoice-id').value;
+          const form = document.getElementById('edit-payment-form');
+          const invoiceType = form ? (form.getAttribute('data-invoice-type') || 'regular') : 'regular';
           const newAmt = parseFloat(document.getElementById('ep-amount').value || '0');
           const alertBox = document.getElementById('ep-alert');
           const submitBtn = document.getElementById('ep-submit');
@@ -1421,7 +1631,12 @@
             }
           }
           submitBtn.disabled = true;
-          fetch('<?php echo base_url('anjuman/update_miqaat_payment_amount'); ?>', {
+
+          const endpoint = invoiceType === 'extra'
+            ? '<?php echo base_url("anjuman/update_fmbgc_payment_amount_ajax"); ?>'
+            : '<?php echo base_url("anjuman/update_miqaat_payment_amount"); ?>';
+
+          fetch(endpoint, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -1513,7 +1728,7 @@
                 }, 600);
               } else {
                 alertBox.className = 'alert alert-danger';
-                alertBox.textContent = (data && data.error) ? data.error : 'Update failed.';
+                alertBox.textContent = (data && data.message) ? data.message : ((data && data.error) ? data.error : 'Update failed.');
                 alertBox.classList.remove('d-none');
               }
             })
@@ -1534,9 +1749,15 @@
           const pid = btn.getAttribute('data-payment-id');
           const amt = parseFloat(btn.getAttribute('data-amount') || '0');
           const invId = btn.getAttribute('data-invoice-id') || '';
+          const invoiceType = btn.getAttribute('data-invoice-type') || 'regular';
           if (!pid) return;
           if (!confirm('Are you sure you want to delete this payment?')) return;
-          fetch('<?php echo base_url('anjuman/delete_miqaat_payment'); ?>', {
+
+          const endpoint = invoiceType === 'extra'
+            ? '<?php echo base_url("anjuman/fmbgc_delete_payment"); ?>'
+            : '<?php echo base_url("anjuman/delete_miqaat_payment"); ?>';
+
+          fetch(endpoint, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -1630,6 +1851,7 @@
           const row = btn.closest('tr.miqaat-payment-row');
           const invId = btn.getAttribute('data-invoice-id');
           const amt = parseFloat(btn.getAttribute('data-amount') || '0');
+          const invoiceType = row ? (row.getAttribute('data-invoice-type') || 'regular') : 'regular';
 
           // Populate details block (match Update page structure as closely as possible)
           (function fillDetails() {
@@ -1678,6 +1900,12 @@
           document.getElementById('rip-date').value = `${yyyy}-${mm}-${dd}`;
           document.getElementById('rip-method').value = 'Cash';
           document.getElementById('rip-remarks').value = '';
+          
+          const form = document.getElementById('invoice-payment-form');
+          if (form) {
+            form.setAttribute('data-invoice-type', invoiceType);
+          }
+
           const alertBox = document.getElementById('rip-alert');
           alertBox.classList.add('d-none');
           alertBox.textContent = '';
@@ -1696,6 +1924,8 @@
         });
 
         document.getElementById('rip-submit').addEventListener('click', function() {
+          const form = document.getElementById('invoice-payment-form');
+          const invoiceType = form ? (form.getAttribute('data-invoice-type') || 'regular') : 'regular';
           const invId = document.getElementById('rip-invoice-id').value;
           const amount = parseFloat(document.getElementById('rip-amount').value || '');
           const date = document.getElementById('rip-date').value;
@@ -1726,7 +1956,11 @@
           }
 
           submitBtn.disabled = true;
-          fetch('<?php echo base_url("anjuman/add_miqaat_invoice_payment"); ?>', {
+          const endpoint = invoiceType === 'extra'
+            ? '<?php echo base_url("anjuman/add_fmbgc_payment_ajax"); ?>'
+            : '<?php echo base_url("anjuman/add_miqaat_invoice_payment"); ?>';
+
+          fetch(endpoint, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -1737,7 +1971,7 @@
               success: false
             })))
             .then(data => {
-              if (data && data.success) {
+              if (data && (data.success || data.status === true)) {
                 alertBox.className = 'alert alert-success';
                 alertBox.textContent = 'Payment recorded successfully.';
                 alertBox.classList.remove('d-none');
@@ -1796,10 +2030,11 @@
                     }
                     document.body.classList.remove('modal-open');
                   }
+                  window.location.reload(); // Ensure everything is fully re-synced (e.g. payments cache)
                 }, 800);
               } else {
                 alertBox.className = 'alert alert-danger';
-                alertBox.textContent = (data && data.error) ? data.error : 'Failed to save payment.';
+                alertBox.textContent = (data && data.error) ? data.error : (data && data.message ? data.message : 'Failed to save payment.');
                 alertBox.classList.remove('d-none');
               }
             })
@@ -1822,6 +2057,9 @@
           const amount = parseFloat(row.getAttribute('data-amount') || '0');
           const description = row.getAttribute('data-description') || '';
           const invoiceDateIso = row.getAttribute('data-invoice-date') || '';
+          const invoiceType = row ? (row.getAttribute('data-invoice-type') || 'regular') : 'regular';
+          const contriYear = row ? (row.getAttribute('data-year') || '') : '';
+          const contriType = row ? (row.getAttribute('data-miqaat-name') || '') : '';
 
           // Prefill details
           let miqaatIdText = '-';
@@ -1854,6 +2092,13 @@
             <div><b>Assignment Details:</b> ${escapeHtml(assignmentDetailsText)}</div>
           `;
 
+          const form = document.getElementById('editInvoiceForm');
+          if (form) {
+            form.setAttribute('data-invoice-type', invoiceType);
+            form.setAttribute('data-contri-year', contriYear);
+            form.setAttribute('data-contri-type', contriType);
+          }
+
           document.getElementById('edit-invoice-id').value = invoiceId || '';
           document.getElementById('edit-amount').value = Math.round(amount);
           document.getElementById('edit-description').value = description;
@@ -1868,6 +2113,12 @@
         // Submit handler for Edit Invoice
         document.getElementById('editInvoiceForm').addEventListener('submit', function(e) {
           e.preventDefault();
+          const form = document.getElementById('editInvoiceForm');
+          const invoiceType = form ? (form.getAttribute('data-invoice-type') || 'regular') : 'regular';
+          const contriYear = form ? (form.getAttribute('data-contri-year') || '') : '';
+          const contriType = form ? (form.getAttribute('data-contri-type') || '') : '';
+          const miqaatType = '<?php echo isset($miqaat_type) ? $miqaat_type : ""; ?>';
+
           const invoiceId = document.getElementById('edit-invoice-id').value;
           const amount = parseFloat(document.getElementById('edit-amount').value || '0');
           const description = document.getElementById('edit-description').value;
@@ -1881,16 +2132,26 @@
           const saveBtn = document.getElementById('edit-invoice-save');
           saveBtn.disabled = true;
 
-          fetch('<?php echo base_url("anjuman/updateMiqaatInvoiceAmount"); ?>', {
+          const endpoint = invoiceType === 'extra'
+            ? '<?php echo base_url("anjuman/updatefmbgcinvoice"); ?>'
+            : '<?php echo base_url("anjuman/updateMiqaatInvoiceAmount"); ?>';
+
+          let bodyData = `invoice_id=${encodeURIComponent(invoiceId)}&amount=${encodeURIComponent(amount.toFixed(2))}&description=${encodeURIComponent(description)}&invoice_date=${encodeURIComponent(invoiceDate)}`;
+          if (invoiceType === 'extra') {
+            bodyData += `&contri_year=${encodeURIComponent(contriYear)}&contri_type=${encodeURIComponent(contriType)}&miqaat_type=${encodeURIComponent(miqaatType)}`;
+          }
+
+          fetch(endpoint, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
               },
-              body: `invoice_id=${encodeURIComponent(invoiceId)}&amount=${encodeURIComponent(amount.toFixed(2))}&description=${encodeURIComponent(description)}&invoice_date=${encodeURIComponent(invoiceDate)}`
+              body: bodyData
             })
             .then(res => res.json().catch(() => ({})))
             .then(data => {
-              if (data && data.status === true) {
+              const isSuccess = invoiceType === 'extra' ? (data && data.success) : (data && data.status === true);
+              if (isSuccess) {
                 // Find row in table
                 const row = document.querySelector(`tr.miqaat-payment-row[data-invoice-id="${invoiceId}"]`);
                 if (row) {
@@ -1957,7 +2218,7 @@
                 }
                 applyPaymentFilters();
               } else {
-                alert((data && data.error) ? data.error : 'Update failed.');
+                alert(invoiceType === 'extra' ? (data && data.message ? data.message : 'Update failed.') : (data && data.error ? data.error : 'Update failed.'));
               }
             })
             .catch(() => {
@@ -1977,8 +2238,15 @@
           if (!confirm('Are you sure you want to delete this invoice? This cannot be undone.')) return;
           
           btn.disabled = true;
+
+          const row = btn.closest('tr.miqaat-payment-row');
+          const invoiceType = row ? (row.getAttribute('data-invoice-type') || 'regular') : 'regular';
+
+          const endpoint = invoiceType === 'extra'
+            ? '<?php echo base_url("anjuman/fmbgc_delete_invoice"); ?>'
+            : '<?php echo base_url("anjuman/deleteMiqaatInvoice"); ?>';
           
-          fetch('<?php echo base_url("anjuman/deleteMiqaatInvoice"); ?>', {
+          fetch(endpoint, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -1988,7 +2256,8 @@
               success: false
             })))
             .then(data => {
-              if (data && data.status === true) {
+              const isSuccess = invoiceType === 'extra' ? (data && data.success) : (data && data.status === true);
+              if (isSuccess) {
                 // Find row in table
                 const row = document.querySelector(`tr.miqaat-payment-row[data-invoice-id="${invoiceId}"]`);
                 if (row) {
@@ -2003,7 +2272,7 @@
                   window.location.reload();
                 }
               } else {
-                alert((data && data.error) ? data.error : 'Delete failed.');
+                alert(invoiceType === 'extra' ? (data && data.message ? data.message : 'Delete failed.') : (data && data.error ? data.error : 'Delete failed.'));
                 btn.disabled = false;
               }
             })
@@ -2419,6 +2688,86 @@
                 if (first) first.textContent = idx + 1;
               });
               hidden.forEach(r => tbody.appendChild(r));
+            });
+          });
+        })();
+
+        // Autocomplete and form submission logic for Niyaz Extra Contribution modal
+        (function() {
+          if (typeof jQuery === 'undefined') return;
+
+          jQuery(document).on('input', '#extra-member-autocomplete', function() {
+            const query = jQuery(this).val();
+            const listContainer = jQuery('#extra-member-autocomplete-list');
+            const userIdInput = jQuery('#extra-user-id');
+            if (!query || query.length < 2) {
+              listContainer.empty().hide();
+              userIdInput.val('');
+              return;
+            }
+            jQuery.ajax({
+              url: "<?php echo base_url('anjuman/searchmembers'); ?>",
+              type: "POST",
+              data: { query: query },
+              dataType: "json",
+              success: function(res) {
+                if (res.success && Array.isArray(res.members) && res.members.length > 0) {
+                  let listHtml = '';
+                  res.members.forEach(function(member) {
+                    listHtml += `<button type="button" class="autocomplete-item extra-member-suggestion" data-id="${member.ITS_ID}" data-name="${member.Full_Name}">${member.Full_Name} (${member.ITS_ID})</button>`;
+                  });
+                  listContainer.html(listHtml).show();
+                } else {
+                  listContainer.html('<div class="p-3 text-muted text-center" style="font-size:0.85rem;">No members found</div>').show();
+                }
+              },
+              error: function() {
+                listContainer.html('<div class="p-3 text-danger text-center" style="font-size:0.85rem;">Error searching members</div>').show();
+              }
+            });
+          });
+
+          // Select member from autocomplete
+          jQuery(document).on('click', '.extra-member-suggestion', function() {
+            const itsId = jQuery(this).attr('data-id');
+            const name = jQuery(this).attr('data-name');
+            jQuery('#extra-user-id').val(itsId);
+            jQuery('#extra-member-autocomplete').val(name);
+            jQuery('#extra-member-autocomplete-list').empty().hide();
+          });
+
+          // Hide suggestions on outside click
+          jQuery(document).on('click', function(e) {
+            if (!jQuery(e.target).closest('#extra-member-autocomplete, #extra-member-autocomplete-list').length) {
+              jQuery('#extra-member-autocomplete-list').empty().hide();
+            }
+          });
+
+          // Form submission
+          jQuery(document).on('submit', '#create-extra-contribution-form', function(e) {
+            e.preventDefault();
+            const btn = jQuery('#create-extra-contribution-submit');
+            btn.prop('disabled', true);
+            
+            const formData = jQuery(this).serialize();
+            jQuery.ajax({
+              url: "<?php echo base_url('anjuman/addfmbgc_ajax'); ?>",
+              type: "POST",
+              data: formData,
+              dataType: "json",
+              success: function(res) {
+                if (res && res.success) {
+                  alert(res.message || 'Invoice created successfully.');
+                  window.location.reload();
+                } else {
+                  alert(res.message || 'Failed to create invoice.');
+                  btn.prop('disabled', false);
+                }
+              },
+              error: function() {
+                alert('An error occurred. Please try again.');
+                btn.prop('disabled', false);
+              }
             });
           });
         })();

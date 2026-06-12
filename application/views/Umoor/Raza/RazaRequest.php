@@ -372,15 +372,19 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <button type="button" class="btn btn-sm btn-primary remove-form-row"
-                                        onclick="approve_raza(<?php echo $r['id'] ?>);"><i
-                                            class="fa fa-circle-check"></i></button>
-                                    <button type="button" class="btn btn-sm btn-danger remove-form-row"
-                                        onclick="reject_raza(<?php echo $r['id'] ?>);"><i
-                                            class="fa fa-circle-xmark"></i></button>
-                                    <button type="button" class="btn btn-sm btn-danger remove-form-row"
-                                        onclick="redirectto(<?php echo 'amilsaheb/DeleteRaza/'.$r['id'] ?>);"><i
-                                            class="fa fa-circle-xmark"></i></button>
+                                    <?php if (in_array((int)$_SESSION['user']['role'], [9, 12], true)): ?>
+                                         <a onclick="show_raza(<?php echo $r['id'] ?>);"><span style="text-decoration:underline; cursor:pointer;">View</span></a>
+                                    <?php else: ?>
+                                        <button type="button" class="btn btn-sm btn-primary remove-form-row"
+                                            onclick="approve_raza(<?php echo $r['id'] ?>);"><i
+                                                class="fa fa-circle-check"></i></button>
+                                        <button type="button" class="btn btn-sm btn-danger remove-form-row"
+                                            onclick="reject_raza(<?php echo $r['id'] ?>);"><i
+                                                class="fa fa-circle-xmark"></i></button>
+                                        <button type="button" class="btn btn-sm btn-danger remove-form-row"
+                                            onclick="redirectto(<?php echo 'amilsaheb/DeleteRaza/'.$r['id'] ?>);"><i
+                                                class="fa fa-circle-xmark"></i></button>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php } ?>
@@ -852,16 +856,22 @@
         // You can use the same logic you have in your PHP code
 
         let actionHTML = '';
-        if (raza['Janab-status'] == 0) {
+        var isReadOnly = <?php echo (in_array((int)$_SESSION['user']['role'], [9, 12], true)) ? 'true' : 'false'; ?>;
+        if (isReadOnly) {
             actionHTML = `
-                <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="handleAction();">
+                <a onclick="show_raza(${raza['id']});">
+                    <span style="text-decoration:underline; cursor:pointer;">View</span>
+                </a>`;
+        } else if (raza['Janab-status'] == 0) {
+            actionHTML = `
+                <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(${raza['id']});">
                     <i class="fa fa-circle-check"></i>
                 </button>
-                <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="handleAction();">
+                <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(${raza['id']});">
                     <i class="fa fa-circle-xmark"></i>
                 </button>
-                <button type="button" class="btn btn-sm btn-warning remove-form-row" onclick="handleAction();">
-                    <i class="fa fa-trash"></i>
+                <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="redirectto('amilsaheb/DeleteRaza/${raza['id']}');">
+                    <i class="fa fa-circle-xmark"></i>
                 </button>`;
         }else{
             actionHTML = `

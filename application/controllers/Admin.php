@@ -14,6 +14,14 @@ class Admin extends CI_Controller
     $this->load->model('HijriCalendar');
     $this->load->library('email', $this->config->item('email'));
     $this->AdminM->updateHijriGregorianDates();
+
+    // Block Raza recommendation/approval actions for UmoorFMB (role 12) and UmoorDakheliyah (role 9)
+    if (!empty($_SESSION['user']) && in_array((int)$_SESSION['user']['role'], [9, 12], true)) {
+      $method = strtolower($this->router->fetch_method());
+      if ($method === 'approveraza' || $method === 'rejectraza') {
+        show_error('Edit access is disabled for this login.');
+      }
+    }
   }
 
   private function validateUser($user)
@@ -30,6 +38,17 @@ class Admin extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Home', $data);
+  }
+
+  // System Login Tracking Report
+  public function login_report()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['logs'] = $this->AccountM->get_login_logs();
+    
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/LoginReport', $data);
   }
 
   // Laagat / Rent Module
@@ -5292,7 +5311,13 @@ HTML;
         'appointment_report_nightly',
         'amil_3days_before',
         'amil_1day_before',
-        'amil_event_day'
+        'amil_event_day',
+        'amil_3days_before_private',
+        'amil_1day_before_private',
+        'amil_event_day_private',
+        'amil_3days_before_non',
+        'amil_1day_before_non',
+        'amil_event_day_non'
       ];
 
       $notification_settings = [];

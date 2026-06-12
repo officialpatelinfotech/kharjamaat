@@ -3634,6 +3634,47 @@ class Anjuman extends CI_Controller
     $this->load->view('Anjuman/FMBNiyaz', $data);
   }
 
+  /**
+   * AJAX endpoint: create a Niyaz Extra Contribution invoice and return JSON.
+   */
+  public function addfmbgc_ajax()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+      return;
+    }
+
+    $contri_year = trim($this->input->post('contri_year'));
+    $user_id     = trim($this->input->post('user_id'));
+    $fmb_type    = 'Niyaz';
+    $contri_type = trim($this->input->post('contri_type'));
+    $miqaat_type = trim($this->input->post('miqaat_type'));
+    $amount      = floatval($this->input->post('amount'));
+    $description = trim($this->input->post('description'));
+
+    if (!$contri_year || !$user_id || !$contri_type || !$miqaat_type || $amount <= 0) {
+      echo json_encode(['success' => false, 'message' => 'All required fields must be filled.']);
+      return;
+    }
+
+    $data = [
+      'contri_year' => $contri_year,
+      'user_id'     => $user_id,
+      'fmb_type'    => $fmb_type,
+      'contri_type' => $contri_type,
+      'miqaat_type' => $miqaat_type,
+      'amount'      => $amount,
+      'description' => $description,
+    ];
+
+    $result = $this->AnjumanM->addfmbgc($data);
+    if ($result) {
+      echo json_encode(['success' => true, 'message' => 'Invoice created successfully.']);
+    } else {
+      echo json_encode(['success' => false, 'message' => 'Failed to create invoice. Please try again.']);
+    }
+  }
+
   public function fmbthaalitakhmeen()
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
@@ -4075,6 +4116,94 @@ class Anjuman extends CI_Controller
     echo json_encode($res);
   }
 
+  public function add_fmbgc_payment_ajax()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+      return;
+    }
+
+    $invoice_id = (int)$this->input->post('invoice_id');
+    $amount = (float)$this->input->post('amount');
+    $payment_date = $this->input->post('payment_date');
+    $payment_method = $this->input->post('payment_method');
+    $remarks = $this->input->post('remarks');
+
+    if (!$invoice_id || $amount <= 0 || !$payment_date) {
+      echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+      return;
+    }
+
+    // Retrieve user_id from invoice
+    $invoice = $this->db->select('user_id')->from('fmb_general_contribution')->where('id', $invoice_id)->get()->row_array();
+    if (!$invoice) {
+      echo json_encode(['success' => false, 'message' => 'Invoice not found']);
+      return;
+    }
+    $user_id = $invoice['user_id'];
+
+    $result = $this->AnjumanM->insert_fmbgc_payment($invoice_id, $user_id, $amount, $payment_method, $payment_date, $remarks);
+    echo json_encode($result);
+  }
+
+  public function update_fmbgc_payment_amount_ajax()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+      return;
+    }
+
+    $payment_id = (int)$this->input->post('payment_id');
+    $amount = (float)$this->input->post('amount');
+
+    if (!$payment_id || $amount <= 0) {
+      echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+      return;
+    }
+
+    // Get payment details
+    $payment = $this->db->get_where('fmb_general_contribution_payments', ['id' => $payment_id])->row_array();
+    if (!$payment) {
+      echo json_encode(['success' => false, 'message' => 'Payment not found']);
+      return;
+    }
+
+    $invoice_id = $payment['fmbgc_id'];
+
+    // Validate new amount against invoice
+    $invoice = $this->db->select('amount')->from('fmb_general_contribution')->where('id', $invoice_id)->get()->row_array();
+    if (!$invoice) {
+      echo json_encode(['success' => false, 'message' => 'Invoice not found']);
+      return;
+    }
+
+    // Calculate sum of other payments
+    $this->db->select('SUM(amount) as total');
+    $this->db->from('fmb_general_contribution_payments');
+    $this->db->where('fmbgc_id', $invoice_id);
+    $this->db->where('id !=', $payment_id);
+    $other = $this->db->get()->row_array();
+    $other_total = (float)($other['total'] ?? 0);
+
+    if ($other_total + $amount > $invoice['amount']) {
+      echo json_encode(['success' => false, 'message' => 'Total payment amount exceeds invoice total']);
+      return;
+    }
+
+    // Update payment
+    $this->db->where('id', $payment_id)->update('fmb_general_contribution_payments', ['amount' => $amount]);
+
+    // Recompute status
+    $new_total = $other_total + $amount;
+    $status = ($new_total >= $invoice['amount']) ? 1 : 0;
+    $this->db->where('id', $invoice_id)->update('fmb_general_contribution', [
+      'payment_status' => $status,
+      'updated_at' => date('Y-m-d H:i:s')
+    ]);
+
+    echo json_encode(['success' => true, 'message' => 'Payment updated successfully']);
+  }
+
   /**
    * AJAX: delete entire GC invoice (POST: invoice_id)
    */
@@ -4404,14 +4533,41 @@ class Anjuman extends CI_Controller
     rsort($yearsList);
     $data['hijri_years'] = $yearsList;
 
-    // Query Extra Contributions with user sector/subsector details and contri_year for JS year filter
-    $this->db->select('gc.id, gc.amount, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, gc.contri_year, COALESCE(paid.total_received, 0) as paid_amount');
+    // Query Extra Contributions — join hijri_calendar to derive hijri year from the gregorian created_at date
+    // so that the client-side Hijri Year filter works correctly (same year format as regular invoices).
+    $this->db->select('gc.id, gc.amount, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, gc.contri_year, gc.created_at, gc.description, gc.contri_type, COALESCE(paid.total_received, 0) as paid_amount, SUBSTRING_INDEX(hc.hijri_date, \'-\', -1) as hijri_year_from_cal, hc.hijri_date as hijri_date_from_cal');
     $this->db->from('fmb_general_contribution gc');
     $this->db->join('user u', 'u.ITS_ID = gc.user_id', 'left');
     $this->db->join('(SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) paid', 'paid.fmbgc_id = gc.id', 'left');
+    $this->db->join('hijri_calendar hc', 'hc.greg_date = DATE(gc.created_at)', 'left');
     $this->db->where('gc.fmb_type', 'Niyaz');
     $this->db->where('gc.miqaat_type', $miqaat_type);
     $data['extra_contributions'] = $this->db->get()->result_array();
+
+    // Query payment history details for general contributions and group by fmbgc_id
+    $this->db->select('p.id AS payment_id, p.amount, p.payment_method, p.payment_date, p.remarks, p.fmbgc_id');
+    $this->db->from('fmb_general_contribution_payments p');
+    $this->db->join('fmb_general_contribution gc', 'gc.id = p.fmbgc_id');
+    $this->db->where('gc.fmb_type', 'Niyaz');
+    $this->db->where('gc.miqaat_type', $miqaat_type);
+    $payments_rows = $this->db->get()->result_array();
+
+    $extra_payments_map = [];
+    foreach ($payments_rows as $p) {
+      $fmbgc_id = $p['fmbgc_id'];
+      if (!isset($extra_payments_map[$fmbgc_id])) {
+        $extra_payments_map[$fmbgc_id] = [];
+      }
+      $extra_payments_map[$fmbgc_id][] = $p;
+    }
+    $data['extra_payments_map'] = $extra_payments_map;
+
+    // Fetch contribution types for Niyaz Extra Contributions (type = 2)
+    $data["contri_type_gc"] = $this->AnjumanM->get_fmbgc_by_type(2);
+    // Fetch composite hijri years for the dropdown selector
+    $this->load->model('HijriCalendar');
+    $data["composite_hijri_years"] = $this->HijriCalendar->get_distinct_composite_years();
+
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/MiqaatInvoicePayment', $data);

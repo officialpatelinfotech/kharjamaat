@@ -16,6 +16,22 @@ class Umoor extends CI_Controller
     $this->load->model('UmoorM');
     $this->load->model('HijriCalendar');
     $this->load->library('email', $this->config->item('email'));
+
+    // Block write/edit access for UmoorFMB (role 12) and UmoorDakheliyah (role 9)
+    if (!empty($_SESSION['user']) && in_array((int)$_SESSION['user']['role'], [9, 12], true)) {
+      $method = strtolower($this->router->fetch_method());
+      $write_methods = [
+        'create_menu', 'add_menu', 'edit_menu', 'add_menu_item', 
+        'insert_item_type', 'insert_menu_item', 'edit_menu_item', 
+        'delete_menu_item'
+      ];
+      if (in_array($method, $write_methods, true)) {
+        show_error('Edit access is disabled for this login.');
+      }
+      if ((int)$_SESSION['user']['role'] === 9 && $method === 'qardanhasana') {
+        show_error('Edit access is disabled for this login.');
+      }
+    }
   }
   public function index()
   {
@@ -26,7 +42,7 @@ class Umoor extends CI_Controller
     $role = (int)$_SESSION['user']['role'];
     $data['user_name'] = $_SESSION['user']['username'];
 
-    if ($role === 4) {
+    if ($role === 4 || $role === 11 || $role === 12 || $role === 9 || $role === 5) {
       // Early JSON endpoints: handle AJAX requests before rendering any views
       $fmt = $this->input->get('format');
       if ($fmt === 'json') {
@@ -80,26 +96,28 @@ class Umoor extends CI_Controller
       $curr_hijri_month = (int)$h_parts[1];
       $def_year = $curr_hijri_year;
 
-      $ashara_users = $this->AmilsahebM->get_all_ashara($def_year);
-      $possibleStatuses = [
-        'Will attend all 9 Days',
-        'Not answering calls or messages',
-        "Musaaid didn't Contacted Yet",
-        'Will attend few Days only',
-        'Will not attend any Day',
-        'Ashara with Maula tus'
-      ];
       $ohbat_counts = [];
-      foreach ($possibleStatuses as $st) {
-        $ohbat_counts[$st] = 0;
-      }
-      foreach ($ashara_users as $u) {
-        $st = (!empty($u['LeaveStatus']) && $u['LeaveStatus'] !== 'Unknown') ? $u['LeaveStatus'] : "Musaaid didn't Contacted Yet";
-        if (in_array(strtolower(trim($st)), ['bed ridden', 'not in town', 'married outcaste', 'wafaat'])) {
-          continue;
+      if ($role === 4 || $role === 9) {
+        $ashara_users = $this->AmilsahebM->get_all_ashara($def_year);
+        $possibleStatuses = [
+          'Will attend all 9 Days',
+          'Not answering calls or messages',
+          "Musaaid didn't Contacted Yet",
+          'Will attend few Days only',
+          'Will not attend any Day',
+          'Ashara with Maula tus'
+        ];
+        foreach ($possibleStatuses as $st) {
+          $ohbat_counts[$st] = 0;
         }
-        if (isset($ohbat_counts[$st])) {
-          $ohbat_counts[$st]++;
+        foreach ($ashara_users as $u) {
+          $st = (!empty($u['LeaveStatus']) && $u['LeaveStatus'] !== 'Unknown') ? $u['LeaveStatus'] : "Musaaid didn't Contacted Yet";
+          if (in_array(strtolower(trim($st)), ['bed ridden', 'not in town', 'married outcaste', 'wafaat'])) {
+            continue;
+          }
+          if (isset($ohbat_counts[$st])) {
+            $ohbat_counts[$st]++;
+          }
         }
       }
 
@@ -162,20 +180,69 @@ class Umoor extends CI_Controller
         'raza_summary' => $data['raza_summary'],
       ];
 
-      // Qardan Hasana schemes totals for dashboard
-      $this->load->model('QardanHasanaM');
-      $qh_moh = (float)$this->QardanHasanaM->get_scheme_total_amount('mohammedi');
-      $qh_tah = (float)$this->QardanHasanaM->get_scheme_total_amount('taher');
-      $qh_hus = (float)$this->QardanHasanaM->get_scheme_total_amount('husain');
-      $data['qh_all_schemes_totals'] = [
-        'mohammedi' => $qh_moh,
-        'taher' => $qh_tah,
-        'husain' => $qh_hus,
-        'total' => ($qh_moh + $qh_tah + $qh_hus)
-      ];
-
+      if ($role === 11) {
+        $this->load->model('QardanHasanaM');
+        $qh_moh = (float)$this->QardanHasanaM->get_scheme_total_amount('mohammedi');
+        $qh_tah = (float)$this->QardanHasanaM->get_scheme_total_amount('taher');
+        $qh_hus = (float)$this->QardanHasanaM->get_scheme_total_amount('husain');
+        $data['qh_all_schemes_totals'] = [
+          'mohammedi' => $qh_moh,
+          'taher' => $qh_tah,
+          'husain' => $qh_hus,
+          'total' => $qh_moh + $qh_tah + $qh_hus,
+        ];
+      } elseif ($role === 12) {
+        $today = date('Y-m-d');
+        $hijri_today = $this->HijriCalendar->get_hijri_date($today);
+        $year = null;
+        if (!empty($hijri_today) && !empty($hijri_today['hijri_date'])) {
+          $parts = explode('-', (string) $hijri_today['hijri_date']);
+          $hmon = isset($parts[1]) ? (int) ltrim((string) $parts[1], '0') : 0;
+          $hyr = isset($parts[2]) ? (int) $parts[2] : 0;
+          if ($hmon >= 1 && $hmon <= 12 && $hyr > 0) {
+            $base_start = ($hmon >= 7) ? $hyr : ($hyr - 1);
+            if ($hmon >= 4 && $hmon <= 6) {
+              $year = $base_start + 1;
+            } else if ($hmon >= 1 && $hmon <= 3) {
+              $year = $base_start - 1;
+            } else {
+              $year = $base_start;
+            }
+          }
+        }
+        if (empty($year)) {
+          $year = 1446;
+        }
+        $data['fmb_summary'] = $this->CommonM->get_fmb_takhmeen_reports($year);
+        $data['selected_fmb_year'] = $year;
+      } elseif ($role === 9) {
+        $today = date('Y-m-d');
+        $hijri_today = $this->HijriCalendar->get_hijri_date($today);
+        $hijri_year = null;
+        if ($hijri_today && isset($hijri_today['hijri_date'])) {
+          $parts = explode('-', $hijri_today['hijri_date']);
+          $hijri_year = isset($parts[2]) ? (int)$parts[2] : null;
+        }
+        if (!$hijri_year) {
+          $hijri_year = 1446;
+        }
+        $sel_hijri_year = $this->input->get('hijri_year') ? trim($this->input->get('hijri_year')) : $hijri_year;
+        $sel_hijri_month = $this->input->get('hijri_month') ? trim($this->input->get('hijri_month')) : null;
+        $data['dashboard_data'] = $this->get_dashboard_summary_data($sel_hijri_month, $sel_hijri_year);
+      }
+ 
       $this->load->view('Umoor/Header', $data);
-      $this->load->view('Umoor/Home_Deeniyah', $data);
+      if ($role === 11) {
+        $this->load->view('Umoor/Home_Iqtesadiyah', $data);
+      } elseif ($role === 12) {
+        $this->load->view('Umoor/Home_Fmb', $data);
+      } elseif ($role === 9) {
+        $this->load->view('Umoor/Home_Dakheliyah', $data);
+      } elseif ($role === 5) {
+        $this->load->view('Umoor/Home_Talimiyah', $data);
+      } else {
+        $this->load->view('Umoor/Home_Deeniyah', $data);
+      }
     } else {
       $this->load->view('Umoor/Header', $data);
       $this->load->view('Umoor/Home');
@@ -565,7 +632,7 @@ class Umoor extends CI_Controller
 
   public function asharaohbat()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 4) {
+    if (empty($_SESSION['user']) || !in_array((int)$_SESSION['user']['role'], [4, 9], true)) {
       redirect('/accounts');
     }
 
@@ -688,7 +755,7 @@ class Umoor extends CI_Controller
 
   public function ashara_attendance()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 4) {
+    if (empty($_SESSION['user']) || !in_array((int)$_SESSION['user']['role'], [4, 9], true)) {
       redirect('/accounts');
     }
 
@@ -762,7 +829,7 @@ class Umoor extends CI_Controller
 
   public function ashara_attendance_list()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 4) {
+    if (empty($_SESSION['user']) || !in_array((int)$_SESSION['user']['role'], [4, 9], true)) {
       redirect('/accounts');
     }
 
@@ -1108,5 +1175,125 @@ class Umoor extends CI_Controller
     $data['family_financials'] = $this->AdminM->get_family_financial_data($its_id, array_column($data['family_members'], 'ITS_ID'));
     $this->load->view('Umoor/Header', $data);
     $this->load->view('Admin/ViewMember', $data);
+  }
+
+  private function get_dashboard_summary_data($sel_hijri_month = null, $sel_hijri_year = null)
+  {
+    $raza_summary = $this->get_raza_summary($this->session->userdata('user')['username']);
+    $upcoming_miqaats = $this->get_upcoming_miqaats(5);
+    if (!empty($upcoming_miqaats)) {
+      foreach ($upcoming_miqaats as &$um) {
+        $um_date = isset($um['date']) ? $um['date'] : null;
+        $hparts = null;
+        if ($um_date) {
+          $hparts = $this->HijriCalendar->get_hijri_parts_by_greg_date($um_date);
+        }
+        if ($hparts && isset($hparts['hijri_day'])) {
+          $um['hijri_label'] = trim(($hparts['hijri_day'] ?? '') . ' ' . ($hparts['hijri_month_name'] ?? $hparts['hijri_month'] ?? '') . ' ' . ($hparts['hijri_year'] ?? ''));
+        } else {
+          $um['hijri_label'] = '';
+        }
+        $um['hijri_parts'] = $hparts;
+      }
+      unset($um);
+    }
+
+    $this_week_sector_signup_avg = $this->get_this_week_sector_signup_avg();
+    $no_thaali_families = $this->get_no_thaali_families_this_week();
+
+    $month_signed_up = 0;
+    $no_thaali_month_list = [];
+    if ($sel_hijri_month && $sel_hijri_year) {
+      $mstats = $this->CommonM->get_monthly_thaali_stats($sel_hijri_month, $sel_hijri_year);
+      $month_signed_up = (int)($mstats['signed_up_count'] ?? 0);
+      $no_thaali_month_list = $mstats['no_thaali_list'] ?? [];
+    }
+
+    return [
+      'raza_summary' => $raza_summary,
+      'upcoming_miqaats' => $upcoming_miqaats,
+      'miqaat_rsvp' => $this->CommonM->get_next_miqaat_rsvp_stats(),
+      'this_week_sector_signup_avg' => $this_week_sector_signup_avg,
+      'no_thaali_families' => $no_thaali_families,
+      'this_month_signed_up' => $month_signed_up,
+      'no_thaali_families_month' => $no_thaali_month_list,
+      'fmb_takhmeen_sector' => [],
+      'sabeel_takhmeen_sector' => [],
+      'wajebaat_summary' => ['count' => 0, 'total' => 0, 'received' => 0, 'due' => 0]
+    ];
+  }
+
+  private function get_this_week_sector_signup_avg()
+  {
+    $monday = date('Y-m-d', strtotime('monday this week'));
+    $sunday = date('Y-m-d', strtotime('sunday this week'));
+    $start = $monday;
+    $end = $sunday;
+    $dates = [];
+    $cursor = strtotime($start);
+    $endTs = strtotime($end);
+    while ($cursor <= $endTs) {
+      $dates[] = date('Y-m-d', $cursor);
+      $cursor = strtotime('+1 day', $cursor);
+    }
+    $days = count($dates);
+    if ($days <= 0) {
+      return ['start' => $start, 'end' => $end, 'days' => 0, 'sectors' => []];
+    }
+    $agg = [];
+    $rangeRows = $this->CommonM->getsignupcount_by_sector_range($start, $end);
+    foreach ($rangeRows as $r) {
+      $sector = isset($r['Sector']) ? trim($r['Sector']) : '';
+      if ($sector === '' || strtolower($sector) === 'unassigned') continue;
+      $cnt = (int)($r['hof_signup_count'] ?? 0);
+      if (!isset($agg[$sector])) $agg[$sector] = 0;
+      $agg[$sector] += $cnt;
+    }
+    $sectors = [];
+    foreach ($agg as $sector => $total) {
+      $sectors[] = [
+        'sector' => $sector,
+        'total' => (int)$total,
+        'avg' => round($total / $days, 2),
+      ];
+    }
+    usort($sectors, function ($a, $b) {
+      if ($a['avg'] == $b['avg']) return strcmp($a['sector'], $b['sector']);
+      return ($a['avg'] < $b['avg']) ? 1 : -1;
+    });
+    return [
+      'start' => $start,
+      'end' => $end,
+      'days' => $days,
+      'sectors' => $sectors,
+    ];
+  }
+
+  private function get_no_thaali_families_this_week()
+  {
+    $monday = date('Y-m-d', strtotime('monday this week'));
+    $sunday = date('Y-m-d', strtotime('sunday this week'));
+    $start = $monday;
+    $end = $sunday;
+
+    $dates = [];
+    $cursor = strtotime($start);
+    $endTs = strtotime($end);
+    while ($cursor <= $endTs) {
+      $dates[] = date('Y-m-d', $cursor);
+      $cursor = strtotime('+1 day', $cursor);
+    }
+
+    $signedHofs = $this->CommonM->get_signed_up_hofs_range($start, $end);
+    $allHofs = $this->CommonM->get_all_users();
+    $no = [];
+    foreach ($allHofs as $h) {
+      $its = isset($h['ITS_ID']) ? $h['ITS_ID'] : null;
+      if (!$its) continue;
+      if (!isset($signedHofs[$its])) {
+        $no[] = $h;
+      }
+    }
+    return $no;
   }
 }

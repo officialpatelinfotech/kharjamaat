@@ -530,6 +530,9 @@ $initialStatus = $this->input->get('status');
           <button class="ash-bulk-btn" onclick="ashOM('modBulk')">
             <i class="fa-solid fa-bolt fa-xs"></i> Bulk Update
           </button>
+          <button class="ash-bulk-btn" onclick="notMarkedAll()">
+            <i class="fa-solid fa-xmark fa-xs"></i> Not Marked All
+          </button>
           <?php endif ?>
         </div>
       </div>
@@ -997,6 +1000,42 @@ function ashBulkUpdate(){
     } else {
       ashToast('Bulk update failed: ' + err.message, 'er');
     }
+  });
+}
+
+/* ── Not Marked All ── */
+function notMarkedAll() {
+  const trs = Array.from(document.querySelectorAll('#pageDayBody tr')).filter(tr => tr.style.display !== 'none');
+  const itsList = trs.map(tr => tr.dataset.its).filter(its => its && its.trim().length > 0);
+  
+  if (!itsList.length) {
+    ashToast('No members found to update', 'er');
+    return;
+  }
+  
+  const day = pageDay;
+  const year = typeof yearSel !== 'undefined' && yearSel ? yearSel.value : SELECTED_YEAR;
+  
+  if (!confirm(`Are you sure you want to mark all ${itsList.length} shown members as "Not Marked" for ${day === 'Ashura' ? 'Ashura' : 'Day ' + day}?`)) {
+    return;
+  }
+  
+  ashToast('Updating attendance...', 'ok');
+  
+  fetch(BASE_URL + 'MasoolMusaid/bulk_update_attendance', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ its_list: itsList, day, status: 'Not Marked', ...(year ? { year } : {}) })
+  })
+  .then(r => r.ok ? r.json() : Promise.reject(r))
+  .then(() => {
+    ashToast('Bulk update successful', 'ok');
+    location.reload();
+  })
+  .catch(err => {
+    console.error(err);
+    ashToast('Failed to update attendance', 'er');
   });
 }
 

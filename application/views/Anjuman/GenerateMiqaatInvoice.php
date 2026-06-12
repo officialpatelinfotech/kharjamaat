@@ -313,7 +313,7 @@
           }
           echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=" . $mtype_num); 
         ?>" class="btn btn-light font-weight-bold mr-2" style="border-radius: 8px; padding: 6px 16px;">
-          Update Invoice
+          Go to Update Invoice
         </a>
         <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold" style="border-radius: 8px; padding: 6px 16px;">
           <i class="fa-solid fa-bolt text-warning me-1"></i> <?php echo isset($miqaat_type) ? htmlspecialchars($miqaat_type) : ""; ?> Niyaz Fala Takhmeen
@@ -416,6 +416,15 @@
     </div>
   <?php endif; ?>
 
+  <?php if (empty($pending)): ?>
+    <div class="card border-0 shadow-sm rounded-3 p-5 text-center mb-4" style="background: var(--surface); border: 1px solid var(--border) !important;">
+      <div class="py-4">
+        <i class="fa-solid fa-circle-check fa-3x mb-3" style="color: var(--green);"></i>
+        <h4 style="font-family: 'Literata', serif; color: var(--text-1); font-weight: 600;">No invoice pending to create</h4>
+        <p class="text-muted mb-0">All pending invoices have been successfully generated.</p>
+      </div>
+    </div>
+  <?php else: ?>
   <!-- Stats Grid for already generated / extra contribution totals -->
   <div class="miqaat-stats-grid">
     <div class="miqaat-stat-card">
@@ -596,6 +605,7 @@
       </div>
     </div>
   </div>
+  <?php endif; ?>
   <!-- Single reusable Invoice Modal (placed outside loops) -->
   <div class="modal fade" id="generateInvoiceModal" tabindex="-1" aria-labelledby="generateInvoiceModalLabel" aria-hidden="true">
     <div class="modal-dialog">

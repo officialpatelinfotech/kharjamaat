@@ -571,9 +571,10 @@ function readURLAndApply() {
   const minP      = p.get('min') || p.get('age_min') || '';
   const maxP      = p.get('max') || p.get('age_max') || '';
   const madresaP  = p.get('madresa_deprived') || '';
+  const maritalP  = p.get('marital_status') || p.get('marital') || p.get('ms') || '';
 
   const isDash = !!(
-    (legFilter && legFilter !== 'all') || statusP || itsMatchP || madresaP || minP || maxP
+    (legFilter && legFilter !== 'all') || statusP || itsMatchP || madresaP || minP || maxP || maritalP
   );
 
   setv('fName',   p.get('name')   || '');
@@ -582,6 +583,7 @@ function readURLAndApply() {
   if (itsMatchP) setv('fItsMatch', itsMatchP);
   if (minP) document.getElementById('fAgeMin').value = minP;
   if (maxP) document.getElementById('fAgeMax').value = maxP;
+  if (maritalP) setv('fMarital', cap(maritalP));
 
   const form = document.getElementById('filtersForm');
   if (legFilter === 'gender')      form.dataset.gender    = legValue;
@@ -626,8 +628,9 @@ function readURLAndApply() {
       'health_status':'fHealth', 'deeni_status':'fDeeni',
       'residential_status':'fResidential', 'gender':'fGender',
       'hof_fm_type':'fHOFType', 'its_sabeel_match':'fItsMatch',
+      'marital_status':'fMarital', 'marital':'fMarital', 'ms':'fMarital'
     };
-    const injectId = statusP ? 'fStatus' : itsMatchP ? 'fItsMatch' : (dashMap[legFilter] || null);
+    const injectId = statusP ? 'fStatus' : itsMatchP ? 'fItsMatch' : maritalP ? 'fMarital' : (dashMap[legFilter] || null);
 
     if (injectId) {
       const orig = document.getElementById(injectId);
@@ -639,7 +642,7 @@ function readURLAndApply() {
           if (cloneSel) {
             orig.id      = injectId + '_hidden';
             cloneSel.id  = injectId;
-            const val    = statusP ? cap(statusP) : itsMatchP ? itsMatchP : legValue;
+            const val    = statusP ? cap(statusP) : itsMatchP ? itsMatchP : maritalP ? cap(maritalP) : legValue;
             cloneSel.value = val;
             cloneSel.addEventListener('change', run);
           }
@@ -660,6 +663,7 @@ function setDashTitle(p) {
   const st = p.get('status') || '';
   const im = p.get('its_sabeel_match') || '';
   const mn = p.get('min') || '', mx = p.get('max') || '';
+  const maritalP = p.get('marital_status') || p.get('marital') || p.get('ms') || '';
   const map = {
     'active':'Active Members','inactive':'Inactive Members',
     'its_sabeel_both_khar':'ITS & Sabeel both in Khar',
@@ -668,7 +672,7 @@ function setDashTitle(p) {
     'both_not_khar':'Both not in Khar',
   };
   const md = p.get('madresa_deprived');
-  const t = (mn === '5' && mx === '15' ? (md === '1' ? 'Deeni Taalim Not Taking (Age 5-15)' : (md === '0' ? 'Deeni Taalim Taking (Age 5-15)' : 'Deeni Taalim Eligible (Age 5-15)')) : '')
+  let t = (mn === '5' && mx === '15' ? (md === '1' ? 'Deeni Taalim Not Taking (Age 5-15)' : (md === '0' ? 'Deeni Taalim Taking (Age 5-15)' : 'Deeni Taalim Eligible (Age 5-15)')) : '')
     || map[st.toLowerCase()] || map[im]
     || (lf==='all'?'All Members':'')
     || (lf==='hof_fm_type'&&lv.toUpperCase()==='HOF'?'HOF Members':'')
@@ -684,6 +688,15 @@ function setDashTitle(p) {
     || (lf==='deeni_status'      &&lv?'Deeni: '+lv:'')
     || (lf==='residential_status'&&lv?'Residential: '+lv:'')
     || (lf&&lv?(lf==='leavestatus'?'Ohbat Status':lf.replace(/_/g,' '))+': '+lv:'');
+
+  if (!t && maritalP) {
+    if (maritalP.toLowerCase() === 'single' && mn === '21' && mx === '40') {
+      t = 'Single (21-40) Members';
+    } else {
+      t = cap(maritalP) + ' Members';
+    }
+  }
+
   if (t) {
     document.getElementById('dashTitleText').textContent = t;
     document.getElementById('dashTitle').style.display = '';

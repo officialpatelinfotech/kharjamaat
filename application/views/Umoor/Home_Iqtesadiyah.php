@@ -380,9 +380,13 @@
         <li><a class="menu-item" href="<?php echo base_url('Umoor/RazaRequest') ?>"><span class="menu-icon"><i class="fa fa-handshake-o"></i></span><span class="menu-label">Raza Requests</span></a></li>
       </ul>
 
+      <div class="menu-section">Finance</div>
+      <ul class="menu-list">
+        <li><a class="menu-item" href="<?php echo base_url('Umoor/qardanhasana') ?>"><span class="menu-icon"><i class="fa fa-leaf"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
+      </ul>
+
       <div class="menu-section">Activity</div>
       <ul class="menu-list">
-        <li><a class="menu-item" href="<?php echo base_url('umoor/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('umoor/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/miqaatattendance?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Miqaat Attendance Report</span></a></li>
@@ -398,7 +402,7 @@
       <button id="sidebarToggle" class="mob-btn">
         <span class="mic"><i class="fa fa-bars"></i></span> Menu
       </button>
-      <span style="font-size:.82rem;font-weight:700;color:var(--text-2);">Deeniyah Dashboard</span>
+      <span style="font-size:.82rem;font-weight:700;color:var(--text-2);">Iqtesadiyah Dashboard</span>
     </div>
 
     <!-- Dashboard header -->
@@ -407,7 +411,7 @@
         <div class="anj-title-group">
           <p class="anj-eyebrow">Anjuman-e-Saifee</p>
           <h1 class="anj-title">
-            Deeniyah Dashboard
+            Iqtesadiyah Dashboard
             <br><span><?php $hijri_year = isset($year_daytype_stats['hijri_year']) ? $year_daytype_stats['hijri_year'] : '1446'; echo $hijri_year . 'H — ' . date('Y'); ?></span>
           </h1>
         </div>
@@ -504,41 +508,7 @@
         </div>
       </div>
 
-      <!-- Ashara Ohbat Status -->
-      <div class="section-header-standard ml-3 mr-3">
-        <h5 class="section-title"><i class="fa fa-calendar-check-o"></i> Ashara Ohbat Status</h5>
-        <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseAsharaOhbatStats" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
-      </div>
-      <div class="collapse show" id="collapseAsharaOhbatStats">
-        <div class="row px-3">
-          <?php 
-          $ohbat_bg_colors = [
-            'Will attend all 9 Days' => ['bg' => '#fef9c3', 'color' => '#854d0e', 'icon' => 'fa-calendar'],
-            'Not answering calls or messages' => ['bg' => '#fef2f2', 'color' => '#991b1b', 'icon' => 'fa-phone'],
-            "Musaaid didn't Contacted Yet" => ['bg' => '#f3f4f6', 'color' => '#374151', 'icon' => 'fa-clock-o'],
-            'Will attend few Days only' => ['bg' => '#ffedd5', 'color' => '#9a3412', 'icon' => 'fa-calendar-minus-o'],
-            'Will not attend any Day' => ['bg' => '#f5f5f4', 'color' => '#44403c', 'icon' => 'fa-times-circle'],
-            'Ashara with Maula tus' => ['bg' => '#ecfeff', 'color' => '#155e75', 'icon' => 'fa-star']
-          ];
-          foreach ($stats['ashara_ohbat_counts'] as $st_name => $cnt):
-            $cfg = isset($ohbat_bg_colors[$st_name]) ? $ohbat_bg_colors[$st_name] : ['bg' => '#f3f4f6', 'color' => '#374151', 'icon' => 'fa-info-circle'];
-          ?>
-          <div class="col-6 col-md-4 mb-3">
-            <a href="<?= base_url('umoor/asharaohbat?status=' . rawurlencode($st_name)) ?>" style="text-decoration:none;color:inherit;display:block;">
-              <div class="overview-card">
-                <div class="overview-icon" style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;">
-                  <i class="fa <?= $cfg['icon'] ?>"></i>
-                </div>
-                <div class="overview-body">
-                  <span class="overview-title"><?= htmlspecialchars($st_name) ?></span>
-                  <span class="overview-value"><?= $cnt ?></span>
-                </div>
-              </div>
-            </a>
-          </div>
-          <?php endforeach; ?>
-        </div>
-      </div>
+
 
       <?php
       $status_counts = isset($stats['status_counts']) ? $stats['status_counts'] : [];
@@ -852,6 +822,58 @@
           <div class="section-header-standard"><h5 class="section-title"><i class="fa fa-book"></i> Madresa</h5><button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseMadresaAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button></div>
           <div class="collapse show" id="collapseMadresaAnjuman">
             <div class="row justify-content-center text-center"><div class="col-12 col-md-4"><div class="mini-card"><div class="stats-value"><?= $dashboard_madresa_hijri_year?((int)$dashboard_madresa_hijri_year.'H'):'Classes' ?></div><div class="stats-label">Madresa<?= $dashboard_madresa_hijri_year?' (Current Year)':'' ?></div></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Qardan Hasana -->
+      <div class="col-md-12 mb-3">
+        <div class="chart-container compact">
+          <div class="section-header-standard">
+            <h5 class="section-title"><i class="fa fa-leaf"></i> Qardan Hasana Schemes</h5>
+            <div class="d-flex align-items-center">
+              <a href="<?= base_url('Umoor/qardanhasana') ?>" class="btn btn-outline-secondary btn-sm mr-2" style="font-size: .75rem; border-radius: 6px; padding: 2px 8px; font-weight: 600;">View</a>
+              <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseQHIqtesadiyah" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+            </div>
+          </div>
+          <div class="collapse show" id="collapseQHIqtesadiyah">
+            <?php
+            $qh_tot = isset($qh_all_schemes_totals) && is_array($qh_all_schemes_totals) ? $qh_all_schemes_totals : ['mohammedi' => 0, 'taher' => 0, 'husain' => 0, 'total' => 0];
+            ?>
+            <div class="row text-center mb-2 mt-2">
+              <div class="col-12 col-md-3 mb-2">
+                <a href="<?= base_url('Umoor/qardanhasana/mohammedi') ?>" style="text-decoration:none;color:inherit;display:block;">
+                  <div class="mini-card">
+                    <div class="stats-value" style="color:var(--blue);">₹<?= format_inr((float)($qh_tot['mohammedi']??0)) ?></div>
+                    <div class="stats-label">Mohammedi</div>
+                  </div>
+                </a>
+              </div>
+              <div class="col-12 col-md-3 mb-2">
+                <a href="<?= base_url('Umoor/qardanhasana/taher') ?>" style="text-decoration:none;color:inherit;display:block;">
+                  <div class="mini-card">
+                    <div class="stats-value" style="color:var(--blue);">₹<?= format_inr((float)($qh_tot['taher']??0)) ?></div>
+                    <div class="stats-label">Taher</div>
+                  </div>
+                </a>
+              </div>
+              <div class="col-12 col-md-3 mb-2">
+                <a href="<?= base_url('Umoor/qardanhasana/husain') ?>" style="text-decoration:none;color:inherit;display:block;">
+                  <div class="mini-card">
+                    <div class="stats-value" style="color:var(--blue);">₹<?= format_inr((float)($qh_tot['husain']??0)) ?></div>
+                    <div class="stats-label">Husain</div>
+                  </div>
+                </a>
+              </div>
+              <div class="col-12 col-md-3 mb-2">
+                <a href="<?= base_url('Umoor/qardanhasana') ?>" style="text-decoration:none;color:inherit;display:block;">
+                  <div class="mini-card">
+                    <div class="stats-value" style="color:var(--green);">₹<?= format_inr((float)($qh_tot['total']??0)) ?></div>
+                    <div class="stats-label">Total</div>
+                  </div>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>

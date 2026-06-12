@@ -56,6 +56,7 @@
         </div>
       </form>
 
+      <?php if (!in_array((int)$_SESSION['user']['role'], [9, 12], true)) : ?>
       <div class="ml-auto">
         <!-- <a href="<?= base_url('admin/duplicate_last_month_menu'); ?>" class="btn btn-outline-primary" id="duplicate-menu-btn">
           <i class="fa fa-copy"></i> Duplicate Last Month's Menu
@@ -64,6 +65,7 @@
         <a href="<?php echo base_url("Umoor/add_menu_item"); ?>" class="btn btn-secondary">Edit Items</a>
         <a href="<?php echo base_url("Umoor/create_menu"); ?>" class="btn btn-primary">Create Menu</a>
       </div>
+      <?php endif; ?>
     </div>
     <table class="table table-bordered mt-4">
       <thead>
@@ -73,7 +75,9 @@
           <th>Menu Date</th>
           <th>Day</th>
           <th>Menu</th>
+          <?php if (!in_array((int)$_SESSION['user']['role'], [9, 12], true)) : ?>
           <th>Actions</th>
+          <?php endif; ?>
         </tr>
       </thead>
       <tbody>
@@ -83,7 +87,7 @@
               if (substr($menu[$key - 1]["hijri_date"], 3) != substr($menu[$key]["hijri_date"], 3)):
           ?>
                 <tr>
-                  <td colspan="6" class="bg-dark text-white"><?php echo substr($menu[$key]["hijri_date"], 3); ?></td>
+                  <td colspan="<?= in_array((int)$_SESSION['user']['role'], [9, 12], true) ? '5' : '6' ?>" class="bg-dark text-white"><?php echo substr($menu[$key]["hijri_date"], 3); ?></td>
                 </tr>
             <?php
               endif;
@@ -96,9 +100,12 @@
               <td><?php echo isset($item['date']) ? date("l", strtotime($item['date'])) : ""; ?></td>
               <td>
                 <?php echo implode(", ",  $item["items"]); ?>
+              </td>
+              <?php if (!in_array((int)$_SESSION['user']['role'], [9, 12], true)) : ?>
               <td>
                 <a href="<?php echo base_url("Umoor/edit_menu/" . $item['id']); ?>" class="btn btn-primary my-2">Edit</a>
               </td>
+              <?php endif; ?>
             </tr>
           <?php endforeach; ?>
         <?php else : ?>

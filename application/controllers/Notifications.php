@@ -993,7 +993,6 @@ class Notifications extends CI_Controller
               JOIN miqaat m ON m.id = r.miqaat_id
               WHERE r.active = 1
                 AND r.status = 2
-                AND rt.umoor = 'Public-Event'
                 AND DATE(m.date) = " . $this->db->escape($targetDate) . "
               ORDER BY r.`time-stamp` DESC";
     $rowsPub = $this->db->query($sqlPub)->result_array();
@@ -1011,7 +1010,6 @@ class Notifications extends CI_Controller
                 LEFT JOIN miqaat m ON m.id = r.miqaat_id
                 WHERE r.active = 1
                   AND r.status = 2
-                  AND rt.umoor IN ('Public-Event','Private-Event')
                   AND r.`time-stamp` >= DATE_SUB(NOW(), INTERVAL 3 YEAR)
                 ORDER BY r.`time-stamp` DESC
                 LIMIT 3000";
@@ -1052,7 +1050,7 @@ class Notifications extends CI_Controller
       if ($razaId <= 0) continue;
 
       $umoor = (string)($ev['umoor'] ?? '');
-      $eventTypeLabel = ($umoor === 'Public-Event') ? 'Miqaat Public Event' : (($umoor === 'Private-Event') ? 'Kaaraj Private Event' : 'Event');
+      $eventTypeLabel = ($umoor === 'Public-Event') ? 'Miqaat Public Event' : (($umoor === 'Private-Event') ? 'Kaaraj Private Event' : 'Non Event');
       $eventDateNice = date('D, d M Y', strtotime($ev['event_date']));
 
       $dTag = ($offsetDays === 0) ? 'D0' : ('D-' . $offsetDays);
