@@ -3,6 +3,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 $isSabeel = (isset($for) && (int)$for === 4);
 $isFmb    = (isset($for) && (int)$for === 3);
+$isMiqaat = (isset($for) && (int)$for === 2);
 
 $receipt_jamaat = htmlspecialchars(app_setting('receipt_jamaat_name', 'Anjuman-e-Saifee Dawoodi Bohra Jamaat, ' . ucfirst(jamaat_place())));
 $receipt_trust  = htmlspecialchars(app_setting('trust_regn_no',       'E/24158 (Mumbai)'));
@@ -375,6 +376,108 @@ $disp_bank   = isset($bank_name)    ? htmlspecialchars((string)$bank_name)    : 
             Amount (in numbers):&nbsp;<span class="hl"><?php echo $disp_amt; ?></span>
             &nbsp;&nbsp;Amount (in words):&nbsp;<span class="hl hl-wide"><?php echo $disp_words; ?></span>
             &nbsp;&mdash; received as a Voluntary Contribution.
+          </td>
+        </tr>
+      </table>
+
+      <!-- Payment Details -->
+      <div class="pay">
+        By Cash&nbsp;/&nbsp;Draft&nbsp;/&nbsp;Cheque No.:&nbsp;<span class="hl"><?php echo $disp_cheque; ?></span>
+        &nbsp;&nbsp;&nbsp;Dated:&nbsp;<span class="hl"><?php echo $disp_date; ?></span>
+        &nbsp;&nbsp;&nbsp;Drawn on Bank:&nbsp;<span class="hl" style="min-width:130px;"><?php echo $disp_bank; ?></span>
+      </div>
+
+    </td>
+  </tr>
+
+  <!-- FOOTER -->
+  <tr>
+    <td class="ftr-cell">
+      <table class="ftr-table">
+        <tr>
+          <td style="text-align:center;">
+            <span class="ftr-lbl" style="text-align:center;">Receiver's Signature</span>
+            <span class="ftr-sig"></span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+</table>
+
+<?php elseif ($isMiqaat): /* ==================== MIQAAT ==================== */ ?>
+
+<table class="page-wrap">
+
+  <!-- HEADER -->
+  <tr>
+    <td class="hdr-cell">
+      <div class="hdr-title">&diams;&nbsp; MIQAAT NIYAZ &mdash; JAMAAT RECEIPT &nbsp;&diams;</div>
+      <hr class="hdr-rule">
+      <div class="hdr-org"><?php echo $receipt_jamaat; ?></div>
+      <?php if ($receipt_trust): ?>
+      <div class="hdr-trust">Regd. No: <?php echo $receipt_trust; ?></div>
+      <?php endif; ?>
+    </td>
+  </tr>
+
+  <!-- META BAR -->
+  <tr>
+    <td class="meta-cell">
+      <table class="meta-table">
+        <tr>
+          <td style="width:50%;">
+            <span class="meta-lbl">Receipt No.</span>
+            <span class="meta-val"><?php echo $disp_rno; ?></span>
+          </td>
+          <td style="width:50%; text-align:right;">
+            <span class="meta-lbl">Date</span>
+            <span class="meta-val"><?php echo $disp_date; ?></span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- BODY -->
+  <tr>
+    <td class="body-cell">
+
+      <!-- Name / ITS -->
+      <table class="info-table">
+        <tr>
+          <td style="width:58%;">
+            <span class="lbl">Name</span>
+            <span class="fld" style="min-width:240px;"><?php echo $disp_name; ?></span>
+          </td>
+          <td style="width:42%;">
+            <span class="lbl">ITS ID</span>
+            <span class="fld" style="min-width:110px;"><?php echo $disp_its; ?></span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding-top:2px;">
+            <span class="lbl">Address</span>
+            <span class="fld" style="min-width:360px;"><?php echo $disp_addr; ?></span>
+          </td>
+        </tr>
+      </table>
+
+      <div class="salaam">Baad al Salaam el Jameel,</div>
+
+      <!-- Acknowledgement -->
+      <table class="ack-table">
+        <tr>
+          <td class="ack-cell">
+            Received from the above-mentioned person a Miqaat Niyaz contribution of:&nbsp;
+            Amount (in numbers):&nbsp;<span class="hl"><?php echo $disp_amt; ?></span>
+            &nbsp;&nbsp;Amount (in words):&nbsp;<span class="hl hl-wide"><?php echo $disp_words; ?></span>
+            &nbsp;&mdash; received as a Miqaat Niyaz.
+            <?php if (isset($payment_for) && $payment_for): ?>
+            <br><br>
+            <strong>Payment For:</strong> <?php echo htmlspecialchars((string)$payment_for); ?>
+            <?php endif; ?>
           </td>
         </tr>
       </table>

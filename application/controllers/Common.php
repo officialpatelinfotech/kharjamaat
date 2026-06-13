@@ -612,6 +612,10 @@ class Common extends CI_Controller
           $payment_for .= ' - Year: ' . $yr;
         }
       }
+      
+      $data['its_id'] = trim((string) ($result['user_id'] ?? ''));
+      $data['cheque_no'] = trim((string) ($result['reference_no'] ?? $result['cheque_no'] ?? ''));
+      $data['bank_name'] = trim((string) ($result['bank_name'] ?? ''));
     }
 
     // Preserve FMB GC type & year in outer scope for template selection later
@@ -756,10 +760,11 @@ class Common extends CI_Controller
       }
     }
 
-    // Use the Anjuman physical-receipt template for Sabeel and FMB Extra Contribution
+    // Use the Anjuman physical-receipt template for Sabeel, FMB Extra Contribution, and Miqaat Invoices
     $useAnjumanTemplate = (
       (int) $for === 4
       || (int) $for === 3
+      || (int) $for === 2
     );
     if ($useAnjumanTemplate) {
       $html = $this->load->view('pdf_sabeel_template', $data, true);
