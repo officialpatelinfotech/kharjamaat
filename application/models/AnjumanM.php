@@ -1323,20 +1323,14 @@ class AnjumanM extends CI_Model
         // Year filter for FM payments
         $effY = null;
         if (!empty($prow['miqaat_id']) && !empty($prow['miqaat_date'])) {
-          $hy = $this->HijriCalendar->get_hijri_date($prow['miqaat_date']);
-          if ($hy && !empty($hy['hijri_date'])) {
-            $pt = explode('-', $hy['hijri_date']);
-            $effY = isset($pt[2]) ? $pt[2] : null;
-          }
-        } else {
-          $effY = isset($prow['invoice_year']) ? $prow['invoice_year'] : null;
-          if (empty($effY) && !empty($prow['invoice_date'])) {
-            $hfb = $this->HijriCalendar->get_hijri_date($prow['invoice_date']);
-            if ($hfb && !empty($hfb['hijri_date'])) {
-              $pt2 = explode('-', $hfb['hijri_date']);
-              $effY = isset($pt2[2]) ? $pt2[2] : null;
-            }
-          }
+          $effY = $getHijriYear($prow['miqaat_date']);
+        }
+        if ($effY === null && !empty($prow['invoice_date'])) {
+          $effY = $getHijriYear($prow['invoice_date']);
+        }
+        if ($effY === null && isset($prow['invoice_year']) && (string)$prow['invoice_year'] !== '') {
+          $single_year = (int)$prow['invoice_year'];
+          $effY = ($single_year - 1) . '-' . substr((string)$single_year, -2);
         }
         if (!empty($year) && (string)$effY !== (string)$year) {
           continue;
@@ -1366,13 +1360,14 @@ class AnjumanM extends CI_Model
         // Year filter for FM invoices
         $effYear = null;
         if (!empty($row['miqaat_id']) && !empty($row['miqaat_date'])) {
-          $h = $this->HijriCalendar->get_hijri_date($row['miqaat_date']);
-          if ($h && !empty($h['hijri_date'])) {
-            $pt = explode('-', $h['hijri_date']);
-            $effYear = isset($pt[2]) ? $pt[2] : null;
-          }
-        } else {
-          $effYear = isset($row['invoice_year']) ? $row['invoice_year'] : null;
+          $effYear = $getHijriYear($row['miqaat_date']);
+        }
+        if ($effYear === null && !empty($row['invoice_date'])) {
+          $effYear = $getHijriYear($row['invoice_date']);
+        }
+        if ($effYear === null && isset($row['invoice_year']) && (string)$row['invoice_year'] !== '') {
+          $single_year = (int)$row['invoice_year'];
+          $effYear = ($single_year - 1) . '-' . substr((string)$single_year, -2);
         }
         if (!empty($year) && (string)$effYear !== (string)$year) {
           continue;
@@ -1411,9 +1406,9 @@ class AnjumanM extends CI_Model
           $miqaat_id   = $row['miqaat_code'];
           $miqaat_name = $row['miqaat_name'];
         } else {
-          $group_key   = $row['invoice_miqaat_type'] . " " . $row['invoice_year'];
+          $group_key   = $row['invoice_miqaat_type'] . " " . $effYear;
           $miqaat_id   = null;
-          $miqaat_name = "Fala ni Niyaz " . $row['invoice_year'];
+          $miqaat_name = "Fala ni Niyaz " . $effYear;
         }
 
         $invoice_amount = (float)$row['invoice_amount'];
