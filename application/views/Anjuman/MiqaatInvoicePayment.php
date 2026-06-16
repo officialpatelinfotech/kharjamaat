@@ -176,6 +176,7 @@
   }
   .stat-breakdown-row strong {
     font-weight: 700;
+    font-size: 14.5px;
   }
 
   /* ── Table Card ── */
@@ -434,6 +435,37 @@
     box-shadow: var(--sh2);
     max-height: 250px;
     overflow-y: auto;
+  }
+
+  /* Banner Right Layout */
+  .miqaat-banner-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Responsive Banner Stack for Mobile */
+  @media (max-width: 768px) {
+    .miqaat-banner-inner {
+      flex-direction: column;
+      align-items: stretch !important;
+      gap: 16px;
+    }
+    .miqaat-banner-right {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch !important;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .miqaat-banner-right a,
+    .miqaat-banner-right button {
+      width: 100%;
+      justify-content: center;
+      text-align: center;
+      padding: 10px 16px !important;
+    }
   }
 </style>
 
@@ -803,7 +835,15 @@
           <div class="miqaat-banner-sub">View and receive payments for the selected year</div>
         </div>
       </div>
-      <div class="miqaat-banner-right d-flex align-items-center" style="gap: 8px;">
+      <div class="miqaat-banner-right">
+        <button type="button" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#createExtraContributionModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
+          <i class="fa-solid fa-plus-circle"></i> Create Extra Contribution
+        </button>
+        <?php if (!empty($miqaats_list)) : ?>
+          <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#falaNiyazInvoicesModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
+            <i class="fa-solid fa-file-signature"></i> Update Fala ni Niyaz Invoice
+          </button>
+        <?php endif; ?>
         <a href="<?php
           $mtype_num = 1;
           if (isset($miqaat_type)) {
@@ -815,14 +855,6 @@
         ?>" class="btn btn-light font-weight-bold d-inline-flex align-items-center" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
           <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
         </a>
-        <button type="button" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#createExtraContributionModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
-          <i class="fa-solid fa-plus-circle"></i> Create Extra Contribution
-        </button>
-        <?php if (!empty($miqaats_list)) : ?>
-          <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#falaNiyazInvoicesModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
-            <i class="fa-solid fa-file-signature"></i> Update Fala ni Niyaz Invoice
-          </button>
-        <?php endif; ?>
       </div>
     </div>
   </div>
@@ -1030,23 +1062,23 @@
               <td class="text-right due-cell"><span class="<?php echo $dueClass; ?>">₹<?php echo inr_format($due); ?></span></td>
                <td class="text-center km-actions">
                 <div class="btn-group-vertical btn-group-sm" role="group" aria-label="Actions">
-                  <button type="button" class="btn btn-success receive-payment-btn<?php echo $btnExtraClass; ?>"
+                  <button type="button" class="btn btn-success receive-payment-btn<?php echo $btnExtraClass; ?> d-inline-flex align-items-center justify-content-center" style="gap: 5px;"
                     data-invoice-id="<?php echo htmlspecialchars((string)($r['invoice_id'] ?? ''), ENT_QUOTES); ?>"
                     data-amount="<?php echo htmlspecialchars((string)$due, ENT_QUOTES); ?>"
                     data-block-reason="<?php echo htmlspecialchars($blockReason, ENT_QUOTES); ?>"
                     aria-disabled="<?php echo $ariaDisabled; ?>"
-                    title="<?php echo htmlspecialchars($blockReason, ENT_QUOTES); ?>">Receive Payment</button>
-                  <button type="button" class="btn btn-outline-primary invoice-edit-btn"
-                    data-invoice-id="<?php echo htmlspecialchars((string)($r['invoice_id'] ?? ''), ENT_QUOTES); ?>">Edit Invoice</button>
-                  <button type="button" class="btn btn-outline-danger invoice-delete-btn"
-                    data-invoice-id="<?php echo htmlspecialchars((string)($r['invoice_id'] ?? ''), ENT_QUOTES); ?>">Delete Invoice</button>
-                  <button type="button" class="btn btn-outline-info view-payments-btn"
+                    title="<?php echo htmlspecialchars($blockReason, ENT_QUOTES); ?>"><i class="fa-solid fa-receipt"></i> Receive Payment</button>
+                  <button type="button" class="btn btn-outline-primary invoice-edit-btn d-inline-flex align-items-center justify-content-center" style="gap: 5px;"
+                    data-invoice-id="<?php echo htmlspecialchars((string)($r['invoice_id'] ?? ''), ENT_QUOTES); ?>"><i class="fa-solid fa-pen-to-square"></i> Edit Invoice</button>
+                  <button type="button" class="btn btn-outline-danger invoice-delete-btn d-inline-flex align-items-center justify-content-center" style="gap: 5px;"
+                    data-invoice-id="<?php echo htmlspecialchars((string)($r['invoice_id'] ?? ''), ENT_QUOTES); ?>"><i class="fa-solid fa-trash"></i> Delete Invoice</button>
+                  <button type="button" class="btn btn-outline-info view-payments-btn d-inline-flex align-items-center justify-content-center" style="gap: 5px;"
                     data-toggle="modal"
                     data-target="#memberPaymentsModal"
                     data-its="<?php echo htmlspecialchars((string)($r['its_id'] ?? '')); ?>"
                     data-name="<?php echo htmlspecialchars((string)($r['full_name'] ?? '')); ?>"
                     data-invoice-id="<?php echo htmlspecialchars((string)($r['invoice_id'] ?? ''), ENT_QUOTES); ?>"
-                    data-payments='<?php echo htmlspecialchars(json_encode($r['payments'] ?? []), ENT_QUOTES, "UTF-8"); ?>'>Payment History</button>
+                    data-payments='<?php echo htmlspecialchars(json_encode($r['payments'] ?? []), ENT_QUOTES, "UTF-8"); ?>'><i class="fa-solid fa-clock-rotate-left"></i> Payment History</button>
                 </div>
               </td>
             </tr>
@@ -1074,7 +1106,7 @@
             <div id="payments-modal-table-wrapper" class="table-responsive"></div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
           </div>
         </div>
       </div>
@@ -1119,8 +1151,8 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-primary" id="edit-invoice-save">Save</button>
+              <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Cancel</button>
+              <button type="submit" class="btn btn-primary d-inline-flex align-items-center" id="edit-invoice-save" style="gap: 5px;"><i class="fa-solid fa-check"></i> Save</button>
             </div>
           </form>
         </div>
@@ -1148,7 +1180,7 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
           </div>
         </div>
       </div>
@@ -1181,8 +1213,8 @@
             <div id="ep-alert" class="alert d-none" role="alert"></div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-            <button type="button" id="ep-submit" class="btn btn-primary">Save Changes</button>
+            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Cancel</button>
+            <button type="button" id="ep-submit" class="btn btn-primary d-inline-flex align-items-center" style="gap: 5px;"><i class="fa-solid fa-check"></i> Save Changes</button>
           </div>
         </div>
       </div>
@@ -1233,8 +1265,8 @@
             <div id="rip-alert" class="alert d-none" role="alert"></div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button" id="rip-submit" class="btn btn-primary">Save Payment</button>
+            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
+            <button type="button" id="rip-submit" class="btn btn-primary d-inline-flex align-items-center" style="gap: 5px;"><i class="fa-solid fa-check"></i> Save Payment</button>
           </div>
         </div>
       </div>
@@ -1296,8 +1328,8 @@
             </form>
           </div>
           <div class="modal-footer" style="border-top: 1px solid var(--border-light); padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px; background: var(--surface-2);">
-            <button type="button" class="btn-action btn-action-secondary" data-dismiss="modal" style="padding: 8px 16px; font-size: 0.82rem; min-width: 80px;">Close</button>
-            <button type="button" id="create-extra-contribution-submit" class="btn-action btn-action-primary" onclick="jQuery('#create-extra-contribution-form').submit();" style="padding: 8px 20px; font-size: 0.82rem;">Create Invoice</button>
+            <button type="button" class="btn-action btn-action-secondary d-inline-flex align-items-center justify-content-center" data-dismiss="modal" style="padding: 8px 16px; font-size: 0.82rem; min-width: 80px; gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
+            <button type="button" id="create-extra-contribution-submit" class="btn-action btn-action-primary d-inline-flex align-items-center justify-content-center" onclick="jQuery('#create-extra-contribution-form').submit();" style="padding: 8px 20px; font-size: 0.82rem; gap: 5px;"><i class="fa-solid fa-plus-circle"></i> Create Invoice</button>
           </div>
         </div>
       </div>
@@ -1504,6 +1536,13 @@
               titleYearEl.textContent = '(Hijri ' + defYear + ')';
             }
           }
+        }
+
+        // Handle search query parameter from URL to auto-filter on load
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchVal = urlParams.get('search');
+        if (searchVal && pfName) {
+          pfName.value = searchVal;
         }
 
         // Ensure summary bar is initialized even when default year is empty
@@ -2490,8 +2529,8 @@
                       <input type="number" class="form-control fala-amount-input" value="${(amt !== null && !Number.isNaN(amt)) ? Math.round(amt) : '0'}" step="1" min="0">
                     </div>
                     <div class="mt-2 text-right">
-                      <button type="button" class="btn btn-sm btn-primary fala-save-amount">Save</button>
-                      <button type="button" class="btn btn-sm btn-secondary fala-cancel-amount">Cancel</button>
+                      <button type="button" class="btn btn-sm btn-primary fala-save-amount"><i class="fa-solid fa-check"></i> Save</button>
+                      <button type="button" class="btn btn-sm btn-secondary fala-cancel-amount"><i class="fa-solid fa-xmark"></i> Cancel</button>
                     </div>
                   </div>
                 </td>
@@ -2908,7 +2947,14 @@
               success: function(res) {
                 if (res && res.success) {
                   alert(res.message || 'Invoice created successfully.');
-                  window.location.reload();
+                  const itsId = jQuery('#extra-user-id').val();
+                  if (itsId) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('search', itsId);
+                    window.location.href = url.toString();
+                  } else {
+                    window.location.reload();
+                  }
                 } else {
                   alert(res.message || 'Failed to create invoice.');
                   btn.prop('disabled', false);

@@ -4635,6 +4635,11 @@ class Anjuman extends CI_Controller
     rsort($yearsList);
     $data['hijri_years'] = $yearsList;
 
+    // Fetch contribution types for Niyaz Extra Contributions (type = 2)
+    $data["contri_type_gc"] = $this->AnjumanM->get_fmbgc_by_type(2);
+    // Fetch composite hijri years for the dropdown selector
+    $data["composite_hijri_years"] = $this->HijriCalendar->get_distinct_composite_years();
+
     // Current Hijri year for default selection
     $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
     $currentHijriYear = null;
@@ -4988,7 +4993,11 @@ class Anjuman extends CI_Controller
       }
 
       $this->session->set_flashdata('success', 'Invoice(s) created successfully.');
-      redirect('Anjuman/generatemiqaatinvoice?miqaat_type=' . $miqaat_type_page);
+      $search_param = '';
+      if (!empty($member_ids[0])) {
+        $search_param = '&search=' . urlencode($member_ids[0]);
+      }
+      redirect('Anjuman/miqaatinvoicepayment?miqaat_type=' . $miqaat_type_page . $search_param);
     } else {
       $this->session->set_flashdata('error', 'Failed to create invoice.');
       redirect('Anjuman/generatemiqaatinvoice');

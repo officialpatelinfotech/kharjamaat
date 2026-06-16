@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   :root {
     --gold: #b8860b;
@@ -265,6 +266,184 @@
     font-weight: 800;
     color: var(--text-1);
   }
+
+  /* Autocomplete for extra contribution modal */
+  #extra-member-autocomplete-list .autocomplete-item {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    cursor: pointer;
+    background: #fff;
+    border: none;
+    border-bottom: 1px solid #f0ece0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1a1610;
+    text-align: left;
+  }
+  #extra-member-autocomplete-list .autocomplete-item:hover {
+    background: #f5e9c0;
+    color: #b8860b;
+    text-decoration: none;
+  }
+  #extra-member-autocomplete-list .autocomplete-item:last-child {
+    border-bottom: none;
+  }
+
+  /* Modals Premium Styling */
+  .modal-content-premium {
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .modal-header-premium {
+    background: linear-gradient(135deg, #78520a 0%, var(--gold) 50%, #c9a227 100%);
+    color: #fff;
+    border: none;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header-premium .modal-title {
+    font-family: 'Literata', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 0;
+  }
+  .modal-header-premium .close {
+    color: #fff;
+    opacity: 0.85;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+  }
+  .modal-header-premium .close:hover {
+    opacity: 1;
+  }
+  .modal-body-premium {
+    padding: 24px;
+  }
+  .form-group-premium label {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .form-control-premium {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--text-1);
+    background: var(--surface-2);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    width: 100%;
+    font-family: inherit;
+  }
+  .form-control-premium:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(184,134,11,.1);
+    background: var(--surface);
+  }
+
+  /* Premium buttons */
+  .btn-action {
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 10px 16px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-action-primary {
+    background: linear-gradient(135deg, var(--gold) 0%, #8f6808 100%);
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.15);
+  }
+  .btn-action-primary:hover {
+    color: #fff !important;
+    box-shadow: 0 6px 20px rgba(184, 134, 11, 0.3);
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+  .btn-action-secondary {
+    background: var(--surface);
+    color: var(--gold) !important;
+    border: 1.5px solid var(--gold) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  }
+  .btn-action-secondary:hover {
+    background: var(--gold-muted);
+    color: var(--gold) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.12);
+    text-decoration: none;
+  }
+
+  /* Autocomplete suggestions dropdown container */
+  .autocomplete-dropdown {
+    position: absolute;
+    z-index: 1050;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  /* Banner Right Layout */
+  .miqaat-banner-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Responsive Banner Stack for Mobile */
+  @media (max-width: 768px) {
+    .miqaat-banner-inner {
+      flex-direction: column;
+      align-items: stretch !important;
+      gap: 16px;
+    }
+    .miqaat-banner-right {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch !important;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .miqaat-banner-right a,
+    .miqaat-banner-right button {
+      width: 100%;
+      justify-content: center;
+      text-align: center;
+      padding: 10px 16px !important;
+    }
+  }
 </style>
 
 <div class="margintopcontainer mx-2 mx-md-5 pt-3" style="font-family:'Plus Jakarta Sans',sans-serif;">
@@ -303,6 +482,13 @@
         </div>
       </div>
       <div class="miqaat-banner-right">
+        <button id="create-extra-contribution-btn" type="button" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-bs-toggle="modal" data-bs-target="#createExtraContributionModal" data-toggle="modal" data-target="#createExtraContributionModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
+          <i class="fa-solid fa-plus-circle"></i> Create Extra Contribution
+        </button>
+        <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold d-inline-flex align-items-center" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
+          <i class="fa-solid fa-bolt text-warning"></i> <?php echo isset($miqaat_type) ? htmlspecialchars($miqaat_type) : ""; ?> Niyaz Fala Takhmeen
+          <span class="badge badge-primary" style="border-radius: 10px; font-size: 12px; padding: 4px 8px;"><?php echo isset($miqaats["Fala_ni_Niyaz"]) ? count($miqaats["Fala_ni_Niyaz"]) : 0; ?></span>
+        </button>
         <a href="<?php 
           $mtype_num = 1;
           if (isset($miqaat_type)) {
@@ -312,13 +498,9 @@
             elseif ($miqaat_type === 'Ladies') $mtype_num = 4;
           }
           echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=" . $mtype_num); 
-        ?>" class="btn btn-light font-weight-bold mr-2" style="border-radius: 8px; padding: 6px 16px;">
-          Go to Update Invoice
-        </a>
-        <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold" style="border-radius: 8px; padding: 6px 16px;">
-          <i class="fa-solid fa-bolt text-warning me-1"></i> <?php echo isset($miqaat_type) ? htmlspecialchars($miqaat_type) : ""; ?> Niyaz Fala Takhmeen
-          <span class="badge badge-primary ml-1" style="border-radius: 10px; font-size: 12px; padding: 4px 8px;"><?php echo isset($miqaats["Fala_ni_Niyaz"]) ? count($miqaats["Fala_ni_Niyaz"]) : 0; ?></span>
-        </button>
+        ?>" class="btn btn-light font-weight-bold d-inline-flex align-items-center" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
+            <i class="fa-solid fa-credit-card"></i> Update Invoice
+          </a>
       </div>
     </div>
   </div>
@@ -410,7 +592,7 @@
           </select>
         </div>
         <div class="col-md-1 mb-2 d-flex align-items-end">
-          <button type="button" id="pf-clear" class="btn btn-outline-secondary w-100" style="height:34px; border-radius:8px;">Clear</button>
+          <button type="button" id="pf-clear" class="btn btn-outline-secondary w-100 d-inline-flex align-items-center justify-content-center" style="height:34px; border-radius:8px; gap: 6px;"><i class="fa-solid fa-filter-circle-xmark"></i> Clear</button>
         </div>
       </div>
     </div>
@@ -560,7 +742,7 @@
                     <?php endif; ?>
                   </td>
                   <td>
-                    <button type="button" class="btn btn-sm btn-primary generate-invoice-btn"
+                    <button type="button" class="btn btn-sm btn-primary generate-invoice-btn d-inline-flex align-items-center" style="gap: 5px;"
                       data-miqaat_index="<?php echo htmlspecialchars($m['miqaat_index']) ?>"
                       data-miqaat_id="<?php echo htmlspecialchars($m['miqaat_id']) ?>"
                       data-raza_index="<?php echo htmlspecialchars((string)($m['raza_index'] ?? ''), ENT_QUOTES) ?>"
@@ -595,7 +777,7 @@
                                     } else {
                                       echo '-';
                                     }
-                                    ?>">Generate Invoice</button>
+                                    ?>"><i class="fa-solid fa-file-circle-plus"></i> Generate Invoice</button>
                   </td>
                 </tr>
               <?php endforeach; ?>
@@ -644,8 +826,8 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-            <button type="submit" id="create-miqaat-invoice-btn" class="btn btn-primary">Submit</button>
+            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Cancel</button>
+            <button type="submit" id="create-miqaat-invoice-btn" class="btn btn-primary d-inline-flex align-items-center" style="gap: 5px;"><i class="fa-solid fa-check"></i> Submit</button>
           </div>
         </form>
       </div>
@@ -665,7 +847,69 @@
           <div id="falaNiyazTableWrapper" class="table-responsive"></div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Create Extra Contribution Modal -->
+  <div class="modal fade" id="createExtraContributionModal" tabindex="-1" role="dialog" aria-labelledby="createExtraContributionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content modal-content-premium">
+        <div class="modal-header modal-header-premium">
+          <h5 class="modal-title" id="createExtraContributionModalLabel"><i class="fa-solid fa-circle-plus mr-2"></i> Create Niyaz Extra Contribution</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body modal-body-premium">
+          <form id="create-extra-contribution-form">
+            <div class="form-group form-group-premium position-relative mb-3">
+              <label for="extra-member-autocomplete">Name or ITS</label>
+              <input type="text" id="extra-member-autocomplete" class="form-control-premium" placeholder="Type name or ITS..." autocomplete="off" required />
+              <input type="hidden" name="user_id" id="extra-user-id" required />
+              <div id="extra-member-autocomplete-list" class="autocomplete-dropdown" style="display:none;"></div>
+            </div>
+            <div class="form-group form-group-premium mb-3">
+              <label for="extra-contri-year">Contribution Year</label>
+              <select name="contri_year" id="extra-contri-year" class="form-control-premium" required>
+                <option value="">Select Contribution Year</option>
+                <?php if (!empty($composite_hijri_years)): ?>
+                  <?php foreach ($composite_hijri_years as $y): ?>
+                    <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>"><?php echo htmlspecialchars($y); ?></option>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </select>
+            </div>
+            <div class="form-group form-group-premium mb-3">
+              <label for="extra-contri-type">Contribution Type</label>
+              <select name="contri_type" id="extra-contri-type" class="form-control-premium" required>
+                <option value="">Select Type</option>
+                <?php if (!empty($contri_type_gc)): ?>
+                  <?php foreach ($contri_type_gc as $value): ?>
+                    <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>"><?php echo htmlspecialchars($value["name"]); ?></option>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </select>
+            </div>
+            <div class="form-group form-group-premium mb-3">
+              <label>Miqaat Type</label>
+              <input type="text" class="form-control-premium" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" readonly style="background: var(--surface-2); cursor: not-allowed; opacity: 0.8;" />
+              <input type="hidden" name="miqaat_type" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" />
+            </div>
+            <div class="form-group form-group-premium mb-3">
+              <label for="extra-amount">Amount (₹)</label>
+              <input type="number" name="amount" id="extra-amount" class="form-control-premium" placeholder="Enter amount" min="1" required />
+            </div>
+            <div class="form-group form-group-premium mb-4">
+              <label for="extra-description">Description</label>
+              <textarea name="description" id="extra-description" class="form-control-premium" rows="2" placeholder="Optional remarks..."></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer" style="border-top: 1px solid var(--border-light); padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px; background: var(--surface-2);">
+          <button type="button" class="btn-action btn-action-secondary d-inline-flex align-items-center justify-content-center" data-dismiss="modal" style="padding: 8px 16px; font-size: 0.82rem; min-width: 80px; gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
+          <button type="button" id="create-extra-contribution-submit" class="btn-action btn-action-primary d-inline-flex align-items-center justify-content-center" onclick="jQuery('#create-extra-contribution-form').submit();" style="padding: 8px 20px; font-size: 0.82rem; gap: 5px;"><i class="fa-solid fa-plus-circle"></i> Create Invoice</button>
         </div>
       </div>
     </div>
@@ -1178,7 +1422,7 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
               <button type="button" class="btn btn-sm btn-outline-primary generate-new-active-members-btn"
                 data-hijri_year="${escapeHtml(g.year)}"
                 data-miqaat_type="${escapeHtml(CURRENT_MIQAAT_TYPE)}"
-              >Active Members</button>
+              ><i class="fa-solid fa-users"></i> Active Members</button>
             `;
           } else {
             actionButtonHtml = `
@@ -1188,7 +1432,7 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
                 data-range_start="${escapeHtml(start)}"
                 data-range_end="${escapeHtml(end)}"
                 data-miqaat_type="${escapeHtml(CURRENT_MIQAAT_TYPE)}"
-              >Do Takhmeen for this Year</button>
+              ><i class="fa-solid fa-calculator"></i> Do Takhmeen for this Year</button>
             `;
           }
 
@@ -1235,7 +1479,7 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
           <td>R#${escapeHtml(m.raza_id)}</td>
           <td><b>${escapeHtml(m.miqaat_name)}</b></td>
           <td>
-            <button type="button" class="btn btn-sm btn-primary generate-invoice-btn"
+            <button type="button" class="btn btn-sm btn-primary generate-invoice-btn d-inline-flex align-items-center" style="gap: 5px;"
               data-miqaat_index="${escapeHtml(m.miqaat_index)}"
               data-miqaat_id="${escapeHtml(m.miqaat_id)}"
               data-raza_index="${escapeHtml(m.raza_index)}"
@@ -1249,7 +1493,7 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
               data-individual_count="${escapeHtml(String(m.individual_count || ''))}"
               data-member_id=""
               data-details="${escapeHtml(details)}"
-            >Generate Invoice</button>
+            ><i class="fa-solid fa-file-circle-plus"></i> Generate Invoice</button>
           </td>
         </tr>
       `;
@@ -1278,7 +1522,7 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
 
   document.addEventListener('DOMContentLoaded', function() {
     const falaBtn = document.getElementById('fala-ni-niyaz-invoices');
-    if (!falaBtn) return;
+    if (falaBtn) {
 
     falaBtn.addEventListener('click', function() {
       const genModalElLocal = document.getElementById('generateInvoiceModal');
@@ -1441,14 +1685,124 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
         const falaModal = new bootstrap.Modal(falaEl);
         falaModal.show();
       }
-    });
+      });
+    }
 
-    $("#create-miqaat-invoice-btn").on("click", function() {
-      const confirmMsg = `This will create invoices for ALL families for ${mtype} (${year}).\n\nDo you want to continue?`;
-      if (!window.confirm(confirmMsg)) {
-        return;
+    // Autocomplete and form submission logic for Niyaz Extra Contribution modal
+    (function() {
+      if (typeof jQuery === 'undefined') return;
+
+      // Handle showing the modal for Create Extra Contribution button manually (supports Bootstrap 4 & 5)
+      const extraModalEl = document.getElementById('createExtraContributionModal');
+      let extraModal = null;
+      if (extraModalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        extraModal = new bootstrap.Modal(extraModalEl);
       }
-    });
+      jQuery(document).on('click', '#create-extra-contribution-btn', function() {
+        if (extraModal) {
+          extraModal.show();
+        } else {
+          jQuery('#createExtraContributionModal').modal('show');
+        }
+      });
+
+      jQuery(document).on('input', '#extra-member-autocomplete', function() {
+        const query = jQuery(this).val();
+        const listContainer = jQuery('#extra-member-autocomplete-list');
+        const userIdInput = jQuery('#extra-user-id');
+        if (!query || query.length < 2) {
+          listContainer.empty().hide();
+          userIdInput.val('');
+          return;
+        }
+        jQuery.ajax({
+          url: "<?php echo base_url('anjuman/searchmembers'); ?>",
+          type: "POST",
+          data: { query: query },
+          dataType: "json",
+          success: function(res) {
+            if (res.success && Array.isArray(res.members) && res.members.length > 0) {
+              let listHtml = '';
+              res.members.forEach(function(member) {
+                listHtml += `<button type="button" class="autocomplete-item extra-member-suggestion" data-id="${member.ITS_ID}" data-name="${member.Full_Name}">${member.Full_Name} (${member.ITS_ID})</button>`;
+              });
+              listContainer.html(listHtml).show();
+            } else {
+              listContainer.html('<div class="p-3 text-muted text-center" style="font-size:0.85rem;">No members found</div>').show();
+            }
+          },
+          error: function() {
+            listContainer.html('<div class="p-3 text-danger text-center" style="font-size:0.85rem;">Error searching members</div>').show();
+          }
+        });
+      });
+
+      // Select member from autocomplete
+      jQuery(document).on('click', '.extra-member-suggestion', function() {
+        const itsId = jQuery(this).attr('data-id');
+        const name = jQuery(this).attr('data-name');
+        jQuery('#extra-user-id').val(itsId);
+        jQuery('#extra-member-autocomplete').val(name);
+        jQuery('#extra-member-autocomplete-list').empty().hide();
+      });
+
+      // Hide suggestions on outside click
+      jQuery(document).on('click', function(e) {
+        if (!jQuery(e.target).closest('#extra-member-autocomplete, #extra-member-autocomplete-list').length) {
+          jQuery('#extra-member-autocomplete-list').empty().hide();
+        }
+      });
+
+      // Reset modal fields when hidden
+      $('#createExtraContributionModal').on('hidden.bs.modal', function() {
+        jQuery('#create-extra-contribution-form')[0].reset();
+        jQuery('#extra-user-id').val('');
+        jQuery('#extra-member-autocomplete-list').empty().hide();
+      });
+
+      // Form submission
+      jQuery(document).on('submit', '#create-extra-contribution-form', function(e) {
+        e.preventDefault();
+        const btn = jQuery('#create-extra-contribution-submit');
+        btn.prop('disabled', true);
+        
+        const formData = jQuery(this).serialize();
+        jQuery.ajax({
+          url: "<?php echo base_url('anjuman/addfmbgc_ajax'); ?>",
+          type: "POST",
+          data: formData,
+          dataType: "json",
+          success: function(res) {
+            if (res && res.success) {
+              alert(res.message || 'Invoice created successfully.');
+              const itsId = jQuery('#extra-user-id').val();
+              const mtype = <?php 
+                $mtype_num = 1;
+                if (isset($miqaat_type)) {
+                  if ($miqaat_type === 'Shehrullah') $mtype_num = 1;
+                  elseif ($miqaat_type === 'Ashara') $mtype_num = 2;
+                  elseif ($miqaat_type === 'General') $mtype_num = 3;
+                  elseif ($miqaat_type === 'Ladies') $mtype_num = 4;
+                }
+                echo $mtype_num; 
+              ?>;
+              if (itsId) {
+                window.location.href = `<?php echo base_url('anjuman/miqaatinvoicepayment'); ?>?miqaat_type=${mtype}&search=${encodeURIComponent(itsId)}`;
+              } else {
+                window.location.reload();
+              }
+            } else {
+              alert(res.message || 'Failed to create invoice.');
+              btn.prop('disabled', false);
+            }
+          },
+          error: function() {
+            alert('An error occurred. Please try again.');
+            btn.prop('disabled', false);
+          }
+        });
+      });
+    })();
   });
 </script>
 <script>
