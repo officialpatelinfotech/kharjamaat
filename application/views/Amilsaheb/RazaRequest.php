@@ -1233,10 +1233,10 @@
             return new Date(a['time-stamp']) - new Date(b['time-stamp']);
           case 2:
             // Implement sorting by event date (New > Old)
-            return new Date(getEventDate(b.razadata, b.miqaat_details)) - new Date(getEventDate(a.razadata, a.miqaat_details));
+            return new Date(getEventDate(b)) - new Date(getEventDate(a));
           case 3:
             // Implement sorting by event date (Old > New)
-            return new Date(getEventDate(a.razadata, a.miqaat_details)) - new Date(getEventDate(b.razadata, b.miqaat_details));
+            return new Date(getEventDate(a)) - new Date(getEventDate(b));
           case 7:
             // Sort by miqaat date (New > Old)
             return new Date(getMiqaatDate(b)) - new Date(getMiqaatDate(a));
@@ -1397,6 +1397,29 @@
       }
     } else {
       gregDate = data.date;
+      if (!gregDate) {
+        if (Array.isArray(razafields)) {
+            for (let i = 0; i < razafields.length; i++) {
+                let f = razafields[i];
+                if (f.type === 'date' && f.name) {
+                    let key1 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                    let key2 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                    if (data[key1]) { gregDate = data[key1]; break; }
+                    if (data[key2]) { gregDate = data[key2]; break; }
+                }
+            }
+        } else if (razafields) {
+            for (let k in razafields) {
+                let f = razafields[k];
+                if (f.type === 'date' && f.name) {
+                    let key1 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                    let key2 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                    if (data[key1]) { gregDate = data[key1]; break; }
+                    if (data[key2]) { gregDate = data[key2]; break; }
+                }
+            }
+        }
+      }
       if (gregDate) {
         gregDateStr = new Date(gregDate).toLocaleDateString('en-US', options);
       }
@@ -1498,8 +1521,7 @@
     return actionHTML;
   }
 
-  function getEventDate(razadata, miqaat_details = {}) {
-    // Extract event date from razadata or miqaat_details; both may be object or JSON string
+  function getEventDate(raza) {
     const parseMaybe = (val) => {
       if (!val) return null;
       if (typeof val === 'object') return val;
@@ -1509,15 +1531,35 @@
         return null;
       }
     };
-    let data = parseMaybe(razadata) || {};
-    if (data.date) {
-      return new Date(data.date);
-    } else if (miqaat_details) {
-      let miqaat_info = parseMaybe(miqaat_details) || {};
-      return new Date(miqaat_info.date);
-    } else {
-      return null;
+    let data = parseMaybe(raza.razadata) || {};
+    let m = parseMaybe(raza.miqaat_details) || {};
+    if (m.date) return new Date(m.date);
+    if (data.date) return new Date(data.date);
+    
+    let rf = parseMaybe(raza.razafields) || {};
+    let fields = rf.fields || rf;
+    if (Array.isArray(fields)) {
+        for (let i = 0; i < fields.length; i++) {
+            let f = fields[i];
+            if (f.type === 'date' && f.name) {
+                let key1 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                let key2 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                if (data[key1]) return new Date(data[key1]);
+                if (data[key2]) return new Date(data[key2]);
+            }
+        }
+    } else if (fields) {
+        for (let k in fields) {
+            let f = fields[k];
+            if (f.type === 'date' && f.name) {
+                let key1 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                let key2 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                if (data[key1]) return new Date(data[key1]);
+                if (data[key2]) return new Date(data[key2]);
+            }
+        }
     }
+    return null;
   }
 </script>
 <script>

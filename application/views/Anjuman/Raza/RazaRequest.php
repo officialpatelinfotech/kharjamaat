@@ -284,6 +284,20 @@
                                     <?php $temp = json_decode($r['razadata'], true);
                                     if (!empty($temp['date'])) {
                                         echo date('D, d M ', strtotime($temp['date']));
+                                    } else {
+                                        $rf = is_string($r['razafields']) ? json_decode($r['razafields'], true) : $r['razafields'];
+                                        $fields = isset($rf['fields']) ? $rf['fields'] : $rf;
+                                        if (!empty($fields) && is_array($fields)) {
+                                            foreach ($fields as $f) {
+                                                if (isset($f['type']) && $f['type'] === 'date' && isset($f['name'])) {
+                                                    $dynamicKey = str_replace(['/', '?'], '-', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                                                    if (!empty($temp[$dynamicKey])) {
+                                                        echo date('D, d M ', strtotime($temp[$dynamicKey]));
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
                                     } ?>
                                 </td>
                                 <td>
@@ -635,10 +649,10 @@
                         return new Date(a['time-stamp']) - new Date(b['time-stamp']);
                     case 2:
                         // Implement sorting by event date (New > Old)
-                        return new Date(getEventDate(b.razadata)) - new Date(getEventDate(a.razadata));
+                        return new Date(getEventDate(b)) - new Date(getEventDate(a));
                     case 3:
                         // Implement sorting by event date (Old > New)
-                        return new Date(getEventDate(a.razadata)) - new Date(getEventDate(b.razadata));
+                        return new Date(getEventDate(a)) - new Date(getEventDate(b));
                     case 6:
                         refresh();
                     default:
@@ -746,6 +760,26 @@
         let razafields = rf.fields
         let dateString = data.date
 
+        if (!dateString) {
+            if (Array.isArray(razafields)) {
+                for (let i = 0; i < razafields.length; i++) {
+                    let f = razafields[i];
+                    if (f.type === 'date' && f.name) {
+                        let key = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                        if (data[key]) { dateString = data[key]; break; }
+                    }
+                }
+            } else if (razafields) {
+                for (let k in razafields) {
+                    let f = razafields[k];
+                    if (f.type === 'date' && f.name) {
+                        let key = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                        if (data[key]) { dateString = data[key]; break; }
+                    }
+                }
+            }
+        }
+
         if (dateString) {
 
             const options = {
@@ -834,9 +868,32 @@
         return actionHTML;
     }
 
-    function getEventDate(razadata) {
-        // Implement logic to extract event date from razadata
-        let data = JSON.parse(razadata);
-        return data.date ? new Date(data.date) : null;
+    function getEventDate(raza) {
+        let data = JSON.parse(raza.razadata);
+        if (data.date) return new Date(data.date);
+        let rf = JSON.parse(raza.razafields);
+        let razafields = rf.fields || rf;
+        if (Array.isArray(razafields)) {
+            for (let i = 0; i < razafields.length; i++) {
+                let f = razafields[i];
+                if (f.type === 'date' && f.name) {
+                    let key1 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                    let key2 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                    if (data[key1]) return new Date(data[key1]);
+                    if (data[key2]) return new Date(data[key2]);
+                }
+            }
+        } else if (razafields) {
+            for (let k in razafields) {
+                let f = razafields[k];
+                if (f.type === 'date' && f.name) {
+                    let key1 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                    let key2 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                    if (data[key1]) return new Date(data[key1]);
+                    if (data[key2]) return new Date(data[key2]);
+                }
+            }
+        }
+        return null;
     }
 </script>

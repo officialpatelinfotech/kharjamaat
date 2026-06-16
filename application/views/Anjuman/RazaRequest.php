@@ -438,7 +438,30 @@
           foreach($raza as $key=>$r){
             $hijri_year_attr=''; $d='';
             if(!empty($r['miqaat_details'])){$md=json_decode($r['miqaat_details'],true);if(is_array($md)&&!empty($md['date']))$d=substr($md['date'],0,10);}
-            if(empty($d)&&!empty($r['razadata'])){$rd=json_decode($r['razadata'],true);if(is_array($rd)&&!empty($rd['date']))$d=substr($rd['date'],0,10);}
+            if(empty($d)&&!empty($r['razadata'])){
+              $rd=json_decode($r['razadata'],true);
+              if(is_array($rd)&&!empty($rd['date'])){
+                $d=substr($rd['date'],0,10);
+              } else {
+                $rf = is_string($r['razafields']) ? json_decode($r['razafields'], true) : $r['razafields'];
+                $fields = isset($rf['fields']) ? $rf['fields'] : $rf;
+                if (!empty($fields) && is_array($fields)) {
+                    foreach ($fields as $f) {
+                        if (isset($f['type']) && $f['type'] === 'date' && isset($f['name'])) {
+                            $key1 = str_replace(['/', '?'], '_', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                            $key2 = str_replace(['/', '?'], '-', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                            if (!empty($rd[$key1])) {
+                                $d = substr($rd[$key1],0,10);
+                                break;
+                            } else if (!empty($rd[$key2])) {
+                                $d = substr($rd[$key2],0,10);
+                                break;
+                            }
+                        }
+                    }
+                }
+              }
+            }
             if(!empty($d)){$parts=$ci->HijriCalendar->get_hijri_parts_by_greg_date($d);if(!empty($parts['hijri_year']))$hijri_year_attr=$parts['hijri_year'];}
             $is_fnn=false;
             if(!empty($r['miqaat_id'])&&!empty($r['miqaat_details'])){$miq=json_decode($r['miqaat_details'],true);if(is_array($miq)){$mAss=strtolower($miq['assigned_to']??'');if(strpos($mAss,'fnn')!==false||(strpos($mAss,'fala')!==false&&(strpos($mAss,'niyaz')!==false||strpos($mAss,'niaz')!==false)))$is_fnn=true;if(!$is_fnn&&!empty($miq['assign_type'])){$at=strtolower($miq['assign_type']);if(strpos($at,'fnn')!==false||(strpos($at,'fala')!==false&&(strpos($at,'niyaz')!==false||strpos($at,'niaz')!==false)))$is_fnn=true;}}}
@@ -474,7 +497,32 @@
               <?php
               $greg_date='';
               if(!empty($r['miqaat_id'])&&!empty($r['miqaat_details'])){$mi=json_decode($r['miqaat_details'],true);if(!empty($mi['date'])){$greg_date=$mi['date'];echo '<div class="rz-date">'.date('D, d M',strtotime($greg_date)).'</div>';}}
-              else{$tmp=json_decode($r['razadata'],true);if(!empty($tmp['date'])){$greg_date=$tmp['date'];echo '<div class="rz-date">'.date('D, d M',strtotime($greg_date)).'</div>';}}
+              else{
+                  $tmp=json_decode($r['razadata'],true);
+                  if(!empty($tmp['date'])){
+                      $greg_date=$tmp['date'];echo '<div class="rz-date">'.date('D, d M',strtotime($greg_date)).'</div>';
+                  } else {
+                      $rf = is_string($r['razafields']) ? json_decode($r['razafields'], true) : $r['razafields'];
+                      $fields = isset($rf['fields']) ? $rf['fields'] : $rf;
+                      if (!empty($fields) && is_array($fields)) {
+                          foreach ($fields as $f) {
+                              if (isset($f['type']) && $f['type'] === 'date' && isset($f['name'])) {
+                                  $key1 = str_replace(['/', '?'], '_', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                                  $key2 = str_replace(['/', '?'], '-', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                                  if (!empty($tmp[$key1])) {
+                                      $greg_date = $tmp[$key1];
+                                      echo '<div class="rz-date">'.date('D, d M',strtotime($greg_date)).'</div>';
+                                      break;
+                                  } else if (!empty($tmp[$key2])) {
+                                      $greg_date = $tmp[$key2];
+                                      echo '<div class="rz-date">'.date('D, d M',strtotime($greg_date)).'</div>';
+                                      break;
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
               if(!empty($greg_date)){$hijri=$ci->HijriCalendar->get_hijri_parts_by_greg_date(substr($greg_date,0,10));if(!empty($hijri['hijri_day'])&&!empty($hijri['hijri_month'])&&!empty($hijri['hijri_year'])){$hn=$ci->HijriCalendar->hijri_month_name($hijri['hijri_month']);echo '<div class="rz-hijri">'.$hijri['hijri_day'].' '.$hn.' '.$hijri['hijri_year'].'H</div>';}}
               ?>
             </td>
@@ -600,7 +648,30 @@ var razas=[
 foreach($raza as $r){
   $d='';
   if(!empty($r['miqaat_details'])){$md=json_decode($r['miqaat_details'],true);if(is_array($md)&&!empty($md['date']))$d=substr($md['date'],0,10);}
-  if(empty($d)&&!empty($r['razadata'])){$rd=json_decode($r['razadata'],true);if(is_array($rd)&&!empty($rd['date']))$d=substr($rd['date'],0,10);}
+  if(empty($d)&&!empty($r['razadata'])){
+      $rd=json_decode($r['razadata'],true);
+      if(is_array($rd)&&!empty($rd['date'])){
+          $d=substr($rd['date'],0,10);
+      } else {
+          $rf = is_string($r['razafields']) ? json_decode($r['razafields'], true) : $r['razafields'];
+          $fields = isset($rf['fields']) ? $rf['fields'] : $rf;
+          if (!empty($fields) && is_array($fields)) {
+              foreach ($fields as $f) {
+                  if (isset($f['type']) && $f['type'] === 'date' && isset($f['name'])) {
+                      $key1 = str_replace(['/', '?'], '_', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                      $key2 = str_replace(['/', '?'], '-', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                      if (!empty($rd[$key1])) {
+                          $d = substr($rd[$key1],0,10);
+                          break;
+                      } else if (!empty($rd[$key2])) {
+                          $d = substr($rd[$key2],0,10);
+                          break;
+                      }
+                  }
+              }
+          }
+      }
+  }
   $hijri_parts=null;
   if(!empty($d)){$parts=$ci->HijriCalendar->get_hijri_parts_by_greg_date($d);if(!empty($parts['hijri_year'])&&!empty($parts['hijri_month'])&&!empty($parts['hijri_day']))$hijri_parts=['year'=>$parts['hijri_year'],'month'=>$parts['hijri_month'],'day'=>$parts['hijri_day']];}
   $r['hijri_parts']=$hijri_parts;
@@ -797,7 +868,31 @@ function updateTable(){
   if(filter==='clear'){window.location.reload();return;}
   var statusMap={approved:2,recommended:1,pending:0,rejected:3,notrecommended:4};
   if(filter!==''&&statusMap[filter]!==undefined) list=list.filter(function(r){return r.status==statusMap[filter];});
-  function getEvDate(r){var m=parseMaybe(r.miqaat_details)||{};if(m.date)return new Date(m.date);var d=parseMaybe(r.razadata)||{};return d.date?new Date(d.date):new Date(0);}
+  function getEvDate(r){
+      var m=parseMaybe(r.miqaat_details)||{};
+      if(m.date)return new Date(m.date);
+      var d=parseMaybe(r.razadata)||{};
+      if(d.date)return new Date(d.date);
+      var rf=parseMaybe(r.razafields)||{};
+      var fields=rf.fields||rf;
+      if (Array.isArray(fields)) {
+          for (var j=0; j<fields.length; j++) {
+              var f = fields[j];
+              if (f.type === 'date' && f.name) {
+                  var key = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                  if (d[key]) return new Date(d[key]);
+              }
+          }
+      } else if (fields) {
+          for (var k in fields) {
+              if (fields[k].type === 'date' && fields[k].name) {
+                  var key = fields[k].name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                  if (d[key]) return new Date(d[key]);
+              }
+          }
+      }
+      return new Date(0);
+  }
   list.sort(function(a,b){
     var s=parseInt(sort);
     if(s===0)return a.user_name.localeCompare(b.user_name);
@@ -842,7 +937,34 @@ function formatEventDateJS(r){
   function parseMaybe(v){if(!v)return null;if(typeof v==='object')return v;try{return JSON.parse(v);}catch(e){return null;}}
   var gd='';
   if(r.miqaat_id&&r.miqaat_details){var m=parseMaybe(r.miqaat_details)||{};gd=m.date||'';}
-  else{var d=parseMaybe(r.razadata)||{};gd=d.date||'';}
+  else{
+      var d=parseMaybe(r.razadata)||{};
+      gd=d.date||'';
+      if(!gd) {
+          var rf=parseMaybe(r.razafields)||{};
+          var fields=rf.fields||rf;
+          if (Array.isArray(fields)) {
+              for (var j=0; j<fields.length; j++) {
+                  var f = fields[j];
+                  if (f.type === 'date' && f.name) {
+                      let key1 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                      let key2 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                      if (d[key1]) { gd = d[key1]; break; }
+                      if (d[key2]) { gd = d[key2]; break; }
+                  }
+              }
+          } else if (fields) {
+              for (var k in fields) {
+                  if (fields[k].type === 'date' && fields[k].name) {
+                      let key1 = fields[k].name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                      let key2 = fields[k].name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                      if (d[key1]) { gd = d[key1]; break; }
+                      if (d[key2]) { gd = d[key2]; break; }
+                  }
+              }
+          }
+      }
+  }
   if(!gd)return '';
   var opts={weekday:'short',month:'short',day:'numeric'};
   var ds=new Date(gd).toLocaleDateString('en-US',opts);

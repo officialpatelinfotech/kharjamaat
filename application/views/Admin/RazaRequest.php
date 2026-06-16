@@ -204,8 +204,27 @@
                                     <?php echo $r['razaType'] ?>
                                 </td>
                                 <td>
-                                    <?php $temp= json_decode($r['razadata'],true) ;if(!empty($temp['date'])){
+                                    <?php $temp = json_decode($r['razadata'], true);
+                                    if (!empty($temp['date'])) {
                                         echo date('D, d M ', strtotime($temp['date']));
+                                    } else {
+                                        $rf = is_string($r['razafields']) ? json_decode($r['razafields'], true) : $r['razafields'];
+                                        $fields = isset($rf['fields']) ? $rf['fields'] : $rf;
+                                        if (!empty($fields) && is_array($fields)) {
+                                            foreach ($fields as $f) {
+                                                if (isset($f['type']) && $f['type'] === 'date' && isset($f['name'])) {
+                                                    $key1 = str_replace(['/', '?'], '_', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                                                    $key2 = str_replace(['/', '?'], '-', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                                                    if (!empty($temp[$key1])) {
+                                                        echo date('D, d M ', strtotime($temp[$key1]));
+                                                        break;
+                                                    } else if (!empty($temp[$key2])) {
+                                                        echo date('D, d M ', strtotime($temp[$key2]));
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
                                     } ?>
                                 </td>
                                 <td>
@@ -549,7 +568,7 @@
                 <td>${i + 1}</td>
                 <td>${formatDate(raza['time-stamp'])}</td>
                 <td>${raza['razaType']}</td>
-                <td>${formatEventDate(raza.razadata)}</td>
+                <td>${formatEventDate(raza)}</td>
                 <td>${raza['user_name']}</td>
                 <td>${raza['remark']}</td>
                 <td>${getStatusHTML(raza)}</td>
@@ -565,9 +584,36 @@
         const options = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true };
         return new Date(dateString).toLocaleDateString('en-US', options);
     }
-    function formatEventDate(razadata) {
-        let data=JSON.parse(razadata)
-        let dateString=data.date
+    function formatEventDate(raza) {
+        let data=JSON.parse(raza.razadata)
+        let rf = (typeof raza.razafields === 'string') ? JSON.parse(raza.razafields) : raza.razafields;
+        let razafields = rf ? (rf.fields || rf) : [];
+        let dateString = data.date
+        
+        if (!dateString) {
+            if (Array.isArray(razafields)) {
+                for (let i = 0; i < razafields.length; i++) {
+                    let f = razafields[i];
+                    if (f.type === 'date' && f.name) {
+                        let key1 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                        let key2 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                        if (data[key1]) { dateString = data[key1]; break; }
+                        if (data[key2]) { dateString = data[key2]; break; }
+                    }
+                }
+            } else if (razafields) {
+                for (let k in razafields) {
+                    let f = razafields[k];
+                    if (f.type === 'date' && f.name) {
+                        let key1 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()\/?]/g, '_');
+                        let key2 = f.name.toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
+                        if (data[key1]) { dateString = data[key1]; break; }
+                        if (data[key2]) { dateString = data[key2]; break; }
+                    }
+                }
+            }
+        }
+
         if(dateString){
             const options = { year: 'numeric', month: 'short', day: 'numeric' };
             return new Date(dateString).toLocaleDateString('en-US', options);

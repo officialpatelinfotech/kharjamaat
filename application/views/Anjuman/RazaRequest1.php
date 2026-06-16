@@ -488,23 +488,49 @@
 <?php
 function formatEventDate($raza) {
     $data = json_decode($raza['razadata'], true);
-    $rf = json_decode($raza['razafields'], true);
-    $razafields = $rf['fields'];
+    $rf = is_string($raza['razafields']) ? json_decode($raza['razafields'], true) : $raza['razafields'];
+    $razafields = isset($rf['fields']) ? $rf['fields'] : $rf;
     
+    $dateString = null;
     if (!empty($data['date'])) {
         $dateString = $data['date'];
-        
-        $date = DateTime::createFromFormat('Y-m-d', $dateString);
-        $formattedDate = $date->format('D, d M');
+    } else if (!empty($razafields) && is_array($razafields)) {
+        foreach ($razafields as $f) {
+            if (isset($f['type']) && $f['type'] === 'date' && isset($f['name'])) {
+                $key1 = str_replace(['/', '?'], '_', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                $key2 = str_replace(['/', '?'], '-', str_replace(['(', ')'], '_', str_replace(' ', '-', strtolower($f['name']))));
+                if (!empty($data[$key1])) {
+                    $dateString = $data[$key1];
+                    break;
+                } else if (!empty($data[$key2])) {
+                    $dateString = $data[$key2];
+                    break;
+                }
+            }
+        }
+    }
 
+    if ($dateString) {
+        $date = DateTime::createFromFormat('Y-m-d', $dateString);
+        if ($date) {
+            $formattedDate = $date->format('D, d M');
+        } else {
+            $formattedDate = date('D, d M', strtotime($dateString));
+        }
 
         if (isset($data['time'])) {
+            $foundTime = false;
             foreach ($razafields as $field) {
                 $name = str_replace([' ', '(', ')', '/', '?'], ['-', '_', '_', '-', '-'], strtolower($field['name']));
                 if ($name === 'time') {
                     $value = $field['options'][$data['time']];
                     echo $formattedDate . "<br/><span style='color:grey'>" . $value['name'] . "</span>";
+                    $foundTime = true;
+                    break;
                 }
+            }
+            if (!$foundTime) {
+                echo $formattedDate;
             }
         } else {
             echo $formattedDate;
