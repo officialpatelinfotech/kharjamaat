@@ -1007,10 +1007,15 @@ class AnjumanM extends CI_Model
       if (empty($gregDate)) return null;
       $h = $this->HijriCalendar->get_hijri_date($gregDate);
       if (!$h || empty($h['hijri_date'])) return null;
-      $parts = explode('-', (string)$h['hijri_date']);
-      $hy = $parts[2] ?? null;
-      $hy = is_string($hy) ? trim($hy) : $hy;
-      return ($hy !== null && $hy !== '') ? $hy : null;
+      $parts = explode('-', (string)$h['hijri_date']); // d-m-Y
+      $month = (int)($parts[1] ?? 0);
+      $year = (int)($parts[2] ?? 0);
+      if ($year === 0 || $month === 0) return null;
+      if ($month >= 7 && $month <= 12) {
+        return $year . '-' . substr((string)($year + 1), -2);
+      } else {
+        return ($year - 1) . '-' . substr((string)$year, -2);
+      }
     };
 
     // 1️⃣ Main query for invoices + totals
@@ -1129,11 +1134,12 @@ class AnjumanM extends CI_Model
       if (!empty($prow['miqaat_id']) && !empty($prow['miqaat_date'])) {
         $effY = $getHijriYear($prow['miqaat_date']);
       }
-      if ($effY === null && isset($prow['invoice_year']) && (string)$prow['invoice_year'] !== '') {
-        $effY = $prow['invoice_year'];
-      }
       if ($effY === null && !empty($prow['invoice_date'])) {
         $effY = $getHijriYear($prow['invoice_date']);
+      }
+      if ($effY === null && isset($prow['invoice_year']) && (string)$prow['invoice_year'] !== '') {
+        $single_year = (int)$prow['invoice_year'];
+        $effY = ($single_year - 1) . '-' . substr((string)$single_year, -2);
       }
       if (!empty($year) && (string)$effY !== (string)$year) {
         continue;
@@ -1188,11 +1194,12 @@ class AnjumanM extends CI_Model
         if (!empty($row['miqaat_id']) && !empty($row['miqaat_date'])) {
           $effYear = $getHijriYear($row['miqaat_date']);
         }
-        if ($effYear === null && isset($row['invoice_year']) && (string)$row['invoice_year'] !== '') {
-          $effYear = $row['invoice_year'];
-        }
         if ($effYear === null && !empty($row['invoice_date'])) {
           $effYear = $getHijriYear($row['invoice_date']);
+        }
+        if ($effYear === null && isset($row['invoice_year']) && (string)$row['invoice_year'] !== '') {
+          $single_year = (int)$row['invoice_year'];
+          $effYear = ($single_year - 1) . '-' . substr((string)$single_year, -2);
         }
         if (!empty($year) && (string)$effYear !== (string)$year) {
           continue;
@@ -1702,7 +1709,6 @@ class AnjumanM extends CI_Model
       $this->db->or_like('ITS_ID', $q);
       $this->db->group_end();
     }
-    $this->db->where('HOF_FM_TYPE', 'HOF');
     $this->db->where("Inactive_Status IS NULL AND Sector IS NOT NULL");
     $this->db->order_by('Full_Name', 'ASC');
     $this->db->limit(10);
@@ -1719,16 +1725,21 @@ class AnjumanM extends CI_Model
 
     $this->db->from("fmb_general_contribution_master");
     $this->db->where("fmb_type", $fmb_type);
+    $this->db->where("status", 1);
     return $this->db->get()->result_array();
   }
 
   public function validatefmbgc(
     $contri_year,
     $user_id,
+    $fmb_type,
     $contri_type
   ) {
     $this->db->from("fmb_general_contribution");
-    $this->db->where("user_id = $user_id AND contri_year = '$contri_year' AND fmb_type = '$contri_type'");
+    $this->db->where("user_id", $user_id);
+    $this->db->where("contri_year", $contri_year);
+    $this->db->where("fmb_type", $fmb_type);
+    $this->db->where("contri_type", $contri_type);
     $result = $this->db->get()->result_array();
     if (count($result) > 0) {
       return true;
@@ -2194,7 +2205,6 @@ class AnjumanM extends CI_Model
   {
     $this->db->select('ITS_ID, Full_Name');
     $this->db->from('user');
-    $this->db->where('HOF_FM_TYPE', 'HOF');
     $this->db->where("Inactive_Status IS NULL AND Sector IS NOT NULL");
     if (!empty($query)) {
       $q = trim((string)$query);

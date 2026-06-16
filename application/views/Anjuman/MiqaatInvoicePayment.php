@@ -311,6 +311,130 @@
   #extra-member-autocomplete-list .autocomplete-item:last-child {
     border-bottom: none;
   }
+
+  /* Modals Premium Styling */
+  .modal-content-premium {
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    box-shadow: var(--sh2);
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .modal-header-premium {
+    background: linear-gradient(135deg, #78520a 0%, var(--gold) 50%, #c9a227 100%);
+    color: #fff;
+    border: none;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header-premium .modal-title {
+    font-family: 'Literata', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 0;
+  }
+  .modal-header-premium .close {
+    color: #fff;
+    opacity: 0.85;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+  }
+  .modal-header-premium .close:hover {
+    opacity: 1;
+  }
+  .modal-body-premium {
+    padding: 24px;
+  }
+  .form-group-premium label {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .form-control-premium {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--text-1);
+    background: var(--surface-2);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    width: 100%;
+    font-family: inherit;
+  }
+  .form-control-premium:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(184,134,11,.1);
+    background: var(--surface);
+  }
+
+  /* Premium buttons */
+  .btn-action {
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 10px 16px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-action-primary {
+    background: linear-gradient(135deg, var(--gold) 0%, #8f6808 100%);
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.15);
+  }
+  .btn-action-primary:hover {
+    color: #fff !important;
+    box-shadow: 0 6px 20px rgba(184, 134, 11, 0.3);
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+  .btn-action-secondary {
+    background: var(--surface);
+    color: var(--gold) !important;
+    border: 1.5px solid var(--gold) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  }
+  .btn-action-secondary:hover {
+    background: var(--gold-muted);
+    color: var(--gold) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.12);
+    text-decoration: none;
+  }
+
+  /* Autocomplete suggestions dropdown container */
+  .autocomplete-dropdown {
+    position: absolute;
+    z-index: 1050;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--sh2);
+    max-height: 250px;
+    overflow-y: auto;
+  }
 </style>
 
 <div class="margintopcontainer mx-2 mx-md-5 pt-3" style="font-family:'Plus Jakarta Sans',sans-serif;">
@@ -353,10 +477,23 @@
       }
       $iy = '';
       if (!empty($ec['contri_year'])) {
-        $iy = (string)substr($ec['contri_year'], 0, 4);
+        $iy = (string)$ec['contri_year'];
+      }
+      if (empty($iy) && !empty($ec['hijri_date_from_cal'])) {
+        $parts = explode('-', (string)$ec['hijri_date_from_cal']);
+        if (count($parts) === 3) {
+          $month = (int)$parts[1];
+          $year = (int)$parts[2];
+          if ($month >= 7 && $month <= 12) {
+            $iy = $year . '-' . substr((string)($year + 1), -2);
+          } else {
+            $iy = ($year - 1) . '-' . substr((string)$year, -2);
+          }
+        }
       }
       if (empty($iy) && !empty($ec['hijri_year_from_cal'])) {
-        $iy = (string)$ec['hijri_year_from_cal'];
+        $single_year = (int)$ec['hijri_year_from_cal'];
+        $iy = ($single_year - 1) . '-' . substr((string)$single_year, -2);
       }
       if ($iy !== '' && !in_array($iy, $years_from_invoices, true)) $years_from_invoices[] = $iy;
     }
@@ -526,13 +663,26 @@
         ];
       }
 
-      // Use the hijri year derived from contri_year first, fallback to hijri_year_from_cal
+      // Use the composite Hijri year directly from contri_year
       $hijri_year_for_filter = '';
       if (!empty($ec['contri_year'])) {
-        $hijri_year_for_filter = (string)substr($ec['contri_year'], 0, 4);
+        $hijri_year_for_filter = (string)$ec['contri_year'];
+      }
+      if (empty($hijri_year_for_filter) && !empty($ec['hijri_date_from_cal'])) {
+        $parts = explode('-', (string)$ec['hijri_date_from_cal']);
+        if (count($parts) === 3) {
+          $month = (int)$parts[1];
+          $year = (int)$parts[2];
+          if ($month >= 7 && $month <= 12) {
+            $hijri_year_for_filter = $year . '-' . substr((string)($year + 1), -2);
+          } else {
+            $hijri_year_for_filter = ($year - 1) . '-' . substr((string)$year, -2);
+          }
+        }
       }
       if (empty($hijri_year_for_filter) && !empty($ec['hijri_year_from_cal'])) {
-        $hijri_year_for_filter = (string)$ec['hijri_year_from_cal'];
+        $single_year = (int)$ec['hijri_year_from_cal'];
+        $hijri_year_for_filter = ($single_year - 1) . '-' . substr((string)$single_year, -2);
       }
 
       $hijriLabel = '-';
@@ -1092,25 +1242,25 @@
 
     <!-- Create Extra Contribution Modal -->
     <div class="modal fade" id="createExtraContributionModal" tabindex="-1" role="dialog" aria-labelledby="createExtraContributionModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="createExtraContributionModalLabel">Create Niyaz Extra Contribution</h5>
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content modal-content-premium">
+          <div class="modal-header modal-header-premium">
+            <h5 class="modal-title" id="createExtraContributionModalLabel"><i class="fa-solid fa-circle-plus mr-2"></i> Create Niyaz Extra Contribution</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body modal-body-premium">
             <form id="create-extra-contribution-form">
-              <div class="form-group position-relative">
+              <div class="form-group form-group-premium position-relative mb-3">
                 <label for="extra-member-autocomplete">Name or ITS</label>
-                <input type="text" id="extra-member-autocomplete" class="form-control" placeholder="Type name or ITS..." autocomplete="off" required />
+                <input type="text" id="extra-member-autocomplete" class="form-control-premium" placeholder="Type name or ITS..." autocomplete="off" required />
                 <input type="hidden" name="user_id" id="extra-user-id" required />
-                <div id="extra-member-autocomplete-list" class="autocomplete-dropdown" style="display:none; position: absolute; z-index: 1050; left: 0; right: 0; background: #fff; border: 1px solid #ccc; border-radius: 8px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></div>
+                <div id="extra-member-autocomplete-list" class="autocomplete-dropdown" style="display:none;"></div>
               </div>
-              <div class="form-group">
+              <div class="form-group form-group-premium mb-3">
                 <label for="extra-contri-year">Contribution Year</label>
-                <select name="contri_year" id="extra-contri-year" class="form-control" required>
+                <select name="contri_year" id="extra-contri-year" class="form-control-premium" required>
                   <option value="">Select Contribution Year</option>
                   <?php if (!empty($composite_hijri_years)): ?>
                     <?php foreach ($composite_hijri_years as $y): ?>
@@ -1119,9 +1269,9 @@
                   <?php endif; ?>
                 </select>
               </div>
-              <div class="form-group">
+              <div class="form-group form-group-premium mb-3">
                 <label for="extra-contri-type">Contribution Type</label>
-                <select name="contri_type" id="extra-contri-type" class="form-control" required>
+                <select name="contri_type" id="extra-contri-type" class="form-control-premium" required>
                   <option value="">Select Type</option>
                   <?php if (!empty($contri_type_gc)): ?>
                     <?php foreach ($contri_type_gc as $value): ?>
@@ -1130,24 +1280,24 @@
                   <?php endif; ?>
                 </select>
               </div>
-              <div class="form-group">
+              <div class="form-group form-group-premium mb-3">
                 <label>Miqaat Type</label>
-                <input type="text" class="form-control" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" readonly />
+                <input type="text" class="form-control-premium" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" readonly style="background: var(--surface-2); cursor: not-allowed; opacity: 0.8;" />
                 <input type="hidden" name="miqaat_type" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" />
               </div>
-              <div class="form-group">
+              <div class="form-group form-group-premium mb-3">
                 <label for="extra-amount">Amount (₹)</label>
-                <input type="number" name="amount" id="extra-amount" class="form-control" placeholder="Enter amount" min="1" required />
+                <input type="number" name="amount" id="extra-amount" class="form-control-premium" placeholder="Enter amount" min="1" required />
               </div>
-              <div class="form-group">
+              <div class="form-group form-group-premium mb-4">
                 <label for="extra-description">Description</label>
-                <textarea name="description" id="extra-description" class="form-control" rows="2" placeholder="Optional remarks..."></textarea>
+                <textarea name="description" id="extra-description" class="form-control-premium" rows="2" placeholder="Optional remarks..."></textarea>
               </div>
             </form>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button" id="create-extra-contribution-submit" class="btn btn-primary" onclick="jQuery('#create-extra-contribution-form').submit();">Create Invoice</button>
+          <div class="modal-footer" style="border-top: 1px solid var(--border-light); padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px; background: var(--surface-2);">
+            <button type="button" class="btn-action btn-action-secondary" data-dismiss="modal" style="padding: 8px 16px; font-size: 0.82rem; min-width: 80px;">Close</button>
+            <button type="button" id="create-extra-contribution-submit" class="btn-action btn-action-primary" onclick="jQuery('#create-extra-contribution-form').submit();" style="padding: 8px 20px; font-size: 0.82rem;">Create Invoice</button>
           </div>
         </div>
       </div>

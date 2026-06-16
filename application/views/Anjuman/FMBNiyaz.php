@@ -266,11 +266,8 @@
             <p class="card-text">Generate Shehrullah Miqaat invoices &amp; receive payment</p>
           </div>
           <div class="action-buttons-group">
-            <a href="<?php echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=1"); ?>" class="btn-action btn-action-primary">
-              <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
-            </a>
-            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=1"); ?>" class="btn-action btn-action-secondary">
-              <i class="fa-solid fa-wallet"></i> Update Invoice and Receive Payment
+            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=1"); ?>" class="btn-action btn-action-primary">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> Go to Shehrullah Miqaat
             </a>
           </div>
         </div>
@@ -287,11 +284,8 @@
             <p class="card-text">Generate Ashara Miqaat invoices &amp; receive payment</p>
           </div>
           <div class="action-buttons-group">
-            <a href="<?php echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=2"); ?>" class="btn-action btn-action-primary">
-              <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
-            </a>
-            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=2"); ?>" class="btn-action btn-action-secondary">
-              <i class="fa-solid fa-wallet"></i> Update Invoice and Receive Payment
+            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=2"); ?>" class="btn-action btn-action-primary">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> Go to Ashara Miqaat
             </a>
           </div>
         </div>
@@ -308,11 +302,8 @@
             <p class="card-text">Generate General Miqaat invoices &amp; receive payment</p>
           </div>
           <div class="action-buttons-group">
-            <a href="<?php echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=3"); ?>" class="btn-action btn-action-primary">
-              <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
-            </a>
-            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=3"); ?>" class="btn-action btn-action-secondary">
-              <i class="fa-solid fa-wallet"></i> Update Invoice and Receive Payment
+            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=3"); ?>" class="btn-action btn-action-primary">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> Go to General Miqaat
             </a>
           </div>
         </div>
@@ -329,11 +320,8 @@
             <p class="card-text">Generate Ladies Miqaat invoices &amp; receive payment</p>
           </div>
           <div class="action-buttons-group">
-            <a href="<?php echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=4"); ?>" class="btn-action btn-action-primary">
-              <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
-            </a>
-            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=4"); ?>" class="btn-action btn-action-secondary">
-              <i class="fa-solid fa-wallet"></i> Update Invoice and Receive Payment
+            <a href="<?php echo base_url("anjuman/miqaatinvoicepayment?miqaat_type=4"); ?>" class="btn-action btn-action-primary">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> Go to Ladies Miqaat
             </a>
           </div>
         </div>

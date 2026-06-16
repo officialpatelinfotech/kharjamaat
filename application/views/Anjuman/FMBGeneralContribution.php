@@ -104,6 +104,36 @@
     text-decoration: none;
   }
 
+  /* ── Action Button styling ── */
+  #anjApp .btn-action {
+    font-family: inherit;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+  }
+  #anjApp .btn-action-primary {
+    background: linear-gradient(135deg, #78520a 0%, #b8860b 100%);
+    color: #fff !important;
+    border: none;
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.2);
+  }
+  #anjApp .btn-action-primary:hover {
+    background: linear-gradient(135deg, #8c600c 0%, #d49c1a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(184, 134, 11, 0.35);
+    text-decoration: none;
+  }
+  #anjApp .btn-action-primary:active {
+    transform: translateY(0);
+  }
+
   /* ── Content Card wrapper ── */
   #anjApp .content-card {
     background: var(--surface);
@@ -438,11 +468,11 @@
       <!-- Filter Bar -->
       <div id="gc-filters" class="filter-bar">
         <div class="form-row">
-          <div class="col-md-3 mb-2">
+          <div class="<?php echo $type == 1 ? 'col-md-4' : 'col-md-3'; ?> mb-2">
             <span class="filter-label">Name or ITS</span>
             <input type="text" id="gc-filter-name" class="filter-control" placeholder="Search name or ITS...">
           </div>
-          <div class="col-md-3 mb-2">
+          <div class="<?php echo $type == 1 ? 'col-md-4' : 'col-md-3'; ?> mb-2">
             <span class="filter-label">Contribution Type</span>
             <select id="gc-filter-ctype" class="filter-control">
               <option value="">All Types</option>
@@ -451,6 +481,7 @@
               <?php endforeach; endif; ?>
             </select>
           </div>
+          <?php if ($type != 1): ?>
           <div class="col-md-3 mb-2">
             <span class="filter-label">Miqaat Type</span>
             <select id="gc-filter-miqaat-type" class="filter-control">
@@ -461,7 +492,8 @@
               <option value="ladies">Ladies</option>
             </select>
           </div>
-          <div class="col-md-3 mb-2 d-flex align-items-end">
+          <?php endif; ?>
+          <div class="<?php echo $type == 1 ? 'col-md-4' : 'col-md-3'; ?> mb-2 d-flex align-items-end">
             <button type="button" id="gc-filter-clear" class="btn btn-back w-100" style="height:38px; border-radius:8px;"><i class="fa fa-times mr-1"></i> Clear Filters</button>
           </div>
         </div>
@@ -477,7 +509,9 @@
               <th class="gc-sort" data-sort-type="number">ITS ID <span class="sort-indicator"></span></th>
               <th class="gc-sort" data-sort-type="text">Member Name <span class="sort-indicator"></span></th>
               <th class="gc-sort" data-sort-type="text">Contribution Type <span class="sort-indicator"></span></th>
+              <?php if ($type != 1): ?>
               <th class="gc-sort" data-sort-type="text">Miqaat Type <span class="sort-indicator"></span></th>
+              <?php endif; ?>
               <th class="gc-sort" data-sort-type="number">Amount (₹) <span class="sort-indicator"></span></th>
               <th class="gc-sort" data-sort-type="number">Received (₹) <span class="sort-indicator"></span></th>
               <th class="gc-sort" data-sort-type="number">Balance (₹) <span class="sort-indicator"></span></th>
@@ -494,7 +528,9 @@
                   <td><?php echo $row["ITS_ID"]; ?></td>
                   <td style="font-weight:700; color:var(--text-1);"><?php echo $row["Full_Name"]; ?></td>
                   <td class="gc-contri-type-td" data-fmbgc-id="<?php echo $row['id']; ?>"><?php echo $row["contri_type"]; ?></td>
+                  <?php if ($type != 1): ?>
                   <td class="gc-miqaat-type-td" data-fmbgc-id="<?php echo $row['id']; ?>"><?php echo htmlspecialchars($row["miqaat_type"] ?? ''); ?></td>
+                  <?php endif; ?>
                   <td style="font-weight:700;"><span class="gc-amount" data-fmbgc-id="<?php echo $row['id'];?>">₹<?php echo number_format($row["amount"],0); ?></span></td>
                   <td><span class="gc-received" data-fmbgc-id="<?php echo $row['id'];?>">₹<?php echo number_format($row["total_received"],0); ?></span></td>
                   <td style="font-weight:700; color:var(--red);"><span class="gc-balance" data-fmbgc-id="<?php echo $row['id'];?>">₹<?php echo number_format($row["balance_due"],0); ?></span></td>
@@ -576,6 +612,7 @@
                 <?php endif; ?>
               </select>
             </div>
+            <?php if ($type != 1): ?>
             <div class="form-group form-group-premium mb-3">
               <label for="miqaat-type">Miqaat Type</label>
               <select name="miqaat_type" id="miqaat-type" class="form-control-premium" required>
@@ -586,6 +623,7 @@
                 <option value="Ladies">Ladies</option>
               </select>
             </div>
+            <?php endif; ?>
             <div class="form-group form-group-premium mb-3">
               <label for="amount">Amount (₹)</label>
               <input type="number" name="amount" id="amount" class="form-control-premium" placeholder="Enter amount" min="1" required>
@@ -646,6 +684,7 @@
                 <?php endif; ?>
               </select>
             </div>
+            <?php if ($type != 1): ?>
             <div class="form-group form-group-premium mb-3">
               <label for="edit-miqaat-type">Miqaat Type</label>
               <select name="miqaat_type" id="edit-miqaat-type" class="form-control-premium" required>
@@ -656,6 +695,7 @@
                 <option value="Ladies">Ladies</option>
               </select>
             </div>
+            <?php endif; ?>
             
             <div class="form-group form-group-premium mb-3">
               <label for="edit-amount">Amount (₹)</label>
@@ -861,7 +901,8 @@
       const amount = $("#edit-amount").val();
       const contriYear = $("#edit-contri-year").val();
       const contriType = $("#edit-contri-type").val();
-      const miqaatType = $("#edit-miqaat-type").val();
+      const miqaatEl = $("#edit-miqaat-type");
+      const miqaatType = miqaatEl.length ? miqaatEl.val() : null;
       const description = $("#edit-description").val();
 
       $.ajax({
@@ -1027,6 +1068,12 @@
 
     $("#save-fmbgc-btn").on("click", function(e) {
       e.preventDefault();
+      
+      // Native validation check
+      if (!$("#save-fmbgc-form")[0].reportValidity()) {
+        return;
+      }
+      
       $contriYear = $("#contri-year").val();
       $userId = $("#user-id").val();
       $contriType = $("#contri-type").val();
@@ -1066,6 +1113,8 @@
         },
         error: function(xhr, status, error) {
           console.log(error);
+          // Fallback: submit form anyway if validation check fails so user is not blocked!
+          $("#save-fmbgc-form").off("submit").submit();
         }
       });
     });
@@ -1272,9 +1321,9 @@
           const dir = (lastIndex===hIndex && lastDir==='asc')?'desc':'asc';
           lastIndex = hIndex; lastDir = dir;
           rows.sort((a,b)=>{
-            // +1 offset because first column (#) is non-sort and part of children
-            const aCell = a.children[hIndex+0]; // after redesign indexes match header order because we included # with no-sort
-            const bCell = b.children[hIndex+0];
+            const cellIndex = header.cellIndex;
+            const aCell = a.children[cellIndex];
+            const bCell = b.children[cellIndex];
             const aVal = parseValue(aCell, type);
             const bVal = parseValue(bCell, type);
             if(aVal < bVal) return dir==='asc'?-1:1;
@@ -1297,17 +1346,20 @@
     function applyGcFilters(){
       const nameVal = $('#gc-filter-name').val().trim().toLowerCase();
       const typeVal = $('#gc-filter-ctype').val().trim(); // already lowercased in option values
-      const miqaatVal = $('#gc-filter-miqaat-type').val().trim().toLowerCase();
+      const miqaatEl = $('#gc-filter-miqaat-type');
+      const miqaatVal = miqaatEl.length ? (miqaatEl.val() || '').trim().toLowerCase() : '';
+      const isThaali = <?php echo $type == 1 ? 'true' : 'false'; ?>;
+      
       $('#gc-invoice-table tbody tr').each(function(){
         const $tr = $(this);
         const its = $tr.children('td').eq(2).text().trim().toLowerCase();
         const member = $tr.children('td').eq(3).text().trim().toLowerCase();
         const ctype = $tr.children('td').eq(4).text().trim().toLowerCase();
-        const miqaat = $tr.children('td').eq(5).text().trim().toLowerCase();
+        const miqaat = isThaali ? '' : $tr.children('td').eq(5).text().trim().toLowerCase();
         let show = true;
         if(nameVal && (member.indexOf(nameVal) === -1) && (its.indexOf(nameVal) === -1)) show = false;
         if(typeVal && ctype !== typeVal) show = false;
-        if(miqaatVal && miqaat !== miqaatVal) show = false;
+        if(!isThaali && miqaatVal && miqaat !== miqaatVal) show = false;
         $tr.toggle(show);
       });
       // Renumber visible rows only
@@ -1315,11 +1367,15 @@
     }
     $('#gc-filter-name').on('input', applyGcFilters);
     $('#gc-filter-ctype').on('change', applyGcFilters);
-    $('#gc-filter-miqaat-type').on('change', applyGcFilters);
+    if ($('#gc-filter-miqaat-type').length) {
+      $('#gc-filter-miqaat-type').on('change', applyGcFilters);
+    }
     $('#gc-filter-clear').on('click', function(){
       $('#gc-filter-name').val('');
       $('#gc-filter-ctype').val('');
-      $('#gc-filter-miqaat-type').val('');
+      if ($('#gc-filter-miqaat-type').length) {
+        $('#gc-filter-miqaat-type').val('');
+      }
       $('#gc-invoice-table tbody tr').show();
       renumberGcTable();
     });

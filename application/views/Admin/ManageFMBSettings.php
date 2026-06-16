@@ -1,144 +1,238 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,6..72,400;0,6..72,600&display=swap" rel="stylesheet">
+
 <style>
+  :root {
+    --gold:        #b8860b;
+    --gold-light:  #e6c84a;
+    --gold-muted:  #f5e9c0;
+    --bg:          #faf7f0;
+    --surface:     #ffffff;
+    --surface-2:   #f7f4ec;
+    --border:      #e8e0cc;
+    --border-light:#f0ece0;
+    --text-1:      #1a1610;
+    --text-2:      #5a5244;
+    --text-3:      #9c8f7a;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow:      0 4px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04);
+  }
+
   body {
-    min-height: 100vh;
-    /* background: linear-gradient(135deg, #e6fef7 0%, #c6ecd9 100%); */
+    background-color: var(--bg) !important;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 
-  .fmb-card-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2rem;
-    justify-content: center;
-    margin-top: 3rem;
+  /* ── Back button ── */
+  .btn-back {
+    border-color: var(--border) !important;
+    color: var(--text-2) !important;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 8px 16px;
+    border-radius: 10px;
+    background: var(--surface);
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none !important;
+  }
+  .btn-back:hover {
+    background: var(--gold-muted);
+    border-color: var(--gold) !important;
+    color: var(--gold) !important;
   }
 
-  .fmb-card {
-    flex: 1 1 20%;
-    min-width: 250px;
-    max-width: 300px;
-    background: rgb(0, 106, 63);
-    border-radius: 18px;
-    box-shadow: 0 6px 32px rgba(0, 106, 63, 0.10);
-    padding: 2.5rem 1.5rem 2rem 1.5rem;
-    text-align: center;
-    transition: box-shadow 0.2s, transform 0.2s, background 0.2s;
+  /* ── Page Header Panel ── */
+  .anj-header {
+    margin-bottom: 30px;
+  }
+  .anj-header-inner {
+    background: linear-gradient(135deg, #78520a 0%, #b8860b 50%, #c9a227 100%);
+    border-radius: 22px;
+    padding: 24px 30px;
     position: relative;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .anj-header-inner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/svg%3E") repeat;
+    pointer-events: none;
+  }
+  .anj-title-group {
+    position: relative;
+    z-index: 1;
+  }
+  .anj-eyebrow {
+    font-size: .67rem;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.65);
+    margin-bottom: 4px;
+  }
+  .anj-title {
+    font-family: 'Literata', Georgia, serif;
+    font-size: 1.7rem;
+    font-weight: 600;
     color: #fff;
-    border: 2px solid rgb(0, 106, 63);
+    line-height: 1.15;
+    margin: 0;
+  }
+
+  /* ── Premium Admin Dashboard Cards Grid ── */
+  .admin-card-link {
+    text-decoration: none !important;
+    color: inherit;
+    display: block;
+    height: 100%;
+  }
+  .admin-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 20px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    height: 300px;
+    align-items: center;
+    text-align: center;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
-
-  .fmb-card:hover {
-    box-shadow: 0 12px 40px rgba(0, 106, 63, 0.18);
-    transform: translateY(-4px) scale(1.04);
-    background: #005c38;
-    border-color: #005c38;
-    color: #fff;
+  .admin-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow);
+    border-color: var(--gold);
   }
-
-  .fmb-card-icon {
-    font-size: 2.8rem;
-    margin-bottom: 1.1rem;
-    color: #fff;
-    background: #005c38;
-    border-radius: 50%;
-    padding: 0.7rem;
-    box-shadow: 0 2px 8px rgba(0, 106, 63, 0.08);
-    display: inline-block;
+  .admin-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold) 0%, var(--gold-light) 100%);
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
+    transform-origin: left;
   }
-
-  .fmb-card-title {
-    font-size: 1.25rem;
+  .admin-card:hover::after {
+    transform: scaleX(1);
+  }
+  .admin-card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    background: var(--surface-2);
+    color: var(--gold);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    margin-bottom: 18px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .admin-card:hover .admin-card-icon {
+    background: var(--gold-muted);
+    color: var(--gold);
+  }
+  .admin-card-title {
+    font-size: 0.95rem;
     font-weight: 700;
-    margin-bottom: 1.1rem;
-    color: #fff;
-    letter-spacing: 0.5px;
-    text-shadow: 0 2px 8px rgba(0, 106, 63, 0.10);
+    color: var(--text-1);
+    margin-bottom: 6px;
+    line-height: 1.3;
   }
-
-  .fmb-card-link {
-    display: inline-block;
-    margin-top: auto;
-    margin-bottom: 0;
-    padding: 0.2rem 0rem;
-    font-size: 1rem;
-    border-radius: 8px;
-    background: #fff;
-    color: rgb(0, 106, 63);
-    text-decoration: none;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 106, 63, 0.08);
-    border: 2px solid rgb(0, 106, 63);
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-  }
-
-  .fmb-card-link:hover {
-    background: #005c38;
-    color: #fff;
-    box-shadow: 0 4px 16px rgba(0, 106, 63, 0.15);
-    border-color: #fff;
-    text-decoration-line: none;
-  }
-
-  .back-btn {
-    display: inline-block;
-    padding: 0.5rem 1.5rem;
-    font-size: 1rem;
-    border-radius: 8px;
-    background: #fff;
-    color: rgb(0, 106, 63);
-    text-decoration: none;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 106, 63, 0.08);
-    border: 2px solid rgb(0, 106, 63);
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-  }
-
-  .back-btn:hover {
-    background: #005c38;
-    color: #fff;
-    box-shadow: 0 4px 16px rgba(0, 106, 63, 0.15);
-    border-color: #fff;
+  .admin-card-desc {
+    font-size: 0.76rem;
+    color: var(--text-3);
+    line-height: 1.4;
+    margin: 0;
   }
 </style>
+
 <div class="container margintopcontainer pt-5">
-  <div class="row mb-4 p-0">
-    <div class="col-12 col-md-6">
-      <a href="<?php echo base_url('admin'); ?>" class="btn btn-outline-secondary">
-        <i class="fa-solid fa-arrow-left"></i>
-      </a>
+  <!-- Back Button -->
+  <div class="mb-4">
+    <a href="<?php echo base_url('admin'); ?>" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+    </a>
+  </div>
+
+  <!-- Header Panel -->
+  <div class="anj-header">
+    <div class="anj-header-inner">
+      <div class="anj-title-group">
+        <p class="anj-eyebrow">Fizalat Mawamil al-Burhaniyah</p>
+        <h1 class="anj-title">Manage FMB Thaali & Niyaz</h1>
+      </div>
     </div>
   </div>
-  <h4 class="heading text-center mb-4">Manage FMB Thaali & Niyaz</h4>
-  <div class="fmb-card-container">
-    <div class="fmb-card">
-      <span class="fmb-card-icon"><i class="fa-solid fa-calendar-days"></i></span>
-      <div class="fmb-card-title">Create & Manage Miqaat</div>
-      <a href="<?php echo base_url('common/managemiqaat?from=admin/managefmbsettings'); ?>" class="fmb-card-link">Go to Miqaat</a>
+
+  <!-- Module Cards Grid -->
+  <div class="row mt-4">
+    <!-- 1. Create & Manage Miqaat -->
+    <div class="col-12 col-sm-6 col-md-4 mb-4">
+      <a href="<?php echo base_url('common/managemiqaat?from=admin/managefmbsettings'); ?>" class="admin-card-link">
+        <div class="admin-card">
+          <div class="admin-card-icon"><i class="fa-solid fa-calendar-days"></i></div>
+          <h5 class="admin-card-title">Create & Manage Miqaat</h5>
+          <p class="admin-card-desc">Configure, schedule, and view all miqaat events.</p>
+        </div>
+      </a>
     </div>
-    <div class="fmb-card">
-      <span class="fmb-card-icon"><i class="fa-solid fa-utensils"></i></span>
-      <div class="fmb-card-title">Manage Thaali Menu</div>
-      <a href="<?php echo base_url('common/fmbthaalimenu?from=admin/managefmbsettings'); ?>" class="fmb-card-link">Go to Thaali Menu</a>
+
+    <!-- 2. Manage Thaali Menu -->
+    <div class="col-12 col-sm-6 col-md-4 mb-4">
+      <a href="<?php echo base_url('common/fmbthaalimenu?from=admin/managefmbsettings'); ?>" class="admin-card-link">
+        <div class="admin-card">
+          <div class="admin-card-icon"><i class="fa-solid fa-utensils"></i></div>
+          <h5 class="admin-card-title">Manage Thaali Menu</h5>
+          <p class="admin-card-desc">Set and update weekly recipes and distribution items.</p>
+        </div>
+      </a>
     </div>
-    <div class="fmb-card">
-      <span class="fmb-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
-      <div class="fmb-card-title">Manage Per Day Thaali Cost</div>
-      <a href="<?php echo base_url('admin/manageperdaythaalicost'); ?>" class="fmb-card-link">Go to Cost</a>
+
+    <!-- 3. Manage Per Day Thaali Cost -->
+    <div class="col-12 col-sm-6 col-md-4 mb-4">
+      <a href="<?php echo base_url('admin/manageperdaythaalicost'); ?>" class="admin-card-link">
+        <div class="admin-card">
+          <div class="admin-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+          <h5 class="admin-card-title">Manage Per Day Thaali Cost</h5>
+          <p class="admin-card-desc">Define day-wise pricing rules and base costs.</p>
+        </div>
+      </a>
     </div>
-    <div class="fmb-card">
-      <span class="fmb-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
-      <div class="fmb-card-title">Manage Thaali Takhmeen</div>
-      <a href="<?php echo base_url('admin/managefmbtakhmeen'); ?>" class="fmb-card-link">Go to Takhmeen</a>
+
+    <!-- 4. Manage Thaali Takhmeen -->
+    <div class="col-12 col-sm-6 col-md-4 mb-4">
+      <a href="<?php echo base_url('admin/managefmbtakhmeen'); ?>" class="admin-card-link">
+        <div class="admin-card">
+          <div class="admin-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+          <h5 class="admin-card-title">Manage Thaali Takhmeen</h5>
+          <p class="admin-card-desc">Oversee annual takhmeen estimates and settings.</p>
+        </div>
+      </a>
     </div>
-    <div class="fmb-card">
-      <span class="fmb-card-icon"><i class="fa-solid fa-hand-holding-dollar"></i></span>
-      <div class="fmb-card-title">Manage Extra Contribution Master</div>
-      <a href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>" class="fmb-card-link">Go to Master</a>
+
+    <!-- 5. Manage Extra Contribution Master -->
+    <div class="col-12 col-sm-6 col-md-4 mb-4">
+      <a href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>" class="admin-card-link">
+        <div class="admin-card">
+          <div class="admin-card-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <h5 class="admin-card-title">Manage Extra Contribution Master</h5>
+          <p class="admin-card-desc">Manage custom categories for extra contributions.</p>
+        </div>
+      </a>
     </div>
   </div>
 </div>

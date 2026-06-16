@@ -3938,27 +3938,22 @@ class Anjuman extends CI_Controller
   public function validatefmbgc()
   {
     $contri_year = $this->input->post("contri_year");
-    $user_id = $this->input->post("user_id");
+    $user_id     = $this->input->post("user_id");
+    $fmb_type    = $this->input->post("fmb_type");
     $contri_type = $this->input->post("contri_type");
 
-    if (
-      $contri_year &&
-      // Dropdown options: distinct years from table (DESC)
-      $contri_type
-    ) {
+    if ($contri_year && $user_id && $fmb_type && $contri_type) {
       $result = $this->AnjumanM->validatefmbgc(
         $contri_year,
         $user_id,
+        $fmb_type,
         $contri_type
       );
-    }
-
-    $yearRows = $this->db->select('DISTINCT year', false)->from('sabeel_takhmeen')->order_by('year', 'DESC')->get()->result_array();
-    $yearOptions = array_values(array_map(function ($r) {
-      return $r['year'];
-    }, $yearRows));
-    if ($result) {
-      echo json_encode(["success" => true]);
+      if ($result) {
+        echo json_encode(["success" => true]);
+      } else {
+        echo json_encode(["success" => false]);
+      }
     } else {
       echo json_encode(["success" => false]);
     }
@@ -4508,12 +4503,24 @@ class Anjuman extends CI_Controller
       return trim((string)$v, '-');
     };
 
-    // Determine selected Hijri year: prefer GET 'year', else current Hijri year
-    $year_stats = $this->CommonM->get_year_calendar_daytypes();
-    $current_hijri_year = isset($year_stats['hijri_year']) ? $sanitize_hijri_year($year_stats['hijri_year']) : null;
+    // Determine selected Hijri year: prefer GET 'year', else current Hijri year range
+    $this->load->model('HijriCalendar');
     $selected_year = $sanitize_hijri_year($this->input->get('year'));
     if (empty($selected_year)) {
-      $selected_year = $current_hijri_year;
+      $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+      if ($today_parts) {
+        $h_month = (int)$today_parts['hijri_month'];
+        $h_year = (int)$today_parts['hijri_year'];
+        if ($h_month >= 7 && $h_month <= 12) {
+          $selected_year = $h_year . '-' . substr((string)($h_year + 1), -2);
+        } else {
+          $selected_year = ($h_year - 1) . '-' . substr((string)$h_year, -2);
+        }
+      } else {
+        $year_stats = $this->CommonM->get_year_calendar_daytypes();
+        $current_hijri_year = isset($year_stats['hijri_year']) ? (int)$sanitize_hijri_year($year_stats['hijri_year']) : 1448;
+        $selected_year = ($current_hijri_year - 1) . '-' . substr((string)$current_hijri_year, -2);
+      }
     }
     $data['current_hijri_year'] = $selected_year;
 
@@ -4521,17 +4528,8 @@ class Anjuman extends CI_Controller
     // Load all years and let the page's client-side filter handle year switching.
     $data["member_miqaat_payments"] = $this->AnjumanM->get_all_member_miqaat_payments($miqaat_type, true, null);
 
-    // Build list of available Hijri years from hijri_calendar table (FMB calendar), newest first
-    $yearsList = [];
-    // hijri_date expected in format 'd-m-Y' (day-month-year). Extract year part.
-    $rows = $this->db->select("DISTINCT SUBSTRING_INDEX(hijri_date, '-', -1) as hy")->from('hijri_calendar')->order_by('hy DESC')->get()->result_array();
-    foreach ($rows as $r) {
-      $hy = $sanitize_hijri_year($r['hy'] ?? '');
-      if ($hy !== '') $yearsList[] = $hy;
-    }
-    $yearsList = array_values(array_unique($yearsList));
-    rsort($yearsList);
-    $data['hijri_years'] = $yearsList;
+    // Build list of available Hijri years using composite years range
+    $data['hijri_years'] = $this->HijriCalendar->get_distinct_composite_years();
 
     // Query Extra Contributions — join hijri_calendar to derive hijri year from the gregorian created_at date
     // so that the client-side Hijri Year filter works correctly (same year format as regular invoices).
