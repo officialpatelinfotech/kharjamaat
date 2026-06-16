@@ -862,7 +862,7 @@
   <?php if (!empty($rows)) : ?>
     <div id="miqaat-payment-filters" class="miqaat-filters-card">
       <div class="form-row">
-        <div class="col-md-3 mb-2">
+        <div class="col-md-2 mb-2">
           <label for="pf-name">Name or ITS</label>
           <input type="text" id="pf-name" class="form-control" placeholder="Search name or ITS...">
         </div>
@@ -896,6 +896,14 @@
           </select>
         </div>
         <div class="col-md-2 mb-2">
+          <label for="pf-status">Status</label>
+          <select id="pf-status" class="form-control">
+            <option value="">All Status</option>
+            <option value="paid">Paid</option>
+            <option value="unpaid">Unpaid</option>
+          </select>
+        </div>
+        <div class="col-md-1 mb-2">
           <label for="pf-year">Hijri Year</label>
           <select id="pf-year" class="form-control" data-default-year="<?php echo htmlspecialchars($default_hijri_year, ENT_QUOTES); ?>">
             <option value="">All Years</option>
@@ -1378,6 +1386,7 @@
           const subVal = (document.getElementById('pf-subsector').value || '').trim().toLowerCase();
           const yearVal = (document.getElementById('pf-year').value || '').trim().toLowerCase();
           const typeVal = (document.getElementById('pf-invoice-type').value || '').trim().toLowerCase();
+          const statusVal = (document.getElementById('pf-status').value || '').trim().toLowerCase();
 
           const rows = document.querySelectorAll('#miqaat-payments-table tbody tr.miqaat-payment-row');
           let index = 1;
@@ -1403,6 +1412,7 @@
             const rYear = (r.getAttribute('data-year') || '').trim();
             const rType = (r.getAttribute('data-invoice-type') || '').trim();
             const assignedTo = (r.getAttribute('data-assigned-to') || '').trim();
+            const rDue = parseFloat(r.getAttribute('data-due') || '0') || 0;
 
             let category = 'individual';
             if (rType === 'extra') {
@@ -1417,6 +1427,11 @@
             if (subVal && rSub !== subVal) show = false;
             if (yearVal && rYear.toLowerCase() !== yearVal) show = false;
             if (typeVal && category !== typeVal) show = false;
+            if (statusVal) {
+              const isPaid = (rDue <= 0.000001);
+              if (statusVal === 'paid' && !isPaid) show = false;
+              if (statusVal === 'unpaid' && isPaid) show = false;
+            }
 
             if (!show) {
               r.style.display = 'none';
@@ -1495,10 +1510,12 @@
         const pfSub = document.getElementById('pf-subsector');
         const pfYear = document.getElementById('pf-year');
         const pfType = document.getElementById('pf-invoice-type');
+        const pfStatus = document.getElementById('pf-status');
         if (pfName) pfName.addEventListener('input', applyPaymentFilters);
         if (pfSector) pfSector.addEventListener('change', applyPaymentFilters);
         if (pfSub) pfSub.addEventListener('change', applyPaymentFilters);
         if (pfType) pfType.addEventListener('change', applyPaymentFilters);
+        if (pfStatus) pfStatus.addEventListener('change', applyPaymentFilters);
         if (pfYear) pfYear.addEventListener('change', function() {
           applyPaymentFilters();
           const titleYearEl = document.getElementById('payment-title-hijri-year');
@@ -1521,6 +1538,7 @@
             if (pfSub) pfSub.value = '';
             if (pfYear) pfYear.value = '';
             if (pfType) pfType.value = '';
+            if (pfStatus) pfStatus.value = '';
             applyPaymentFilters();
           });
         }
