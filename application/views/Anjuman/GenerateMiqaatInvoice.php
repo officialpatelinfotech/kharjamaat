@@ -444,6 +444,42 @@
       padding: 10px 16px !important;
     }
   }
+
+  /* Premium Miqaat Details Box */
+  .miqaat-details-card {
+    background-color: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+  .miqaat-details-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 12px;
+  }
+  .miqaat-detail-item {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 140px;
+  }
+  .miqaat-detail-item.full-width {
+    flex: 1 1 100%;
+  }
+  .miqaat-detail-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-3);
+    letter-spacing: 0.75px;
+    margin-bottom: 2px;
+  }
+  .miqaat-detail-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-1);
+    line-height: 1.4;
+  }
 </style>
 
 <div class="margintopcontainer mx-2 mx-md-5 pt-3" style="font-family:'Plus Jakarta Sans',sans-serif;">
@@ -789,17 +825,17 @@
   </div>
   <?php endif; ?>
   <!-- Single reusable Invoice Modal (placed outside loops) -->
-  <div class="modal fade" id="generateInvoiceModal" tabindex="-1" aria-labelledby="generateInvoiceModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="generateInvoiceModalLabel">Generate Miqaat Invoice</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+  <div class="modal fade" id="generateInvoiceModal" tabindex="-1" role="dialog" aria-labelledby="generateInvoiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content modal-content-premium">
+        <div class="modal-header modal-header-premium">
+          <h5 class="modal-title" id="generateInvoiceModalLabel"><i class="fa-solid fa-file-invoice-dollar mr-2"></i> Generate Miqaat Invoice</h5>
+          <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <form id="generateInvoiceForm" method="post" action="<?php echo base_url('anjuman/create_miqaat_invoice') ?>">
-          <div class="modal-body">
+          <div class="modal-body modal-body-premium">
             <input type="hidden" name="miqaat_id" id="modal_miqaat_index">
             <input type="hidden" name="raza_id" id="modal_raza_index">
             <input type="hidden" name="miqaat_type" id="input_miqaat_type">
@@ -807,27 +843,28 @@
             <input type="hidden" name="assigned_to" id="input_assigned_to">
             <input type="hidden" name="member_id" id="input_member_id">
             <input type="hidden" name="details" id="input_details">
-            <div class="mb-2">
-              <label class="form-label mb-0"><b>Miqaat Details:</b></label>
-              <div id="modal_miqaat_details" class="form-control-plaintext"></div>
+            
+            <div class="form-group form-group-premium mb-3">
+              <label>Miqaat Details</label>
+              <div id="modal_miqaat_details"></div>
             </div>
-            <hr>
-            <div class="mb-2">
-              <label class="form-label"><b>Amount:</b></label>
-              <input type="number" class="form-control" name="amount" required min="1">
+
+            <div class="form-group form-group-premium mb-3">
+              <label for="modal-amount">Amount (₹)</label>
+              <input type="number" id="modal-amount" class="form-control-premium" name="amount" placeholder="Enter amount" required min="1">
             </div>
-            <div class="mb-2">
-              <label class="form-label"><b>Description:</b></label>
-              <textarea class="form-control" name="description"></textarea>
+            <div class="form-group form-group-premium mb-3">
+              <label for="modal-description">Description</label>
+              <textarea id="modal-description" class="form-control-premium" name="description" rows="2" placeholder="Optional remarks..."></textarea>
             </div>
-            <div class="mb-2">
-              <label class="form-label"><b>Invoice Date:</b></label>
-              <input type="date" class="form-control" name="invoice_date" value="<?php echo date('Y-m-d'); ?>" required>
+            <div class="form-group form-group-premium mb-3">
+              <label for="modal-invoice-date">Invoice Date</label>
+              <input type="date" id="modal-invoice-date" class="form-control-premium" name="invoice_date" value="<?php echo date('Y-m-d'); ?>" required>
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Cancel</button>
-            <button type="submit" id="create-miqaat-invoice-btn" class="btn btn-primary d-inline-flex align-items-center" style="gap: 5px;"><i class="fa-solid fa-check"></i> Submit</button>
+          <div class="modal-footer" style="border-top: 1px solid var(--border); padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px; background: var(--surface-2);">
+            <button type="button" class="btn-action btn-action-secondary d-inline-flex align-items-center justify-content-center" data-dismiss="modal" data-bs-dismiss="modal" style="padding: 8px 16px; font-size: 0.82rem; min-width: 80px; gap: 5px;"><i class="fa-solid fa-xmark"></i> Cancel</button>
+            <button type="submit" id="create-miqaat-invoice-btn" class="btn-action btn-action-primary d-inline-flex align-items-center justify-content-center" style="padding: 8px 20px; font-size: 0.82rem; gap: 5px;"><i class="fa-solid fa-check"></i> Submit</button>
           </div>
         </form>
       </div>
@@ -835,19 +872,19 @@
   </div>
   <!-- Fala ni Niyaz Modal -->
   <div class="modal fade" id="falaNiyazModal" tabindex="-1" aria-labelledby="falaNiyazModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="falaNiyazModalLabel"><?php echo isset($miqaat_type) ? $miqaat_type : ""; ?> Niyaz Takhmeen</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+      <div class="modal-content modal-content-premium">
+        <div class="modal-header modal-header-premium">
+          <h5 class="modal-title" id="falaNiyazModalLabel"><i class="fa-solid fa-bolt mr-2"></i> <?php echo isset($miqaat_type) ? $miqaat_type : ""; ?> Niyaz Takhmeen</h5>
+          <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body modal-body-premium">
           <div id="falaNiyazTableWrapper" class="table-responsive"></div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
+        <div class="modal-footer" style="border-top: 1px solid var(--border); padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px; background: var(--surface-2);">
+          <button type="button" class="btn-action btn-action-secondary d-inline-flex align-items-center justify-content-center" data-dismiss="modal" data-bs-dismiss="modal" style="padding: 8px 16px; font-size: 0.82rem; min-width: 80px; gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
         </div>
       </div>
     </div>
@@ -957,15 +994,41 @@
         const assignedDisplay = (assignedRaw.toLowerCase() === 'individual' && cnt > 0)
           ? (assignedRaw + ' (' + cnt + ')')
           : assignedRaw;
-        const detailsLine =
-          '<b>Miqaat ID:</b> M#' + btn.getAttribute('data-miqaat_id') + '<br>' +
-          '<b>Raza ID:</b> ' + (razaDisplay ? ('R#' + razaDisplay) : '-') + '<br>' +
-          '<b>Miqaat Name:</b> ' + btn.getAttribute('data-miqaat_name') + '<br>' +
-          '<b>Date:</b> ' + btn.getAttribute('data-miqaat_date') + '<br>' +
-          '<b>Hijri:</b> ' + btn.getAttribute('data-hijri_date') + '<br>' +
-          '<b>Assigned:</b> ' + assignedDisplay + '<br>' +
-          '<b>Assignment Details:</b> ' + btn.getAttribute('data-details');
-        setHtml('modal_miqaat_details', detailsLine);
+        const detailsHtml = `
+          <div class="miqaat-details-card">
+            <div class="miqaat-details-group">
+              <div class="miqaat-detail-item">
+                <div class="miqaat-detail-label">Miqaat ID</div>
+                <div class="miqaat-detail-value">M#${escapeHtml(btn.getAttribute('data-miqaat_id'))}</div>
+              </div>
+              <div class="miqaat-detail-item">
+                <div class="miqaat-detail-label">Raza ID</div>
+                <div class="miqaat-detail-value">${razaDisplay ? 'R#' + escapeHtml(razaDisplay) : '-'}</div>
+              </div>
+              <div class="miqaat-detail-item full-width">
+                <div class="miqaat-detail-label">Miqaat Name</div>
+                <div class="miqaat-detail-value">${escapeHtml(btn.getAttribute('data-miqaat_name'))}</div>
+              </div>
+              <div class="miqaat-detail-item">
+                <div class="miqaat-detail-label">Date</div>
+                <div class="miqaat-detail-value">${escapeHtml(btn.getAttribute('data-miqaat_date'))}</div>
+              </div>
+              <div class="miqaat-detail-item">
+                <div class="miqaat-detail-label">Hijri Date</div>
+                <div class="miqaat-detail-value">${escapeHtml(btn.getAttribute('data-hijri_date'))}</div>
+              </div>
+              <div class="miqaat-detail-item">
+                <div class="miqaat-detail-label">Assigned To</div>
+                <div class="miqaat-detail-value">${escapeHtml(assignedDisplay)}</div>
+              </div>
+              <div class="miqaat-detail-item full-width">
+                <div class="miqaat-detail-label">Assignment Details</div>
+                <div class="miqaat-detail-value">${escapeHtml(btn.getAttribute('data-details'))}</div>
+              </div>
+            </div>
+          </div>
+        `;
+        setHtml('modal_miqaat_details', detailsHtml);
         if (modal) modal.show();
       });
     });
@@ -1564,15 +1627,42 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
             const assignedDisplay = (assignedRaw.toLowerCase() === 'individual' && cnt > 0)
               ? (assignedRaw + ' (' + cnt + ')')
               : assignedRaw;
-            const detailsLine =
-              '<b>Miqaat ID:</b> M#' + btn.getAttribute('data-miqaat_id') + '<br>' +
-              '<b>Raza ID:</b> R#' + btn.getAttribute('data-raza_id') + '<br>' +
-              '<b>Miqaat Name:</b> ' + btn.getAttribute('data-miqaat_name') + '<br>' +
-              '<b>Date:</b> ' + btn.getAttribute('data-miqaat_date') + '<br>' +
-              '<b>Hijri:</b> ' + btn.getAttribute('data-hijri_date') + '<br>' +
-              '<b>Assigned:</b> ' + assignedDisplay + '<br>' +
-              '<b>Assignment Details:</b> ' + btn.getAttribute('data-details');
-            setHtml('modal_miqaat_details', detailsLine);
+            const razaId = (btn.getAttribute('data-raza_id') || '').trim();
+            const detailsHtml = `
+              <div class="miqaat-details-card">
+                <div class="miqaat-details-group">
+                  <div class="miqaat-detail-item">
+                    <div class="miqaat-detail-label">Miqaat ID</div>
+                    <div class="miqaat-detail-value">M#${escapeHtml(btn.getAttribute('data-miqaat_id'))}</div>
+                  </div>
+                  <div class="miqaat-detail-item">
+                    <div class="miqaat-detail-label">Raza ID</div>
+                    <div class="miqaat-detail-value">${razaId ? 'R#' + escapeHtml(razaId) : '-'}</div>
+                  </div>
+                  <div class="miqaat-detail-item full-width">
+                    <div class="miqaat-detail-label">Miqaat Name</div>
+                    <div class="miqaat-detail-value">${escapeHtml(btn.getAttribute('data-miqaat_name'))}</div>
+                  </div>
+                  <div class="miqaat-detail-item">
+                    <div class="miqaat-detail-label">Date</div>
+                    <div class="miqaat-detail-value">${escapeHtml(btn.getAttribute('data-miqaat_date'))}</div>
+                  </div>
+                  <div class="miqaat-detail-item">
+                    <div class="miqaat-detail-label">Hijri Date</div>
+                    <div class="miqaat-detail-value">${escapeHtml(btn.getAttribute('data-hijri_date'))}</div>
+                  </div>
+                  <div class="miqaat-detail-item">
+                    <div class="miqaat-detail-label">Assigned To</div>
+                    <div class="miqaat-detail-value">${escapeHtml(assignedDisplay)}</div>
+                  </div>
+                  <div class="miqaat-detail-item full-width">
+                    <div class="miqaat-detail-label">Assignment Details</div>
+                    <div class="miqaat-detail-value">${escapeHtml(btn.getAttribute('data-details'))}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+            setHtml('modal_miqaat_details', detailsHtml);
 
             // Show Generate modal on top of Fala modal (stacked)
             if (genModalElLocal) {
@@ -1616,9 +1706,22 @@ if (isset($miqaats['Fala_ni_Niyaz']) && is_array($miqaats['Fala_ni_Niyaz'])) {
             setVal('input_details', details);
 
             const html = `
-              <b>Type:</b> ${escapeHtml(mtype)}<br>
-              <b>Assigned:</b> Fala ni Niyaz<br>
-              <b>Year:</b> ${escapeHtml(year)}<br>
+              <div class="miqaat-details-card">
+                <div class="miqaat-details-group">
+                  <div class="miqaat-detail-item">
+                    <div class="miqaat-detail-label">Type</div>
+                    <div class="miqaat-detail-value">${escapeHtml(mtype)}</div>
+                  </div>
+                  <div class="miqaat-detail-item">
+                    <div class="miqaat-detail-label">Assigned To</div>
+                    <div class="miqaat-detail-value">Fala ni Niyaz</div>
+                  </div>
+                  <div class="miqaat-detail-item">
+                    <div class="miqaat-detail-label">Year</div>
+                    <div class="miqaat-detail-value">${escapeHtml(year)}</div>
+                  </div>
+                </div>
+              </div>
             `;
             setHtml('modal_miqaat_details', html);
 
