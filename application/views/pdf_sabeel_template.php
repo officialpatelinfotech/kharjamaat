@@ -376,6 +376,10 @@ $disp_bank   = isset($bank_name)    ? htmlspecialchars((string)$bank_name)    : 
             Amount (in numbers):&nbsp;<span class="hl"><?php echo $disp_amt; ?></span>
             &nbsp;&nbsp;Amount (in words):&nbsp;<span class="hl hl-wide"><?php echo $disp_words; ?></span>
             &nbsp;&mdash; received as a Voluntary Contribution.
+            <?php if (isset($payment_for) && $payment_for): ?>
+            <br><br>
+            <strong>Payment For:</strong> <?php echo htmlspecialchars((string)$payment_for); ?>
+            <?php endif; ?>
           </td>
         </tr>
       </table>

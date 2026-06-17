@@ -375,6 +375,8 @@ class Common extends CI_Controller
     $payment_id = $this->input->post("id");
     $for = $this->input->post("for");
 
+    $data = [];
+
     $payment_for_map = [
       1 => 'FMB Takhmeen',
       2 => 'Miqaat',
@@ -646,11 +648,9 @@ class Common extends CI_Controller
       }
     }
 
-    $data = [
-      'receipt_no' => $receipt_no,
-      'payment_for' => $payment_for,
-      'remarks' => $remarks,
-    ];
+    $data['receipt_no'] = $receipt_no;
+    $data['payment_for'] = $payment_for;
+    $data['remarks'] = $remarks;
 
     if ($result) {
       // Indian number words using Crore/Lakh/Thousand/Hundred

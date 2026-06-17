@@ -1603,7 +1603,7 @@
             const invId = p.invoice_id || '';
             const miqaatName = p.miqaat_name || '';
             const invoiceType = p.invoice_type || 'regular';
-            const viewBtn = `<button type="button" class="btn btn-sm btn-outline-secondary view-receipt-btn" data-payment-id="${p.payment_id || ''}"><i class="fa-solid fa-file-pdf"></i></button>`;
+            const viewBtn = `<button type="button" class="btn btn-sm btn-outline-secondary view-receipt-btn" data-payment-id="${p.payment_id || ''}" data-invoice-type="${invoiceType}"><i class="fa-solid fa-file-pdf"></i></button>`;
             const actionBtns = showActions ? `
                 <td class="text-center">
                   ${viewBtn}
@@ -1673,13 +1673,16 @@
           btn.disabled = true;
           btn.classList.add('disabled');
 
+          const invoiceType = btn.getAttribute('data-invoice-type') || 'regular';
+          const forVal = (invoiceType === 'extra') ? '3' : '2';
+
           fetch(endpoint, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Requested-With': 'XMLHttpRequest'
               },
-              body: 'id=' + encodeURIComponent(pid) + '&for=2'
+              body: 'id=' + encodeURIComponent(pid) + '&for=' + encodeURIComponent(forVal)
             })
             .then(async (res) => {
               const ct = (res.headers.get('Content-Type') || '').toLowerCase();
