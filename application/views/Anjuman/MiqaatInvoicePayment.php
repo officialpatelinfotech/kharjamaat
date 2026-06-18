@@ -787,6 +787,7 @@
           'year'        => $year,
           'amount'      => $r['amount'],
           'invoice_ids' => [],
+          'is_generated'=> true,
           'amount_counts' => [],
         ];
       }
@@ -814,6 +815,31 @@
     unset($fg['amount_counts']);
   }
   unset($fg);
+
+  // Merge pending Fala ni Niyaz groups from $fala_ni_niyaz_summary
+  if (isset($fala_ni_niyaz_summary) && is_array($fala_ni_niyaz_summary)) {
+    foreach ($fala_ni_niyaz_summary as $summary) {
+      $year = $summary['year'] ?? '';
+      $group_key = (isset($miqaat_type) ? $miqaat_type : '') . ' ' . $year;
+      if (!isset($fala_groups[$group_key])) {
+        $fala_groups[$group_key] = [
+          'group_key'   => $group_key,
+          'miqaat_id'   => null,
+          'miqaat_name' => 'Fala ni Niyaz ' . $year,
+          'miqaat_type' => isset($miqaat_type) ? $miqaat_type : '',
+          'miqaat_date' => null,
+          'year'        => $year,
+          'amount'      => 0.0,
+          'invoice_ids' => [],
+          'is_generated'=> false,
+          'pending_count' => $summary['count'] ?? 0,
+          'earliest_date' => $summary['earliest_date'] ?? null,
+          'latest_date' => $summary['latest_date'] ?? null,
+        ];
+      }
+    }
+  }
+
   $miqaats_list = array_values($fala_groups);
   ?>
 
@@ -839,22 +865,9 @@
         <button type="button" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#createExtraContributionModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
           <i class="fa-solid fa-plus-circle"></i> Create Extra Contribution
         </button>
-        <?php if (!empty($miqaats_list)) : ?>
-          <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#falaNiyazInvoicesModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
-            <i class="fa-solid fa-file-signature"></i> Update Fala ni Niyaz Invoice
-          </button>
-        <?php endif; ?>
-        <a href="<?php
-          $mtype_num = 1;
-          if (isset($miqaat_type)) {
-            if ($miqaat_type === 'Ashara') $mtype_num = 2;
-            elseif ($miqaat_type === 'General') $mtype_num = 3;
-            elseif ($miqaat_type === 'Ladies') $mtype_num = 4;
-          }
-          echo base_url("anjuman/generatemiqaatinvoice?miqaat_type=" . $mtype_num); 
-        ?>" class="btn btn-light font-weight-bold d-inline-flex align-items-center" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
-          <i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice
-        </a>
+        <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#falaNiyazInvoicesModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
+          <i class="fa-solid fa-file-signature"></i> Create & Update Fala ni Niyaz
+        </button>
       </div>
     </div>
   </div>
@@ -1098,23 +1111,23 @@
     <!-- Member Payments Modal -->
     <div class="modal fade" id="memberPaymentsModal" tabindex="-1" role="dialog" aria-labelledby="memberPaymentsModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="memberPaymentsModalLabel">Payment History</h5>
+        <div class="modal-content modal-content-premium">
+          <div class="modal-header modal-header-premium">
+            <h5 class="modal-title" id="memberPaymentsModalLabel"><i class="fa-solid fa-history mr-2"></i> Payment History</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <strong>ITS:</strong> <span id="payments-modal-its"></span>
-              <strong>Name:</strong> <span id="payments-modal-name"></span>
-              <strong>Invoice:</strong> <span id="payments-modal-invoice"></span>
+          <div class="modal-body modal-body-premium">
+            <div class="mb-3 p-3 rounded" style="background: var(--surface-2); border: 1px solid var(--border);">
+              <span class="mr-4"><strong>ITS:</strong> <span id="payments-modal-its" style="font-weight: 600;"></span></span>
+              <span class="mr-4"><strong>Name:</strong> <span id="payments-modal-name" style="font-weight: 600;"></span></span>
+              <span><strong>Invoice:</strong> <span id="payments-modal-invoice" style="font-weight: 600;"></span></span>
             </div>
             <div id="payments-modal-table-wrapper" class="table-responsive"></div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
+          <div class="modal-footer" style="border-top: 1px solid var(--border); padding: 16px 24px; background: var(--surface-2); display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="btn-action btn-action-secondary" data-dismiss="modal"><i class="fa-solid fa-xmark"></i> Close</button>
           </div>
         </div>
       </div>
@@ -1122,45 +1135,44 @@
 
     <!-- Edit Invoice Modal -->
     <div class="modal fade" id="editInvoiceModal" tabindex="-1" role="dialog" aria-labelledby="editInvoiceModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="editInvoiceModalLabel">Edit Invoice</h5>
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content modal-content-premium">
+          <div class="modal-header modal-header-premium">
+            <h5 class="modal-title" id="editInvoiceModalLabel"><i class="fa-solid fa-pen-to-square mr-2"></i> Edit Invoice</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
           <form id="editInvoiceForm">
-            <div class="modal-body">
+            <div class="modal-body modal-body-premium">
               <input type="hidden" id="edit-invoice-id" value="">
 
-              <div class="mb-2">
-                <label class="form-label mb-0"><b>Miqaat Details:</b></label>
-                <div id="edit-invoice-details" class="form-control-plaintext"></div>
+              <div class="form-group-premium mb-3">
+                <label><b>Miqaat Details:</b></label>
+                <div id="edit-invoice-details" class="form-control-plaintext" style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-weight: 600;"></div>
               </div>
-              <hr>
 
-              <div class="mb-2">
-                <label class="mb-1 text-muted" for="edit-amount">Amount</label>
+              <div class="form-group-premium mb-3">
+                <label for="edit-amount">Amount (₹)</label>
                 <div class="input-group">
-                  <div class="input-group-prepend"><span class="input-group-text">₹</span></div>
-                  <input type="number" class="form-control" id="edit-amount" min="0" step="1" required>
+                  <div class="input-group-prepend"><span class="input-group-text" style="background: var(--surface-2); border: 1.5px solid var(--border); border-right: none; border-top-left-radius: 10px; border-bottom-left-radius: 10px;">₹</span></div>
+                  <input type="number" class="form-control-premium" id="edit-amount" min="0" step="1" required style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
                 </div>
               </div>
 
-              <div class="mb-2">
-                <label class="mb-1 text-muted" for="edit-description">Description</label>
-                <textarea class="form-control" id="edit-description" rows="2"></textarea>
+              <div class="form-group-premium mb-3">
+                <label for="edit-description">Description</label>
+                <textarea class="form-control-premium" id="edit-description" rows="2"></textarea>
               </div>
 
-              <div class="mb-2">
-                <label class="mb-1 text-muted" for="edit-invoice-date">Invoice Date</label>
-                <input type="date" class="form-control" id="edit-invoice-date" required>
+              <div class="form-group-premium mb-3">
+                <label for="edit-invoice-date">Invoice Date</label>
+                <input type="date" class="form-control-premium" id="edit-invoice-date" required>
               </div>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Cancel</button>
-              <button type="submit" class="btn btn-primary d-inline-flex align-items-center" id="edit-invoice-save" style="gap: 5px;"><i class="fa-solid fa-check"></i> Save</button>
+            <div class="modal-footer" style="border-top: 1px solid var(--border); padding: 16px 24px; background: var(--surface-2); display: flex; justify-content: flex-end; gap: 12px;">
+              <button type="button" class="btn-action btn-action-secondary" data-dismiss="modal"><i class="fa-solid fa-xmark"></i> Cancel</button>
+              <button type="submit" class="btn-action btn-action-primary" id="edit-invoice-save"><i class="fa-solid fa-check"></i> Save</button>
             </div>
           </form>
         </div>
@@ -1170,14 +1182,14 @@
     <!-- Fala ni Niyaz Invoices Modal -->
     <div class="modal fade" id="falaNiyazInvoicesModal" tabindex="-1" role="dialog" aria-labelledby="falaNiyazInvoicesModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="falaNiyazInvoicesModalLabel">Invoices Generated for Miqaats</h5>
+        <div class="modal-content modal-content-premium">
+          <div class="modal-header modal-header-premium">
+            <h5 class="modal-title" id="falaNiyazInvoicesModalLabel"><i class="fa-solid fa-file-signature mr-2"></i> Create & Update Fala ni Niyaz Invoice</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body modal-body-premium">
             <div id="fala-modal-table-wrapper" class="table-responsive"></div>
             <!-- Loading overlay for bulk operations -->
             <div id="fala-loading-overlay" class="fala-loading-overlay d-none">
@@ -1187,94 +1199,142 @@
               </div>
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
+          <div class="modal-footer" style="border-top: 1px solid var(--border); padding: 16px 24px; background: var(--surface-2); display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="btn-action btn-action-secondary" data-dismiss="modal"><i class="fa-solid fa-xmark"></i> Close</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Single reusable Invoice Modal for Takhmeen -->
+    <div class="modal fade" id="generateInvoiceModal" tabindex="-1" role="dialog" aria-labelledby="generateInvoiceModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content modal-content-premium">
+          <div class="modal-header modal-header-premium">
+            <h5 class="modal-title" id="generateInvoiceModalLabel"><i class="fa-solid fa-file-invoice-dollar mr-2"></i> Generate Miqaat Invoice</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <form id="generateInvoiceForm" method="post" action="<?php echo base_url('anjuman/create_miqaat_invoice') ?>">
+            <div class="modal-body modal-body-premium">
+              <input type="hidden" name="miqaat_id" id="modal_miqaat_index">
+              <input type="hidden" name="raza_id" id="modal_raza_index">
+              <input type="hidden" name="miqaat_type" id="input_miqaat_type">
+              <input type="hidden" name="year" id="input_hijri_year">
+              <input type="hidden" name="assigned_to" id="input_assigned_to">
+              <input type="hidden" name="member_id" id="input_member_id">
+              <input type="hidden" name="details" id="input_details">
+              
+              <div class="form-group-premium mb-3">
+                <label><b>Miqaat Details:</b></label>
+                <div id="modal_miqaat_details" class="form-control-plaintext"></div>
+              </div>
+
+              <div class="form-group-premium mb-3">
+                <label for="modal-amount">Amount (₹)</label>
+                <input type="number" id="modal-amount" class="form-control-premium" name="amount" placeholder="Enter amount" required min="1">
+              </div>
+              <div class="form-group-premium mb-3">
+                <label for="modal-description">Description</label>
+                <textarea id="modal-description" class="form-control-premium" name="description" rows="2" placeholder="Optional remarks..."></textarea>
+              </div>
+              <div class="form-group-premium mb-3">
+                <label for="modal-invoice-date">Invoice Date</label>
+                <input type="date" id="modal-invoice-date" class="form-control-premium" name="invoice_date" value="<?php echo date('Y-m-d'); ?>" required>
+              </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border); padding: 16px 24px; background: var(--surface-2); display: flex; justify-content: flex-end; gap: 12px;">
+              <button type="button" class="btn-action btn-action-secondary" data-dismiss="modal"><i class="fa-solid fa-xmark"></i> Cancel</button>
+              <button type="submit" id="create-miqaat-invoice-btn" class="btn-action btn-action-primary"><i class="fa-solid fa-check"></i> Submit</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
 
     <!-- Edit Payment Modal (amount only for now) -->
     <div class="modal fade" id="editPaymentModal" tabindex="-1" role="dialog" aria-labelledby="editPaymentModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="editPaymentModalLabel">Edit Payment</h5>
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content modal-content-premium">
+          <div class="modal-header modal-header-premium">
+            <h5 class="modal-title" id="editPaymentModalLabel"><i class="fa-solid fa-pen-to-square mr-2"></i> Edit Payment</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body modal-body-premium">
             <form id="edit-payment-form">
               <input type="hidden" id="ep-payment-id" name="payment_id" />
               <input type="hidden" id="ep-invoice-id" name="invoice_id" />
-              <div class="form-group">
+              <div class="form-group-premium mb-3">
                 <label>Payment ID</label>
-                <input type="text" id="ep-payment-id-display" class="form-control" readonly />
+                <input type="text" id="ep-payment-id-display" class="form-control-premium" readonly />
               </div>
-              <div class="form-group">
+              <div class="form-group-premium mb-3">
                 <label>Amount</label>
-                <input type="number" id="ep-amount" name="amount" class="form-control" step="0.01" min="0.01" required />
+                <input type="number" id="ep-amount" name="amount" class="form-control-premium" step="0.01" min="0.01" required />
                 <small class="form-text text-muted" id="ep-max-hint"></small>
               </div>
             </form>
             <div id="ep-alert" class="alert d-none" role="alert"></div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Cancel</button>
-            <button type="button" id="ep-submit" class="btn btn-primary d-inline-flex align-items-center" style="gap: 5px;"><i class="fa-solid fa-check"></i> Save Changes</button>
+          <div class="modal-footer" style="border-top: 1px solid var(--border); padding: 16px 24px; background: var(--surface-2); display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="btn-action btn-action-secondary" data-dismiss="modal"><i class="fa-solid fa-xmark"></i> Cancel</button>
+            <button type="button" id="ep-submit" class="btn-action btn-action-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
           </div>
         </div>
       </div>
     </div>
+    
     <!-- Receive Payment Modal (invoice-wise) -->
     <div class="modal fade" id="receiveInvoicePaymentModal" tabindex="-1" role="dialog" aria-labelledby="receiveInvoicePaymentModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="receiveInvoicePaymentModalLabel">Receive Payment</h5>
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content modal-content-premium">
+          <div class="modal-header modal-header-premium">
+            <h5 class="modal-title" id="receiveInvoicePaymentModalLabel"><i class="fa-solid fa-receipt mr-2"></i> Receive Payment</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="modal-body">
-            <div class="border rounded p-2 mb-3 bg-light">
+          <div class="modal-body modal-body-premium">
+            <div class="p-3 rounded mb-3" style="background: var(--surface-2); border: 1px solid var(--border);">
               <label class="form-label mb-0"><b>Miqaat Details:</b></label>
-              <div id="rip-details" class="small text-dark mt-2"></div>
+              <div id="rip-details" class="small text-dark mt-2" style="font-weight: 600;"></div>
             </div>
             <form id="invoice-payment-form">
               <input type="hidden" id="rip-invoice-id" name="invoice_id" />
-              <div class="form-group">
+              <div class="form-group-premium mb-3">
                 <label>Invoice ID</label>
-                <input type="text" id="rip-invoice-id-display" class="form-control" readonly />
+                <input type="text" id="rip-invoice-id-display" class="form-control-premium" readonly />
               </div>
-              <div class="form-group">
+              <div class="form-group-premium mb-3">
                 <label>Amount</label>
-                <input type="number" id="rip-amount" name="amount" class="form-control" step="0.01" min="0.01" required />
+                <input type="number" id="rip-amount" name="amount" class="form-control-premium" step="0.01" min="0.01" required />
                 <small class="form-text text-muted" id="rip-max-hint"></small>
               </div>
-              <div class="form-group">
+              <div class="form-group-premium mb-3">
                 <label>Payment Date</label>
-                <input type="date" id="rip-date" name="payment_date" class="form-control" required />
+                <input type="date" id="rip-date" name="payment_date" class="form-control-premium" required />
               </div>
-              <div class="form-group">
+              <div class="form-group-premium mb-3">
                 <label>Payment Method</label>
-                <select id="rip-method" name="payment_method" class="form-control">
+                <select id="rip-method" name="payment_method" class="form-control-premium">
                   <option value="Cash">Cash</option>
                   <option value="Cheque">Cheque</option>
                   <option value="NEFT">NEFT</option>
                 </select>
               </div>
-              <div class="form-group">
+              <div class="form-group-premium mb-3">
                 <label>Remarks</label>
-                <textarea id="rip-remarks" name="remarks" class="form-control" rows="2" placeholder="Optional"></textarea>
+                <textarea id="rip-remarks" name="remarks" class="form-control-premium" rows="2" placeholder="Optional"></textarea>
               </div>
             </form>
             <div id="rip-alert" class="alert d-none" role="alert"></div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary d-inline-flex align-items-center" data-dismiss="modal" style="gap: 5px;"><i class="fa-solid fa-xmark"></i> Close</button>
-            <button type="button" id="rip-submit" class="btn btn-primary d-inline-flex align-items-center" style="gap: 5px;"><i class="fa-solid fa-check"></i> Save Payment</button>
+          <div class="modal-footer" style="border-top: 1px solid var(--border); padding: 16px 24px; background: var(--surface-2); display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="btn-action btn-action-secondary" data-dismiss="modal"><i class="fa-solid fa-xmark"></i> Close</button>
+            <button type="button" id="rip-submit" class="btn-action btn-action-primary"><i class="fa-solid fa-check"></i> Save Payment</button>
           </div>
         </div>
       </div>
@@ -1346,6 +1406,8 @@
     <script>
       const extraContributions = <?php echo json_encode($extra_contributions ?? []); ?>;
       let FALA_MIQAATS = <?php echo json_encode($miqaats_list ?? []); ?>;
+      const NIYAZ_AMOUNTS_BY_YEAR = <?php echo isset($niyaz_amounts_by_year) ? json_encode($niyaz_amounts_by_year) : '{}'; ?>;
+      const CURRENT_MIQAAT_TYPE = <?php echo json_encode(isset($miqaat_type) ? $miqaat_type : ''); ?>;
       (function() {
         function currency(n) {
           if (n === undefined || n === null) return '₹0';
@@ -2507,8 +2569,43 @@
         })();
 
         // ========== Fala ni Niyaz Modal Logic: render miqaats ==========
-        function buildFalaMiqaatsTable(miqaList) {
+        function buildFalaMiqaatsTable(miqaList, selectedYear = '') {
           if (!miqaList || !miqaList.length) {
+            if (selectedYear) {
+              const yearAmounts = NIYAZ_AMOUNTS_BY_YEAR[selectedYear] || NIYAZ_AMOUNTS_BY_YEAR['default'] || {individual_amount: 0, fala_amount: 0};
+              const yearFalaAmt = parseFloat(yearAmounts.fala_amount) || 0;
+              if (yearFalaAmt <= 0) {
+                return `
+                  <div class="text-center py-4">
+                    <div class="alert alert-warning d-inline-block mb-3">
+                      <i class="fa-solid fa-triangle-exclamation mr-1"></i> No invoices generated for <b>${escapeHtml(selectedYear)}</b> yet, and no Fala amount is set in Admin.
+                    </div>
+                    <div>
+                      <span class="text-muted">Please configure the Fala amount under Manage Niyaz Invoice Amounts.</span>
+                    </div>
+                  </div>
+                `;
+              } else {
+                const formattedAmt = '₹' + yearFalaAmt.toLocaleString('en-IN');
+                return `
+                  <div class="text-center py-4">
+                    <div class="alert alert-info d-inline-block mb-4">
+                      No invoices generated for <b>${escapeHtml(selectedYear)}</b> yet.
+                    </div>
+                    <div>
+                      <button type="button" class="btn btn-lg btn-primary fala-do-takhmeen"
+                        data-year="${escapeHtml(selectedYear)}"
+                        data-miqaat-count="0"
+                        data-earliest-date=""
+                        data-latest-date=""
+                        data-amount="${escapeHtml(String(yearFalaAmt))}"
+                        style="border-radius: 8px; padding: 10px 24px;"
+                      ><i class="fa-solid fa-calculator mr-2"></i> Do Takhmeen (Amount: ${formattedAmt})</button>
+                    </div>
+                  </div>
+                `;
+              }
+            }
             return '<div class="alert alert-info">No miqaats found.</div>';
           }
           // Deduplicate groups by group_key to avoid repeated rows
@@ -2524,42 +2621,75 @@
           const rows = unique.map((m, idx) => {
             const gk = m.group_key || '';
             const name = m.miqaat_name || '';
-            const type = m.miqaat_type || '';
             const date = m.miqaat_date ? formatDate(m.miqaat_date) : '';
             const year = (m.year !== undefined && m.year !== null) ? String(m.year) : '';
-            const amt = (m.amount !== undefined && m.amount !== null) ? parseFloat(m.amount) : null;
-            const amtText = (amt !== null && !Number.isNaN(amt)) ? currency(amt) : '-';
+            const isGenerated = m.is_generated ? true : false;
+            
+            const yearAmounts = NIYAZ_AMOUNTS_BY_YEAR[year] || NIYAZ_AMOUNTS_BY_YEAR['default'] || {individual_amount: 0, fala_amount: 0};
+            const yearFalaAmt = parseFloat(yearAmounts.fala_amount) || 0;
             const invoiceIds = Array.isArray(m.invoice_ids) ? m.invoice_ids : [];
+
+            let amountColumnHtml = '';
+            let actionColumnHtml = '';
+
+            if (isGenerated) {
+              const amt = (m.amount !== undefined && m.amount !== null) ? parseFloat(m.amount) : null;
+              const amtText = (amt !== null && !Number.isNaN(amt)) ? currency(amt) : '-';
+              amountColumnHtml = `
+                <div class="fala-amount-view d-flex align-items-center justify-content-end">
+                  <span class="fala-amount-text mr-2">${amtText}</span>
+                  <button type="button" class="btn btn-link btn-sm fala-edit-amount" title="Edit amount"><i class="fa-solid fa-pencil"></i></button>
+                </div>
+                <div class="fala-amount-edit d-none">
+                  <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">₹</span>
+                    </div>
+                    <input type="number" class="form-control fala-amount-input" value="${(amt !== null && !Number.isNaN(amt)) ? Math.round(amt) : '0'}" step="1" min="0">
+                  </div>
+                  <div class="mt-2 text-right">
+                    <button type="button" class="btn btn-sm btn-primary fala-save-amount"><i class="fa-solid fa-check"></i> Save</button>
+                    <button type="button" class="btn btn-sm btn-secondary fala-cancel-amount"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                  </div>
+                </div>
+              `;
+              actionColumnHtml = `
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-success fala-generate-new-hofs" title="Generate invoices for newly added active HOFs"><i class="fa-solid fa-user-plus"></i> Generate for New HOFs</button>
+                  <button type="button" class="btn btn-sm btn-outline-danger fala-delete-group ml-2" title="Delete all invoices in this group"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              `;
+            } else {
+              const formattedAmt = '₹' + yearFalaAmt.toLocaleString('en-IN');
+              if (yearFalaAmt <= 0) {
+                amountColumnHtml = `<span class="text-danger font-weight-bold"><i class="fa-solid fa-triangle-exclamation"></i> Amount not set in Admin</span>`;
+                actionColumnHtml = `<span class="text-muted">Please set Fala amount in Admin</span>`;
+              } else {
+                amountColumnHtml = `<b>${formattedAmt}</b>`;
+                actionColumnHtml = `
+                  <button type="button" class="btn btn-sm btn-primary fala-do-takhmeen"
+                    data-year="${escapeHtml(year)}"
+                    data-miqaat-count="${escapeHtml(String(m.pending_count || 0))}"
+                    data-earliest-date="${escapeHtml(m.earliest_date || '')}"
+                    data-latest-date="${escapeHtml(m.latest_date || '')}"
+                    data-amount="${escapeHtml(String(yearFalaAmt))}"
+                  ><i class="fa-solid fa-calculator"></i> Do Takhmeen</button>
+                `;
+              }
+            }
+
             return `
               <tr data-group-key="${gk}" data-invoice-ids='${JSON.stringify(invoiceIds)}'>
                 <td>${idx + 1}</td>
                 <td>${gk}</td>
                 <td>${name}</td>
-                <td>${date}</td>
+                <td>${date || '-'}</td>
                 <td>${year || '-'}</td>
                 <td class="text-right align-middle">
-                  <div class="fala-amount-view d-flex align-items-center justify-content-end">
-                    <span class="fala-amount-text mr-2">${amtText}</span>
-                    <button type="button" class="btn btn-link btn-sm fala-edit-amount" title="Edit amount"><i class="fa-solid fa-pencil"></i></button>
-                  </div>
-                  <div class="fala-amount-edit d-none">
-                    <div class="input-group input-group-sm">
-                      <div class="input-group-prepend">
-                        <span class="input-group-text">₹</span>
-                      </div>
-                      <input type="number" class="form-control fala-amount-input" value="${(amt !== null && !Number.isNaN(amt)) ? Math.round(amt) : '0'}" step="1" min="0">
-                    </div>
-                    <div class="mt-2 text-right">
-                      <button type="button" class="btn btn-sm btn-primary fala-save-amount"><i class="fa-solid fa-check"></i> Save</button>
-                      <button type="button" class="btn btn-sm btn-secondary fala-cancel-amount"><i class="fa-solid fa-xmark"></i> Cancel</button>
-                    </div>
-                  </div>
+                  ${amountColumnHtml}
                 </td>
                 <td class="text-center align-middle">
-                  <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-success fala-generate-new-hofs" title="Generate invoices for newly added active HOFs"><i class="fa-solid fa-user-plus"></i> Generate for New HOFs</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger fala-delete-group ml-2" title="Delete all invoices in this group"><i class="fa-solid fa-trash"></i></button>
-                  </div>
+                  ${actionColumnHtml}
                 </td>
               </tr>
             `;
@@ -2588,7 +2718,20 @@
         if (falaBtn) {
           falaBtn.addEventListener('click', function() {
             const list = Array.isArray(FALA_MIQAATS) ? FALA_MIQAATS : [];
-            document.getElementById('fala-modal-table-wrapper').innerHTML = buildFalaMiqaatsTable(list);
+            const selectedYear = document.getElementById('pf-year') ? document.getElementById('pf-year').value : '';
+            const filteredList = list.filter(m => {
+              const year = (m.year !== undefined && m.year !== null) ? String(m.year) : '';
+              // Exclude single hijri years (no hyphen)
+              if (!year.includes('-')) {
+                return false;
+              }
+              // Only show the selected hijri year
+              if (selectedYear && year !== selectedYear) {
+                return false;
+              }
+              return true;
+            });
+            document.getElementById('fala-modal-table-wrapper').innerHTML = buildFalaMiqaatsTable(filteredList);
           });
         }
 
@@ -2610,6 +2753,78 @@
 
         if (falaWrapper) {
           falaWrapper.addEventListener('click', function(e) {
+            // Do Takhmeen
+            if (e.target.closest('.fala-do-takhmeen')) {
+              const btn = e.target.closest('.fala-do-takhmeen');
+              const year = btn.getAttribute('data-year');
+              const count = btn.getAttribute('data-miqaat-count');
+              const earliest = btn.getAttribute('data-earliest-date');
+              const latest = btn.getAttribute('data-latest-date');
+              const amount = btn.getAttribute('data-amount');
+              const mtype = CURRENT_MIQAAT_TYPE;
+
+              const genFormEl = document.getElementById('generateInvoiceForm');
+              if (genFormEl) genFormEl.reset();
+
+              const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val;
+              };
+              const setHtml = (id, html) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = html;
+              };
+
+              setVal('modal_miqaat_index', '');
+              setVal('modal_raza_index', '');
+              setVal('input_member_id', '');
+
+              setVal('input_miqaat_type', mtype);
+              setVal('input_hijri_year', year);
+              setVal('input_assigned_to', 'Fala ni Niyaz');
+
+              const earliestFmt = earliest ? new Date(earliest).toLocaleDateString(undefined, {day: '2-digit', month: 'long', year: 'numeric'}) : '';
+              const latestFmt = latest ? new Date(latest).toLocaleDateString(undefined, {day: '2-digit', month: 'long', year: 'numeric'}) : '';
+
+              const details = `Yearly ${mtype} Fala ni Niyaz — Year: ${year}` +
+                (count && count !== '0' ? ` | Miqaat Count: ${count}` : '') +
+                (earliestFmt && latestFmt ? ` | ${earliestFmt} - ${latestFmt}` : '');
+              setVal('input_details', details);
+
+              const detailsHtml = `
+                <div class="miqaat-details-card" style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                  <div class="miqaat-details-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="miqaat-detail-item">
+                      <div class="miqaat-detail-label" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Type</div>
+                      <div class="miqaat-detail-value" style="font-weight: 600;">${escapeHtml(mtype)}</div>
+                    </div>
+                    <div class="miqaat-detail-item">
+                      <div class="miqaat-detail-label" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Assigned To</div>
+                      <div class="miqaat-detail-value" style="font-weight: 600;">Fala ni Niyaz</div>
+                    </div>
+                    <div class="miqaat-detail-item" style="grid-column: span 2;">
+                      <div class="miqaat-detail-label" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">Year</div>
+                      <div class="miqaat-detail-value" style="font-weight: 600;">${escapeHtml(year)}</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+              setHtml('modal_miqaat_details', detailsHtml);
+
+              const amountInput = document.getElementById('modal-amount');
+              if (amountInput) {
+                amountInput.value = amount;
+                amountInput.readOnly = true;
+              }
+
+              const genModalEl = document.getElementById('generateInvoiceModal');
+              if (genModalEl) {
+                const genModal = new bootstrap.Modal(genModalEl);
+                genModal.show();
+              }
+              return;
+            }
+
             const row = e.target.closest('tr[data-group-key]');
             if (!row) return;
             const amountCell = row.querySelector('.text-right');
@@ -2782,19 +2997,6 @@
           });
         }
 
-        // Refresh the page when the Fala modal is closed
-        (function setupFalaModalCloseRefresh() {
-          const modalEl = document.getElementById('falaNiyazInvoicesModal');
-          if (!modalEl) return;
-          const refresh = function() {
-            window.location.reload();
-          };
-          if (window.jQuery && typeof jQuery.fn !== 'undefined' && typeof jQuery.fn.modal === 'function') {
-            jQuery(modalEl).on('hidden.bs.modal', refresh);
-          } else {
-            modalEl.addEventListener('hidden.bs.modal', refresh);
-          }
-        })();
 
         // ---- Sortable table headers for invoice rows ----
         (function enableInvoiceTableSorting() {
@@ -2899,6 +3101,32 @@
               });
               hidden.forEach(r => tbody.appendChild(r));
             });
+          });
+        })();
+
+        // Ensure user confirms before proceeding with YEAR-LEVEL (ALL families) invoices
+        (function() {
+          if (typeof jQuery === 'undefined') return;
+          jQuery(document).on('submit', '#generateInvoiceForm', function(e) {
+            var mtype = (jQuery('#input_miqaat_type').val() || '').toLowerCase();
+            var year = jQuery('#input_hijri_year').val() || '';
+            var assignedTo = (jQuery('#input_assigned_to').val() || '').toLowerCase();
+            var miqaatIndex = jQuery('#modal_miqaat_index').val() || '';
+            var razaIndex = jQuery('#modal_raza_index').val() || '';
+
+            // Year-level flow has no specific miqaat/raza index and targets all families
+            var isYearLevel = assignedTo === 'fala ni niyaz' &&
+              (mtype === 'shehrullah' || mtype === 'ashara') &&
+              miqaatIndex === '' &&
+              razaIndex === '';
+
+            if (isYearLevel) {
+              var confirmMsg = 'This will create invoices for ALL families for ' + (mtype.charAt(0).toUpperCase() + mtype.slice(1)) + ' (' + year + ').\n\nDo you want to continue?';
+              if (!window.confirm(confirmMsg)) {
+                e.preventDefault();
+                return false;
+              }
+            }
           });
         })();
 

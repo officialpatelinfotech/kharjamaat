@@ -955,6 +955,20 @@ class Accounts extends CI_Controller
     $data['user_data'] = $this->AccountM->getUserData($_SESSION['user']['username']);
     $data['hof_data'] = $data['user_data']['HOF_ID'];
 
+    $niyaz_amounts = [];
+    $amounts_rows = $this->db->get('miqaat_niyaz_amounts')->result_array();
+    foreach ($amounts_rows as $ar) {
+      $year = $ar['year'] ?: 'default';
+      if (!isset($niyaz_amounts[$year])) {
+          $niyaz_amounts[$year] = [];
+      }
+      $niyaz_amounts[$year][$ar['miqaat_type']] = [
+        'individual' => (float)$ar['individual_amount'],
+        'fala' => (float)$ar['fala_amount']
+      ];
+    }
+    $data['niyaz_amounts'] = $niyaz_amounts;
+
     $data["miqaats"] = $this->AccountM->get_assigned_miqaats($user_id);
 
     foreach ($data["miqaats"] as $key => $miqaat) {
@@ -963,6 +977,15 @@ class Accounts extends CI_Controller
       $hijri_month = $this->HijriCalendar->hijri_month_name($this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat["date"])))["hijri_month_id"])["hijri_month"];
 
       $data["miqaats"][$key]["hijri_date"] = $hijri_date[0] . " " . $hijri_month . " " . $hijri_date[2];
+      
+      $m = (int)($hijri_date[1] ?? 1);
+      $y = (int)($hijri_date[2] ?? date('Y'));
+      if ($m >= 7 && $m <= 12) {
+          $fy = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
+      } else {
+          $fy = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
+      }
+      $data["miqaats"][$key]["year"] = $fy;
 
       // family-wide raza (so button/status is same for all family members)
       $data["miqaats"][$key]["raza"] = $this->AccountM->get_family_raza_by_miqaat($miqaat["id"], $user_id);
@@ -1011,6 +1034,53 @@ class Accounts extends CI_Controller
 
     $raza_id = $this->AccountM->generate_raza_id($hijri_year);
     $this->AccountM->update_raza_by_id($result, array("raza_id" => $raza_id));
+
+    // Auto-generate invoice if amount > 0
+    $miqaat_row = $this->AccountM->get_miqaat_by_id($miqaat_id);
+    if (!empty($miqaat_row)) {
+      $m_type = $miqaat_row['type'] ?? 'General';
+      $m_year = 'default';
+      if (!empty($miqaat_row['date'])) {
+        $hijri_date_arr = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat_row["date"])))["hijri_date"]);
+        $m = (int)($hijri_date_arr[1] ?? 1);
+        $y = (int)($hijri_date_arr[2] ?? date('Y'));
+        if ($m >= 7 && $m <= 12) {
+            $m_year = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
+        } else {
+            $m_year = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
+        }
+      }
+      $amt_row = $this->db->get_where('miqaat_niyaz_amounts', ['miqaat_type' => $m_type, 'year' => $m_year])->row_array();
+      $invoice_amount = 0;
+      if ($miqaat_row['assigned_to'] === 'Individual') {
+        $invoice_amount = !empty($amt_row['individual_amount']) ? (float)$amt_row['individual_amount'] : 0;
+      } elseif ($miqaat_row['assigned_to'] === 'Fala ni Niyaz' || $miqaat_row['assigned_to'] === 'Fala_ni_Niyaz') {
+        $invoice_amount = !empty($amt_row['fala_amount']) ? (float)$amt_row['fala_amount'] : 0;
+      }
+
+      if ($invoice_amount > 0) {
+        $this->load->model('AnjumanM');
+        // Check if invoice already exists
+        $existing_invoice = $this->db->get_where('miqaat_invoice', [
+          'user_id' => $user_id,
+          'miqaat_id' => $miqaat_id
+        ])->row_array();
+
+        if (empty($existing_invoice)) {
+          $inv_data = [
+            'date' => date('Y-m-d'),
+            'miqaat_id' => $miqaat_id,
+            'miqaat_type' => $m_type,
+            'year' => $m_year,
+            'user_id' => $user_id,
+            'amount' => $invoice_amount,
+            'description' => 'Auto-generated invoice for ' . $miqaat_row['name'],
+            'raza_id' => $result
+          ];
+          $this->AnjumanM->create_miqaat_invoice($inv_data);
+        }
+      }
+    }
 
     if ($result > 0) {
       $this->session->set_flashdata('success', "Miqaat Raza submitted successfully.");
@@ -2719,7 +2789,7 @@ class Accounts extends CI_Controller
         $miqaat_type = $miqaat_details['type'];
         $niyaz_amounts_row = $this->db->get_where('miqaat_niyaz_amounts', ['miqaat_type' => $miqaat_type])->row_array();
         if ($niyaz_amounts_row) {
-          $assignment = $this->db->get_where('miqaat_assignments', ['miqaat_id' => $miqaat_id_param, 'user_id' => $user_id])->row_array();
+          $assignment = $this->db->get_where('miqaat_assignments', ['miqaat_id' => $miqaat_id_param, 'member_id' => $user_id])->row_array();
           $is_group = ($assignment && $assignment['assign_type'] === 'Group');
           $amt = $is_group ? (float)$niyaz_amounts_row['fala_amount'] : (float)$niyaz_amounts_row['individual_amount'];
           if ($amt > 0) {
@@ -3446,7 +3516,7 @@ class Accounts extends CI_Controller
        return;
     }
     
-    $assignment = $this->db->get_where('miqaat_assignments', ['miqaat_id' => $miqaat_id, 'user_id' => $userId])->row_array();
+    $assignment = $this->db->get_where('miqaat_assignments', ['miqaat_id' => $miqaat_id, 'member_id' => $userId])->row_array();
     $is_group = false;
     if ($assignment) {
        $is_group = ($assignment['assign_type'] === 'Group');
@@ -3665,7 +3735,7 @@ class Accounts extends CI_Controller
             $niyaz_amounts_row = $this->db->get_where('miqaat_niyaz_amounts', ['miqaat_type' => $miqaat_type])->row_array();
             
             if ($niyaz_amounts_row) {
-              $assignment = $this->db->get_where('miqaat_assignments', ['miqaat_id' => $miqaat_id, 'user_id' => $userId])->row_array();
+              $assignment = $this->db->get_where('miqaat_assignments', ['miqaat_id' => $miqaat_id, 'member_id' => $userId])->row_array();
               $is_group = false;
               if ($assignment) {
                  $is_group = ($assignment['assign_type'] === 'Group');

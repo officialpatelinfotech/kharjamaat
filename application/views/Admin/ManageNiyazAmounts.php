@@ -57,8 +57,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 20px;
     box-shadow: var(--shadow-sm);
+  }
+  @media (max-width: 767px) {
+    .anj-header-inner {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px 24px;
+    }
   }
   .anj-title-group {
     position: relative;
@@ -79,6 +87,57 @@
     color: #fff;
     line-height: 1.15;
     margin: 0;
+  }
+  .anj-year-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 1;
+  }
+  @media (max-width: 767px) {
+    .anj-year-selector {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+  .anj-year-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    white-space: nowrap;
+  }
+  .select-year-premium {
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    min-width: 130px;
+    display: inline-block;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+  .select-year-premium:focus {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+  }
+  .select-year-premium option {
+    background-color: #78520a;
+    color: #fff;
   }
 
   /* ── Table & Form styling ── */
@@ -169,6 +228,20 @@
         <p class="anj-eyebrow">Settings</p>
         <h1 class="anj-title">Manage Niyaz Invoice Amounts</h1>
       </div>
+      <div class="anj-year-selector">
+        <label for="hijri-year-select" class="anj-year-label">Hijri Year</label>
+        <select id="hijri-year-select" class="select-year-premium" onchange="window.location.href='<?php echo base_url('admin/manageniyazamounts'); ?>?year='+this.value">
+          <?php if (!empty($hijri_years)): ?>
+            <?php foreach ($hijri_years as $y): ?>
+              <option value="<?php echo htmlspecialchars($y); ?>" <?php echo (isset($selected_year) && $selected_year == $y) ? 'selected' : ''; ?>>
+                <?php echo htmlspecialchars($y); ?>
+              </option>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <option value="<?php echo isset($selected_year) ? htmlspecialchars($selected_year) : date('Y'); ?>">Hijri Year <?php echo isset($selected_year) ? htmlspecialchars($selected_year) : date('Y'); ?></option>
+          <?php endif; ?>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -185,6 +258,7 @@
 
   <div class="admin-card">
     <form action="<?php echo base_url('admin/updateniyazamounts'); ?>" method="post">
+      <input type="hidden" name="year" value="<?php echo isset($selected_year) ? htmlspecialchars($selected_year) : ''; ?>">
       <table class="niyaz-table">
         <thead>
           <tr>

@@ -3040,11 +3040,24 @@ class Anjuman extends CI_Controller
     $raza_id = $existing_invoice['raza_id'];
 
     // Resolve greg dates for the selected year
-    $dates = $this->db->select('greg_date')
-      ->from('hijri_calendar')
-      ->like('hijri_date', $year)
-      ->get()
-      ->result_array();
+    $this->db->select('greg_date')->from('hijri_calendar');
+    if (preg_match('/^(\d+)-(\d+)$/', $year, $m)) {
+      $fyStart = (int)$m[1];
+      $fyEnd = $fyStart + 1;
+      $this->db->group_start()
+        ->group_start()
+          ->where("CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED) =", $fyStart)
+          ->where("CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 7 AND 12", null, false)
+        ->group_end()
+        ->or_group_start()
+          ->where("CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED) =", $fyEnd)
+          ->where("CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 6", null, false)
+        ->group_end()
+      ->group_end();
+    } else {
+      $this->db->like('hijri_date', $year);
+    }
+    $dates = $this->db->get()->result_array();
     $greg_dates = array_column($dates, 'greg_date');
 
     $miqaat_ids = [];
@@ -4566,6 +4579,21 @@ class Anjuman extends CI_Controller
     $this->load->model('HijriCalendar');
     $data["composite_hijri_years"] = $this->HijriCalendar->get_distinct_composite_years();
 
+    // Fetch Fala ni Niyaz summary for Takhmeen button support on Payments page
+    $approved_miqaats = $this->AnjumanM->get_all_approved_past_miqaats($miqaat_type);
+    $data['fala_ni_niyaz_summary'] = $approved_miqaats['Fala_ni_Niyaz'] ?? [];
+
+    // Fetch default niyaz amounts for this miqaat type grouped by year
+    $amt_rows = $this->db->get_where('miqaat_niyaz_amounts', ['miqaat_type' => $miqaat_type])->result_array();
+    $niyaz_amounts_by_year = [];
+    foreach ($amt_rows as $row) {
+        $year = $row['year'] ?: 'default';
+        $niyaz_amounts_by_year[$year] = [
+            'individual_amount' => !empty($row['individual_amount']) ? (float)$row['individual_amount'] : 0,
+            'fala_amount' => !empty($row['fala_amount']) ? (float)$row['fala_amount'] : 0
+        ];
+    }
+    $data['niyaz_amounts_by_year'] = $niyaz_amounts_by_year;
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/MiqaatInvoicePayment', $data);
@@ -4573,107 +4601,8 @@ class Anjuman extends CI_Controller
 
   public function generatemiqaatinvoice()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
-      redirect('/accounts');
-    }
-    $miqaat_type = $this->input->get('miqaat_type');
-    switch ($miqaat_type) {
-      case 1:
-        $miqaat_type = 'Shehrullah';
-        break;
-      case 2:
-        $miqaat_type = 'Ashara';
-        break;
-      case 3:
-        $miqaat_type = 'General';
-        break;
-      case 4:
-        $miqaat_type = 'Ladies';
-        break;
-      default:
-        $miqaat_type = 'Shehrullah';
-        break;
-    }
-    $username = $_SESSION['user']['username'];
-    $data["user_name"] = $username;
-
-    $data["miqaat_type"] = $miqaat_type;
-
-    $razaIdFilter = trim((string)$this->input->get('raza_id'));
-    // Allow users to paste values like "R#123"; store filter as raw raza_id without prefix.
-    if ($razaIdFilter !== '') {
-      $razaIdFilter = preg_replace('/^\s*R\s*#\s*/i', '', $razaIdFilter);
-      $razaIdFilter = trim((string)$razaIdFilter);
-    }
-    $data['raza_id_filter'] = $razaIdFilter;
-
-    // Total amount of already-generated invoices for this miqaat type (useful summary while generating pending ones)
-    $this->db->select('COALESCE(SUM(inv.amount), 0) AS total', false);
-    $this->db->from('miqaat_invoice inv');
-    $this->db->join('miqaat m', 'm.id = inv.miqaat_id', 'left');
-    $this->db->join('raza r', 'r.id = inv.raza_id', 'left');
-    $this->db->group_start();
-    $this->db->where('m.type', $miqaat_type);
-    $this->db->or_where('inv.miqaat_type', $miqaat_type);
-    $this->db->group_end();
-    if ($razaIdFilter !== '') {
-      $this->db->where('r.raza_id', $razaIdFilter);
-    }
-    $totalRow = $this->db->get()->row_array();
-    $data['generated_invoice_total'] = isset($totalRow['total']) ? (float)$totalRow['total'] : 0.0;
-
-    $data["miqaats"] = $this->AnjumanM->get_all_approved_past_miqaats($miqaat_type, [
-      'raza_id' => $razaIdFilter
-    ]);
-
-    // Hijri year dropdown: show all distinct years from hijri_calendar (newest first)
-    $yearsList = $this->HijriCalendar->get_distinct_hijri_years();
-    $yearsList = array_values(array_unique(array_filter(array_map(function ($y) {
-      $y = trim((string)$y);
-      return $y !== '' ? $y : null;
-    }, is_array($yearsList) ? $yearsList : []))));
-    rsort($yearsList);
-    $data['hijri_years'] = $yearsList;
-
-    // Fetch contribution types for Niyaz Extra Contributions (type = 2)
-    $data["contri_type_gc"] = $this->AnjumanM->get_fmbgc_by_type(2);
-    // Fetch composite hijri years for the dropdown selector
-    $data["composite_hijri_years"] = $this->HijriCalendar->get_distinct_composite_years();
-
-    // Current Hijri year for default selection
-    $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
-    $currentHijriYear = null;
-    if ($todayHijri && isset($todayHijri['hijri_date'])) {
-      $parts = explode('-', (string)$todayHijri['hijri_date']);
-      $currentHijriYear = $parts[2] ?? null;
-      $currentHijriYear = $currentHijriYear !== null ? trim((string)$currentHijriYear) : null;
-    }
-    $data['current_hijri_year'] = $currentHijriYear;
-
-    // Fetch Extra Contributions for JS filtering & summary counts
-    $this->db->select('gc.amount, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, gc.contri_year');
-    $this->db->from('fmb_general_contribution gc');
-    $this->db->join('user u', 'u.ITS_ID = gc.user_id', 'left');
-    $this->db->where('gc.fmb_type', 'Niyaz');
-    $this->db->where('gc.miqaat_type', $miqaat_type);
-    $data['extra_contributions'] = $this->db->get()->result_array();
-
-    // Fetch already-generated invoices to calculate Niyaz & Fala amounts
-    $this->db->select('inv.amount, inv.description, m.assigned_to, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, inv.miqaat_type, inv.year AS invoice_year');
-    $this->db->from('miqaat_invoice inv');
-    $this->db->join('miqaat m', 'm.id = inv.miqaat_id', 'left');
-    $this->db->join('user u', 'u.ITS_ID = inv.user_id', 'left');
-    $this->db->group_start();
-    $this->db->where('m.type', $miqaat_type);
-    $this->db->or_where('inv.miqaat_type', $miqaat_type);
-    $this->db->group_end();
-    if ($razaIdFilter !== '') {
-      $this->db->where('inv.raza_id', $razaIdFilter);
-    }
-    $data['generated_invoices'] = $this->db->get()->result_array();
-
-    $this->load->view('Anjuman/Header', $data);
-    $this->load->view('Anjuman/GenerateMiqaatInvoice', $data);
+    $miqaat_type = $this->input->get('miqaat_type') ?: 1;
+    redirect('Anjuman/miqaatinvoicepayment?miqaat_type=' . $miqaat_type);
   }
 
   public function updatemiqaatinvoice()
@@ -4866,11 +4795,24 @@ class Anjuman extends CI_Controller
     }
 
     if (strtolower($assigned_to) == 'fala ni niyaz' && $year) {
-      $dates = $this->db->select('greg_date')
-        ->from('hijri_calendar')
-        ->like('hijri_date', $year)
-        ->get()
-        ->result_array();
+      $this->db->select('greg_date')->from('hijri_calendar');
+      if (preg_match('/^(\d+)-(\d+)$/', $year, $m)) {
+        $fyStart = (int)$m[1];
+        $fyEnd = $fyStart + 1;
+        $this->db->group_start()
+          ->group_start()
+            ->where("CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED) =", $fyStart)
+            ->where("CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 7 AND 12", null, false)
+          ->group_end()
+          ->or_group_start()
+            ->where("CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED) =", $fyEnd)
+            ->where("CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 6", null, false)
+          ->group_end()
+        ->group_end();
+      } else {
+        $this->db->like('hijri_date', $year);
+      }
+      $dates = $this->db->get()->result_array();
 
       $greg_dates = array_column($dates, 'greg_date');
 
@@ -4896,7 +4838,7 @@ class Anjuman extends CI_Controller
 
         if ($hasEmptyAssignment) {
           $this->session->set_flashdata('error', "Miqaat takhmeen can't be done without complete assignments of the miqaats.");
-          redirect('Anjuman/generatemiqaatinvoice?miqaat_type=' . $miqaat_type_page);
+          redirect('Anjuman/miqaatinvoicepayment?miqaat_type=' . $miqaat_type_page);
           return;
         }
 
@@ -4970,11 +4912,30 @@ class Anjuman extends CI_Controller
       }
 
       $this->session->set_flashdata('success', 'Invoice(s) created successfully.');
-      redirect('Anjuman/generatemiqaatinvoice?miqaat_type=' . $miqaat_type_page);
+      redirect('Anjuman/miqaatinvoicepayment?miqaat_type=' . $miqaat_type_page);
       return;
     }
 
     if ($miqaat_id && $assigned_to && !empty($member_id) && $amount && $date) {
+      if (empty($miqaat_type) || empty($year)) {
+        $miqaat_row = $this->AnjumanM->get_miqaat_by_id($miqaat_id);
+        if ($miqaat_row) {
+          if (empty($miqaat_type)) {
+            $miqaat_type = $miqaat_row['type'] ?? 'General';
+          }
+          if (empty($year) && !empty($miqaat_row['date'])) {
+            $hijri_date_arr = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat_row["date"])))["hijri_date"]);
+            $m = (int)($hijri_date_arr[1] ?? 1);
+            $y = (int)($hijri_date_arr[2] ?? date('Y'));
+            if ($m >= 7 && $m <= 12) {
+                $year = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
+            } else {
+                $year = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
+            }
+          }
+        }
+      }
+
       // Assign invoice directly to the selected members (ITS_ID), not to HOF
       $member_ids = is_array($member_id) ? $member_id : [$member_id];
       foreach ($member_ids as $mid) {
@@ -4982,6 +4943,8 @@ class Anjuman extends CI_Controller
         $data = [
           'date'        => $date,
           'miqaat_id'   => $miqaat_id,
+          'miqaat_type' => $miqaat_type,
+          'year'        => $year,
           'user_id'     => $mid,
           'amount'      => $amount,
           'description' => $description
@@ -5000,7 +4963,7 @@ class Anjuman extends CI_Controller
       redirect('Anjuman/miqaatinvoicepayment?miqaat_type=' . $miqaat_type_page . $search_param);
     } else {
       $this->session->set_flashdata('error', 'Failed to create invoice.');
-      redirect('Anjuman/generatemiqaatinvoice');
+      redirect('Anjuman/miqaatinvoicepayment?miqaat_type=' . $miqaat_type_page);
     }
   }
 

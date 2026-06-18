@@ -1227,10 +1227,35 @@ class Admin extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     
     $this->load->model('AdminM');
-    // Get current amounts
-    $amounts = $this->AdminM->get_niyaz_amounts();
+    $this->load->library('HijriCalendar');
     
-    // Ensure defaults exist
+    // Get distinct Hijri years for the dropdown
+    $data['hijri_years'] = $this->HijriCalendar->get_distinct_composite_years();
+    
+    // Determine selected year
+    $selected_year = $this->input->get('year');
+    if (empty($selected_year)) {
+        // Default to current financial hijri year
+        $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+        if ($todayHijri && isset($todayHijri['hijri_date'])) {
+            $parts = explode('-', $todayHijri['hijri_date']);
+            $m = (int)($parts[1] ?? 1);
+            $y = (int)($parts[2] ?? date('Y'));
+            if ($m >= 7 && $m <= 12) {
+                $selected_year = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
+            } else {
+                $selected_year = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
+            }
+        } else {
+            $selected_year = date('Y') . '-' . str_pad((date('Y') + 1) % 100, 2, '0', STR_PAD_LEFT);
+        }
+    }
+    $data['selected_year'] = $selected_year;
+
+    // Get current amounts for selected year
+    $amounts = $this->AdminM->get_niyaz_amounts($selected_year);
+    
+    // Ensure defaults exist for the selected year
     $defaults = ['General', 'Ashara', 'Shehrullah', 'Ladies'];
     $existing = array_column($amounts, 'miqaat_type');
     
@@ -1241,11 +1266,12 @@ class Admin extends CI_Controller
         $insert[] = [
           'miqaat_type' => $type,
           'individual_amount' => 0,
-          'fala_amount' => 0
+          'fala_amount' => 0,
+          'year' => $selected_year
         ];
       }
       $this->db->insert_batch('miqaat_niyaz_amounts', $insert);
-      $amounts = $this->AdminM->get_niyaz_amounts(); // reload
+      $amounts = $this->AdminM->get_niyaz_amounts($selected_year); // reload
     }
     
     $data['amounts'] = $amounts;
@@ -1265,24 +1291,26 @@ class Admin extends CI_Controller
     $miqaat_types = $this->input->post('miqaat_type');
     $individual_amounts = $this->input->post('individual_amount');
     $fala_amounts = $this->input->post('fala_amount');
+    $year = $this->input->post('year');
 
-    if (!empty($miqaat_types)) {
+    if (!empty($miqaat_types) && !empty($year)) {
       $data = [];
       for ($i = 0; $i < count($miqaat_types); $i++) {
         $data[] = [
           'miqaat_type' => $miqaat_types[$i],
           'individual_amount' => $individual_amounts[$i] ?? 0,
-          'fala_amount' => $fala_amounts[$i] ?? 0
+          'fala_amount' => $fala_amounts[$i] ?? 0,
+          'year' => $year
         ];
       }
       $this->load->model('AdminM');
-      $this->AdminM->update_niyaz_amounts($data);
-      $this->session->set_flashdata('success', 'Niyaz amounts updated successfully.');
+      $this->AdminM->update_niyaz_amounts($data, $year);
+      $this->session->set_flashdata('success', 'Niyaz amounts updated successfully for Hijri Year ' . htmlspecialchars($year) . '.');
     } else {
       $this->session->set_flashdata('error', 'No data to update.');
     }
     
-    redirect('admin/manageniyazamounts');
+    redirect('admin/manageniyazamounts' . (!empty($year) ? '?year=' . urlencode($year) : ''));
   }
 
   // Ekram Fund card page

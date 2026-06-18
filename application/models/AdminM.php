@@ -1876,15 +1876,22 @@ class AdminM extends CI_Model
     ];
   }
 
-  public function get_niyaz_amounts()
+  public function get_niyaz_amounts($year = null)
   {
-    $query = $this->db->get('miqaat_niyaz_amounts');
-    return $query->result_array();
+    if ($year !== null) {
+      $this->db->where('year', $year);
+    }
+    return $this->db->get('miqaat_niyaz_amounts')->result_array();
   }
 
-  public function update_niyaz_amounts($data)
+  public function update_niyaz_amounts($data, $year = null)
   {
-    $this->db->update_batch('miqaat_niyaz_amounts', $data, 'miqaat_type');
-    return true;
+    if ($year !== null) {
+      $this->db->where('year', $year);
+      $this->db->delete('miqaat_niyaz_amounts');
+    } else {
+      $this->db->empty_table('miqaat_niyaz_amounts');
+    }
+    return $this->db->insert_batch('miqaat_niyaz_amounts', $data);
   }
 }

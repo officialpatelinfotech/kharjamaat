@@ -2155,7 +2155,7 @@ class Common extends CI_Controller
 
     $this->db->select('ITS_ID, Full_Name');
     $this->db->from('user');
-    $this->db->where("Inactive_Status IS NULL AND Sector IS NOT NULL");
+    $this->db->where("Inactive_Status IS NULL");
     if (!empty($term)) {
       $q = trim((string)$term);
       $this->db->group_start();

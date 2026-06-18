@@ -140,8 +140,23 @@
             } ?>
           </p>
 
+          <?php 
+            $invoice_amt = 0;
+            $m_type = $miqaat['type'] ?? 'General';
+            $m_year = $miqaat['year'] ?? 'default';
+            if (isset($niyaz_amounts[$m_year])) {
+                if ($miqaat['assigned_to'] === 'Individual') {
+                  $invoice_amt = $niyaz_amounts[$m_year][$m_type]['individual'] ?? 0;
+                } elseif ($miqaat['assigned_to'] === 'Fala ni Niyaz' || $miqaat['assigned_to'] === 'Fala_ni_Niyaz') {
+                  $invoice_amt = $niyaz_amounts[$m_year][$m_type]['fala'] ?? 0;
+                }
+            } else {
+                // Fallback to default if year specific amount not set? Wait, if not set, it should be 0.
+                $invoice_amt = 0;
+            }
+          ?>
           <?php if ($miqaat['status'] == 1 && empty($miqaat['raza'])): ?>
-            <a href="<?php echo base_url('accounts/submit_miqaat_raza/' . $miqaat['id']) ?>" class="raza-submit-btn btn btn-sm btn-success">Submit Raza</a>
+            <a href="<?php echo base_url('accounts/submit_miqaat_raza/' . $miqaat['id']) ?>" class="raza-submit-btn btn btn-sm btn-success" data-invoice-amount="<?php echo $invoice_amt; ?>">Submit Raza</a>
           <?php else: ?>
             <a class="btn btn-sm btn-secondary disabled" style="pointer-events: none; opacity: 0.6;">Submit Raza</a>
           <?php endif; ?>
@@ -213,6 +228,8 @@
   $(document).on('click', '.raza-submit-btn', function(e) {
     e.preventDefault();
     var href = $(this).attr('href');
+    var invoiceAmt = parseFloat($(this).attr('data-invoice-amount')) || 0;
+    
     // Show modal immediately so user gets feedback even if fetch fails
     showDuesModal('<div class="text-muted">Loading dues...</div>');
 
@@ -252,6 +269,10 @@
           html = '<div class="alert alert-success">No pending dues. You may proceed.</div>' + html;
         } else {
           html = '<div class="alert alert-warning">You have pending dues. Please review before proceeding.</div>' + html;
+        }
+
+        if (invoiceAmt > 0) {
+          html = '<div class="alert alert-info"><strong>Notice:</strong> An invoice of ' + formatINR(invoiceAmt) + ' will be automatically generated upon submitting this Raza.</div>' + html;
         }
 
         // Miqaat invoices
