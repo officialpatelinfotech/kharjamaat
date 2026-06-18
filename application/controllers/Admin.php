@@ -1220,6 +1220,71 @@ class Admin extends CI_Controller
     exit;
   }
 
+  // Niyaz Amounts
+  public function manageniyazamounts()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    
+    $this->load->model('AdminM');
+    // Get current amounts
+    $amounts = $this->AdminM->get_niyaz_amounts();
+    
+    // Ensure defaults exist
+    $defaults = ['General', 'Ashara', 'Shehrullah', 'Ladies'];
+    $existing = array_column($amounts, 'miqaat_type');
+    
+    $missing = array_diff($defaults, $existing);
+    if (!empty($missing)) {
+      $insert = [];
+      foreach ($missing as $type) {
+        $insert[] = [
+          'miqaat_type' => $type,
+          'individual_amount' => 0,
+          'fala_amount' => 0
+        ];
+      }
+      $this->db->insert_batch('miqaat_niyaz_amounts', $insert);
+      $amounts = $this->AdminM->get_niyaz_amounts(); // reload
+    }
+    
+    $data['amounts'] = $amounts;
+    
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/ManageNiyazAmounts', $data);
+  }
+
+  public function updateniyazamounts()
+  {
+    $this->validateUser($_SESSION['user']);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      redirect('admin/manageniyazamounts');
+      return;
+    }
+
+    $miqaat_types = $this->input->post('miqaat_type');
+    $individual_amounts = $this->input->post('individual_amount');
+    $fala_amounts = $this->input->post('fala_amount');
+
+    if (!empty($miqaat_types)) {
+      $data = [];
+      for ($i = 0; $i < count($miqaat_types); $i++) {
+        $data[] = [
+          'miqaat_type' => $miqaat_types[$i],
+          'individual_amount' => $individual_amounts[$i] ?? 0,
+          'fala_amount' => $fala_amounts[$i] ?? 0
+        ];
+      }
+      $this->load->model('AdminM');
+      $this->AdminM->update_niyaz_amounts($data);
+      $this->session->set_flashdata('success', 'Niyaz amounts updated successfully.');
+    } else {
+      $this->session->set_flashdata('error', 'No data to update.');
+    }
+    
+    redirect('admin/manageniyazamounts');
+  }
+
   // Ekram Fund card page
   public function ekramfunds()
   {

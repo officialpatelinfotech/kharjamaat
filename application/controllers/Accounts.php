@@ -2710,6 +2710,26 @@ class Accounts extends CI_Controller
 
     $total_due = $family_fmb + $family_sabeel + $gc_due + $miq_due + $corpus_due + $ekram_due + $wajebaat_due;
 
+    // Optional expected niyaz invoice
+    $expected_niyaz = null;
+    $miqaat_id_param = $this->input->get('miqaat_id');
+    if ($miqaat_id_param) {
+      $miqaat_details = $this->db->get_where('miqaat', ['id' => $miqaat_id_param])->row_array();
+      if ($miqaat_details) {
+        $miqaat_type = $miqaat_details['type'];
+        $niyaz_amounts_row = $this->db->get_where('miqaat_niyaz_amounts', ['miqaat_type' => $miqaat_type])->row_array();
+        if ($niyaz_amounts_row) {
+          $assignment = $this->db->get_where('miqaat_assignments', ['miqaat_id' => $miqaat_id_param, 'user_id' => $user_id])->row_array();
+          $is_group = ($assignment && $assignment['assign_type'] === 'Group');
+          $amt = $is_group ? (float)$niyaz_amounts_row['fala_amount'] : (float)$niyaz_amounts_row['individual_amount'];
+          if ($amt > 0) {
+            $desc = $is_group ? 'Fala ni Niyaz' : 'Individual Niyaz';
+            $expected_niyaz = ['amount' => $amt, 'description' => $desc];
+          }
+        }
+      }
+    }
+
     $payload = [
       'success' => true,
       'dues' => [
@@ -2722,7 +2742,8 @@ class Accounts extends CI_Controller
         'wajebaat_due' => round($wajebaat_due, 2),
         'total_due' => round($total_due, 2)
       ],
-      'miqaat_invoices' => isset($miq_list) ? $miq_list : []
+      'miqaat_invoices' => isset($miq_list) ? $miq_list : [],
+      'expected_niyaz' => $expected_niyaz
     ];
 
     return $this->output->set_content_type('application/json')->set_output(json_encode($payload));
@@ -3396,6 +3417,58 @@ class Accounts extends CI_Controller
       redirect('/accounts/error/logout');
     }
   }
+  public function get_niyaz_amount_for_miqaat()
+  {
+    if (empty($_SESSION['user_data']['ITS_ID'])) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Not logged in']));
+      return;
+    }
+    
+    $miqaat_id = $this->input->get('miqaat_id');
+    if (!$miqaat_id) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Missing miqaat_id']));
+      return;
+    }
+    
+    $userId = $_SESSION['user_data']['ITS_ID'];
+    
+    $miqaat_details = $this->db->get_where('miqaat', ['id' => $miqaat_id])->row_array();
+    if (!$miqaat_details) {
+       $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'error' => 'Miqaat not found']));
+       return;
+    }
+    
+    $miqaat_type = $miqaat_details['type'];
+    $niyaz_amounts_row = $this->db->get_where('miqaat_niyaz_amounts', ['miqaat_type' => $miqaat_type])->row_array();
+    
+    if (!$niyaz_amounts_row) {
+       $this->output->set_content_type('application/json')->set_output(json_encode(['success' => true, 'amount' => 0]));
+       return;
+    }
+    
+    $assignment = $this->db->get_where('miqaat_assignments', ['miqaat_id' => $miqaat_id, 'user_id' => $userId])->row_array();
+    $is_group = false;
+    if ($assignment) {
+       $is_group = ($assignment['assign_type'] === 'Group');
+    }
+    
+    $amountToCharge = 0;
+    $descriptionStr = '';
+    
+    if ($is_group) {
+       $amountToCharge = (float)$niyaz_amounts_row['fala_amount'];
+       $descriptionStr = 'Fala ni Niyaz';
+    } else {
+       $amountToCharge = (float)$niyaz_amounts_row['individual_amount'];
+       $descriptionStr = 'Individual Niyaz';
+    }
+    
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => true,
+      'amount' => $amountToCharge,
+      'description' => $descriptionStr
+    ]));
+  }
 
   public function submit_raza()
   {
@@ -3581,7 +3654,64 @@ class Accounts extends CI_Controller
       } catch (Exception $e) {
         log_message('error', 'Failed to auto-create invoice for Raza ID ' . $check . ': ' . $e->getMessage());
       }
+      
+      // --- Auto-create Niyaz Invoice if applicable ---
+      try {
+        if (!empty($miqaat_id)) {
+          $miqaat_details = $this->db->get_where('miqaat', ['id' => $miqaat_id])->row_array();
+          
+          if ($miqaat_details) {
+            $miqaat_type = $miqaat_details['type'];
+            $niyaz_amounts_row = $this->db->get_where('miqaat_niyaz_amounts', ['miqaat_type' => $miqaat_type])->row_array();
+            
+            if ($niyaz_amounts_row) {
+              $assignment = $this->db->get_where('miqaat_assignments', ['miqaat_id' => $miqaat_id, 'user_id' => $userId])->row_array();
+              $is_group = false;
+              if ($assignment) {
+                 $is_group = ($assignment['assign_type'] === 'Group');
+              }
+              
+              $amountToCharge = 0;
+              $descriptionStr = '';
+              
+              if ($is_group) {
+                 $amountToCharge = (float)$niyaz_amounts_row['fala_amount'];
+                 $descriptionStr = 'Fala ni Niyaz';
+              } else {
+                 $amountToCharge = (float)$niyaz_amounts_row['individual_amount'];
+                 $descriptionStr = 'Individual Niyaz';
+              }
+              
+              if ($amountToCharge > 0) {
+                $existing = $this->db->get_where('miqaat_invoice', [
+                  'user_id' => $userId,
+                  'miqaat_id' => $miqaat_id,
+                  'raza_id' => $check
+                ])->row_array();
+                
+                if (!$existing) {
+                  $miqaatInvData = [
+                    'date' => date('Y-m-d'),
+                    'year' => (int)date('Y'),
+                    'miqaat_id' => $miqaat_id,
+                    'miqaat_type' => $miqaat_type,
+                    'raza_id' => $check,
+                    'user_id' => $userId,
+                    'amount' => $amountToCharge,
+                    'description' => $descriptionStr,
+                    'status' => 0
+                  ];
+                  $this->db->insert('miqaat_invoice', $miqaatInvData);
+                }
+              }
+            }
+          }
+        }
+      } catch (Exception $e) {
+        log_message('error', 'Failed to auto-create niyaz invoice for Raza ID ' . $check . ': ' . $e->getMessage());
+      }
       // ----------------------------------------------------
+      
       // WhatsApp acknowledgement to member (template-based)
       $this->load->library('Notification_lib');
       $this->config->load('whatsapp', true);

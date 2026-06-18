@@ -234,5 +234,16 @@
         </div>
       </a>
     </div>
+
+    <!-- 6. Manage Niyaz Invoice Amounts -->
+    <div class="col-12 col-sm-6 col-md-4 mb-4">
+      <a href="<?php echo base_url('admin/manageniyazamounts'); ?>" class="admin-card-link">
+        <div class="admin-card">
+          <div class="admin-card-icon"><i class="fa-solid fa-coins"></i></div>
+          <h5 class="admin-card-title">Manage Niyaz Invoice Amounts</h5>
+          <p class="admin-card-desc">Set up auto-generation amounts for Miqaat Niyaz.</p>
+        </div>
+      </a>
+    </div>
   </div>
 </div>

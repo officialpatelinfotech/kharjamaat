@@ -1875,4 +1875,16 @@ class AdminM extends CI_Model
       'sub_sectors' => $subSectors
     ];
   }
+
+  public function get_niyaz_amounts()
+  {
+    $query = $this->db->get('miqaat_niyaz_amounts');
+    return $query->result_array();
+  }
+
+  public function update_niyaz_amounts($data)
+  {
+    $this->db->update_batch('miqaat_niyaz_amounts', $data, 'miqaat_type');
+    return true;
+  }
 }

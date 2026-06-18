@@ -480,7 +480,25 @@
               }
 
               detailsHtml += '</div></div>';
+              
+              // Add a placeholder for Niyaz invoice alert
+              detailsHtml += `<div id="niyaz-alert-container-${miqaat.miqaat_id}" class="mt-2"></div>`;
+              
               document.getElementById('miqaat-details').innerHTML = detailsHtml;
+              
+              // Fetch Expected Niyaz Amount
+              fetch(`<?= base_url('accounts/get_niyaz_amount_for_miqaat') ?>?miqaat_id=${miqaat.miqaat_id}`)
+                .then(r => r.json())
+                .then(data => {
+                  if (data.success && data.amount > 0) {
+                    let alertHtml = `
+                      <div class="alert alert-info py-2 mb-0">
+                        <strong>Note:</strong> An invoice of <strong>₹${data.amount}</strong> for <strong>${data.description}</strong> will be automatically generated upon submission.
+                      </div>
+                    `;
+                    document.getElementById(`niyaz-alert-container-${miqaat.miqaat_id}`).innerHTML = alertHtml;
+                  }
+                }).catch(err => console.error("Failed to fetch Niyaz amount", err));
             }
 
             // On select change
@@ -611,7 +629,14 @@
     e.preventDefault();
     var submitBtn = document.getElementById('raza-submit-btn');
     if (submitBtn) submitBtn.disabled = true;
-    fetch('<?= base_url('accounts/get_member_dues') ?>', {
+    
+    let miqaatIdParam = '';
+    let miqaatSelect = document.getElementById('miqaat-select');
+    if (miqaatSelect && miqaatSelect.value) {
+        miqaatIdParam = '?miqaat_id=' + encodeURIComponent(miqaatSelect.value);
+    }
+    
+    fetch('<?= base_url('accounts/get_member_dues') ?>' + miqaatIdParam, {
         credentials: 'same-origin'
       })
       .then(function(r) {
@@ -640,6 +665,13 @@
         } else {
           html = '<div class="alert alert-warning">You have pending dues. Please review before submitting.</div>' + html;
         }
+        
+        if (data.expected_niyaz && data.expected_niyaz.amount > 0) {
+          html += '<div class="alert alert-info mt-3 py-2 mb-0">' +
+                  '<strong>Note:</strong> An invoice of <strong>₹' + data.expected_niyaz.amount + '</strong> for <strong>' + data.expected_niyaz.description + '</strong> will be automatically generated upon submission.' +
+                  '</div>';
+        }
+
         if (data.miqaat_invoices && Array.isArray(data.miqaat_invoices) && data.miqaat_invoices.length > 0) {
           var invHtml = '<hr><h6>Miqaat / Member Invoices</h6>' +
             '<table class="table table-sm table-bordered"><thead><tr><th>Assigned to</th><th>Invoice</th><th class="text-right">Amount</th><th class="text-right">Paid</th><th class="text-right">Due</th></tr></thead><tbody>';

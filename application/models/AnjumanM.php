@@ -1704,7 +1704,7 @@ class AnjumanM extends CI_Model
       $this->db->or_like('ITS_ID', $q);
       $this->db->group_end();
     }
-    $this->db->where("Inactive_Status IS NULL AND Sector IS NOT NULL");
+    $this->db->where("Inactive_Status IS NULL");
     $this->db->order_by('Full_Name', 'ASC');
     $this->db->limit(10);
     return $this->db->get()->result_array();
@@ -2200,7 +2200,7 @@ class AnjumanM extends CI_Model
   {
     $this->db->select('ITS_ID, Full_Name');
     $this->db->from('user');
-    $this->db->where("Inactive_Status IS NULL AND Sector IS NOT NULL");
+    $this->db->where("Inactive_Status IS NULL");
     if (!empty($query)) {
       $q = trim((string)$query);
       $this->db->group_start();
