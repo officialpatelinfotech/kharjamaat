@@ -1403,20 +1403,23 @@ class Amilsaheb extends CI_Controller
   {
     // Retrieve the value of $umoor from the URL parameters
     $umoor = $this->input->get('umoor');
+    $event_type = $this->input->get('event_type');
 
     $flag = $this->AccountM->delete_raza($id);
 
     if ($flag) {
       // Check the value of $umoor and redirect accordingly
-      if ($umoor == 'Event Raza Applications') {
-        redirect('/amilsaheb/success/EventRazaRequest');
+      if ($umoor == 'Event Raza Applications' || $umoor == 'Miqaat Raza Requests' || $umoor == 'Kaaraj Raza Requests' || $umoor == 'Event Raza Requests' || $umoor == 'Miqaat Request' || $umoor == 'Kaaraj Request') {
+        $query_str = !empty($event_type) ? '?event_type=' . $event_type : '';
+        redirect('/amilsaheb/success/EventRazaRequest' . $query_str);
       } else {
         redirect('/amilsaheb/success/UmoorRazaRequest');
       }
     } else {
       // Check the value of $umoor and redirect to the appropriate error URL
-      if ($umoor == 'Event Raza Applications') {
-        redirect('/amilsaheb/error/EventRazaRequest');
+      if ($umoor == 'Event Raza Applications' || $umoor == 'Miqaat Raza Requests' || $umoor == 'Kaaraj Raza Requests' || $umoor == 'Event Raza Requests' || $umoor == 'Miqaat Request' || $umoor == 'Kaaraj Request') {
+        $query_str = !empty($event_type) ? '?event_type=' . $event_type : '';
+        redirect('/amilsaheb/error/EventRazaRequest' . $query_str);
       } else {
         redirect('/amilsaheb/error/UmoorRazaRequest');
       }

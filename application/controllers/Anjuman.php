@@ -2343,20 +2343,23 @@ class Anjuman extends CI_Controller
   {
     // Retrieve the value of $umoor from the URL parameters
     $umoor = $this->input->get('umoor');
+    $event_type = $this->input->get('event_type');
 
     $flag = $this->AccountM->delete_raza($id);
 
     if ($flag) {
       // Check the value of $umoor and redirect accordingly
-      if ($umoor == 'Event Raza Applications') {
-        redirect('/anjuman/success/EventRazaRequest');
+      if ($umoor == 'Event Raza Applications' || $umoor == 'Miqaat Raza Requests' || $umoor == 'Kaaraj Raza Requests' || $umoor == 'Event Raza Requests' || $umoor == 'Miqaat Request' || $umoor == 'Kaaraj Request') {
+        $query_str = !empty($event_type) ? '?event_type=' . $event_type : '';
+        redirect('/anjuman/success/EventRazaRequest' . $query_str);
       } else {
         redirect('/anjuman/success/UmoorRazaRequest');
       }
     } else {
       // Check the value of $umoor and redirect to the appropriate error URL
-      if ($umoor == 'Event Raza Applications') {
-        redirect('/anjuman/error/EventRazaRequest');
+      if ($umoor == 'Event Raza Applications' || $umoor == 'Miqaat Raza Requests' || $umoor == 'Kaaraj Raza Requests' || $umoor == 'Event Raza Requests' || $umoor == 'Miqaat Request' || $umoor == 'Kaaraj Request') {
+        $query_str = !empty($event_type) ? '?event_type=' . $event_type : '';
+        redirect('/anjuman/error/EventRazaRequest' . $query_str);
       } else {
         redirect('/anjuman/error/UmoorRazaRequest');
       }
@@ -4924,13 +4927,46 @@ class Anjuman extends CI_Controller
             $miqaat_type = $miqaat_row['type'] ?? 'General';
           }
           if (empty($year) && !empty($miqaat_row['date'])) {
-            $hijri_date_arr = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat_row["date"])))["hijri_date"]);
-            $m = (int)($hijri_date_arr[1] ?? 1);
-            $y = (int)($hijri_date_arr[2] ?? date('Y'));
+            $hijri_date_data = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat_row["date"])));
+            $m = null;
+            $y = null;
+            if (is_array($hijri_date_data) && !empty($hijri_date_data["hijri_date"])) {
+              $hijri_date_arr = explode("-", $hijri_date_data["hijri_date"]);
+              $m = (int)($hijri_date_arr[1] ?? 1);
+              $y = (int)($hijri_date_arr[2] ?? 0);
+            }
+
+            // Fallback if calendar lookup failed or returned invalid year
+            if (empty($y)) {
+              if (!empty($miqaat_row['miqaat_id'])) {
+                $parts = explode("-", $miqaat_row['miqaat_id']);
+                $y = (int)$parts[0];
+              }
+              if (empty($y)) {
+                $y = (int)date('Y') - 578;
+              }
+
+              $greg_month = (int)date('n', strtotime($miqaat_row["date"]));
+              $greg_year = (int)date('Y', strtotime($miqaat_row["date"]));
+              if ($greg_month >= 7 && $greg_month <= 11) {
+                $m = 1;
+              } elseif ($greg_month >= 1 && $greg_month <= 5) {
+                $m = 7;
+              } elseif ($greg_month == 12) {
+                $m = 7;
+              } else { // June
+                if ($y === ($greg_year - 578)) {
+                  $m = 1;
+                } else {
+                  $m = 7;
+                }
+              }
+            }
+
             if ($m >= 7 && $m <= 12) {
-                $year = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
+              $year = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
             } else {
-                $year = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
+              $year = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
             }
           }
         }

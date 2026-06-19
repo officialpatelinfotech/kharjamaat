@@ -52,6 +52,7 @@
 </div>
 <script>
     setTimeout(function () {
-        window.location.href = '<?php echo base_url('anjuman/') . $redirect ?>';
+        var query = '<?php echo $_SERVER['QUERY_STRING'] ? "?" . $_SERVER['QUERY_STRING'] : ""; ?>';
+        window.location.href = '<?php echo base_url('anjuman/') . $redirect ?>' + query;
     }, 1000);
 </script>

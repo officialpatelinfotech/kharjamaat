@@ -772,7 +772,7 @@
               <td>
                 <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="approve_raza(<?php echo $r['id'] ?>);"><i class="fa fa-circle-check"></i></button>
                 <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="reject_raza(<?php echo $r['id'] ?>);"><i class="fa fa-circle-xmark"></i></button>
-                <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="redirectto(<?php echo 'amilsaheb/DeleteRaza/' . $r['id'] ?>);"><i class="fa fa-circle-xmark"></i></button>
+                <button type="button" class="btn btn-sm btn-warning remove-form-row" onclick="deleteRaza(<?php echo $r['id'] ?>);"><i class="fa fa-trash"></i></button>
               </td>
               <td>
                 <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
@@ -1054,7 +1054,7 @@
   function deleteRaza(id) {
     let check = confirm("Do You Want to Delete This Raza?");
     if (check) {
-      window.location.href = '<?php echo base_url() ?>' + 'amilsaheb/DeleteRaza/' + id;
+      window.location.href = '<?php echo base_url() ?>' + 'amilsaheb/DeleteRaza/' + id + '?umoor=<?php echo urlencode($umoor ?? ""); ?>&event_type=<?php echo $event_type ?? ""; ?>';
     }
   }
 </script>

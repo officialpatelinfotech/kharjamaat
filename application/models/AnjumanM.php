@@ -1021,14 +1021,46 @@ class AnjumanM extends CI_Model
 
   public function get_all_member_miqaat_payments($miqaat_type, $include_fm = false, $year = null)
   {
-    $getHijriYear = function ($gregDate) {
+    $deriveHijriYear = function ($miqaat_code, $miqaat_date, $invoice_date) {
+      $gregDate = !empty($miqaat_date) ? $miqaat_date : $invoice_date;
       if (empty($gregDate)) return null;
+
       $h = $this->HijriCalendar->get_hijri_date($gregDate);
-      if (!$h || empty($h['hijri_date'])) return null;
-      $parts = explode('-', (string)$h['hijri_date']); // d-m-Y
-      $month = (int)($parts[1] ?? 0);
-      $year = (int)($parts[2] ?? 0);
-      if ($year === 0 || $month === 0) return null;
+      $month = 0;
+      $year = 0;
+      if ($h && !empty($h['hijri_date'])) {
+        $parts = explode('-', (string)$h['hijri_date']); // d-m-Y
+        $month = (int)($parts[1] ?? 0);
+        $year = (int)($parts[2] ?? 0);
+      }
+
+      if ($year === 0) {
+        // Fallback: parse year from miqaat_code (e.g. 1448-11 -> 1448)
+        if (!empty($miqaat_code)) {
+          $parts = explode('-', (string)$miqaat_code);
+          $year = (int)$parts[0];
+        }
+        if ($year === 0) {
+          $year = (int)date('Y', strtotime($gregDate)) - 578;
+        }
+
+        $greg_month = (int)date('n', strtotime($gregDate));
+        $greg_year = (int)date('Y', strtotime($gregDate));
+        if ($greg_month >= 7 && $greg_month <= 11) {
+          $month = 1;
+        } elseif ($greg_month >= 1 && $greg_month <= 5) {
+          $month = 7;
+        } elseif ($greg_month == 12) {
+          $month = 7;
+        } else { // June
+          if ($year === ($greg_year - 578)) {
+            $month = 1;
+          } else {
+            $month = 7;
+          }
+        }
+      }
+
       if ($month >= 7 && $month <= 12) {
         return $year . '-' . substr((string)($year + 1), -2);
       } else {
@@ -1158,11 +1190,8 @@ class AnjumanM extends CI_Model
           $effY = ($single_year - 1) . '-' . substr((string)$single_year, -2);
         }
       }
-      if ($effY === null && !empty($prow['miqaat_id']) && !empty($prow['miqaat_date'])) {
-        $effY = $getHijriYear($prow['miqaat_date']);
-      }
-      if ($effY === null && !empty($prow['invoice_date'])) {
-        $effY = $getHijriYear($prow['invoice_date']);
+      if ($effY === null) {
+        $effY = $deriveHijriYear($prow['miqaat_code'] ?? null, $prow['miqaat_date'] ?? null, $prow['invoice_date'] ?? null);
       }
       if (!empty($year) && (string)$effY !== (string)$year) {
         continue;
@@ -1223,11 +1252,8 @@ class AnjumanM extends CI_Model
             $effYear = ($single_year - 1) . '-' . substr((string)$yearStr, -2);
           }
         }
-        if ($effYear === null && !empty($row['miqaat_id']) && !empty($row['miqaat_date'])) {
-          $effYear = $getHijriYear($row['miqaat_date']);
-        }
-        if ($effYear === null && !empty($row['invoice_date'])) {
-          $effYear = $getHijriYear($row['invoice_date']);
+        if ($effYear === null) {
+          $effYear = $deriveHijriYear($row['miqaat_code'] ?? null, $row['miqaat_date'] ?? null, $row['invoice_date'] ?? null);
         }
         if (!empty($year) && (string)$effYear !== (string)$year) {
           continue;

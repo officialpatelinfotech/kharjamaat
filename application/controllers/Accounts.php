@@ -1041,13 +1041,46 @@ class Accounts extends CI_Controller
       $m_type = $miqaat_row['type'] ?? 'General';
       $m_year = 'default';
       if (!empty($miqaat_row['date'])) {
-        $hijri_date_arr = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat_row["date"])))["hijri_date"]);
-        $m = (int)($hijri_date_arr[1] ?? 1);
-        $y = (int)($hijri_date_arr[2] ?? date('Y'));
+        $hijri_date_data = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat_row["date"])));
+        $m = null;
+        $y = null;
+        if (is_array($hijri_date_data) && !empty($hijri_date_data["hijri_date"])) {
+          $hijri_date_arr = explode("-", $hijri_date_data["hijri_date"]);
+          $m = (int)($hijri_date_arr[1] ?? 1);
+          $y = (int)($hijri_date_arr[2] ?? 0);
+        }
+
+        // Fallback if calendar lookup failed or returned invalid year
+        if (empty($y)) {
+          if (!empty($miqaat_row['miqaat_id'])) {
+            $parts = explode("-", $miqaat_row['miqaat_id']);
+            $y = (int)$parts[0];
+          }
+          if (empty($y)) {
+            $y = (int)date('Y') - 578;
+          }
+
+          $greg_month = (int)date('n', strtotime($miqaat_row["date"]));
+          $greg_year = (int)date('Y', strtotime($miqaat_row["date"]));
+          if ($greg_month >= 7 && $greg_month <= 11) {
+            $m = 1;
+          } elseif ($greg_month >= 1 && $greg_month <= 5) {
+            $m = 7;
+          } elseif ($greg_month == 12) {
+            $m = 7;
+          } else { // June
+            if ($y === ($greg_year - 578)) {
+              $m = 1;
+            } else {
+              $m = 7;
+            }
+          }
+        }
+
         if ($m >= 7 && $m <= 12) {
-            $m_year = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
+          $m_year = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
         } else {
-            $m_year = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
+          $m_year = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
         }
       }
       $amt_row = $this->db->get_where('miqaat_niyaz_amounts', ['miqaat_type' => $m_type, 'year' => $m_year])->row_array();

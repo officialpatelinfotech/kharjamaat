@@ -846,7 +846,7 @@ function showToast(msg){
   setTimeout(function(){t.style.display='none';},2500);
 }
 function deleteRaza(id){
-  if(confirm('Delete this Raza request?')) window.location.href='<?php echo base_url(); ?>anjuman/DeleteRaza/'+id;
+  if(confirm('Delete this Raza request?')) window.location.href='<?php echo base_url(); ?>anjuman/DeleteRaza/'+id+'?umoor=<?php echo urlencode($umoor ?? ""); ?>&event_type=<?php echo $event_type ?? ""; ?>';
 }
 
 /* ── Table update (filter/sort) ── */

@@ -1,0 +1,25 @@
+<?php
+define('BASEPATH', '1');
+define('ENVIRONMENT', 'development');
+$db = [];
+if (file_exists(__DIR__ . '/../application/config/development/database.php')) {
+    require_once(__DIR__ . '/../application/config/development/database.php');
+} elseif (file_exists(__DIR__ . '/../application/config/production/database.php')) {
+    require_once(__DIR__ . '/../application/config/production/database.php');
+} else {
+    echo "Database config file not found.\n";
+    exit;
+}
+
+if (isset($db['default'])) {
+    $conf = $db['default'];
+    try {
+        $pdo = new PDO("mysql:host={$conf['hostname']};dbname={$conf['database']}", $conf['username'], $conf['password']);
+        $stmt = $pdo->prepare("SELECT id, user_id, razaType, razadata, miqaat_id, sabil, fmb, status, raza_id FROM raza ORDER BY id DESC LIMIT 5");
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($results, JSON_PRETTY_PRINT) . "\n";
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage() . "\n";
+    }
+}
