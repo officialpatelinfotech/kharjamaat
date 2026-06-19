@@ -2240,6 +2240,7 @@ class Anjuman extends CI_Controller
     } else {
       $data['umoor'] = "Event Raza Requests";
     }
+    $data['event_type'] = $event_type;
 
     $razaList = $this->AmilsahebM->get_raza_event($event_type);
     $data['raza'] = is_array($razaList) ? $razaList : [];

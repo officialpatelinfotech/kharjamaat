@@ -3704,17 +3704,20 @@ class Accounts extends CI_Controller
         }
 
         if ($chargeType) {
-          $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
-          $hijriYearNum = null;
-          if (isset($todayHijri['hijri_date'])) {
-            $parts = explode('-', (string)$todayHijri['hijri_date']);
-            if (count($parts) === 3 && is_numeric($parts[2])) {
-              $hijriYearNum = (int)$parts[2];
+          $todayParts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+          if ($todayParts) {
+            $h_month = (int)$todayParts['hijri_month'];
+            $h_year = (int)$todayParts['hijri_year'];
+            if ($h_month >= 7 && $h_month <= 12) {
+              $hijriRange = $h_year . '-' . substr((string)($h_year + 1), -2);
+            } else {
+              $hijriRange = ($h_year - 1) . '-' . substr((string)$h_year, -2);
             }
+          } else {
+            // Fallback
+            $hijriYearNum = (int)date('Y') - 578;
+            $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
           }
-          if (!$hijriYearNum) $hijriYearNum = (int)date('Y');
-          // e.g. 1446-47
-          $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
 
           // Resolve venue name if any field is Venue
           $razafields = json_decode($razatype['fields'], true);
@@ -3793,9 +3796,53 @@ class Accounts extends CI_Controller
                 ])->row_array();
                 
                 if (!$existing) {
+                  $m_year_inv = (int)date('Y'); // Default fallback
+                  if (!empty($miqaat_details['date'])) {
+                    $hijri_date_data = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat_details["date"])));
+                    $m = null;
+                    $y = null;
+                    if (is_array($hijri_date_data) && !empty($hijri_date_data["hijri_date"])) {
+                      $hijri_date_arr = explode("-", $hijri_date_data["hijri_date"]);
+                      $m = (int)($hijri_date_arr[1] ?? 1);
+                      $y = (int)($hijri_date_arr[2] ?? 0);
+                    }
+
+                    if (empty($y)) {
+                      if (!empty($miqaat_details['miqaat_id'])) {
+                        $parts = explode("-", $miqaat_details['miqaat_id']);
+                        $y = (int)$parts[0];
+                      }
+                      if (empty($y)) {
+                        $y = (int)date('Y') - 578;
+                      }
+
+                      $greg_month = (int)date('n', strtotime($miqaat_details["date"]));
+                      $greg_year = (int)date('Y', strtotime($miqaat_details["date"]));
+                      if ($greg_month >= 7 && $greg_month <= 11) {
+                        $m = 1;
+                      } elseif ($greg_month >= 1 && $greg_month <= 5) {
+                        $m = 7;
+                      } elseif ($greg_month == 12) {
+                        $m = 7;
+                      } else { 
+                        if ($y === ($greg_year - 578)) {
+                          $m = 1;
+                        } else {
+                          $m = 7;
+                        }
+                      }
+                    }
+
+                    if ($m >= 7 && $m <= 12) {
+                      $m_year_inv = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
+                    } else {
+                      $m_year_inv = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
+                    }
+                  }
+
                   $miqaatInvData = [
                     'date' => date('Y-m-d'),
-                    'year' => (int)date('Y'),
+                    'year' => $m_year_inv,
                     'miqaat_id' => $miqaat_id,
                     'miqaat_type' => $miqaat_type,
                     'raza_id' => $check,

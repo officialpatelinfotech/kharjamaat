@@ -755,6 +755,7 @@ class Amilsaheb extends CI_Controller
     } elseif ($event_type == 2) {
       $data['umoor'] = "Kaaraj Request";
     }
+    $data['event_type'] = $event_type;
     $data['raza'] = $this->AmilsahebM->get_raza_event($event_type);
     $data['razatype'] = $this->AdminM->get_eventrazatype();
 
