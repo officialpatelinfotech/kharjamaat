@@ -15,7 +15,7 @@ if (isset($db['default'])) {
     $conf = $db['default'];
     try {
         $pdo = new PDO("mysql:host={$conf['hostname']};dbname={$conf['database']}", $conf['username'], $conf['password']);
-        $stmt = $pdo->query("SELECT id, user_id, miqaat_id, miqaat_type, year, date, amount, description, raza_id FROM miqaat_invoice WHERE user_id = 20321805 OR description LIKE '%Kagalwala%' ORDER BY id DESC LIMIT 20");
+        $stmt = $pdo->query("SELECT id, user_id, miqaat_id, miqaat_type, year, date, amount, description, raza_id FROM miqaat_invoice WHERE id = 2108");
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($results, JSON_PRETTY_PRINT) . "\n";
     } catch (PDOException $e) {
