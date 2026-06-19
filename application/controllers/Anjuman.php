@@ -3088,38 +3088,15 @@ class Anjuman extends CI_Controller
     $all_hofs = $this->db->get()->result_array();
     $all_hof_ids = array_column($all_hofs, 'HOF_ID');
 
-    // Find participated HOFs
-    $participated_hof_ids = [];
-    if (!empty($miqaat_ids)) {
-      $sql = "SELECT DISTINCT member_id AS participant_id
-              FROM miqaat_assignments
-              WHERE miqaat_id IN (" . implode(',', $miqaat_ids) . ")
-                AND member_id IS NOT NULL
-                AND member_id <> ''
-                AND TRIM(LOWER(assign_type)) = 'Individual'";
-      $participated = $this->db->query($sql)->result_array();
-      $participated_ids = array_column($participated, 'participant_id');
+    // As per user request, we should generate for ALL active HOFs who don't have an invoice,
+    // regardless of individual participation.
+    $target_hof_ids = $all_hof_ids;
 
-      if (!empty($participated_ids)) {
-        $participated_hofs = $this->db
-          ->distinct()
-          ->select('HOF_ID')
-          ->from('user')
-          ->where_in('ITS_ID', $participated_ids)
-          ->get()
-          ->result_array();
-        $participated_hof_ids = array_column($participated_hofs, 'HOF_ID');
-      }
-    }
-
-    // HOFs that should receive Fala ni Niyaz
-    $not_participated_hofs = array_diff($all_hof_ids, $participated_hof_ids);
-
-    if (empty($not_participated_hofs)) {
+    if (empty($target_hof_ids)) {
       $this->output
         ->set_content_type('application/json')
         ->set_status_header(200)
-        ->set_output(json_encode(['status' => true, 'created_count' => 0, 'message' => 'All active HOFs have already participated.']));
+        ->set_output(json_encode(['status' => true, 'created_count' => 0, 'message' => 'No active HOFs found.']));
       return;
     }
 
@@ -3128,7 +3105,7 @@ class Anjuman extends CI_Controller
       ->from('miqaat_invoice')
       ->where('year', $year)
       ->where('miqaat_type', $miqaat_type)
-      ->where_in('user_id', $not_participated_hofs);
+      ->where_in('user_id', $target_hof_ids);
     if ($miqaat_id_orig !== null && $miqaat_id_orig !== '') {
       $this->db->where('miqaat_id', $miqaat_id_orig);
     } else {
@@ -3137,7 +3114,7 @@ class Anjuman extends CI_Controller
     $already_invoiced_hofs = $this->db->get()->result_array();
     $already_invoiced_hof_ids = array_column($already_invoiced_hofs, 'user_id');
 
-    $to_generate_hof_ids = array_diff($not_participated_hofs, $already_invoiced_hof_ids);
+    $to_generate_hof_ids = array_diff($target_hof_ids, $already_invoiced_hof_ids);
 
     $created_count = 0;
     foreach ($to_generate_hof_ids as $hof_id) {
