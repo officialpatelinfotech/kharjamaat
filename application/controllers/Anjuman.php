@@ -4527,7 +4527,7 @@ class Anjuman extends CI_Controller
 
     // Query Extra Contributions — join hijri_calendar to derive hijri year from the gregorian created_at date
     // so that the client-side Hijri Year filter works correctly (same year format as regular invoices).
-    $this->db->select('gc.id, gc.amount, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, gc.contri_year, gc.created_at, gc.description, gc.contri_type, COALESCE(paid.total_received, 0) as paid_amount, SUBSTRING_INDEX(hc.hijri_date, \'-\', -1) as hijri_year_from_cal, hc.hijri_date as hijri_date_from_cal');
+    $this->db->select('gc.id, gc.amount, u.Sector, u.Sub_Sector, u.Full_Name, u.ITS_ID, u.HOF_FM_TYPE as hof_fm_type, gc.contri_year, gc.created_at, gc.description, gc.contri_type, COALESCE(paid.total_received, 0) as paid_amount, SUBSTRING_INDEX(hc.hijri_date, \'-\', -1) as hijri_year_from_cal, hc.hijri_date as hijri_date_from_cal');
     $this->db->from('fmb_general_contribution gc');
     $this->db->join('user u', 'u.ITS_ID = gc.user_id', 'left');
     $this->db->join('(SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) paid', 'paid.fmbgc_id = gc.id', 'left');

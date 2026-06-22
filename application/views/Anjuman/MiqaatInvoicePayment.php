@@ -655,6 +655,7 @@
             'details'      => trim($name . ($its !== '' ? (' (' . $its . ')') : '')),
             'payments'     => ($invoiceId !== '' && isset($invoicePaymentsMap[$invoiceId]) ? $invoicePaymentsMap[$invoiceId] : []),
             'invoice_type' => 'regular',
+            'hof_fm_type'  => isset($m['hof_fm_type']) ? $m['hof_fm_type'] : 'HOF',
           ];
           $rows[] = $row;
 
@@ -758,7 +759,8 @@
         'details'          => trim($name . ($its !== '' ? (' (' . $its . ')') : '')),
         'payments'         => $normalized_payments,
         'invoice_type'     => 'extra',
-        'contri_year'      => isset($ec['contri_year']) ? (string)$ec['contri_year'] : ''
+        'contri_year'      => isset($ec['contri_year']) ? (string)$ec['contri_year'] : '',
+        'hof_fm_type'      => isset($ec['hof_fm_type']) ? $ec['hof_fm_type'] : 'HOF',
       ];
       $rows[] = $row;
 
@@ -879,6 +881,14 @@
           <label for="pf-name">Name or ITS</label>
           <input type="text" id="pf-name" class="form-control" placeholder="Search name or ITS...">
         </div>
+        <div class="col-md-1 mb-2">
+          <label for="pf-hoffm">HOF/FM</label>
+          <select id="pf-hoffm" class="form-control">
+            <option value="">All</option>
+            <option value="hof">HOF</option>
+            <option value="fm">FM</option>
+          </select>
+        </div>
         <div class="col-md-2 mb-2">
           <label for="pf-sector">Sector</label>
           <select id="pf-sector" class="form-control">
@@ -908,7 +918,7 @@
             <option value="extra">Niyaz Extra Contribution</option>
           </select>
         </div>
-        <div class="col-md-2 mb-2">
+        <div class="col-md-1 mb-2">
           <label for="pf-status">Status</label>
           <select id="pf-status" class="form-control">
             <option value="">All Status</option>
@@ -1049,6 +1059,7 @@
               data-its="<?php echo htmlspecialchars(strtolower($r['its_id']), ENT_QUOTES); ?>"
               data-sector="<?php echo htmlspecialchars(strtolower($r['sector']), ENT_QUOTES); ?>"
               data-subsector="<?php echo htmlspecialchars(strtolower($r['sub_sector']), ENT_QUOTES); ?>"
+              data-hof-fm="<?php echo htmlspecialchars(strtolower((string)($r['hof_fm_type'] ?? 'hof')), ENT_QUOTES); ?>"
               data-year="<?php echo htmlspecialchars((string)($r['invoice_year'] ?? ''), ENT_QUOTES); ?>"
               data-greg-date="<?php echo htmlspecialchars($greg, ENT_QUOTES); ?>"
               data-invoice-date="<?php echo htmlspecialchars($invIso, ENT_QUOTES); ?>"
@@ -1444,6 +1455,7 @@
         // Filters for invoice list (name/its/sector/sub-sector/year/type) with totals
         function applyPaymentFilters() {
           const nameVal = (document.getElementById('pf-name').value || '').trim().toLowerCase();
+          const hoffmVal = (document.getElementById('pf-hoffm').value || '').trim().toLowerCase();
           const sectorVal = (document.getElementById('pf-sector').value || '').trim().toLowerCase();
           const subVal = (document.getElementById('pf-subsector').value || '').trim().toLowerCase();
           const yearVal = (document.getElementById('pf-year').value || '').trim().toLowerCase();
@@ -1471,6 +1483,7 @@
             const rIts = (r.getAttribute('data-its') || '').trim();
             const rSector = (r.getAttribute('data-sector') || '').trim();
             const rSub = (r.getAttribute('data-subsector') || '').trim();
+            const rHofFm = (r.getAttribute('data-hof-fm') || '').trim();
             const rYear = (r.getAttribute('data-year') || '').trim();
             const rType = (r.getAttribute('data-invoice-type') || '').trim();
             const assignedTo = (r.getAttribute('data-assigned-to') || '').trim();
@@ -1485,6 +1498,7 @@
 
             let show = true;
             if (nameVal && rName.indexOf(nameVal) === -1 && rIts.indexOf(nameVal) === -1) show = false;
+            if (hoffmVal && rHofFm !== hoffmVal) show = false;
             if (sectorVal && rSector !== sectorVal) show = false;
             if (subVal && rSub !== subVal) show = false;
             if (yearVal && rYear.toLowerCase() !== yearVal) show = false;
@@ -1568,12 +1582,14 @@
         }
 
         const pfName = document.getElementById('pf-name');
+        const pfHofFm = document.getElementById('pf-hoffm');
         const pfSector = document.getElementById('pf-sector');
         const pfSub = document.getElementById('pf-subsector');
         const pfYear = document.getElementById('pf-year');
         const pfType = document.getElementById('pf-invoice-type');
         const pfStatus = document.getElementById('pf-status');
         if (pfName) pfName.addEventListener('input', applyPaymentFilters);
+        if (pfHofFm) pfHofFm.addEventListener('change', applyPaymentFilters);
         if (pfSector) pfSector.addEventListener('change', applyPaymentFilters);
         if (pfSub) pfSub.addEventListener('change', applyPaymentFilters);
         if (pfType) pfType.addEventListener('change', applyPaymentFilters);
@@ -1596,6 +1612,7 @@
         if (pfClear) {
           pfClear.addEventListener('click', function() {
             if (pfName) pfName.value = '';
+            if (pfHofFm) pfHofFm.value = '';
             if (pfSector) pfSector.value = '';
             if (pfSub) pfSub.value = '';
             if (pfYear) pfYear.value = '';
