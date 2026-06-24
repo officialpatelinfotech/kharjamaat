@@ -3852,6 +3852,18 @@ class Accounts extends CI_Controller
                     'status' => 0
                   ];
                   $this->db->insert('miqaat_invoice', $miqaatInvData);
+
+                  // Delete the generic Fala ni Niyaz invoice for this member since they now have a specific invoice
+                  $this->load->model('CommonM');
+                  if ($m_year_inv) {
+                    if (preg_match('/^(\d+)-(\d+)$/', $m_year_inv, $my)) {
+                      $prefix = substr($my[1], 0, -2);
+                      $this->CommonM->delete_fala_ni_niyaz_by_user_id($userId, $miqaat_type, $my[1]);
+                      $this->CommonM->delete_fala_ni_niyaz_by_user_id($userId, $miqaat_type, $prefix . $my[2]);
+                    } else {
+                      $this->CommonM->delete_fala_ni_niyaz_by_user_id($userId, $miqaat_type, $m_year_inv);
+                    }
+                  }
                 }
               }
             }

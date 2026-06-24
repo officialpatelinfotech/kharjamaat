@@ -4838,15 +4838,26 @@ class Anjuman extends CI_Controller
           $all_hofs = $this->db->get()->result_array();
           $all_hof_ids = array_column($all_hofs, 'HOF_ID');
 
+          // Get member IDs assigned to these miqaats (both Individual and Group assignments)
           $sql = "SELECT DISTINCT member_id AS participant_id
                   FROM miqaat_assignments
                   WHERE miqaat_id IN (" . implode(',', $miqaat_ids) . ")
                     AND member_id IS NOT NULL
-                    AND member_id <> ''
-                    AND TRIM(LOWER(assign_type)) = 'Individual'";
-
+                    AND member_id <> ''";
           $participated = $this->db->query($sql)->result_array();
           $participated_ids = array_column($participated, 'participant_id');
+
+          // Get member IDs who already have specific invoices for these miqaats
+          $sql_inv = "SELECT DISTINCT user_id AS participant_id
+                      FROM miqaat_invoice
+                      WHERE miqaat_id IN (" . implode(',', $miqaat_ids) . ")
+                        AND user_id IS NOT NULL
+                        AND user_id <> ''";
+          $participated_inv = $this->db->query($sql_inv)->result_array();
+          $participated_inv_ids = array_column($participated_inv, 'participant_id');
+
+          // Merge both lists of participants/assigned/invoiced members
+          $participated_ids = array_values(array_unique(array_merge($participated_ids, $participated_inv_ids)));
 
           $participated_hof_ids = [];
           if (!empty($participated_ids)) {
@@ -4950,6 +4961,7 @@ class Anjuman extends CI_Controller
         }
       }
 
+      $this->load->model('CommonM');
       // Assign invoice directly to the selected members (ITS_ID), not to HOF
       $member_ids = is_array($member_id) ? $member_id : [$member_id];
       foreach ($member_ids as $mid) {
@@ -4967,6 +4979,17 @@ class Anjuman extends CI_Controller
           $data['raza_id'] = $raza_id;
         }
         $this->AnjumanM->create_miqaat_invoice($data);
+
+        // Delete the generic Fala ni Niyaz invoice for this member
+        if ($year) {
+          if (preg_match('/^(\d+)-(\d+)$/', $year, $my)) {
+            $prefix = substr($my[1], 0, -2);
+            $this->CommonM->delete_fala_ni_niyaz_by_user_id($mid, $miqaat_type, $my[1]);
+            $this->CommonM->delete_fala_ni_niyaz_by_user_id($mid, $miqaat_type, $prefix . $my[2]);
+          } else {
+            $this->CommonM->delete_fala_ni_niyaz_by_user_id($mid, $miqaat_type, $year);
+          }
+        }
       }
 
       $this->session->set_flashdata('success', 'Invoice(s) created successfully.');

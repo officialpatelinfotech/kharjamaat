@@ -2241,8 +2241,6 @@ class Common extends CI_Controller
       $miqaat_id = $this->CommonM->generate_miqaat_id($hijri_year);
       $this->CommonM->update_miqaat_by_id($new_miqaat_id, ['miqaat_id' => $miqaat_id]);
 
-      $hijri_year = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"])[2];
-
       if ($assign_type == 'Individual') {
         $ids = explode(",", $this->input->post('individual_ids'));
 
@@ -2385,6 +2383,8 @@ class Common extends CI_Controller
         $members = explode(",", $this->input->post('group_member_ids'));
 
         foreach ($members as $member_id) {
+          $member_id = trim((string)$member_id);
+          if ($member_id === '') continue;
           $this->CommonM->insert_assignment([
             'miqaat_id' => $new_miqaat_id,
             'assign_type' => 'group',
@@ -2392,6 +2392,7 @@ class Common extends CI_Controller
             'group_leader_id' => $leader_id,
             'member_id' => $member_id
           ]);
+          $this->CommonM->delete_fala_ni_niyaz_by_user_id($member_id, $miqaat_type, $hijri_year);
         }
         // Notify group leader and admins about group assignment
         $this->load->model('EmailQueueM');
@@ -2783,6 +2784,8 @@ class Common extends CI_Controller
           $this->CommonM->delete_raza_by_miqaat_id($miqaat_id, [$leader_id]);
 
           foreach ($members as $member_id) {
+            $member_id = trim((string)$member_id);
+            if ($member_id === '') continue;
             $this->CommonM->insert_assignment([
               'miqaat_id' => $miqaat_id,
               'assign_type' => 'Group',
@@ -2790,6 +2793,7 @@ class Common extends CI_Controller
               'group_leader_id' => $leader_id,
               'member_id' => $member_id
             ]);
+            $this->CommonM->delete_fala_ni_niyaz_by_user_id($member_id, $miqaat_type, $hijri_year);
           }
           // Notify group leader and admins about group assignment (update)
           $this->load->model('EmailQueueM');

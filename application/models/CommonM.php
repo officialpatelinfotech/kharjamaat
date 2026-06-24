@@ -2425,7 +2425,23 @@ class CommonM extends CI_Model
   {
     $this->db->where('user_id', $user_id);
     $this->db->where('miqaat_type', $miqaat_type);
+
+    // Support range year format (e.g. 1447-48) as well as single year format (e.g. 1448)
+    $this->db->group_start();
     $this->db->where('year', $hijri_year);
+    if (is_numeric($hijri_year)) {
+      $single_year = (int)$hijri_year;
+      $this->db->or_where('year', ($single_year - 1) . '-' . substr((string)$single_year, -2));
+      $this->db->or_where('year', $single_year . '-' . substr((string)($single_year + 1), -2));
+    }
+    $this->db->group_end();
+
+    // Only target generic Fala ni Niyaz invoices, i.e. where miqaat_id is NULL or 0
+    $this->db->group_start();
+    $this->db->where('miqaat_id IS NULL', null, false);
+    $this->db->or_where('miqaat_id', 0);
+    $this->db->group_end();
+
     $this->db->delete('miqaat_invoice');
     return $this->db->affected_rows() > 0;
   }
