@@ -1187,7 +1187,12 @@ class AnjumanM extends CI_Model
           $effY = $yearStr;
         } else {
           $single_year = (int)$yearStr;
-          $effY = ($single_year - 1) . '-' . substr((string)$single_year, -2);
+          $p_type = !empty($prow['miqaat_type']) ? $prow['miqaat_type'] : ($prow['invoice_miqaat_type'] ?? '');
+          if ($p_type === 'Shehrullah') {
+            $effY = $single_year . '-' . substr((string)($single_year + 1), -2);
+          } else {
+            $effY = ($single_year - 1) . '-' . substr((string)$single_year, -2);
+          }
         }
       }
       if ($effY === null) {
@@ -1250,7 +1255,12 @@ class AnjumanM extends CI_Model
             $effYear = $yearStr;
           } else {
             $single_year = (int)$yearStr;
-            $effYear = ($single_year - 1) . '-' . substr((string)$yearStr, -2);
+            $r_type = !empty($row['miqaat_type']) ? $row['miqaat_type'] : ($row['invoice_miqaat_type'] ?? '');
+            if ($r_type === 'Shehrullah') {
+              $effYear = $single_year . '-' . substr((string)($single_year + 1), -2);
+            } else {
+              $effYear = ($single_year - 1) . '-' . substr((string)$yearStr, -2);
+            }
           }
         }
         if ($effYear === null) {
@@ -1383,7 +1393,12 @@ class AnjumanM extends CI_Model
             $effY = $yearStr;
           } else {
             $single_year = (int)$yearStr;
-            $effY = ($single_year - 1) . '-' . substr((string)$single_year, -2);
+            $p_type = !empty($prow['miqaat_type']) ? $prow['miqaat_type'] : ($prow['invoice_miqaat_type'] ?? '');
+            if ($p_type === 'Shehrullah') {
+              $effY = $single_year . '-' . substr((string)($single_year + 1), -2);
+            } else {
+              $effY = ($single_year - 1) . '-' . substr((string)$single_year, -2);
+            }
           }
         }
         if ($effY === null && !empty($prow['miqaat_id']) && !empty($prow['miqaat_date'])) {
@@ -1425,7 +1440,12 @@ class AnjumanM extends CI_Model
             $effYear = $yearStr;
           } else {
             $single_year = (int)$yearStr;
-            $effYear = ($single_year - 1) . '-' . substr((string)$single_year, -2);
+            $r_type = !empty($row['miqaat_type']) ? $row['miqaat_type'] : ($row['invoice_miqaat_type'] ?? '');
+            if ($r_type === 'Shehrullah') {
+              $effYear = $single_year . '-' . substr((string)($single_year + 1), -2);
+            } else {
+              $effYear = ($single_year - 1) . '-' . substr((string)$single_year, -2);
+            }
           }
         }
         if ($effYear === null && !empty($row['miqaat_id']) && !empty($row['miqaat_date'])) {
