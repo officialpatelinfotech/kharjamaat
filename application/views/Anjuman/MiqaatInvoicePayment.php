@@ -919,7 +919,7 @@
           </select>
         </div>
         <div class="col-md-1 mb-2">
-          <label for="pf-status">Status</label>
+          <label for="pf-status">Paid / Unpaid</label>
           <select id="pf-status" class="form-control">
             <option value="">All Status</option>
             <option value="paid">Paid</option>
@@ -964,7 +964,7 @@
       <div class="stat-breakdown-row text-danger"><span>Due:</span> <strong id="individual-due">₹0</strong></div>
     </div>
     <div class="miqaat-stat-card">
-      <div class="miqaat-stat-title">Fala ni Niyaz</div>
+      <div class="miqaat-stat-title">Niyaz Hoob Collection</div>
       <div class="stat-breakdown-row text-primary"><span>Invoiced:</span> <strong id="fala-invoiced">₹0</strong></div>
       <div class="stat-breakdown-row text-success"><span>Collected:</span> <strong id="fala-collected">₹0</strong></div>
       <div class="stat-breakdown-row text-danger"><span>Due:</span> <strong id="fala-due">₹0</strong></div>

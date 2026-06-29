@@ -448,8 +448,8 @@ if (!function_exists('format_inr')) {
 
       <div class="menu-section">Finance</div>
       <ul class="menu-list">
-        <li><a class="menu-item" href="<?php echo base_url('anjuman/fmbmodule') ?>"><span class="menu-icon"><i class="fa fa-money"></i></span><span class="menu-label">FMB Module</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('anjuman/sabeeltakhmeendashboard') ?>"><span class="menu-icon"><i class="fa fa-credit-card"></i></span><span class="menu-label">Sabeel Module</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('anjuman/fmbmodule') ?>"><span class="menu-icon"><i class="fa fa-money"></i></span><span class="menu-label">Niyaz & FMB Funds</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('anjuman/sabeeltakhmeendashboard') ?>"><span class="menu-icon"><i class="fa fa-credit-card"></i></span><span class="menu-label">Sabeel Funds</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/qardanhasana') ?>"><span class="menu-icon"><i class="fa fa-leaf"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
         <li><a class="menu-item" href="<?= base_url('anjuman/corpusfunds_receive') ?>"><span class="menu-icon"><i class="fa fa-university"></i></span><span class="menu-label">Corpus Funds</span></a></li>
         <li><a class="menu-item" href="<?= base_url('anjuman/ekramfunds_receive') ?>"><span class="menu-icon"><i class="fa fa-gift"></i></span><span class="menu-label">Ekram Fund Module</span></a></li>
@@ -577,41 +577,7 @@ if (!function_exists('format_inr')) {
         </div>
       </div>
 
-      <!-- Ashara Ohbat Status -->
-      <div class="section-header-standard ml-3 mr-3">
-        <h5 class="section-title"><i class="fa fa-calendar-check-o"></i> Ashara Ohbat Status</h5>
-        <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseAsharaOhbatStats" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
-      </div>
-      <div class="collapse show" id="collapseAsharaOhbatStats">
-        <div class="row px-3">
-          <?php 
-          $ohbat_bg_colors = [
-            'Will attend all 9 Days' => ['bg' => '#fef9c3', 'color' => '#854d0e', 'icon' => 'fa-calendar'],
-            'Not answering calls or messages' => ['bg' => '#fef2f2', 'color' => '#991b1b', 'icon' => 'fa-phone'],
-            "Musaaid didn't Contacted Yet" => ['bg' => '#f3f4f6', 'color' => '#374151', 'icon' => 'fa-clock-o'],
-            'Will attend few Days only' => ['bg' => '#ffedd5', 'color' => '#9a3412', 'icon' => 'fa-calendar-minus-o'],
-            'Will not attend any Day' => ['bg' => '#f5f5f4', 'color' => '#44403c', 'icon' => 'fa-times-circle'],
-            'Ashara with Maula tus' => ['bg' => '#ecfeff', 'color' => '#155e75', 'icon' => 'fa-star']
-          ];
-          foreach ($stats['ashara_ohbat_counts'] as $st_name => $cnt):
-            $cfg = isset($ohbat_bg_colors[$st_name]) ? $ohbat_bg_colors[$st_name] : ['bg' => '#f3f4f6', 'color' => '#374151', 'icon' => 'fa-info-circle'];
-          ?>
-          <div class="col-6 col-md-4 mb-3">
-            <a href="<?= base_url('anjuman/asharaohbat?status=' . rawurlencode($st_name)) ?>" style="text-decoration:none;color:inherit;display:block;">
-              <div class="overview-card">
-                <div class="overview-icon" style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;">
-                  <i class="fa <?= $cfg['icon'] ?>"></i>
-                </div>
-                <div class="overview-body">
-                  <span class="overview-title"><?= htmlspecialchars($st_name) ?></span>
-                  <span class="overview-value"><?= $cnt ?></span>
-                </div>
-              </div>
-            </a>
-          </div>
-          <?php endforeach; ?>
-        </div>
-      </div>
+
 
       <?php
       $status_counts = isset($stats['status_counts']) ? $stats['status_counts'] : [];
