@@ -1,204 +1,505 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
 <style>
-  td {
-    min-width: 130px;
+  :root {
+    --gold:        #b8860b;
+    --gold-light:  #e6c84a;
+    --gold-muted:  #f5e9c0;
+    --gold-deep:   #8a6408;
+    --bg:          #faf7f0;
+    --surface:     #ffffff;
+    --surface-2:   #f7f4ec;
+    --border:      #e8e0cc;
+    --text-1:      #1a1610;
+    --text-2:      #5a5244;
+    --text-3:      #9c8f7a;
+    --green:       #1a6645;
+    --green-bg:    #eaf4ee;
+    --green-border:#bbf7d0;
+    --red:         #b91c1c;
+    --red-bg:      #fef2f2;
+    --red-border:  #fecaca;
+    --blue:        #1d4ed8;
+    --blue-bg:     #eff6ff;
+    --blue-border: #bfdbfe;
+    --amber:       #b45309;
+    --amber-bg:    #fffbeb;
+    --purple:      #6d28d9;
+    --purple-bg:   #f5f3ff;
+    --radius-sm:   8px;
+    --radius:      14px;
+    --radius-lg:   20px;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow:      0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
   }
 
-  .status {
-    min-width: 170px;
+  body {
+    background: var(--bg);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-1);
   }
 
-  .chat-button {
-    display: inline-block;
-    padding: 10px 20px;
-    font-size: 18px;
-    font-weight: bold;
+  /* ── Page header ── */
+  .page-header-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin-bottom: 6px;
+  }
+  .btn-back-nav {
+    position: absolute; left: 0;
+    width: 38px; height: 38px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2); font-size: 14px;
     text-decoration: none;
-    color: #fff;
-    background-color: #007bff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+    box-shadow: var(--shadow-sm);
+    transition: all .15s;
   }
+  .btn-back-nav:hover { background: var(--gold-muted); border-color: var(--gold); color: var(--gold); text-decoration: none; }
 
-  /* Hover effect */
-  .chat-button:hover {
-    background-color: #0056b3;
-    color: white;
-    text-decoration: none;
-  }
-
-  .chat-count {
-    display: inline-block;
-    width: 25px;
-    height: 25px;
-    background-color: grey;
-    color: white;
-    border-radius: 50%;
-    /* Make it circular */
+  .page-heading {
+    font-family: 'Literata', Georgia, serif;
+    color: var(--gold);
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -.3px;
+    margin: 0;
     text-align: center;
-    line-height: 25px;
-    font-size: 14px;
-    font-weight: bold;
-    margin-left: 5px;
-    /* Adjust as needed */
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
-    /* Add shadow for depth */
+  }
+  .page-sub {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--text-3);
+    text-align: center;
+    margin-top: 4px;
+  }
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 18px 0 22px; }
+
+  /* ── Toolbar: search + new request ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .search-wrap {
+    position: relative;
+    flex: 1;
+  }
+  .search-icon-left {
+    position: absolute;
+    left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--gold); font-size: 13px; pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    background: var(--surface);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-1);
+    box-shadow: var(--shadow-sm);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .search-input::placeholder { color: var(--text-3); font-weight: 400; }
+  .search-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(184,134,11,0.12);
+  }
+  .btn-new-request {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+    color: #fff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.82rem; font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(184,134,11,0.3);
+    transition: all .18s;
+  }
+  .btn-new-request:hover {
+    background: linear-gradient(135deg, var(--gold-deep), #6b4d06);
+    box-shadow: 0 4px 14px rgba(184,134,11,0.4);
+    transform: translateY(-1px);
+    text-decoration: none; color: #fff;
+  }
+
+  /* ── Table card ── */
+  .table-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+  .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ── Table ── */
+  .raza-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+  }
+  .raza-table thead tr {
+    background: var(--surface-2);
+    border-bottom: 1.5px solid var(--border);
+  }
+  .raza-table thead th {
+    padding: 12px 16px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    color: var(--text-3);
+    white-space: nowrap;
+    border: none;
+  }
+  .raza-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .12s;
+  }
+  .raza-table tbody tr:last-child { border-bottom: none; }
+  .raza-table tbody tr:hover { background: #fdfbf5; }
+  .raza-table td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    border: none;
+    color: var(--text-2);
+  }
+
+  /* date cell */
+  .td-date .date-main { font-size: 0.82rem; font-weight: 600; color: var(--text-1); }
+  .td-date .date-sub  { font-size: 0.7rem; color: var(--text-3); margin-top: 2px; }
+
+  /* raza type */
+  .td-raza { font-weight: 600; color: var(--text-1); font-size: 0.83rem; }
+
+  /* name */
+  .td-name { font-size: 0.82rem; color: var(--text-2); }
+
+  /* ── Overall status badge ── */
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px;
+    border-radius: 40px;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: .3px;
+    white-space: nowrap;
+  }
+  .s-pending        { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--blue-border); }
+  .s-recommended    { background: var(--amber-bg);  color: var(--amber);  border: 1px solid #fde68a; }
+  .s-approved       { background: var(--green-bg);  color: var(--green);  border: 1px solid var(--green-border); }
+  .s-rejected       { background: var(--red-bg);    color: var(--red);    border: 1px solid var(--red-border); }
+  .s-not-recommended{ background: var(--purple-bg); color: var(--purple); border: 1px solid #ddd6fe; }
+
+  /* ── Approval pipeline ── */
+  .approval-pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 8px;
+  }
+  .pipeline-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-3);
+  }
+  .step-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; flex-shrink: 0;
+  }
+  .step-pending  { background: #fef9c3; color: #854d0e; border: 1.5px solid #fde68a; }
+  .step-done     { background: var(--green-bg); color: var(--green); border: 1.5px solid var(--green-border); }
+  .step-rejected { background: var(--red-bg); color: var(--red); border: 1.5px solid var(--red-border); }
+
+  /* ── Chat button ── */
+  .btn-chat {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--blue-bg);
+    border: 1.5px solid var(--blue-border);
+    color: var(--blue);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.75rem; font-weight: 700;
+    text-decoration: none;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn-chat:hover { background: var(--blue); color: #fff; border-color: var(--blue); text-decoration: none; }
+  .chat-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px;
+    background: var(--blue);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.6rem; font-weight: 800;
+  }
+  .btn-chat:hover .chat-badge { background: rgba(255,255,255,0.3); color: #fff; }
+
+  /* ── Action buttons ── */
+  .action-wrap { display: flex; gap: 6px; align-items: center; }
+  .btn-action {
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    text-decoration: none;
+  }
+  .btn-edit  { color: var(--blue); }
+  .btn-edit:hover  { background: var(--blue-bg); border-color: var(--blue-border); }
+  .btn-delete{ color: var(--red); }
+  .btn-delete:hover{ background: var(--red-bg); border-color: var(--red-border); }
+
+  /* ── Empty state ── */
+  .empty-state {
+    padding: 56px 24px;
+    text-align: center;
+  }
+  .empty-state .fa { font-size: 2.5rem; color: var(--border); margin-bottom: 12px; }
+  .empty-state p { font-size: 0.88rem; color: var(--text-3); font-weight: 500; margin: 0; }
+
+  /* ── Mobile card view (below 640px) ── */
+  @media (max-width: 640px) {
+    .raza-table thead { display: none; }
+    .raza-table tbody tr {
+      display: block;
+      background: var(--surface);
+      margin: 0 0 1px;
+      border-bottom: 1px solid var(--border) !important;
+    }
+    .raza-table td {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .raza-table td:last-child { border-bottom: none; }
+    .raza-table td::before {
+      content: attr(data-label);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      flex-shrink: 0;
+      min-width: 80px;
+      padding-top: 2px;
+    }
+    .page-heading { font-size: 1.2rem; }
+    .toolbar { flex-wrap: wrap; }
+    .btn-new-request { width: 100%; justify-content: center; }
   }
 </style>
+
 <div class="margintopcontainer pt-5">
   <div class="container">
-    <div class="">
-      <a href="<?php echo base_url('accounts/home'); ?>" class="btn btn-outline-secondary">
+
+    <!-- ── Page Header ── -->
+    <div class="page-header-wrap">
+      <a href="<?php echo base_url('accounts/home'); ?>" class="btn-back-nav">
         <i class="fa fa-arrow-left"></i>
       </a>
+      <h1 class="page-heading">My Raza Requests</h1>
     </div>
-    <p class="h4 text-center" style="text-transform: uppercase; color: goldenrod;">My Raza Request For <?php echo $value ?></p>
-    <div class="container">
-      <div class="row mt-5">
-        <form class="form-inline my-2 my-lg-0 w-100">
-          <div class="input-group">
-            <input class="form-control" type="search" placeholder="Search" aria-label="Search" id="razaSearchInput">
-            <div class="input-group-append">
-              <span class="input-group-text">
-                <i class="fa fa-search"></i>
-              </span>
-            </div>
-          </div>
-          <a class="form-control btn btn-success my-2 my-lg-0 ml-auto" href="<?php echo base_url('Umoor12/NewRaza?value=' . $value); ?>">New Request</a>
+    <?php
+      $value_display = preg_replace('/([a-z])([A-Z])/', '$1 $2', $value);
+      $value_display = preg_replace('/([A-Z]+)([A-Z][a-z])/', '$1 $2', $value_display);
+    ?>
+    <p class="page-sub"><?= htmlspecialchars($value_display) ?></p>
 
-        </form>
+    <hr class="section-divider">
+
+    <!-- ── Toolbar ── -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <i class="fa fa-search search-icon-left"></i>
+        <input type="search" class="search-input" id="razaSearchInput" placeholder="Search requests…" autocomplete="off">
       </div>
+      <a class="btn-new-request" href="<?php echo base_url('Umoor12/NewRaza?value=' . $value); ?>">
+        <i class="fa fa-plus"></i> New Request
+      </a>
     </div>
-    <div class="table-responsive mt-5 mb-5">
-      <div class="table-container">
-        <table class="table table-bordered text-center">
+
+    <!-- ── Table card ── -->
+    <div class="table-card">
+      <div class="table-responsive">
+        <table class="raza-table" id="razaTable">
           <thead>
             <tr>
-              <th class="created">Created</th>
-              <th class="raza">Raza For</th>
-              <th class="date">Name</th>
-              <th class="approval_status">Status</th>
-              <th class="approval_status">Remark</th>
-              <th class="action">Action</th>
+              <th>Created</th>
+              <th>Raza For</th>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Chat</th>
+              <th>Action</th>
             </tr>
-            <?php
-            foreach ($raza as $r) { ?>
-              <tr>
-                <td>
-                  <?php echo date('D, d M @ g:i a', strtotime($r['time-stamp'])) ?>
-                </td>
-                <td>
-                  <?php echo $r['razaType'] ?>
-                </td>
-                <td>
-                  <?php echo $r['user_name'] ?>
-                </td>
-                <td class="status">
-                  <div class="text-left">
-                    <ul>
-                      <?php if ($r['status'] == 0) {
-                        echo '<div><strong style="color: darkblue;">Pending</strong></div>';
-                      } elseif ($r['status'] == 1) {
-                        echo '<div><strong style="color: blue;">Recommended</strong></div>';
-                      } elseif ($r['status'] == 2) {
-                        echo '<div><strong style="color: limegreen;">Approved</strong></div>';
-                      } elseif ($r['status'] == 3) {
-                        echo '<div><strong style="color: red;">Rejected</strong></div>';
-                      } elseif ($r['status'] == 4) {
-                        echo '<div><strong style="color: blue;">Not Recommended</strong></div>';
-                      } ?>
-                      <li>
-                        <?php if ($r['coordinator-status'] == 0) {
-                          echo '<div>Jamat <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
-                        } elseif ($r['coordinator-status'] == 1) {
-                          echo '<div>Jamat <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
-                        } elseif ($r['coordinator-status'] == 2) {
-                          echo '<div>Jamat <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
-                        } ?>
-                      </li>
-                      <li>
-                        <?php if ($r['Janab-status'] == 0) {
-                          echo '<div>Amil Saheb <i class="fa-solid fa-clock" style="color: #fff700;"></i></div>';
-                        } elseif ($r['Janab-status'] == 1) {
-                          echo '<div>Amil Saheb <i class="fa-solid fa-circle-check" style="color: limegreen;"></i></div>';
-                        } elseif ($r['Janab-status'] == 2) {
-                          echo '<div>Amil Saheb <i class="fa-solid fa-circle-xmark" style="color: red;"></i></div>';
-                        } ?>
-                      </li>
-                    </ul>
-                  </div>
-                </td>
-                <td>
-                  <a href="<?= base_url('Accounts/chat/') . $r['id'] ?>" class="chat-button">
-                    Chat<?= isset($r['chat_count']) && $r['chat_count'] > 0 ? '<div class="chat-count">' . $r['chat_count'] . '</div>' : '' ?>
-                  </a>
-                </td>
-                <td>
-                  <?php if ($r['coordinator-status'] == 0) { ?>
-                    <button type="button" class="btn btn-sm btn-primary remove-form-row" onclick="redirectto('umoor12/edit_raza/<?php echo $r['id'] ?>?value=<?php echo $value ?>');"><i class="fa <?php echo $r['razaType_id'] == 2 ? "fa-eye" : "fa-pen-to-square"; ?>"></i></button>
-                    <button type="button" class="btn btn-sm btn-danger remove-form-row" onclick="redirecttodelete('umoor12/DeleteRaza/<?php echo $r['id'] ?>?value=<?php echo $value ?>');">
-                      <i class="fa fa-trash-alt"></i>
-                    </button>
-                  <?php } ?>
-                </td>
-              </tr>
-            <?php } ?>
           </thead>
-          <tbody></tbody>
-          <tfoot></tfoot>
+          <tbody>
+            <?php if (empty($raza)): ?>
+            <tr>
+              <td colspan="6" style="padding:0; border:none;">
+                <div class="empty-state">
+                  <i class="fa fa-inbox"></i>
+                  <p>No Raza requests found</p>
+                </div>
+              </td>
+            </tr>
+            <?php else: ?>
+            <?php foreach ($raza as $r): ?>
+            <tr>
+              <!-- Date -->
+              <td data-label="Created" class="td-date">
+                <div class="date-main"><?= date('d M Y', strtotime($r['time-stamp'])) ?></div>
+                <div class="date-sub"><?= date('D @ g:i a', strtotime($r['time-stamp'])) ?></div>
+              </td>
+
+              <!-- Raza Type -->
+              <td data-label="Raza For" class="td-raza"><?= htmlspecialchars($r['razaType']) ?></td>
+
+              <!-- Name -->
+              <td data-label="Name" class="td-name"><?= htmlspecialchars($r['user_name']) ?></td>
+
+              <!-- Status -->
+              <td data-label="Status">
+                <?php
+                  $statusMap = [
+                    0 => ['s-pending',         'Pending'],
+                    1 => ['s-recommended',     'Recommended'],
+                    2 => ['s-approved',        'Approved'],
+                    3 => ['s-rejected',        'Rejected'],
+                    4 => ['s-not-recommended', 'Not Recommended'],
+                  ];
+                  [$cls, $lbl] = $statusMap[$r['status']] ?? ['s-pending', 'Pending'];
+                ?>
+                <span class="status-badge <?= $cls ?>">
+                  <?= $lbl ?>
+                </span>
+
+                <!-- Approval pipeline -->
+                <div class="approval-pipeline">
+                  <!-- Jamat (coordinator) -->
+                  <?php
+                    $cs = (int)$r['coordinator-status'];
+                    $cDot  = $cs === 1 ? 'step-done' : ($cs === 2 ? 'step-rejected' : 'step-pending');
+                    $cIcon = $cs === 1 ? 'fa-check' : ($cs === 2 ? 'fa-times' : 'fa-clock-o');
+                  ?>
+                  <div class="pipeline-step">
+                    <span class="step-dot <?= $cDot ?>"><i class="fa <?= $cIcon ?>"></i></span>
+                    Jamat
+                  </div>
+                  <!-- Amil Saheb (janab) -->
+                  <?php
+                    $js = (int)$r['Janab-status'];
+                    $jDot  = $js === 1 ? 'step-done' : ($js === 2 ? 'step-rejected' : 'step-pending');
+                    $jIcon = $js === 1 ? 'fa-check' : ($js === 2 ? 'fa-times' : 'fa-clock-o');
+                  ?>
+                  <div class="pipeline-step">
+                    <span class="step-dot <?= $jDot ?>"><i class="fa <?= $jIcon ?>"></i></span>
+                    Amil Saheb
+                  </div>
+                </div>
+              </td>
+
+              <!-- Chat -->
+              <td data-label="Chat">
+                <a href="<?= base_url('Accounts/chat/') . $r['id'] ?>" class="btn-chat">
+                  <i class="fa fa-comments"></i> Chat
+                  <?php if (!empty($r['chat_count']) && $r['chat_count'] > 0): ?>
+                    <span class="chat-badge"><?= $r['chat_count'] ?></span>
+                  <?php endif; ?>
+                </a>
+              </td>
+
+              <!-- Action -->
+              <td data-label="Action">
+                <?php if ($r['coordinator-status'] == 0): ?>
+                <div class="action-wrap">
+                  <button
+                    class="btn-action btn-edit"
+                    title="<?= $r['razaType_id'] == 2 ? 'View' : 'Edit' ?>"
+                    onclick="redirectto('umoor12/edit_raza/<?= $r['id'] ?>?value=<?= $value ?>')">
+                    <i class="fa <?= $r['razaType_id'] == 2 ? 'fa-eye' : 'fa-pencil' ?>"></i>
+                  </button>
+                  <button
+                    class="btn-action btn-delete"
+                    title="Delete"
+                    onclick="redirecttodelete('umoor12/DeleteRaza/<?= $r['id'] ?>?value=<?= $value ?>')">
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </div>
+                <?php else: ?>
+                  <span style="font-size:0.7rem; color:var(--text-3);">—</span>
+                <?php endif; ?>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+            <?php endif; ?>
+          </tbody>
         </table>
       </div>
     </div>
-  </div>
+
+  </div><!-- /.container -->
 </div>
+
 <script>
   function redirecttodelete(location) {
-    let check = confirm('Do you want to Delete this Raza')
-    if (check) {
+    if (confirm('Do you want to delete this Raza?')) {
       window.location.href = '<?php echo base_url() ?>' + location;
     }
   }
-
   function redirectto(location) {
     window.location.href = '<?php echo base_url() ?>' + location;
-
   }
 </script>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
 <script>
-  $(document).ready(function() {
-    // Function to handle the search functionality
-    function performSearch() {
-      var input, filter, table, tr, td, i, txtValue;
-      input = document.getElementById("razaSearchInput");
-      filter = input.value.toLowerCase();
-      table = document.getElementsByTagName("table")[0]; // Assuming it's the first table on the page
-      tr = table.getElementsByTagName("tr");
-
-      // Loop through all table rows and hide those that don't match the search query
-      for (i = 1; i < tr.length; i++) {
-        td = tr[i].getElementsByTagName("td");
+  $(document).ready(function () {
+    document.getElementById('razaSearchInput').addEventListener('keyup', function () {
+      var filter = this.value.toLowerCase();
+      var table  = document.getElementById('razaTable');
+      var rows   = table.getElementsByTagName('tr');
+      for (var i = 1; i < rows.length; i++) {
+        var tds   = rows[i].getElementsByTagName('td');
         var found = false;
-        for (var j = 0; j < td.length; j++) {
-          if (td[j]) {
-            txtValue = td[j].textContent || td[j].innerText;
-            if (txtValue.toLowerCase().indexOf(filter) > -1) {
-              found = true;
-              break;
-            }
+        for (var j = 0; j < tds.length; j++) {
+          if (tds[j]) {
+            var txt = tds[j].textContent || tds[j].innerText;
+            if (txt.toLowerCase().indexOf(filter) > -1) { found = true; break; }
           }
         }
-        if (found) {
-          tr[i].style.display = "";
-        } else {
-          tr[i].style.display = "none";
-        }
+        rows[i].style.display = found ? '' : 'none';
       }
-    }
-
-    // Attach the performSearch function to the input field's keyup event
-    document.getElementById("razaSearchInput").addEventListener("keyup", performSearch);
+    });
   });
 </script>
