@@ -1,285 +1,550 @@
 <?php $this->load->view('Accounts/Header'); ?>
 
-<div class="container margintopcontainer pt-5">
-    <div class="row align-items-center mb-4 pt-5">
-        <div class="col-12 col-md-3 text-center text-md-left mb-3 mb-md-0">
-            <a href="<?= base_url('accounts/home') ?>" class="btn btn-outline-secondary btn-sm" style="padding: 0.25rem 0.6rem; border-radius: 8px;">
-                <i class="fa fa-arrow-left" style="font-size: 1.1rem;"></i>
-            </a>
-        </div>
-        <div class="col-12 col-md-6 text-center">
-            <h2 class="heading mb-0">Laagat & Rent Invoices</h2>
-        </div>
-        <div class="col-md-3 d-none d-md-block"></div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --gold:        #b8860b;
+    --gold-light:  #e6c84a;
+    --gold-muted:  #f5e9c0;
+    --gold-deep:   #8a6408;
+    --bg:          #faf7f0;
+    --surface:     #ffffff;
+    --surface-2:   #f7f4ec;
+    --border:      #e8e0cc;
+    --text-1:      #1a1610;
+    --text-2:      #5a5244;
+    --text-3:      #9c8f7a;
+    --green:       #1a6645;
+    --green-bg:    #eaf4ee;
+    --green-border:#bbf7d0;
+    --red:         #b91c1c;
+    --red-bg:      #fef2f2;
+    --red-border:  #fecaca;
+    --blue:        #1d4ed8;
+    --blue-bg:     #eff6ff;
+    --blue-border: #bfdbfe;
+    --amber:       #b45309;
+    --amber-bg:    #fffbeb;
+    --amber-border:#fde68a;
+    --radius-sm:   8px;
+    --radius:      14px;
+    --radius-lg:   20px;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow:      0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  body { background: var(--bg); font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-1); }
+
+  /* ── Page header ── */
+  .page-header-wrap {
+    position: relative; display: flex; align-items: center;
+    justify-content: center; min-height: 44px; margin-bottom: 6px;
+  }
+  .btn-back-nav {
+    position: absolute; left: 0; width: 38px; height: 38px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+    background: var(--surface); color: var(--text-2); font-size: 14px;
+    text-decoration: none; box-shadow: var(--shadow-sm); transition: all .15s;
+  }
+  .btn-back-nav:hover { background: var(--gold-muted); border-color: var(--gold); color: var(--gold); text-decoration: none; }
+  .page-heading { font-family: 'Literata', Georgia, serif; color: var(--gold); font-size: 1.5rem; font-weight: 600; letter-spacing: -.3px; margin: 0; text-align: center; }
+  .page-sub { font-size: 0.72rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-3); text-align: center; margin-top: 4px; }
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 18px 0 26px; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    padding: 56px 24px; text-align: center;
+  }
+  .empty-state .fa { font-size: 2.5rem; color: var(--border); display: block; margin-bottom: 14px; }
+  .empty-state p { font-size: 0.88rem; color: var(--text-3); font-weight: 500; margin: 0; }
+
+  /* ── Invoice card ── */
+  .inv-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    overflow: hidden; display: flex; flex-direction: column;
+    transition: box-shadow .2s, border-color .2s;
+    height: 100%;
+  }
+  .inv-card:hover { box-shadow: var(--shadow); border-color: rgba(184,134,11,0.3); }
+  .inv-card::before { content: ''; display: block; height: 3px; }
+  .inv-card.is-paid::before   { background: linear-gradient(90deg, var(--green), #4cc790); }
+  .inv-card.is-due::before    { background: linear-gradient(90deg, var(--red),   #f87171); }
+
+  /* card header */
+  .inv-card-header {
+    padding: 16px 20px 14px; background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .inv-title { font-size: 0.95rem; font-weight: 700; color: var(--text-1); margin: 0 0 3px; line-height: 1.3; }
+  .inv-raza-type { font-size: 0.7rem; font-weight: 600; color: var(--text-3); letter-spacing: .2px; }
+
+  .inv-meta-right { text-align: right; flex-shrink: 0; }
+  .inv-id { font-size: 0.65rem; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--text-3); }
+  .inv-raza-id { font-size: 0.72rem; font-weight: 700; color: var(--text-2); margin-top: 2px; }
+
+  /* status badges */
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 40px;
+    font-size: 0.63rem; font-weight: 700; letter-spacing: .3px;
+    margin-top: 5px; white-space: nowrap;
+  }
+  .pill-paid      { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .pill-approved  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .pill-rejected  { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-border); }
+  .pill-pending   { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+
+  /* card body */
+  .inv-card-body { padding: 16px 20px; flex: 1; }
+
+  /* amount strip */
+  .amt-strip {
+    display: flex; gap: 0;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    overflow: hidden; margin-bottom: 14px;
+  }
+  .amt-cell {
+    flex: 1; padding: 10px 12px; text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .amt-cell:last-child { border-right: none; }
+  .amt-label { font-size: 0.6rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
+  .amt-value { font-size: 0.92rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .amt-total   { color: var(--blue); }
+  .amt-paid    { color: var(--green); }
+  .amt-due-pos { color: var(--red); }
+  .amt-due-zero{ color: var(--green); }
+
+  /* breakdown strip */
+  .breakdown-strip {
+    display: flex; gap: 10px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 9px 12px;
+    margin-bottom: 14px; font-size: 0.75rem;
+  }
+  .breakdown-item { flex: 1; }
+  .breakdown-item .bl { font-size: 0.6rem; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--text-3); margin-bottom: 2px; }
+  .breakdown-item .bv { font-weight: 700; }
+  .bv-green { color: var(--green); }
+  .bv-blue  { color: var(--blue); }
+  .bv-amber { color: var(--amber); }
+
+  /* hijri year chip */
+  .hijri-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: .3px;
+    color: var(--text-3); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 40px; padding: 3px 10px;
+  }
+
+  /* card footer */
+  .inv-card-footer {
+    padding: 12px 20px 16px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* action buttons */
+  .btn-pay {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 18px; border-radius: var(--radius-sm); border: none;
+    background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+    color: #fff; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    box-shadow: 0 2px 6px rgba(184,134,11,0.25); transition: all .18s;
+  }
+  .btn-pay:hover { background: linear-gradient(135deg, var(--gold-deep), #6b4d06); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(184,134,11,0.35); }
+
+  .btn-history {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--text-2); font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all .15s;
+  }
+  .btn-history:hover { background: var(--gold-muted); border-color: var(--gold); color: var(--gold-deep); }
+
+  /* ── Shared modal styles ── */
+  .modal-content {
+    border: 1.5px solid var(--border) !important; border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-lg) !important; overflow: hidden;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .modal-header {
+    background: var(--surface-2); border-bottom: 1px solid var(--border);
+    padding: 18px 24px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title {
+    font-family: 'Literata', Georgia, serif; font-size: 1.1rem;
+    font-weight: 600; color: var(--gold); margin: 0;
+  }
+  .modal-header .close {
+    width: 32px; height: 32px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; cursor: pointer; color: var(--text-2);
+    transition: all .15s; padding: 0; opacity: 1; text-shadow: none;
+  }
+  .modal-header .close:hover { background: var(--red-bg); border-color: var(--red-border); color: var(--red); }
+  .modal-body   { background: var(--bg); padding: 20px 24px; }
+  .modal-footer { background: var(--surface-2); border-top: 1px solid var(--border); padding: 14px 24px; display: flex; justify-content: flex-end; gap: 10px; }
+
+  /* ── Modal form controls (standard spec) ── */
+  .modal-form-label {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: .5px;
+    text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; display: block;
+  }
+  .modal-form-control {
+    width: 100%; height: 52px; padding: 0 16px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px; font-weight: 500; color: var(--text-1); line-height: 50px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: border-color .2s, box-shadow .2s;
+    appearance: none; -webkit-appearance: none; box-sizing: border-box;
+  }
+  .modal-form-control:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px rgba(184,134,11,0.12); }
+  select.modal-form-control {
+    padding-right: 42px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23b8860b' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+  }
+  .form-help { font-size: 0.7rem; color: var(--text-3); margin-top: 6px; }
+  .form-group-modal { margin-bottom: 16px; }
+
+  /* invoice title display */
+  .inv-title-display {
+    height: 52px; padding: 0 16px; display: flex; align-items: center;
+    background: var(--surface-2); border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 0.88rem;
+    font-weight: 700; color: var(--gold-deep); box-sizing: border-box;
+  }
+
+  /* modal buttons */
+  .btn-modal-cancel {
+    padding: 9px 20px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--text-2); font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all .15s;
+  }
+  .btn-modal-cancel:hover { background: var(--surface-2); }
+  .btn-modal-proceed {
+    padding: 9px 22px; border-radius: var(--radius-sm); border: none;
+    background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+    color: #fff; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all .15s;
+    box-shadow: 0 2px 8px rgba(184,134,11,0.25);
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn-modal-proceed:hover { background: linear-gradient(135deg, var(--gold-deep), #6b4d06); }
+  .btn-modal-proceed::before { content: '\f023'; font-family: FontAwesome; font-size: 12px; }
+
+  /* history table */
+  .history-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .history-table thead th {
+    font-size: 0.63rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+    color: var(--text-3); padding: 9px 14px; border-bottom: 1.5px solid var(--border);
+    background: var(--surface-2); white-space: nowrap;
+  }
+  .history-table tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: middle; }
+  .history-table tbody tr:last-child td { border-bottom: none; }
+  .history-table tbody tr:hover { background: #fdfbf5; }
+
+  .method-pill {
+    display: inline-block; padding: 2px 9px; border-radius: 40px;
+    font-size: 0.65rem; font-weight: 700;
+    background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border);
+  }
+  .btn-receipt {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--blue-border); background: var(--blue-bg);
+    color: var(--blue); font-size: 12px; cursor: pointer; transition: all .15s;
+  }
+  .btn-receipt:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  @media (max-width: 575px) {
+    .page-heading { font-size: 1.2rem; }
+    .inv-card-footer { flex-direction: column; align-items: stretch; }
+    .btn-pay, .btn-history { justify-content: center; }
+    .modal-header, .modal-body, .modal-footer { padding: 14px 16px !important; }
+  }
+</style>
+
+<div class="container margintopcontainer pt-5 pb-5">
+
+  <!-- ── Header ── -->
+  <div class="page-header-wrap pt-5">
+    <a href="<?= base_url('accounts/home') ?>" class="btn-back-nav"><i class="fa fa-arrow-left"></i></a>
+    <h1 class="page-heading">Laagat &amp; Rent Invoices</h1>
+  </div>
+  <p class="page-sub">Your laagat, rent &amp; deposit invoices</p>
+  <hr class="section-divider">
+
+  <?php if (empty($invoices)): ?>
+    <div class="empty-state">
+      <i class="fa fa-file-text-o"></i>
+      <p>No Laagat or Rent invoices found for your family.</p>
     </div>
 
-    <?php if (empty($invoices)): ?>
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="alert alert-info shadow-sm border-0">
-                    <i class="fa fa-info-circle mr-2"></i> No Laagat or Rent invoices found for your family.
-                </div>
+  <?php else: ?>
+    <div class="row">
+      <?php foreach ($invoices as $inv):
+        $due         = (float)$inv['master_amount'] - (float)$inv['paid_amount'];
+        $is_paid     = $due <= 0;
+        $cardClass   = $is_paid ? 'is-paid' : 'is-due';
+        $janab       = $inv['janab_status'];
+        $jAmt        = (float)$inv['jamaat_amount'];
+        $sAmt        = (float)$inv['sarkaar_amount'];
+        $tAmt        = (float)$inv['master_amount'];
+        if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) { $jAmt = $tAmt; }
+      ?>
+      <div class="col-12 col-md-6 mb-4 d-flex">
+        <div class="inv-card <?= $cardClass ?> w-100">
+
+          <!-- card header -->
+          <div class="inv-card-header">
+            <div>
+              <h5 class="inv-title"><?= htmlspecialchars($inv['title']) ?></h5>
+              <?php if ($inv['raza_type_name']): ?>
+                <div class="inv-raza-type"><?= htmlspecialchars($inv['raza_type_name']) ?></div>
+              <?php endif; ?>
+              <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:5px;">
+                <?php if ($is_paid): ?>
+                  <span class="status-pill pill-paid"><i class="fa fa-check"></i> Paid</span>
+                <?php endif; ?>
+                <?php if ($janab === null): ?>
+                <?php elseif ((int)$janab === 1): ?>
+                  <span class="status-pill pill-approved"><i class="fa fa-check"></i> Raza Approved</span>
+                <?php elseif ((int)$janab === 2): ?>
+                  <span class="status-pill pill-rejected"><i class="fa fa-times"></i> Raza Rejected</span>
+                <?php else: ?>
+                  <span class="status-pill pill-pending"><i class="fa fa-clock-o"></i> Raza Pending</span>
+                <?php endif; ?>
+              </div>
             </div>
-        </div>
-    <?php else: ?>
-        <div class="row justify-content-center">
-            <?php foreach ($invoices as $inv): ?>
-                <?php 
-                    $due = (float)$inv['master_amount'] - (float)$inv['paid_amount'];
-                    $status_class = $due <= 0 ? 'success' : 'danger';
-                    $is_paid = $due <= 0;
-                ?>
-                <div class="col-md-6 mb-4">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <h5 class="card-title mb-0 text-primary"><?= htmlspecialchars($inv['title']) ?></h5>
-                                    <div class="small text-muted"><?= htmlspecialchars($inv['raza_type_name'] ?: '') ?></div>
-                                    <?php if ($is_paid): ?>
-                                        <span class="badge badge-success px-2 py-1 mt-1 rounded-pill">Paid</span>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="text-right">
-                                    <div class="small text-muted">Invoice ID: #<?= $inv['id'] ?></div>
-                                    <div class="font-weight-bold"> Raza ID : R#<?= htmlspecialchars($inv['generated_raza_id'] ?: 'N/A') ?></div>
-                                    <?php if ($inv['janab_status'] === null): ?>
-                                        <!-- No status badge -->
-                                    <?php elseif ((int)$inv['janab_status'] === 1): ?>
-                                        <span class="badge badge-success px-2 py-1 mt-1 rounded-pill">Raza Approved</span>
-                                    <?php elseif ((int)$inv['janab_status'] === 2): ?>
-                                        <span class="badge badge-danger px-2 py-1 mt-1 rounded-pill">Raza Rejected</span>
-                                    <?php else: ?>
-                                        <span class="badge badge-warning px-2 py-1 mt-1 rounded-pill">Raza Pending Approval</span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            
-                            <div class="row border-top pt-3">
-                                <div class="col-4">
-                                    <div class="small text-muted">Total Amount</div>
-                                    <div class="font-weight-bold">₹<?= format_inr((float)$inv['master_amount'], 0) ?></div>
-                                </div>
-                                <div class="col-4 text-center">
-                                    <div class="small text-muted">Paid</div>
-                                    <div class="font-weight-bold text-success">₹<?= format_inr((float)$inv['paid_amount'], 0) ?></div>
-                                </div>
-                                <div class="col-4 text-right">
-                                    <div class="small text-muted">Outstanding</div>
-                                    <div class="font-weight-bold text-<?= $status_class ?>">₹<?= format_inr($due, 0) ?></div>
-                                </div>
-                            </div>
+            <div class="inv-meta-right">
+              <div class="inv-id">Invoice #<?= $inv['id'] ?></div>
+              <div class="inv-raza-id">R#<?= htmlspecialchars($inv['generated_raza_id'] ?: 'N/A') ?></div>
+            </div>
+          </div>
 
-                            <?php
-                                $jAmt = (float)$inv['jamaat_amount'];
-                                $sAmt = (float)$inv['sarkaar_amount'];
-                                $tAmt = (float)$inv['master_amount'];
-                                if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) {
-                                    $jAmt = $tAmt;
-                                }
-                            ?>
-                            <?php if ($inv['charge_type'] !== 'rent'): ?>
-                            <div class="row mt-2 bg-light p-2 rounded mx-0" style="font-size: 0.85rem;">
-                                <div class="col-6 pl-1">
-                                    <span class="text-muted">Jamaat Laagat:</span> <span class="font-weight-bold text-success">₹<?= format_inr($jAmt, 0) ?></span>
-                                </div>
-                                <div class="col-6 text-right pr-1">
-                                    <span class="text-muted">Sarkaar Laagat:</span> <span class="font-weight-bold text-info">₹<?= format_inr($sAmt, 0) ?></span>
-                                </div>
-                            </div>
-                            <?php else: ?>
-                            <?php if (!empty($inv['deposit_amount']) && (float)$inv['deposit_amount'] > 0): ?>
-                            <div class="row mt-2 bg-light p-2 rounded mx-0" style="font-size: 0.85rem;">
-                                <div class="col-12 pl-1">
-                                    <span class="text-muted">Deposit Amount:</span> <span class="font-weight-bold text-warning">₹<?= format_inr((float)$inv['deposit_amount'], 0) ?></span>
-                                </div>
-                            </div>
-                            <?php endif; ?>
-                            <?php endif; ?>
+          <!-- card body -->
+          <div class="inv-card-body">
 
-                            <div class="mt-3 text-center">
-                                <?php if ((int)$inv['janab_status'] === 1 && $due > 0): ?>
-                                    <button type="button" class="btn btn-sm btn-primary mr-2" 
-                                            onclick="payInvoice(<?= $inv['id'] ?>, <?= $due ?>, '<?= htmlspecialchars($inv['title']) ?>', '<?= htmlspecialchars($inv['charge_type']) ?>', '<?= htmlspecialchars($inv['ITS_ID']) ?>')">
-                                        <i class="fa fa-credit-card me-1"></i> Pay Now
-                                    </button>
-                                <?php endif; ?>
-                                <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-4" 
-                                        onclick="showHistory(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['title']) ?>')">
-                                    <i class="fa fa-history mr-1"></i> Payment History
-                                </button>
-                            </div>
+            <!-- amount strip -->
+            <div class="amt-strip">
+              <div class="amt-cell">
+                <div class="amt-label">Total</div>
+                <div class="amt-value amt-total">₹<?= format_inr($tAmt, 0) ?></div>
+              </div>
+              <div class="amt-cell">
+                <div class="amt-label">Paid</div>
+                <div class="amt-value amt-paid">₹<?= format_inr((float)$inv['paid_amount'], 0) ?></div>
+              </div>
+              <div class="amt-cell">
+                <div class="amt-label">Outstanding</div>
+                <div class="amt-value <?= $is_paid ? 'amt-due-zero' : 'amt-due-pos' ?>">₹<?= format_inr($due, 0) ?></div>
+              </div>
+            </div>
 
-                            <div class="mt-3 p-2 bg-light rounded d-flex justify-content-between align-items-center">
-                                <span class="small text-muted"><?= htmlspecialchars($inv['hijri_year']) ?>H</span>
-                                
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-</div>
+            <!-- breakdown: laagat split OR deposit -->
+            <?php if ($inv['charge_type'] !== 'rent'): ?>
+            <div class="breakdown-strip">
+              <div class="breakdown-item">
+                <div class="bl">Jamaat Laagat</div>
+                <div class="bv bv-green">₹<?= format_inr($jAmt, 0) ?></div>
+              </div>
+              <div class="breakdown-item" style="text-align:right;">
+                <div class="bl">Sarkaar Laagat</div>
+                <div class="bv bv-blue">₹<?= format_inr($sAmt, 0) ?></div>
+              </div>
+            </div>
+            <?php elseif (!empty($inv['deposit_amount']) && (float)$inv['deposit_amount'] > 0): ?>
+            <div class="breakdown-strip">
+              <div class="breakdown-item">
+                <div class="bl">Deposit Amount</div>
+                <div class="bv bv-amber">₹<?= format_inr((float)$inv['deposit_amount'], 0) ?></div>
+              </div>
+            </div>
+            <?php endif; ?>
 
-<!-- History Modal -->
-<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title font-weight-bold">Payment History</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
+            <!-- hijri year -->
+            <?php if (!empty($inv['hijri_year'])): ?>
+            <span class="hijri-chip"><i class="fa fa-moon-o"></i> <?= htmlspecialchars($inv['hijri_year']) ?>H</span>
+            <?php endif; ?>
+
+          </div><!-- /.inv-card-body -->
+
+          <!-- footer actions -->
+          <div class="inv-card-footer">
+            <span></span><!-- spacer -->
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <?php if ((int)$janab === 1 && $due > 0): ?>
+                <button type="button" class="btn-pay"
+                  onclick="payInvoice(<?= $inv['id'] ?>, <?= $due ?>, '<?= htmlspecialchars($inv['title']) ?>', '<?= htmlspecialchars($inv['charge_type']) ?>', '<?= htmlspecialchars($inv['ITS_ID']) ?>')">
+                  <i class="fa fa-credit-card"></i> Pay Now
                 </button>
+              <?php endif; ?>
+              <button type="button" class="btn-history"
+                onclick="showHistory(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['title']) ?>')">
+                <i class="fa fa-history"></i> History
+              </button>
             </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <div class="small text-muted">Raza Type</div>
-                    <div class="h6 mb-0 font-weight-bold text-primary" id="history_title"></div>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-sm border-0">
-                        <thead>
-                            <tr class="text-muted small">
-                                <th class="border-0">Date</th>
-                                <th class="border-0">Method</th>
-                                <th class="border-0 text-right">Amount</th>
-                                <th class="border-0 text-center">Receipt</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history_table_body">
-                            <!-- Content loaded via AJAX -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light btn-block rounded-pill" data-dismiss="modal">Close</button>
-            </div>
+          </div>
+
+        </div><!-- /.inv-card -->
+      </div><!-- /.col -->
+      <?php endforeach; ?>
+    </div><!-- /.row -->
+  <?php endif; ?>
+
+</div><!-- /.container -->
+
+<!-- ── History Modal ── -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa fa-history" style="margin-right:8px;color:var(--gold);font-size:.9rem;"></i>Payment History</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <div class="modal-body" style="padding:0 !important;">
+        <div style="padding:14px 20px 10px; background:var(--surface-2); border-bottom:1px solid var(--border);">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:3px;">Invoice</div>
+          <div style="font-size:.9rem;font-weight:700;color:var(--gold-deep);" id="history_title"></div>
         </div>
+        <div class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Method</th>
+                <th class="text-right">Amount</th>
+                <th class="text-center">Receipt</th>
+              </tr>
+            </thead>
+            <tbody id="history_table_body">
+              <tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-3);">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" data-dismiss="modal">Close</button>
+      </div>
     </div>
+  </div>
 </div>
 
+<!-- ── Pay Modal ── -->
+<div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="payModalLabel"><i class="fa fa-credit-card" style="margin-right:8px;color:var(--gold);font-size:.9rem;"></i>Make Payment</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <form method="post" action="<?= base_url('payment/ccavenue_laagat_rent'); ?>">
+        <div class="modal-body">
+          <div class="form-group-modal">
+            <label class="modal-form-label">Invoice</label>
+            <div class="inv-title-display" id="pay_title"></div>
+          </div>
+          <div class="form-group-modal">
+            <label for="pay_amount" class="modal-form-label">Amount (₹)</label>
+            <input type="number" step="0.01" min="0.01"
+              id="pay_amount" name="amount"
+              class="modal-form-control" placeholder="Enter amount" required />
+            <div class="form-help" id="pay_due_help"></div>
+          </div>
+          <input type="hidden" id="pay_invoice_id"  name="invoice_id" />
+          <input type="hidden" id="pay_its_id"      name="its_id" />
+          <input type="hidden" id="pay_charge_type" name="charge_type" />
+          <input type="hidden" id="pay_order_id"    name="order_id" />
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-modal-cancel" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-modal-proceed">Proceed to Pay</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ALL JS IDENTICAL TO ORIGINAL ══ -->
 <script>
 function showHistory(invoiceId, title) {
-    $('#history_title').text(title);
-    $('#history_table_body').html('<tr><td colspan="4" class="text-center py-4"><i class="fa fa-spinner fa-spin mr-2"></i> Loading history...</td></tr>');
-    $('#historyModal').modal('show');
+  $('#history_title').text(title);
+  $('#history_table_body').html('<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-3);"><i class="fa fa-spinner fa-spin" style="margin-right:6px;"></i> Loading history…</td></tr>');
+  $('#historyModal').modal('show');
 
-    $.ajax({
-        url: '<?= base_url("accounts/get_laagat_payment_history"); ?>',
-        type: 'POST',
-        data: { invoice_id: invoiceId },
-        dataType: 'json',
-        success: function(response) {
-            let html = '';
-            if (response && response.length > 0) {
-                response.forEach(function(item) {
-                    let d = new Date(item.payment_date);
-                    let dateStr = d.toLocaleDateString('en-GB').replace(/\//g, '-');
-                    let receiptUrl = '<?= base_url("accounts/laagat_receipt/"); ?>' + item.id;
-
-                    html += '<tr>' +
-                            '<td class="align-middle">' + dateStr + '</td>' +
-                            '<td class="align-middle"><span class="badge badge-light px-2 py-1">' + (item.payment_method || 'Cash') + '</span></td>' +
-                            '<td class="align-middle text-right font-weight-bold text-success">₹' + parseFloat(item.amount).toLocaleString('en-IN', {minimumFractionDigits: 0}) + '</td>' +
-                            '<td class="align-middle text-center">' +
-                            '  <button type="button" class="btn btn-outline-secondary btn-xs rounded-pill ml-1 view-invoice" data-payment-id="' + item.id + '" title="PDF">' +
-                            '    <i class="fa fa-file-pdf"></i>' +
-                            '  </button>' +
-                            '</td>' +
-                            '</tr>';
-                });
-            } else {
-                html = '<tr><td colspan="4" class="text-center py-4 text-muted small">No payment records found for this invoice.</td></tr>';
-            }
-            $('#history_table_body').html(html);
-        },
-        error: function() {
-            $('#history_table_body').html('<tr><td colspan="3" class="text-center py-4 text-danger small">Failed to load history. Please try again.</td></tr>');
-        }
-    });
+  $.ajax({
+    url: '<?= base_url("accounts/get_laagat_payment_history"); ?>',
+    type: 'POST', data: { invoice_id: invoiceId }, dataType: 'json',
+    success: function(response) {
+      let html = '';
+      if (response && response.length > 0) {
+        response.forEach(function(item) {
+          let d = new Date(item.payment_date);
+          let dateStr = d.toLocaleDateString('en-GB').replace(/\//g, '-');
+          html += '<tr>' +
+            '<td style="font-weight:600;color:var(--text-1);">' + dateStr + '</td>' +
+            '<td><span class="method-pill">' + (item.payment_method || 'Cash') + '</span></td>' +
+            '<td class="text-right" style="font-weight:700;color:var(--green);">₹' + parseFloat(item.amount).toLocaleString('en-IN', {minimumFractionDigits: 0}) + '</td>' +
+            '<td class="text-center"><button type="button" class="btn-receipt view-invoice" data-payment-id="' + item.id + '" title="View Receipt"><i class="fa fa-file-pdf-o"></i></button></td>' +
+            '</tr>';
+        });
+      } else {
+        html = '<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-3);font-size:.83rem;">No payment records found.</td></tr>';
+      }
+      $('#history_table_body').html(html);
+    },
+    error: function() {
+      $('#history_table_body').html('<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--red);font-size:.83rem;">Failed to load history.</td></tr>');
+    }
+  });
 }
 
 $(document).on('click', '.view-invoice', function(e) {
-    e.preventDefault();
-    const paymentId = $(this).data('payment-id');
-    if (!paymentId) return;
-
-    $.ajax({
-        url: "<?php echo base_url('common/generate_pdf'); ?>",
-        type: "POST",
-        data: { id: paymentId, for: 8 },
-        xhrFields: { responseType: 'blob' },
-        success: function(response) {
-            var blob = new Blob([response], { type: "application/pdf" });
-            var url = window.URL.createObjectURL(blob);
-            window.open(url, "_blank");
-        },
-        error: function() {
-            alert('Failed to generate receipt PDF');
-        }
-    });
+  e.preventDefault();
+  const paymentId = $(this).data('payment-id');
+  if (!paymentId) return;
+  $.ajax({
+    url: "<?php echo base_url('common/generate_pdf'); ?>",
+    type: "POST", data: { id: paymentId, for: 8 },
+    xhrFields: { responseType: 'blob' },
+    success: function(response) {
+      var url = window.URL.createObjectURL(new Blob([response], { type: "application/pdf" }));
+      window.open(url, "_blank");
+    },
+    error: function() { alert('Failed to generate receipt PDF'); }
+  });
 });
 
 function payInvoice(invoiceId, maxAmount, title, chargeType, itsId) {
-    $('#pay_title').text(title);
-    $('#pay_invoice_id').val(invoiceId);
-    $('#pay_its_id').val(itsId);
-    $('#pay_charge_type').val(chargeType);
-    $('#pay_amount').val(maxAmount).attr('max', maxAmount);
-    $('#pay_due_help').text('Maximum payment allowed: ₹' + parseFloat(maxAmount).toLocaleString('en-IN', {minimumFractionDigits: 0}));
-    $('#pay_order_id').val('LAAGAT-RENT-' + Date.now());
-    $('#payModal').modal('show');
+  $('#pay_title').text(title);
+  $('#pay_invoice_id').val(invoiceId);
+  $('#pay_its_id').val(itsId);
+  $('#pay_charge_type').val(chargeType);
+  $('#pay_amount').val(maxAmount).attr('max', maxAmount);
+  $('#pay_due_help').text('Maximum payment allowed: ₹' + parseFloat(maxAmount).toLocaleString('en-IN', {minimumFractionDigits: 0}));
+  $('#pay_order_id').val('LAAGAT-RENT-' + Date.now());
+  $('#payModal').modal('show');
 }
 
 $('#payModal form').on('submit', function(e) {
-    var amt = parseFloat($('#pay_amount').val());
-    var maxAmt = parseFloat($('#pay_amount').attr('max'));
-    if (amt <= 0) {
-        alert('Please enter a valid amount.');
-        e.preventDefault();
-        return false;
-    }
-    if (amt > maxAmt) {
-        alert('Amount cannot exceed outstanding due: ₹' + maxAmt);
-        e.preventDefault();
-        return false;
-    }
+  var amt    = parseFloat($('#pay_amount').val());
+  var maxAmt = parseFloat($('#pay_amount').attr('max'));
+  if (amt <= 0) { alert('Please enter a valid amount.'); e.preventDefault(); return false; }
+  if (amt > maxAmt) { alert('Amount cannot exceed outstanding due: ₹' + maxAmt); e.preventDefault(); return false; }
 });
 </script>
-
-<!-- Payment Modal -->
-<div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="payModalLabel">Make Payment</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form method="post" action="<?= base_url('payment/ccavenue_laagat_rent'); ?>">
-                <div class="modal-body">
-                    <div class="form-group mb-2">
-                        <label class="font-weight-bold">Invoice Title</label>
-                        <div class="form-control-plaintext text-primary font-weight-bold" id="pay_title"></div>
-                    </div>
-                    <div class="form-group mb-2">
-                        <label for="pay_amount" class="font-weight-bold">Amount (₹)</label>
-                        <input type="number" step="0.01" min="0.01" id="pay_amount" name="amount" class="form-control" required />
-                        <div class="form-text text-muted mt-1" id="pay_due_help"></div>
-                    </div>
-                    <input type="hidden" id="pay_invoice_id" name="invoice_id" />
-                    <input type="hidden" id="pay_its_id" name="its_id" />
-                    <input type="hidden" id="pay_charge_type" name="charge_type" />
-                    <input type="hidden" id="pay_order_id" name="order_id" />
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Proceed to Pay</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
