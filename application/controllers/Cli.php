@@ -319,6 +319,6 @@ class Cli extends CI_Controller
         } else {
             echo "\nSOME TESTS FAILED!\n";
         }
-    }
-}
+    }}
+
 

@@ -2454,9 +2454,23 @@ class CommonM extends CI_Model
 
   public function delete_raza_by_miqaat_and_user($miqaat_id)
   {
+    $this->db->trans_start();
+    // Find all raza records for this miqaat
+    $razas = $this->db->select('id')->from('raza')->where('miqaat_id', $miqaat_id)->get()->result_array();
+    if (!empty($razas)) {
+      $razaIds = array_column($razas, 'id');
+      // Find invoices
+      $invoices = $this->db->select('id')->from('laagat_rent_invoices')->where_in('raza_id', $razaIds)->get()->result_array();
+      if (!empty($invoices)) {
+        $invoiceIds = array_column($invoices, 'id');
+        $this->db->where_in('invoice_id', $invoiceIds)->delete('laagat_rent_payments');
+        $this->db->where_in('id', $invoiceIds)->delete('laagat_rent_invoices');
+      }
+    }
     $this->db->where('miqaat_id', $miqaat_id);
     $this->db->delete('raza');
-    return $this->db->affected_rows() > 0;
+    $this->db->trans_complete();
+    return $this->db->trans_status();
   }
 
   public function get_umoor_fmb_users()
@@ -2643,10 +2657,29 @@ class CommonM extends CI_Model
   public function delete_raza_by_miqaat_id($miqaat_id, $user_ids)
   {
     if (!empty($user_ids)) {
+      $this->db->trans_start();
+      // Find all raza records for this miqaat that will be deleted
+      $razas = $this->db->select('id')
+        ->from('raza')
+        ->where('miqaat_id', $miqaat_id)
+        ->where_not_in('user_id', $user_ids)
+        ->get()
+        ->result_array();
+      if (!empty($razas)) {
+        $razaIds = array_column($razas, 'id');
+        // Find invoices
+        $invoices = $this->db->select('id')->from('laagat_rent_invoices')->where_in('raza_id', $razaIds)->get()->result_array();
+        if (!empty($invoices)) {
+          $invoiceIds = array_column($invoices, 'id');
+          $this->db->where_in('invoice_id', $invoiceIds)->delete('laagat_rent_payments');
+          $this->db->where_in('id', $invoiceIds)->delete('laagat_rent_invoices');
+        }
+      }
       $this->db->where('miqaat_id', $miqaat_id);
       $this->db->where_not_in('user_id', $user_ids);
       $this->db->delete('raza');
-      return $this->db->affected_rows();
+      $this->db->trans_complete();
+      return $this->db->trans_status();
     }
   }
 

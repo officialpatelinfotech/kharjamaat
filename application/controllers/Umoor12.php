@@ -233,8 +233,19 @@ class Umoor12 extends CI_Controller
         }
 
         if ($chargeType) {
-          $hijriYearNum = (int)$hijri_year;
-          $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
+          $todayParts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+          if ($todayParts) {
+            $h_month = (int)$todayParts['hijri_month'];
+            $h_year = (int)$todayParts['hijri_year'];
+            if ($h_month >= 7 && $h_month <= 12) {
+              $hijriRange = $h_year . '-' . substr((string)($h_year + 1), -2);
+            } else {
+              $hijriRange = ($h_year - 1) . '-' . substr((string)$h_year, -2);
+            }
+          } else {
+            $hijriYearNum = (int)$hijri_year;
+            $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
+          }
 
           // Resolve venue name if any field is Venue
           $venueName = '';

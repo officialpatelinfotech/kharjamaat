@@ -132,20 +132,6 @@
           
         </div>
 
-        <div class="mb-3" id="lr_amount_section" style="display: none;">
-          <label class="form-label font-weight-bold" for="lr_amount">Amount</label>
-          <input
-            type="number"
-            class="form-control shadow-sm"
-            id="lr_amount"
-            name="amount"
-            min="0"
-            step="0.01"
-            value="<?php echo htmlspecialchars(isset($form['amount']) ? (string)$form['amount'] : ''); ?>"
-            placeholder="0.00"
-          />
-        </div>
-
         <div class="row mb-3" id="lr_rent_details_section" style="display: none;">
           <div class="col-12 col-md-6 border-right">
             <h6 class="font-weight-bold text-primary mb-3">Khar Sabeel Holders</h6>
@@ -600,8 +586,11 @@
         if (venueSection) venueSection.style.display = 'none';
         if (venueSelect) venueSelect.value = '';
         if (amountSection) {
-          amountSection.style.display = 'block';
-          if (amountInput) amountInput.setAttribute('required', 'required');
+          amountSection.style.display = 'none';
+          if (amountInput) {
+            amountInput.removeAttribute('required');
+            amountInput.value = '';
+          }
         }
         if (rentDetailsSection) {
           rentDetailsSection.style.display = 'none';
