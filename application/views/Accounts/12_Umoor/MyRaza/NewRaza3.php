@@ -999,10 +999,12 @@
     }
 
     var invoiceNote = document.createElement('div');
-    invoiceNote.className = 'small text-muted mt-2 font-italic';
-    invoiceNote.textContent = (chargeType === 'laagat')
-      ? 'An invoice will be created for Laagat on Raza submission.'
-      : 'An invoice will be created for Rent & Deposit on Raza submission.';
+    invoiceNote.className = 'alert alert-warning mt-2 mb-0 small py-2';
+    if (chargeType === 'laagat') {
+      invoiceNote.innerHTML = '<i class="fa fa-info-circle mr-1"></i> <strong>Note:</strong> An invoice will be created for the member for Laagat.';
+    } else {
+      invoiceNote.innerHTML = '<i class="fa fa-info-circle mr-1"></i> <strong>Note:</strong> An invoice will be created for the member for Rent & Deposit.';
+    }
     box.appendChild(invoiceNote);
 
     if (rawFieldName) {

@@ -906,6 +906,35 @@ class LaagatRentM extends CI_Model
                 }
             }
 
+            // Fallback: check HOF's status if member doesn't have it
+            if (!$hasSabeel) {
+                $this->load->model('AccountM');
+                $hofId = $this->AccountM->get_hof_id_for_member($userId);
+                if ($hofId > 0 && $hofId != $userId) {
+                    $hofRow = $this->db->select('its_sabeel_match')
+                        ->from('user')
+                        ->where('ITS_ID', $hofId)
+                        ->get()
+                        ->row_array();
+                    if ($hofRow) {
+                        $match = $hofRow['its_sabeel_match'] ?? '';
+                        $hasSabeel = in_array($match, ['its_sabeel_both_khar', 'sabeel_khar_its_out'], true);
+                    }
+
+                    if (!$hasSabeel) {
+                        $takhmeen = $this->db->select('id')
+                            ->from('sabeel_takhmeen')
+                            ->where('user_id', $hofId)
+                            ->where('year', $hijriYear)
+                            ->get()
+                            ->row_array();
+                        if ($takhmeen) {
+                            $hasSabeel = true;
+                        }
+                    }
+                }
+            }
+
             if ($hasSabeel) {
                 $rentAmt = (float)$lr['rent_sabeel'];
                 $depositAmt = (float)$lr['deposit_sabeel'];
@@ -934,6 +963,20 @@ class LaagatRentM extends CI_Model
                 ->where('year', $hijriYear)
                 ->get()
                 ->row_array();
+
+            if (!$takhmeen || empty($takhmeen['residential_grade'])) {
+                // Try HOF ID
+                $this->load->model('AccountM');
+                $hofId = $this->AccountM->get_hof_id_for_member($userId);
+                if ($hofId > 0 && $hofId != $userId) {
+                    $takhmeen = $this->db->select('residential_grade')
+                        ->from('sabeel_takhmeen')
+                        ->where('user_id', $hofId)
+                        ->where('year', $hijriYear)
+                        ->get()
+                        ->row_array();
+                }
+            }
 
             if ($takhmeen && !empty($takhmeen['residential_grade'])) {
                 $gradeId = (int)$takhmeen['residential_grade'];

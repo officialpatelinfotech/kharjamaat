@@ -2051,9 +2051,19 @@ class AccountM extends CI_Model
   }
   public function delete_raza($id)
   {
+    $id = (int)$id;
+    $this->db->trans_start();
+    // Delete laagat/rent payments first, then invoices
+    $invoices = $this->db->select('id')->from('laagat_rent_invoices')->where('raza_id', $id)->get()->result_array();
+    if (!empty($invoices)) {
+      $invoiceIds = array_column($invoices, 'id');
+      $this->db->where_in('invoice_id', $invoiceIds)->delete('laagat_rent_payments');
+      $this->db->where_in('id', $invoiceIds)->delete('laagat_rent_invoices');
+    }
     $this->db->where('id', $id);
     $this->db->delete('raza');
-    return $this->db->affected_rows() > 0;
+    $this->db->trans_complete();
+    return $this->db->trans_status();
   }
   public function delete_vasan_req($id)
   {

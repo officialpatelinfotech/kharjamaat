@@ -2554,7 +2554,7 @@ class Accounts extends CI_Controller
 
     $family_invoices = [];
     foreach ($memberIds as $mid) {
-      $invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'year' => $currRange]);
+      $invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid]);
       if (!empty($invoices)) {
         foreach ($invoices as $inv) {
           $family_invoices[] = $inv;
@@ -2908,17 +2908,28 @@ class Accounts extends CI_Controller
 
     // Compute current Hijri financial year range like 1447-48
     $todayHijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
-    $hijriYearNum = null;
-    if (isset($todayHijri['hijri_date'])) {
-      $parts = explode('-', (string)$todayHijri['hijri_date']);
-      if (count($parts) === 3 && is_numeric($parts[2])) {
-        $hijriYearNum = (int)$parts[2];
+    $todayParts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+    if ($todayParts) {
+      $h_month = (int)$todayParts['hijri_month'];
+      $h_year = (int)$todayParts['hijri_year'];
+      if ($h_month >= 7 && $h_month <= 12) {
+        $hijriRange = $h_year . '-' . substr((string)($h_year + 1), -2);
+      } else {
+        $hijriRange = ($h_year - 1) . '-' . substr((string)$h_year, -2);
       }
+    } else {
+      $hijriYearNum = null;
+      if (isset($todayHijri['hijri_date'])) {
+        $parts = explode('-', (string)$todayHijri['hijri_date']);
+        if (count($parts) === 3 && is_numeric($parts[2])) {
+          $hijriYearNum = (int)$parts[2];
+        }
+      }
+      if (!$hijriYearNum) {
+        $hijriYearNum = (int)date('Y');
+      }
+      $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
     }
-    if (!$hijriYearNum) {
-      $hijriYearNum = (int)date('Y');
-    }
-    $hijriRange = $hijriYearNum . '-' . substr((string)($hijriYearNum + 1), -2);
 
     $venueOptionId = $this->input->get('venue_option_id');
     $venue = '';
@@ -2931,6 +2942,10 @@ class Accounts extends CI_Controller
     $chargeType = null;
     foreach ($chargeTypesToTry as $ct) {
       $row = $this->LaagatRentM->get_active_for_raza_type($ct, $razaTypeId, $hijriRange, false, $venue);
+      if (!$row) {
+        // Fallback: try ANY active record for this type if current year not found
+        $row = $this->LaagatRentM->get_active_for_raza_type($ct, $razaTypeId, null, false, $venue);
+      }
       if ($row) {
         $chargeType = $ct;
         break;

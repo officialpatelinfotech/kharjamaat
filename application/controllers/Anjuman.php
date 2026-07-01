@@ -1063,6 +1063,9 @@ class Anjuman extends CI_Controller
     $hijriYear = trim((string)$this->input->post('hijri_year'));
     $chargeType = strtolower(trim((string)$this->input->post('charge_type')));
     $amountRaw = $this->input->post('amount');
+    if ($amountRaw === null || $amountRaw === '') {
+      $amountRaw = '0.00';
+    }
     $postedRazaTypeIds = $this->input->post('raza_type_ids');
     if (!is_array($postedRazaTypeIds)) {
       $postedRazaTypeIds = [];

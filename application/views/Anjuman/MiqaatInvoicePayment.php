@@ -868,7 +868,7 @@
           <i class="fa-solid fa-plus-circle"></i> Create Extra Contribution
         </button>
         <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#falaNiyazInvoicesModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
-          <i class="fa-solid fa-file-signature"></i> Create & Update Fala ni Niyaz
+          <i class="fa-solid fa-file-signature"></i> Create & Update Hoob Invoices
         </button>
       </div>
     </div>
@@ -1195,7 +1195,7 @@
       <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
         <div class="modal-content modal-content-premium">
           <div class="modal-header modal-header-premium">
-            <h5 class="modal-title" id="falaNiyazInvoicesModalLabel"><i class="fa-solid fa-file-signature mr-2"></i> Create & Update Fala ni Niyaz Invoice</h5>
+            <h5 class="modal-title" id="falaNiyazInvoicesModalLabel"><i class="fa-solid fa-file-signature mr-2"></i> Create & Update Hoob Invoice</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
