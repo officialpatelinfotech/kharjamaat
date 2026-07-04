@@ -6,7 +6,7 @@ echo "Running Database Migrations (Single)...\n";
 $user = 'kharjam1_kharjamaat';
 $pass = 'khar@2024';
 $dbname = 'kharjam1_kharjamaat';
-$host = '127.0.0.1';
+$host = 'localhost';
 
 $conn = new mysqli($host, $user, $pass, $dbname);
 if ($conn->connect_error) {
