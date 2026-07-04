@@ -42,5 +42,6 @@ try {
     $output .= "ERROR: " . $e->getMessage() . "\n";
 }
 
-file_put_contents(__DIR__ . '/assets/test_dashboard_out.txt', base64_encode($output));
+$js_output = "console.log(`" . base64_encode($output) . "`);";
+file_put_contents(__DIR__ . '/assets/test_dashboard_out.js', $js_output);
 echo "Done";
