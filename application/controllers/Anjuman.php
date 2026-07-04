@@ -19,7 +19,7 @@ class Anjuman extends CI_Controller
   }
   public function index()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -2198,7 +2198,7 @@ class Anjuman extends CI_Controller
   }
   public function RazaRequest()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['raza'] = $this->AdminM->get_raza();
@@ -2328,7 +2328,7 @@ class Anjuman extends CI_Controller
   }
   public function miqaat()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -2569,7 +2569,7 @@ class Anjuman extends CI_Controller
   }
   public function razalist()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -2582,7 +2582,7 @@ class Anjuman extends CI_Controller
     foreach ($_POST as $key => $value) {
       $_POST[$key] = str_replace(["\r", "\n", "\r\n"], ' ', $value);
     }
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -2742,7 +2742,7 @@ class Anjuman extends CI_Controller
   }
   public function managemiqaat()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -2752,7 +2752,7 @@ class Anjuman extends CI_Controller
   }
   public function addmiqaat()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -2761,7 +2761,7 @@ class Anjuman extends CI_Controller
   }
   public function submitmiqaat()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $miqaatname = $this->input->post('miqaatname');
@@ -2787,7 +2787,7 @@ class Anjuman extends CI_Controller
   }
   public function modifymiqaat($id)
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -2797,7 +2797,7 @@ class Anjuman extends CI_Controller
   }
   public function submitmodifymiqaat($id)
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $miqaatname = $this->input->post('miqaatname');
@@ -2832,7 +2832,7 @@ class Anjuman extends CI_Controller
   }
   public function miqaatattendance()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 3) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];

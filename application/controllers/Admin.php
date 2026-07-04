@@ -2480,7 +2480,7 @@ class Admin extends CI_Controller
   }
   public function RazaRequest()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $data['raza'] = $this->AdminM->get_raza();
@@ -2499,7 +2499,7 @@ class Admin extends CI_Controller
 
   public function miqaat()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -3031,7 +3031,7 @@ class Admin extends CI_Controller
 
   public function razalist()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -3041,7 +3041,7 @@ class Admin extends CI_Controller
   }
   public function manage_edit_raza($id)
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -3280,7 +3280,7 @@ class Admin extends CI_Controller
   // Updated by Patel Infotech Services
   public function managefmbsettings()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -3592,7 +3592,7 @@ HTML;
 
   public function deletefmbtakhmeen()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $user_id = $this->input->post("user_id");
@@ -3614,7 +3614,7 @@ HTML;
 
   public function deletefmbgc()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       echo json_encode(["success" => false, "message" => "Unauthorized"]);
       return;
     }
@@ -3629,7 +3629,7 @@ HTML;
 
   public function fmbgeneralcontributionmaster()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -3657,7 +3657,7 @@ HTML;
 
   public function addfmbcontritype()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -3678,7 +3678,7 @@ HTML;
 
   public function updatefmbgc()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -3898,7 +3898,7 @@ HTML;
   }
   public function validatefmbtakhmeen()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $user_id = $this->input->post("user_id");
@@ -4079,7 +4079,7 @@ HTML;
   }
   public function updatefmbtakhmeen($redirect)
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $user_id = $this->input->post("user_id");
@@ -4126,7 +4126,7 @@ HTML;
   }
   public function managesabeeltakhmeen()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -4137,7 +4137,7 @@ HTML;
 
   public function sabeeltakhmeendashboard()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -4156,7 +4156,7 @@ HTML;
   }
   public function filteruserinsabeeltakhmeen()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -4180,7 +4180,7 @@ HTML;
   }
   public function sabeelgrade()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     // Default to current Hijri financial year (09–12 current + 01–08 next)
@@ -4216,7 +4216,7 @@ HTML;
   }
   public function filtersabeelgrade()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $sabeel_year = $this->input->post("sabeel_year");
@@ -4248,7 +4248,7 @@ HTML;
   }
   public function addsabeelgrade($sabeel_type)
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     if ($sabeel_type == 1) {
@@ -4357,7 +4357,7 @@ HTML;
   // Sabeel Takhmeen Dashboard
   public function getsabeelgrades()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $sabeel_year = $this->input->post("sabeel_year");
@@ -4370,7 +4370,7 @@ HTML;
 
   public function addsabeeltakhmeenamount()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -4403,7 +4403,7 @@ HTML;
   }
   public function checkSabeelTakhmeenExists()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -4415,7 +4415,7 @@ HTML;
   }
   public function getUserTakhmeenDetails()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -4427,7 +4427,7 @@ HTML;
   }
   public function updatesabeeltakhmeen()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -4471,7 +4471,7 @@ HTML;
   }
   public function deletesabeeltakhmeen()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
 
@@ -4555,7 +4555,7 @@ HTML;
 
   public function managemiqaat()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -4565,7 +4565,7 @@ HTML;
   }
   public function addmiqaat()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -4574,7 +4574,7 @@ HTML;
   }
   public function submitmiqaat()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $miqaatname = $this->input->post('miqaatname');
@@ -4600,7 +4600,7 @@ HTML;
   }
   public function modifymiqaat($id)
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -4610,7 +4610,7 @@ HTML;
   }
   public function submitmodifymiqaat($id)
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $miqaatname = $this->input->post('miqaatname');
@@ -4645,7 +4645,7 @@ HTML;
   }
   public function miqaatattendance()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
@@ -4667,7 +4667,7 @@ HTML;
   }
   public function addmumineen()
   {
-    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
