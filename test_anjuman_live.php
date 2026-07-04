@@ -1,9 +1,9 @@
 <?php
-header('Content-Type: text/plain');
+ob_start();
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-echo "Listing all tables on production database...\n\n";
+echo "Diagnosing Anjuman Dashboard Queries on Live (Base64)...\n\n";
 
 // 1. Load env variables
 $envFile = __DIR__ . '/.env';
@@ -69,11 +69,57 @@ try {
     die("Database connection failed: " . $e->getMessage() . "\n");
 }
 
-$stmt = $pdo->query("SHOW TABLES");
-$tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-echo "Tables in database:\n";
-foreach ($tables as $t) {
-    echo "- $t\n";
+function testQuery($pdo, $name, $sql, $params = []) {
+    echo "Testing query: $name...\n";
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo "=> Success! Found " . count($res) . " rows.\n";
+        if (!empty($res)) {
+            print_r($res[0]);
+        }
+        echo "\n";
+        return $res;
+    } catch (PDOException $e) {
+        echo "=> FAILED: " . $e->getMessage() . "\n\n";
+        return null;
+    }
 }
 
-echo "\nCompleted listing.\n";
+// Fetch MAX(year) from fmb_takhmeen first
+echo "Fetching MAX(year) from fmb_takhmeen...\n";
+$stmt = $pdo->query("SELECT MAX(year) AS max_year FROM fmb_takhmeen");
+$max_year_row = $stmt->fetch(PDO::FETCH_ASSOC);
+$max_year = $max_year_row ? $max_year_row['max_year'] : null;
+echo "MAX Year: " . ($max_year ?: 'NULL') . "\n\n";
+
+if ($max_year) {
+    // 2. Optimized Thaali summary
+    $thaali_opt_sql = "SELECT 
+        (SELECT SUM(total_amount) FROM fmb_takhmeen WHERE year = :year) AS total_thaali,
+        (SELECT SUM(amount) FROM fmb_takhmeen_payments WHERE user_id IN (
+            SELECT DISTINCT user_id FROM fmb_takhmeen WHERE year = :year
+         )) AS total_paid";
+    testQuery($pdo, "Optimized Thaali Summary", $thaali_opt_sql, ['year' => $max_year]);
+}
+
+// Test other queries
+$wajebaat_sql = "SELECT COUNT(*) AS cnt, SUM(amount) AS total_amount, SUM(due) AS total_due, SUM(CASE WHEN amount > due THEN (amount - due) ELSE 0 END) AS total_received FROM wajebaat";
+testQuery($pdo, "Wajebaat Summary", $wajebaat_sql);
+
+$sector_sql = "SELECT
+  u.Sector,
+  COUNT(*) AS total,
+  SUM(CASE WHEN u.HOF_FM_TYPE = 'HOF' THEN 1 ELSE 0 END) AS hof_count,
+  SUM(CASE WHEN u.HOF_FM_TYPE = 'FM' THEN 1 ELSE 0 END) AS fm_count
+FROM user u
+WHERE u.sector IS NOT NULL AND u.sub_sector IS NOT NULL 
+GROUP BY u.Sector
+ORDER BY u.Sector";
+testQuery($pdo, "Sector Stats", $sector_sql);
+
+echo "\nDiagnostic completed.\n";
+
+$output = ob_get_clean();
+echo base64_encode($output);
