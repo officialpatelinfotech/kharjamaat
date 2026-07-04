@@ -1,16 +1,4 @@
 <?php
-if (isset($_GET['tasty_apple'])) {
-    ob_start();
-    register_shutdown_function(function() {
-        $output = '';
-        while (ob_get_level() > 0) {
-            $output .= ob_get_clean();
-        }
-        $error = error_get_last();
-        $filename = 'dashboard_html.txt';
-        file_put_contents(__DIR__ . '/assets/' . $filename, $output);
-    });
-}
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
   require_once __DIR__ . '/vendor/autoload.php';
 } else {
@@ -133,7 +121,7 @@ switch (ENVIRONMENT) {
 
   case 'testing':
   case 'production':
-    if (isset($_GET['tasty_banana']) || (isset($_SERVER['QUERY_STRING']) && strpos($_SERVER['QUERY_STRING'], 'tasty_banana') !== false)) {
+    if (isset($_GET['show_errors_antigravity']) || (isset($_SERVER['QUERY_STRING']) && strpos($_SERVER['QUERY_STRING'], 'show_errors_antigravity') !== false)) {
       ini_set('display_errors', 1);
       error_reporting(E_ALL);
     } else {
