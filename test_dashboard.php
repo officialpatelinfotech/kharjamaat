@@ -24,16 +24,21 @@ try {
     $pass = getenv('DB_PASSWORD') ?: 'root';
     $dbname = getenv('DB_DATABASE') ?: 'kharjamaat';
     
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = new mysqli($host, $user, $pass, $dbname);
+    if ($conn->connect_error) {
+        throw new Exception("Connection failed: " . $conn->connect_error);
+    }
     
     $wajebaat_sql = "SELECT COUNT(*) AS cnt, SUM(amount) AS total_amount, SUM(due) AS total_due, SUM(CASE WHEN amount > due THEN (amount - due) ELSE 0 END) AS total_received FROM wajebaat";
     
-    $stmt = $pdo->prepare($wajebaat_sql);
-    $stmt->execute();
-    $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $result = $conn->query($wajebaat_sql);
+    if (!$result) {
+        throw new Exception("Query failed: " . $conn->error);
+    }
+    
+    $res = $result->fetch_all(MYSQLI_ASSOC);
     $output .= json_encode($res, JSON_PRETTY_PRINT);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     $output .= "ERROR: " . $e->getMessage() . "\n";
 }
 
