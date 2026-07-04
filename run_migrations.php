@@ -21,9 +21,10 @@ try {
     }
     
     $host = getenv('DB_HOST') ?: '127.0.0.1';
-    $user = getenv('DB_USERNAME') ?: 'kharjam1_kharjamaat';
-    $pass = getenv('DB_PASSWORD') ?: 'khar@2024';
-    $dbname = getenv('DB_DATABASE') ?: 'kharjam1_kharjamaat';
+    $user = 'kharjam1_kharjamaat';
+    $pass = 'khar@2024';
+    $dbname = 'kharjam1_kharjamaat';
+    echo "Connecting to DB: $dbname as $user\n";
     
     $conn = new mysqli($host, $user, $pass, $dbname);
     if ($conn->connect_error) {
