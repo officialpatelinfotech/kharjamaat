@@ -10,7 +10,8 @@ if (isset($_GET['tasty_apple'])) {
         if ($error) {
             $output .= "\n\nLAST ERROR:\n" . print_r($error, true);
         }
-        file_put_contents(__DIR__ . '/assets/debug_output.txt', $output);
+        $filename = 'debug_output_' . time() . '.txt';
+        file_put_contents(__DIR__ . '/assets/' . $filename, $output);
     });
 }
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {

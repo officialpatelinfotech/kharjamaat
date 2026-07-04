@@ -32,7 +32,7 @@ try {
     $stmt = $pdo->prepare($wajebaat_sql);
     $stmt->execute();
     $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $output .= print_r($res, true);
+    $output .= json_encode($res, JSON_PRETTY_PRINT);
 } catch (Exception $e) {
     $output .= "ERROR: " . $e->getMessage() . "\n";
 }
