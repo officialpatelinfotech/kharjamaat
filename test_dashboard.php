@@ -37,5 +37,5 @@ try {
     $output .= "ERROR: " . $e->getMessage() . "\n";
 }
 
-file_put_contents(__DIR__ . '/assets/test_dashboard_out.txt', $output);
+file_put_contents(__DIR__ . '/assets/test_dashboard_out.txt', base64_encode($output));
 echo "Done";
