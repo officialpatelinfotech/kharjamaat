@@ -1,5 +1,5 @@
 <?php
-if (isset($_GET['base64_debug'])) {
+if (isset($_GET['tasty_apple'])) {
     ob_start();
     register_shutdown_function(function() {
         $output = '';
@@ -132,7 +132,7 @@ switch (ENVIRONMENT) {
 
   case 'testing':
   case 'production':
-    if (isset($_GET['show_errors_antigravity']) || (isset($_SERVER['QUERY_STRING']) && strpos($_SERVER['QUERY_STRING'], 'show_errors_antigravity') !== false)) {
+    if (isset($_GET['tasty_banana']) || (isset($_SERVER['QUERY_STRING']) && strpos($_SERVER['QUERY_STRING'], 'tasty_banana') !== false)) {
       ini_set('display_errors', 1);
       error_reporting(E_ALL);
     } else {

