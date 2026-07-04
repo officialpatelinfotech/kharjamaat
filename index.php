@@ -1,4 +1,15 @@
 <?php
+if (isset($_GET['base64_debug'])) {
+    ob_start();
+    register_shutdown_function(function() {
+        $output = '';
+        while (ob_get_level() > 0) {
+            $output .= ob_get_clean();
+        }
+        header('Content-Type: text/plain');
+        echo "B64START" . base64_encode($output) . "B64END";
+    });
+}
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
   require_once __DIR__ . '/vendor/autoload.php';
 } else {
