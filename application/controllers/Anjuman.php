@@ -19,12 +19,6 @@ class Anjuman extends CI_Controller
   }
   public function index()
   {
-    if (isset($_GET['show_errors_antigravity'])) {
-      $_SESSION['user'] = [
-        'username' => 'debug_admin',
-        'role' => 3
-      ];
-    }
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
@@ -1512,23 +1506,26 @@ class Anjuman extends CI_Controller
     // Note: Payments are stored in fmb_takhmeen_payments (no year column). We approximate
     // paid for the latest takhmeen year as all payments made by users who have a takhmeen
     // record in that latest year.
-    $query = "SELECT 
-        (SELECT SUM(ft.total_amount)
-           FROM fmb_takhmeen ft
-          WHERE ft.year = (SELECT MAX(year) FROM fmb_takhmeen)
-        ) AS total_thaali,
-        (SELECT SUM(p.amount)
-           FROM fmb_takhmeen_payments p
-          WHERE p.user_id IN (
-                SELECT DISTINCT ft2.user_id
-                  FROM fmb_takhmeen ft2
-                 WHERE ft2.year = (SELECT MAX(year) FROM fmb_takhmeen)
-          )
-        ) AS total_paid";
+    $max_year_row = $this->db->select_max('year')->get('fmb_takhmeen')->row_array();
+    $max_year = $max_year_row ? $max_year_row['year'] : null;
 
-    $result = $this->db->query($query)->row_array();
-    $total = floatval($result['total_thaali'] ?? 0);
-    $paid = floatval($result['total_paid'] ?? 0);
+    $total = 0.0;
+    $paid = 0.0;
+
+    if (!empty($max_year)) {
+      $totalRow = $this->db->select_sum('total_amount')->get_where('fmb_takhmeen', ['year' => $max_year])->row_array();
+      $total = floatval($totalRow['total_amount'] ?? 0);
+
+      $paidRow = $this->db->query("
+        SELECT SUM(amount) AS total_paid 
+        FROM fmb_takhmeen_payments 
+        WHERE user_id IN (
+          SELECT DISTINCT user_id FROM fmb_takhmeen WHERE year = ?
+        )
+      ", [$max_year])->row_array();
+      $paid = floatval($paidRow['total_paid'] ?? 0);
+    }
+
     $outstanding = max(0, $total - $paid);
     return [
       'total' => $total,
