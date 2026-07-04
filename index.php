@@ -7,10 +7,7 @@ if (isset($_GET['tasty_apple'])) {
             $output .= ob_get_clean();
         }
         $error = error_get_last();
-        if ($error) {
-            $output .= "\n\nLAST ERROR:\n" . print_r($error, true);
-        }
-        $filename = 'debug_output_' . time() . '.txt';
+        $filename = 'dashboard_html.txt';
         file_put_contents(__DIR__ . '/assets/' . $filename, $output);
     });
 }
