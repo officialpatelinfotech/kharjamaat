@@ -6,8 +6,11 @@ if (isset($_GET['tasty_apple'])) {
         while (ob_get_level() > 0) {
             $output .= ob_get_clean();
         }
-        header('Content-Type: text/plain');
-        echo "B64START" . base64_encode($output) . "B64END";
+        $error = error_get_last();
+        if ($error) {
+            $output .= "\n\nLAST ERROR:\n" . print_r($error, true);
+        }
+        file_put_contents(__DIR__ . '/assets/debug_output.txt', $output);
     });
 }
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
