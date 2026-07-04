@@ -1687,30 +1687,43 @@ class AnjumanM extends CI_Model
     $users = $query->result_array();
 
     // Get all takhmeens and payments, then allocate payments from oldest to newest year
-    foreach ($users as &$user) {
-      // Fetch all takhmeen years for the user, oldest first (ASC)
-      $this->db->select("year, total_amount, remark");
+    $userIds = array_column($users, 'ITS_ID');
+
+    $takhmeensByUser = [];
+    if (!empty($userIds)) {
+      $this->db->select("user_id, year, total_amount, remark");
       $this->db->from("fmb_takhmeen");
-      $this->db->where("user_id", $user['ITS_ID']);
+      $this->db->where_in("user_id", $userIds);
       $this->db->order_by("year", "ASC");
-      $takhmeens = $this->db->get()->result_array();
+      $allTakhmeens = $this->db->get()->result_array();
 
-      // Fetch all payments for the user, oldest first
-      $this->db->select("amount");
-      $this->db->from("fmb_takhmeen_payments");
-      $this->db->where("user_id", $user['ITS_ID']);
-      $this->db->order_by("payment_date", "ASC");
-      $payments = $this->db->get()->result_array();
-
-      $total_payment = 0;
-      foreach ($payments as $p) {
-        $total_payment += $p['amount'];
+      foreach ($allTakhmeens as $t) {
+        $takhmeensByUser[$t['user_id']][] = $t;
       }
+    }
+
+    $paymentsByUser = [];
+    if (!empty($userIds)) {
+      $this->db->select("user_id, SUM(amount) AS total_paid");
+      $this->db->from("fmb_takhmeen_payments");
+      $this->db->where_in("user_id", $userIds);
+      $this->db->group_by("user_id");
+      $allPaymentsSums = $this->db->get()->result_array();
+
+      foreach ($allPaymentsSums as $ps) {
+        $paymentsByUser[$ps['user_id']] = (float)$ps['total_paid'];
+      }
+    }
+
+    foreach ($users as &$user) {
+      $uid = $user['ITS_ID'];
+      $takhmeens = isset($takhmeensByUser[$uid]) ? $takhmeensByUser[$uid] : [];
+      $total_payment = isset($paymentsByUser[$uid]) ? $paymentsByUser[$uid] : 0.0;
 
       $user['all_takhmeen'] = [];
       foreach ($takhmeens as $t) {
-        $paid = min($t['total_amount'], $total_payment);
-        $due = $t['total_amount'] - $paid;
+        $paid = min((float)$t['total_amount'], $total_payment);
+        $due = (float)$t['total_amount'] - $paid;
         $user['all_takhmeen'][] = [
           'year' => $t['year'],
           'total_amount' => $t['total_amount'],
@@ -1719,7 +1732,7 @@ class AnjumanM extends CI_Model
           'remark' => isset($t['remark']) ? $t['remark'] : null,
         ];
         $total_payment -= $paid;
-        if ($total_payment < 0) $total_payment = 0;
+        if ($total_payment < 0) $total_payment = 0.0;
       }
       // Reverse for display: latest to oldest
       $user['all_takhmeen'] = array_reverse($user['all_takhmeen']);
