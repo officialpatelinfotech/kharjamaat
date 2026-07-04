@@ -458,7 +458,7 @@
       <div class="anj-header-inner">
         <div class="anj-title-group">
           <p class="anj-eyebrow">Fizalat Mawamil al-Burhaniyah</p>
-          <h1 class="anj-title">FMB <?php echo $type == 1 ? "Thaali" : "Niyaz"; ?> Extra Contribution Invoices</h1>
+          <h1 class="anj-title">FMB <?php echo $type == 1 ? "Thaali" : "Niyaz"; ?> Contribution Invoices</h1>
         </div>
       </div>
     </div>
@@ -607,7 +607,12 @@
                 <option value="">Select Type</option>
                 <?php if (isset($contri_type_gc)): ?>
                   <?php foreach ($contri_type_gc as $key => $value): ?>
-                    <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"><?php echo htmlspecialchars($value["name"]); ?></option>
+                    <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" 
+                            data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"
+                            data-amount="<?php echo htmlspecialchars($value["amount"] ?? '', ENT_QUOTES); ?>"
+                            data-hijri-year="<?php echo htmlspecialchars($value["hijri_year"] ?? '', ENT_QUOTES); ?>">
+                      <?php echo htmlspecialchars($value["name"]); ?>
+                    </option>
                   <?php endforeach; ?>
                 <?php endif; ?>
               </select>
@@ -679,7 +684,12 @@
                 <option value="">Select Type</option>
                 <?php if (isset($contri_type_gc)): ?>
                   <?php foreach ($contri_type_gc as $key => $value): ?>
-                    <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"><?php echo htmlspecialchars($value["name"]); ?></option>
+                    <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" 
+                            data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"
+                            data-amount="<?php echo htmlspecialchars($value["amount"] ?? '', ENT_QUOTES); ?>"
+                            data-hijri-year="<?php echo htmlspecialchars($value["hijri_year"] ?? '', ENT_QUOTES); ?>">
+                      <?php echo htmlspecialchars($value["name"]); ?>
+                    </option>
                   <?php endforeach; ?>
                 <?php endif; ?>
               </select>
@@ -851,20 +861,42 @@
   $(document).ready(function() {
     // Auto-fill Miqaat Type based on selected Contribution Type in generate/edit modals
     $("#contri-type").on("change", function() {
-      const selectedMiqaatType = $(this).find("option:selected").data("miqaat-type");
+      const selectedOption = $(this).find("option:selected");
+      const selectedMiqaatType = selectedOption.data("miqaat-type");
       if (selectedMiqaatType) {
         $("#miqaat-type").val(selectedMiqaatType);
       } else {
         $("#miqaat-type").val("");
       }
+
+      const amount = selectedOption.data("amount");
+      if (amount !== undefined && amount !== null && amount !== "") {
+        $("#amount").val(amount);
+      }
+
+      const hijriYear = selectedOption.data("hijri-year");
+      if (hijriYear) {
+        $("#contri-year").val(hijriYear);
+      }
     });
 
     $("#edit-contri-type").on("change", function() {
-      const selectedMiqaatType = $(this).find("option:selected").data("miqaat-type");
+      const selectedOption = $(this).find("option:selected");
+      const selectedMiqaatType = selectedOption.data("miqaat-type");
       if (selectedMiqaatType) {
         $("#edit-miqaat-type").val(selectedMiqaatType);
       } else {
         $("#edit-miqaat-type").val("");
+      }
+
+      const amount = selectedOption.data("amount");
+      if (amount !== undefined && amount !== null && amount !== "") {
+        $("#edit-amount").val(amount);
+      }
+
+      const hijriYear = selectedOption.data("hijri-year");
+      if (hijriYear) {
+        $("#edit-contri-year").val(hijriYear);
       }
     });
 

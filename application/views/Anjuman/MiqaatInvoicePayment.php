@@ -1386,7 +1386,11 @@
                   <option value="">Select Type</option>
                   <?php if (!empty($contri_type_gc)): ?>
                     <?php foreach ($contri_type_gc as $value): ?>
-                      <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>"><?php echo htmlspecialchars($value["name"]); ?></option>
+                      <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>"
+                              data-amount="<?php echo htmlspecialchars($value["amount"] ?? '', ENT_QUOTES); ?>"
+                              data-hijri-year="<?php echo htmlspecialchars($value["hijri_year"] ?? '', ENT_QUOTES); ?>">
+                        <?php echo htmlspecialchars($value["name"]); ?>
+                      </option>
                     <?php endforeach; ?>
                   <?php endif; ?>
                 </select>
@@ -3189,6 +3193,19 @@
             jQuery('#extra-user-id').val(itsId);
             jQuery('#extra-member-autocomplete').val(name);
             jQuery('#extra-member-autocomplete-list').empty().hide();
+          });
+
+          // Auto-fill amount and hijri year on contribution type change
+          jQuery(document).on('change', '#extra-contri-type', function() {
+            const selectedOption = jQuery(this).find('option:selected');
+            const amount = selectedOption.data('amount');
+            if (amount !== undefined && amount !== null && amount !== '') {
+              jQuery('#extra-amount').val(amount);
+            }
+            const hijriYear = selectedOption.data('hijri-year');
+            if (hijriYear) {
+              jQuery('#extra-contri-year').val(hijriYear);
+            }
           });
 
           // Hide suggestions on outside click

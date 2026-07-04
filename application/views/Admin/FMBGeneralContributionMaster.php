@@ -231,7 +231,7 @@
     <div class="anj-header-inner">
       <div class="anj-title-group">
         <p class="anj-eyebrow">Fizalat Mawamil al-Burhaniyah</p>
-        <h1 class="anj-title">FMB Extra Contribution Master</h1>
+        <h1 class="anj-title">Contribution Master</h1>
       </div>
     </div>
   </div>
@@ -240,7 +240,7 @@
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
     <div style="flex: 1; min-width: 280px; max-width: 400px;">
       <form method="POST" action="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" id="filter-form" class="d-flex align-items-center gap-2">
-        <select name="filter_status" id="filter-status" class="form-control-premium" style="flex: 1; min-width: 150px;">
+        <select name="filter_status" id="filter-status" class="form-control-premium mr-2" style="flex: 1; min-width: 150px;">
           <option value="">Select Status</option>
           <option value="1" <?php echo isset($filter_status) ? ($filter_status === "1" ? "selected" : "") : ""; ?>>Active</option>
           <option value="0" <?php echo isset($filter_status) ? ($filter_status === "0" ? "selected" : "") : ""; ?>>Inactive</option>
@@ -255,25 +255,56 @@
     </div>
   </div>
 
-  <!-- Add Form Panel -->
-  <div id="add-contri-type-form" class="col-12 p-4 mt-3 mb-4 hidden" style="border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); box-shadow: var(--shadow-sm);">
-    <h6 style="font-weight: 700; color: var(--text-1); margin-bottom: 14px;"><i class="fa-solid fa-circle-plus mr-1"></i> Add New Contribution Type</h6>
-    <form method="POST" action="<?php echo base_url("admin/addfmbcontritype"); ?>" class="form-inline gap-2" style="display: flex; flex-wrap: wrap; align-items: center;">
-      <select class="form-control-premium mr-2" name="fmb_type" id="fmb-type" required style="min-width: 180px; max-width: 200px;">
-        <option value="">Select FMB Type</option>
-        <option value="Thaali">Thaali</option>
-        <option value="Niyaz">Niyaz</option>
-      </select>
+  <!-- Add Contribution Type Modal -->
+  <div class="modal fade" id="addContributionTypeModal" tabindex="-1" role="dialog" aria-labelledby="addContributionTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content modal-content-premium" style="border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow);">
+        <div class="modal-header modal-header-premium" style="border-bottom: 1px solid var(--border-light); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;">
+          <h5 class="modal-title" id="addContributionTypeModalLabel" style="font-weight: 700; color: var(--text-1); margin: 0;"><i class="fa-solid fa-circle-plus mr-1" style="color: var(--gold);"></i> Add New Contribution Type</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="border: none; background: none; font-size: 1.5rem; color: var(--text-3); cursor: pointer;">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form method="POST" action="<?php echo base_url("admin/addfmbcontritype"); ?>">
+          <div class="modal-body modal-body-premium" style="padding: 24px;">
+            <div class="form-group form-group-premium mb-3">
+              <label for="modal-fmb-type" style="font-weight: 600; font-size: 0.85rem; color: var(--text-2); display: block; margin-bottom: 6px;">Select FMB Type</label>
+              <select class="form-control-premium" name="fmb_type" id="modal-fmb-type" required>
+                <option value="">Select FMB Type</option>
+                <option value="Thaali">Thaali</option>
+                <option value="Niyaz">Niyaz</option>
+              </select>
+            </div>
 
-      <input type="text" class="form-control-premium mr-2" name="contri_for" placeholder="Enter contribution type name" required style="min-width: 250px; flex: 1;">
-      
-      <button type="submit" class="btn-action btn-action-primary mr-2">
-        Submit
-      </button>
-      <button id="hide-add-contri-type-form" class="btn-action btn-action-secondary">
-        Cancel
-      </button>
-    </form>
+            <div class="form-group form-group-premium mb-3">
+              <label for="modal-contri-for" style="font-weight: 600; font-size: 0.85rem; color: var(--text-2); display: block; margin-bottom: 6px;">Contribution Type Name</label>
+              <input type="text" class="form-control-premium" name="contri_for" id="modal-contri-for" placeholder="Enter contribution type name" required>
+            </div>
+
+            <div class="form-group form-group-premium mb-3">
+              <label for="modal-amount" style="font-weight: 600; font-size: 0.85rem; color: var(--text-2); display: block; margin-bottom: 6px;">Amount (₹) (Optional)</label>
+              <input type="number" class="form-control-premium" name="amount" id="modal-amount" placeholder="Enter amount" min="0" step="0.01">
+            </div>
+
+            <div class="form-group form-group-premium mb-3">
+              <label for="modal-hijri-year" style="font-weight: 600; font-size: 0.85rem; color: var(--text-2); display: block; margin-bottom: 6px;">Hijri Financial Year (Optional)</label>
+              <select class="form-control-premium" name="hijri_year" id="modal-hijri-year">
+                <option value="">Select Year</option>
+                <?php if (!empty($hijri_years)): ?>
+                  <?php foreach ($hijri_years as $y): ?>
+                    <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>"><?php echo htmlspecialchars($y); ?></option>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer" style="border-top: 1px solid var(--border-light); padding: 16px 24px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn-action btn-action-secondary" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn-action btn-action-primary">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- Master Table Card -->
@@ -284,6 +315,8 @@
           <th>#</th>
           <th>Contribution Type</th>
           <th>FMB Type</th>
+          <th>Amount</th>
+          <th>Hijri Year</th>
           <th>Status</th>
           <th>Action</th>
         </tr>
@@ -295,7 +328,7 @@
               <td><?php echo $key + 1; ?></td>
               <td>
                 <p id="contri-for-<?php echo $value["id"]; ?>" class="m-0" style="font-weight: 600;"><?php echo $value["name"]; ?></p>
-                <input name="edit_contri_for" value="<?php echo $value["name"]; ?>" id="edit-contri-for-<?php echo $value["id"]; ?>" class="hidden form-control form-control-premium">
+                <input name="edit_contri_for" value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" id="edit-contri-for-<?php echo $value["id"]; ?>" class="hidden form-control form-control-premium">
               </td>
               <td>
                 <p id="fmb-type-<?php echo $value["id"]; ?>" class="m-0"><?php echo $value["fmb_type"]; ?></p>
@@ -303,6 +336,21 @@
                   <option value="">Select FMB Type</option>
                   <option value="Thaali" <?php echo $value["fmb_type"] === "Thaali" ? "selected" : ""; ?>>Thaali</option>
                   <option value="Niyaz" <?php echo $value["fmb_type"] === "Niyaz" ? "selected" : ""; ?>>Niyaz</option>
+                </select>
+              </td>
+              <td>
+                <p id="amount-<?php echo $value["id"]; ?>" class="m-0"><?php echo isset($value["amount"]) && $value["amount"] !== NULL ? '₹' . number_format($value["amount"], 2) : '-'; ?></p>
+                <input type="number" name="edit_amount" value="<?php echo $value["amount"]; ?>" id="edit-amount-<?php echo $value["id"]; ?>" class="hidden form-control form-control-premium" min="0" step="0.01">
+              </td>
+              <td>
+                <p id="hijri-year-<?php echo $value["id"]; ?>" class="m-0"><?php echo $value["hijri_year"] ?: '-'; ?></p>
+                <select name="edit_hijri_year" id="edit-hijri-year-<?php echo $value["id"]; ?>" class="hidden form-control form-control-premium">
+                  <option value="">Select Year</option>
+                  <?php if (!empty($hijri_years)): ?>
+                    <?php foreach ($hijri_years as $y): ?>
+                      <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo $value["hijri_year"] === $y ? "selected" : ""; ?>><?php echo htmlspecialchars($y); ?></option>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
                 </select>
               </td>
               <td>
@@ -314,8 +362,11 @@
                 </select>
               </td>
               <td>
-                <button class="edit-fmbgc-btn btn btn-sm btn-outline-secondary" id="edit-fmbgc-btn-<?php echo $value["id"]; ?>" data-fmbgc-id="<?php echo $value["id"]; ?>"><i class="fa-solid fa-pencil"></i></button>
-                <button class="save-fmbgc-btn btn btn-sm btn-success hidden" id="save-fmbgc-btn-<?php echo $value["id"]; ?>" data-fmbgc-id="<?php echo $value["id"]; ?>">Save</button>
+                <div class="d-flex gap-1 align-items-center">
+                  <button class="edit-fmbgc-btn btn btn-sm mr-2 btn-outline-secondary" id="edit-fmbgc-btn-<?php echo $value["id"]; ?>" data-fmbgc-id="<?php echo $value["id"]; ?>"><i class="fa-solid fa-pencil"></i></button>
+                  <button class="save-fmbgc-btn btn btn-sm mr-2 btn-success hidden" id="save-fmbgc-btn-<?php echo $value["id"]; ?>" data-fmbgc-id="<?php echo $value["id"]; ?>">Save</button>
+                  <button class="delete-fmbgc-btn btn btn-sm btn-outline-danger" id="delete-fmbgc-btn-<?php echo $value["id"]; ?>" data-fmbgc-id="<?php echo $value["id"]; ?>" data-name="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>"><i class="fa-solid fa-trash"></i></button>
+                </div>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -332,11 +383,7 @@
     });
     
     $("#add-contri-type").on("click", function() {
-      $("#add-contri-type-form").removeClass("hidden").show();
-    });
-    $("#hide-add-contri-type-form").on("click", function(e) {
-      e.preventDefault();
-      $("#add-contri-type-form").addClass("hidden").hide();
+      $("#addContributionTypeModal").modal("show");
     });
 
     $(".edit-fmbgc-btn").on("click", function(e) {
@@ -344,9 +391,13 @@
       $id = $(this).data("fmbgc-id");
       $("#contri-for-" + $id).addClass("hidden");
       $("#fmb-type-" + $id).addClass("hidden");
+      $("#amount-" + $id).addClass("hidden");
+      $("#hijri-year-" + $id).addClass("hidden");
       $("#status-" + $id).addClass("hidden");
       $("#edit-contri-for-" + $id).removeClass("hidden");
       $("#edit-fmb-type-" + $id).removeClass("hidden");
+      $("#edit-amount-" + $id).removeClass("hidden");
+      $("#edit-hijri-year-" + $id).removeClass("hidden");
       $("#edit-status-" + $id).removeClass("hidden");
       $(this).addClass("hidden");
       $("#save-fmbgc-btn-" + $id).removeClass("hidden");
@@ -357,6 +408,8 @@
       $id = $(this).data("fmbgc-id");
       $contriFor = $("#edit-contri-for-" + $id).val();
       $fmbType = $("#edit-fmb-type-" + $id).val();
+      $amount = $("#edit-amount-" + $id).val();
+      $hijriYear = $("#edit-hijri-year-" + $id).val();
       $status = $("#edit-status-" + $id).val();
 
       $.ajax({
@@ -366,16 +419,44 @@
           "id": $id,
           "name": $contriFor,
           "fmb_type": $fmbType,
+          "amount": $amount,
+          "hijri_year": $hijriYear,
           "status": $status,
         },
         success: function(res) {
           $res = JSON.parse(res);
           if ($res.success) {
-            alert("General Contribution Updated Successfully!");
+            alert("Contribution Type Updated Successfully!");
             location.reload();
+          } else {
+            alert("Failed to update Contribution Type.");
           }
         }
       })
+    });
+
+    $(".delete-fmbgc-btn").on("click", function(e) {
+      e.preventDefault();
+      const id = $(this).data("fmbgc-id");
+      const name = $(this).data("name");
+      if (confirm("Are you sure you want to delete this contribution type: '" + name + "'?")) {
+        $.ajax({
+          url: "<?php echo base_url("admin/deletefmbgc"); ?>",
+          type: "POST",
+          data: {
+            "id": id
+          },
+          success: function(res) {
+            const $res = JSON.parse(res);
+            if ($res.success) {
+              alert("Contribution Type Deleted Successfully!");
+              location.reload();
+            } else {
+              alert("Failed to delete Contribution Type.");
+            }
+          }
+        });
+      }
     });
   });
 </script>

@@ -3612,6 +3612,21 @@ HTML;
     }
   }
 
+  public function deletefmbgc()
+  {
+    if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
+      echo json_encode(["success" => false, "message" => "Unauthorized"]);
+      return;
+    }
+    $id = $this->input->post("id");
+    $result = $this->AdminM->deletefmbgc($id);
+    if ($result) {
+      echo json_encode(["success" => true]);
+    } else {
+      echo json_encode(["success" => false]);
+    }
+  }
+
   public function fmbgeneralcontributionmaster()
   {
     if (empty($_SESSION['user']) && $_SESSION['user']['role'] != 1) {
@@ -3631,6 +3646,9 @@ HTML;
       $data['all_fmbgc'] = $get_all_fmbgc;
     }
 
+    $this->load->model('HijriCalendar');
+    $data['hijri_years'] = $this->HijriCalendar->get_distinct_composite_years();
+
     $data['filter_status'] = $filter_status;
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
@@ -3646,8 +3664,10 @@ HTML;
     $fmb_type = $this->input->post("fmb_type");
     $contri_for = $this->input->post("contri_for");
     $miqaat_type = $this->input->post("miqaat_type") ?: NULL;
+    $amount = $this->input->post("amount") !== "" ? $this->input->post("amount") : NULL;
+    $hijri_year = $this->input->post("hijri_year") !== "" ? $this->input->post("hijri_year") : NULL;
 
-    $result = $this->AdminM->addfmbcontritype($fmb_type, $contri_for, $miqaat_type);
+    $result = $this->AdminM->addfmbcontritype($fmb_type, $contri_for, $miqaat_type, $amount, $hijri_year);
 
     if ($result) {
       redirect("admin/success/fmbgeneralcontributionmaster");
@@ -3667,13 +3687,17 @@ HTML;
     $fmb_type = $this->input->post("fmb_type");
     $status = $this->input->post("status");
     $miqaat_type = $this->input->post("miqaat_type") ?: NULL;
+    $amount = $this->input->post("amount") !== "" ? $this->input->post("amount") : NULL;
+    $hijri_year = $this->input->post("hijri_year") !== "" ? $this->input->post("hijri_year") : NULL;
 
     $result = $this->AdminM->updatefmbgc(
       $id,
       $name,
       $fmb_type,
       $status,
-      $miqaat_type
+      $miqaat_type,
+      $amount,
+      $hijri_year
     );
 
     if ($result) {
@@ -5294,6 +5318,137 @@ HTML;
     }
     return;
   }
+
+  public function expense_items()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('ExpenseItemM');
+    $data['items'] = $this->ExpenseItemM->get_all();
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/ExpenseItems', $data);
+  }
+
+  // AJAX: create new expense item
+  public function expense_item_create()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Unauthorized']));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
+      return;
+    }
+    $sector_name = trim((string)$this->input->post('sector_name'));
+    $sector_code = trim((string)$this->input->post('sector_code')) ?: null;
+    $sub_sector_name = trim((string)$this->input->post('sub_sector_name'));
+    $sub_sector_code = trim((string)$this->input->post('sub_sector_code')) ?: null;
+    $item_name = trim((string)$this->input->post('item_name'));
+    $item_code = trim((string)$this->input->post('item_code')) ?: null;
+    $status = trim((string)$this->input->post('status')) ?: 'Active';
+
+    if ($sector_name === '' || $sub_sector_name === '' || $item_name === '') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Sector, Sub Sector, and Item Name are required']));
+      return;
+    }
+
+    $this->load->model('ExpenseItemM');
+    $id = $this->ExpenseItemM->create([
+      'sector_name' => $sector_name,
+      'sector_code' => $sector_code,
+      'sub_sector_name' => $sub_sector_name,
+      'sub_sector_code' => $sub_sector_code,
+      'item_name' => $item_name,
+      'item_code' => $item_code,
+      'status' => $status
+    ]);
+
+    if ($id) {
+      $this->output->set_content_type('application/json')->set_output(json_encode([
+        'status' => 'success',
+        'id' => $id,
+        'sector_name' => $sector_name,
+        'sector_code' => $sector_code,
+        'sub_sector_name' => $sub_sector_name,
+        'sub_sector_code' => $sub_sector_code,
+        'item_name' => $item_name,
+        'item_code' => $item_code,
+        'item_status' => $status
+      ]));
+    } else {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Create failed']));
+    }
+  }
+
+  // AJAX: update existing expense item
+  public function expense_item_update()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Unauthorized']));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
+      return;
+    }
+    $id = (int)$this->input->post('id');
+    $sector_name = trim((string)$this->input->post('sector_name'));
+    $sector_code = trim((string)$this->input->post('sector_code')) ?: null;
+    $sub_sector_name = trim((string)$this->input->post('sub_sector_name'));
+    $sub_sector_code = trim((string)$this->input->post('sub_sector_code')) ?: null;
+    $item_name = trim((string)$this->input->post('item_name'));
+    $item_code = trim((string)$this->input->post('item_code')) ?: null;
+    $status = trim((string)$this->input->post('status')) ?: 'Active';
+
+    if ($id <= 0 || $sector_name === '' || $sub_sector_name === '' || $item_name === '') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid input']));
+      return;
+    }
+
+    $this->load->model('ExpenseItemM');
+    $ok = $this->ExpenseItemM->update($id, [
+      'sector_name' => $sector_name,
+      'sector_code' => $sector_code,
+      'sub_sector_name' => $sub_sector_name,
+      'sub_sector_code' => $sub_sector_code,
+      'item_name' => $item_name,
+      'item_code' => $item_code,
+      'status' => $status
+    ]);
+
+    if ($ok) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'success']));
+    } else {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Update failed']));
+    }
+  }
+
+  // AJAX: delete expense item
+  public function expense_item_delete()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Unauthorized']));
+      return;
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
+      return;
+    }
+    $id = (int)$this->input->post('id');
+    if ($id <= 0) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid id']));
+      return;
+    }
+    $this->load->model('ExpenseItemM');
+    $ok = $this->ExpenseItemM->delete_with_expenses($id);
+    if ($ok) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'success']));
+    } else {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Delete failed']));
+    }
+  }
+
   // AJAX: member search autocomplete (name or ITS ID)
   public function searchmembers()
   {

@@ -1,75 +1,87 @@
-<div class="container margintopcontainer pt-3">
-  <style>
-    .sof-table-container { max-height: 420px; overflow: auto; }
-    .sof-table thead th { position: sticky; top: 0; background: #fff; z-index: 3; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); }
-  </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,6..72,400;0,6..72,600&display=swap" rel="stylesheet">
 
-  <div class="row align-items-center mb-2">
-    <div class="col-4 text-left">
-      <a href="<?php echo base_url('admin/expense'); ?>" class="btn btn-sm btn-outline-secondary" aria-label="Back to Expense"><i class="fa fa-arrow-left"></i></a>
-    </div>
-    <div class="col-4 text-center">
-      <h4 class="m-0">Source of Funds</h4>
-    </div>
-    <div class="col-4 text-right">
-      <button id="sofAddBtn" type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#sofAddModal">
-        Add SOF
-      </button>
-    </div>
-  </div>
-  <hr>
+<div class="gold-theme-wrapper">
+  <div class="container pt-5">
+    <style>
+      .sof-table-container { max-height: 420px; overflow: auto; border-radius: 8px; border: 1px solid #e8e0cc; }
+      .sof-table thead th { position: sticky; top: 0; background: #f5e9c0; color: #5a5244; z-index: 3; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); border-bottom: 2px solid #e8e0cc; }
+      .sof-table tbody tr { background: #ffffff; }
+      .sof-table tbody tr:hover { background: #faf7f0; }
+    </style>
 
-  <div class="card mb-3">
-    <div class="card-body py-2">
-      <div class="form-row align-items-end">
-        <div class="col-md-6 mb-2">
-          <label class="small mb-1">Name</label>
-          <input type="text" id="sofFilterName" class="form-control form-control-sm" placeholder="Filter by name">
-        </div>
+    <div class="row align-items-center mb-3">
+      <div class="col-4 text-left">
+        <a href="<?php echo base_url('admin/expense'); ?>" class="btn btn-sm btn-gold-outline" aria-label="Back to Expense"><i class="fa fa-arrow-left"></i> Back</a>
       </div>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="sofClearFilters">Clear</button>
-      <span class="small text-muted ml-2" id="sofFilterSummary" aria-live="polite"></span>
+      <div class="col-4 text-center">
+        <h4 class="m-0 page-title">Source of Funds</h4>
+      </div>
+      <div class="col-4 text-right">
+        <button id="sofAddBtn" type="button" class="btn btn-sm btn-gold" data-toggle="modal" data-target="#sofAddModal">
+          <i class="fa fa-plus"></i> Add SOF
+        </button>
+      </div>
     </div>
-  </div>
+    <hr style="border-top: 1px solid #e8e0cc;">
 
-  <?php $sources = (isset($sources) && is_array($sources)) ? $sources : []; ?>
+    <div class="card mb-3 filter-card">
+      <div class="card-body py-2">
+        <div class="form-row align-items-end">
+          <div class="col-md-6 mb-2">
+            <label class="small mb-1 font-weight-bold" style="color: #5a5244;">Filter by Name</label>
+            <input type="text" id="sofFilterName" class="form-control form-control-sm" placeholder="Search Source of Funds...">
+          </div>
+        </div>
+        <button type="button" class="btn btn-xs btn-outline-secondary btn-sm" id="sofClearFilters">Clear</button>
+        <span class="small text-muted ml-2" id="sofFilterSummary" aria-live="polite"></span>
+      </div>
+    </div>
 
-  <div class="card p-3">
-    <div class="sof-table-container">
-      <table class="table table-striped table-bordered sof-table" id="sofTable">
-        <thead>
-          <tr>
-            <th style="width: 90px;">Sr.No</th>
-            <th>Name</th>
-            <th style="width: 140px;">Status</th>
-            <th style="width: 170px;">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if (!empty($sources)) : ?>
-            <?php $sr = 1; foreach ($sources as $row) : ?>
-              <?php
-                $id = isset($row['id']) ? (string)$row['id'] : '';
-                $name = isset($row['name']) ? (string)$row['name'] : '';
-                $status = isset($row['status']) ? (string)$row['status'] : 'Active';
-              ?>
-              <tr data-id="<?php echo htmlspecialchars($id); ?>" data-name="<?php echo htmlspecialchars(strtolower($name)); ?>" data-status="<?php echo htmlspecialchars($status); ?>">
-                <td><?php echo (int)$sr; $sr++; ?></td>
-                <td><?php echo htmlspecialchars($name); ?></td>
-                <td><?php echo htmlspecialchars($status); ?></td>
-                <td>
-                  <button type="button" class="btn btn-sm btn-outline-primary sof-edit" data-toggle="modal" data-target="#sofAddModal">Edit</button>
-                  <button type="button" class="btn btn-sm btn-outline-danger sof-delete">Delete</button>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php else : ?>
-            <tr class="sof-empty">
-              <td colspan="4" class="text-center">No records found.</td>
+    <?php $sources = (isset($sources) && is_array($sources)) ? $sources : []; ?>
+
+    <div class="card p-3 table-card">
+      <div class="sof-table-container">
+        <table class="table table-bordered mb-0 sof-table" id="sofTable">
+          <thead>
+            <tr>
+              <th style="width: 90px;">Sr.No</th>
+              <th>Name</th>
+              <th style="width: 140px;">Status</th>
+              <th style="width: 170px;">Action</th>
             </tr>
-          <?php endif; ?>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <?php if (!empty($sources)) : ?>
+              <?php $sr = 1; foreach ($sources as $row) : ?>
+                <?php
+                  $id = isset($row['id']) ? (string)$row['id'] : '';
+                  $name = isset($row['name']) ? (string)$row['name'] : '';
+                  $status = isset($row['status']) ? (string)$row['status'] : 'Active';
+                ?>
+                <tr data-id="<?php echo htmlspecialchars($id); ?>" data-name="<?php echo htmlspecialchars(strtolower($name)); ?>" data-status="<?php echo htmlspecialchars($status); ?>">
+                  <td><?php echo (int)$sr; $sr++; ?></td>
+                  <td class="font-weight-semibold"><?php echo htmlspecialchars($name); ?></td>
+                  <td>
+                    <span class="badge badge-status <?php echo strtolower($status) === 'active' ? 'status-active' : 'status-inactive'; ?>">
+                      <?php echo htmlspecialchars($status); ?>
+                    </span>
+                  </td>
+                  <td>
+                    <button type="button" class="btn btn-xs btn-gold-outline py-1 px-2 mr-1 sof-edit" data-toggle="modal" data-target="#sofAddModal">Edit</button>
+                    <button type="button" class="btn btn-xs btn-danger py-1 px-2 sof-delete">Delete</button>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            <?php else : ?>
+              <tr class="sof-empty">
+                <td colspan="4" class="text-center text-muted py-3">No records found.</td>
+              </tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -77,21 +89,21 @@
 <!-- Add SOF Modal -->
 <div class="modal fade" id="sofAddModal" tabindex="-1" role="dialog" aria-labelledby="sofAddModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
-    <div class="modal-content">
+    <div class="modal-content modal-custom">
       <div class="modal-header">
-        <h5 class="modal-title" id="sofAddModalLabel">Add Source of Funds</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <h5 class="modal-title font-title" id="sofAddModalLabel">Add Source of Funds</h5>
+        <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="sofEditing" value="0">
         <div class="form-group">
-          <label for="sofName">Name</label>
+          <label for="sofName" class="font-weight-semibold">Name</label>
           <input type="text" class="form-control" id="sofName" placeholder="e.g. Donations" required>
         </div>
         <div class="form-group">
-          <label for="sofStatus">Status</label>
+          <label for="sofStatus" class="font-weight-semibold">Status</label>
           <select class="form-control" id="sofStatus">
             <option value="Active" selected>Active</option>
             <option value="Inactive">Inactive</option>
@@ -100,7 +112,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="sofSaveBtn">Save</button>
+        <button type="button" class="btn btn-gold" id="sofSaveBtn">Save</button>
       </div>
     </div>
   </div>
@@ -151,146 +163,223 @@
       });
     }
 
-    document.addEventListener('DOMContentLoaded', function(){
-      var filterInput = document.getElementById('sofFilterName');
-      var clearBtn = document.getElementById('sofClearFilters');
-      var saveBtn = document.getElementById('sofSaveBtn');
-      var nameInput = document.getElementById('sofName');
-      var statusInput = document.getElementById('sofStatus');
-      var editingInput = document.getElementById('sofEditing');
-      var modalTitle = document.getElementById('sofAddModalLabel');
-      var tbody = document.querySelector('#sofTable tbody');
-      var editingRow = null;
+    var filterInput = document.getElementById('sofFilterName');
+    if(filterInput) filterInput.addEventListener('input', applyFilters);
 
-      function resetModal(){
-        if(editingInput) editingInput.value = '0';
-        editingRow = null;
-        if(modalTitle) modalTitle.textContent = 'Add Source of Funds';
-        if(saveBtn) saveBtn.textContent = 'Save';
-        if(nameInput) nameInput.value = '';
-        if(statusInput) statusInput.value = 'Active';
+    var clearBtn = document.getElementById('sofClearFilters');
+    if(clearBtn){
+      clearBtn.addEventListener('click', function(){
+        if(filterInput) filterInput.value = '';
+        applyFilters();
+      });
+    }
+
+    // Modal reset on Add click
+    var addBtn = document.getElementById('sofAddBtn');
+    if(addBtn){
+      addBtn.addEventListener('click', function(){
+        document.getElementById('sofAddModalLabel').textContent = 'Add Source of Funds';
+        document.getElementById('sofEditing').value = '0';
+        document.getElementById('sofName').value = '';
+        document.getElementById('sofStatus').value = 'Active';
+      });
+    }
+
+    // Modal populate on Edit click
+    document.addEventListener('click', function(e){
+      var t = e.target;
+      if(t && t.classList.contains('sof-edit')){
+        var tr = t.closest('tr');
+        if(!tr) return;
+        var id = tr.getAttribute('data-id');
+        var name = tr.getAttribute('data-name');
+        var status = tr.getAttribute('data-status');
+
+        document.getElementById('sofAddModalLabel').textContent = 'Edit Source of Funds';
+        document.getElementById('sofEditing').value = id;
+        document.getElementById('sofName').value = tr.children[1].textContent.trim();
+        document.getElementById('sofStatus').value = status;
       }
-
-      if(filterInput) filterInput.addEventListener('input', applyFilters);
-      if(clearBtn) clearBtn.addEventListener('click', function(){ if(filterInput) filterInput.value = ''; applyFilters(); });
-
-      if(window.jQuery){
-        // Ensure focus is never left inside an aria-hidden modal
-        window.jQuery('#sofAddModal').on('shown.bs.modal', function(){
-          try{ window.jQuery('#sofName').trigger('focus'); }catch(e){}
-        });
-        window.jQuery('#sofAddModal').on('hide.bs.modal', function(){
-          try{ var active = document.activeElement; if(active && typeof active.blur === 'function') active.blur(); }catch(e){}
-        });
-        window.jQuery('#sofAddModal').on('hidden.bs.modal', function(){
-          resetModal();
-          try{ window.jQuery('#sofAddBtn').trigger('focus'); }catch(e){}
-        });
-      }
-
-      // Delegate edit/delete actions and set editingRow before modal opens
-      if(tbody){
-        tbody.addEventListener('click', function(e){
-          var t = e.target;
-          if(!t) return;
-          var tr = t.closest('tr');
-          if(!tr || tr.classList.contains('sof-empty')) return;
-
-          if(t.classList.contains('sof-delete')){
-            var name = tr.children[1] ? (tr.children[1].textContent || '').trim() : '';
-            if(!window.confirm('Delete SOF: ' + name + ' ?')) return;
-            var id = tr.getAttribute('data-id');
-            if(!id){ alert('Missing id'); return; }
-            fetch('<?php echo base_url("admin/expense/source-delete") ?>', {
-              method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'id=' + encodeURIComponent(id)
-            }).then(function(r){ return r.text(); }).then(function(text){
-              var resp = null; try { resp = JSON.parse(text); } catch(e) { resp = null; }
-              if(resp && resp.status === 'success'){
-                tr.parentNode.removeChild(tr);
-                if(tbody.querySelectorAll('tr').length === 0){ var empty = document.createElement('tr'); empty.className = 'sof-empty'; empty.innerHTML = '<td colspan="4" class="text-center">No records found.</td>'; tbody.appendChild(empty); }
-                renumberRows();
-                applyFilters();
-              } else {
-                var msg = (resp && resp.message) ? resp.message : 'Delete failed';
-                <?php if (defined('ENVIRONMENT') && ENVIRONMENT === 'development'): ?>
-                try { console.error('SOF delete error raw response:', text); } catch(e) {}
-                <?php endif; ?>
-                alert(msg);
-              }
-            }).catch(function(){ alert('Network error'); });
-            return;
-          }
-
-          if(t.classList.contains('sof-edit')){
-            editingRow = tr;
-            if(editingInput) editingInput.value = '1';
-            if(modalTitle) modalTitle.textContent = 'Edit Source of Funds';
-            if(saveBtn) saveBtn.textContent = 'Update';
-            var currentName = tr.children[1] ? (tr.children[1].textContent || '').trim() : '';
-            var currentStatus = tr.getAttribute('data-status') || (tr.children[2] ? (tr.children[2].textContent || '').trim() : 'Active');
-            if(nameInput) nameInput.value = currentName;
-            if(statusInput) statusInput.value = currentStatus || 'Active';
-            return; // allow modal to open via data-toggle
-          }
-        });
-      }
-
-      if(saveBtn && nameInput && statusInput && tbody){
-        saveBtn.addEventListener('click', function(){
-          var name = (nameInput.value || '').trim(); var status = (statusInput.value || 'Active');
-          if(!name){ nameInput.focus(); return; }
-
-          if(editingInput && editingInput.value === '1' && editingRow){
-            var id = editingRow.getAttribute('data-id');
-            if(!id){ alert('Missing id'); return; }
-            fetch('<?php echo base_url("admin/expense/source-update") ?>', {
-              method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: 'id='+encodeURIComponent(id)+'&name='+encodeURIComponent(name)+'&status='+encodeURIComponent(status)
-            }).then(function(r){ return r.text(); }).then(function(text){
-              var resp = null; try { resp = JSON.parse(text); } catch(e) { resp = null; }
-              if(resp && resp.status === 'success'){
-                editingRow.setAttribute('data-name', name.toLowerCase()); editingRow.setAttribute('data-status', status);
-                if(editingRow.children[1]) editingRow.children[1].textContent = name;
-                if(editingRow.children[2]) editingRow.children[2].textContent = status;
-                if(window.jQuery){ window.jQuery('#sofAddModal').modal('hide'); }
-                applyFilters();
-              } else {
-                var msgUp = (resp && resp.message) ? resp.message : 'Update failed';
-                <?php if (defined('ENVIRONMENT') && ENVIRONMENT === 'development'): ?>
-                try { console.error('SOF update error raw response:', text); } catch(e) {}
-                <?php endif; ?>
-                alert(msgUp);
-              }
-            }).catch(function(){ alert('Network error'); });
-          } else {
-            // create
-            fetch('<?php echo base_url("admin/expense/source-create") ?>', {
-              method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: 'name='+encodeURIComponent(name)+'&status='+encodeURIComponent(status)
-            }).then(function(r){ return r.text(); }).then(function(text){
-              var resp = null; try { resp = JSON.parse(text); } catch(e) { resp = null; }
-              if(resp && resp.status === 'success'){
-                var empty = tbody.querySelector('tr.sof-empty'); if(empty) empty.parentNode.removeChild(empty);
-                var tr = document.createElement('tr'); tr.setAttribute('data-id', resp.id); tr.setAttribute('data-name', name.toLowerCase()); tr.setAttribute('data-status', status);
-                tr.innerHTML = '<td></td>' + '<td>'+escapeHtml(name)+'</td>' + '<td>'+escapeHtml(status)+'</td>' + '<td>' + '<button type="button" class="btn btn-sm btn-outline-primary sof-edit" data-toggle="modal" data-target="#sofAddModal">Edit</button> ' + '<button type="button" class="btn btn-sm btn-outline-danger sof-delete">Delete</button>' + '</td>';
-                tbody.appendChild(tr);
-                if(window.jQuery){ window.jQuery('#sofAddModal').modal('hide'); }
-                renumberRows();
-                applyFilters();
-              } else {
-                var msgCr = (resp && resp.message) ? resp.message : 'Create failed';
-                <?php if (defined('ENVIRONMENT') && ENVIRONMENT === 'development'): ?>
-                try { console.error('SOF create error raw response:', text); } catch(e) {}
-                <?php endif; ?>
-                alert(msgCr);
-              }
-            }).catch(function(){ alert('Network error'); });
-          }
-        });
-      }
-
-      renumberRows();
-      applyFilters();
     });
+
+    // Save button click
+    var saveBtn = document.getElementById('sofSaveBtn');
+    if(saveBtn){
+      saveBtn.addEventListener('click', function(){
+        var name = document.getElementById('sofName').value.trim();
+        var status = document.getElementById('sofStatus').value;
+        var editingId = parseInt(document.getElementById('sofEditing').value) || 0;
+
+        if(!name){
+          alert('Name is required');
+          return;
+        }
+
+        var url = '<?php echo site_url("admin/expense/source-create"); ?>';
+        var fd = new FormData();
+        fd.append('name', name);
+        fd.append('status', status);
+
+        if(editingId > 0){
+          url = '<?php echo site_url("admin/expense/source-update"); ?>';
+          fd.append('id', editingId);
+        }
+
+        saveBtn.disabled = true;
+        fetch(url, {
+          method: 'POST',
+          body: fd
+        })
+        .then(function(res){ return res.json(); })
+        .then(function(data){
+          saveBtn.disabled = false;
+          if(data && data.status === 'success'){
+            $('#sofAddModal').modal('hide');
+            location.reload();
+          } else {
+            alert(data.message || 'Action failed');
+          }
+        })
+        .catch(function(){
+          saveBtn.disabled = false;
+          alert('Request failed');
+        });
+      });
+    }
+
+    // Delete source click
+    document.addEventListener('click', function(e){
+      var t = e.target;
+      if(t && t.classList.contains('sof-delete')){
+        var tr = t.closest('tr');
+        if(!tr) return;
+        var id = tr.getAttribute('data-id');
+        var name = tr.getAttribute('data-name');
+
+        if(!confirm('Are you sure you want to delete "' + name + '"? Any related expense records will also be deleted.')){
+          return;
+        }
+
+        var fd = new FormData();
+        fd.append('id', id);
+
+        fetch('<?php echo site_url("admin/expense/source-delete"); ?>', {
+          method: 'POST',
+          body: fd
+        })
+        .then(function(res){ return res.json(); })
+        .then(function(data){
+          if(data && data.status === 'success'){
+            tr.parentNode.removeChild(tr);
+            renumberRows();
+            applyFilters();
+          } else {
+            alert(data.message || 'Delete failed');
+          }
+        })
+        .catch(function(){
+          alert('Request failed');
+        });
+      }
+    });
+
+    applyFilters();
   })();
 </script>
+
+<style>
+  .gold-theme-wrapper {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: #faf7f0;
+    min-height: calc(100vh - 57px);
+    margin-top: 57px;
+    padding-bottom: 50px;
+    color: #1a1610;
+  }
+
+  .page-title {
+    font-family: 'Literata', Georgia, serif;
+    font-weight: 600;
+    color: #78520a;
+  }
+
+  .btn-gold-outline {
+    color: #b8860b;
+    border-color: #e8e0cc;
+    background: #ffffff;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-gold-outline:hover {
+    background: #f5e9c0;
+    color: #78520a;
+    border-color: #b8860b;
+    text-decoration: none;
+  }
+
+  .btn-gold {
+    background: #b8860b;
+    color: #ffffff;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .btn-gold:hover {
+    background: #78520a;
+    color: #ffffff;
+  }
+
+  .filter-card {
+    background: #ffffff;
+    border: 1px solid #e8e0cc;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(184,134,11,0.03);
+  }
+
+  .table-card {
+    background: #ffffff;
+    border: 1px solid #e8e0cc;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(184,134,11,0.04);
+  }
+
+  .badge-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+  .status-active {
+    background: #eaf4ee;
+    color: #1a6645;
+  }
+  .status-inactive {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+
+  .modal-custom {
+    border-radius: 16px;
+    border: 1px solid #e8e0cc;
+    box-shadow: 0 8px 32px rgba(184,134,11,0.08);
+  }
+  .modal-custom .modal-header {
+    background: #faf7f0;
+    border-bottom: 1px solid #e8e0cc;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+  }
+  .modal-custom .modal-footer {
+    border-top: 1px solid #e8e0cc;
+    background: #faf7f0;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+  }
+  
+  .font-title {
+    font-family: 'Literata', Georgia, serif;
+    font-weight: 600;
+    color: #78520a;
+  }
+</style>

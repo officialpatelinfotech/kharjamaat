@@ -17,20 +17,24 @@ class ExpenseM extends CI_Model
 
     /**
      * Get list of expenses with optional filters.
-     * Filters keys: aos (string), sof (int source_id), hijri_year (int),
+     * Filters keys: item (string), sof (int source_id), hijri_year (int),
      * date_from (Y-m-d), date_to (Y-m-d).
      */
     public function get_list($filters = [])
     {
             $limit = isset($filters['limit']) ? (int)$filters['limit'] : null;
 
-            $this->db->select('e.*, s.name AS source_name, a.name AS area_name')
+            $this->db->select('e.*, s.name AS source_name, i.sector_name, i.sector_code, i.sub_sector_name, i.sub_sector_code, i.item_name, i.item_code')
                 ->from($this->table . ' AS e')
                 ->join('expense_sources AS s', 's.id = e.source_id', 'left')
-                ->join('expense_areas AS a', 'a.id = e.area_id', 'left');
+                ->join('expense_items AS i', 'i.id = e.item_id', 'left');
 
-        if (!empty($filters['aos'])) {
-            $this->db->like('a.name', $filters['aos']);
+        if (!empty($filters['item'])) {
+            $this->db->group_start();
+            $this->db->like('i.item_name', $filters['item']);
+            $this->db->or_like('i.sector_name', $filters['item']);
+            $this->db->or_like('i.sub_sector_name', $filters['item']);
+            $this->db->group_end();
         }
         if (!empty($filters['sof'])) {
             $this->db->where('e.source_id', (int)$filters['sof']);
@@ -62,7 +66,7 @@ class ExpenseM extends CI_Model
     {
         $payload = [
             'expense_date' => isset($data['expense_date']) ? $data['expense_date'] : date('Y-m-d'),
-            'area_id'      => !empty($data['area_id']) ? (int)$data['area_id'] : null,
+            'item_id'      => !empty($data['item_id']) ? (int)$data['item_id'] : null,
             'amount'       => isset($data['amount']) ? (float)$data['amount'] : 0,
             'source_id'    => isset($data['source_id']) ? (int)$data['source_id'] : 0,
             'hijri_year'   => isset($data['hijri_year']) ? (int)$data['hijri_year'] : 0,
@@ -80,7 +84,7 @@ class ExpenseM extends CI_Model
     {
         $payload = [];
         if (isset($data['expense_date'])) $payload['expense_date'] = $data['expense_date'];
-        if (array_key_exists('area_id', $data)) $payload['area_id'] = $data['area_id'] !== '' ? (int)$data['area_id'] : null;
+        if (array_key_exists('item_id', $data)) $payload['item_id'] = ($data['item_id'] !== '' && $data['item_id'] !== null) ? (int)$data['item_id'] : null;
         if (isset($data['amount'])) $payload['amount'] = (float)$data['amount'];
         if (isset($data['source_id'])) $payload['source_id'] = (int)$data['source_id'];
         if (isset($data['hijri_year'])) $payload['hijri_year'] = (int)$data['hijri_year'];

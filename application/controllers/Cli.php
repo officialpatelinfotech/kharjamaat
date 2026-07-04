@@ -319,6 +319,131 @@ class Cli extends CI_Controller
         } else {
             echo "\nSOME TESTS FAILED!\n";
         }
-    }}
+    }
+
+    public function verify_expense_item_flow()
+    {
+        if (!is_cli()) {
+            echo "This command can only be run from the CLI.\n";
+            return;
+        }
+
+        echo "Starting expense item flow verification...\n";
+
+        $this->load->model('ExpenseM');
+        $this->load->model('ExpenseSourceM');
+        $this->load->model('ExpenseItemM');
+
+        // 1. Create a test Source of Funds (SOF)
+        $sourceName = "Test SOF " . uniqid();
+        $sourceId = $this->ExpenseSourceM->create([
+            'name' => $sourceName,
+            'status' => 'Active'
+        ]);
+        echo "Created test source: ID={$sourceId}, Name='{$sourceName}'\n";
+
+        // 2. Create a test Expense Item
+        $sectorName = "Test Sector";
+        $sectorCode = "SEC01";
+        $subSectorName = "Test Sub Sector";
+        $subSectorCode = "SUB01";
+        $itemName = "Test Item " . uniqid();
+        $itemCode = "IT01";
+
+        $itemId = $this->ExpenseItemM->create([
+            'sector_name' => $sectorName,
+            'sector_code' => $sectorCode,
+            'sub_sector_name' => $subSectorName,
+            'sub_sector_code' => $subSectorCode,
+            'item_name' => $itemName,
+            'item_code' => $itemCode,
+            'status' => 'Active'
+        ]);
+        echo "Created test item: ID={$itemId}, Name='{$itemName}'\n";
+
+        // 3. Create a test Expense
+        $expenseDate = date('Y-m-d');
+        $amount = 1250.75;
+        $hijriYear = 1445;
+        $notes = "CLI test expense notes";
+
+        $expenseId = $this->ExpenseM->create([
+            'expense_date' => $expenseDate,
+            'item_id' => $itemId,
+            'amount' => $amount,
+            'source_id' => $sourceId,
+            'hijri_year' => $hijriYear,
+            'notes' => $notes
+        ]);
+        echo "Created test expense: ID={$expenseId}\n";
+
+        // 4. Fetch list and verify
+        $list = $this->ExpenseM->get_list(['item' => $itemName]);
+        $found = null;
+        foreach ($list as $row) {
+            if ((int)$row['id'] === (int)$expenseId) {
+                $found = $row;
+                break;
+            }
+        }
+
+        $passed = true;
+        if (!$found) {
+            echo "ASSERTION FAILED: Created expense not found in list filtered by item name!\n";
+            $passed = false;
+        } else {
+            echo "Successfully retrieved created expense from list.\n";
+            if ($found['sector_name'] !== $sectorName) {
+                echo "ASSERTION FAILED: sector_name mismatch: expected '{$sectorName}', got '{$found['sector_name']}'\n";
+                $passed = false;
+            }
+            if ($found['sub_sector_name'] !== $subSectorName) {
+                echo "ASSERTION FAILED: sub_sector_name mismatch: expected '{$subSectorName}', got '{$found['sub_sector_name']}'\n";
+                $passed = false;
+            }
+            if ($found['item_name'] !== $itemName) {
+                echo "ASSERTION FAILED: item_name mismatch: expected '{$itemName}', got '{$found['item_name']}'\n";
+                $passed = false;
+            }
+            if ((float)$found['amount'] !== $amount) {
+                echo "ASSERTION FAILED: amount mismatch: expected {$amount}, got {$found['amount']}\n";
+                $passed = false;
+            }
+            if ($found['source_name'] !== $sourceName) {
+                echo "ASSERTION FAILED: source_name mismatch: expected '{$sourceName}', got '{$found['source_name']}'\n";
+                $passed = false;
+            }
+        }
+
+        // 5. Update and verify
+        $newAmount = 2500.00;
+        $updateOk = $this->ExpenseM->update($expenseId, ['amount' => $newAmount]);
+        if (!$updateOk) {
+            echo "ASSERTION FAILED: Expense update failed!\n";
+            $passed = false;
+        } else {
+            $updatedExpense = $this->ExpenseM->get($expenseId);
+            if ((float)$updatedExpense['amount'] !== $newAmount) {
+                echo "ASSERTION FAILED: Updated amount mismatch: expected {$newAmount}, got {$updatedExpense['amount']}\n";
+                $passed = false;
+            } else {
+                echo "Successfully updated expense amount.\n";
+            }
+        }
+
+        // 6. Cleanup
+        echo "Cleaning up test records...\n";
+        $this->ExpenseM->delete($expenseId);
+        $this->ExpenseItemM->delete_with_expenses($itemId);
+        $this->ExpenseSourceM->delete_with_expenses($sourceId);
+        echo "Cleanup complete!\n";
+
+        if ($passed) {
+            echo "\nEXPENSE ITEM FLOW VERIFICATION PASSED SUCCESSFULLY!\n";
+        } else {
+            echo "\nEXPENSE ITEM FLOW VERIFICATION FAILED!\n";
+        }
+    }
+}
 
 

@@ -9,240 +9,171 @@ $current_hijri_year_for_expense = isset($current_hijri_year_for_expense) ? (int)
 $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
 ?>
 
-<style>
-  .page-title {
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-  }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,6..72,400;0,6..72,600&display=swap" rel="stylesheet">
 
-  .table-container {
-    max-height: 520px;
-    overflow-y: auto;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+<div class="gold-theme-wrapper">
+  <div class="container margintopcontainer pt-3">
+    <style>
+      .table-container { max-height: 520px; overflow: auto; border-radius: 8px; border: 1px solid #e8e0cc; }
+      #expensesTable thead th { position: sticky; top: 0; background: #f5e9c0; color: #5a5244; z-index: 3; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); border-bottom: 2px solid #e8e0cc; }
+      #expensesTable tbody tr { background: #ffffff; }
+      #expensesTable tbody tr:hover { background: #faf7f0; }
+    </style>
 
-  .table thead th {
-    position: sticky;
-    top: 0;
-    background: #fff;
-    z-index: 3;
-    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Expenses table: equal column widths & fixed layout */
-  #expensesTable {
-    table-layout: fixed;
-    width: 100%;
-  }
-
-  #expensesTable th,
-  #expensesTable td {
-    width: 16.666%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Header with centered title and right-aligned button */
-  .expenses-header {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 0.5rem;
-  }
-
-  .expenses-header-title {
-    flex: 1;
-    text-align: center;
-    margin: 0;
-  }
-
-  .expenses-header-actions {
-    position: absolute;
-    right: 0;
-  }
-
-  /* Sortable header styling */
-  #expensesTable thead th.sortable {
-    cursor: pointer;
-    user-select: none;
-  }
-
-  #expensesTable thead th.sortable::after {
-    content: " \25B4\25BE";
-    font-size: 0.7rem;
-    opacity: 0.5;
-  }
-
-  /* Mobile: don't squeeze columns; allow horizontal scroll */
-  @media (max-width: 575.98px) {
-    #expensesTable {
-      table-layout: auto;
-      width: max-content;
-      min-width: 100%;
-    }
-
-    #expensesTable th,
-    #expensesTable td {
-      width: auto;
-      overflow: visible;
-      text-overflow: clip;
-    }
-
-    #expensesTable th:nth-child(1),
-    #expensesTable td:nth-child(1) { min-width: 92px; }
-    #expensesTable th:nth-child(2),
-    #expensesTable td:nth-child(2) { min-width: 160px; }
-    #expensesTable th:nth-child(3),
-    #expensesTable td:nth-child(3) { min-width: 110px; }
-    #expensesTable th:nth-child(4),
-    #expensesTable td:nth-child(4) { min-width: 150px; }
-    #expensesTable th:nth-child(5),
-    #expensesTable td:nth-child(5) { min-width: 90px; }
-    #expensesTable th:nth-child(6),
-    #expensesTable td:nth-child(6) { min-width: 150px; }
-  }
-</style>
-
-<div class="container-fluid margintopcontainer pt-5">
-  <div class="d-flex align-items-center mb-2">
-    <a href="<?= base_url('anjuman'); ?>" class="btn btn-sm btn-outline-secondary mr-2" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></a>
-  </div>
-
-  <h4 class="text-center page-title">
-    Expenses<?= $current_hijri_year_for_expense ? ' for ' . (int)$current_hijri_year_for_expense : ''; ?>
-  </h4>
-
-  <div class="card shadow-sm mb-3">
-    <div class="card-body text-center py-2">
-      <span class="font-weight-bold">Total Expense<?= $current_hijri_year_for_expense ? ' for ' . (int)$current_hijri_year_for_expense : ''; ?>:</span>
-      <span>
-        ₹<?= number_format($expense_total, 0); ?>
-      </span>
+    <div class="row align-items-center mb-3">
+      <div class="col-12">
+        <a href="<?= base_url('anjuman'); ?>" class="btn btn-sm btn-gold-outline" aria-label="Back"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
+      </div>
     </div>
-  </div>
 
-  <!-- Filters -->
-  <div class="card shadow-sm mb-3">
-    <div class="card-body">
-      <form class="mb-0" method="get" action="<?= current_url(); ?>">
-        <div class="form-row">
-          <div class="form-group col-sm-6 col-md-3">
-            <label for="filterAos" class="mb-1">AOS (Area of Spend)</label>
-            <input type="text" id="filterAos" name="aos" class="form-control form-control-sm" placeholder="Search AOS" value="<?= htmlspecialchars(isset($filters['aos']) ? (string)$filters['aos'] : '', ENT_QUOTES, 'UTF-8'); ?>">
-          </div>
+    <div class="anj-header mb-4">
+      <div class="anj-header-inner d-flex align-items-center justify-content-between">
+        <div class="anj-title-group">
+          <span class="anj-eyebrow">Overview</span>
+          <h2 class="anj-title">Expenses<?= $current_hijri_year_for_expense ? ' for ' . (int)$current_hijri_year_for_expense : ''; ?></h2>
+        </div>
+        <div class="anj-badge">
+          <span class="anj-badge-val">₹<?= number_format($expense_total, 0); ?></span>
+          <span class="anj-badge-lbl">Total Spend</span>
+        </div>
+      </div>
+    </div>
 
-          <div class="form-group col-sm-6 col-md-3">
-            <label for="filterSof" class="mb-1">SOF (Source of Funds)</label>
-            <select id="filterSof" name="sof" class="form-control form-control-sm">
-              <option value="">All</option>
-              <?php foreach ($sof_options as $opt): ?>
-                <?php
-                  $id = isset($opt['id']) ? (int)$opt['id'] : 0;
-                  $name = isset($opt['name']) ? (string)$opt['name'] : '';
-                  $selected = (isset($filters['sof']) && (int)$filters['sof'] === $id) ? 'selected' : '';
-                ?>
-                <option value="<?= $id; ?>" <?= $selected; ?>><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
+    <!-- Filters -->
+    <div class="card filter-card mb-4">
+      <div class="card-body">
+        <h6 class="font-weight-bold mb-3 font-title">Search & Filter</h6>
+        <form class="mb-0" method="get" action="<?= current_url(); ?>">
+          <div class="form-row">
+            <div class="form-group col-12 col-md-3">
+              <label for="filterItem" class="mb-1 font-weight-bold small">Expense Section</label>
+              <input type="text" id="filterItem" name="item" class="form-control form-control-sm" placeholder="Search Sector, Sub Sector, Section" value="<?= htmlspecialchars(isset($filters['item']) ? (string)$filters['item'] : '', ENT_QUOTES, 'UTF-8'); ?>">
+            </div>
 
-          <div class="form-group col-sm-6 col-md-3">
-            <label for="filterHijriYear" class="mb-1">Hijri Year</label>
-            <select id="filterHijriYear" name="hijri_year" class="form-control form-control-sm">
-              <option value="">All</option>
-              <?php for ($yrInt = 1442; $yrInt <= 1457; $yrInt++): ?>
-                <?php $selected = (isset($filters['hijri_year']) && (int)$filters['hijri_year'] === $yrInt) ? 'selected' : ''; ?>
-                <option value="<?= $yrInt; ?>" <?= $selected; ?>><?= $yrInt; ?></option>
-              <?php endfor; ?>
-            </select>
-          </div>
+            <div class="form-group col-12 col-md-3">
+              <label for="filterSof" class="mb-1 font-weight-bold small">SOF (Source of Funds)</label>
+              <select id="filterSof" name="sof" class="form-control form-control-sm">
+                <option value="">All</option>
+                <?php foreach ($sof_options as $opt): ?>
+                  <?php
+                    $id = isset($opt['id']) ? (int)$opt['id'] : 0;
+                    $name = isset($opt['name']) ? (string)$opt['name'] : '';
+                    $selected = (isset($filters['sof']) && (int)$filters['sof'] === $id) ? 'selected' : '';
+                  ?>
+                  <option value="<?= $id; ?>" <?= $selected; ?>><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
 
-          <div class="form-group col-sm-6 col-md-3">
-            <label class="mb-1">Date</label>
-            <div class="d-flex" style="gap: 4px;">
-              <input type="date" name="date_from" class="form-control form-control-sm" value="<?= htmlspecialchars(isset($filters['date_from']) ? (string)$filters['date_from'] : '', ENT_QUOTES, 'UTF-8'); ?>" title="From date">
-              <input type="date" name="date_to" class="form-control form-control-sm" value="<?= htmlspecialchars(isset($filters['date_to']) ? (string)$filters['date_to'] : '', ENT_QUOTES, 'UTF-8'); ?>" title="To date">
+            <div class="form-group col-12 col-md-2">
+              <label for="filterHijriYear" class="mb-1 font-weight-bold small">Hijri Year</label>
+              <select id="filterHijriYear" name="hijri_year" class="form-control form-control-sm">
+                <option value="">All</option>
+                <?php for ($yrInt = 1442; $yrInt <= 1457; $yrInt++): ?>
+                  <?php $selected = (isset($filters['hijri_year']) && (int)$filters['hijri_year'] === $yrInt) ? 'selected' : ''; ?>
+                  <option value="<?= $yrInt; ?>" <?= $selected; ?>><?= $yrInt; ?></option>
+                <?php endfor; ?>
+              </select>
+            </div>
+
+            <div class="form-group col-12 col-md-4">
+              <label class="mb-1 font-weight-bold small">Date Range</label>
+              <div class="d-flex" style="gap: 4px;">
+                <input type="date" name="date_from" class="form-control form-control-sm" value="<?= htmlspecialchars(isset($filters['date_from']) ? (string)$filters['date_from'] : '', ENT_QUOTES, 'UTF-8'); ?>" title="From date">
+                <input type="date" name="date_to" class="form-control form-control-sm" value="<?= htmlspecialchars(isset($filters['date_to']) ? (string)$filters['date_to'] : '', ENT_QUOTES, 'UTF-8'); ?>" title="To date">
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="d-flex justify-content-end" style="gap: 8px;">
-          <a href="<?= current_url(); ?>" class="btn btn-sm btn-outline-secondary">Reset</a>
-          <button type="submit" class="btn btn-sm btn-primary">Apply Filters</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Expenses table -->
-  <div class="card shadow-sm mb-3">
-    <div class="card-body">
-      <div class="expenses-header">
-        <h5 class="expenses-header-title">Expenses</h5>
-        <div class="expenses-header-actions">
-          <a href="<?= base_url('anjuman/expense_add'); ?>" class="btn btn-sm btn-success">Add Expense</a>
-        </div>
+          <div class="d-flex justify-content-end" style="gap: 8px;">
+            <a href="<?= current_url(); ?>" class="btn btn-sm btn-gold-outline">Reset</a>
+            <button type="submit" class="btn btn-sm btn-gold">Apply Filters</button>
+          </div>
+        </form>
       </div>
+    </div>
 
-      <div class="table-container">
-        <table id="expensesTable" class="table table-striped table-bordered mb-0">
-          <thead>
-            <tr>
-              <th class="sortable" data-type="date">Date</th>
-              <th class="sortable" data-type="string">AOS (Area of Spend)</th>
-              <th class="sortable text-right" data-type="number">Amount</th>
-              <th class="sortable" data-type="string">SOF (Source of Funds)</th>
-              <th class="sortable text-center" data-type="number">Hijri Year</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (!empty($expenses)): ?>
-              <?php foreach ($expenses as $row): ?>
-                <?php
-                  $date_raw = isset($row['expense_date']) ? $row['expense_date'] : '';
-                  $date = $date_raw ? date('d-m-Y', strtotime($date_raw)) : '';
-                  $aos = isset($row['area_name']) ? $row['area_name'] : '';
-                  $amount = isset($row['amount']) ? (float)$row['amount'] : 0.0;
-                  $sofName = isset($row['source_name']) ? $row['source_name'] : '';
-                  $hijriYear = isset($row['hijri_year']) ? (int)$row['hijri_year'] : null;
-                  $id = isset($row['id']) ? (int)$row['id'] : 0;
-                ?>
-                <tr>
-                  <td data-sort-value="<?= htmlspecialchars($date_raw, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8'); ?></td>
-                  <td><?= htmlspecialchars($aos, ENT_QUOTES, 'UTF-8'); ?></td>
-                  <td class="text-right" data-sort-value="<?= htmlspecialchars((string)$amount, ENT_QUOTES, 'UTF-8'); ?>">₹<?= number_format($amount, 0); ?></td>
-                  <td><?= htmlspecialchars($sofName, ENT_QUOTES, 'UTF-8'); ?></td>
-                  <td class="text-center" data-sort-value="<?= $hijriYear ? (int)$hijriYear : ''; ?>"><?= $hijriYear ? (int)$hijriYear : ''; ?></td>
-                  <td class="text-center">
-                    <?php if ($id > 0): ?>
-                      <a href="<?= base_url('anjuman/expense_edit/' . $id); ?>" class="btn btn-sm btn-outline-primary mr-1">Edit</a>
-                      <a href="<?= base_url('anjuman/expense_delete/' . $id); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this expense?');">Delete</a>
-                    <?php else: ?>
-                      <span class="text-muted">N/A</span>
-                    <?php endif; ?>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            <?php else: ?>
+    <!-- Expenses table -->
+    <div class="card table-card mb-3">
+      <div class="card-body">
+        <div class="expenses-header d-flex justify-content-between align-items-center mb-3">
+          <h5 class="m-0 font-title">Recorded Expenses</h5>
+          <a href="<?= base_url('anjuman/expense_add'); ?>" class="btn btn-sm btn-gold"><i class="fa fa-plus"></i> Add Expense</a>
+        </div>
+
+        <div class="table-container">
+          <table id="expensesTable" class="table table-bordered align-middle mb-0">
+            <thead>
               <tr>
-                <td colspan="6" class="text-center text-muted">No expenses found for the selected criteria.</td>
+                <th class="sortable" data-type="date" style="width: 125px;">Date</th>
+                <th class="sortable" data-type="string">Sector</th>
+                <th class="sortable" data-type="string">Sub Sector</th>
+                <th class="sortable" data-type="string">Expense Section</th>
+                <th class="sortable text-right" data-type="number" style="width: 120px;">Amount</th>
+                <th class="sortable" data-type="string" style="width: 150px;">SOF</th>
+                <th class="sortable text-center" data-type="number" style="width: 100px;">Hijri Year</th>
+                <th style="width: 140px;">Action</th>
               </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <?php if (!empty($expenses)): ?>
+                <?php foreach ($expenses as $row): ?>
+                  <?php
+                    $date_raw = isset($row['expense_date']) ? $row['expense_date'] : '';
+                    $date = $date_raw ? date('d-m-Y', strtotime($date_raw)) : '';
+                    
+                    $sector_name = isset($row['sector_name']) ? (string)$row['sector_name'] : '';
+                    $sector_code = isset($row['sector_code']) ? (string)$row['sector_code'] : '';
+                    $sub_sector_name = isset($row['sub_sector_name']) ? (string)$row['sub_sector_name'] : '';
+                    $sub_sector_code = isset($row['sub_sector_code']) ? (string)$row['sub_sector_code'] : '';
+                    $item_name = isset($row['item_name']) ? (string)$row['item_name'] : '';
+                    $item_code = isset($row['item_code']) ? (string)$row['item_code'] : '';
+
+                    $sector_display = $sector_code !== '' ? "{$sector_code} - {$sector_name}" : $sector_name;
+                    $sub_sector_display = $sub_sector_code !== '' ? "{$sub_sector_code} - {$sub_sector_name}" : $sub_sector_name;
+                    $item_display = $item_code !== '' ? "{$item_code} - {$item_name}" : $item_name;
+
+                    $amount = isset($row['amount']) ? (float)$row['amount'] : 0.0;
+                    $sofName = isset($row['source_name']) ? $row['source_name'] : '';
+                    $hijriYear = isset($row['hijri_year']) ? (int)$row['hijri_year'] : null;
+                    $id = isset($row['id']) ? (int)$row['id'] : 0;
+                  ?>
+                  <tr>
+                    <td data-sort-value="<?= htmlspecialchars($date_raw, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8'); ?></td>
+                    <td title="<?= htmlspecialchars($sector_display, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($sector_display, ENT_QUOTES, 'UTF-8'); ?></td>
+                    <td title="<?= htmlspecialchars($sub_sector_display, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($sub_sector_display, ENT_QUOTES, 'UTF-8'); ?></td>
+                    <td title="<?= htmlspecialchars($item_display, ENT_QUOTES, 'UTF-8'); ?>" class="font-weight-semibold" style="color: #78520a;"><?= htmlspecialchars($item_display, ENT_QUOTES, 'UTF-8'); ?></td>
+                    <td class="text-right font-weight-bold" data-sort-value="<?= htmlspecialchars((string)$amount, ENT_QUOTES, 'UTF-8'); ?>">₹<?= number_format($amount, 0); ?></td>
+                    <td title="<?= htmlspecialchars($sofName, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($sofName, ENT_QUOTES, 'UTF-8'); ?></td>
+                    <td class="text-center" data-sort-value="<?= $hijriYear ? (int)$hijriYear : ''; ?>"><?= $hijriYear ? (int)$hijriYear : ''; ?></td>
+                    <td class="text-center">
+                      <?php if ($id > 0): ?>
+                        <div class="d-flex justify-content-center align-items-center" style="gap: 6px;">
+                          <a href="<?= base_url('anjuman/expense_edit/' . $id); ?>" class="btn btn-xs btn-gold-outline">Edit</a>
+                          <a href="<?= base_url('anjuman/expense_delete/' . $id); ?>" class="btn btn-xs btn-danger" onclick="return confirm('Are you sure you want to delete this expense?');">Delete</a>
+                        </div>
+                      <?php else: ?>
+                        <span class="text-muted">N/A</span>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-3">No expenses found for the selected criteria.</td>
+                </tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-
-  
 </div>
 
 <script>
-  // Simple client-side sorting for the Expenses table
   document.addEventListener('DOMContentLoaded', function () {
     var table = document.getElementById('expensesTable');
     if (!table) return;
@@ -271,7 +202,6 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
           return (timeA - timeB) * (asc ? 1 : -1);
         }
 
-        // string compare
         a = String(a).toLowerCase();
         b = String(b).toLowerCase();
         if (a < b) return asc ? -1 : 1;
@@ -292,7 +222,6 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
 
         rows.sort(comparer(index, type, asc));
 
-        // re-append sorted rows
         rows.forEach(function (row) {
           tbody.appendChild(row);
         });
@@ -302,3 +231,110 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
     });
   });
 </script>
+
+<style>
+  .gold-theme-wrapper {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: #faf7f0;
+    min-height: calc(100vh - 57px);
+    margin-top: 57px;
+    padding-bottom: 50px;
+    color: #1a1610;
+  }
+
+  .anj-header-inner {
+    background: linear-gradient(135deg, #78520a 0%, #b8860b 50%, #c9a227 100%);
+    border-radius: 16px;
+    padding: 24px 30px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,.05);
+  }
+  .anj-header-inner::before {
+    content: ''; position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/svg%3E") repeat;
+    pointer-events: none;
+  }
+  .anj-eyebrow {
+    font-size: .67rem;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.6);
+    margin-bottom: 4px;
+    display: block;
+  }
+  .anj-title {
+    font-family: 'Literata', Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.15;
+    margin: 0;
+  }
+
+  .anj-badge {
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+    border-radius: 14px; padding: 10px 16px; backdrop-filter: blur(6px);
+    text-align: center; flex-shrink: 0;
+  }
+  .anj-badge-val { font-size: 1.5rem; font-weight: 800; color: #fff; line-height: 1; display: block; }
+  .anj-badge-lbl { font-size: .64rem; font-weight: 700; color: rgba(255,255,255,.65); letter-spacing: .5px; text-transform: uppercase; margin-top: 3px; display: block; }
+
+  .btn-gold-outline {
+    color: #b8860b;
+    border: 1.5px solid #e8e0cc;
+    background: #ffffff;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-gold-outline:hover {
+    background: #f5e9c0;
+    color: #78520a;
+    border-color: #b8860b;
+    text-decoration: none;
+  }
+
+  .btn-gold {
+    background: #b8860b;
+    color: #ffffff;
+    font-weight: 600;
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .btn-gold:hover {
+    background: #78520a;
+    color: #ffffff;
+  }
+
+  .btn-xs {
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .filter-card {
+    background: #ffffff;
+    border: 1px solid #e8e0cc;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(184,134,11,0.03);
+  }
+
+  .table-card {
+    background: #ffffff;
+    border: 1px solid #e8e0cc;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(184,134,11,0.04);
+  }
+
+  .font-title {
+    font-family: 'Literata', Georgia, serif;
+    font-weight: 600;
+    color: #78520a;
+  }
+</style>

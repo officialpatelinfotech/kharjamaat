@@ -269,9 +269,16 @@ class AdminM extends CI_Model
     }
     return $this->db->get()->result_array();
   }
-  public function addfmbcontritype($fmb_type, $contri_for, $miqaat_type = NULL)
+  public function addfmbcontritype($fmb_type, $contri_for, $miqaat_type = NULL, $amount = NULL, $hijri_year = NULL)
   {
-    $result = $this->db->insert("fmb_general_contribution_master", ["name" => $contri_for, "fmb_type" => $fmb_type, "miqaat_type" => $miqaat_type]);
+    $data = [
+      "name" => $contri_for,
+      "fmb_type" => $fmb_type,
+      "miqaat_type" => $miqaat_type,
+      "amount" => $amount,
+      "hijri_year" => $hijri_year
+    ];
+    $result = $this->db->insert("fmb_general_contribution_master", $data);
     if ($result) {
       return true;
     } else {
@@ -283,10 +290,18 @@ class AdminM extends CI_Model
     $name,
     $fmb_type,
     $status,
-    $miqaat_type = NULL
+    $miqaat_type = NULL,
+    $amount = NULL,
+    $hijri_year = NULL
   ) {
     $this->db->where("id", $id);
-    $data = ["name" => $name, "fmb_type" => $fmb_type, "status" => $status];
+    $data = [
+      "name" => $name,
+      "fmb_type" => $fmb_type,
+      "status" => $status,
+      "amount" => $amount,
+      "hijri_year" => $hijri_year
+    ];
     if ($miqaat_type !== NULL) {
       $data["miqaat_type"] = $miqaat_type;
     }
@@ -296,6 +311,13 @@ class AdminM extends CI_Model
     } else {
       return false;
     }
+  }
+
+  public function deletefmbgc($id)
+  {
+    $this->db->where("id", $id);
+    $result = $this->db->delete("fmb_general_contribution_master");
+    return $result ? true : false;
   }
 
   // FMB General Contribution

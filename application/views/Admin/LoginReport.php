@@ -78,7 +78,7 @@
                           <td><?= htmlspecialchars($log['location'] ?? 'Unknown') ?></td>
                           <td><?= htmlspecialchars($log['ip_address'] ?? 'Unknown') ?></td>
                           <td><small><?= htmlspecialchars($log['user_agent'] ?? 'Unknown') ?></small></td>
-                          <td><?= date('d M Y, h:i A', strtotime($log['login_time'])) ?></td>
+                          <td data-order="<?= strtotime($log['login_time']) ?>"><?= date('d M Y, h:i A', strtotime($log['login_time'])) ?></td>
                         </tr>
                       <?php endforeach; ?>
                     <?php else: ?>

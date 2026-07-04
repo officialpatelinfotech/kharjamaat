@@ -224,13 +224,13 @@
       </a>
     </div>
 
-    <!-- 5. Manage Extra Contribution Master -->
+    <!-- 5. Manage Contribution Master -->
     <div class="col-12 col-sm-6 col-md-4 mb-4">
       <a href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>" class="admin-card-link">
         <div class="admin-card">
           <div class="admin-card-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-          <h5 class="admin-card-title">Manage Extra Contribution Master</h5>
-          <p class="admin-card-desc">Manage custom categories for extra contributions.</p>
+          <h5 class="admin-card-title">Manage Contribution Master</h5>
+          <p class="admin-card-desc">Manage custom categories for contributions.</p>
         </div>
       </a>
     </div>
