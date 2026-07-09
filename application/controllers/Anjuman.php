@@ -288,27 +288,43 @@ class Anjuman extends CI_Controller
       }
     }
 
-    // Keep a small list (up to 5) if needed elsewhere
-    $list_filters = $expense_filters;
-    $list_filters['limit'] = 5;
-    $data['dashboard_expenses'] = $this->ExpenseM->get_list($list_filters);
+    $db_debug_original = $this->db->db_debug;
+    $this->db->db_debug = FALSE;
 
-    // Compute total expense amount for the selected Hijri year for dashboard display
+    // Keep a small list (up to 5) if needed elsewhere
+    $dashboard_expenses = [];
     $dashboard_expense_total = 0.0;
-    if (!empty($expense_filters['hijri_year'])) {
-      $all_year_expenses = $this->ExpenseM->get_list(['hijri_year' => $expense_filters['hijri_year']]);
-      foreach ($all_year_expenses as $erow) {
-        $dashboard_expense_total += (float)($erow['amount'] ?? 0);
+    $dashboard_expense_hijri_year = null;
+    try {
+      $list_filters = $expense_filters;
+      $list_filters['limit'] = 5;
+      $dashboard_expenses = $this->ExpenseM->get_list($list_filters);
+
+      // Compute total expense amount for the selected Hijri year for dashboard display
+      if (!empty($expense_filters['hijri_year'])) {
+        $all_year_expenses = $this->ExpenseM->get_list(['hijri_year' => $expense_filters['hijri_year']]);
+        foreach ($all_year_expenses as $erow) {
+          $dashboard_expense_total += (float)($erow['amount'] ?? 0);
+        }
       }
+      $dashboard_expense_hijri_year = isset($expense_filters['hijri_year']) ? (int)$expense_filters['hijri_year'] : null;
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard expense error: ' . $e->getMessage());
     }
+    $data['dashboard_expenses'] = $dashboard_expenses;
     $data['dashboard_expense_total'] = $dashboard_expense_total;
-    $data['dashboard_expense_hijri_year'] = isset($expense_filters['hijri_year']) ? (int)$expense_filters['hijri_year'] : null;
+    $data['dashboard_expense_hijri_year'] = $dashboard_expense_hijri_year;
 
     // Qardan Hasana schemes totals for dashboard
-    $this->load->model('QardanHasanaM');
-    $qh_moh = (float)$this->QardanHasanaM->get_scheme_total_amount('mohammedi');
-    $qh_tah = (float)$this->QardanHasanaM->get_scheme_total_amount('taher');
-    $qh_hus = (float)$this->QardanHasanaM->get_scheme_total_amount('husain');
+    $qh_moh = 0.0; $qh_tah = 0.0; $qh_hus = 0.0;
+    try {
+      $this->load->model('QardanHasanaM');
+      $qh_moh = (float)$this->QardanHasanaM->get_scheme_total_amount('mohammedi');
+      $qh_tah = (float)$this->QardanHasanaM->get_scheme_total_amount('taher');
+      $qh_hus = (float)$this->QardanHasanaM->get_scheme_total_amount('husain');
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard Qardan Hasana error: ' . $e->getMessage());
+    }
     $data['qh_all_schemes_totals'] = [
       'mohammedi' => $qh_moh,
       'taher' => $qh_tah,
@@ -317,27 +333,34 @@ class Anjuman extends CI_Controller
     ];
 
     // Laagat & Rent dashboard totals
-    $this->load->model('LaagatRentM');
-    $max_lr_row = $this->db->query("SELECT MAX(hijri_year) AS y FROM laagat_rent")->row_array();
-    $max_lr_year = $max_lr_row && isset($max_lr_row['y']) ? $max_lr_row['y'] : null;
-    $lr_year = $sel_hijri_year ?: ($max_lr_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446));
-    $lr_year_query = (is_numeric($lr_year) && strlen((string)$lr_year) === 4) 
-        ? (int)$lr_year . '-' . substr((string)((int)$lr_year + 1), -2) 
-        : $lr_year;
-    $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year_query]);
     $dashboard_laagat_total = 0.0;
     $dashboard_rent_total = 0.0;
-    foreach ($lr_invoices as $lrinv) {
-        if (isset($lrinv['charge_type']) && $lrinv['charge_type'] === 'rent') {
-            $dashboard_rent_total += (float)($lrinv['master_amount'] ?? 0);
-        } else {
-            $dashboard_laagat_total += (float)($lrinv['master_amount'] ?? 0);
-        }
+    $lr_year_query = null;
+    try {
+      $this->load->model('LaagatRentM');
+      $max_lr_row = $this->db->query("SELECT MAX(hijri_year) AS y FROM laagat_rent")->row_array();
+      $max_lr_year = $max_lr_row && isset($max_lr_row['y']) ? $max_lr_row['y'] : null;
+      $lr_year = $sel_hijri_year ?: ($max_lr_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446));
+      $lr_year_query = (is_numeric($lr_year) && strlen((string)$lr_year) === 4) 
+          ? (int)$lr_year . '-' . substr((string)((int)$lr_year + 1), -2) 
+          : $lr_year;
+      $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year_query]);
+      foreach ($lr_invoices as $lrinv) {
+          if (isset($lrinv['charge_type']) && $lrinv['charge_type'] === 'rent') {
+              $dashboard_rent_total += (float)($lrinv['master_amount'] ?? 0);
+          } else {
+              $dashboard_laagat_total += (float)($lrinv['master_amount'] ?? 0);
+          }
+      }
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard Laagat/Rent error: ' . $e->getMessage());
     }
     $data['dashboard_laagat_total'] = $dashboard_laagat_total;
     $data['dashboard_laagat_hijri_year'] = $lr_year_query;
     $data['dashboard_rent_total'] = $dashboard_rent_total;
     $data['dashboard_rent_hijri_year'] = $lr_year_query;
+
+    $this->db->db_debug = $db_debug_original;
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/Home', $data);

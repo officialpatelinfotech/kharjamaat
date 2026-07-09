@@ -305,38 +305,59 @@ class Amilsaheb extends CI_Controller
 
     $users = []; // Not used on main dashboard, search is AJAX-based
 
-    // Resident-only sector and overview stats for cards
-    $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
-    $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
+    $db_debug_original = $this->db->db_debug;
+    $this->db->db_debug = FALSE;
 
-    $residentOverview = $this->AmilsahebM->get_resident_overview_counts(true);
+    // Resident-only sector and overview stats for cards
+    $sectorsData = [];
+    $subSectorsData = [];
+    $residentOverview = [];
     $stats = [
-      'HOF' => (int)($residentOverview['hof'] ?? 0),
-      'FM' => (int)($residentOverview['fm'] ?? 0),
-      'Mardo' => (int)($residentOverview['male'] ?? 0),
-      'Bairo' => (int)($residentOverview['female'] ?? 0),
-      'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
-      'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
-      'Age_16_25' => (int)($residentOverview['age_16_25'] ?? 0),
-      'Age_26_65' => (int)($residentOverview['age_26_65'] ?? 0),
-      'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
-      'LeaveStatus' => [],
-      'Sectors' => $sectorsData,
-      'SubSectors' => $subSectorsData,
-      'deeni_eligible' => $this->AmilsahebM->get_deeni_eligible_count(),
-      'deeni_taking' => $this->AmilsahebM->get_deeni_taking_count(),
-      'madresa_deprived' => $this->AmilsahebM->get_madresa_deprived_count(),
-      'singles_21_40' => $this->AmilsahebM->get_singles_21_40_count(),
-      'status_counts' => $this->AmilsahebM->get_status_counts(),
-      'active_inactive' => $this->AmilsahebM->get_active_inactive_counts(),
+      'HOF' => 0, 'FM' => 0, 'Mardo' => 0, 'Bairo' => 0,
+      'Age_0_4' => 0, 'Age_5_15' => 0, 'Age_16_25' => 0, 'Age_26_65' => 0, 'Buzurgo' => 0,
+      'LeaveStatus' => [], 'Sectors' => [], 'SubSectors' => [],
+      'deeni_eligible' => 0, 'deeni_taking' => 0, 'madresa_deprived' => 0, 'singles_21_40' => 0,
+      'status_counts' => [], 'active_inactive' => []
     ];
+    try {
+      $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
+      $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
+      $residentOverview = $this->AmilsahebM->get_resident_overview_counts(true);
+      $stats = [
+        'HOF' => (int)($residentOverview['hof'] ?? 0),
+        'FM' => (int)($residentOverview['fm'] ?? 0),
+        'Mardo' => (int)($residentOverview['male'] ?? 0),
+        'Bairo' => (int)($residentOverview['female'] ?? 0),
+        'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
+        'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
+        'Age_16_25' => (int)($residentOverview['age_16_25'] ?? 0),
+        'Age_26_65' => (int)($residentOverview['age_26_65'] ?? 0),
+        'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
+        'LeaveStatus' => [],
+        'Sectors' => $sectorsData ?: [],
+        'SubSectors' => $subSectorsData ?: [],
+        'deeni_eligible' => $this->AmilsahebM->get_deeni_eligible_count(),
+        'deeni_taking' => $this->AmilsahebM->get_deeni_taking_count(),
+        'madresa_deprived' => $this->AmilsahebM->get_madresa_deprived_count(),
+        'singles_21_40' => $this->AmilsahebM->get_singles_21_40_count(),
+        'status_counts' => $this->AmilsahebM->get_status_counts(),
+        'active_inactive' => $this->AmilsahebM->get_active_inactive_counts(),
+      ];
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard resident stats error: ' . $e->getMessage());
+    }
 
     // Determine if frontend requested a specific hijri month/year
     $sel_hijri_year = $this->input->get('hijri_year') ? trim($this->input->get('hijri_year')) : null;
     $sel_hijri_month = $this->input->get('hijri_month') ? trim($this->input->get('hijri_month')) : null;
 
     // Dashboard financial & monthly data
-    $dashboard_data = $this->get_dashboard_summary_data($sel_hijri_month, $sel_hijri_year);
+    $dashboard_data = [];
+    try {
+      $dashboard_data = $this->get_dashboard_summary_data($sel_hijri_month, $sel_hijri_year);
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard summary data error: ' . $e->getMessage());
+    }
 
     // Pass data to view
     $data = [
@@ -354,140 +375,176 @@ class Amilsaheb extends CI_Controller
       'areas_available' => false,
       'areas' => ['active' => 0, 'inactive' => 0],
     ];
-
-    if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_sources')) {
-      $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_sources')->group_by('status')->get()->result_array();
-      foreach ($rows as $r) {
-        $st = $r['status'] ?? '';
-        $cnt = (int)($r['cnt'] ?? 0);
-        $isActive = is_numeric($st) ? (((int)$st) === 1) : (strtolower(trim((string)$st)) === 'active');
-        if ($isActive) $expense_dashboard['sources']['active'] += $cnt;
-        else $expense_dashboard['sources']['inactive'] += $cnt;
+    try {
+      if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_sources')) {
+        $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_sources')->group_by('status')->get()->result_array();
+        foreach ($rows as $r) {
+          $st = $r['status'] ?? '';
+          $cnt = (int)($r['cnt'] ?? 0);
+          $isActive = is_numeric($st) ? (((int)$st) === 1) : (strtolower(trim((string)$st)) === 'active');
+          if ($isActive) $expense_dashboard['sources']['active'] += $cnt;
+          else $expense_dashboard['sources']['inactive'] += $cnt;
+        }
       }
-    }
 
-    if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_areas')) {
-      $expense_dashboard['areas_available'] = true;
-      $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_areas')->group_by('status')->get()->result_array();
-      foreach ($rows as $r) {
-        $st = $r['status'] ?? '';
-        $cnt = (int)($r['cnt'] ?? 0);
-        $isActive = is_numeric($st) ? (((int)$st) === 1) : (strtolower(trim((string)$st)) === 'active');
-        if ($isActive) $expense_dashboard['areas']['active'] += $cnt;
-        else $expense_dashboard['areas']['inactive'] += $cnt;
+      if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_areas')) {
+        $expense_dashboard['areas_available'] = true;
+        $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_areas')->group_by('status')->get()->result_array();
+        foreach ($rows as $r) {
+          $st = $r['status'] ?? '';
+          $cnt = (int)($r['cnt'] ?? 0);
+          $isActive = is_numeric($st) ? (((int)$st) === 1) : (strtolower(trim((string)$st)) === 'active');
+          if ($isActive) $expense_dashboard['areas']['active'] += $cnt;
+          else $expense_dashboard['areas']['inactive'] += $cnt;
+        }
       }
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard expense status error: ' . $e->getMessage());
     }
     $data['expense_dashboard'] = $expense_dashboard;
 
     // Marital status distribution (excluding members under 21)
-    $data['marital_status_counts'] = $this->AmilsahebM->get_marital_status_distribution();
+    $marital_status_counts = [];
+    try {
+      $marital_status_counts = $this->AmilsahebM->get_marital_status_distribution();
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard marital counts error: ' . $e->getMessage());
+    }
+    $data['marital_status_counts'] = $marital_status_counts;
 
-    $data['year_daytype_stats'] = $this->CommonM->get_year_calendar_daytypes();
+    $year_daytype_stats = [];
+    try {
+      $year_daytype_stats = $this->CommonM->get_year_calendar_daytypes();
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard year daytype error: ' . $e->getMessage());
+    }
+    $data['year_daytype_stats'] = $year_daytype_stats;
 
     // Corpus funds overview
-    $this->load->model('CorpusFundM');
-    $funds = $this->CorpusFundM->get_funds();
     $corpus_funds = [];
-    foreach ($funds as $f) {
-      $fid = (int)($f['id'] ?? 0);
-      $assignedTotal = 0.0;
-      $paidTotal = 0.0;
-      if ($fid > 0) {
-        $assignments = $this->CorpusFundM->get_assignments($fid);
-        foreach ($assignments as $a) { $assignedTotal += (float)($a['amount_assigned'] ?? 0); }
-        $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')->from('corpus_fund_payment')->where('fund_id', $fid)->get()->row_array();
-        $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : 0.0;
+    try {
+      $this->load->model('CorpusFundM');
+      $funds = $this->CorpusFundM->get_funds();
+      foreach ($funds as $f) {
+        $fid = (int)($f['id'] ?? 0);
+        $assignedTotal = 0.0;
+        $paidTotal = 0.0;
+        if ($fid > 0) {
+          $assignments = $this->CorpusFundM->get_assignments($fid);
+          foreach ($assignments as $a) { $assignedTotal += (float)($a['amount_assigned'] ?? 0); }
+          $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')->from('corpus_fund_payment')->where('fund_id', $fid)->get()->row_array();
+          $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : 0.0;
+        }
+        $f['assigned_total'] = $assignedTotal;
+        $f['paid_total'] = $paidTotal;
+        $f['outstanding'] = max(0, $assignedTotal - $paidTotal);
+        $f['assignments'] = isset($assignments) ? $assignments : [];
+        $corpus_funds[] = $f;
       }
-      $f['assigned_total'] = $assignedTotal;
-      $f['paid_total'] = $paidTotal;
-      $f['outstanding'] = max(0, $assignedTotal - $paidTotal);
-      $f['assignments'] = isset($assignments) ? $assignments : [];
-      $corpus_funds[] = $f;
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard corpus funds error: ' . $e->getMessage());
     }
     $data['corpus_funds'] = $corpus_funds;
 
     // Ekram funds overview
-    $this->load->model('EkramFundM');
-    $efunds = $this->EkramFundM->get_funds();
     $ekram_funds = [];
-    foreach ($efunds as $ef) {
-      $efid = (int)($ef['id'] ?? 0);
-      $assignedTotal = 0.0;
-      $paidTotal = 0.0;
-      if ($efid > 0) {
-        $assignments = $this->EkramFundM->get_assignments($efid);
-        foreach ($assignments as $a) { $assignedTotal += (float)($a['amount_assigned'] ?? 0); }
-        $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')->from('ekram_fund_payment')->where('fund_id', $efid)->get()->row_array();
-        $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : 0.0;
+    try {
+      $this->load->model('EkramFundM');
+      $efunds = $this->EkramFundM->get_funds();
+      foreach ($efunds as $ef) {
+        $efid = (int)($ef['id'] ?? 0);
+        $assignedTotal = 0.0;
+        $paidTotal = 0.0;
+        if ($efid > 0) {
+          $assignments = $this->EkramFundM->get_assignments($efid);
+          foreach ($assignments as $a) { $assignedTotal += (float)($a['amount_assigned'] ?? 0); }
+          $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')->from('ekram_fund_payment')->where('fund_id', $efid)->get()->row_array();
+          $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : 0.0;
+        }
+        $ef['assigned_total'] = $assignedTotal;
+        $ef['paid_total'] = $paidTotal;
+        $ef['outstanding'] = max(0, $assignedTotal - $paidTotal);
+        $ef['assignments'] = isset($assignments) ? $assignments : [];
+        $ekram_funds[] = $ef;
       }
-      $ef['assigned_total'] = $assignedTotal;
-      $ef['paid_total'] = $paidTotal;
-      $ef['outstanding'] = max(0, $assignedTotal - $paidTotal);
-      $ef['assignments'] = isset($assignments) ? $assignments : [];
-      $ekram_funds[] = $ef;
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard ekram funds error: ' . $e->getMessage());
     }
     $data['ekram_funds'] = $ekram_funds;
 
     // Recent expenses
-    $this->load->model('ExpenseM');
-    $expense_filters = [];
-    $today_parts_for_expense = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-    if ($today_parts_for_expense && isset($today_parts_for_expense['hijri_year'])) {
-      $expense_filters['hijri_year'] = (int)$today_parts_for_expense['hijri_year'];
-    }
-    $list_filters = $expense_filters; $list_filters['limit'] = 5;
-    $data['dashboard_expenses'] = $this->ExpenseM->get_list($list_filters);
+    $dashboard_expenses = [];
     $dashboard_expense_total = 0.0;
-    if (!empty($expense_filters['hijri_year'])) {
-      $all_year_expenses = $this->ExpenseM->get_list(['hijri_year' => $expense_filters['hijri_year']]);
-      foreach ($all_year_expenses as $erow) { $dashboard_expense_total += (float)($erow['amount'] ?? 0); }
+    $dashboard_expense_hijri_year = null;
+    try {
+      $this->load->model('ExpenseM');
+      $expense_filters = [];
+      $today_parts_for_expense = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
+      if ($today_parts_for_expense && isset($today_parts_for_expense['hijri_year'])) {
+        $expense_filters['hijri_year'] = (int)$today_parts_for_expense['hijri_year'];
+      }
+      $list_filters = $expense_filters; $list_filters['limit'] = 5;
+      $dashboard_expenses = $this->ExpenseM->get_list($list_filters);
+      if (!empty($expense_filters['hijri_year'])) {
+        $all_year_expenses = $this->ExpenseM->get_list(['hijri_year' => $expense_filters['hijri_year']]);
+        foreach ($all_year_expenses as $erow) { $dashboard_expense_total += (float)($erow['amount'] ?? 0); }
+      }
+      $dashboard_expense_hijri_year = $expense_filters['hijri_year'] ?? null;
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard recent expenses error: ' . $e->getMessage());
     }
+    $data['dashboard_expenses'] = $dashboard_expenses;
     $data['dashboard_expense_total'] = $dashboard_expense_total;
-    $data['dashboard_expense_hijri_year'] = $expense_filters['hijri_year'] ?? null;
+    $data['dashboard_expense_hijri_year'] = $dashboard_expense_hijri_year;
 
     // Qardan Hasana totals
-    $this->load->model('QardanHasanaM');
-    $qh_moh = (float)$this->QardanHasanaM->get_scheme_total_amount('mohammedi');
-    $qh_tah = (float)$this->QardanHasanaM->get_scheme_total_amount('taher');
-    $qh_hus = (float)$this->QardanHasanaM->get_scheme_total_amount('husain');
+    $qh_moh = 0.0; $qh_tah = 0.0; $qh_hus = 0.0;
+    try {
+      $this->load->model('QardanHasanaM');
+      $qh_moh = (float)$this->QardanHasanaM->get_scheme_total_amount('mohammedi');
+      $qh_tah = (float)$this->QardanHasanaM->get_scheme_total_amount('taher');
+      $qh_hus = (float)$this->QardanHasanaM->get_scheme_total_amount('husain');
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard qardan hasana error: ' . $e->getMessage());
+    }
     $data['qh_all_schemes_totals'] = [
       'mohammedi' => $qh_moh, 'taher' => $qh_tah, 'husain' => $qh_hus, 'total' => $qh_moh + $qh_tah + $qh_hus,
     ];
 
     // Laagat & Rent dashboard total
-    $this->load->model('LaagatRentM');
-    $max_lr_row = $this->db->query("SELECT MAX(hijri_year) AS y FROM laagat_rent")->row_array();
-    $max_lr_year = $max_lr_row && isset($max_lr_row['y']) ? $max_lr_row['y'] : null;
-    $lr_year = $sel_hijri_year ?: ($max_lr_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446));
-    $lr_year_query = (is_numeric($lr_year) && strlen((string)$lr_year) === 4) 
-        ? (int)$lr_year . '-' . substr((string)((int)$lr_year + 1), -2) 
-        : $lr_year;
-    $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year_query]);
-
-    // Laagat dashboard total
     $dashboard_laagat_total = 0.0;
     $dashboard_laagat_paid = 0.0;
     $dashboard_laagat_due = 0.0;
-
-    // Rent dashboard total
     $dashboard_rent_total = 0.0;
     $dashboard_rent_paid = 0.0;
     $dashboard_rent_due = 0.0;
-
-    foreach ($lr_invoices as $lrinv) {
-        $ma = (float)($lrinv['master_amount'] ?? 0);
-        $pa = (float)($lrinv['paid_amount'] ?? 0);
-        $ct = strtolower(trim($lrinv['charge_type'] ?? ''));
-        if ($ct === 'rent') {
-            $dashboard_rent_total += $ma;
-            $dashboard_rent_paid += $pa;
-            $dashboard_rent_due += max(0.0, $ma - $pa);
-        } else {
-            // default to laagat if empty or explicitly 'laagat'
-            $dashboard_laagat_total += $ma;
-            $dashboard_laagat_paid += $pa;
-            $dashboard_laagat_due += max(0.0, $ma - $pa);
-        }
+    $lr_year_query = null;
+    try {
+      $this->load->model('LaagatRentM');
+      $max_lr_row = $this->db->query("SELECT MAX(hijri_year) AS y FROM laagat_rent")->row_array();
+      $max_lr_year = $max_lr_row && isset($max_lr_row['y']) ? $max_lr_row['y'] : null;
+      $lr_year = $sel_hijri_year ?: ($max_lr_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446));
+      $lr_year_query = (is_numeric($lr_year) && strlen((string)$lr_year) === 4) 
+          ? (int)$lr_year . '-' . substr((string)((int)$lr_year + 1), -2) 
+          : $lr_year;
+      $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year_query]);
+      foreach ($lr_invoices as $lrinv) {
+          $ma = (float)($lrinv['master_amount'] ?? 0);
+          $pa = (float)($lrinv['paid_amount'] ?? 0);
+          $ct = strtolower(trim($lrinv['charge_type'] ?? ''));
+          if ($ct === 'rent') {
+              $dashboard_rent_total += $ma;
+              $dashboard_rent_paid += $pa;
+              $dashboard_rent_due += max(0.0, $ma - $pa);
+          } else {
+              // default to laagat if empty or explicitly 'laagat'
+              $dashboard_laagat_total += $ma;
+              $dashboard_laagat_paid += $pa;
+              $dashboard_laagat_due += max(0.0, $ma - $pa);
+          }
+      }
+    } catch (Throwable $e) {
+      log_message('error', 'Dashboard laagat rent error: ' . $e->getMessage());
     }
 
     $data['dashboard_laagat_rent_hijri_year'] = $lr_year_query;
@@ -501,6 +558,8 @@ class Amilsaheb extends CI_Controller
       'received' => $dashboard_rent_paid,
       'due' => $dashboard_rent_due
     ];
+
+    $this->db->db_debug = $db_debug_original;
 
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Home', $data);
