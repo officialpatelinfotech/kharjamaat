@@ -79,20 +79,14 @@ class Anjuman extends CI_Controller
 
     $users = []; // Not used on main dashboard, search is AJAX-based
 
+    $db_debug_original = $this->db->db_debug;
+    $this->db->db_debug = FALSE;
+
     // Resident-only sector and overview stats for Jamaat cards
-    $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
-    $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
-    $residentOverview = $this->AmilsahebM->get_resident_overview_counts(true);
-
-    // Calculate Ashara Ohbat counts for default year
-    $today_date = date('Y-m-d');
-    $h_cal = $this->HijriCalendar->get_hijri_date($today_date);
-    $h_parts = explode('-', $h_cal['hijri_date']);
-    $curr_hijri_year = (int)$h_parts[2];
-    $curr_hijri_month = (int)$h_parts[1];
-    $def_year = $curr_hijri_year;
-
-    $ashara_users = $this->AmilsahebM->get_all_ashara($def_year);
+    $sectorsData = [];
+    $subSectorsData = [];
+    $residentOverview = [];
+    $ohbat_counts = [];
     $possibleStatuses = [
       'Will attend all 9 Days',
       'Not answering calls or messages',
@@ -101,48 +95,81 @@ class Anjuman extends CI_Controller
       'Will not attend any Day',
       'Ashara with Maula tus'
     ];
-    $ohbat_counts = [];
     foreach ($possibleStatuses as $st) {
       $ohbat_counts[$st] = 0;
     }
-    foreach ($ashara_users as $u) {
-      $st = (!empty($u['LeaveStatus']) && $u['LeaveStatus'] !== 'Unknown') ? $u['LeaveStatus'] : "Musaaid didn't Contacted Yet";
-      if (in_array(strtolower(trim($st)), ['bed ridden', 'not in town', 'married outcaste', 'wafaat'])) {
-        continue;
-      }
-      if (isset($ohbat_counts[$st])) {
-        $ohbat_counts[$st]++;
-      }
-    }
-
     $stats = [
-      'HOF' => (int)($residentOverview['hof'] ?? 0),
-      'FM' => (int)($residentOverview['fm'] ?? 0),
-      'Mardo' => (int)($residentOverview['male'] ?? 0),
-      'Bairo' => (int)($residentOverview['female'] ?? 0),
-      'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
-      'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
-      'Age_16_25' => (int)($residentOverview['age_16_25'] ?? 0),
-      'Age_26_65' => (int)($residentOverview['age_26_65'] ?? 0),
-      'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
-      'LeaveStatus' => [],
-      'Sectors' => $sectorsData,
-      'SubSectors' => $subSectorsData,
-      'deeni_eligible' => $this->AmilsahebM->get_deeni_eligible_count(),
-      'deeni_taking' => $this->AmilsahebM->get_deeni_taking_count(),
-      'madresa_deprived' => $this->AmilsahebM->get_madresa_deprived_count(),
-      'singles_21_40' => $this->AmilsahebM->get_singles_21_40_count(),
-      'status_counts' => $this->AmilsahebM->get_status_counts(),
-      'active_inactive' => $this->AmilsahebM->get_active_inactive_counts(),
-      'ashara_ohbat_counts' => $ohbat_counts,
+      'HOF' => 0, 'FM' => 0, 'Mardo' => 0, 'Bairo' => 0,
+      'Age_0_4' => 0, 'Age_5_15' => 0, 'Age_16_25' => 0, 'Age_26_65' => 0, 'Buzurgo' => 0,
+      'LeaveStatus' => [], 'Sectors' => [], 'SubSectors' => [],
+      'deeni_eligible' => 0, 'deeni_taking' => 0, 'madresa_deprived' => 0, 'singles_21_40' => 0,
+      'status_counts' => [], 'active_inactive' => [], 'ashara_ohbat_counts' => $ohbat_counts
     ];
+
+    try {
+      $sectorsData = $this->AmilsahebM->get_resident_sector_stats();
+      $subSectorsData = $this->AmilsahebM->get_all_sub_sector_stats();
+      $residentOverview = $this->AmilsahebM->get_resident_overview_counts(true);
+
+      // Calculate Ashara Ohbat counts for default year
+      $today_date = date('Y-m-d');
+      $h_cal = $this->HijriCalendar->get_hijri_date($today_date);
+      $def_year = 1446;
+      if ($h_cal && !empty($h_cal['hijri_date'])) {
+        $h_parts = explode('-', $h_cal['hijri_date']);
+        if (count($h_parts) === 3) {
+          $curr_hijri_year = (int)$h_parts[2];
+          $def_year = $curr_hijri_year;
+        }
+      }
+
+      $ashara_users = $this->AmilsahebM->get_all_ashara($def_year);
+      foreach ($ashara_users as $u) {
+        $st = (!empty($u['LeaveStatus']) && $u['LeaveStatus'] !== 'Unknown') ? $u['LeaveStatus'] : "Musaaid didn't Contacted Yet";
+        if (in_array(strtolower(trim($st)), ['bed ridden', 'not in town', 'married outcaste', 'wafaat'])) {
+          continue;
+        }
+        if (isset($ohbat_counts[$st])) {
+          $ohbat_counts[$st]++;
+        }
+      }
+
+      $stats = [
+        'HOF' => (int)($residentOverview['hof'] ?? 0),
+        'FM' => (int)($residentOverview['fm'] ?? 0),
+        'Mardo' => (int)($residentOverview['male'] ?? 0),
+        'Bairo' => (int)($residentOverview['female'] ?? 0),
+        'Age_0_4' => (int)($residentOverview['age_0_4'] ?? 0),
+        'Age_5_15' => (int)($residentOverview['age_5_15'] ?? 0),
+        'Age_16_25' => (int)($residentOverview['age_16_25'] ?? 0),
+        'Age_26_65' => (int)($residentOverview['age_26_65'] ?? 0),
+        'Buzurgo' => (int)($residentOverview['seniors'] ?? 0),
+        'LeaveStatus' => [],
+        'Sectors' => $sectorsData ?: [],
+        'SubSectors' => $subSectorsData ?: [],
+        'deeni_eligible' => $this->AmilsahebM->get_deeni_eligible_count(),
+        'deeni_taking' => $this->AmilsahebM->get_deeni_taking_count(),
+        'madresa_deprived' => $this->AmilsahebM->get_madresa_deprived_count(),
+        'singles_21_40' => $this->AmilsahebM->get_singles_21_40_count(),
+        'status_counts' => $this->AmilsahebM->get_status_counts(),
+        'active_inactive' => $this->AmilsahebM->get_active_inactive_counts(),
+        'ashara_ohbat_counts' => $ohbat_counts,
+      ];
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard resident stats error: ' . $e->getMessage());
+    }
 
     // Determine if frontend requested a specific hijri month/year (AJAX or direct)
     $sel_hijri_year = $this->input->get('hijri_year') ? trim($this->input->get('hijri_year')) : null;
     $sel_hijri_month = $this->input->get('hijri_month') ? trim($this->input->get('hijri_month')) : null;
 
     // Dashboard financial & monthly data (pass month params if provided)
-    $dashboard_data = $this->get_dashboard_summary_data($sel_hijri_month, $sel_hijri_year);
+    $dashboard_data = [];
+    try {
+      $dashboard_data = $this->get_dashboard_summary_data($sel_hijri_month, $sel_hijri_year);
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard summary data error: ' . $e->getMessage());
+    }
 
     // Pass data to view
     $data = [
@@ -161,118 +188,146 @@ class Anjuman extends CI_Controller
       'areas' => ['active' => 0, 'inactive' => 0],
     ];
 
-    // Source of Funds (expense_sources)
-    if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_sources')) {
-      $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_sources')->group_by('status')->get()->result_array();
-      foreach ($rows as $r) {
-        $st = $r['status'] ?? '';
-        $cnt = (int)($r['cnt'] ?? 0);
-        $isActive = false;
-        if (is_numeric($st)) {
-          $isActive = ((int)$st) === 1;
-        } else {
-          $isActive = strtolower(trim((string)$st)) === 'active';
+    try {
+      // Source of Funds (expense_sources)
+      if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_sources')) {
+        $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_sources')->group_by('status')->get()->result_array();
+        foreach ($rows as $r) {
+          $st = $r['status'] ?? '';
+          $cnt = (int)($r['cnt'] ?? 0);
+          $isActive = false;
+          if (is_numeric($st)) {
+            $isActive = ((int)$st) === 1;
+          } else {
+            $isActive = strtolower(trim((string)$st)) === 'active';
+          }
+          if ($isActive) $expense_dashboard['sources']['active'] += $cnt;
+          else $expense_dashboard['sources']['inactive'] += $cnt;
         }
-        if ($isActive) $expense_dashboard['sources']['active'] += $cnt;
-        else $expense_dashboard['sources']['inactive'] += $cnt;
       }
-    }
 
-    // Area of Spend (optional table: expense_areas)
-    if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_areas')) {
-      $expense_dashboard['areas_available'] = true;
-      $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_areas')->group_by('status')->get()->result_array();
-      foreach ($rows as $r) {
-        $st = $r['status'] ?? '';
-        $cnt = (int)($r['cnt'] ?? 0);
-        $isActive = false;
-        if (is_numeric($st)) {
-          $isActive = ((int)$st) === 1;
-        } else {
-          $isActive = strtolower(trim((string)$st)) === 'active';
+      // Area of Spend (optional table: expense_areas)
+      if (method_exists($this->db, 'table_exists') && $this->db->table_exists('expense_areas')) {
+        $expense_dashboard['areas_available'] = true;
+        $rows = $this->db->select('status, COUNT(*) AS cnt')->from('expense_areas')->group_by('status')->get()->result_array();
+        foreach ($rows as $r) {
+          $st = $r['status'] ?? '';
+          $cnt = (int)($r['cnt'] ?? 0);
+          $isActive = false;
+          if (is_numeric($st)) {
+            $isActive = ((int)$st) === 1;
+          } else {
+            $isActive = strtolower(trim((string)$st)) === 'active';
+          }
+          if ($isActive) $expense_dashboard['areas']['active'] += $cnt;
+          else $expense_dashboard['areas']['inactive'] += $cnt;
         }
-        if ($isActive) $expense_dashboard['areas']['active'] += $cnt;
-        else $expense_dashboard['areas']['inactive'] += $cnt;
       }
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard expense status error: ' . $e->getMessage());
     }
     $data['expense_dashboard'] = $expense_dashboard;
 
     // Member types distribution for dashboard removed
 
     // Marital status distribution (active members only, excluding under 21)
-    $data['marital_status_counts'] = $this->AmilsahebM->get_marital_status_distribution();
+    $marital_status_counts = [];
+    try {
+      $marital_status_counts = $this->AmilsahebM->get_marital_status_distribution();
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard marital counts error: ' . $e->getMessage());
+    }
+    $data['marital_status_counts'] = $marital_status_counts;
 
-    $data['year_daytype_stats'] = $this->CommonM->get_year_calendar_daytypes();
+    $year_daytype_stats = [];
+    try {
+      $year_daytype_stats = $this->CommonM->get_year_calendar_daytypes();
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard year daytype error: ' . $e->getMessage());
+    }
+    $data['year_daytype_stats'] = $year_daytype_stats;
 
     // Corpus funds overview: assigned, paid, outstanding (assigned - paid)
-    $this->load->model('CorpusFundM');
-    $funds = $this->CorpusFundM->get_funds();
     $corpus_funds = [];
-    foreach ($funds as $f) {
-      $fid = (int)($f['id'] ?? 0);
-      $assignedTotal = 0.0;
-      $paidTotal = 0.0;
-      $assignments = [];
-      if ($fid > 0) {
-        // Sum assigned for this fund
-        $assignments = $this->CorpusFundM->get_assignments($fid);
-        foreach ($assignments as $a) {
-          $assignedTotal += (float)($a['amount_assigned'] ?? 0);
+    try {
+      $this->load->model('CorpusFundM');
+      $funds = $this->CorpusFundM->get_funds();
+      foreach ($funds as $f) {
+        $fid = (int)($f['id'] ?? 0);
+        $assignedTotal = 0.0;
+        $paidTotal = 0.0;
+        $assignments = [];
+        if ($fid > 0) {
+          // Sum assigned for this fund
+          $assignments = $this->CorpusFundM->get_assignments($fid);
+          foreach ($assignments as $a) {
+            $assignedTotal += (float)($a['amount_assigned'] ?? 0);
+          }
+          // Sum paid for this fund
+          $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
+            ->from('corpus_fund_payment')
+            ->where('fund_id', $fid)
+            ->get()->row_array();
+          $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : 0.0;
         }
-        // Sum paid for this fund
-        $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
-          ->from('corpus_fund_payment')
-          ->where('fund_id', $fid)
-          ->get()->row_array();
-        $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : 0.0;
+        $outstanding = max(0, $assignedTotal - $paidTotal);
+        $f['assigned_total'] = $assignedTotal;
+        $f['paid_total'] = $paidTotal;
+        $f['outstanding'] = $outstanding;
+        $f['assignments'] = $assignments;
+        $corpus_funds[] = $f;
       }
-      $outstanding = max(0, $assignedTotal - $paidTotal);
-      $f['assigned_total'] = $assignedTotal;
-      $f['paid_total'] = $paidTotal;
-      $f['outstanding'] = $outstanding;
-      $f['assignments'] = $assignments;
-      $corpus_funds[] = $f;
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard corpus funds error: ' . $e->getMessage());
     }
     $data['corpus_funds'] = $corpus_funds;
 
     // Ekram funds overview: assigned, paid, outstanding
-    $this->load->model('EkramFundM');
-    $efunds = $this->EkramFundM->get_funds();
     $ekram_funds = [];
-    foreach ($efunds as $ef) {
-      $efid = (int)($ef['id'] ?? 0);
-      $assignedTotal = 0.0;
-      $paidTotal = 0.0;
-      $assignments = [];
-      if ($efid > 0) {
-        $assignments = $this->EkramFundM->get_assignments($efid);
-        foreach ($assignments as $a) {
-          $assignedTotal += (float)($a['amount_assigned'] ?? 0);
+    try {
+      $this->load->model('EkramFundM');
+      $efunds = $this->EkramFundM->get_funds();
+      foreach ($efunds as $ef) {
+        $efid = (int)($ef['id'] ?? 0);
+        $assignedTotal = 0.0;
+        $paidTotal = 0.0;
+        $assignments = [];
+        if ($efid > 0) {
+          $assignments = $this->EkramFundM->get_assignments($efid);
+          foreach ($assignments as $a) {
+            $assignedTotal += (float)($a['amount_assigned'] ?? 0);
+          }
+          $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
+            ->from('ekram_fund_payment')
+            ->where('fund_id', $efid)
+            ->get()->row_array();
+          $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : 0.0;
         }
-        $rowPaid = $this->db->select('COALESCE(SUM(amount_paid),0) AS total_paid')
-          ->from('ekram_fund_payment')
-          ->where('fund_id', $efid)
-          ->get()->row_array();
-        $paidTotal = isset($rowPaid['total_paid']) ? (float)$rowPaid['total_paid'] : 0.0;
+        $outstanding = max(0, $assignedTotal - $paidTotal);
+        $ef['assigned_total'] = $assignedTotal;
+        $ef['paid_total'] = $paidTotal;
+        $ef['outstanding'] = $outstanding;
+        $ef['assignments'] = $assignments;
+        $ekram_funds[] = $ef;
       }
-      $outstanding = max(0, $assignedTotal - $paidTotal);
-      $ef['assigned_total'] = $assignedTotal;
-      $ef['paid_total'] = $paidTotal;
-      $ef['outstanding'] = $outstanding;
-      $ef['assignments'] = $assignments;
-      $ekram_funds[] = $ef;
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard ekram funds error: ' . $e->getMessage());
     }
     $data['ekram_funds'] = $ekram_funds;
 
     // If frontend requested a specific hijri month/year (AJAX or direct), compute representative parts
     $selected_hijri_parts = null;
-    if ($sel_hijri_year && $sel_hijri_month) {
-      // get the days for that hijri month/year and pick the first greg date as representative
-      $days = $this->HijriCalendar->get_hijri_days_for_month_year($sel_hijri_month, $sel_hijri_year);
-      if (!empty($days) && isset($days[0]['greg_date'])) {
-        $rep_greg = $days[0]['greg_date'];
-        $selected_hijri_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date($rep_greg);
+    try {
+      if ($sel_hijri_year && $sel_hijri_month) {
+        // get the days for that hijri month/year and pick the first greg date as representative
+        $days = $this->HijriCalendar->get_hijri_days_for_month_year($sel_hijri_month, $sel_hijri_year);
+        if (!empty($days) && isset($days[0]['greg_date'])) {
+          $rep_greg = $days[0]['greg_date'];
+          $selected_hijri_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date($rep_greg);
+        }
       }
+    } catch (Throwable $e) {
+      log_message('error', 'Anjuman dashboard selected hijri parts error: ' . $e->getMessage());
     }
     $data['selected_hijri_parts'] = $selected_hijri_parts;
 
@@ -288,10 +343,6 @@ class Anjuman extends CI_Controller
       }
     }
 
-    $db_debug_original = $this->db->db_debug;
-    $this->db->db_debug = FALSE;
-
-    // Keep a small list (up to 5) if needed elsewhere
     $dashboard_expenses = [];
     $dashboard_expense_total = 0.0;
     $dashboard_expense_hijri_year = null;
