@@ -1,3 +1,22 @@
+<?php
+if (!function_exists('inr_digits')) {
+  function inr_digits($num)
+  {
+    if ($num === null || $num === '' || !is_numeric($num)) return '';
+    $neg = $num < 0;
+    $num = abs(floor($num));
+    $str = (string)$num;
+    $len = strlen($str);
+    if ($len <= 3) return ($neg ? '-' : '') . $str;
+    $last3 = substr($str, -3);
+    $rest = substr($str, 0, $len - 3);
+    $rest_rev = strrev($rest);
+    $rest_groups = str_split($rest_rev, 2);
+    $rest_formatted = strrev(implode(',', $rest_groups));
+    return ($neg ? '-' : '') . $rest_formatted . ',' . $last3;
+  }
+}
+?>
 <style>
   .hidden {
     display: none;
@@ -25,6 +44,39 @@
   }
   tr.clickable-row:hover td {
     background-color: #f1f5f9 !important;
+  }
+  
+  /* Scrollable table with sticky header */
+  .table-scroll-fixed {
+    max-height: calc(100vh - 280px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+  }
+
+  .table-scroll-fixed table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0 !important;
+  }
+
+  .table-scroll-fixed thead tr:first-child th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: #f8fafc;
+  }
+
+  .table-scroll-fixed td small {
+    white-space: nowrap;
+  }
+
+  .table-scroll-fixed thead tr:nth-child(2) th {
+    position: sticky;
+    top: 38px;
+    z-index: 3;
+    background: #f8fafc;
   }
 </style>
 <div class="margintopcontainer mx-5 pt-5">
@@ -76,9 +128,17 @@
   <?php
     $estGradeCounts = [];
     $resGradeCounts = [];
+    $mutGradeCounts = [];
+    $estGradeAmounts = [];
+    $resGradeAmounts = [];
+    $mutGradeAmounts = [];
     $allUniqueGrades = [];
     $estNoGradeCount = 0;
     $resNoGradeCount = 0;
+    $mutNoGradeCount = 0;
+    $estNoGradeAmount = 0.0;
+    $resNoGradeAmount = 0.0;
+    $mutNoGradeAmount = 0.0;
     $currentCompYear = isset($sabeel_year) && $sabeel_year !== '' ? $sabeel_year : ($hdrComposite ?? '');
 
     if (!empty($all_user_sabeel_takhmeen)) {
@@ -95,27 +155,51 @@
         
         $estGrade = '';
         $resGrade = '';
+        $mutGrade = '';
+        $estYearly = 0.0;
+        $resYearly = 0.0;
+        $mutYearly = 0.0;
         if ($current) {
           $estGrade = isset($current['establishment']['grade']) ? trim((string)$current['establishment']['grade']) : '';
           $resGrade = isset($current['residential']['grade']) ? trim((string)$current['residential']['grade']) : '';
+          $mutGrade = isset($current['mutawatteneen']['grade']) ? trim((string)$current['mutawatteneen']['grade']) : '';
+
+          $estYearly = isset($current['establishment']['yearly']) ? (float)$current['establishment']['yearly'] : 0.0;
+          $resYearly = isset($current['residential']['yearly']) ? (float)$current['residential']['yearly'] : 0.0;
+          $mutYearly = isset($current['mutawatteneen']['yearly']) ? (float)$current['mutawatteneen']['yearly'] : 0.0;
         }
         
         if ($estGrade !== '' && strcasecmp($estGrade, 'no grade') !== 0 && strcasecmp($estGrade, 'unknown') !== 0) {
           $estGradeCounts[$estGrade] = ($estGradeCounts[$estGrade] ?? 0) + 1;
+          $estGradeAmounts[$estGrade] = ($estGradeAmounts[$estGrade] ?? 0.0) + $estYearly;
           if (!in_array($estGrade, $allUniqueGrades)) {
             $allUniqueGrades[] = $estGrade;
           }
         } else {
           $estNoGradeCount++;
+          $estNoGradeAmount += $estYearly;
         }
         
         if ($resGrade !== '' && strcasecmp($resGrade, 'no grade') !== 0 && strcasecmp($resGrade, 'unknown') !== 0) {
           $resGradeCounts[$resGrade] = ($resGradeCounts[$resGrade] ?? 0) + 1;
+          $resGradeAmounts[$resGrade] = ($resGradeAmounts[$resGrade] ?? 0.0) + $resYearly;
           if (!in_array($resGrade, $allUniqueGrades)) {
             $allUniqueGrades[] = $resGrade;
           }
         } else {
           $resNoGradeCount++;
+          $resNoGradeAmount += $resYearly;
+        }
+
+        if ($mutGrade !== '' && strcasecmp($mutGrade, 'no grade') !== 0 && strcasecmp($mutGrade, 'unknown') !== 0) {
+          $mutGradeCounts[$mutGrade] = ($mutGradeCounts[$mutGrade] ?? 0) + 1;
+          $mutGradeAmounts[$mutGrade] = ($mutGradeAmounts[$mutGrade] ?? 0.0) + $mutYearly;
+          if (!in_array($mutGrade, $allUniqueGrades)) {
+            $allUniqueGrades[] = $mutGrade;
+          }
+        } else {
+          $mutNoGradeCount++;
+          $mutNoGradeAmount += $mutYearly;
         }
       }
     }
@@ -129,53 +213,144 @@
         </div>
         <div class="card-body p-3">
           <div class="table-responsive">
-            <table class="table table-sm table-hover table-bordered mb-0 text-center" style="font-size: 13px; border-radius: 8px; overflow: hidden;">
+            <table class="table table-sm table-hover table-bordered mb-0 text-center align-middle" style="font-size: 15px; border-radius: 8px; overflow: hidden;">
               <thead style="background-color: #f1f3f5; color: #495057;">
                 <tr>
-                  <th class="text-left font-weight-bold" style="background-color: #f8f9fa;">Sabeel Type</th>
+                  <th class="text-left font-weight-bold align-middle" style="background-color: #f8f9fa;">Sabeel Type</th>
                   <?php foreach ($allUniqueGrades as $g): ?>
-                    <th class="font-weight-bold"><?php echo htmlspecialchars($g); ?></th>
+                    <th class="font-weight-bold align-middle"><?php echo htmlspecialchars($g); ?></th>
                   <?php endforeach; ?>
-                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0): ?>
-                    <th class="font-weight-bold" style="font-style: italic;">No Grade</th>
+                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0 || $mutNoGradeCount > 0): ?>
+                    <th class="font-weight-bold align-middle" style="font-style: italic;">No Grade</th>
                   <?php endif; ?>
-                  <th class="font-weight-bold" style="background-color: #e9ecef;">Total</th>
+                  <th class="font-weight-bold align-middle" style="background-color: #e9ecef;">Total</th>
                 </tr>
               </thead>
               <tbody>
+                <!-- Establishment Row -->
                 <tr>
-                  <td class="text-left font-weight-bold" style="background-color: #fdf6e3; color: #6c4f00;">Establishment</td>
+                  <td class="text-left font-weight-bold align-middle" style="background-color: #fdf6e3; color: #6c4f00;">Establishment</td>
                   <?php 
                   $totEst = 0;
+                  $totEstAmt = 0.0;
                   foreach ($allUniqueGrades as $g): 
                     $cEst = $estGradeCounts[$g] ?? 0;
+                    $aEst = $estGradeAmounts[$g] ?? 0.0;
                     $totEst += $cEst;
+                    $totEstAmt += $aEst;
                   ?>
-                    <td style="background-color: #fffdf9;"><?php echo $cEst > 0 ? htmlspecialchars((string)$cEst) : '<span class="text-muted">-</span>'; ?></td>
+                    <td style="background-color: #fffdf9;" class="align-middle">
+                      <?php if ($cEst > 0): ?>
+                        <strong><?php echo $cEst; ?></strong>
+                        <br><span class="text-muted" style="font-size: 12px;">₹<?php echo inr_digits(round($aEst)); ?></span>
+                      <?php else: ?>
+                        <span class="text-muted">-</span>
+                      <?php endif; ?>
+                    </td>
                   <?php endforeach; ?>
-                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0): 
+                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0 || $mutNoGradeCount > 0): 
                     $totEst += $estNoGradeCount;
+                    $totEstAmt += $estNoGradeAmount;
                   ?>
-                    <td style="background-color: #fffdf9;" class="text-muted"><?php echo $estNoGradeCount > 0 ? htmlspecialchars((string)$estNoGradeCount) : '-'; ?></td>
+                    <td style="background-color: #fffdf9;" class="align-middle">
+                      <?php if ($estNoGradeCount > 0): ?>
+                        <strong><?php echo $estNoGradeCount; ?></strong>
+                        <?php if ($estNoGradeAmount > 0): ?>
+                          <br><span class="text-muted" style="font-size: 12px;">₹<?php echo inr_digits(round($estNoGradeAmount)); ?></span>
+                        <?php endif; ?>
+                      <?php else: ?>
+                        <span class="text-muted">-</span>
+                      <?php endif; ?>
+                    </td>
                   <?php endif; ?>
-                  <td style="background-color: #fcf4dd; color: #6c4f00; font-weight: bold;"><?php echo htmlspecialchars((string)$totEst); ?></td>
+                  <td style="background-color: #fcf4dd; color: #6c4f00; font-weight: bold;" class="align-middle">
+                    <strong><?php echo $totEst; ?></strong>
+                    <br><span style="font-size: 12px;">₹<?php echo inr_digits(round($totEstAmt)); ?></span>
+                  </td>
                 </tr>
+
+                <!-- Residential Row -->
                 <tr>
-                  <td class="text-left font-weight-bold" style="background-color: #eaf3fb; color: #1a4a6b;">Residential</td>
+                  <td class="text-left font-weight-bold align-middle" style="background-color: #eaf3fb; color: #1a4a6b;">Residential</td>
                   <?php 
                   $totRes = 0;
+                  $totResAmt = 0.0;
                   foreach ($allUniqueGrades as $g): 
                     $cRes = $resGradeCounts[$g] ?? 0;
+                    $aRes = $resGradeAmounts[$g] ?? 0.0;
                     $totRes += $cRes;
+                    $totResAmt += $aRes;
                   ?>
-                    <td style="background-color: #fafdff;"><?php echo $cRes > 0 ? htmlspecialchars((string)$cRes) : '<span class="text-muted">-</span>'; ?></td>
+                    <td style="background-color: #fafdff;" class="align-middle">
+                      <?php if ($cRes > 0): ?>
+                        <strong><?php echo $cRes; ?></strong>
+                        <br><span class="text-muted" style="font-size: 12px;">₹<?php echo inr_digits(round($aRes)); ?></span>
+                      <?php else: ?>
+                        <span class="text-muted">-</span>
+                      <?php endif; ?>
+                    </td>
                   <?php endforeach; ?>
-                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0): 
+                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0 || $mutNoGradeCount > 0): 
                     $totRes += $resNoGradeCount;
+                    $totResAmt += $resNoGradeAmount;
                   ?>
-                    <td style="background-color: #fafdff;" class="text-muted"><?php echo $resNoGradeCount > 0 ? htmlspecialchars((string)$resNoGradeCount) : '-'; ?></td>
+                    <td style="background-color: #fafdff;" class="align-middle">
+                      <?php if ($resNoGradeCount > 0): ?>
+                        <strong><?php echo $resNoGradeCount; ?></strong>
+                        <?php if ($resNoGradeAmount > 0): ?>
+                          <br><span class="text-muted" style="font-size: 12px;">₹<?php echo inr_digits(round($resNoGradeAmount)); ?></span>
+                        <?php endif; ?>
+                      <?php else: ?>
+                        <span class="text-muted">-</span>
+                      <?php endif; ?>
+                    </td>
                   <?php endif; ?>
-                  <td style="background-color: #e0eef9; color: #1a4a6b; font-weight: bold;"><?php echo htmlspecialchars((string)$totRes); ?></td>
+                  <td style="background-color: #e0eef9; color: #1a4a6b; font-weight: bold;" class="align-middle">
+                    <strong><?php echo $totRes; ?></strong>
+                    <br><span style="font-size: 12px;">₹<?php echo inr_digits(round($totResAmt)); ?></span>
+                  </td>
+                </tr>
+
+                <!-- Mutawatteneen Row -->
+                <tr>
+                  <td class="text-left font-weight-bold align-middle" style="background-color: #f5f3ff; color: #5b21b6;">Mutawatteneen</td>
+                  <?php 
+                  $totMut = 0;
+                  $totMutAmt = 0.0;
+                  foreach ($allUniqueGrades as $g): 
+                    $cMut = $mutGradeCounts[$g] ?? 0;
+                    $aMut = $mutGradeAmounts[$g] ?? 0.0;
+                    $totMut += $cMut;
+                    $totMutAmt += $aMut;
+                  ?>
+                    <td style="background-color: #fbfbfe;" class="align-middle">
+                      <?php if ($cMut > 0): ?>
+                        <strong><?php echo $cMut; ?></strong>
+                        <br><span class="text-muted" style="font-size: 12px;">₹<?php echo inr_digits(round($aMut)); ?></span>
+                      <?php else: ?>
+                        <span class="text-muted">-</span>
+                      <?php endif; ?>
+                    </td>
+                  <?php endforeach; ?>
+                  <?php if ($estNoGradeCount > 0 || $resNoGradeCount > 0 || $mutNoGradeCount > 0): 
+                    $totMut += $mutNoGradeCount;
+                    $totMutAmt += $mutNoGradeAmount;
+                  ?>
+                    <td style="background-color: #fbfbfe;" class="align-middle">
+                      <?php if ($mutNoGradeCount > 0): ?>
+                        <strong><?php echo $mutNoGradeCount; ?></strong>
+                        <?php if ($mutNoGradeAmount > 0): ?>
+                          <br><span class="text-muted" style="font-size: 12px;">₹<?php echo inr_digits(round($mutNoGradeAmount)); ?></span>
+                        <?php endif; ?>
+                      <?php else: ?>
+                        <span class="text-muted">-</span>
+                      <?php endif; ?>
+                    </td>
+                  <?php endif; ?>
+                  <td style="background-color: #ede9fe; color: #5b21b6; font-weight: bold;" class="align-middle">
+                    <strong><?php echo $totMut; ?></strong>
+                    <br><span style="font-size: 12px;">₹<?php echo inr_digits(round($totMutAmt)); ?></span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -184,13 +359,14 @@
       </div>
     </div>
   </div>
-  <div>
+  <div class="table-scroll-fixed">
     <table class="table table-bordered table-striped">
       <thead>
         <tr>
           <th colspan="4" class="text-center">Member Info</th>
           <th colspan="3" class="text-center section-start-res" style="background-color:#eaf3fb;">Residential Sabeel</th>
           <th colspan="3" class="text-center section-start-est" style="background-color:#fdf6e3;">Establishment Sabeel</th>
+          <th colspan="3" class="text-center section-start-mut" style="background-color:#f6f5fd;">Mutawatteneen Sabeel</th>
           <th rowspan="2" class="text-center section-start-total" style="background-color:#e8f5e9; color:#1b5e20;">Current Year Total</th>
           <th rowspan="2" class="text-center section-start-action">Action</th>
         </tr>
@@ -205,6 +381,9 @@
           <th class="section-start-est" style="background-color:#fdf6e3;">Grade</th>
           <th style="background-color:#fdf6e3;">Takhmeen Per Month</th>
           <th style="background-color:#fdf6e3;">Takhmeen Yearly</th>
+          <th class="section-start-mut" style="background-color:#f6f5fd;">Grade</th>
+          <th style="background-color:#f6f5fd;">Takhmeen Per Month</th>
+          <th style="background-color:#f6f5fd;">Takhmeen Yearly</th>
         </tr>
       </thead>
       <tbody>
@@ -245,9 +424,11 @@
             $cid = $current ? $current['id'] : '';
             $est = $current ? $current['establishment'] : ['grade' => '', 'yearly' => '', 'monthly' => ''];
             $res = $current ? $current['residential'] : ['grade' => '', 'yearly' => '', 'monthly' => ''];
+            $mut = $current ? ($current['mutawatteneen'] ?? ['grade' => '', 'yearly' => '', 'monthly' => '']) : ['grade' => '', 'yearly' => '', 'monthly' => ''];
             $est_yearly_val = (isset($est['yearly']) && $est['yearly'] !== '' && is_numeric($est['yearly'])) ? (float)$est['yearly'] : null;
             $res_yearly_val = (isset($res['yearly']) && $res['yearly'] !== '' && is_numeric($res['yearly'])) ? (float)$res['yearly'] : null;
-            $total_yearly = ($est_yearly_val !== null || $res_yearly_val !== null) ? (float)($est_yearly_val + $res_yearly_val) : null;
+            $mut_yearly_val = (isset($mut['yearly']) && $mut['yearly'] !== '' && is_numeric($mut['yearly'])) ? (float)$mut['yearly'] : null;
+            $total_yearly = ($est_yearly_val !== null || $res_yearly_val !== null || $mut_yearly_val !== null) ? (float)($est_yearly_val + $res_yearly_val + $mut_yearly_val) : null;
             $__fullName = trim((string)($user['Full_Name'] ?? ''));
             if ($__fullName === '') { $__fullName = trim((string)($user['First_Name'] ?? '') . ' ' . (string)($user['Surname'] ?? '')); }
           ?>
@@ -259,6 +440,9 @@
               </td>
               <td data-sort-value="<?php echo htmlspecialchars(strtolower(trim((string)($user['Sector'] ?? '') . ' - ' . (string)($user['Sub_Sector'] ?? ''))), ENT_QUOTES); ?>"><?php echo htmlspecialchars(trim((string)($user['Sector'] ?? '') . ' - ' . (string)($user['Sub_Sector'] ?? ''))); ?></td>
 
+              <?php if (!$current): ?>
+                <td colspan="10" class="text-center align-middle font-weight-bold text-danger" style="background-color: #fafafa; font-size: 13px;">Takhmeen Not Done</td>
+              <?php else: ?>
               <!-- Residential Sabeel -->
               <td class="section-start-res" style="background-color:#eaf3fb;" data-sort-value="<?php echo htmlspecialchars(strtolower($res['grade'] ?? ''), ENT_QUOTES); ?>">
                 <?php
@@ -283,8 +467,22 @@
               <td class="takhmeen-amount" style="background-color:#fdf6e3;" data-sort-value="<?php echo isset($est['monthly']) && is_numeric($est['monthly']) ? (float)$est['monthly'] : 0; ?>"><?php echo (isset($est['monthly']) && is_numeric($est['monthly']) && $est['monthly'] > 0) ? round($est['monthly']) : ''; ?></td>
               <td class="takhmeen-amount" style="background-color:#fdf6e3;" data-sort-value="<?php echo isset($est['yearly']) && is_numeric($est['yearly']) ? (float)$est['yearly'] : 0; ?>"><?php echo (isset($est['yearly']) && is_numeric($est['yearly']) && $est['yearly'] > 0) ? round($est['yearly']) : ''; ?></td>
 
+              <!-- Mutawatteneen Sabeel -->
+              <td class="section-start-mut" style="background-color:#f6f5fd;" data-sort-value="<?php echo htmlspecialchars(strtolower($mut['grade'] ?? ''), ENT_QUOTES); ?>">
+                <?php
+                  $mutGrade = isset($mut['grade']) ? trim((string)$mut['grade']) : '';
+                  $showMutGrade = ($mutGrade !== '' && strcasecmp($mutGrade,'no grade') !== 0 && strcasecmp($mutGrade,'unknown') !== 0);
+                  echo $showMutGrade ? htmlspecialchars($mutGrade) : '';
+                ?>
+                <br><small class="text-muted"><?php echo $cy ? '(' . htmlspecialchars((string)$cy) . ')' : ''; ?></small>
+              </td>
+              <td class="takhmeen-amount" style="background-color:#f6f5fd;" data-sort-value="<?php echo isset($mut['monthly']) && is_numeric($mut['monthly']) ? (float)$mut['monthly'] : 0; ?>"><?php echo (isset($mut['monthly']) && is_numeric($mut['monthly']) && $mut['monthly'] > 0) ? round($mut['monthly']) : ''; ?></td>
+              <td class="takhmeen-amount" style="background-color:#f6f5fd;" data-sort-value="<?php echo isset($mut['yearly']) && is_numeric($mut['yearly']) ? (float)$mut['yearly'] : 0; ?>"><?php echo (isset($mut['yearly']) && is_numeric($mut['yearly']) && $mut['yearly'] > 0) ? round($mut['yearly']) : ''; ?></td>
+
               <!-- Current Year Total -->
               <td class="takhmeen-amount section-start-total" style="background-color:#e8f5e9; font-weight:bold;" data-sort-value="<?php echo isset($total_yearly) && is_numeric($total_yearly) ? (float)$total_yearly : 0; ?>"><?php echo (isset($total_yearly) && is_numeric($total_yearly) && $total_yearly > 0) ? '<b>' . round($total_yearly) . '</b>' : ''; ?></td>
+
+              <?php endif; ?>
 
               <td class="text-nowrap section-start-action">
                 <?php
@@ -348,6 +546,12 @@
           </select>
           <p class="hidden takhmeen-amount pt-2 m-0" id="e-amount"></p>
           <br>
+          <label for="mutawatteneen-grade" class="form-label">Mutawatteneen Sabeel Grade</label>
+          <select name="mutawatteneen_grade" id="mutawatteneen-grade" class="form-control">
+            <option value="">-----</option>
+          </select>
+          <p class="hidden takhmeen-amount pt-2 m-0" id="m-amount"></p>
+          <br>
           <button type="submit" id="add-takhmeen-btn" class="btn btn-primary text-right">Add Takhmeen</button>
           <p id="validate-takhmeen" class="text-secondary pt-3 m-0"></p>
         </form>
@@ -379,6 +583,10 @@
                 <th class="section-start-est" style="background-color:#fdf6e3;">Est. Grade</th>
                 <th style="background-color:#fdf6e3;">Est. Monthly</th>
                 <th style="background-color:#fdf6e3;">Est. Yearly</th>
+                <th class="section-start-mut" style="background-color:#f6f5fd;">Mut. Grade</th>
+                <th style="background-color:#f6f5fd;">Mut. Monthly</th>
+                <th style="background-color:#f6f5fd;">Mut. Yearly</th>
+                <th class="section-start-total" style="background-color:#e8f5e9; color:#1b5e20;">Total</th>
                 <th class="section-start-action">Action</th>
               </tr>
             </thead>
@@ -434,10 +642,15 @@
     const $tbody = $('#vt-history-table tbody');
     $tbody.empty();
     if (!takhmeens.length) {
-      $tbody.append('<tr><td colspan="8" class="text-center text-muted">No records.</td></tr>');
+      $tbody.append('<tr><td colspan="12" class="text-center text-muted">No records.</td></tr>');
     } else {
       takhmeens.forEach(t => {
         const rowId = `trow-${t.id}`;
+        const resYearly = t.residential && t.residential.yearly ? Number(t.residential.yearly) : 0;
+        const estYearly = t.establishment && t.establishment.yearly ? Number(t.establishment.yearly) : 0;
+        const mutYearly = t.mutawatteneen && t.mutawatteneen.yearly ? Number(t.mutawatteneen.yearly) : 0;
+        const totalYearly = resYearly + estYearly + mutYearly;
+
         $tbody.append(`<tr id="${rowId}">
           <td>${t.year}</td>
           <td class="section-start-res" style="background-color:#eaf3fb;">${t.residential.grade || ''}</td>
@@ -446,14 +659,18 @@
           <td class="section-start-est" style="background-color:#fdf6e3;">${t.establishment.grade || ''}</td>
           <td class='takhmeen-amount' style="background-color:#fdf6e3;">${t.establishment.monthly !== '' ? t.establishment.monthly : ''}</td>
           <td class='takhmeen-amount' style="background-color:#fdf6e3;">${t.establishment.yearly !== '' ? t.establishment.yearly : ''}</td>
+          <td class="section-start-mut" style="background-color:#f6f5fd;">${t.mutawatteneen ? (t.mutawatteneen.grade || '') : ''}</td>
+          <td class='takhmeen-amount' style="background-color:#f6f5fd;">${t.mutawatteneen && t.mutawatteneen.monthly !== '' ? t.mutawatteneen.monthly : ''}</td>
+          <td class='takhmeen-amount' style="background-color:#f6f5fd;">${t.mutawatteneen && t.mutawatteneen.yearly !== '' ? t.mutawatteneen.yearly : ''}</td>
+          <td class='takhmeen-amount section-start-total' style="background-color:#e8f5e9; font-weight:bold;">${totalYearly > 0 ? totalYearly : ''}</td>
           <td class='text-nowrap section-start-action'>
-             <button class="btn btn-sm btn-outline-primary vt-edit" data-tid="${t.id}" data-year="${t.year}" data-user-id="${userId}" data-est-id="${t.establishment.grade_id || ''}" data-res-id="${t.residential.grade_id || ''}">Edit</button>
+             <button class="btn btn-sm btn-outline-primary vt-edit" data-tid="${t.id}" data-year="${t.year}" data-user-id="${userId}" data-est-id="${t.establishment.grade_id || ''}" data-res-id="${t.residential.grade_id || ''}" data-mut-id="${t.mutawatteneen ? (t.mutawatteneen.grade_id || '') : ''}">Edit</button>
              <button class="btn btn-sm btn-outline-danger vt-delete" data-tid="${t.id}" data-year="${t.year}" data-user-id="${userId}">Delete</button>
           </td>
         </tr>`);
         // Hidden editable row
         $tbody.append(`<tr id="edit-${t.id}" class="vt-edit-row d-none">
-          <td colspan="8">
+          <td colspan="12">
             <form class="form-inline vt-edit-form" data-tid="${t.id}" data-user-id="${userId}" data-year="${t.year}">
               <div class="form-group mb-2 mr-2">
                 <label class="mr-1 small">Res. Grade</label>
@@ -462,6 +679,10 @@
               <div class="form-group mb-2 mr-2">
                 <label class="mr-1 small">Est. Grade</label>
                 <select class="form-control form-control-sm est-grade-select"></select>
+              </div>
+              <div class="form-group mb-2 mr-2">
+                <label class="mr-1 small">Mut. Grade</label>
+                <select class="form-control form-control-sm mut-grade-select"></select>
               </div>
               <button type="submit" class="btn btn-sm btn-success mb-2 mr-2">Save</button>
               <button type="button" class="btn btn-sm btn-secondary mb-2 vt-cancel-edit">Cancel</button>
@@ -493,8 +714,10 @@
     $("#takhmeen-year option:first").prop("selected", true);
     $("#establishment-grade").html('<option value="">-----</option>');
     $("#residential-grade").html('<option value="">-----</option>');
+    $("#mutawatteneen-grade").html('<option value="">-----</option>');
     $("#e-amount").addClass("hidden").html("");
     $("#r-amount").addClass("hidden").html("");
+    $("#m-amount").addClass("hidden").html("");
     $("#validate-takhmeen").text("").removeClass("text-danger").addClass("text-secondary");
     $("#add-takhmeen-btn").prop("disabled", false);
   });
@@ -502,6 +725,7 @@
   $("#takhmeen-year").on("change", function(e) {
     $("#establishment-grade").html("");
     $("#residential-grade").html("");
+    $("#mutawatteneen-grade").html("");
     $takhmeen_year = $(this).val();
     $user_id = $("#user-id").val();
     $.ajax({
@@ -521,8 +745,14 @@
           $r_grades.forEach(grade => {
             $rGradeOptions += `<option value="${grade.id}" data-grade-amount="${grade.amount}">${grade.grade}</option>`;
           });
+          $mGradeOptions = `<option value="">Select Grade</option>`;
+          $m_grades = $sabeel_grades.filter((grade) => grade.type == "Mutawatteneen");
+          $m_grades.forEach(grade => {
+            $mGradeOptions += `<option value="${grade.id}" data-grade-amount="${grade.amount}">${grade.grade}</option>`;
+          });
           $("#establishment-grade").html($eGradeOptions);
           $("#residential-grade").html($rGradeOptions);
+          $("#mutawatteneen-grade").html($mGradeOptions);
         } else {
           alert("No sabeel grades found for this year.")
         }
@@ -604,18 +834,23 @@
     const userId = $(this).data('user-id');
     const estId = $(this).data('est-id');
     const resId = $(this).data('res-id');
+    const mutId = $(this).data('mut-id');
     const $editRow = $('#edit-'+tid);
     if (!$editRow.length) return;
     fetchSabeelGrades(year, function(err, grades){
       if (err || !grades){ alert('Unable to fetch grades'); return; }
       const est = grades.filter(g => g.type === 'Establishment');
       const res = grades.filter(g => g.type === 'Residential');
+      const mut = grades.filter(g => g.type === 'Mutawatteneen');
       const $estSel = $editRow.find('.est-grade-select');
       const $resSel = $editRow.find('.res-grade-select');
+      const $mutSel = $editRow.find('.mut-grade-select');
       $resSel.empty().append(`<option value="" ${!resId ? 'selected' : ''}>-- None --</option>`);
       res.forEach(g => $resSel.append(`<option value="${g.id}" ${resId == g.id ? 'selected' : ''}>${g.grade}</option>`));
       $estSel.empty().append(`<option value="" ${!estId ? 'selected' : ''}>-- None --</option>`);
       est.forEach(g => $estSel.append(`<option value="${g.id}" ${estId == g.id ? 'selected' : ''}>${g.grade}</option>`));
+      $mutSel.empty().append(`<option value="" ${!mutId ? 'selected' : ''}>-- None --</option>`);
+      mut.forEach(g => $mutSel.append(`<option value="${g.id}" ${mutId == g.id ? 'selected' : ''}>${g.grade}</option>`));
       $('.vt-edit-row').addClass('d-none');
       $editRow.removeClass('d-none');
     });
@@ -635,15 +870,16 @@
     const userId = $form.data('user-id');
     const establishment_grade = String($form.find('.est-grade-select').val() || '').trim();
     const residential_grade = String($form.find('.res-grade-select').val() || '').trim();
+    const mutawatteneen_grade = String($form.find('.mut-grade-select').val() || '').trim();
     const $status = $form.find('.vt-status').removeClass('text-danger text-success').text('Saving...');
-    if (!establishment_grade && !residential_grade) {
+    if (!establishment_grade && !residential_grade && !mutawatteneen_grade) {
       $status.addClass('text-danger').text('Select at least one grade');
       return;
     }
     $.ajax({
       url: '<?php echo base_url("admin/updatesabeeltakhmeen"); ?>',
       type: 'POST',
-      data: { user_id: userId, takhmeen_id: tid, establishment_grade, residential_grade },
+      data: { user_id: userId, takhmeen_id: tid, establishment_grade, residential_grade, mutawatteneen_grade },
       success: function(res){
         try {
           const data = JSON.parse(res);

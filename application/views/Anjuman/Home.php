@@ -456,7 +456,8 @@ if (!function_exists('format_inr')) {
         <li><a class="menu-item" href="<?= base_url('anjuman/payments_report') ?>"><span class="menu-icon"><i class="fa fa-file-text-o"></i></span><span class="menu-label">Payments Report</span></a></li>
         <li><a class="menu-item" href="<?= base_url('anjuman/financials') ?>"><span class="menu-icon"><i class="fa fa-file-text-o"></i></span><span class="menu-label">Individual Financial Details</span></a></li>
         <li><a class="menu-item" href="<?= base_url('anjuman/expense') ?>"><span class="menu-icon"><i class="fa fa-calculator"></i></span><span class="menu-label">Expense Module</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('anjuman/laagat_rent') ?>"><span class="menu-icon"><i class="fa fa-home"></i></span><span class="menu-label">Laagat / Rent</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('anjuman/laagat') ?>"><span class="menu-icon"><i class="fa fa-calculator"></i></span><span class="menu-label">Laagat Module</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('anjuman/rent') ?>"><span class="menu-icon"><i class="fa fa-home"></i></span><span class="menu-label">Rent Module</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/wajebaat') ?>"><span class="menu-icon"><i class="fa fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('madresa') ?>"><span class="menu-icon"><i class="fa fa-graduation-cap"></i></span><span class="menu-label">Madresa Module</span></a></li>
       </ul>
@@ -1536,12 +1537,22 @@ if (!function_exists('format_inr')) {
         </div>
       </div>
 
-      <!-- Laagat & Rent -->
+      <!-- Laagat -->
       <div class="col-md-12 mb-3">
         <div class="chart-container compact">
-          <div class="section-header-standard"><h5 class="section-title"><i class="fa fa-home"></i> Laagat &amp; Rent</h5><div class="d-flex align-items-center"><a href="<?= base_url('anjuman/laagat_rent') ?>" class="btn btn-outline-secondary btn-sm mr-2">View</a><button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseRentAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button></div></div>
+          <div class="section-header-standard"><h5 class="section-title"><i class="fa fa-calculator"></i> Laagat Module</h5><div class="d-flex align-items-center"><a href="<?= base_url('anjuman/laagat') ?>" class="btn btn-outline-secondary btn-sm mr-2">View</a><button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseLaagatAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button></div></div>
+          <div class="collapse show" id="collapseLaagatAnjuman">
+            <div class="row justify-content-center text-center"><div class="col-12 col-md-4"><div class="mini-card"><div class="stats-value">₹<?= number_format($dashboard_laagat_total??0,0) ?></div><div class="stats-label">Invoiced<?= isset($dashboard_laagat_hijri_year)?' for '.$dashboard_laagat_hijri_year.'H':'' ?></div></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rent -->
+      <div class="col-md-12 mb-3">
+        <div class="chart-container compact">
+          <div class="section-header-standard"><h5 class="section-title"><i class="fa fa-home"></i> Rent Module</h5><div class="d-flex align-items-center"><a href="<?= base_url('anjuman/rent') ?>" class="btn btn-outline-secondary btn-sm mr-2">View</a><button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseRentAnjuman" aria-expanded="true"><i class="fa fa-chevron-down"></i></button></div></div>
           <div class="collapse show" id="collapseRentAnjuman">
-            <div class="row justify-content-center text-center"><div class="col-12 col-md-4"><div class="mini-card"><div class="stats-value">₹<?= number_format($dashboard_laagat_rent_total??0,0) ?></div><div class="stats-label">Invoiced<?= isset($dashboard_laagat_rent_hijri_year)?' for '.$dashboard_laagat_rent_hijri_year.'H':'' ?></div></div></div></div>
+            <div class="row justify-content-center text-center"><div class="col-12 col-md-4"><div class="mini-card"><div class="stats-value">₹<?= number_format($dashboard_rent_total??0,0) ?></div><div class="stats-label">Invoiced<?= isset($dashboard_rent_hijri_year)?' for '.$dashboard_rent_hijri_year.'H':'' ?></div></div></div></div>
           </div>
         </div>
       </div>

@@ -30,12 +30,12 @@
       <div class="card-body py-2">
         <div class="form-row align-items-end">
           <div class="col-md-4 mb-2">
-            <label class="small mb-1 font-weight-bold" style="color: #5a5244;">Sector</label>
-            <input type="text" id="itemFilterSector" class="form-control form-control-sm" placeholder="Filter by sector">
+            <label class="small mb-1 font-weight-bold" style="color: #5a5244;">Expense Sector</label>
+            <input type="text" id="itemFilterSector" class="form-control form-control-sm" placeholder="Filter by expense sector">
           </div>
           <div class="col-md-4 mb-2">
-            <label class="small mb-1 font-weight-bold" style="color: #5a5244;">Sub Sector</label>
-            <input type="text" id="itemFilterSubSector" class="form-control form-control-sm" placeholder="Filter by sub sector">
+            <label class="small mb-1 font-weight-bold" style="color: #5a5244;">Expense Sub-Sector</label>
+            <input type="text" id="itemFilterSubSector" class="form-control form-control-sm" placeholder="Filter by expense sub-sector">
           </div>
           <div class="col-md-4 mb-2">
             <label class="small mb-1 font-weight-bold" style="color: #5a5244;">Expense Section</label>
@@ -55,8 +55,8 @@
           <thead>
             <tr>
               <th style="width: 80px;">Sr.No</th>
-              <th>Sector</th>
-              <th>Sub Sector</th>
+              <th>Expense Sector</th>
+              <th>Expense Sub-Sector</th>
               <th>Expense Section</th>
               <th style="width: 120px;">Status</th>
               <th style="width: 160px;">Action</th>
@@ -122,27 +122,27 @@
         
         <!-- Sector Selector & Input -->
         <div class="form-group">
-          <label for="itemSectorSelect" class="font-weight-semibold">Sector</label>
+          <label for="itemSectorSelect" class="font-weight-semibold">Expense Sector</label>
           <select class="form-control form-control-sm" id="itemSectorSelect" required>
-            <option value="">Select Sector</option>
-            <option value="__NEW__">-- Add New Sector --</option>
+            <option value="">Select Expense Sector</option>
+            <option value="__NEW__">-- Add New Expense Sector --</option>
           </select>
         </div>
         <div class="form-group" id="newSectorNameGroup" style="display: none;">
-          <label for="itemSectorName" class="font-weight-semibold" style="color: #78520a;">New Sector Name</label>
+          <label for="itemSectorName" class="font-weight-semibold" style="color: #78520a;">New Expense Sector Name</label>
           <input type="text" class="form-control form-control-sm" id="itemSectorName" placeholder="e.g. Jamaat Operating Expenses">
         </div>
 
         <!-- Sub-Sector Selector & Input -->
         <div class="form-group">
-          <label for="itemSubSectorSelect" class="font-weight-semibold">Sub-Sector</label>
+          <label for="itemSubSectorSelect" class="font-weight-semibold">Expense Sub-Sector</label>
           <select class="form-control form-control-sm" id="itemSubSectorSelect" required>
-            <option value="">Select Sub-Sector</option>
-            <option value="__NEW__">-- Add New Sub-Sector --</option>
+            <option value="">Select Expense Sub-Sector</option>
+            <option value="__NEW__">-- Add New Expense Sub-Sector --</option>
           </select>
         </div>
         <div class="form-group" id="newSubSectorNameGroup" style="display: none;">
-          <label for="itemSubSectorName" class="font-weight-semibold" style="color: #78520a;">New Sub-Sector Name</label>
+          <label for="itemSubSectorName" class="font-weight-semibold" style="color: #78520a;">New Expense Sub-Sector Name</label>
           <input type="text" class="form-control form-control-sm" id="itemSubSectorName" placeholder="e.g. Aamilsaheb">
         </div>
 
@@ -249,7 +249,7 @@
 
       var sectorSelect = document.getElementById('itemSectorSelect');
       var selectedSector = sectorSelect.value;
-      sectorSelect.innerHTML = '<option value="">Select Sector</option><option value="__NEW__">-- Add New Sector --</option>';
+      sectorSelect.innerHTML = '<option value="">Select Expense Sector</option><option value="__NEW__">-- Add New Expense Sector --</option>';
       sectors.forEach(function(s) {
         var opt = document.createElement('option');
         opt.value = s;
@@ -268,7 +268,7 @@
       var subSectorSelect = document.getElementById('itemSubSectorSelect');
       var selectedSubSector = subSectorSelect.value;
 
-      subSectorSelect.innerHTML = '<option value="">Select Sub-Sector</option><option value="__NEW__">-- Add New Sub-Sector --</option>';
+      subSectorSelect.innerHTML = '<option value="">Select Expense Sub-Sector</option><option value="__NEW__">-- Add New Expense Sub-Sector --</option>';
 
       var sectorVal = sectorSelect.value;
       if (sectorVal && sectorVal !== '__NEW__') {
@@ -417,7 +417,7 @@
         var status = document.getElementById('itemStatus').value;
 
         if(!sName || !subName || !name){
-          alert('Sector, Sub-Sector, and Item Name are required');
+          alert('Expense Sector, Expense Sub-Sector, and Section Name are required');
           return;
         }
 

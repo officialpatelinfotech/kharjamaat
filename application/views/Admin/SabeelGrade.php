@@ -7,13 +7,13 @@
     background-color: #f1f1f1;
   }
 </style>
-<div class="container margintopcontainer">
+<div class="margintopcontainer mx-3">
   <h4 class="heading text-center pt-5 mb-4">Sabeel Grade</h4>
   <div class="row mb-4 p-0">
-    <div class="col-12 col-md-6">
+    <div class="col-12 col-lg-4">
       <a href="<?php echo base_url("admin/managesabeeltakhmeen"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
     </div>
-    <div class="col-12 col-md-6">
+    <div class="col-12 col-lg-4">
       <form method="POST" action="<?php echo base_url("admin/filtersabeelgrade"); ?>" id="filter-sabeel-grade-form" class="d-flex m-0">
 
         <select name="sabeel_year" id="sabeel-year" class="form-filter form-control" required>
@@ -49,7 +49,7 @@
         }
       }
     ?>
-    <div class="col-12 col-md-6">
+    <div class="col-12 col-lg-4">
       <div class="p-2 border rounded text-right">
         <h4 class="text-center mt-3">Establishment Sabeel Grade<?php echo $displayYear ? " – $displayYear" : ""; ?></h4>
         <button id="add-e-sabeel-grade-btn" class="add-sabeel-grade-btn btn btn-sm btn-primary" data-index="0">Add Grade</button>
@@ -142,7 +142,7 @@
         </table>
       </div>
     </div>
-    <div class="col-12 col-md-6">
+    <div class="col-12 col-lg-4">
       <div class="p-2 border rounded text-right">
         <h4 class="text-center mt-3">Residential Sabeel Grade<?php echo $displayYear ? " – $displayYear" : ""; ?></h4>
         <button id="add-r-sabeel-grade-btn" class="add-sabeel-grade-btn btn btn-sm btn-primary" data-index="1">Add Grade</button>
@@ -207,6 +207,91 @@
                       <?php $res_monthly = ($value['yearly_amount'] && is_numeric($value['yearly_amount'])) ? floor($value['yearly_amount']/12) : ((isset($value['amount']) && is_numeric($value['amount'])) ? (int)$value['amount'] : 0); ?>
                       <span id="amount-monthly-<?php echo $value["id"]; ?>"><?php echo (int)$res_monthly; ?></span>
                       <input type="number" id="edit-amount-monthly-<?php echo $value["id"]; ?>" class="form-control hidden" value="<?php echo (int)$res_monthly; ?>" min="0" step="1">
+                    </td>
+                    <td>
+                      <span id="amount-yearly-<?php echo $value["id"]; ?>"><?php echo number_format((float)$value["yearly_amount"], 0, '.', ''); ?></span>
+                      <input type="number" id="edit-amount-yearly-<?php echo $value["id"]; ?>" class="form-control hidden" value="<?php echo (int)$value["yearly_amount"]; ?>" min="0" step="1">
+                    </td>
+                    <td>
+                      <button id="edit-btn-<?php echo $value["id"]; ?>" data-sabeel-grade-id="<?php echo $value["id"]; ?>" data-sabeel-type="<?php echo $value["type"]; ?>" class="edit-btn btn btn-sm btn-secondary">Edit</button>
+                      <button id="save-btn-<?php echo $value["id"]; ?>" data-sabeel-grade-id="<?php echo $value["id"]; ?>" data-sabeel-type="<?php echo $value["type"]; ?>" class="save-btn btn btn-sm btn-success hidden">Save</button>
+                      <button id="cancel-btn-<?php echo $value["id"]; ?>" data-sabeel-grade-id="<?php echo $value["id"]; ?>" class="cancel-btn btn btn-sm btn-light hidden">Cancel</button>
+                      <?php if (!empty($value["in_use"])): ?>
+                        <button class="btn btn-sm btn-danger" title="This item can't be deleted as it is assign to a member." disabled>Delete</button>
+                      <?php else: ?>
+                        <a href="<?php echo base_url("admin/deletesabeelgrade/" . $value["id"]); ?>"
+                          class="delete-sabeel-grade btn btn-sm btn-danger">Delete</a>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <tr>
+                <td colspan="4">No records found!</td>
+              </tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mutawatteneen Sabeel Grade Column -->
+    <div class="col-12 col-lg-4 mt-4 mt-lg-0">
+      <div class="p-2 border rounded text-right">
+        <h4 class="text-center mt-3">Mutawatteneen Sabeel Grade<?php echo $displayYear ? " – $displayYear" : ""; ?></h4>
+        <button id="add-m-sabeel-grade-btn" class="add-sabeel-grade-btn btn btn-sm btn-primary" data-index="2">Add Grade</button>
+        <div id="add-m-sabeel-grade" class="add-sabeel-grade hidden border mt-3 rounded">
+          <form method="post" action="<?php echo base_url('admin/addsabeelgrade/3') ?>" id="add-m-sabeel-form" class="add-sabeel-grade-form">
+            <div class="row modal-body">
+              <div class="col-12 col-md-12">
+                <select name="m_sabeel_year" id="m-sabeel-year" class="sabeel-year form-control" required>
+                  <option value="">Select Year</option>
+                  <?php
+                  $currentSelected = isset($sabeel_year) ? $sabeel_year : null;
+                  foreach ($yearRanges as $yr) {
+                    renderYearOption($yr, $currentSelected);
+                  }
+                  ?>
+                </select>
+              </div>
+              <div id="add-m-sabeel-grade-table" class="row col-12 col-md-12 mt-3">
+                <div class="col-12 col-md-4">
+                  <select name="m_sabeel_grade" id="m-sabeel-grade" class="sabeel-grade form-control" required></select>
+                </div>
+                <div class="col-12 col-md-4 mt-2 mt-md-0">
+                  <input type="number" name="m_sabeel_amount_monthly" id="m_sabeel_amount_monthly" class="sabeel-amount-monthly form-control" placeholder="Monthly amount" min="0" step="1">
+                </div>
+                <div class="col-12 col-md-4 mt-2 mt-md-0">
+                  <input type="number" name="m_sabeel_amount_yearly" id="m_sabeel_amount_yearly" class="sabeel-amount-yearly form-control" placeholder="Yearly amount" min="0" step="1">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="hide-add-container btn btn-secondary" data-index="2">Cancel</button>
+              <button type="submit" class="submit-sabeel-grade-btn btn btn-primary" data-index="2">Submit</button>
+            </div>
+          </form>
+        </div>
+        <table class="table table-hover table-striped mt-3">
+          <thead>
+            <tr>
+              <th>Grade</th>
+              <th>Monthly</th>
+              <th>Yearly</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (isset($sabeel_grades)): ?>
+              <?php foreach ($sabeel_grades as $key => $value): ?>
+                <?php if ($value["type"] == "Mutawatteneen"): ?>
+                  <tr>
+                    <td><?php echo $value["grade"]; ?></td>
+                    <td>
+                      <?php $mut_monthly = ($value['yearly_amount'] && is_numeric($value['yearly_amount'])) ? floor($value['yearly_amount']/12) : ((isset($value['amount']) && is_numeric($value['amount'])) ? (int)$value['amount'] : 0); ?>
+                      <span id="amount-monthly-<?php echo $value["id"]; ?>"><?php echo (int)$mut_monthly; ?></span>
+                      <input type="number" id="edit-amount-monthly-<?php echo $value["id"]; ?>" class="form-control hidden" value="<?php echo (int)$mut_monthly; ?>" min="0" step="1">
                     </td>
                     <td>
                       <span id="amount-yearly-<?php echo $value["id"]; ?>"><?php echo number_format((float)$value["yearly_amount"], 0, '.', ''); ?></span>
@@ -429,12 +514,12 @@
 
   // Add forms (use class selectors)
   $(document).on('input', '.sabeel-amount-monthly', function(){
-    const $container = $(this).closest('#add-e-sabeel-grade, #add-r-sabeel-grade');
+    const $container = $(this).closest('#add-e-sabeel-grade, #add-r-sabeel-grade, #add-m-sabeel-grade');
     const $yearly = $container.find('.sabeel-amount-yearly').eq(0);
     syncFromMonthly($(this), $yearly);
   });
   $(document).on('input', '.sabeel-amount-yearly', function(){
-    const $container = $(this).closest('#add-e-sabeel-grade, #add-r-sabeel-grade');
+    const $container = $(this).closest('#add-e-sabeel-grade, #add-r-sabeel-grade, #add-m-sabeel-grade');
     const $monthly = $container.find('.sabeel-amount-monthly').eq(0);
     syncFromYearly($(this), $monthly);
   });

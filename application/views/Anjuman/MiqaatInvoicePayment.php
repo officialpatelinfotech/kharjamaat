@@ -1119,6 +1119,7 @@
       </table>
     </div>
   </div>
+  <?php endif; ?>
     <!-- Member Payments Modal -->
     <div class="modal fade" id="memberPaymentsModal" tabindex="-1" role="dialog" aria-labelledby="memberPaymentsModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
@@ -1458,13 +1459,25 @@
 
         // Filters for invoice list (name/its/sector/sub-sector/year/type) with totals
         function applyPaymentFilters() {
-          const nameVal = (document.getElementById('pf-name').value || '').trim().toLowerCase();
-          const hoffmVal = (document.getElementById('pf-hoffm').value || '').trim().toLowerCase();
-          const sectorVal = (document.getElementById('pf-sector').value || '').trim().toLowerCase();
-          const subVal = (document.getElementById('pf-subsector').value || '').trim().toLowerCase();
-          const yearVal = (document.getElementById('pf-year').value || '').trim().toLowerCase();
-          const typeVal = (document.getElementById('pf-invoice-type').value || '').trim().toLowerCase();
-          const statusVal = (document.getElementById('pf-status').value || '').trim().toLowerCase();
+          const pfName = document.getElementById('pf-name');
+          const pfHofFm = document.getElementById('pf-hoffm');
+          const pfSector = document.getElementById('pf-sector');
+          const pfSub = document.getElementById('pf-subsector');
+          const pfYear = document.getElementById('pf-year');
+          const pfType = document.getElementById('pf-invoice-type');
+          const pfStatus = document.getElementById('pf-status');
+
+          if (!pfName || !pfHofFm || !pfSector || !pfSub || !pfYear || !pfType || !pfStatus) {
+            return;
+          }
+
+          const nameVal = (pfName.value || '').trim().toLowerCase();
+          const hoffmVal = (pfHofFm.value || '').trim().toLowerCase();
+          const sectorVal = (pfSector.value || '').trim().toLowerCase();
+          const subVal = (pfSub.value || '').trim().toLowerCase();
+          const yearVal = (pfYear.value || '').trim().toLowerCase();
+          const typeVal = (pfType.value || '').trim().toLowerCase();
+          const statusVal = (pfStatus.value || '').trim().toLowerCase();
 
           const rows = document.querySelectorAll('#miqaat-payments-table tbody tr.miqaat-payment-row');
           let index = 1;
@@ -3252,5 +3265,4 @@
         })();
       })();
     </script>
-  <?php endif; ?>
 </div>

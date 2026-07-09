@@ -83,9 +83,15 @@ $route['admin/expense/item-delete'] = 'Admin/expense_item_delete';
 $route['admin/preferences'] = 'Admin/preferences';
 
 // Laagat / Rent module routes
+$route['admin/laagat'] = 'Admin/laagat';
 $route['admin/laagat/create'] = 'Admin/laagat_create';
 $route['admin/laagat/manage'] = 'Admin/laagat_manage';
 $route['admin/laagat/check-duplicate'] = 'Admin/laagat_check_duplicate';
+
+$route['admin/rent'] = 'Admin/rent';
+$route['admin/rent/create'] = 'Admin/rent_create';
+$route['admin/rent/manage'] = 'Admin/rent_manage';
+$route['admin/rent/check-duplicate'] = 'Admin/rent_check_duplicate';
 
 $route['admin/properties'] = 'Admin/properties';
 $route['admin/add_property'] = 'Admin/add_property';

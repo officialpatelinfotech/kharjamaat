@@ -284,15 +284,20 @@
   <!-- ── Header ── -->
   <div class="page-header-wrap pt-5">
     <a href="<?= base_url('accounts/home') ?>" class="btn-back-nav"><i class="fa fa-arrow-left"></i></a>
-    <h1 class="page-heading">Laagat &amp; Rent Invoices</h1>
+    <?php
+      $is_laagat = isset($module_type) && $module_type === 'laagat';
+      $title = $is_laagat ? 'Laagat Invoices' : 'Rent Invoices';
+      $sub_title = $is_laagat ? 'Your laagat invoices' : 'Your rent & deposit invoices';
+    ?>
+    <h1 class="page-heading"><?= $title ?></h1>
   </div>
-  <p class="page-sub">Your laagat, rent &amp; deposit invoices</p>
+  <p class="page-sub"><?= $sub_title ?></p>
   <hr class="section-divider">
 
   <?php if (empty($invoices)): ?>
     <div class="empty-state">
       <i class="fa fa-file-text-o"></i>
-      <p>No Laagat or Rent invoices found for your family.</p>
+      <p>No <?= $is_laagat ? 'Laagat' : 'Rent' ?> invoices found for your family.</p>
     </div>
 
   <?php else: ?>

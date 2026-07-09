@@ -147,7 +147,7 @@ class Payment extends CI_Controller
       show_error('Invalid amount for payment');
       return;
     }
-    if ($payment_type !== 'establishment' && $payment_type !== 'residential') {
+    if ($payment_type !== 'establishment' && $payment_type !== 'residential' && $payment_type !== 'mutawatteneen') {
       show_error('Invalid payment type');
       return;
     }
@@ -519,7 +519,7 @@ class Payment extends CI_Controller
       }
 
       // Sabeel reconciliation
-      if ($isSabeel && ($sabeel_type === 'establishment' || $sabeel_type === 'residential') && $this->db->table_exists('sabeel_takhmeen_payments')) {
+      if ($isSabeel && ($sabeel_type === 'establishment' || $sabeel_type === 'residential' || $sabeel_type === 'mutawatteneen') && $this->db->table_exists('sabeel_takhmeen_payments')) {
         $remarks = 'Order:' . ($data['order_id'] ?? '')
           . ' Tracking:' . ($data['tracking_id'] ?? '')
           . ' Status:' . $order_status;

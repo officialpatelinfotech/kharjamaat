@@ -602,7 +602,8 @@
   $ov_total_amount = (float) ($overall['total_amount'] ?? 0);
   $ov_est_due = (float) ($overall['establishment_due'] ?? 0);
   $ov_res_due = (float) ($overall['residential_due'] ?? 0);
-  $default_type = ($ov_est_due > 0) ? 'establishment' : 'residential';
+  $ov_mut_due = (float) ($overall['mutawatteneen_due'] ?? 0);
+  $default_type = ($ov_est_due > 0) ? 'establishment' : (($ov_res_due > 0) ? 'residential' : 'mutawatteneen');
   $its_id_for_pay = $_SESSION['user_data']['ITS_ID'] ?? '';
   ?>
 
@@ -644,6 +645,7 @@
   }
   $cy_est_total = null;
   $cy_res_year_total = null;
+  $cy_mut_total = null;
   $cy_paid = null;
   $cy_due = null;
   if (!empty($sabeel_takhmeen_details['e_takhmeen']) && is_array($sabeel_takhmeen_details['e_takhmeen'])) {
@@ -670,8 +672,20 @@
       }
     }
   }
-  if ($cy_est_total !== null || $cy_res_year_total !== null):
-    $cy_total = (float) ($cy_est_total + $cy_res_year_total);
+  if (!empty($sabeel_takhmeen_details['m_takhmeen']) && is_array($sabeel_takhmeen_details['m_takhmeen'])) {
+    foreach ($sabeel_takhmeen_details['m_takhmeen'] as $row) {
+      if (isset($row['year']) && (string) $row['year'] === $currentCompositeYear) {
+        $cy_mut_total = (float) ($row['total'] ?? 0);
+        $m_paid = (float) ($row['paid'] ?? 0);
+        $m_due = (float) ($row['due'] ?? max(0, $cy_mut_total - $m_paid));
+        $cy_paid = ($cy_paid ?? 0) + $m_paid;
+        $cy_due = ($cy_due ?? 0) + $m_due;
+        break;
+      }
+    }
+  }
+  if ($cy_est_total !== null || $cy_res_year_total !== null || $cy_mut_total !== null):
+    $cy_total = (float) ($cy_est_total + $cy_res_year_total + $cy_mut_total);
     ?>
     <!-- ── Current year tiles ── -->
     <div class="cy-label"><i class="fa fa-calendar"></i> Current Year:
@@ -795,6 +809,54 @@
     </div>
   </div>
 
+  <!-- ── Mutawatteneen table ── -->
+  <div class="section-card mut">
+    <div class="section-card-header">
+      <h5 class="section-card-title"><i class="fa-solid fa-people-group"></i> Mutawatteneen Sabeel Takhmeen</h5>
+    </div>
+    <div class="t-wrap">
+      <table class="themed-table">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Grade</th>
+            <th class="text-right">Total</th>
+            <th class="text-right">Paid</th>
+            <th class="text-right">Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if (!empty($sabeel_takhmeen_details['m_takhmeen'])): ?>
+            <?php foreach ($sabeel_takhmeen_details['m_takhmeen'] as $row): ?>
+              <?php
+              $myear = isset($row['year']) ? htmlspecialchars((string) $row['year']) : '';
+              $mgrade = isset($row['grade']) && trim($row['grade']) !== '' ? htmlspecialchars($row['grade']) : '—';
+              $mtotal = (float) ($row['total'] ?? 0);
+              $mpaid = (float) ($row['paid'] ?? 0);
+              $mdue = (float) ($row['due'] ?? max(0, $mtotal - $mpaid));
+              $isCurrent = ($currentCompositeYear && (string) $row['year'] === $currentCompositeYear);
+              ?>
+              <tr <?php if ($isCurrent)
+                echo 'class="row-current"'; ?>>
+                <td><span class="t-year"><?php echo $myear; ?></span><?php if ($isCurrent): ?> <span
+                      style="font-size:.6rem;color:var(--gold);font-weight:700;margin-left:4px;">CURRENT</span><?php endif; ?>
+                </td>
+                <td><span class="t-grade"><?php echo $mgrade; ?></span></td>
+                <td class="text-right"><span class="t-amt t-blue">&#8377;<?php echo format_inr($mtotal, 0); ?></span></td>
+                <td class="text-right"><span class="t-amt t-green">&#8377;<?php echo format_inr($mpaid, 0); ?></span></td>
+                <td class="text-right"><span class="t-amt t-red">&#8377;<?php echo format_inr($mdue, 0); ?></span></td>
+              </tr>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="5" class="t-empty">No mutawatteneen takhmeen found.</td>
+            </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ── Payment History table ── -->
   <div class="section-card pay">
     <div class="section-card-header">
@@ -869,6 +931,9 @@
               </option>
               <option value="residential" <?= $default_type === 'residential' ? 'selected' : '' ?>>
                 Residential — Due: ₹<?= htmlspecialchars(format_inr(round($ov_res_due), 0)); ?>
+              </option>
+              <option value="mutawatteneen" <?= $default_type === 'mutawatteneen' ? 'selected' : '' ?>>
+                Mutawatteneen — Due: ₹<?= htmlspecialchars(format_inr(round($ov_mut_due), 0)); ?>
               </option>
             </select>
           </div>

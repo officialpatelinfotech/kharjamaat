@@ -134,9 +134,9 @@ class CommonM extends CI_Model
     $sql = "SELECT
         b.user_id,
         MAX(COALESCE(u.Full_Name, CAST(b.user_id AS CHAR))) AS full_name,
-        COALESCE(SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)), 0) AS total_takhmeen,
+        COALESCE(SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)), 0) AS total_takhmeen,
         COALESCE(paid.total_paid, 0) AS total_paid,
-        COALESCE(SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)), 0) - COALESCE(paid.total_paid, 0) AS outstanding
+        COALESCE(SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)), 0) - COALESCE(paid.total_paid, 0) AS outstanding
       FROM (
         SELECT DISTINCT user_id FROM ( $base_users_sql UNION $base_st_sql ) s
       ) b
@@ -144,6 +144,7 @@ class CommonM extends CI_Model
       LEFT JOIN sabeel_takhmeen st ON st.user_id = b.user_id" . $year_filter_clause_join . "
       LEFT JOIN sabeel_takhmeen_grade est ON est.id = st.establishment_grade
       LEFT JOIN sabeel_takhmeen_grade res ON res.id = st.residential_grade
+      LEFT JOIN sabeel_takhmeen_grade mut ON mut.id = st.mutawatteneen_grade
       LEFT JOIN (
         SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments GROUP BY user_id
       ) paid ON paid.user_id = b.user_id
@@ -160,7 +161,7 @@ class CommonM extends CI_Model
     }
     if (!empty($amount_zero)) {
       // total_takhmeen alias equals 0
-      $having[] = "COALESCE(SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)), 0) = 0";
+      $having[] = "COALESCE(SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)), 0) = 0";
     }
     if (!empty($having)) {
       $sql .= ' HAVING ' . implode(' AND ', $having) . ' ';
@@ -186,10 +187,11 @@ class CommonM extends CI_Model
 
         // Per-user per-year takhmeen totals (only for these users)
         $per_user_years = $this->db->query(
-          "SELECT st.user_id, st.year, SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)) AS total, CAST(SUBSTRING_INDEX(st.year, '-', 1) AS UNSIGNED) AS yr_start
+          "SELECT st.user_id, st.year, SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)) AS total, CAST(SUBSTRING_INDEX(st.year, '-', 1) AS UNSIGNED) AS yr_start
              FROM sabeel_takhmeen st
              LEFT JOIN sabeel_takhmeen_grade est ON est.id = st.establishment_grade
              LEFT JOIN sabeel_takhmeen_grade res ON res.id = st.residential_grade
+             LEFT JOIN sabeel_takhmeen_grade mut ON mut.id = st.mutawatteneen_grade
             WHERE st.user_id IN ($in_ids)
             GROUP BY st.user_id, st.year
             ORDER BY st.user_id ASC, yr_start ASC"
@@ -283,10 +285,11 @@ class CommonM extends CI_Model
 
   public function get_sabeel_user_records($user_id, $year = null)
   {
-    $this->db->select('st.*, est.grade as est_grade, est.amount as est_amount, res.grade as res_grade, res.yearly_amount as res_amount');
+    $this->db->select('st.*, est.grade as est_grade, est.amount as est_amount, res.grade as res_grade, res.yearly_amount as res_amount, mut.grade as mut_grade, mut.yearly_amount as mut_amount');
     $this->db->from('sabeel_takhmeen st');
     $this->db->join('sabeel_takhmeen_grade est', 'est.id = st.establishment_grade', 'left');
     $this->db->join('sabeel_takhmeen_grade res', 'res.id = st.residential_grade', 'left');
+    $this->db->join('sabeel_takhmeen_grade mut', 'mut.id = st.mutawatteneen_grade', 'left');
     $this->db->where('st.user_id', $user_id);
     if (!empty($year)) {
       $takhmeen_year = $year . '-' . substr($year + 1, -2);
@@ -3947,11 +3950,12 @@ class CommonM extends CI_Model
      * 1️⃣ Grade-wise breakdown (sum of establishment + residential amounts)
      * ------------------------------- */
     $this->db->select('COALESCE(est.grade, "Unknown") AS grade,
-            SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)) AS sabeel_total,
+            SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)) AS sabeel_total,
             COUNT(DISTINCT st.user_id) AS member_count')
       ->from('sabeel_takhmeen st')
       ->join('sabeel_takhmeen_grade est', 'est.id = st.establishment_grade', 'left')
       ->join('sabeel_takhmeen_grade res', 'res.id = st.residential_grade', 'left')
+      ->join('sabeel_takhmeen_grade mut', 'mut.id = st.mutawatteneen_grade', 'left')
     ;
 
     $this->db->where('st.year', $takhmeen_year_current);
@@ -4013,12 +4017,13 @@ class CommonM extends CI_Model
 
     $agg_sql = "SELECT 
         u.Sector AS sector,
-        SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)) AS sector_total,
+        SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)) AS sector_total,
         COUNT(DISTINCT st.user_id) AS member_count
       FROM sabeel_takhmeen st
       LEFT JOIN user u ON u.ITS_ID = st.user_id
       LEFT JOIN sabeel_takhmeen_grade est ON est.id = st.establishment_grade
       LEFT JOIN sabeel_takhmeen_grade res ON res.id = st.residential_grade
+      LEFT JOIN sabeel_takhmeen_grade mut ON mut.id = st.mutawatteneen_grade
       WHERE st.year = ?
       GROUP BY u.Sector";
 
@@ -4034,11 +4039,12 @@ class CommonM extends CI_Model
     // Compute per-user allocation for the selected year (FIFO across years)
     // so we can derive per-sector paid and due for that year.
     $per_user_years = $this->db->query(
-      "SELECT st.user_id, st.year, SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)) AS total,
+      "SELECT st.user_id, st.year, SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)) AS total,
               CAST(SUBSTRING_INDEX(st.year, '-', 1) AS UNSIGNED) AS yr_start
          FROM sabeel_takhmeen st
          LEFT JOIN sabeel_takhmeen_grade est ON est.id = st.establishment_grade
          LEFT JOIN sabeel_takhmeen_grade res ON res.id = st.residential_grade
+         LEFT JOIN sabeel_takhmeen_grade mut ON mut.id = st.mutawatteneen_grade
         GROUP BY st.user_id, st.year
         ORDER BY st.user_id ASC, yr_start ASC"
     )->result_array();
@@ -4149,11 +4155,13 @@ class CommonM extends CI_Model
     // Fetch user -> grade mapping for the selected year
     $est_map = [];
     $res_map = [];
+    $mut_map = [];
     $user_grade_rows = $this->db->query(
-      "SELECT st.user_id, COALESCE(est.grade, 'Unknown') AS est_grade, COALESCE(res.grade, 'Unknown') AS res_grade
+      "SELECT st.user_id, COALESCE(est.grade, 'Unknown') AS est_grade, COALESCE(res.grade, 'Unknown') AS res_grade, COALESCE(mut.grade, 'Unknown') AS mut_grade
          FROM sabeel_takhmeen st
          LEFT JOIN sabeel_takhmeen_grade est ON est.id = st.establishment_grade
          LEFT JOIN sabeel_takhmeen_grade res ON res.id = st.residential_grade
+         LEFT JOIN sabeel_takhmeen_grade mut ON mut.id = st.mutawatteneen_grade
         WHERE st.year = ?",
       [$takhmeen_year_current]
     )->result_array();
@@ -4162,6 +4170,7 @@ class CommonM extends CI_Model
       $uid = $ug['user_id'];
       $estg = trim((string) ($ug['est_grade'] ?? '')) ?: 'Unknown';
       $resg = trim((string) ($ug['res_grade'] ?? '')) ?: 'Unknown';
+      $mutg = trim((string) ($ug['mut_grade'] ?? '')) ?: 'Unknown';
       $alloc = $user_allocations[$uid] ?? ['total' => 0.0, 'paid' => 0.0, 'due' => 0.0];
 
       if ($estg !== '' && strcasecmp($estg, 'unknown') !== 0) {
@@ -4181,6 +4190,15 @@ class CommonM extends CI_Model
         $res_map[$resg]['res_due'] += (float) $alloc['due'];
         $res_map[$resg]['member_count'] += 1;
       }
+
+      if ($mutg !== '' && strcasecmp($mutg, 'unknown') !== 0) {
+        if (!isset($mut_map[$mutg]))
+          $mut_map[$mutg] = ['grade' => $mutg, 'mut_total' => 0.0, 'mut_paid' => 0.0, 'mut_due' => 0.0, 'member_count' => 0];
+        $mut_map[$mutg]['mut_total'] += (float) $alloc['total'];
+        $mut_map[$mutg]['mut_paid'] += (float) $alloc['paid'];
+        $mut_map[$mutg]['mut_due'] += (float) $alloc['due'];
+        $mut_map[$mutg]['member_count'] += 1;
+      }
     }
 
     if (!empty($est_map)) {
@@ -4191,6 +4209,10 @@ class CommonM extends CI_Model
       ksort($res_map);
       $summary['residential_grade_breakdown'] = array_values($res_map);
     }
+    if (!empty($mut_map)) {
+      ksort($mut_map);
+      $summary['mutawatteneen_grade_breakdown'] = array_values($mut_map);
+    }
 
     /** -------------------------------
      * 4️⃣ Total Outstanding Sabeel amount (cumulative across all years)
@@ -4198,12 +4220,13 @@ class CommonM extends CI_Model
     // Compute cumulative outstanding across all years: per-user total takhmeen (all years) minus total paid
     $due_sql = "SELECT SUM(GREATEST(user_due, 0)) AS total_due FROM (
       SELECT st.user_id,
-        SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)) AS total_takhmeen,
+        SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)) AS total_takhmeen,
         COALESCE(paid.total_paid,0) AS total_paid,
-        SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)) - COALESCE(paid.total_paid,0) AS user_due
+        SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)) - COALESCE(paid.total_paid,0) AS user_due
       FROM sabeel_takhmeen st
       LEFT JOIN sabeel_takhmeen_grade est ON est.id = st.establishment_grade
       LEFT JOIN sabeel_takhmeen_grade res ON res.id = st.residential_grade
+      LEFT JOIN sabeel_takhmeen_grade mut ON mut.id = st.mutawatteneen_grade
       LEFT JOIN (
         SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments GROUP BY user_id
       ) paid ON paid.user_id = st.user_id
@@ -4217,10 +4240,11 @@ class CommonM extends CI_Model
      * 5️⃣ Total Sabeel Takhmeen amount (sum of all grade amounts)
      * ------------------------------- */
     // Total for the selected takhmeen year
-    $this->db->select('SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0)) as total_sabeel')
+    $this->db->select('SUM(COALESCE(est.amount,0) + COALESCE(res.yearly_amount,0) + COALESCE(mut.yearly_amount,0)) as total_sabeel')
       ->from('sabeel_takhmeen st')
       ->join('sabeel_takhmeen_grade est', 'est.id = st.establishment_grade', 'left')
       ->join('sabeel_takhmeen_grade res', 'res.id = st.residential_grade', 'left')
+      ->join('sabeel_takhmeen_grade mut', 'mut.id = st.mutawatteneen_grade', 'left')
       ->where('st.year', $takhmeen_year_current);
     $row = $this->db->get()->row_array();
     $summary['total_sabeel_takhmeen_amount'] = (float) ($row['total_sabeel'] ?? 0);

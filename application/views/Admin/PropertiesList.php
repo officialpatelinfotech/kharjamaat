@@ -77,7 +77,7 @@
 <div class="margintopcontainer pt-5">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <a href="<?php echo site_url('admin/laagat'); ?>" class="btn btn-outline-secondary" aria-label="Back to Laagat / Rent Menu">
+            <a href="<?php echo site_url('admin/rent'); ?>" class="btn btn-outline-secondary" aria-label="Back to Laagat / Rent Menu">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <h4 class="heading mb-0 text-center flex-grow-1">Properties Management</h4>

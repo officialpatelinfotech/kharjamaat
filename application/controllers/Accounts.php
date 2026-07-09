@@ -309,17 +309,15 @@ class Accounts extends CI_Controller
     foreach ($memberIds as $mid) {
       $f = $this->AccountM->get_member_total_fmb_due($mid);
       $family_fmb_due += is_array($f) && isset($f['total_due']) ? (float)$f['total_due'] : 0.0;
+    }
 
-      $s = $this->AccountM->get_member_total_sabeel_due($mid);
-      if (is_array($s)) {
-        $family_sabeel_due += (float)($s['total_due'] ?? 0);
-        if ($family_sabeel_current_year === '' && !empty($s['current_year'])) {
-          $family_sabeel_current_year = (string)$s['current_year'];
-        }
-        $family_sabeel_cy_total += (float)($s['current_year_total'] ?? 0);
-        $family_sabeel_cy_paid  += (float)($s['current_year_paid'] ?? 0);
-        $family_sabeel_cy_due   += (float)($s['current_year_due'] ?? max(0, (float)($s['current_year_total'] ?? 0) - (float)($s['current_year_paid'] ?? 0)));
-      }
+    $s = $this->AccountM->get_member_total_sabeel_due($hof_id);
+    if (is_array($s)) {
+      $family_sabeel_due = (float)($s['total_due'] ?? 0);
+      $family_sabeel_current_year = (string)($s['current_year'] ?? '');
+      $family_sabeel_cy_total = (float)($s['current_year_total'] ?? 0);
+      $family_sabeel_cy_paid  = (float)($s['current_year_paid'] ?? 0);
+      $family_sabeel_cy_due   = (float)($s['current_year_due'] ?? max(0, $family_sabeel_cy_total - $family_sabeel_cy_paid));
     }
 
     $data["fmb_takhmeen_details"] = [
@@ -376,9 +374,19 @@ class Accounts extends CI_Controller
 
     $family_laagat_due = 0.0;
     $family_laagat_total = 0.0;
+    $family_rent_due = 0.0;
+    $family_rent_total = 0.0;
     foreach ($memberIds as $mid) {
-      $lr_invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'year' => $currRange]);
-      foreach ($lr_invoices as $lrinv) {
+      // Rent invoices: fetch all to ensure due badge and amounts reflect all outstanding rent invoices
+      $rent_invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'charge_type' => 'rent']);
+      foreach ($rent_invoices as $lrinv) {
+        $family_rent_total += (float)($lrinv['master_amount'] ?? 0);
+        $family_rent_due += (float)($lrinv['master_amount'] ?? 0) - (float)($lrinv['paid_amount'] ?? 0);
+      }
+
+      // Laagat invoices: continue to filter by the current Hijri year range
+      $laagat_invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'charge_type' => 'laagat', 'year' => $currRange]);
+      foreach ($laagat_invoices as $lrinv) {
         $family_laagat_total += (float)($lrinv['master_amount'] ?? 0);
         $family_laagat_due += (float)($lrinv['master_amount'] ?? 0) - (float)($lrinv['paid_amount'] ?? 0);
       }
@@ -386,6 +394,11 @@ class Accounts extends CI_Controller
     $data['laagat_summary'] = [
       'total_due' => $family_laagat_due,
       'total_amount' => $family_laagat_total,
+      'year' => $currRange
+    ];
+    $data['rent_summary'] = [
+      'total_due' => $family_rent_due,
+      'total_amount' => $family_rent_total,
       'year' => $currRange
     ];
 
@@ -1035,7 +1048,9 @@ class Accounts extends CI_Controller
     $raza_id = $this->AccountM->generate_raza_id($hijri_year);
     $this->AccountM->update_raza_by_id($result, array("raza_id" => $raza_id));
 
+    /*
     // Auto-generate invoice if amount > 0
+    // Disabled as individual invoices are now created manually from the contribution section
     $miqaat_row = $this->AccountM->get_miqaat_by_id($miqaat_id);
     if (!empty($miqaat_row)) {
       $m_type = $miqaat_row['type'] ?? 'General';
@@ -1114,6 +1129,7 @@ class Accounts extends CI_Controller
         }
       }
     }
+    */
 
     if ($result > 0) {
       $this->session->set_flashdata('success', "Miqaat Raza submitted successfully.");
@@ -2392,25 +2408,21 @@ class Accounts extends CI_Controller
     $data['sector'] = $_SESSION['user_data']['Sector'];
     $member_id = $_SESSION['user_data']['ITS_ID'];
 
-    // Family-wise: HOF + all members linked to HOF
+    // Family-wise Sabeel: strictly HOF-level only
     $hof_id = $this->AccountM->get_hof_id_for_member($member_id);
     $memberIds = [$hof_id];
-    $family = $this->AccountM->get_all_family_member($hof_id);
-    if (!empty($family)) {
-      foreach ($family as $f) {
-        if (!empty($f['ITS_ID'])) $memberIds[] = (int)$f['ITS_ID'];
-      }
-    }
-    $memberIds = array_values(array_unique($memberIds));
 
     // Aggregate Sabeel details per year to preserve existing view calculations (current-year card expects one row per year).
     $e_by_year = [];
     $r_by_year = [];
+    $m_by_year = [];
     $all_payments = [];
     $est_total = 0.0;
     $res_total = 0.0;
+    $mut_total = 0.0;
     $est_paid = 0.0;
     $res_paid = 0.0;
+    $mut_paid = 0.0;
 
     foreach ($memberIds as $mid) {
       $details = $this->AccountM->viewSabeelTakhmeen($mid);
@@ -2421,8 +2433,10 @@ class Accounts extends CI_Controller
       $ov = isset($details['overall']) && is_array($details['overall']) ? $details['overall'] : [];
       $est_total += (float)($ov['establishment_total'] ?? 0);
       $res_total += (float)($ov['residential_total'] ?? 0);
+      $mut_total += (float)($ov['mutawatteneen_total'] ?? 0);
       $est_paid  += (float)($ov['establishment_paid'] ?? 0);
       $res_paid  += (float)($ov['residential_paid'] ?? 0);
+      $mut_paid  += (float)($ov['mutawatteneen_paid'] ?? 0);
 
       if (!empty($details['e_takhmeen']) && is_array($details['e_takhmeen'])) {
         foreach ($details['e_takhmeen'] as $row) {
@@ -2470,6 +2484,29 @@ class Accounts extends CI_Controller
         }
       }
 
+      if (!empty($details['m_takhmeen']) && is_array($details['m_takhmeen'])) {
+        foreach ($details['m_takhmeen'] as $row) {
+          $y = $row['year'] ?? null;
+          if ($y === null || $y === '') continue;
+          if (!isset($m_by_year[$y])) {
+            $m_by_year[$y] = ['year' => $y, 'grade' => '—', 'total' => 0.0, 'paid' => 0.0, 'due' => 0.0];
+          }
+          $m_by_year[$y]['total'] += (float)($row['total'] ?? 0);
+          $m_by_year[$y]['paid']  += (float)($row['paid'] ?? 0);
+          $m_by_year[$y]['due']   += (float)($row['due'] ?? max(0, ((float)($row['total'] ?? 0)) - (float)($row['paid'] ?? 0)));
+          if (!empty($row['grade']) && trim($row['grade']) !== '' && trim($row['grade']) !== '—') {
+            if ($m_by_year[$y]['grade'] === '—') {
+              $m_by_year[$y]['grade'] = $row['grade'];
+            } else {
+              $existing_grades = array_map('trim', explode(',', $m_by_year[$y]['grade']));
+              if (!in_array(trim($row['grade']), $existing_grades)) {
+                $m_by_year[$y]['grade'] .= ', ' . $row['grade'];
+              }
+            }
+          }
+        }
+      }
+
       if (!empty($details['all_payments']) && is_array($details['all_payments'])) {
         foreach ($details['all_payments'] as $pr) {
           $pr['user_id'] = $mid;
@@ -2480,16 +2517,20 @@ class Accounts extends CI_Controller
 
     $est_paid_capped = min($est_paid, $est_total);
     $res_paid_capped = min($res_paid, $res_total);
+    $mut_paid_capped = min($mut_paid, $mut_total);
     $overall = [
       'establishment_total' => $est_total,
       'residential_total' => $res_total,
-      'total_amount' => $est_total + $res_total,
+      'mutawatteneen_total' => $mut_total,
+      'total_amount' => $est_total + $res_total + $mut_total,
       'establishment_paid' => $est_paid_capped,
       'residential_paid' => $res_paid_capped,
-      'total_paid' => $est_paid_capped + $res_paid_capped,
+      'mutawatteneen_paid' => $mut_paid_capped,
+      'total_paid' => $est_paid_capped + $res_paid_capped + $mut_paid_capped,
     ];
     $overall['establishment_due'] = max(0, $overall['establishment_total'] - $overall['establishment_paid']);
     $overall['residential_due'] = max(0, $overall['residential_total'] - $overall['residential_paid']);
+    $overall['mutawatteneen_due'] = max(0, $overall['mutawatteneen_total'] - $overall['mutawatteneen_paid']);
     $overall['total_due'] = max(0, $overall['total_amount'] - $overall['total_paid']);
 
     // Convert year maps to latest-first arrays
@@ -2503,11 +2544,17 @@ class Accounts extends CI_Controller
         return strcmp((string)$b, (string)$a);
       });
     }
+    if (!empty($m_by_year)) {
+      uksort($m_by_year, function ($a, $b) {
+        return strcmp((string)$b, (string)$a);
+      });
+    }
 
     $data['sabeel_takhmeen_details'] = [
       'all_takhmeen' => [],
       'e_takhmeen' => array_values($e_by_year),
       'r_takhmeen' => array_values($r_by_year),
+      'm_takhmeen' => array_values($m_by_year),
       'all_payments' => $all_payments,
       'latest' => null,
       'overall' => $overall,
@@ -2519,7 +2566,22 @@ class Accounts extends CI_Controller
 
   // Updated by Patel Infotech Services
 
+  public function laagat()
+  {
+    $this->laagat_rent_by_type('laagat');
+  }
+
+  public function rent()
+  {
+    $this->laagat_rent_by_type('rent');
+  }
+
   public function laagat_rent()
+  {
+    redirect('accounts/laagat');
+  }
+
+  private function laagat_rent_by_type($module_type)
   {
     if (empty($_SESSION['user'])) {
       redirect('/accounts');
@@ -2528,6 +2590,7 @@ class Accounts extends CI_Controller
     $data['user_data'] = $this->AccountM->getUserData($user_id);
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['module_type'] = $module_type;
 
     $hof_id = $this->AccountM->get_hof_id_for_member($user_id);
     $memberIds = [(string)$hof_id];
@@ -2554,7 +2617,7 @@ class Accounts extends CI_Controller
 
     $family_invoices = [];
     foreach ($memberIds as $mid) {
-      $invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid]);
+      $invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'charge_type' => $module_type]);
       if (!empty($invoices)) {
         foreach ($invoices as $inv) {
           $family_invoices[] = $inv;
@@ -3776,7 +3839,9 @@ class Accounts extends CI_Controller
         log_message('error', 'Failed to auto-create invoice for Raza ID ' . $check . ': ' . $e->getMessage());
       }
       
+      /*
       // --- Auto-create Niyaz Invoice if applicable ---
+      // Disabled as individual invoices are now created manually from the contribution section
       try {
         if (!empty($miqaat_id)) {
           $miqaat_details = $this->db->get_where('miqaat', ['id' => $miqaat_id])->row_array();
@@ -3887,6 +3952,7 @@ class Accounts extends CI_Controller
       } catch (Exception $e) {
         log_message('error', 'Failed to auto-create niyaz invoice for Raza ID ' . $check . ': ' . $e->getMessage());
       }
+      */
       // ----------------------------------------------------
       
       // WhatsApp acknowledgement to member (template-based)

@@ -61,6 +61,8 @@ if (!function_exists('format_inr')) {
           <th>Est Amount</th>
           <th>Res Grade</th>
           <th>Res Yearly Amount</th>
+          <th>Mut Grade</th>
+          <th>Mut Yearly Amount</th>
           <th>Total</th>
         </tr>
       </thead>
@@ -68,6 +70,7 @@ if (!function_exists('format_inr')) {
         <?php $i = 1; foreach ($records_sorted as $r):
           $estAmt = isset($r['est_amount']) ? (float)$r['est_amount'] : 0;
           $resAmt = isset($r['res_amount']) ? (float)$r['res_amount'] : 0;
+          $mutAmt = isset($r['mut_amount']) ? (float)$r['mut_amount'] : 0;
         ?>
           <tr>
             <td><?php echo $i++; ?></td>
@@ -76,7 +79,9 @@ if (!function_exists('format_inr')) {
             <td>₹ <?php echo format_inr($estAmt); ?></td>
             <td><?php echo htmlspecialchars($r['res_grade'] ?? ''); ?></td>
             <td>₹ <?php echo format_inr($resAmt); ?></td>
-            <td>₹ <?php echo format_inr(($estAmt + $resAmt)); ?></td>
+            <td><?php echo htmlspecialchars($r['mut_grade'] ?? ''); ?></td>
+            <td>₹ <?php echo format_inr($mutAmt); ?></td>
+            <td>₹ <?php echo format_inr(($estAmt + $resAmt + $mutAmt)); ?></td>
           </tr>
         <?php endforeach; ?>
       </tbody>
@@ -89,6 +94,7 @@ if (!function_exists('format_inr')) {
           <th>#</th>
           <th>Date</th>
           <th>Amount</th>
+          <th>Type</th>
           <th>Reference</th>
         </tr>
       </thead>
@@ -99,6 +105,7 @@ if (!function_exists('format_inr')) {
             <td><?php echo $j++; ?></td>
             <td><?php echo htmlspecialchars($p['payment_date'] ?? ''); ?></td>
             <td>₹ <?php echo format_inr((float)($p['amount'] ?? 0)); ?></td>
+            <td><span class="badge badge-info text-capitalize" style="text-transform: capitalize; font-size: 11px;"><?php echo htmlspecialchars($p['type'] ?? 'sabeel'); ?></span></td>
             <td><?php echo htmlspecialchars($p['reference'] ?? ''); ?></td>
           </tr>
         <?php endforeach; ?>

@@ -810,6 +810,7 @@ class AccountM extends CI_Model
         latest.year,
         latest.establishment_amount AS latest_establishment_amount,
         latest.residential_amount AS latest_residential_amount,
+        latest.mutawatteneen_amount AS latest_mutawatteneen_amount,
 
         overall.establishment_total,
         overall.establishment_paid,
@@ -819,17 +820,23 @@ class AccountM extends CI_Model
         overall.residential_paid,
         (overall.residential_total - overall.residential_paid) AS residential_due,
 
-        (overall.establishment_total + overall.residential_total) AS total_takhmeen,
-        (overall.establishment_paid + overall.residential_paid) AS total_paid,
+        (overall.mutawatteneen_total) AS mutawatteneen_total,
+        overall.mutawatteneen_paid,
+        (overall.mutawatteneen_total - overall.mutawatteneen_paid) AS mutawatteneen_due,
+
+        (overall.establishment_total + overall.residential_total + overall.mutawatteneen_total) AS total_takhmeen,
+        (overall.establishment_paid + overall.residential_paid + overall.mutawatteneen_paid) AS total_paid,
         ((overall.establishment_total - overall.establishment_paid) +
-        (overall.residential_total - overall.residential_paid)) AS total_due
+        (overall.residential_total - overall.residential_paid) +
+        (overall.mutawatteneen_total - overall.mutawatteneen_paid)) AS total_due
     ");
 
     $this->db->from("(SELECT 
                         st.user_id, 
                         st.year,
                         eg.amount AS establishment_amount,
-                        rg.yearly_amount AS residential_amount
+                        rg.yearly_amount AS residential_amount,
+                        mg.yearly_amount AS mutawatteneen_amount
                       FROM sabeel_takhmeen st
                       LEFT JOIN sabeel_takhmeen_grade eg 
                         ON eg.id = st.establishment_grade 
@@ -837,6 +844,9 @@ class AccountM extends CI_Model
                       LEFT JOIN sabeel_takhmeen_grade rg 
                         ON rg.id = st.residential_grade 
                         AND rg.type = 'residential'
+                      LEFT JOIN sabeel_takhmeen_grade mg 
+                        ON mg.id = st.mutawatteneen_grade 
+                        AND mg.type = 'mutawatteneen'
                       WHERE st.user_id = {$this->db->escape_str($user_id)}
                       ORDER BY st.year DESC
                       LIMIT 1
@@ -847,6 +857,7 @@ class AccountM extends CI_Model
           st.user_id,
           COALESCE(SUM(eg.amount),0) AS establishment_total,
           COALESCE(SUM(rg.yearly_amount),0) AS residential_total,
+          COALESCE(SUM(mg.yearly_amount),0) AS mutawatteneen_total,
           -- payments aggregated separately to avoid duplication
           (
             SELECT COALESCE(SUM(amount),0)
@@ -857,12 +868,19 @@ class AccountM extends CI_Model
             SELECT COALESCE(SUM(amount),0)
             FROM sabeel_takhmeen_payments p2
             WHERE p2.user_id = st.user_id AND p2.type = 'residential'
-          ) AS residential_paid
+          ) AS residential_paid,
+          (
+            SELECT COALESCE(SUM(amount),0)
+            FROM sabeel_takhmeen_payments p3
+            WHERE p3.user_id = st.user_id AND p3.type = 'mutawatteneen'
+          ) AS mutawatteneen_paid
         FROM sabeel_takhmeen st
         LEFT JOIN sabeel_takhmeen_grade eg 
           ON eg.id = st.establishment_grade AND eg.type = 'establishment'
         LEFT JOIN sabeel_takhmeen_grade rg 
           ON rg.id = st.residential_grade AND rg.type = 'residential'
+        LEFT JOIN sabeel_takhmeen_grade mg 
+          ON mg.id = st.mutawatteneen_grade AND mg.type = 'mutawatteneen'
         WHERE st.user_id = {$this->db->escape_str($user_id)}
         GROUP BY st.user_id
       ) overall",
@@ -917,6 +935,14 @@ class AccountM extends CI_Model
           }
         }
       }
+      if (isset($details['m_takhmeen']) && is_array($details['m_takhmeen'])) {
+        foreach ($details['m_takhmeen'] as $row) {
+          if (isset($row['year']) && (string)$row['year'] === $currentCompositeYear) {
+            $cy_total += (float)($row['total'] ?? 0);
+            $cy_paid  += (float)($row['paid'] ?? 0);
+          }
+        }
+      }
     }
     $cy_due = max(0, $cy_total - $cy_paid);
 
@@ -938,8 +964,10 @@ class AccountM extends CI_Model
     eg.amount AS establishment_amount,
     rg.grade AS residential_grade,
     rg.yearly_amount AS residential_amount,
+    mg.grade AS mutawatteneen_grade,
+    mg.yearly_amount AS mutawatteneen_amount,
 
-    (COALESCE(eg.amount,0) + COALESCE(rg.yearly_amount,0)) AS total_amount,
+    (COALESCE(eg.amount,0) + COALESCE(rg.yearly_amount,0) + COALESCE(mg.yearly_amount,0)) AS total_amount,
 
     COALESCE(SUM(p.amount), 0) AS amount_paid,
 
@@ -951,15 +979,21 @@ class AccountM extends CI_Model
     COALESCE(SUM(CASE WHEN p.type = 'residential' THEN p.amount ELSE 0 END),0) AS residential_paid,
     (COALESCE(rg.yearly_amount,0) - COALESCE(SUM(CASE WHEN p.type = 'residential' THEN p.amount ELSE 0 END),0)) AS residential_due,
 
+    COALESCE(mg.yearly_amount,0) AS mutawatteneen_total,
+    COALESCE(SUM(CASE WHEN p.type = 'mutawatteneen' THEN p.amount ELSE 0 END),0) AS mutawatteneen_paid,
+    (COALESCE(mg.yearly_amount,0) - COALESCE(SUM(CASE WHEN p.type = 'mutawatteneen' THEN p.amount ELSE 0 END),0)) AS mutawatteneen_due,
+
     -- Overall due
     ((COALESCE(eg.amount,0) - COALESCE(SUM(CASE WHEN p.type = 'establishment' THEN p.amount ELSE 0 END),0)) +
-    (COALESCE(rg.yearly_amount,0) - COALESCE(SUM(CASE WHEN p.type = 'residential' THEN p.amount ELSE 0 END),0))) AS total_due
+    (COALESCE(rg.yearly_amount,0) - COALESCE(SUM(CASE WHEN p.type = 'residential' THEN p.amount ELSE 0 END),0)) +
+    (COALESCE(mg.yearly_amount,0) - COALESCE(SUM(CASE WHEN p.type = 'mutawatteneen' THEN p.amount ELSE 0 END),0))) AS total_due
     ", false);
 
     $this->db->from("sabeel_takhmeen st");
     $this->db->join("sabeel_takhmeen_grade eg", "eg.id = st.establishment_grade AND eg.type = 'establishment'", "left");
     $this->db->join("sabeel_takhmeen_grade rg", "rg.id = st.residential_grade AND rg.type = 'residential'", "left");
-    $this->db->join("sabeel_takhmeen_payments p", "p.user_id = st.user_id AND p.type IN ('establishment','residential')", "left");
+    $this->db->join("sabeel_takhmeen_grade mg", "mg.id = st.mutawatteneen_grade AND mg.type = 'mutawatteneen'", "left");
+    $this->db->join("sabeel_takhmeen_payments p", "p.user_id = st.user_id AND p.type IN ('establishment','residential','mutawatteneen')", "left");
 
     $this->db->where("st.user_id", $user_id);
     $this->db->order_by("st.year", "DESC");
@@ -1043,22 +1077,64 @@ class AccountM extends CI_Model
     $residential_takhmeen = array_reverse($residential_takhmeen);
 
 
+    // 1. Fetch total takhmeens for mutawatteneen
+    $this->db->select("
+    st.id,
+    st.year,
+    mg.grade AS grade,
+    COALESCE(mg.yearly_amount,0) AS total
+", false);
+    $this->db->from("sabeel_takhmeen st");
+    $this->db->join("sabeel_takhmeen_grade mg", "mg.id = st.mutawatteneen_grade AND mg.type = 'mutawatteneen'", "left");
+    $this->db->where("st.user_id", $user_id);
+    $this->db->order_by("st.year", "ASC"); // ASC for proper allocation
+    $mutawatteneen_takhmeen = $this->db->get()->result_array();
+
+    // 2. Get total payments for mutawatteneen
+    $this->db->select("COALESCE(SUM(amount),0) AS total_paid");
+    $this->db->from("sabeel_takhmeen_payments p");
+    $this->db->where("p.user_id", $user_id);
+    $this->db->where("p.type", "mutawatteneen");
+    $total_mut_paid = $this->db->get()->row()->total_paid;
+
+    // 3. Distribute payments across takhmeens (FIFO)
+    $remaining_mut = $total_mut_paid;
+    foreach ($mutawatteneen_takhmeen as &$row) {
+      if ($remaining_mut >= $row['total']) {
+        $row['paid'] = $row['total'];
+        $row['due']  = 0;
+        $remaining_mut  -= $row['total'];
+      } else {
+        $row['paid'] = $remaining_mut;
+        $row['due']  = $row['total'] - $remaining_mut;
+        $remaining_mut   = 0;
+      }
+    }
+    unset($row);
+
+    // 4. Reverse to show latest first
+    $mutawatteneen_takhmeen = array_reverse($mutawatteneen_takhmeen);
+
+
 
     $this->db->select("
     st.user_id,
     COALESCE(SUM(eg.amount), 0) AS establishment_total,
     COALESCE(SUM(rg.yearly_amount), 0) AS residential_total,
-    (COALESCE(SUM(eg.amount), 0) + COALESCE(SUM(rg.yearly_amount), 0)) AS total_amount
+    COALESCE(SUM(mg.yearly_amount), 0) AS mutawatteneen_total,
+    (COALESCE(SUM(eg.amount), 0) + COALESCE(SUM(rg.yearly_amount), 0) + COALESCE(SUM(mg.yearly_amount), 0)) AS total_amount
     ", false);
     $this->db->from("sabeel_takhmeen st");
     $this->db->join("sabeel_takhmeen_grade eg", "eg.id = st.establishment_grade AND eg.type = 'establishment'", "left");
     $this->db->join("sabeel_takhmeen_grade rg", "rg.id = st.residential_grade AND rg.type = 'residential'", "left");
+    $this->db->join("sabeel_takhmeen_grade mg", "mg.id = st.mutawatteneen_grade AND mg.type = 'mutawatteneen'", "left");
     $this->db->where("st.user_id", $user_id);
     $takhmeen = $this->db->get()->row_array() ?? [];   // ✅ ensure array
 
     $this->db->select("
     COALESCE(SUM(CASE WHEN type = 'establishment' THEN amount ELSE 0 END), 0) AS establishment_paid,
     COALESCE(SUM(CASE WHEN type = 'residential' THEN amount ELSE 0 END), 0) AS residential_paid,
+    COALESCE(SUM(CASE WHEN type = 'mutawatteneen' THEN amount ELSE 0 END), 0) AS mutawatteneen_paid,
     COALESCE(SUM(amount), 0) AS total_paid
     ", false);
     $this->db->from("sabeel_takhmeen_payments");
@@ -1070,6 +1146,7 @@ class AccountM extends CI_Model
 
     $overall['establishment_due'] = $overall['establishment_total'] - $overall['establishment_paid'];
     $overall['residential_due']   = $overall['residential_total'] - $overall['residential_paid'];
+    $overall['mutawatteneen_due']  = (isset($overall['mutawatteneen_total']) ? $overall['mutawatteneen_total'] : 0.0) - (isset($overall['mutawatteneen_paid']) ? $overall['mutawatteneen_paid'] : 0.0);
     $overall['total_due']         = $overall['total_amount'] - $overall['total_paid'];
 
     // Sort takhmeen list by year ASC (oldest first for distribution)
@@ -1080,6 +1157,7 @@ class AccountM extends CI_Model
     // Total paid amounts
     $total_establishment_paid = $overall['establishment_paid'];
     $total_residential_paid   = $overall['residential_paid'];
+    $total_mutawatteneen_paid  = isset($overall['mutawatteneen_paid']) ? $overall['mutawatteneen_paid'] : 0.0;
 
     // Distribute payments year by year
     foreach ($takhmeen_list as &$takhmeen) {
@@ -1111,8 +1189,22 @@ class AccountM extends CI_Model
       }
       $takhmeen['residential_due'] = $takhmeen['residential_total'] - $takhmeen['residential_paid'];
 
+      // Mutawatteneen
+      if ($total_mutawatteneen_paid > 0) {
+        if ($total_mutawatteneen_paid >= (isset($takhmeen['mutawatteneen_total']) ? $takhmeen['mutawatteneen_total'] : 0.0)) {
+          $takhmeen['mutawatteneen_paid'] = isset($takhmeen['mutawatteneen_total']) ? $takhmeen['mutawatteneen_total'] : 0.0;
+          $total_mutawatteneen_paid -= isset($takhmeen['mutawatteneen_total']) ? $takhmeen['mutawatteneen_total'] : 0.0;
+        } else {
+          $takhmeen['mutawatteneen_paid'] = $total_mutawatteneen_paid;
+          $total_mutawatteneen_paid = 0;
+        }
+      } else {
+        $takhmeen['mutawatteneen_paid'] = 0;
+      }
+      $takhmeen['mutawatteneen_due'] = (isset($takhmeen['mutawatteneen_total']) ? $takhmeen['mutawatteneen_total'] : 0.0) - $takhmeen['mutawatteneen_paid'];
+
       // Total for that takhmeen row
-      $takhmeen['amount_paid'] = $takhmeen['establishment_paid'] + $takhmeen['residential_paid'];
+      $takhmeen['amount_paid'] = $takhmeen['establishment_paid'] + $takhmeen['residential_paid'] + $takhmeen['mutawatteneen_paid'];
       $takhmeen['total_due']   = $takhmeen['total_amount'] - $takhmeen['amount_paid'];
     }
 
@@ -1132,6 +1224,7 @@ class AccountM extends CI_Model
       "all_takhmeen" => $takhmeen_list,
       "e_takhmeen" => $establishment_takhmeen,
       "r_takhmeen" => $residential_takhmeen,
+      "m_takhmeen" => $mutawatteneen_takhmeen,
       "all_payments" => $payments,
       "latest"       => $latest,
       "overall"      => $overall

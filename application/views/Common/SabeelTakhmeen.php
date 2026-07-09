@@ -3,6 +3,7 @@ $report = isset($takhmeens) ? $takhmeens : [];
 $gradeBreakdown = $report['grade_wise_breakdown'] ?? [];
 $estBreakdown = $report['establishment_grade_breakdown'] ?? [];
 $resBreakdown = $report['residential_grade_breakdown'] ?? [];
+$mutBreakdown = $report['mutawatteneen_grade_breakdown'] ?? [];
 $totalSabeel = (float)($report['total_sabeel_takhmeen_amount'] ?? 0);
 $totalOutstandingCumulative = (float)($report['total_outstanding_sabeel_amount'] ?? 0);
 $yearOutstanding = (float)($report['year_outstanding_sabeel_amount'] ?? 0);
@@ -212,6 +213,36 @@ if (!function_exists('format_inr_no_decimals')) {
             $g = isset($row['grade']) ? trim((string)$row['grade']) : '';
             $amt = isset($row['res_total']) ? (float)$row['res_total'] : 0.0;
             $due_amt = isset($row['res_due']) ? (float)$row['res_due'] : 0.0;
+            if ($g === '' || strcasecmp($g, 'no grade') === 0 || strcasecmp($g, 'unknown') === 0) continue;
+            if ($amt <= 0 && $due_amt <= 0) continue;
+          ?>
+            <tr>
+              <td><?= htmlspecialchars($g) ?></td>
+              <td><?= '₹' . format_inr_no_decimals($amt) ?></td>
+              <td class="text-danger"><?= '₹' . format_inr_no_decimals($due_amt) ?></td>
+              <td><?= isset($row['member_count']) ? (int)$row['member_count'] : '-' ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 class="mt-4 mb-2">Mutawatteneen Grades</h4>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped">
+        <thead>
+          <tr>
+            <th>Grade</th>
+            <th>Mutawatteneen Takhmeen</th>
+            <th>Due</th>
+            <th>Member Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($mutBreakdown as $row):
+            $g = isset($row['grade']) ? trim((string)$row['grade']) : '';
+            $amt = isset($row['mut_total']) ? (float)$row['mut_total'] : 0.0;
+            $due_amt = isset($row['mut_due']) ? (float)$row['mut_due'] : 0.0;
             if ($g === '' || strcasecmp($g, 'no grade') === 0 || strcasecmp($g, 'unknown') === 0) continue;
             if ($amt <= 0 && $due_amt <= 0) continue;
           ?>

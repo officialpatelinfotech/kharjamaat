@@ -623,7 +623,12 @@ class AdminM extends CI_Model
     st.residential_grade AS residential_grade_id,
     res_grade.grade AS residential_grade,
     COALESCE(res_grade.amount, 0) AS residential_amount,
-    COALESCE(res_grade.yearly_amount, COALESCE(res_grade.amount,0) * 12) AS residential_yearly_amount
+    COALESCE(res_grade.yearly_amount, COALESCE(res_grade.amount,0) * 12) AS residential_yearly_amount,
+
+    st.mutawatteneen_grade AS mutawatteneen_grade_id,
+    mut_grade.grade AS mutawatteneen_grade,
+    COALESCE(mut_grade.amount, 0) AS mutawatteneen_amount,
+    COALESCE(mut_grade.yearly_amount, COALESCE(mut_grade.amount,0) * 12) AS mutawatteneen_yearly_amount
   ");
     $this->db->from("user u");
 
@@ -642,6 +647,14 @@ class AdminM extends CI_Model
       "res_grade.id = st.residential_grade 
         AND res_grade.type = 'residential' 
         AND res_grade.year = st.year",
+      "left"
+    );
+
+    $this->db->join(
+      "sabeel_takhmeen_grade mut_grade",
+      "mut_grade.id = st.mutawatteneen_grade 
+        AND mut_grade.type = 'mutawatteneen' 
+        AND mut_grade.year = st.year",
       "left"
     );
 
@@ -671,7 +684,7 @@ class AdminM extends CI_Model
     ");
 
     $this->db->from("sabeel_takhmeen_payments p");
-    $this->db->where_in("p.type", ["establishment", "residential"]);
+    $this->db->where_in("p.type", ["establishment", "residential", "mutawatteneen"]);
     $this->db->group_by(["p.user_id", "p.type"]);
     $payQuery = $this->db->get();
     $payments = $payQuery->result_array();
@@ -726,11 +739,14 @@ class AdminM extends CI_Model
         // Payments are aggregated per user_id and type (not per year in the payments table)
         $estPaid = $paymentIndex[$itsId]['establishment'] ?? 0.0;
         $resPaid = $paymentIndex[$itsId]['residential'] ?? 0.0;
+        $mutPaid = $paymentIndex[$itsId]['mutawatteneen'] ?? 0.0;
 
         // Ensure amounts are numeric (COALESCE above helps, but double-guard here)
         $est_amount = isset($row['establishment_amount']) ? (float)$row['establishment_amount'] : 0.0;
         $res_amount = isset($row['residential_amount']) ? (float)$row['residential_amount'] : 0.0;
         $res_yearly_amount = isset($row['residential_yearly_amount']) ? (float)$row['residential_yearly_amount'] : ($res_amount ? $res_amount * 12 : 0.0);
+        $mut_amount = isset($row['mutawatteneen_amount']) ? (float)$row['mutawatteneen_amount'] : 0.0;
+        $mut_yearly_amount = isset($row['mutawatteneen_yearly_amount']) ? (float)$row['mutawatteneen_yearly_amount'] : ($mut_amount ? $mut_amount * 12 : 0.0);
 
         $takhmeenEntry = [
           'id' => $row['takhmeen_id'],
@@ -750,6 +766,14 @@ class AdminM extends CI_Model
             'yearly' => $res_yearly_amount,
             'paid' => (float)$resPaid,
             'due' => max(0, $res_yearly_amount - (float)$resPaid),
+          ],
+          'mutawatteneen' => [
+            'grade_id' => $row['mutawatteneen_grade_id'],
+            'grade' => $row['mutawatteneen_grade'],
+            'monthly' => $mut_amount,
+            'yearly' => $mut_yearly_amount,
+            'paid' => (float)$mutPaid,
+            'due' => max(0, $mut_yearly_amount - (float)$mutPaid),
           ]
         ];
 
@@ -824,12 +848,15 @@ class AdminM extends CI_Model
         st.id,
         st.establishment_grade,
         st.residential_grade,
+        st.mutawatteneen_grade,
         est.amount AS establishment_amount,
-        res.amount AS residential_amount
+        res.amount AS residential_amount,
+        mut.amount AS mutawatteneen_amount
     ");
     $this->db->from("sabeel_takhmeen st");
     $this->db->join("sabeel_takhmeen_grade est", "est.id = st.establishment_grade", "left");
     $this->db->join("sabeel_takhmeen_grade res", "res.id = st.residential_grade", "left");
+    $this->db->join("sabeel_takhmeen_grade mut", "mut.id = st.mutawatteneen_grade", "left");
     $this->db->where("st.user_id", $user_id);
     $this->db->where("st.year", $year);
     $selected = $this->db->get()->row_array();
@@ -847,10 +874,12 @@ class AdminM extends CI_Model
     $takhmeen_id = $data["takhmeen_id"];
     $establishment_grade = $data["establishment_grade"];
     $residential_grade = $data["residential_grade"];
+    $mutawatteneen_grade = isset($data["mutawatteneen_grade"]) ? $data["mutawatteneen_grade"] : null;
     if (!$user_id || !$takhmeen_id) return false;
     $update = [];
     $update['establishment_grade'] = $establishment_grade;
     $update['residential_grade']   = $residential_grade;
+    $update['mutawatteneen_grade']  = $mutawatteneen_grade;
 
     $this->db->where("user_id", $user_id);
     $this->db->where("id", $takhmeen_id);
@@ -946,6 +975,7 @@ class AdminM extends CI_Model
       'year' => $data['year'],
       'establishment_grade' => !empty($data['establishment_grade']) ? $data['establishment_grade'] : null,
       'residential_grade' => !empty($data['residential_grade']) ? $data['residential_grade'] : null,
+      'mutawatteneen_grade' => !empty($data['mutawatteneen_grade']) ? $data['mutawatteneen_grade'] : null,
     ];
     $result = $this->db->insert("sabeel_takhmeen", $insert);
     if ($result) {
@@ -1333,15 +1363,17 @@ class AdminM extends CI_Model
       SELECT st.user_id,
              stg_est.grade AS est_grade, stg_est.amount AS est_amount,
              stg_res.grade AS res_grade, stg_res.amount AS res_amount,
-             (COALESCE(stg_est.amount,0) + COALESCE(stg_res.yearly_amount, COALESCE(stg_res.amount,0) * 12, 0)) AS total_sabeel,
+             stg_mut.grade AS mut_grade, stg_mut.yearly_amount AS mut_amount,
+             (COALESCE(stg_est.amount,0) + COALESCE(stg_res.yearly_amount, COALESCE(stg_res.amount,0) * 12, 0) + COALESCE(stg_mut.yearly_amount, COALESCE(stg_mut.amount,0) * 12, 0)) AS total_sabeel,
              st.year
       FROM sabeel_takhmeen st
       LEFT JOIN sabeel_takhmeen_grade stg_est ON stg_est.id = st.establishment_grade
       LEFT JOIN sabeel_takhmeen_grade stg_res ON stg_res.id = st.residential_grade
+      LEFT JOIN sabeel_takhmeen_grade stg_mut ON stg_mut.id = st.mutawatteneen_grade
       INNER JOIN (SELECT user_id, MAX(year) AS max_year FROM sabeel_takhmeen GROUP BY user_id) latest
         ON latest.user_id = st.user_id AND latest.max_year = st.year
       INNER JOIN user u ON u.ITS_ID = st.user_id
-      WHERE u.ITS_ID IN ({$placeholders})
+      WHERE u.ITS_ID IN ({$placeholders}) AND u.HOF_FM_TYPE = 'HOF'
     ";
     $sabeel_map = [];
     foreach ($this->db->query($sabeel_sql, $family_member_ids)->result_array() as $r) {

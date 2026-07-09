@@ -295,7 +295,8 @@
       <ul class="menu-list">
         <li><a class="menu-item" href="<?php echo base_url('admin/managesabeeltakhmeen'); ?>"><span class="menu-icon"><i class="fa fa-credit-card"></i></span><span class="menu-label">Manage Sabeel Takhmeen</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/corpusfunds'); ?>"><span class="menu-icon"><i class="fa fa-university"></i></span><span class="menu-label">Corpus Funds</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('admin/laagat'); ?>"><span class="menu-icon"><i class="fa fa-building"></i></span><span class="menu-label">Laagat / Rent Module</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/laagat'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Laagat Module</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/rent'); ?>"><span class="menu-icon"><i class="fa fa-building"></i></span><span class="menu-label">Rent Module</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/ekramfunds'); ?>"><span class="menu-icon"><i class="fa fa-gift"></i></span><span class="menu-label">Ekram Funds</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/qardanhasana'); ?>"><span class="menu-icon"><i class="fa fa-leaf"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/wajebaat'); ?>"><span class="menu-icon"><i class="fa fa-book"></i></span><span class="menu-label">Wajebaat</span></a></li>
@@ -431,13 +432,24 @@
         </a>
       </div>
 
-      <!-- 7. Laagat / Rent Module -->
+      <!-- 7. Laagat Module -->
       <div class="col-6 col-md-4 col-lg-3 mb-4">
         <a href="<?php echo base_url('admin/laagat'); ?>">
           <div class="admin-card">
+            <div class="admin-card-icon"><i class="fa-solid fa-coins"></i></div>
+            <h5 class="admin-card-title">Laagat Module</h5>
+            <p class="admin-card-desc">Configure and manage Laagat forms for non-event Raza types.</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- 7b. Rent Module -->
+      <div class="col-6 col-md-4 col-lg-3 mb-4">
+        <a href="<?php echo base_url('admin/rent'); ?>">
+          <div class="admin-card">
             <div class="admin-card-icon"><i class="fa fa-building"></i></div>
-            <h5 class="admin-card-title">Laagat / Rent Module</h5>
-            <p class="admin-card-desc">Track rents, properties, occupancy, and due payments.</p>
+            <h5 class="admin-card-title">Rent Module</h5>
+            <p class="admin-card-desc">Track event venue rents, deposits, and manage property configurations.</p>
           </div>
         </a>
       </div>

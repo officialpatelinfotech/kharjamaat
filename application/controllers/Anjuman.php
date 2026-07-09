@@ -316,19 +316,28 @@ class Anjuman extends CI_Controller
       'total' => ($qh_moh + $qh_tah + $qh_hus)
     ];
 
-    // Laagat & Rent dashboard total
+    // Laagat & Rent dashboard totals
     $this->load->model('LaagatRentM');
-    $lr_year = $sel_hijri_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446);
+    $max_lr_row = $this->db->query("SELECT MAX(hijri_year) AS y FROM laagat_rent")->row_array();
+    $max_lr_year = $max_lr_row && isset($max_lr_row['y']) ? $max_lr_row['y'] : null;
+    $lr_year = $sel_hijri_year ?: ($max_lr_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446));
     $lr_year_query = (is_numeric($lr_year) && strlen((string)$lr_year) === 4) 
         ? (int)$lr_year . '-' . substr((string)((int)$lr_year + 1), -2) 
         : $lr_year;
     $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year_query]);
-    $dashboard_laagat_rent_total = 0.0;
+    $dashboard_laagat_total = 0.0;
+    $dashboard_rent_total = 0.0;
     foreach ($lr_invoices as $lrinv) {
-        $dashboard_laagat_rent_total += (float)($lrinv['master_amount'] ?? 0);
+        if (isset($lrinv['charge_type']) && $lrinv['charge_type'] === 'rent') {
+            $dashboard_rent_total += (float)($lrinv['master_amount'] ?? 0);
+        } else {
+            $dashboard_laagat_total += (float)($lrinv['master_amount'] ?? 0);
+        }
     }
-    $data['dashboard_laagat_rent_total'] = $dashboard_laagat_rent_total;
-    $data['dashboard_laagat_rent_hijri_year'] = $lr_year_query;
+    $data['dashboard_laagat_total'] = $dashboard_laagat_total;
+    $data['dashboard_laagat_hijri_year'] = $lr_year_query;
+    $data['dashboard_rent_total'] = $dashboard_rent_total;
+    $data['dashboard_rent_hijri_year'] = $lr_year_query;
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/Home', $data);
@@ -631,12 +640,28 @@ class Anjuman extends CI_Controller
   }
 
   // Laagat / Rent Module
+  public function laagat()
+  {
+    $this->laagat_rent_dashboard_by_type('laagat');
+  }
+
+  public function rent()
+  {
+    $this->laagat_rent_dashboard_by_type('rent');
+  }
+
   public function laagat_rent()
+  {
+    redirect('anjuman/laagat');
+  }
+
+  private function laagat_rent_dashboard_by_type($module_type)
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
+    $data['module_type'] = $module_type;
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/LaagatRentDashboard', $data);
   }
@@ -679,12 +704,14 @@ class Anjuman extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->model('LaagatRentM');
 
+    $charge_type = $this->input->get('charge_type');
     $filters = [
       'year' => $this->input->get('year'),
       'its_id' => $this->input->get('its_id'),
-      'charge_type' => $this->input->get('charge_type'),
+      'charge_type' => $charge_type,
     ];
     $data['filters'] = $filters;
+    $data['module_type'] = $charge_type;
 
     $data['invoices'] = $this->LaagatRentM->get_invoices($filters);
 
@@ -706,12 +733,14 @@ class Anjuman extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->model('LaagatRentM');
 
+    $charge_type = $this->input->get('charge_type');
     $filters = [
       'year' => $this->input->get('year'),
       'its_id' => $this->input->get('its_id'),
-      'charge_type' => $this->input->get('charge_type'),
+      'charge_type' => $charge_type,
     ];
     $data['filters'] = $filters;
+    $data['module_type'] = $charge_type;
 
     $data['invoices'] = $this->LaagatRentM->get_invoices($filters);
 
@@ -755,7 +784,11 @@ class Anjuman extends CI_Controller
         $this->session->set_flashdata('laagat_flash_error', 'Invalid payment data.');
       }
     }
-    redirect('anjuman/laagat_rent_payments');
+    $redir = 'anjuman/laagat_rent_payments';
+    if (!empty($inv['charge_type'])) {
+      $redir .= '?charge_type=' . $inv['charge_type'];
+    }
+    redirect($redir);
   }
 
   public function laagat_receipt($payment_id = null)
@@ -865,7 +898,11 @@ class Anjuman extends CI_Controller
     } else {
       $this->session->set_flashdata('laagat_flash_error', 'Unable to delete invoice.');
     }
-    redirect('anjuman/laagat_rent_invoices');
+    $redir = 'anjuman/laagat_rent_invoices';
+    if ($invoice && !empty($invoice['charge_type'])) {
+      $redir .= '?charge_type=' . $invoice['charge_type'];
+    }
+    redirect($redir);
   }
 
   public function laagat_rent_invoice_save()
@@ -924,7 +961,11 @@ class Anjuman extends CI_Controller
         $this->session->set_flashdata('laagat_flash_error', 'Invalid data.');
       }
     }
-    redirect('anjuman/laagat_rent_invoices');
+    $redir = 'anjuman/laagat_rent_invoices';
+    if (!empty($invoice['charge_type'])) {
+      $redir .= '?charge_type=' . $invoice['charge_type'];
+    }
+    redirect($redir);
   }
 
   public function get_laagat_payment_history()
@@ -1469,15 +1510,16 @@ class Anjuman extends CI_Controller
   {
     // Get total Sabeel amounts and outstanding
     $query = "SELECT 
-      SUM(est_grade.amount + COALESCE(res_grade.amount * 12, 0)) as total_sabeel,
-      SUM(COALESCE(est_paid.total_paid, 0) + COALESCE(res_paid.total_paid, 0)) as total_paid,
-      (SUM(est_grade.amount + COALESCE(res_grade.amount * 12, 0)) - 
-       SUM(COALESCE(est_paid.total_paid, 0) + COALESCE(res_paid.total_paid, 0))) as outstanding
+      SUM(COALESCE(est_grade.amount,0) + COALESCE(res_grade.amount * 12, 0) + COALESCE(mut_grade.amount * 12, 0)) as total_sabeel,
+      SUM(COALESCE(est_paid.total_paid, 0) + COALESCE(res_paid.total_paid, 0) + COALESCE(mut_paid.total_paid, 0)) as total_paid,
+      (SUM(COALESCE(est_grade.amount,0) + COALESCE(res_grade.amount * 12, 0) + COALESCE(mut_grade.amount * 12, 0)) - 
+       SUM(COALESCE(est_paid.total_paid, 0) + COALESCE(res_paid.total_paid, 0) + COALESCE(mut_paid.total_paid, 0))) as outstanding
     FROM user u
     LEFT JOIN sabeel_takhmeen st ON st.user_id = u.ITS_ID 
       AND st.year = (SELECT MAX(year) FROM sabeel_takhmeen WHERE user_id = u.ITS_ID)
     LEFT JOIN sabeel_takhmeen_grade est_grade ON est_grade.id = st.establishment_grade
     LEFT JOIN sabeel_takhmeen_grade res_grade ON res_grade.id = st.residential_grade
+    LEFT JOIN sabeel_takhmeen_grade mut_grade ON mut_grade.id = st.mutawatteneen_grade
     LEFT JOIN (
       SELECT user_id, SUM(amount) as total_paid 
       FROM sabeel_takhmeen_payments 
@@ -1490,6 +1532,12 @@ class Anjuman extends CI_Controller
       WHERE type = 'residential' 
       GROUP BY user_id
     ) res_paid ON res_paid.user_id = u.ITS_ID
+    LEFT JOIN (
+      SELECT user_id, SUM(amount) as total_paid 
+      FROM sabeel_takhmeen_payments 
+      WHERE type = 'mutawatteneen' 
+      GROUP BY user_id
+    ) mut_paid ON mut_paid.user_id = u.ITS_ID
     WHERE u.HOF_FM_TYPE = 'HOF' AND u.Inactive_Status IS NULL";
 
     $result = $this->db->query($query)->row_array();
@@ -1705,23 +1753,27 @@ class Anjuman extends CI_Controller
     $sql = "SELECT 
               u.ITS_ID,
               u.Full_Name,
-              COALESCE(est_grade.amount,0) + COALESCE(res_grade.amount*12,0) AS total_sabeel,
-              COALESCE(est_paid.total_paid,0) + COALESCE(res_paid.total_paid,0) AS total_paid,
+              COALESCE(est_grade.amount,0) + COALESCE(res_grade.amount*12,0) + COALESCE(mut_grade.amount*12,0) AS total_sabeel,
+              COALESCE(est_paid.total_paid,0) + COALESCE(res_paid.total_paid,0) + COALESCE(mut_paid.total_paid,0) AS total_paid,
               GREATEST(
-                (COALESCE(est_grade.amount,0) + COALESCE(res_grade.amount*12,0)) - 
-                (COALESCE(est_paid.total_paid,0) + COALESCE(res_paid.total_paid,0)), 0
+                (COALESCE(est_grade.amount,0) + COALESCE(res_grade.amount*12,0) + COALESCE(mut_grade.amount*12,0)) - 
+                (COALESCE(est_paid.total_paid,0) + COALESCE(res_paid.total_paid,0) + COALESCE(mut_paid.total_paid,0)), 0
               ) AS due
             FROM user u
             LEFT JOIN sabeel_takhmeen st ON st.user_id = u.ITS_ID 
               AND st.year = (SELECT MAX(year) FROM sabeel_takhmeen WHERE user_id = u.ITS_ID)
             LEFT JOIN sabeel_takhmeen_grade est_grade ON est_grade.id = st.establishment_grade
             LEFT JOIN sabeel_takhmeen_grade res_grade ON res_grade.id = st.residential_grade
+            LEFT JOIN sabeel_takhmeen_grade mut_grade ON mut_grade.id = st.mutawatteneen_grade
             LEFT JOIN (
               SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments WHERE type='establishment' GROUP BY user_id
             ) est_paid ON est_paid.user_id = u.ITS_ID
             LEFT JOIN (
               SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments WHERE type='residential' GROUP BY user_id
             ) res_paid ON res_paid.user_id = u.ITS_ID
+            LEFT JOIN (
+              SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments WHERE type='mutawatteneen' GROUP BY user_id
+            ) mut_paid ON mut_paid.user_id = u.ITS_ID
             WHERE u.HOF_FM_TYPE = 'HOF' AND u.Inactive_Status IS NULL
             ORDER BY due DESC
             LIMIT $limit";
@@ -1984,10 +2036,12 @@ class Anjuman extends CI_Controller
       if (!empty($ct)) {
         $estY = (float)($ct['establishment']['yearly'] ?? 0);
         $resY = (float)($ct['residential']['yearly'] ?? 0);
+        $mutY = (float)($ct['mutawatteneen']['yearly'] ?? 0);
         $estP = (float)($ct['establishment']['paid'] ?? 0);
         $resP = (float)($ct['residential']['paid'] ?? 0);
-        $total_year = $estY + $resY;
-        $paid_year = $estP + $resP; // already allocated oldest-first inside model
+        $mutP = (float)($ct['mutawatteneen']['paid'] ?? 0);
+        $total_year = $estY + $resY + $mutY;
+        $paid_year = $estP + $resP + $mutP; // already allocated oldest-first inside model
       }
 
       if (!isset($agg[$sector])) {

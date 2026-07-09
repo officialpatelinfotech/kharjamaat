@@ -479,7 +479,8 @@
       <li><a class="nav-item" href="<?php echo base_url('common/fmb_general_contributions?from=amilsaheb') ?>"><span class="nav-icon"><i class="fa fa-inr"></i></span><span>FMB General Contributions</span></a></li>
       <li><a class="nav-item" href="<?php echo base_url('amilsaheb/qardanhasana') ?>"><span class="nav-icon"><i class="fa fa-leaf"></i></span><span>Qardan Hasana</span></a></li>
       <li><a class="nav-item" href="<?= base_url('amilsaheb/corpusfunds_details') ?>"><span class="nav-icon"><i class="fa fa-university"></i></span><span>Corpus Funds</span></a></li>
-      <li><a class="nav-item" href="<?= base_url('anjuman/laagat_rent_payments') ?>"><span class="nav-icon"><i class="fa fa-calculator"></i></span><span>Laagat / Rent</span></a></li>
+      <li><a class="nav-item" href="<?= base_url('anjuman/laagat_rent_payments?charge_type=laagat') ?>"><span class="nav-icon"><i class="fa fa-calculator"></i></span><span>Laagat</span><?php if (isset($laagat_summary) && $laagat_summary['due'] > 0): ?><span class="badge badge-danger ml-auto" style="font-size: 11px; padding: 3px 6px; font-weight: 600;">₹<?= format_inr($laagat_summary['due']) ?></span><?php endif; ?></a></li>
+      <li><a class="nav-item" href="<?= base_url('anjuman/laagat_rent_payments?charge_type=rent') ?>"><span class="nav-icon"><i class="fa fa-building-o"></i></span><span>Rent</span><?php if (isset($rent_summary) && $rent_summary['due'] > 0): ?><span class="badge badge-danger ml-auto" style="font-size: 11px; padding: 3px 6px; font-weight: 600;">₹<?= format_inr($rent_summary['due']) ?></span><?php endif; ?></a></li>
       <li><a class="nav-item" href="<?= base_url('amilsaheb/ekramfunds_details') ?>"><span class="nav-icon"><i class="fa fa-gift"></i></span><span>Ekram Funds</span></a></li>
       <li><a class="nav-item" href="<?php echo base_url('amilsaheb/wajebaat_details') ?>"><span class="nav-icon"><i class="fa fa-coins"></i></span><span>Wajebaat</span></a></li>
       <li><a class="nav-item" href="<?= base_url('amilsaheb/expense') ?>"><span class="nav-icon"><i class="fa fa-file-text-o"></i></span><span>Expense Module</span></a></li>
@@ -909,6 +910,8 @@
       if (isset($corpus_funds)&&is_array($corpus_funds)){$cCount=count($corpus_funds);foreach($corpus_funds as $f){$cTot+=(float)($f['assigned_total']??0);$cRec+=(float)($f['paid_total']??0);}}
       $cPen=max(0,$cTot-$cRec);
       $wa=isset($dashboard_data['wajebaat_summary'])?$dashboard_data['wajebaat_summary']:['total'=>0,'received'=>0,'due'=>0];
+      $laagat=isset($laagat_summary)?$laagat_summary:['total'=>0,'received'=>0,'due'=>0];
+      $rent=isset($rent_summary)?$rent_summary:['total'=>0,'received'=>0,'due'=>0];
       $qh=isset($qh_all_schemes_totals)?$qh_all_schemes_totals:['mohammedi'=>0,'taher'=>0,'husain'=>0,'total'=>0];
       $rz=isset($dashboard_data['raza_summary'])?$dashboard_data['raza_summary']:['pending'=>0,'approved'=>0,'rejected'=>0];
 
@@ -917,6 +920,10 @@
           'rows'=>[['Total','₹'.format_inr($cTot),''],['Received','₹'.format_inr($cRec),'green'],['Pending','₹'.format_inr($cPen),'red']], 'footer'=>'Funds: '.$cCount],
         ['id'=>'collapseWajebaat', 'icon'=>'fa-coins',       'bg'=>'#fffbeb',           'color'=>'#b45309',     'title'=>'Wajebaat',       'url'=>base_url('amilsaheb/wajebaat'),
           'rows'=>[['Total','₹'.format_inr($wa['total']),''],['Received','₹'.format_inr($wa['received']),'green'],['Pending','₹'.format_inr($wa['due']),'red']], 'footer'=>''],
+        ['id'=>'collapseLaagat',   'icon'=>'fa-calculator',  'bg'=>'#ecfdf5',           'color'=>'#059669',     'title'=>'Laagat',         'url'=>base_url('anjuman/laagat_rent_payments?charge_type=laagat'),
+          'rows'=>[['Total','₹'.format_inr($laagat['total']),''],['Received','₹'.format_inr($laagat['received']),'green'],['Pending','₹'.format_inr($laagat['due']),'red']], 'footer'=>''],
+        ['id'=>'collapseRent',     'icon'=>'fa-building-o',  'bg'=>'#f0fdfa',           'color'=>'#0d9488',     'title'=>'Rent',           'url'=>base_url('anjuman/laagat_rent_payments?charge_type=rent'),
+          'rows'=>[['Total','₹'.format_inr($rent['total']),''],['Received','₹'.format_inr($rent['received']),'green'],['Pending','₹'.format_inr($rent['due']),'red']], 'footer'=>''],
         ['id'=>'collapseRaza',     'icon'=>'fa-file-text-o', 'bg'=>'#eff6ff',           'color'=>'#1d4ed8',     'title'=>'Raza Summary',   'url'=>'',
           'rows'=>[['Pending',(int)$rz['pending'],''],['Approved',(int)$rz['approved'],'green'],['Rejected',(int)$rz['rejected'],'red']], 'footer'=>''],
       ];

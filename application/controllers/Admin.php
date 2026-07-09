@@ -58,11 +58,23 @@ class Admin extends CI_Controller
     $this->load->view('Admin/LoginReport', $data);
   }
 
-  // Laagat / Rent Module
+  // Laagat Module
   public function laagat()
   {
     $this->validateUser($_SESSION['user']);
     $data['user_name'] = $_SESSION['user']['username'];
+    $data['module_type'] = 'laagat';
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/LaagatRentMenu', $data);
+  }
+
+  // Rent Module
+  public function rent()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['module_type'] = 'rent';
 
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/LaagatRentMenu', $data);
@@ -72,6 +84,7 @@ class Admin extends CI_Controller
   {
     $this->validateUser($_SESSION['user']);
     $data['user_name'] = $_SESSION['user']['username'];
+    $data['module_type'] = 'laagat';
 
     $this->load->model('LaagatRentM');
 
@@ -106,19 +119,23 @@ class Admin extends CI_Controller
       'id' => null,
       'title' => '',
       'hijri_year' => $defaultYear,
-      'charge_type' => '',
+      'charge_type' => 'laagat',
       'amount' => '',
       'venue' => '',
       'raza_type_id' => '',
       'raza_type_name' => '',
-      'raza_types' => []
+      'raza_types' => [],
+      'rent_sabeel' => '',
+      'deposit_sabeel' => '',
+      'rent_non_sabeel' => '',
+      'deposit_non_sabeel' => ''
     ];
 
     // Edit mode: /admin/laagat/create?edit={id}
     $editId = (int)$this->input->get('edit');
     if ($editId > 0) {
       $row = $this->LaagatRentM->get_by_id($editId);
-      if ($row) {
+      if ($row && $row['charge_type'] === 'laagat') {
         $razaTypes = $this->LaagatRentM->get_raza_types_for_record($editId);
         $data['form'] = [
           'id' => (int)$row['id'],
@@ -129,7 +146,90 @@ class Admin extends CI_Controller
           'venue' => isset($row['venue']) ? (string)$row['venue'] : '',
           'raza_type_id' => isset($row['raza_type_id']) ? (string)$row['raza_type_id'] : '',
           'raza_type_name' => isset($row['raza_type_name']) ? (string)$row['raza_type_name'] : '',
-          'raza_types' => is_array($razaTypes) ? $razaTypes : []
+          'raza_types' => is_array($razaTypes) ? $razaTypes : [],
+          'rent_sabeel' => isset($row['rent_sabeel']) ? (string)$row['rent_sabeel'] : '',
+          'deposit_sabeel' => isset($row['deposit_sabeel']) ? (string)$row['deposit_sabeel'] : '',
+          'rent_non_sabeel' => isset($row['rent_non_sabeel']) ? (string)$row['rent_non_sabeel'] : '',
+          'deposit_non_sabeel' => isset($row['deposit_non_sabeel']) ? (string)$row['deposit_non_sabeel'] : ''
+        ];
+      }
+    }
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/LaagatRent', $data);
+  }
+
+  public function rent_create()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['module_type'] = 'rent';
+
+    $this->load->model('LaagatRentM');
+
+    // Build Hijri financial year ranges like 1442-43 up to current hijri year.
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $current_hijri_year = null;
+    if (isset($today_hijri['hijri_date'])) {
+      $parts = explode('-', (string)$today_hijri['hijri_date']);
+      if (count($parts) === 3 && is_numeric($parts[2])) {
+        $current_hijri_year = (int)$parts[2];
+      }
+    }
+    if (!$current_hijri_year) {
+      $current_hijri_year = 1442;
+    }
+    $start_year = 1442;
+    $end_year = max($start_year, (int)$current_hijri_year);
+    $year_ranges = [];
+    for ($y = $start_year; $y <= $end_year; $y++) {
+      $year_ranges[] = $y . '-' . substr((string)($y + 1), -2);
+    }
+    $data['hijri_year_options'] = $year_ranges;
+
+    $data['flash_success'] = isset($_SESSION['laagat_flash_success']) ? (string)$_SESSION['laagat_flash_success'] : null;
+    $data['flash_error'] = isset($_SESSION['laagat_flash_error']) ? (string)$_SESSION['laagat_flash_error'] : null;
+    unset($_SESSION['laagat_flash_success'], $_SESSION['laagat_flash_error']);
+
+    $data['venue_options'] = $this->LaagatRentM->get_all_venues_from_raza_forms();
+
+    $defaultYear = !empty($year_ranges) ? $year_ranges[count($year_ranges) - 1] : '';
+    $data['form'] = [
+      'id' => null,
+      'title' => '',
+      'hijri_year' => $defaultYear,
+      'charge_type' => 'rent',
+      'amount' => '',
+      'venue' => '',
+      'raza_type_id' => '',
+      'raza_type_name' => '',
+      'raza_types' => [],
+      'rent_sabeel' => '',
+      'deposit_sabeel' => '',
+      'rent_non_sabeel' => '',
+      'deposit_non_sabeel' => ''
+    ];
+
+    // Edit mode: /admin/rent/create?edit={id}
+    $editId = (int)$this->input->get('edit');
+    if ($editId > 0) {
+      $row = $this->LaagatRentM->get_by_id($editId);
+      if ($row && $row['charge_type'] === 'rent') {
+        $razaTypes = $this->LaagatRentM->get_raza_types_for_record($editId);
+        $data['form'] = [
+          'id' => (int)$row['id'],
+          'title' => (string)$row['title'],
+          'hijri_year' => (string)$row['hijri_year'],
+          'charge_type' => (string)$row['charge_type'],
+          'amount' => isset($row['amount']) ? (string)$row['amount'] : '',
+          'venue' => isset($row['venue']) ? (string)$row['venue'] : '',
+          'raza_type_id' => isset($row['raza_type_id']) ? (string)$row['raza_type_id'] : '',
+          'raza_type_name' => isset($row['raza_type_name']) ? (string)$row['raza_type_name'] : '',
+          'raza_types' => is_array($razaTypes) ? $razaTypes : [],
+          'rent_sabeel' => isset($row['rent_sabeel']) ? (string)$row['rent_sabeel'] : '',
+          'deposit_sabeel' => isset($row['deposit_sabeel']) ? (string)$row['deposit_sabeel'] : '',
+          'rent_non_sabeel' => isset($row['rent_non_sabeel']) ? (string)$row['rent_non_sabeel'] : '',
+          'deposit_non_sabeel' => isset($row['deposit_non_sabeel']) ? (string)$row['deposit_non_sabeel'] : ''
         ];
       }
     }
@@ -142,6 +242,7 @@ class Admin extends CI_Controller
   {
     $this->validateUser($_SESSION['user']);
     $data['user_name'] = $_SESSION['user']['username'];
+    $data['module_type'] = 'laagat';
 
     $this->load->model('LaagatRentM');
 
@@ -149,7 +250,57 @@ class Admin extends CI_Controller
     $filters = [
       'title' => trim((string)$this->input->get('title')),
       'hijri_year' => trim((string)$this->input->get('hijri_year')),
-      'charge_type' => strtolower(trim((string)$this->input->get('charge_type'))),
+      'charge_type' => 'laagat',
+      'raza_category' => trim((string)$this->input->get('raza_category')),
+    ];
+    $data['filters'] = $filters;
+
+    // Hijri year dropdown options (descending)
+    $today_hijri = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+    $current_hijri_year = null;
+    if (isset($today_hijri['hijri_date'])) {
+      $parts = explode('-', (string)$today_hijri['hijri_date']);
+      if (count($parts) === 3 && is_numeric($parts[2])) {
+        $current_hijri_year = (int)$parts[2];
+      }
+    }
+    if (!$current_hijri_year) {
+      $current_hijri_year = 1442;
+    }
+    $start_year = 1442;
+    $end_year = max($start_year, (int)$current_hijri_year);
+    $year_ranges = [];
+    for ($y = $start_year; $y <= $end_year; $y++) {
+      $year_ranges[] = $y . '-' . substr((string)($y + 1), -2);
+    }
+    $data['hijri_year_options'] = array_reverse($year_ranges);
+
+    $data['flash_success'] = isset($_SESSION['laagat_flash_success']) ? (string)$_SESSION['laagat_flash_success'] : null;
+    $data['flash_error'] = isset($_SESSION['laagat_flash_error']) ? (string)$_SESSION['laagat_flash_error'] : null;
+    unset($_SESSION['laagat_flash_success'], $_SESSION['laagat_flash_error']);
+
+    $data['rows'] = $this->LaagatRentM->get_all($filters);
+    foreach ($data['rows'] as &$row) {
+      $row['has_invoices'] = $this->LaagatRentM->has_invoices($row['id']);
+    }
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/LaagatRentManage', $data);
+  }
+
+  public function rent_manage()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['module_type'] = 'rent';
+
+    $this->load->model('LaagatRentM');
+
+    // Filters (GET)
+    $filters = [
+      'title' => trim((string)$this->input->get('title')),
+      'hijri_year' => trim((string)$this->input->get('hijri_year')),
+      'charge_type' => 'rent',
       'raza_category' => trim((string)$this->input->get('raza_category')),
     ];
     $data['filters'] = $filters;
@@ -238,6 +389,11 @@ class Admin extends CI_Controller
     $razaTypeIds = array_values($razaTypeIds);
     $razaTypeId = !empty($razaTypeIds) ? (int)$razaTypeIds[0] : 0;
 
+    $rentSabeel = $this->input->post('rent_sabeel') !== null && $this->input->post('rent_sabeel') !== '' ? (float)$this->input->post('rent_sabeel') : 0.00;
+    $depositSabeel = $this->input->post('deposit_sabeel') !== null && $this->input->post('deposit_sabeel') !== '' ? (float)$this->input->post('deposit_sabeel') : 0.00;
+    $rentNonSabeel = $this->input->post('rent_non_sabeel') !== null && $this->input->post('rent_non_sabeel') !== '' ? (float)$this->input->post('rent_non_sabeel') : 0.00;
+    $depositNonSabeel = $this->input->post('deposit_non_sabeel') !== null && $this->input->post('deposit_non_sabeel') !== '' ? (float)$this->input->post('deposit_non_sabeel') : 0.00;
+
     $valid = true;
     if ($title === '') {
       $valid = false;
@@ -254,10 +410,15 @@ class Admin extends CI_Controller
     if ($razaTypeId <= 0) {
       $valid = false;
     }
+    if ($chargeType === 'rent') {
+      if ($rentSabeel < 0 || $depositSabeel < 0 || $rentNonSabeel < 0 || $depositNonSabeel < 0) {
+        $valid = false;
+      }
+    }
 
     if (!$valid) {
       $_SESSION['laagat_flash_error'] = 'Please fill Title, Hijri Year, Charge Type and Applicable Raza Categories.';
-      $redir = $id > 0 ? ('admin/laagat/create?edit=' . $id) : 'admin/laagat/create';
+      $redir = $id > 0 ? ('admin/' . $chargeType . '/create?edit=' . $id) : ('admin/' . $chargeType . '/create');
       redirect($redir);
       return;
     }
@@ -301,13 +462,17 @@ class Admin extends CI_Controller
       'grade_amounts' => $gradeAmounts,
       'grade_jamaat_amounts' => $gradeJamaatAmounts,
       'grade_sarkaar_amounts' => $gradeSarkaarAmounts,
+      'rent_sabeel' => $rentSabeel,
+      'deposit_sabeel' => $depositSabeel,
+      'rent_non_sabeel' => $rentNonSabeel,
+      'deposit_non_sabeel' => $depositNonSabeel,
     ];
 
     if ($id > 0) {
       $res = $this->LaagatRentM->update($id, $payload);
       if (empty($res['success'])) {
         $_SESSION['laagat_flash_error'] = !empty($res['error']) ? (string)$res['error'] : 'Unable to update record.';
-        redirect('admin/laagat/create?edit=' . $id);
+        redirect('admin/' . $chargeType . '/create?edit=' . $id);
         return;
       }
       $ctLabel = ucfirst($chargeType);
@@ -316,14 +481,14 @@ class Admin extends CI_Controller
       $res = $this->LaagatRentM->create($payload);
       if (empty($res['success'])) {
         $_SESSION['laagat_flash_error'] = !empty($res['error']) ? (string)$res['error'] : 'Unable to create record.';
-        redirect('admin/laagat/create');
+        redirect('admin/' . $chargeType . '/create');
         return;
       }
       $ctLabel = ucfirst($chargeType);
       $_SESSION['laagat_flash_success'] = $ctLabel . ' created.';
     }
 
-    redirect('admin/laagat/manage');
+    redirect('admin/' . $chargeType . '/manage');
   }
 
   public function laagat_toggle()
@@ -344,13 +509,14 @@ class Admin extends CI_Controller
     }
 
     $res = $this->LaagatRentM->toggle_active($id);
+    $chargeType = !empty($res['charge_type']) ? $res['charge_type'] : 'laagat';
     if (!empty($res['success'])) {
-      $ctLabel = ucfirst($res['charge_type'] ?? 'Record');
+      $ctLabel = ucfirst($chargeType);
       $_SESSION['laagat_flash_success'] = $ctLabel . (((int)$res['is_active'] === 1) ? ' activated.' : ' deactivated.');
     } else {
       $_SESSION['laagat_flash_error'] = !empty($res['error']) ? (string)$res['error'] : 'Unable to update.';
     }
-    redirect('admin/laagat/manage');
+    redirect('admin/' . $chargeType . '/manage');
   }
 
   public function laagat_delete()
@@ -370,17 +536,24 @@ class Admin extends CI_Controller
       return;
     }
 
+    $row = $this->LaagatRentM->get_by_id($id);
+    $chargeType = !empty($row['charge_type']) ? $row['charge_type'] : 'laagat';
+
     if ($this->LaagatRentM->has_invoices($id)) {
-      $_SESSION['laagat_flash_error'] = 'This Laagat/Rent Cannot deleted beacuase invoice exist for this record .';
-      redirect('admin/laagat/manage');
+      $_SESSION['laagat_flash_error'] = 'This ' . ucfirst($chargeType) . ' cannot be deleted because invoices exist for this record.';
+      redirect('admin/' . $chargeType . '/manage');
       return;
     }
 
-    $row = $this->LaagatRentM->get_by_id($id);
     $ok = $this->LaagatRentM->delete($id);
-    $ctLabel = ucfirst(($row['charge_type'] ?? 'Record'));
+    $ctLabel = ucfirst($chargeType);
     $_SESSION['laagat_flash_' . ($ok ? 'success' : 'error')] = $ok ? ($ctLabel . ' deleted.') : ('Unable to delete ' . strtolower($ctLabel) . '.');
-    redirect('admin/laagat/manage');
+    redirect('admin/' . $chargeType . '/manage');
+  }
+
+  public function rent_check_duplicate()
+  {
+    $this->laagat_check_duplicate();
   }
 
   // AJAX: Raza Categories for autocomplete, filtered by charge type
@@ -484,10 +657,19 @@ class Admin extends CI_Controller
     }
 
     $masterAmount = 0.00;
+    $rentSabeel = 0.00;
+    $rentNonSabeel = 0.00;
+    $depositSabeel = 0.00;
+    $depositNonSabeel = 0.00;
+
     if ($laagatRentId > 0) {
-      $lr = $this->db->select('amount')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+      $lr = $this->db->select('amount, rent_sabeel, rent_non_sabeel, deposit_sabeel, deposit_non_sabeel')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
       if ($lr) {
         $masterAmount = (float)$lr['amount'];
+        $rentSabeel = (float)$lr['rent_sabeel'];
+        $rentNonSabeel = (float)$lr['rent_non_sabeel'];
+        $depositSabeel = (float)$lr['deposit_sabeel'];
+        $depositNonSabeel = (float)$lr['deposit_non_sabeel'];
       }
     }
 
@@ -495,7 +677,11 @@ class Admin extends CI_Controller
       'success' => true,
       'master_amount' => $masterAmount,
       'charge_type' => $chargeType,
-      'grades' => $grades
+      'grades' => $grades,
+      'rent_sabeel' => $rentSabeel,
+      'rent_non_sabeel' => $rentNonSabeel,
+      'deposit_sabeel' => $depositSabeel,
+      'deposit_non_sabeel' => $depositNonSabeel,
     ]));
   }
 
@@ -4238,8 +4424,10 @@ HTML;
     $grade = $this->input->post("grade");
     if ($type == 1) {
       $type =  "Establishment";
-    } else {
+    } elseif ($type == 2) {
       $type =  "Residential";
+    } else {
+      $type =  "Mutawatteneen";
     }
     $result = $this->AdminM->validatesabeelgrade($type, $year, $grade);
     if ($result) {
@@ -4267,7 +4455,7 @@ HTML;
       }
       $sabeel_amount = $yearly !== null ? $yearly : 0; // store yearly in amount for Establishment
       $sabeel_yearly_amount = 0; // not used for Establishment
-    } else {
+    } elseif ($sabeel_type == 2) {
       $sabeel_type =  "Residential";
       $sabeel_year = $this->input->post("r_sabeel_year");
       $sabeel_grade = $this->input->post("r_sabeel_grade");
@@ -4282,6 +4470,22 @@ HTML;
         $yearly = $monthly * 12;
       }
       $sabeel_amount = $monthly !== null ? $monthly : 0; // store monthly in amount for Residential
+      $sabeel_yearly_amount = $yearly !== null ? $yearly : 0;
+    } else {
+      $sabeel_type =  "Mutawatteneen";
+      $sabeel_year = $this->input->post("m_sabeel_year");
+      $sabeel_grade = $this->input->post("m_sabeel_grade");
+      $monthly = $this->input->post("m_sabeel_amount_monthly");
+      $yearly  = $this->input->post("m_sabeel_amount_yearly");
+      $monthly = ($monthly === '' || $monthly === null) ? null : (int)$monthly;
+      $yearly  = ($yearly === '' || $yearly === null) ? null : (int)$yearly;
+      if ($monthly === null && $yearly !== null) {
+        $monthly = (int) floor($yearly / 12);
+      }
+      if ($yearly === null && $monthly !== null) {
+        $yearly = $monthly * 12;
+      }
+      $sabeel_amount = $monthly !== null ? $monthly : 0; // store monthly in amount for Mutawatteneen (just like Residential)
       $sabeel_yearly_amount = $yearly !== null ? $yearly : 0;
     }
     $result = $this->AdminM->addsabeelgrade(array(
@@ -4378,14 +4582,16 @@ HTML;
     $year = $this->input->post("sabeel_takhmeen_year");
     $establishment_grade = $this->input->post("establishment_grade");
     $residential_grade = $this->input->post("residential_grade");
+    $mutawatteneen_grade = $this->input->post("mutawatteneen_grade");
 
     $data = array(
       "user_id" => $user_id,
       "year" => $year,
       "establishment_grade" => $establishment_grade ?: null,
       "residential_grade" => $residential_grade ?: null,
+      "mutawatteneen_grade" => $mutawatteneen_grade ?: null,
     );
-    $hasAnyGrade = !empty($establishment_grade) || !empty($residential_grade);
+    $hasAnyGrade = !empty($establishment_grade) || !empty($residential_grade) || !empty($mutawatteneen_grade);
     if ($user_id && $year && $hasAnyGrade) {
       $result = $this->AdminM->addsabeeltakhmeenamount($data);
       if ($result) {
@@ -4398,7 +4604,7 @@ HTML;
       return;
     }
     // Missing required fields or no grade selected
-    $this->session->set_flashdata('warning', 'Please select at least one grade (Establishment or Residential).');
+    $this->session->set_flashdata('warning', 'Please select at least one grade (Establishment, Residential or Mutawatteneen).');
     redirect('admin/sabeeltakhmeendashboard');
   }
   public function checkSabeelTakhmeenExists()
@@ -4435,14 +4641,16 @@ HTML;
     $takhmeen_id = $this->input->post("takhmeen_id");
     $establishment_grade = $this->input->post("establishment_grade");
     $residential_grade = $this->input->post("residential_grade");
+    $mutawatteneen_grade = $this->input->post("mutawatteneen_grade");
 
     $data = array(
       "user_id" => $user_id,
       "takhmeen_id" => $takhmeen_id,
       "establishment_grade" => $establishment_grade ?: null,
       "residential_grade" => $residential_grade ?: null,
+      "mutawatteneen_grade" => $mutawatteneen_grade ?: null,
     );
-    $hasAnyGrade = !empty($establishment_grade) || !empty($residential_grade);
+    $hasAnyGrade = !empty($establishment_grade) || !empty($residential_grade) || !empty($mutawatteneen_grade);
     if ($user_id && $takhmeen_id && $hasAnyGrade) {
       $result = $this->AdminM->updatesabeeltakhmeen($data);
       if ($result) {

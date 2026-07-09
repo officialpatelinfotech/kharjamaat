@@ -434,16 +434,9 @@ class AnjumanM extends CI_Model
       }
     }
 
-    if ($miqaat_type === "Shehrullah" || $miqaat_type === "Ashara") {
-      return [
-        'miqaats'        => $normal_miqaats,
-        'Fala_ni_Niyaz'  => array_values($fala_grouped_by_year)
-      ];
-    }
-
     return [
-      'miqaats' => $normal_miqaats,
-      'Fala_ni_Niyaz' => $fala_ni_niyaz
+      'miqaats'        => $normal_miqaats,
+      'Fala_ni_Niyaz'  => array_values($fala_grouped_by_year)
     ];
   }
 
@@ -1402,10 +1395,10 @@ class AnjumanM extends CI_Model
           }
         }
         if ($effY === null && !empty($prow['miqaat_id']) && !empty($prow['miqaat_date'])) {
-          $effY = $getHijriYear($prow['miqaat_date']);
+          $effY = $deriveHijriYear($prow['miqaat_code'] ?? null, $prow['miqaat_date'] ?? null, $prow['invoice_date'] ?? null);
         }
         if ($effY === null && !empty($prow['invoice_date'])) {
-          $effY = $getHijriYear($prow['invoice_date']);
+          $effY = $deriveHijriYear($prow['miqaat_code'] ?? null, $prow['miqaat_date'] ?? null, $prow['invoice_date'] ?? null);
         }
         if (!empty($year) && (string)$effY !== (string)$year) {
           continue;
@@ -1449,10 +1442,10 @@ class AnjumanM extends CI_Model
           }
         }
         if ($effYear === null && !empty($row['miqaat_id']) && !empty($row['miqaat_date'])) {
-          $effYear = $getHijriYear($row['miqaat_date']);
+          $effYear = $deriveHijriYear($row['miqaat_code'] ?? null, $row['miqaat_date'] ?? null, $row['invoice_date'] ?? null);
         }
         if ($effYear === null && !empty($row['invoice_date'])) {
-          $effYear = $getHijriYear($row['invoice_date']);
+          $effYear = $deriveHijriYear($row['miqaat_code'] ?? null, $row['miqaat_date'] ?? null, $row['invoice_date'] ?? null);
         }
         if (!empty($year) && (string)$effYear !== (string)$year) {
           continue;
@@ -1944,6 +1937,10 @@ class AnjumanM extends CI_Model
     res_grade.grade AS residential_grade,
     COALESCE(res_grade.amount, 0) AS residential_amount,
     COALESCE(res_grade.yearly_amount, 0) AS residential_yearly_amount,
+
+    mut_grade.grade AS mutawatteneen_grade,
+    COALESCE(mut_grade.amount, 0) AS mutawatteneen_amount,
+    COALESCE(mut_grade.yearly_amount, 0) AS mutawatteneen_yearly_amount,
   ");
     $this->db->from("user u");
     $this->db->join("sabeel_takhmeen st", "st.user_id = u.ITS_ID", "left");
@@ -1959,6 +1956,13 @@ class AnjumanM extends CI_Model
       "res_grade.id = st.residential_grade 
          AND res_grade.type = 'residential' 
          AND res_grade.year = st.year",
+      "left"
+    );
+    $this->db->join(
+      "sabeel_takhmeen_grade mut_grade",
+      "mut_grade.id = st.mutawatteneen_grade 
+         AND mut_grade.type = 'mutawatteneen' 
+         AND mut_grade.year = st.year",
       "left"
     );
     // Removed direct join to payments because it duplicated each payment across all years
@@ -2060,6 +2064,8 @@ class AnjumanM extends CI_Model
         $est_amount = isset($row['establishment_amount']) ? (float)$row['establishment_amount'] : 0.0;
         $res_amount = isset($row['residential_amount']) ? (float)$row['residential_amount'] : 0.0;
         $res_yearly_amount = isset($row['residential_yearly_amount']) ? (float)$row['residential_yearly_amount'] : 0.0;
+        $mut_amount = isset($row['mutawatteneen_amount']) ? (float)$row['mutawatteneen_amount'] : 0.0;
+        $mut_yearly_amount = isset($row['mutawatteneen_yearly_amount']) ? (float)$row['mutawatteneen_yearly_amount'] : 0.0;
 
         $users[$itsId]['_takhmeens_index'][$takhmeenId] = [
           'id' => $takhmeenId,
@@ -2075,6 +2081,13 @@ class AnjumanM extends CI_Model
             'grade' => $row['residential_grade'],
             'monthly' => $res_amount,
             'yearly' => $res_yearly_amount,
+            'paid' => 0,
+            'due' => 0,
+          ],
+          'mutawatteneen' => [
+            'grade' => $row['mutawatteneen_grade'],
+            'monthly' => $mut_amount,
+            'yearly' => $mut_yearly_amount,
             'paid' => 0,
             'due' => 0,
           ]
@@ -2101,7 +2114,7 @@ class AnjumanM extends CI_Model
       $this->db->select('user_id, type, SUM(amount) AS total_amount');
       $this->db->from('sabeel_takhmeen_payments');
       $this->db->where_in('user_id', $userIds);
-      $this->db->where_in('type', ['establishment', 'residential']);
+      $this->db->where_in('type', ['establishment', 'residential', 'mutawatteneen']);
       $this->db->group_by(['user_id', 'type']);
       $paymentSums = $this->db->get()->result_array();
 
@@ -2109,14 +2122,15 @@ class AnjumanM extends CI_Model
       $payments = [];
       foreach ($paymentSums as $ps) {
         $uid = $ps['user_id'];
-        if (!isset($payments[$uid])) $payments[$uid] = ['establishment' => 0.0, 'residential' => 0.0];
+        if (!isset($payments[$uid])) $payments[$uid] = ['establishment' => 0.0, 'residential' => 0.0, 'mutawatteneen' => 0.0];
         $payments[$uid][$ps['type']] = (float)$ps['total_amount'];
       }
 
       // Allocate payments oldest -> newest year per type
       foreach ($users as $uid => &$uData) {
-        $estRemain = isset($payments[$uid]) ? $payments[$uid]['establishment'] : 0.0;
-        $resRemain = isset($payments[$uid]) ? $payments[$uid]['residential'] : 0.0;
+        $estRemain = isset($payments[$uid]['establishment']) ? $payments[$uid]['establishment'] : 0.0;
+        $resRemain = isset($payments[$uid]['residential']) ? $payments[$uid]['residential'] : 0.0;
+        $mutRemain = isset($payments[$uid]['mutawatteneen']) ? $payments[$uid]['mutawatteneen'] : 0.0;
         if (empty($uData['_takhmeens_index'])) continue;
 
         // Build year list for allocation (ascending for oldest-first, descending for current-first)
@@ -2142,6 +2156,15 @@ class AnjumanM extends CI_Model
           $yr['residential']['due']  = max(0, $yr['residential']['yearly'] - $allocRes);
           $resRemain -= $allocRes;
           if ($resRemain < 0) $resRemain = 0;
+
+          // Mutawatteneen allocation
+          $allocMut = min((isset($yr['mutawatteneen']['yearly']) ? $yr['mutawatteneen']['yearly'] : 0.0), $mutRemain);
+          if (isset($yr['mutawatteneen'])) {
+            $yr['mutawatteneen']['paid'] = $allocMut;
+            $yr['mutawatteneen']['due']  = max(0, $yr['mutawatteneen']['yearly'] - $allocMut);
+          }
+          $mutRemain -= $allocMut;
+          if ($mutRemain < 0) $mutRemain = 0;
 
           // Write back into main index (by id)
           $tid = $yr['id'];
@@ -2181,8 +2204,10 @@ class AnjumanM extends CI_Model
       // --- Aggregate totals across ALL years for convenience ---
       $totalEstYearly = 0;
       $totalResYearly = 0;
+      $totalMutYearly = 0;
       $totalEstPaid = 0;
       $totalResPaid = 0;
+      $totalMutPaid = 0;
       // Exclude upcoming/future takhmeen years from "All Yrs" aggregates.
       // A takhmeen is considered upcoming if its starting year (before '-') is greater than the
       // current financial takhmeen year computed earlier in this method ($takhmeen_year).
@@ -2201,20 +2226,26 @@ class AnjumanM extends CI_Model
         if ($include) {
           $totalEstYearly += (float)($tk['establishment']['yearly'] ?? 0);
           $totalResYearly += (float)($tk['residential']['yearly'] ?? 0);
+          $totalMutYearly += (float)($tk['mutawatteneen']['yearly'] ?? 0);
           $totalEstPaid += (float)($tk['establishment']['paid'] ?? 0);
           $totalResPaid += (float)($tk['residential']['paid'] ?? 0);
+          $totalMutPaid += (float)($tk['mutawatteneen']['paid'] ?? 0);
         }
       }
       $totalEstDue = max(0, $totalEstYearly - $totalEstPaid);
       $totalResDue = max(0, $totalResYearly - $totalResPaid);
-      $totalAllDue = $totalEstDue + $totalResDue;
+      $totalMutDue = max(0, $totalMutYearly - $totalMutPaid);
+      $totalAllDue = $totalEstDue + $totalResDue + $totalMutDue;
 
       $u['total_establishment_yearly'] = $totalEstYearly;
       $u['total_residential_yearly'] = $totalResYearly;
+      $u['total_mutawatteneen_yearly'] = $totalMutYearly;
       $u['total_paid_establishment'] = $totalEstPaid;
       $u['total_paid_residential'] = $totalResPaid;
+      $u['total_paid_mutawatteneen'] = $totalMutPaid;
       $u['total_establishment_due'] = $totalEstDue;
       $u['total_residential_due'] = $totalResDue;
+      $u['total_mutawatteneen_due'] = $totalMutDue;
       $u['total_due_all_years'] = $totalAllDue;
 
       // Also embed an aggregate block inside current_year_takhmeen for quick view access
@@ -2222,10 +2253,13 @@ class AnjumanM extends CI_Model
         $u['current_year_takhmeen']['aggregate'] = [
           'establishment_yearly_total' => $totalEstYearly,
           'residential_yearly_total' => $totalResYearly,
+          'mutawatteneen_yearly_total' => $totalMutYearly,
           'establishment_paid_total' => $totalEstPaid,
           'residential_paid_total' => $totalResPaid,
+          'mutawatteneen_paid_total' => $totalMutPaid,
           'establishment_due_total' => $totalEstDue,
           'residential_due_total' => $totalResDue,
+          'mutawatteneen_due_total' => $totalMutDue,
           'overall_due_total' => $totalAllDue,
         ];
       }

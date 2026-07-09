@@ -456,17 +456,51 @@ class Amilsaheb extends CI_Controller
 
     // Laagat & Rent dashboard total
     $this->load->model('LaagatRentM');
-    $lr_year = $sel_hijri_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446);
+    $max_lr_row = $this->db->query("SELECT MAX(hijri_year) AS y FROM laagat_rent")->row_array();
+    $max_lr_year = $max_lr_row && isset($max_lr_row['y']) ? $max_lr_row['y'] : null;
+    $lr_year = $sel_hijri_year ?: ($max_lr_year ?: ($data['year_daytype_stats']['hijri_year'] ?? 1446));
     $lr_year_query = (is_numeric($lr_year) && strlen((string)$lr_year) === 4) 
         ? (int)$lr_year . '-' . substr((string)((int)$lr_year + 1), -2) 
         : $lr_year;
     $lr_invoices = $this->LaagatRentM->get_invoices(['year' => $lr_year_query]);
-    $dashboard_laagat_rent_total = 0.0;
+
+    // Laagat dashboard total
+    $dashboard_laagat_total = 0.0;
+    $dashboard_laagat_paid = 0.0;
+    $dashboard_laagat_due = 0.0;
+
+    // Rent dashboard total
+    $dashboard_rent_total = 0.0;
+    $dashboard_rent_paid = 0.0;
+    $dashboard_rent_due = 0.0;
+
     foreach ($lr_invoices as $lrinv) {
-        $dashboard_laagat_rent_total += (float)($lrinv['master_amount'] ?? 0);
+        $ma = (float)($lrinv['master_amount'] ?? 0);
+        $pa = (float)($lrinv['paid_amount'] ?? 0);
+        $ct = strtolower(trim($lrinv['charge_type'] ?? ''));
+        if ($ct === 'rent') {
+            $dashboard_rent_total += $ma;
+            $dashboard_rent_paid += $pa;
+            $dashboard_rent_due += max(0.0, $ma - $pa);
+        } else {
+            // default to laagat if empty or explicitly 'laagat'
+            $dashboard_laagat_total += $ma;
+            $dashboard_laagat_paid += $pa;
+            $dashboard_laagat_due += max(0.0, $ma - $pa);
+        }
     }
-    $data['dashboard_laagat_rent_total'] = $dashboard_laagat_rent_total;
+
     $data['dashboard_laagat_rent_hijri_year'] = $lr_year_query;
+    $data['laagat_summary'] = [
+      'total' => $dashboard_laagat_total,
+      'received' => $dashboard_laagat_paid,
+      'due' => $dashboard_laagat_due
+    ];
+    $data['rent_summary'] = [
+      'total' => $dashboard_rent_total,
+      'received' => $dashboard_rent_paid,
+      'due' => $dashboard_rent_due
+    ];
 
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Home', $data);
@@ -589,7 +623,7 @@ class Amilsaheb extends CI_Controller
 
   private function get_sabeel_summary()
   {
-    $query = "SELECT SUM(est_grade.amount + COALESCE(res_grade.amount * 12, 0)) as total_sabeel, SUM(COALESCE(est_paid.total_paid, 0) + COALESCE(res_paid.total_paid, 0)) as total_paid FROM user u LEFT JOIN sabeel_takhmeen st ON st.user_id = u.ITS_ID AND st.year = (SELECT MAX(year) FROM sabeel_takhmeen WHERE user_id = u.ITS_ID) LEFT JOIN sabeel_takhmeen_grade est_grade ON est_grade.id = st.establishment_grade LEFT JOIN sabeel_takhmeen_grade res_grade ON res_grade.id = st.residential_grade LEFT JOIN (SELECT user_id, SUM(amount) as total_paid FROM sabeel_takhmeen_payments WHERE type = 'establishment' GROUP BY user_id) est_paid ON est_paid.user_id = u.ITS_ID LEFT JOIN (SELECT user_id, SUM(amount) as total_paid FROM sabeel_takhmeen_payments WHERE type = 'residential' GROUP BY user_id) res_paid ON res_paid.user_id = u.ITS_ID WHERE u.HOF_FM_TYPE = 'HOF' AND u.Inactive_Status IS NULL";
+    $query = "SELECT SUM(COALESCE(est_grade.amount,0) + COALESCE(res_grade.amount * 12, 0) + COALESCE(mut_grade.amount * 12, 0)) as total_sabeel, SUM(COALESCE(est_paid.total_paid, 0) + COALESCE(res_paid.total_paid, 0) + COALESCE(mut_paid.total_paid, 0)) as total_paid FROM user u LEFT JOIN sabeel_takhmeen st ON st.user_id = u.ITS_ID AND st.year = (SELECT MAX(year) FROM sabeel_takhmeen WHERE user_id = u.ITS_ID) LEFT JOIN sabeel_takhmeen_grade est_grade ON est_grade.id = st.establishment_grade LEFT JOIN sabeel_takhmeen_grade res_grade ON res_grade.id = st.residential_grade LEFT JOIN sabeel_takhmeen_grade mut_grade ON mut_grade.id = st.mutawatteneen_grade LEFT JOIN (SELECT user_id, SUM(amount) as total_paid FROM sabeel_takhmeen_payments WHERE type = 'establishment' GROUP BY user_id) est_paid ON est_paid.user_id = u.ITS_ID LEFT JOIN (SELECT user_id, SUM(amount) as total_paid FROM sabeel_takhmeen_payments WHERE type = 'residential' GROUP BY user_id) res_paid ON res_paid.user_id = u.ITS_ID LEFT JOIN (SELECT user_id, SUM(amount) as total_paid FROM sabeel_takhmeen_payments WHERE type = 'mutawatteneen' GROUP BY user_id) mut_paid ON mut_paid.user_id = u.ITS_ID WHERE u.HOF_FM_TYPE = 'HOF' AND u.Inactive_Status IS NULL";
     $result = $this->db->query($query)->row_array();
     $total = (float)($result['total_sabeel'] ?? 0); $paid = (float)($result['total_paid'] ?? 0);
     return ['total' => $total, 'paid' => $paid, 'outstanding' => max(0, $total - $paid)];
@@ -660,7 +694,7 @@ class Amilsaheb extends CI_Controller
 
   private function get_top_dues_sabeel($limit = 5)
   {
-    return $this->db->query("SELECT u.ITS_ID, u.Full_Name, GREATEST((COALESCE(est_grade.amount,0) + COALESCE(res_grade.amount*12,0)) - (COALESCE(est_paid.total_paid,0) + COALESCE(res_paid.total_paid,0)), 0) AS due FROM user u LEFT JOIN sabeel_takhmeen st ON st.user_id = u.ITS_ID AND st.year = (SELECT MAX(year) FROM sabeel_takhmeen WHERE user_id = u.ITS_ID) LEFT JOIN sabeel_takhmeen_grade est_grade ON est_grade.id = st.establishment_grade LEFT JOIN sabeel_takhmeen_grade res_grade ON res_grade.id = st.residential_grade LEFT JOIN (SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments WHERE type='establishment' GROUP BY user_id) est_paid ON est_paid.user_id = u.ITS_ID LEFT JOIN (SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments WHERE type='residential' GROUP BY user_id) res_paid ON res_paid.user_id = u.ITS_ID WHERE u.HOF_FM_TYPE = 'HOF' AND u.Inactive_Status IS NULL ORDER BY due DESC LIMIT " . (int)$limit)->result_array();
+    return $this->db->query("SELECT u.ITS_ID, u.Full_Name, GREATEST((COALESCE(est_grade.amount,0) + COALESCE(res_grade.amount*12,0) + COALESCE(mut_grade.amount*12,0)) - (COALESCE(est_paid.total_paid,0) + COALESCE(res_paid.total_paid,0) + COALESCE(mut_paid.total_paid,0)), 0) AS due FROM user u LEFT JOIN sabeel_takhmeen st ON st.user_id = u.ITS_ID AND st.year = (SELECT MAX(year) FROM sabeel_takhmeen WHERE user_id = u.ITS_ID) LEFT JOIN sabeel_takhmeen_grade est_grade ON est_grade.id = st.establishment_grade LEFT JOIN sabeel_takhmeen_grade res_grade ON res_grade.id = st.residential_grade LEFT JOIN sabeel_takhmeen_grade mut_grade ON mut_grade.id = st.mutawatteneen_grade LEFT JOIN (SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments WHERE type='establishment' GROUP BY user_id) est_paid ON est_paid.user_id = u.ITS_ID LEFT JOIN (SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments WHERE type='residential' GROUP BY user_id) res_paid ON res_paid.user_id = u.ITS_ID LEFT JOIN (SELECT user_id, SUM(amount) AS total_paid FROM sabeel_takhmeen_payments WHERE type='mutawatteneen' GROUP BY user_id) mut_paid ON mut_paid.user_id = u.ITS_ID WHERE u.HOF_FM_TYPE = 'HOF' AND u.Inactive_Status IS NULL ORDER BY due DESC LIMIT " . (int)$limit)->result_array();
   }
 
   private function get_top_dues_thaali($limit = 5)
@@ -708,7 +742,10 @@ class Amilsaheb extends CI_Controller
     foreach ($users as $u) {
       $s = trim($u['Sector'] ?? 'Unassigned'); if ($s==='') $s='Unassigned';
       $ct = $u['current_year_takhmeen'] ?? null; $ty = 0.0; $py = 0.0;
-      if ($ct) { $ty = (float)($ct['establishment']['yearly']+$ct['residential']['yearly']); $py = (float)($ct['establishment']['paid']+$ct['residential']['paid']); }
+      if ($ct) { 
+        $ty = (float)($ct['establishment']['yearly'] + $ct['residential']['yearly'] + ($ct['mutawatteneen']['yearly'] ?? 0)); 
+        $py = (float)($ct['establishment']['paid'] + $ct['residential']['paid'] + ($ct['mutawatteneen']['paid'] ?? 0)); 
+      }
       if (!isset($agg[$s])) $agg[$s] = ['sector'=>$s,'total_takhmeen'=>0.0,'total_paid'=>0.0,'members'=>0];
       $agg[$s]['total_takhmeen'] += $ty; $agg[$s]['total_paid'] += $py; if ($ty>0) $agg[$s]['members']++;
     }

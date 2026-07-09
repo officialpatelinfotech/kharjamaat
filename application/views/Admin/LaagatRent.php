@@ -1,13 +1,283 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
-<div class="container margintopcontainer pt-5">
-  <a href="<?php echo site_url('admin/laagat/manage'); ?>" class="btn btn-outline-secondary mb-3" aria-label="Back to Manage Laagat/Rent"><i class="fa-solid fa-arrow-left"></i></a>
-  <h4 class="heading text-center mb-4"><?php echo !empty($form['id']) ? 'Edit Laagat/Rent Form' : 'Create Laagat/Rent Form'; ?></h4>
+<?php
+$is_laagat = isset($module_type) && $module_type === 'laagat';
+$back_url = $is_laagat ? site_url('admin/laagat/manage') : site_url('admin/rent/manage');
+$page_title_prefix = !empty($form['id']) ? 'Edit' : 'Create';
+$page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
+?>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --gold:        #b8860b;
+    --gold-light:  #e6c84a;
+    --gold-muted:  #f5e9c0;
+    --gold-deep:   #8a6408;
+    --bg:          #faf7f0;
+    --surface:     #ffffff;
+    --surface-2:   #f7f4ec;
+    --border:      #e8e0cc;
+    --text-1:      #1a1610;
+    --text-2:      #5a5244;
+    --text-3:      #9c8f7a;
+    --green:       #10b981;
+    --green-bg:    #ecfdf5;
+    --green-border:#bbf7d0;
+    --red:         #ef4444;
+    --red-bg:      #fef2f2;
+    --red-border:  #fecaca;
+    --blue:        #3b82f6;
+    --blue-bg:     #eff6ff;
+    --blue-border: #bfdbfe;
+    --amber:       #f59e0b;
+    --amber-bg:    #fffbeb;
+    --amber-border:#fde68a;
+    --radius-sm:   8px;
+    --radius:      12px;
+    --radius-lg:   16px;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.05);
+    --shadow:      0 4px 16px rgba(184,134,11,0.06);
+    --shadow-lg:   0 10px 30px rgba(184,134,11,0.12);
+  }
+
+  .page-wrap {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    color: var(--text-1);
+  }
+
+  /* Page Header / Back Button */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .btn-back-elegant {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px !important;
+    border: 1.5px solid var(--border) !important;
+    background: var(--surface) !important;
+    color: var(--text-2) !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: all .2s !important;
+    text-decoration: none !important;
+    padding: 0 !important;
+  }
+  .btn-back-elegant:hover {
+    background: var(--gold-muted) !important;
+    border-color: var(--gold) !important;
+    color: var(--gold-deep) !important;
+    transform: translateX(-3px) !important;
+  }
+  .page-title {
+    font-family: 'Literata', Georgia, serif !important;
+    color: var(--gold-deep) !important;
+    font-size: 1.8rem !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    letter-spacing: -.5px !important;
+  }
+
+  /* Form Card Wrapper */
+  .form-card {
+    background: var(--surface) !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow) !important;
+    margin-bottom: 30px !important;
+  }
+  .form-card .card-body {
+    padding: 30px !important;
+  }
+
+  /* Inputs & Labels */
+  .form-label {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: .5px !important;
+    text-transform: uppercase !important;
+    color: var(--text-2) !important;
+    margin-bottom: 6px !important;
+    display: block !important;
+  }
+  .form-control, .custom-select {
+    height: 44px !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.92rem !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-weight: 600 !important;
+    color: var(--text-2) !important;
+  }
+  .form-control:focus, .custom-select:focus {
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 0 3px rgba(184,134,11,0.12) !important;
+    outline: none !important;
+  }
+  select.custom-select {
+    padding-right: 32px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23b8860b' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-position: right 14px center !important;
+    background-repeat: no-repeat !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  /* Sub Section Headers */
+  .section-subtitle {
+    font-family: 'Literata', Georgia, serif !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    color: var(--gold-deep) !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Sabeel / Non-Sabeel Card Box */
+  .holder-card {
+    background: var(--surface-2) !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    padding: 24px !important;
+    height: 100%;
+  }
+
+  /* Raza badges */
+  .lr-raza-badge {
+    background-color: var(--gold-muted) !important;
+    color: var(--gold-deep) !important;
+    border: 1.5px solid var(--gold) !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-right: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  .lr-raza-remove {
+    background: transparent !important;
+    border: none !important;
+    color: var(--gold-deep) !important;
+    font-size: 1.1rem !important;
+    opacity: 1 !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .lr-raza-remove:hover {
+    color: var(--red) !important;
+  }
+
+  /* Table styling */
+  .premium-table {
+    margin-bottom: 0 !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    overflow: hidden;
+  }
+  .premium-table thead th {
+    background: var(--surface-2) !important;
+    border-bottom: 1.5px solid var(--border) !important;
+    color: var(--text-2) !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    padding: 12px 16px !important;
+    vertical-align: middle !important;
+  }
+  .premium-table tbody td {
+    padding: 12px 16px !important;
+    border-bottom: 1px solid var(--border) !important;
+    color: var(--text-2) !important;
+    font-size: 0.85rem !important;
+    vertical-align: middle !important;
+  }
+  .premium-table tbody tr:last-child td {
+    border-bottom: none !important;
+  }
+  
+  .grade-input-wrapper {
+    max-width: 140px;
+  }
+  .grade-input-wrapper .form-control {
+    height: 38px !important;
+    text-align: right;
+    font-weight: 600;
+  }
+
+  /* Save / Cancel buttons */
+  .btn-save-lr {
+    background: linear-gradient(135deg, var(--gold), var(--gold-deep)) !important;
+    border: none !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    padding: 10px 28px !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 2px 8px rgba(184,134,11,0.2) !important;
+    transition: all .2s !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.88rem !important;
+    height: 44px !important;
+  }
+  .btn-save-lr:hover {
+    background: linear-gradient(135deg, var(--gold-deep), #6b4d06) !important;
+    color: #fff !important;
+  }
+  .btn-cancel-lr {
+    border: 1.5px solid var(--border) !important;
+    background: var(--surface) !important;
+    color: var(--text-2) !important;
+    font-weight: 700 !important;
+    padding: 10px 28px !important;
+    border-radius: var(--radius-sm) !important;
+    transition: all .2s !important;
+    font-size: 0.88rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    height: 44px !important;
+  }
+  .btn-cancel-lr:hover {
+    background: var(--surface-2) !important;
+    color: var(--text-1) !important;
+    text-decoration: none !important;
+  }
+</style>
+
+<div class="container margintopcontainer pt-5 pb-5 page-wrap">
+  
+  <!-- Header -->
+  <div class="page-header">
+    <a href="<?php echo $back_url; ?>" class="btn-back-elegant" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></a>
+    <h1 class="page-title"><?php echo $page_title; ?></h1>
+    <div style="width: 42px;"></div>
+  </div>
 
   <?php if (!empty($flash_success)) : ?>
-    <div class="alert alert-success" role="alert"><?php echo htmlspecialchars($flash_success); ?></div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <?php echo htmlspecialchars($flash_success); ?>
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
   <?php endif; ?>
   <?php if (!empty($flash_error)) : ?>
-    <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($flash_error); ?></div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <?php echo htmlspecialchars($flash_error); ?>
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
     <script>
       (function() {
         var msg = <?php echo json_encode((string)$flash_error); ?>;
@@ -22,7 +292,7 @@
 
   <div class="row justify-content-center">
     <div class="col-12 col-md-10 col-lg-8">
-      <div class="card shadow-sm">
+      <div class="card form-card">
         <div class="card-body">
 
       <form method="post" action="<?php echo site_url('admin/laagat_save'); ?>">
@@ -71,15 +341,7 @@
           </select>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label" for="lr_charge_type">Charge Type</label>
-          <select class="custom-select" id="lr_charge_type" name="charge_type" required>
-            <option value="">Select Charge Type</option>
-            <?php $ct = isset($form['charge_type']) ? (string)$form['charge_type'] : ''; ?>
-            <option value="laagat" <?php echo ($ct === 'laagat') ? 'selected' : ''; ?>>Laagat (Non-Event Raza - Umoor Raza)</option>
-            <option value="rent" <?php echo ($ct === 'rent') ? 'selected' : ''; ?>>Rent (Kaaraj Raza - Private Event Raza)</option>
-          </select>
-        </div>
+        <input type="hidden" id="lr_charge_type" name="charge_type" value="<?php echo htmlspecialchars($module_type); ?>" />
 
         <div class="mb-3" id="lr_venue_section" style="display: none;">
           <label class="form-label" for="lr_venue">Venue Selection</label>
@@ -132,77 +394,81 @@
           
         </div>
 
-        <div class="row mb-3" id="lr_rent_details_section" style="display: none;">
-          <div class="col-12 col-md-6 border-right">
-            <h6 class="font-weight-bold text-primary mb-3">Khar Sabeel Holders</h6>
-            <div class="mb-3">
-              <label class="form-label" for="lr_rent_sabeel">Rent</label>
-              <input
-                type="number"
-                class="form-control"
-                id="lr_rent_sabeel"
-                name="rent_sabeel"
-                min="0"
-                step="0.01"
-                value="<?php echo htmlspecialchars(isset($form['rent_sabeel']) ? (string)$form['rent_sabeel'] : ''); ?>"
-                placeholder="0.00"
-              />
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="lr_deposit_sabeel">Deposit</label>
-              <input
-                type="number"
-                class="form-control"
-                id="lr_deposit_sabeel"
-                name="deposit_sabeel"
-                min="0"
-                step="0.01"
-                value="<?php echo htmlspecialchars(isset($form['deposit_sabeel']) ? (string)$form['deposit_sabeel'] : ''); ?>"
-                placeholder="0.00"
-              />
+        <div class="row mb-4" id="lr_rent_details_section" style="display: none;">
+          <div class="col-12 col-md-6 mb-3 mb-md-0">
+            <div class="holder-card">
+              <h6 class="section-subtitle">Khar Sabeel Holders</h6>
+              <div class="mb-3">
+                <label class="form-label" for="lr_rent_sabeel">Rent</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="lr_rent_sabeel"
+                  name="rent_sabeel"
+                  min="0"
+                  step="0.01"
+                  value="<?php echo htmlspecialchars(isset($form['rent_sabeel']) ? (string)$form['rent_sabeel'] : ''); ?>"
+                  placeholder="0.00"
+                />
+              </div>
+              <div class="mb-0">
+                <label class="form-label" for="lr_deposit_sabeel">Deposit</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="lr_deposit_sabeel"
+                  name="deposit_sabeel"
+                  min="0"
+                  step="0.01"
+                  value="<?php echo htmlspecialchars(isset($form['deposit_sabeel']) ? (string)$form['deposit_sabeel'] : ''); ?>"
+                  placeholder="0.00"
+                />
+              </div>
             </div>
           </div>
           <div class="col-12 col-md-6">
-            <h6 class="font-weight-bold text-secondary mb-3">Non Khar Sabeel Holders</h6>
-            <div class="mb-3">
-              <label class="form-label" for="lr_rent_non_sabeel">Rent</label>
-              <input
-                type="number"
-                class="form-control"
-                id="lr_rent_non_sabeel"
-                name="rent_non_sabeel"
-                min="0"
-                step="0.01"
-                value="<?php echo htmlspecialchars(isset($form['rent_non_sabeel']) ? (string)$form['rent_non_sabeel'] : ''); ?>"
-                placeholder="0.00"
-              />
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="lr_deposit_non_sabeel">Deposit</label>
-              <input
-                type="number"
-                class="form-control"
-                id="lr_deposit_non_sabeel"
-                name="deposit_non_sabeel"
-                min="0"
-                step="0.01"
-                value="<?php echo htmlspecialchars(isset($form['deposit_non_sabeel']) ? (string)$form['deposit_non_sabeel'] : ''); ?>"
-                placeholder="0.00"
-              />
+            <div class="holder-card">
+              <h6 class="section-subtitle text-secondary">Non Khar Sabeel Holders</h6>
+              <div class="mb-3">
+                <label class="form-label" for="lr_rent_non_sabeel">Rent</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="lr_rent_non_sabeel"
+                  name="rent_non_sabeel"
+                  min="0"
+                  step="0.01"
+                  value="<?php echo htmlspecialchars(isset($form['rent_non_sabeel']) ? (string)$form['rent_non_sabeel'] : ''); ?>"
+                  placeholder="0.00"
+                />
+              </div>
+              <div class="mb-0">
+                <label class="form-label" for="lr_deposit_non_sabeel">Deposit</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="lr_deposit_non_sabeel"
+                  name="deposit_non_sabeel"
+                  min="0"
+                  step="0.01"
+                  value="<?php echo htmlspecialchars(isset($form['deposit_non_sabeel']) ? (string)$form['deposit_non_sabeel'] : ''); ?>"
+                  placeholder="0.00"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div id="lr_grade_amounts_section" class="mb-3" style="display: none;">
+        <div id="lr_grade_amounts_section" class="mb-4" style="display: none;">
           <label class="form-label font-weight-bold">Grade-based Amounts (Residential)</label>
           <div class="table-responsive">
-            <table class="table table-bordered table-striped bg-white shadow-sm">
-              <thead class="thead-light">
+            <table class="table premium-table table-hover align-middle">
+              <thead>
                 <tr>
                   <th scope="col" style="width: 40%;">Grade</th>
-                  <th scope="col" style="width: 20%;">Jmt. Laagat</th>
-                  <th scope="col" style="width: 20%;">Sar. Laagat</th>
-                  <th scope="col" style="width: 20%;">Total Amount</th>
+                  <th scope="col" class="text-right" style="width: 20%;">Jmt. Laagat</th>
+                  <th scope="col" class="text-right" style="width: 20%;">Sar. Laagat</th>
+                  <th scope="col" class="text-right" style="width: 20%;">Total Amount</th>
                 </tr>
               </thead>
               <tbody id="lr_grade_amounts_tbody">
@@ -211,10 +477,12 @@
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">Save</button>
-        <?php if (!empty($form['id'])) : ?>
-          <a class="btn btn-outline-secondary ml-2" href="<?php echo site_url('admin/laagat/manage'); ?>">Cancel</a>
-        <?php endif; ?>
+        <div class="d-flex align-items-center mt-4" style="gap: 10px;">
+          <button type="submit" class="btn-save-lr">Save Form</button>
+          <?php if (!empty($form['id'])) : ?>
+            <a class="btn-cancel-lr" href="<?php echo $back_url; ?>">Cancel</a>
+          <?php endif; ?>
+        </div>
       </form>
         </div>
       </div>
