@@ -12,6 +12,29 @@ class Accounts extends CI_Controller
     $this->load->model('HijriCalendar');
     $this->load->library('email', $this->config->item('email'));
     $this->load->helper('file');
+
+    // Ensure session user_data is always a safe array with expected keys in PHP 8+
+    if (!empty($_SESSION['user'])) {
+      if (!isset($_SESSION['user_data']) || !is_array($_SESSION['user_data'])) {
+        $u = $this->AccountM->get_user($_SESSION['user']['username']);
+        $_SESSION['user_data'] = !empty($u) ? $u[0] : [];
+      }
+      if (!is_array($_SESSION['user_data'])) {
+        $_SESSION['user_data'] = [];
+      }
+      $defaults = [
+        'ITS_ID' => $_SESSION['user']['username'] ?? '',
+        'First_Name' => '',
+        'Surname' => '',
+        'Sector' => '',
+        'HOF_ID' => $_SESSION['user']['username'] ?? 0,
+      ];
+      foreach ($defaults as $key => $defaultVal) {
+        if (!isset($_SESSION['user_data'][$key]) || $_SESSION['user_data'][$key] === null) {
+          $_SESSION['user_data'][$key] = $defaultVal;
+        }
+      }
+    }
   }
   public function index()
   {
@@ -33,6 +56,7 @@ class Accounts extends CI_Controller
     }
     if (!empty($_SESSION['login_status'])) {
       $data['status'] = $_SESSION['login_status'];
+      unset($_SESSION['login_status']);
       $this->load->view('Home/Header');
       $this->load->view('Accounts/Login', $data);
     } else {
@@ -45,8 +69,19 @@ class Accounts extends CI_Controller
     if (!empty($_SESSION['user'])) {
       redirect('/accounts');
     }
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+
+    if ($this->input->method() !== 'post') {
+      redirect('/accounts');
+    }
+
+    $username = $this->input->post('username');
+    $password = $this->input->post('password');
+
+    if (empty($username) || empty($password)) {
+      $_SESSION['login_status'] = true;
+      redirect('/accounts');
+    }
+
     $check = $this->AccountM->check_user($username, md5($password));
 
     $_SESSION['login_status'] = null;
@@ -57,7 +92,7 @@ class Accounts extends CI_Controller
       if (!empty($user)) {
         $_SESSION['user_data'] = $user[0];
       } else {
-        $_SESSION['user_data'] = "";
+        $_SESSION['user_data'] = [];
       }
 
       // Log login tracking data
@@ -120,7 +155,7 @@ class Accounts extends CI_Controller
       }
     } else {
       $_SESSION['login_status'] = true;
-      redirect(base_url('/accounts/logout'));
+      redirect('/accounts');
     }
   }
   public function register()
@@ -4274,8 +4309,12 @@ class Accounts extends CI_Controller
   }
   public function redirect()
   {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $username = $this->input->post('username');
+    $password = $this->input->post('password');
+    if (empty($username) || empty($password)) {
+      $_SESSION['login_status'] = true;
+      redirect('/accounts');
+    }
     $check = $this->AccountM->check_user($username, md5($password));
 
     $_SESSION['login_status'] = null;
@@ -4285,11 +4324,13 @@ class Accounts extends CI_Controller
       $_SESSION['user'] = $check[0];
       if (!empty($user)) {
         $_SESSION['user_data'] = $user[0];
+      } else {
+        $_SESSION['user_data'] = [];
       }
       redirect($_SESSION['redirect_to_url']);
     } else {
       $_SESSION['login_status'] = true;
-      redirect(base_url('/accounts/logout'));
+      redirect('/accounts');
     }
   }
   public function profile()
