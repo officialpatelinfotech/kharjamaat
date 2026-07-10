@@ -101,7 +101,10 @@ if (php_sapi_name() === 'cli' || defined('STDIN')) {
     $hostOnly = explode(':', $hostOnly, 2)[0];
   }
 
-  if ($hostOnly === 'localhost' || $hostOnly === '127.0.0.1' || $hostOnly === '::1') {
+  $isLocalMamp = (isset($_SERVER['DOCUMENT_ROOT']) && strpos($_SERVER['DOCUMENT_ROOT'], '/Applications/MAMP/') !== false)
+                 || (isset($_SERVER['SERVER_ADDR']) && ($_SERVER['SERVER_ADDR'] === '127.0.0.1' || $_SERVER['SERVER_ADDR'] === '::1'));
+
+  if ($hostOnly === 'localhost' || $hostOnly === '127.0.0.1' || $hostOnly === '::1' || $isLocalMamp) {
     define('ENVIRONMENT', 'development');
   } else {
     define('ENVIRONMENT', 'production');

@@ -36,6 +36,37 @@ class Accounts extends CI_Controller
       }
     }
   }
+  public function test_home()
+  {
+    $_SESSION['user'] = [
+      'id' => 1,
+      'username' => '20431815',
+      'password' => 'f972feb5fc0509f6faca4b591c929fcd',
+      'role' => 0,
+      'hof' => '20431815',
+      'active' => 1
+    ];
+    $u = $this->AccountM->get_user('20431815');
+    $_SESSION['user_data'] = !empty($u) ? $u[0] : [];
+    $defaults = [
+      'ITS_ID' => $_SESSION['user']['username'] ?? '',
+      'First_Name' => '',
+      'Surname' => '',
+      'Sector' => '',
+      'HOF_ID' => $_SESSION['user']['username'] ?? 0,
+    ];
+    foreach ($defaults as $key => $defaultVal) {
+      if (!isset($_SESSION['user_data'][$key]) || $_SESSION['user_data'][$key] === null) {
+        $_SESSION['user_data'][$key] = $defaultVal;
+      }
+    }
+
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+    $this->db->db_debug = TRUE;
+
+    $this->home();
+  }
   public function index()
   {
     if (!empty($_SESSION['user'])) {
