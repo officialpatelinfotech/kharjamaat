@@ -690,10 +690,21 @@ abstract class CI_DB_driver {
 				}
 
 				// Display errors
-				return $this->display_error(array('Error Number: '.$error['code'], $error['message'], $sql));
-			}
+			return $this->display_error(array('Error Number: '.$error['code'], $error['message'], $sql));
+		}
 
-			return FALSE;
+		if ($return_object !== FALSE) {
+			return new class {
+				public function result() { return array(); }
+				public function result_array() { return array(); }
+				public function row() { return null; }
+				public function row_array() { return array(); }
+				public function num_rows() { return 0; }
+				public function free_result() {}
+			};
+		}
+
+		return FALSE;
 		}
 
 		// Stop and aggregate the query time results
