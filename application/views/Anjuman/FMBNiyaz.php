@@ -247,8 +247,7 @@
     <div class="anj-header">
       <div class="anj-header-inner">
         <div class="anj-title-group">
-          <p class="anj-eyebrow">Fizalat Mawamil al-Burhaniyah</p>
-          <h1 class="anj-title">FMB Niyaz</h1>
+          <h1 class="anj-title">Miqaat Niyaz</h1>
         </div>
       </div>
     </div>

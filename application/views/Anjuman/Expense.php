@@ -2,9 +2,7 @@
 
 $expenses = isset($expenses) && is_array($expenses) ? $expenses : [];
 $filters = isset($filters) && is_array($filters) ? $filters : [];
-$sof_options = isset($sof_options) && is_array($sof_options) ? $sof_options : [];
 $hijri_year_options = isset($hijri_year_options) && is_array($hijri_year_options) ? $hijri_year_options : [];
-$sources = isset($sources) && is_array($sources) ? $sources : [];
 $current_hijri_year_for_expense = isset($current_hijri_year_for_expense) ? (int)$current_hijri_year_for_expense : (isset($filters['hijri_year']) ? (int)$filters['hijri_year'] : null);
 $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
 ?>
@@ -45,7 +43,7 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
     <div class="card filter-card mb-4">
       <div class="card-body">
         <h6 class="font-weight-bold mb-3 font-title">Search & Filter</h6>
-        <form class="mb-0" method="get" action="<?= current_url(); ?>">
+        <form id="filterForm" class="mb-0" method="get" action="<?= current_url(); ?>">
           <div class="form-row">
             <div class="form-group col-12 col-md-3">
               <label for="filterItem" class="mb-1 font-weight-bold small">Expense Section</label>
@@ -53,27 +51,24 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
             </div>
 
             <div class="form-group col-12 col-md-3">
-              <label for="filterSof" class="mb-1 font-weight-bold small">SOF (Source of Funds)</label>
-              <select id="filterSof" name="sof" class="form-control form-control-sm">
+              <label for="filterPaymentMode" class="mb-1 font-weight-bold small">Payment Mode</label>
+              <select id="filterPaymentMode" name="payment_mode" class="form-control form-control-sm">
                 <option value="">All</option>
-                <?php foreach ($sof_options as $opt): ?>
-                  <?php
-                    $id = isset($opt['id']) ? (int)$opt['id'] : 0;
-                    $name = isset($opt['name']) ? (string)$opt['name'] : '';
-                    $selected = (isset($filters['sof']) && (int)$filters['sof'] === $id) ? 'selected' : '';
-                  ?>
-                  <option value="<?= $id; ?>" <?= $selected; ?>><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
-                <?php endforeach; ?>
+                <option value="Cash" <?= (isset($filters['payment_mode']) && $filters['payment_mode'] === 'Cash') ? 'selected' : ''; ?>>Cash</option>
+                <option value="Cheque" <?= (isset($filters['payment_mode']) && $filters['payment_mode'] === 'Cheque') ? 'selected' : ''; ?>>Cheque</option>
+                <option value="Bank Transfer" <?= (isset($filters['payment_mode']) && $filters['payment_mode'] === 'Bank Transfer') ? 'selected' : ''; ?>>Bank Transfer</option>
+                <option value="Online" <?= (isset($filters['payment_mode']) && $filters['payment_mode'] === 'Online') ? 'selected' : ''; ?>>Online</option>
+                <option value="Other" <?= (isset($filters['payment_mode']) && $filters['payment_mode'] === 'Other') ? 'selected' : ''; ?>>Other</option>
               </select>
             </div>
 
             <div class="form-group col-12 col-md-2">
-              <label for="filterHijriYear" class="mb-1 font-weight-bold small">Hijri Year</label>
+              <label for="filterHijriYear" class="mb-1 font-weight-bold small">Financial Hijri Year</label>
               <select id="filterHijriYear" name="hijri_year" class="form-control form-control-sm">
                 <option value="">All</option>
                 <?php for ($yrInt = 1442; $yrInt <= 1457; $yrInt++): ?>
                   <?php $selected = (isset($filters['hijri_year']) && (int)$filters['hijri_year'] === $yrInt) ? 'selected' : ''; ?>
-                  <option value="<?= $yrInt; ?>" <?= $selected; ?>><?= $yrInt; ?></option>
+                  <option value="<?= $yrInt; ?>" <?= $selected; ?>><?= $yrInt . '-' . substr((string)($yrInt + 1), -2); ?></option>
                 <?php endfor; ?>
               </select>
             </div>
@@ -112,8 +107,8 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
                 <th class="sortable" data-type="string">Sub Sector</th>
                 <th class="sortable" data-type="string">Expense Section</th>
                 <th class="sortable text-right" data-type="number" style="width: 120px;">Amount</th>
-                <th class="sortable" data-type="string" style="width: 150px;">SOF</th>
-                <th class="sortable text-center" data-type="number" style="width: 100px;">Hijri Year</th>
+                <th class="sortable" data-type="string" style="width: 130px;">Payment Mode</th>
+                <th class="sortable text-center" data-type="number" style="width: 100px;">Financial Hijri Year</th>
                 <th style="width: 140px;">Action</th>
               </tr>
             </thead>
@@ -136,9 +131,9 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
                     $item_display = $item_code !== '' ? "{$item_code} - {$item_name}" : $item_name;
 
                     $amount = isset($row['amount']) ? (float)$row['amount'] : 0.0;
-                    $sofName = isset($row['source_name']) ? $row['source_name'] : '';
                     $hijriYear = isset($row['hijri_year']) ? (int)$row['hijri_year'] : null;
                     $id = isset($row['id']) ? (int)$row['id'] : 0;
+                    $hijriYearDisplay = $hijriYear ? $hijriYear . '-' . substr((string)($hijriYear + 1), -2) : '';
                   ?>
                   <tr>
                     <td data-sort-value="<?= htmlspecialchars($date_raw, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -146,8 +141,8 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
                     <td title="<?= htmlspecialchars($sub_sector_display, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($sub_sector_display, ENT_QUOTES, 'UTF-8'); ?></td>
                     <td title="<?= htmlspecialchars($item_display, ENT_QUOTES, 'UTF-8'); ?>" class="font-weight-semibold" style="color: #78520a;"><?= htmlspecialchars($item_display, ENT_QUOTES, 'UTF-8'); ?></td>
                     <td class="text-right font-weight-bold" data-sort-value="<?= htmlspecialchars((string)$amount, ENT_QUOTES, 'UTF-8'); ?>">₹<?= number_format($amount, 0); ?></td>
-                    <td title="<?= htmlspecialchars($sofName, ENT_QUOTES, 'UTF-8'); ?>"><?= htmlspecialchars($sofName, ENT_QUOTES, 'UTF-8'); ?></td>
-                    <td class="text-center" data-sort-value="<?= $hijriYear ? (int)$hijriYear : ''; ?>"><?= $hijriYear ? (int)$hijriYear : ''; ?></td>
+                    <td><?= htmlspecialchars($row['payment_mode'] ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                    <td class="text-center" data-sort-value="<?= $hijriYear ? (int)$hijriYear : ''; ?>"><?= htmlspecialchars($hijriYearDisplay, ENT_QUOTES, 'UTF-8'); ?></td>
                     <td class="text-center">
                       <?php if ($id > 0): ?>
                         <div class="d-flex justify-content-center align-items-center" style="gap: 6px;">
@@ -229,6 +224,17 @@ $expense_total = isset($expense_total) ? (float)$expense_total : 0.0;
         asc = !asc;
       });
     });
+
+    // Auto-submit filter form on selection/change
+    var filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+      var inputs = filterForm.querySelectorAll('select, input[type="date"], input[type="text"]');
+      Array.prototype.forEach.call(inputs, function(input) {
+        input.addEventListener('change', function() {
+          filterForm.submit();
+        });
+      });
+    }
   });
 </script>
 

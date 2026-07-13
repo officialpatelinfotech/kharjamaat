@@ -120,7 +120,7 @@
   transition: background .14s, color .14s;
 }
 #anjApp .menu-item:hover .menu-icon { background: var(--gold-muted); color: var(--gold); }
-#anjApp .menu-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#anjApp .menu-label { flex: 1; white-space: normal; word-break: break-word; }
 
 /* ── Mobile toolbar ── */
 #anjApp .mob-bar {
@@ -439,6 +439,7 @@ if (!function_exists('format_inr')) {
         <li><a class="menu-item" href="<?php echo base_url('anjuman/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('common/bulk_thaali_signup?from=anjuman') ?>"><span class="menu-icon"><i class="fa-solid fa-list-check"></i></span><span class="menu-label">Bulk Thaali Sign-up</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/thaali_signups_breakdown?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-bar-chart"></i></span><span class="menu-label">FMB Thaali Signups</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbthaalimenu?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">Add FMB Menu</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/managemiqaat?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-plus-circle"></i></span><span class="menu-label">Create Miqaat</span></a></li>
@@ -448,7 +449,8 @@ if (!function_exists('format_inr')) {
 
       <div class="menu-section">Finance</div>
       <ul class="menu-list">
-        <li><a class="menu-item" href="<?php echo base_url('anjuman/fmbmodule') ?>"><span class="menu-icon"><i class="fa fa-money"></i></span><span class="menu-label">Niyaz & FMB Funds</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('anjuman/fmbthaali') ?>"><span class="menu-icon"><i class="fa fa-money"></i></span><span class="menu-label">FMB Thaali Funds</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('anjuman/fmbniyaz') ?>"><span class="menu-icon"><i class="fa fa-money"></i></span><span class="menu-label">Miqaat Niyaz Funds</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/sabeeltakhmeendashboard') ?>"><span class="menu-icon"><i class="fa fa-credit-card"></i></span><span class="menu-label">Sabeel Funds</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/qardanhasana') ?>"><span class="menu-icon"><i class="fa fa-leaf"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
         <li><a class="menu-item" href="<?= base_url('anjuman/corpusfunds_receive') ?>"><span class="menu-icon"><i class="fa fa-university"></i></span><span class="menu-label">Corpus Funds</span></a></li>

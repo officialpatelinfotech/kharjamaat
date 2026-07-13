@@ -87,7 +87,7 @@
     transition: background .14s, color .14s;
   }
   #muminApp .menu-item:hover .menu-icon { background: var(--gold-muted); color: var(--gold); }
-  #muminApp .menu-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #muminApp .menu-label { flex: 1; white-space: normal; word-break: break-word; }
 
   #muminApp .menu-item .count-badge {
     background: var(--red); color: #fff; padding: 1px 5px;
@@ -303,7 +303,7 @@
           <li>
             <a class="menu-item" href="<?php echo base_url('accounts/assigned_miqaats') ?>">
               <span class="menu-icon" style="background:#eaf4ee; color:#1a6645;"><i class="fa fa-calendar-check-o"></i></span>
-              <span class="menu-label">Miqaat Public Raza</span>
+              <span class="menu-label">Miqaat Public Event Raza</span>
               <?php if (isset($assigned_miqaats_count) && (int)$assigned_miqaats_count > 0): ?>
                 <span class="count-badge"><?php echo $assigned_miqaats_count; ?></span>
               <?php endif; ?>
@@ -312,7 +312,7 @@
           <li>
             <a class="menu-item" href="<?= base_url('Umoor12/MyRazaRequest?value=Private-Event') ?>">
               <span class="menu-icon" style="background:#eaf4ee; color:#1a6645;"><i class="fa fa-calendar-plus"></i></span>
-              <span class="menu-label">Kaaraj Private Raza</span>
+              <span class="menu-label">Kaaraj Private Event Raza & Hall Booking</span>
             </a>
           </li>
           <li>
@@ -334,8 +334,15 @@
           <li>
             <a class="menu-item" href="<?php echo base_url('accounts/viewfmbtakhmeen') ?>">
               <span class="menu-icon" style="background:#fef2f2; color:#b91c1c;"><i class="fa fa-cutlery"></i></span>
-              <span class="menu-label">FMB Due</span>
+              <span class="menu-label">FMB Takhmeen</span>
               <?php if (!empty($fmb_due_badge)): ?><span class="count-badge">Due</span><?php endif; ?>
+            </a>
+          </li>
+          <li>
+            <a class="menu-item" href="<?php echo base_url('accounts/fmb_contributions') ?>">
+              <span class="menu-icon" style="background:#fef2f2; color:#d97706;"><i class="fa fa-gift"></i></span>
+              <span class="menu-label">FMB Contributions</span>
+              <?php if (!empty($fmb_extra_due_badge)): ?><span class="count-badge">Due</span><?php endif; ?>
             </a>
           </li>
           <li>
@@ -374,6 +381,13 @@
               <span class="menu-icon" style="background:#eff6ff; color:#1d4ed8;"><i class="fa fa-money"></i></span>
               <span class="menu-label">Sabeel Due</span>
               <?php if (isset($sabeel_takhmeen_details["total_due"]) && (int)$sabeel_takhmeen_details["total_due"] > 0): ?><span class="count-badge">Due</span><?php endif; ?>
+            </a>
+          </li>
+          <li>
+            <a class="menu-item" href="<?php echo base_url('accounts/miqaat_invoices') ?>">
+              <span class="menu-icon" style="background:#fffbeb; color:#d97706;"><i class="fa fa-calendar"></i></span>
+              <span class="menu-label">Miqaat Niyaz Invoices</span>
+              <?php if (isset($miqaat_invoice_due_badge) && $miqaat_invoice_due_badge): ?><span class="count-badge">Due</span><?php endif; ?>
             </a>
           </li>
           <li>
@@ -483,11 +497,11 @@
       <!-- ── Dashboard Cards Grid ── -->
       <div class="row mt-4">
 
-        <!-- FMB Dues -->
+        <!-- FMB Takhmeen -->
         <div class="col-12 col-md-6 p-2">
           <div class="dash-card h-100">
             <div class="dash-card-header">
-              <span class="card-title"><i class="fa fa-cutlery"></i> FMB Dues</span>
+              <span class="card-title"><i class="fa fa-cutlery"></i> FMB Takhmeen</span>
               <?php if (isset($fmb_takhmeen_details["total_due"]) && (float)$fmb_takhmeen_details["total_due"] > 0): ?>
                 <span class="badge-pill badge-danger">Pending</span>
               <?php else: ?>
@@ -495,15 +509,31 @@
               <?php endif; ?>
             </div>
             <div class="dash-card-body">
-              <?php if (isset($fmb_takhmeen_details["total_due"]) && (float)$fmb_takhmeen_details["total_due"] > 0): ?>
-                <div class="stat-tile mb-3">
-                  <div class="tile-label">Total Due</div>
-                  <div class="tile-value red amount-big">&#8377;<?php echo format_inr_no_decimals($fmb_takhmeen_details['total_due'] ?? 0); ?></div>
+              <?php
+              $f_total = (float)($fmb_takhmeen_details['current_year_total'] ?? 0);
+              $f_paid  = (float)($fmb_takhmeen_details['current_year_paid'] ?? 0);
+              $f_due   = (float)($fmb_takhmeen_details['current_year_due'] ?? max(0.0, $f_total - $f_paid));
+              $currentCompositeYear = isset($fmb_takhmeen_details['current_year']) ? (string)$fmb_takhmeen_details['current_year'] : '';
+              ?>
+              <div class="stat-tile mb-3">
+                <div class="tile-label">Total Due <?php echo $currentCompositeYear ? '— ' . htmlspecialchars($currentCompositeYear) : ''; ?></div>
+                <div class="tile-value red amount-big">&#8377;<?php echo format_inr_no_decimals($fmb_takhmeen_details['total_due'] ?? 0); ?></div>
+              </div>
+              <div class="breakdown-row mb-3">
+                <div class="stat-tile">
+                  <div class="tile-label">Takhmeen</div>
+                  <div class="tile-value blue">&#8377;<?php echo format_inr_no_decimals($f_total); ?></div>
                 </div>
-                <a href="<?php echo base_url('accounts/viewfmbtakhmeen'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a>
-              <?php else: ?>
-                <div class="no-dues"><i class="fa fa-check-circle"></i><span>No FMB dues pending</span></div>
-              <?php endif; ?>
+                <div class="stat-tile">
+                  <div class="tile-label">Paid</div>
+                  <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($f_paid); ?></div>
+                </div>
+                <div class="stat-tile">
+                  <div class="tile-label">Pending</div>
+                  <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($f_due); ?></div>
+                </div>
+              </div>
+              <a href="<?php echo base_url('accounts/viewfmbtakhmeen'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a>
             </div>
           </div>
         </div>
@@ -545,6 +575,86 @@
                 </div>
               </div>
               <a href="<?php echo base_url('accounts/viewsabeeltakhmeen'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Miqaat Niyaz Invoices -->
+        <div class="col-12 col-md-6 p-2">
+          <div class="dash-card h-100">
+            <div class="dash-card-header">
+              <span class="card-title"><i class="fa fa-calendar"></i> Miqaat Niyaz Invoices</span>
+              <?php if (isset($miqaat_invoice_total_due) && (float)$miqaat_invoice_total_due > 0): ?>
+                <span class="badge-pill badge-danger">Pending</span>
+              <?php else: ?>
+                <span class="badge-pill badge-success">Clear</span>
+              <?php endif; ?>
+            </div>
+            <div class="dash-card-body">
+              <?php
+              $miq_total = (float)(isset($miqaat_invoice_total_amount) ? $miqaat_invoice_total_amount : 0);
+              $miq_due   = (float)(isset($miqaat_invoice_total_due) ? $miqaat_invoice_total_due : 0);
+              $miq_paid  = max(0.0, $miq_total - $miq_due);
+              ?>
+              <div class="stat-tile mb-3">
+                <div class="tile-label">Total Due</div>
+                <div class="tile-value red amount-big">&#8377;<?php echo format_inr_no_decimals($miq_due); ?></div>
+              </div>
+              <div class="breakdown-row mb-3">
+                <div class="stat-tile">
+                  <div class="tile-label">Invoiced</div>
+                  <div class="tile-value blue">&#8377;<?php echo format_inr_no_decimals($miq_total); ?></div>
+                </div>
+                <div class="stat-tile">
+                  <div class="tile-label">Paid</div>
+                  <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($miq_paid); ?></div>
+                </div>
+                <div class="stat-tile">
+                  <div class="tile-label">Pending</div>
+                  <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($miq_due); ?></div>
+                </div>
+              </div>
+              <a href="<?php echo base_url('accounts/miqaat_invoices'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Extra Contributions -->
+        <div class="col-12 col-md-6 p-2">
+          <div class="dash-card h-100">
+            <div class="dash-card-header">
+              <span class="card-title"><i class="fa fa-gift"></i> Extra Contributions</span>
+              <?php if (isset($fmb_extra_due) && (float)$fmb_extra_due > 0): ?>
+                <span class="badge-pill badge-danger">Pending</span>
+              <?php else: ?>
+                <span class="badge-pill badge-success">Clear</span>
+              <?php endif; ?>
+            </div>
+            <div class="dash-card-body">
+              <?php
+              $gc_total = (float)(isset($fmb_extra_amount) ? $fmb_extra_amount : 0);
+              $gc_due   = (float)(isset($fmb_extra_due) ? $fmb_extra_due : 0);
+              $gc_paid  = max(0.0, $gc_total - $gc_due);
+              ?>
+              <div class="stat-tile mb-3">
+                <div class="tile-label">Total Due</div>
+                <div class="tile-value red amount-big">&#8377;<?php echo format_inr_no_decimals($gc_due); ?></div>
+              </div>
+              <div class="breakdown-row mb-3">
+                <div class="stat-tile">
+                  <div class="tile-label">Invoiced</div>
+                  <div class="tile-value blue">&#8377;<?php echo format_inr_no_decimals($gc_total); ?></div>
+                </div>
+                <div class="stat-tile">
+                  <div class="tile-label">Paid</div>
+                  <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($gc_paid); ?></div>
+                </div>
+                <div class="stat-tile">
+                  <div class="tile-label">Pending</div>
+                  <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($gc_due); ?></div>
+                </div>
+              </div>
+              <a href="<?php echo base_url('accounts/fmb_contributions'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a>
             </div>
           </div>
         </div>

@@ -269,7 +269,35 @@ class Umoor12 extends CI_Controller
           }
 
           if ($laagatRow && !empty($laagatRow['id'])) {
-            $invoiceAmountBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRow['id'], $userId);
+            $thaalCount = 1;
+            $countKeys = [
+              'approximate-thaal-count',
+              'approximate_thaal_count',
+              'approximate-items-count',
+              'approximate_items_count',
+              'number-of-items',
+              'number_of_items',
+              'approximate-thaal-items-count',
+              'approximate_thaal_items_count',
+              'approximate-number-of-items',
+              'approximate_number_of_items',
+              'items-count',
+              'items_count'
+            ];
+            foreach ($countKeys as $key) {
+              if (isset($_POST[$key])) {
+                $thaalCount = (int)$_POST[$key];
+                break;
+              }
+            }
+            if ($thaalCount <= 0) {
+              $thaalCount = 1;
+            }
+            $itemQuantities = $this->input->post('item_qty');
+            if (!is_array($itemQuantities)) {
+              $itemQuantities = [];
+            }
+            $invoiceAmountBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRow['id'], $userId, $thaalCount, $itemQuantities);
             $invoiceData = [
               'user_id' => $userId,
               'laagat_rent_id' => $laagatRow['id'],

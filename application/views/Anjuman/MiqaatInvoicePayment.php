@@ -865,7 +865,7 @@
       </div>
       <div class="miqaat-banner-right">
         <button type="button" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#createExtraContributionModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
-          <i class="fa-solid fa-plus-circle"></i> Create Extra Contribution
+          <i class="fa-solid fa-plus-circle"></i> Create Invoice
         </button>
         <button id="fala-ni-niyaz-invoices" class="btn btn-light font-weight-bold d-inline-flex align-items-center" data-toggle="modal" data-target="#falaNiyazInvoicesModal" style="border-radius: 8px; padding: 6px 16px; gap: 6px;">
           <i class="fa-solid fa-file-signature"></i> Create & Update Hoob Invoices
@@ -988,8 +988,6 @@
           <col style="width: 44px;">
           <col style="width: 128px;">
           <col style="width: 140px;">
-          <col style="width: 92px;">
-          <col style="width: 92px;">
           <col style="width: 96px;">
           <col style="width: 220px;">
           <col style="width: 140px;">
@@ -1005,8 +1003,6 @@
             <th class="km-sortable" data-sort-key="index" data-sort-type="number"># <span class="sort-indicator"></span></th>
             <th class="km-sortable" data-sort-key="date" data-sort-type="date">Date <span class="sort-indicator"></span></th>
             <th class="km-sortable" data-sort-key="hijri" data-sort-type="string">Hijri Date <span class="sort-indicator"></span></th>
-            <th class="km-sortable" data-sort-key="miqaatId" data-sort-type="string">Miqaat ID <span class="sort-indicator"></span></th>
-            <th class="km-sortable" data-sort-key="razaId" data-sort-type="string">Raza ID <span class="sort-indicator"></span></th>
             <th class="km-sortable" data-sort-key="invoiceId" data-sort-type="number">Invoice ID <span class="sort-indicator"></span></th>
             <th class="km-sortable" data-sort-key="miqaatName" data-sort-type="string">Miqaat Name <span class="sort-indicator"></span></th>
             <th class="km-sortable" data-sort-key="assignedTo" data-sort-type="string">Assigned To <span class="sort-indicator"></span></th>
@@ -1077,8 +1073,6 @@
               <td class="km-cell-nowrap"><b><?php echo $i + 1; ?></b></td>
               <td class="km-cell-wrap"><?php echo htmlspecialchars($gregFmt); ?></td>
               <td class="km-cell-wrap"><?php echo htmlspecialchars((string)($r['hijri_date'] ?? '')); ?></td>
-              <td class="km-cell-wrap"><?php echo $miqaatId !== '' ? ('M#' . htmlspecialchars($miqaatId)) : '-'; ?></td>
-              <td class="km-cell-wrap"><?php echo $razaId !== '' ? ('R#' . htmlspecialchars($razaId)) : '-'; ?></td>
               <td class="km-cell-wrap"><?php echo !empty($r['invoice_id']) ? ('I#' . htmlspecialchars((string)$r['invoice_id'])) : '-'; ?></td>
               <td class="km-cell-wrap">
                 <b><?php echo htmlspecialchars((string)($r['miqaat_name'] ?? '')); ?></b>
@@ -1357,7 +1351,7 @@
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content modal-content-premium">
           <div class="modal-header modal-header-premium">
-            <h5 class="modal-title" id="createExtraContributionModalLabel"><i class="fa-solid fa-circle-plus mr-2"></i> Create Niyaz Extra Contribution</h5>
+            <h5 class="modal-title" id="createExtraContributionModalLabel"><i class="fa-solid fa-circle-plus mr-2"></i> Create Miqaat Niyaz Invoice</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
@@ -1382,6 +1376,11 @@
                 </select>
               </div>
               <div class="form-group form-group-premium mb-3">
+                <label>Miqaat Type</label>
+                <input type="text" class="form-control-premium" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" readonly style="background: var(--surface-2); cursor: not-allowed; opacity: 0.8;" />
+                <input type="hidden" name="miqaat_type" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" />
+              </div>
+              <div class="form-group form-group-premium mb-3">
                 <label for="extra-contri-type">Contribution Type</label>
                 <select name="contri_type" id="extra-contri-type" class="form-control-premium" required>
                   <option value="">Select Type</option>
@@ -1389,17 +1388,13 @@
                     <?php foreach ($contri_type_gc as $value): ?>
                       <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>"
                               data-amount="<?php echo htmlspecialchars($value["amount"] ?? '', ENT_QUOTES); ?>"
-                              data-hijri-year="<?php echo htmlspecialchars($value["hijri_year"] ?? '', ENT_QUOTES); ?>">
+                              data-hijri-year="<?php echo htmlspecialchars($value["hijri_year"] ?? '', ENT_QUOTES); ?>"
+                              data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>">
                         <?php echo htmlspecialchars($value["name"]); ?>
                       </option>
                     <?php endforeach; ?>
                   <?php endif; ?>
                 </select>
-              </div>
-              <div class="form-group form-group-premium mb-3">
-                <label>Miqaat Type</label>
-                <input type="text" class="form-control-premium" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" readonly style="background: var(--surface-2); cursor: not-allowed; opacity: 0.8;" />
-                <input type="hidden" name="miqaat_type" value="<?php echo htmlspecialchars($miqaat_type, ENT_QUOTES); ?>" />
               </div>
               <div class="form-group form-group-premium mb-3">
                 <label for="extra-amount">Amount (₹)</label>
@@ -2166,12 +2161,14 @@
             const tds = row.querySelectorAll('td');
             const dateText = tds[1] ? (tds[1].textContent || '-').trim() : '-';
             const hijriText = tds[2] ? (tds[2].textContent || '-').trim() : '-';
-            const miqaatIdText = tds[3] ? (tds[3].textContent || '-').trim() : '-';
-            const razaIdText = tds[4] ? (tds[4].textContent || '-').trim() : '-';
-            const invoiceIdText = tds[5] ? (tds[5].textContent || '-').trim() : '-';
-            const miqaatNameText = tds[6] ? (tds[6].textContent || '-').trim() : '-';
-            const assignedText = tds[7] ? (tds[7].textContent || '-').trim() : '-';
-            const extraDetailsText = tds[8] ? (tds[8].textContent || '-').trim() : '-';
+            const miqaatIdVal = row.getAttribute('data-miqaat-id');
+            const miqaatIdText = miqaatIdVal ? 'M#' + miqaatIdVal : '-';
+            const razaIdVal = row.getAttribute('data-raza-id');
+            const razaIdText = razaIdVal ? 'R#' + razaIdVal : '-';
+            const invoiceIdText = tds[3] ? (tds[3].textContent || '-').trim() : '-';
+            const miqaatNameText = tds[4] ? (tds[4].textContent || '-').trim() : '-';
+            const assignedText = tds[5] ? (tds[5].textContent || '-').trim() : '-';
+            const extraDetailsText = tds[6] ? (tds[6].textContent || '-').trim() : '-';
             detailsEl.innerHTML = `
               <div><b>Miqaat ID:</b> ${escapeHtml(miqaatIdText)}</div>
               <div><b>Raza ID:</b> ${escapeHtml(razaIdText)}</div>
@@ -2377,14 +2374,16 @@
           let assignmentDetailsText = '-';
           if (row) {
             const tds = row.querySelectorAll('td');
-            if (tds && tds.length >= 11) {
+            if (tds && tds.length >= 9) {
               dateText = (tds[1].textContent || '-').trim();
               hijriText = (tds[2].textContent || '-').trim();
-              miqaatIdText = (tds[3].textContent || '-').trim();
-              razaIdText = (tds[4].textContent || '-').trim();
-              miqaatNameText = (tds[6].textContent || '-').trim();
-              assignedText = (tds[7].textContent || '-').trim();
-              assignmentDetailsText = (tds[8].textContent || '-').trim();
+              const miqaatIdVal = row.getAttribute('data-miqaat-id');
+              miqaatIdText = miqaatIdVal ? 'M#' + miqaatIdVal : '-';
+              const razaIdVal = row.getAttribute('data-raza-id');
+              razaIdText = razaIdVal ? 'R#' + razaIdVal : '-';
+              miqaatNameText = (tds[4].textContent || '-').trim();
+              assignedText = (tds[5].textContent || '-').trim();
+              assignmentDetailsText = (tds[6].textContent || '-').trim();
             }
           }
 
@@ -3167,6 +3166,69 @@
         // Autocomplete and form submission logic for Niyaz Extra Contribution modal
         (function() {
           if (typeof jQuery === 'undefined') return;
+
+          let originalContriTypeOptions = [];
+          jQuery(document).ready(function() {
+            jQuery('#extra-contri-type option').each(function() {
+              if (jQuery(this).val() !== '') {
+                originalContriTypeOptions.push({
+                  value: jQuery(this).val(),
+                  text: jQuery(this).text(),
+                  amount: jQuery(this).data('amount'),
+                  hijriYear: jQuery(this).data('hijri-year'),
+                  miqaatType: jQuery(this).data('miqaat-type')
+                });
+              }
+            });
+          });
+
+          function filterContriTypes() {
+            const selectedYear = jQuery('#extra-contri-year').val();
+            const currentMiqaat = typeof CURRENT_MIQAAT_TYPE !== 'undefined' ? CURRENT_MIQAAT_TYPE : '';
+            
+            const contriTypeSelect = jQuery('#extra-contri-type');
+            const currentValue = contriTypeSelect.val();
+            
+            contriTypeSelect.find('option:not([value=""])').remove();
+            
+            originalContriTypeOptions.forEach(function(opt) {
+              const yearMatches = (opt.hijriYear === selectedYear);
+              const miqaatMatches = (opt.miqaatType === currentMiqaat);
+              
+              if (yearMatches && miqaatMatches) {
+                const newOpt = jQuery('<option></option>')
+                  .val(opt.value)
+                  .text(opt.text)
+                  .attr('data-amount', opt.amount)
+                  .attr('data-hijri-year', opt.hijriYear)
+                  .attr('data-miqaat-type', opt.miqaatType);
+                contriTypeSelect.append(newOpt);
+              }
+            });
+            
+            if (contriTypeSelect.find('option[value="' + currentValue + '"]').length > 0) {
+              contriTypeSelect.val(currentValue);
+            } else {
+              contriTypeSelect.val('');
+              jQuery('#extra-amount').val('');
+            }
+          }
+
+          jQuery(document).on('change', '#extra-contri-year', function() {
+            filterContriTypes();
+          });
+
+          jQuery('#createExtraContributionModal').on('show.bs.modal', function () {
+            jQuery('#create-extra-contribution-form')[0].reset();
+            jQuery('#extra-user-id').val('');
+            
+            const activeYear = '<?php echo htmlspecialchars($current_hijri_year ?? "", ENT_QUOTES); ?>';
+            if (activeYear) {
+              jQuery('#extra-contri-year').val(activeYear);
+            }
+            
+            filterContriTypes();
+          });
 
           jQuery(document).on('input', '#extra-member-autocomplete', function() {
             const query = jQuery(this).val();

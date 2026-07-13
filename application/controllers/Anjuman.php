@@ -511,12 +511,11 @@ class Anjuman extends CI_Controller
 
     // Expense listing with filters for Jamaat users
     $this->load->model('ExpenseM');
-    $this->load->model('ExpenseSourceM');
     $this->load->model('ExpenseItemM');
 
     $filters = [
       'item' => trim((string)$this->input->get('item')),
-      'sof' => trim((string)$this->input->get('sof')),
+      'payment_mode' => trim((string)$this->input->get('payment_mode')),
       'hijri_year' => trim((string)$this->input->get('hijri_year')),
       'date_from' => trim((string)$this->input->get('date_from')),
       'date_to' => trim((string)$this->input->get('date_to')),
@@ -527,12 +526,11 @@ class Anjuman extends CI_Controller
       if ($v === '') $filters[$k] = null;
     }
 
-    // On initial load, default to current Hijri year if not specified
+    // On initial load, default to current Financial Hijri year if not specified
     $current_hijri_year = null;
     if (empty($filters['hijri_year'])) {
-      $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-      if ($today_parts && isset($today_parts['hijri_year'])) {
-        $current_hijri_year = (int)$today_parts['hijri_year'];
+      $current_hijri_year = $this->HijriCalendar->get_financial_hijri_year_by_greg_date(date('Y-m-d'));
+      if ($current_hijri_year) {
         $filters['hijri_year'] = $current_hijri_year;
       }
     } else {
@@ -550,7 +548,6 @@ class Anjuman extends CI_Controller
     $data['expense_total'] = $total_amount;
     $data['current_hijri_year_for_expense'] = $current_hijri_year;
 
-    $data['sof_options'] = $this->ExpenseSourceM->get_all();
     $data['item_options'] = $this->ExpenseItemM->get_all_active();
     $data['hijri_year_options'] = $this->ExpenseM->get_distinct_hijri_years();
 
@@ -560,9 +557,6 @@ class Anjuman extends CI_Controller
       $data['hijri_year_options'] = array_values(array_unique($data['hijri_year_options']));
       rsort($data['hijri_year_options']);
     }
-
-    // Keep existing list of all SOF for the secondary table, if needed
-    $data['sources'] = $data['sof_options'];
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/Expense', $data);
@@ -575,12 +569,10 @@ class Anjuman extends CI_Controller
     }
 
     $this->load->model('ExpenseM');
-    $this->load->model('ExpenseSourceM');
     $this->load->model('ExpenseItemM');
 
-    // Determine current Hijri year for defaults
-    $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-    $current_hijri_year = ($today_parts && isset($today_parts['hijri_year'])) ? (int)$today_parts['hijri_year'] : null;
+    // Determine current Financial Hijri year for defaults
+    $current_hijri_year = $this->HijriCalendar->get_financial_hijri_year_by_greg_date(date('Y-m-d'));
 
     if ($this->input->method() === 'post') {
       $item_id = $this->input->post('item_id') ? (int)$this->input->post('item_id') : null;
@@ -589,13 +581,13 @@ class Anjuman extends CI_Controller
         'expense_date' => $this->input->post('expense_date'),
         'item_id'      => $item_id,
         'amount'       => $this->input->post('amount'),
-        'source_id'    => $this->input->post('source_id'),
+        'payment_mode' => $this->input->post('payment_mode'),
         'hijri_year'   => $this->input->post('hijri_year'),
         'notes'        => $this->input->post('notes'),
       ];
 
       // Basic required fields check
-      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['source_id']) && !empty($payload['hijri_year']) && !empty($payload['item_id'])) {
+      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['payment_mode']) && !empty($payload['hijri_year']) && !empty($payload['item_id'])) {
         $id = $this->ExpenseM->create($payload);
         if ($id) {
           $this->session->set_flashdata('success', 'Expense added successfully.');
@@ -609,7 +601,6 @@ class Anjuman extends CI_Controller
 
     $data = [];
     $data['user_name'] = $_SESSION['user']['username'];
-    $data['sof_options'] = $this->ExpenseSourceM->get_all();
     $data['item_options'] = $this->ExpenseItemM->get_all_active();
     $data['hijri_year_options'] = $this->ExpenseM->get_distinct_hijri_years();
     if ($current_hijri_year && !in_array($current_hijri_year, $data['hijri_year_options'], true)) {
@@ -635,7 +626,6 @@ class Anjuman extends CI_Controller
     }
 
     $this->load->model('ExpenseM');
-    $this->load->model('ExpenseSourceM');
     $this->load->model('ExpenseItemM');
 
     $expense = $this->ExpenseM->get($id);
@@ -645,9 +635,8 @@ class Anjuman extends CI_Controller
       return;
     }
 
-    // Current Hijri year for dropdown convenience
-    $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-    $current_hijri_year = ($today_parts && isset($today_parts['hijri_year'])) ? (int)$today_parts['hijri_year'] : null;
+    // Current Financial Hijri year for dropdown convenience
+    $current_hijri_year = $this->HijriCalendar->get_financial_hijri_year_by_greg_date(date('Y-m-d'));
 
     if ($this->input->method() === 'post') {
       $item_id = $this->input->post('item_id') ? (int)$this->input->post('item_id') : null;
@@ -656,12 +645,12 @@ class Anjuman extends CI_Controller
         'expense_date' => $this->input->post('expense_date'),
         'item_id'      => $item_id,
         'amount'       => $this->input->post('amount'),
-        'source_id'    => $this->input->post('source_id'),
+        'payment_mode' => $this->input->post('payment_mode'),
         'hijri_year'   => $this->input->post('hijri_year'),
         'notes'        => $this->input->post('notes'),
       ];
 
-      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['source_id']) && !empty($payload['hijri_year']) && !empty($payload['item_id'])) {
+      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['payment_mode']) && !empty($payload['hijri_year']) && !empty($payload['item_id'])) {
         $ok = $this->ExpenseM->update($id, $payload);
         if ($ok) {
           $this->session->set_flashdata('success', 'Expense updated successfully.');
@@ -678,7 +667,6 @@ class Anjuman extends CI_Controller
     $data = [];
     $data['user_name'] = $_SESSION['user']['username'];
     $data['expense'] = $expense;
-    $data['sof_options'] = $this->ExpenseSourceM->get_all();
     $data['item_options'] = $this->ExpenseItemM->get_all_active();
     $data['hijri_year_options'] = $this->ExpenseM->get_distinct_hijri_years();
     if ($current_hijri_year && !in_array($current_hijri_year, $data['hijri_year_options'], true)) {

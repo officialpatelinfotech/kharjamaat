@@ -1,6 +1,5 @@
 <?php if (!defined('BASEPATH')) exit('No direct script access allowed');
 
-$sof_options = isset($sof_options) && is_array($sof_options) ? $sof_options : [];
 $item_options = isset($item_options) && is_array($item_options) ? $item_options : [];
 $hijri_year_options = isset($hijri_year_options) && is_array($hijri_year_options) ? $hijri_year_options : [];
 $current_hijri_year_for_expense = isset($current_hijri_year_for_expense) ? (int)$current_hijri_year_for_expense : null;
@@ -13,7 +12,7 @@ $is_edit = $expense !== null;
 $val_date = $is_edit && !empty($expense['expense_date']) ? $expense['expense_date'] : $today;
 $val_item_id = $is_edit ? ($expense['item_id'] ?? '') : '';
 $val_amount = $is_edit ? ($expense['amount'] ?? '') : '';
-$val_source_id = $is_edit ? ($expense['source_id'] ?? '') : '';
+$val_payment_mode = $is_edit ? ($expense['payment_mode'] ?? '') : '';
 $val_hijri_year = $is_edit ? ($expense['hijri_year'] ?? $current_hijri_year_for_expense) : $current_hijri_year_for_expense;
 $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
 ?>
@@ -79,26 +78,23 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
               </div>
 
               <div class="form-group">
-                <label for="expenseSof" class="font-weight-semibold">SOF (Source of Funds)</label>
-                <select id="expenseSof" name="source_id" class="form-control form-control-sm" required>
-                  <option value="">Select Source of Funds</option>
-                  <?php foreach ($sof_options as $opt): ?>
-                    <?php
-                    $id = isset($opt['id']) ? (int)$opt['id'] : 0;
-                    $name = isset($opt['name']) ? (string)$opt['name'] : '';
-                    $selected = ($val_source_id !== '' && (int)$val_source_id === $id) ? 'selected' : '';
-                    ?>
-                    <option value="<?= $id; ?>" <?= $selected; ?>><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
-                  <?php endforeach; ?>
+                <label for="expensePaymentMode" class="font-weight-semibold">Payment Mode</label>
+                <select id="expensePaymentMode" name="payment_mode" class="form-control form-control-sm" required>
+                  <option value="">Select Payment Mode</option>
+                  <option value="Cash" <?= ($val_payment_mode === 'Cash') ? 'selected' : ''; ?>>Cash</option>
+                  <option value="Cheque" <?= ($val_payment_mode === 'Cheque') ? 'selected' : ''; ?>>Cheque</option>
+                  <option value="Bank Transfer" <?= ($val_payment_mode === 'Bank Transfer') ? 'selected' : ''; ?>>Bank Transfer</option>
+                  <option value="Online" <?= ($val_payment_mode === 'Online') ? 'selected' : ''; ?>>Online</option>
+                  <option value="Other" <?= ($val_payment_mode === 'Other') ? 'selected' : ''; ?>>Other</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label for="expenseHijriYear" class="font-weight-semibold">Hijri Year</label>
+                <label for="expenseHijriYear" class="font-weight-semibold">Financial Hijri Year</label>
                 <select id="expenseHijriYear" name="hijri_year" class="form-control form-control-sm" required>
-                  <option value="">Select Hijri Year</option>
+                  <option value="">Select Financial Hijri Year</option>
                   <?php for ($yrInt = 1442; $yrInt <= 1457; $yrInt++): ?>
-                    <option value="<?= $yrInt; ?>" <?= ($val_hijri_year && $yrInt === (int)$val_hijri_year) ? 'selected' : ''; ?>><?= $yrInt; ?></option>
+                    <option value="<?= $yrInt; ?>" <?= ($val_hijri_year && $yrInt === (int)$val_hijri_year) ? 'selected' : ''; ?>><?= $yrInt . '-' . substr((string)($yrInt + 1), -2); ?></option>
                   <?php endfor; ?>
                 </select>
               </div>
@@ -125,9 +121,9 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
     var input = document.getElementById('item-autocomplete');
     var hiddenInput = document.getElementById('expenseItemVal');
     var listContainer = document.getElementById('item-autocomplete-list');
-
+ 
     if (!input || !listContainer) return;
-
+ 
     function renderList(filtered) {
       listContainer.innerHTML = '';
       if (filtered.length === 0) {
@@ -137,13 +133,13 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
         listContainer.appendChild(emptyDiv);
         return;
       }
-
+ 
       filtered.forEach(function(item) {
         var sName = item.sector_name || '';
         var subName = item.sub_sector_name || '';
         var name = item.item_name || '';
         var label = sName + ' > ' + subName + ' > ' + name;
-
+ 
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'list-group-item list-group-item-action text-left p-2';
@@ -157,7 +153,7 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
         listContainer.appendChild(btn);
       });
     }
-
+ 
     function escapeHtml(s){
       return String(s)
         .replace(/&/g,'&amp;')
@@ -166,7 +162,7 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
         .replace(/"/g,'&quot;')
         .replace(/'/g,'&#039;');
     }
-
+ 
     input.addEventListener('input', function() {
       var val = this.value.trim().toLowerCase();
       hiddenInput.value = '';
@@ -175,18 +171,18 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
         listContainer.style.display = 'none';
         return;
       }
-
+ 
       var filtered = items.filter(function(item) {
         var sName = (item.sector_name || '').toLowerCase();
         var subName = (item.sub_sector_name || '').toLowerCase();
         var name = (item.item_name || '').toLowerCase();
         return sName.indexOf(val) !== -1 || subName.indexOf(val) !== -1 || name.indexOf(val) !== -1;
       });
-
+ 
       renderList(filtered);
       listContainer.style.display = 'block';
     });
-
+ 
     input.addEventListener('focus', function() {
       var val = this.value.trim().toLowerCase();
       var filtered = items;
@@ -201,14 +197,14 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
       renderList(filtered);
       listContainer.style.display = 'block';
     });
-
+ 
     // Hide dropdown on clicking outside
     document.addEventListener('click', function(e) {
       if (e.target !== input && !listContainer.contains(e.target)) {
         listContainer.style.display = 'none';
       }
     });
-
+ 
     // Prevent submitting without a valid selected ID
     input.closest('form').addEventListener('submit', function(e) {
       if (!hiddenInput.value) {
@@ -229,7 +225,7 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
     padding-bottom: 50px;
     color: #1a1610;
   }
-
+ 
   .btn-gold-outline {
     color: #b8860b;
     border: 1.5px solid #e8e0cc;
@@ -243,7 +239,7 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
     border-color: #b8860b;
     text-decoration: none;
   }
-
+ 
   .btn-gold {
     background: #b8860b;
     color: #ffffff;
@@ -256,7 +252,7 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
     background: #78520a;
     color: #ffffff;
   }
-
+ 
   .form-card {
     background: #ffffff;
     border: 1px solid #e8e0cc;
@@ -264,19 +260,19 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
     box-shadow: 0 4px 20px rgba(184,134,11,0.05);
     overflow: hidden;
   }
-
+ 
   .form-card-header {
     background: #faf7f0;
     border-bottom: 1px solid #e8e0cc;
     padding: 16px;
   }
-
+ 
   .font-title {
     font-family: 'Literata', Georgia, serif;
     font-weight: 600;
     color: #78520a;
   }
-
+ 
   /* Autocomplete custom dropdown style */
   #item-autocomplete-list {
     border: 1px solid #e8e0cc;

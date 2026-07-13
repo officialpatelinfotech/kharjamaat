@@ -202,7 +202,7 @@ class HijriCalendar extends CI_Model
   {
     $sql = "SELECT DISTINCT
       CASE
-        WHEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 7 AND 12
+        WHEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12
           THEN CONCAT(
             CAST(SUBSTRING_INDEX(hijri_date,'-',-1) AS UNSIGNED),
             '-',
@@ -218,5 +218,18 @@ class HijriCalendar extends CI_Model
     ORDER BY fy DESC";
     $result = $this->db->query($sql)->result_array();
     return array_column($result, 'fy');
+  }
+
+  public function get_financial_hijri_year_by_greg_date($greg_date)
+  {
+    $parts = $this->get_hijri_parts_by_greg_date($greg_date);
+    if (!$parts) return null;
+    $year = (int)$parts['hijri_year'];
+    $month = (int)$parts['hijri_month'];
+    if ($month >= 9 && $month <= 12) {
+      return $year;
+    } else {
+      return $year - 1;
+    }
   }
 }

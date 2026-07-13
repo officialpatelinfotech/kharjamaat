@@ -180,67 +180,34 @@
 
   <!-- Module Cards Grid -->
   <div class="row mt-4">
-    <!-- 1. Create & Manage Miqaat -->
-    <div class="col-12 col-sm-6 col-md-4 mb-4">
-      <a href="<?php echo base_url('common/managemiqaat?from=admin/managefmbsettings'); ?>" class="admin-card-link">
-        <div class="admin-card">
-          <div class="admin-card-icon"><i class="fa-solid fa-calendar-days"></i></div>
-          <h5 class="admin-card-title">Create & Manage Miqaat</h5>
-          <p class="admin-card-desc">Configure, schedule, and view all miqaat events.</p>
-        </div>
-      </a>
-    </div>
-
-    <!-- 2. Manage Thaali Menu -->
-    <div class="col-12 col-sm-6 col-md-4 mb-4">
-      <a href="<?php echo base_url('common/fmbthaalimenu?from=admin/managefmbsettings'); ?>" class="admin-card-link">
-        <div class="admin-card">
-          <div class="admin-card-icon"><i class="fa-solid fa-utensils"></i></div>
-          <h5 class="admin-card-title">Manage Thaali Menu</h5>
-          <p class="admin-card-desc">Set and update weekly recipes and distribution items.</p>
-        </div>
-      </a>
-    </div>
-
-    <!-- 3. Manage Per Day Thaali Cost -->
-    <div class="col-12 col-sm-6 col-md-4 mb-4">
-      <a href="<?php echo base_url('admin/manageperdaythaalicost'); ?>" class="admin-card-link">
-        <div class="admin-card">
-          <div class="admin-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-          <h5 class="admin-card-title">Manage Per Day Thaali Cost</h5>
-          <p class="admin-card-desc">Define day-wise pricing rules and base costs.</p>
-        </div>
-      </a>
-    </div>
-
-    <!-- 4. Manage Thaali Takhmeen -->
+    <!-- 4. FMB Thaali Takhmeen -->
     <div class="col-12 col-sm-6 col-md-4 mb-4">
       <a href="<?php echo base_url('admin/managefmbtakhmeen'); ?>" class="admin-card-link">
         <div class="admin-card">
           <div class="admin-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-          <h5 class="admin-card-title">Manage Thaali Takhmeen</h5>
+          <h5 class="admin-card-title">FMB Thaali Takhmeen</h5>
           <p class="admin-card-desc">Oversee annual takhmeen estimates and settings.</p>
         </div>
       </a>
     </div>
 
-    <!-- 5. Manage Contribution Master -->
+    <!-- 5. Miqaat Niyaz Contribution Master -->
     <div class="col-12 col-sm-6 col-md-4 mb-4">
       <a href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>" class="admin-card-link">
         <div class="admin-card">
           <div class="admin-card-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-          <h5 class="admin-card-title">Manage Contribution Master</h5>
+          <h5 class="admin-card-title">Miqaat Niyaz Contribution Master</h5>
           <p class="admin-card-desc">Manage custom categories for contributions.</p>
         </div>
       </a>
     </div>
 
-    <!-- 6. Manage Niyaz Invoice Amounts -->
+    <!-- 6. Miqaat Niyaz Takhmeen -->
     <div class="col-12 col-sm-6 col-md-4 mb-4">
       <a href="<?php echo base_url('admin/manageniyazamounts'); ?>" class="admin-card-link">
         <div class="admin-card">
           <div class="admin-card-icon"><i class="fa-solid fa-coins"></i></div>
-          <h5 class="admin-card-title">Manage Niyaz Invoice Amounts</h5>
+          <h5 class="admin-card-title">Miqaat Niyaz Takhmeen</h5>
           <p class="admin-card-desc">Set up auto-generation amounts for Miqaat Niyaz.</p>
         </div>
       </a>

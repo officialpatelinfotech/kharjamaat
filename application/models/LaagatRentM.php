@@ -73,6 +73,21 @@ class LaagatRentM extends CI_Model
 
         $this->db->where('lr.id', $id);
         $row = $this->db->get()->row_array();
+        if ($row) {
+            $row['thaal_ranges'] = $this->db
+                ->from('laagat_rent_thaal_ranges')
+                ->where('laagat_rent_id', $id)
+                ->order_by('thaal_min ASC')
+                ->get()
+                ->result_array();
+
+            $row['items'] = $this->db
+                ->from('laagat_rent_items')
+                ->where('laagat_rent_id', $id)
+                ->order_by('id ASC')
+                ->get()
+                ->result_array();
+        }
         return $row ? $row : null;
     }
 
@@ -314,6 +329,7 @@ class LaagatRentM extends CI_Model
             // Keep legacy single column populated with first selected id.
             'raza_type_id' => !empty($razaTypeIds) ? (int)$razaTypeIds[0] : (int)($payload['raza_type_id'] ?? 0),
             'venue' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent' && isset($payload['venue'])) ? (string)$payload['venue'] : null,
+            'is_per_thaal' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (int)($payload['is_per_thaal'] ?? 0) : 0,
             // Do not auto-activate on create; activation should be explicit from Manage screen.
             'is_active' => isset($payload['is_active']) ? ((int)$payload['is_active'] ? 1 : 0) : 1,
         ];
@@ -322,6 +338,36 @@ class LaagatRentM extends CI_Model
 
         $this->db->insert('laagat_rent', $data);
         $insertId = (int)$this->db->insert_id();
+
+        if ($insertId > 0 && isset($payload['thaal_ranges']) && is_array($payload['thaal_ranges'])) {
+            foreach ($payload['thaal_ranges'] as $r) {
+                $this->db->insert('laagat_rent_thaal_ranges', [
+                    'laagat_rent_id' => $insertId,
+                    'thaal_min' => (int)($r['thaal_min'] ?? 0),
+                    'thaal_max' => (int)($r['thaal_max'] ?? 0),
+                    'rent_sabeel' => (float)($r['rent_sabeel'] ?? 0),
+                    'deposit_sabeel' => (float)($r['deposit_sabeel'] ?? 0),
+                    'rent_non_sabeel' => (float)($r['rent_non_sabeel'] ?? 0),
+                    'deposit_non_sabeel' => (float)($r['deposit_non_sabeel'] ?? 0)
+                ]);
+            }
+        }
+
+        if ($insertId > 0 && isset($payload['items']) && is_array($payload['items'])) {
+            foreach ($payload['items'] as $item) {
+                if (trim((string)($item['item_name'] ?? '')) !== '') {
+                    $this->db->insert('laagat_rent_items', [
+                        'laagat_rent_id' => $insertId,
+                        'item_name' => trim((string)$item['item_name']),
+                        'rent_sabeel' => (float)($item['rent_sabeel'] ?? 0),
+                        'deposit_sabeel' => (float)($item['deposit_sabeel'] ?? 0),
+                        'rent_non_sabeel' => (float)($item['rent_non_sabeel'] ?? 0),
+                        'deposit_non_sabeel' => (float)($item['deposit_non_sabeel'] ?? 0),
+                        'created_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+            }
+        }
 
         if ($insertId > 0 && $this->db->table_exists('laagat_rent_raza_type_map')) {
             foreach ($razaTypeIds as $rid) {
@@ -404,12 +450,47 @@ class LaagatRentM extends CI_Model
             // Keep legacy single column populated with first selected id.
             'raza_type_id' => !empty($razaTypeIds) ? (int)$razaTypeIds[0] : (int)($payload['raza_type_id'] ?? 0),
             'venue' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent' && isset($payload['venue'])) ? (string)$payload['venue'] : null,
+            'is_per_thaal' => (isset($payload['charge_type']) && $payload['charge_type'] === 'rent') ? (int)($payload['is_per_thaal'] ?? 0) : 0,
         ];
 
         $this->db->trans_start();
 
         $this->db->where('id', $id);
         $this->db->update('laagat_rent', $data);
+
+        $this->db->where('laagat_rent_id', $id);
+        $this->db->delete('laagat_rent_thaal_ranges');
+        if (isset($payload['thaal_ranges']) && is_array($payload['thaal_ranges'])) {
+            foreach ($payload['thaal_ranges'] as $r) {
+                $this->db->insert('laagat_rent_thaal_ranges', [
+                    'laagat_rent_id' => $id,
+                    'thaal_min' => (int)($r['thaal_min'] ?? 0),
+                    'thaal_max' => (int)($r['thaal_max'] ?? 0),
+                    'rent_sabeel' => (float)($r['rent_sabeel'] ?? 0),
+                    'deposit_sabeel' => (float)($r['deposit_sabeel'] ?? 0),
+                    'rent_non_sabeel' => (float)($r['rent_non_sabeel'] ?? 0),
+                    'deposit_non_sabeel' => (float)($r['deposit_non_sabeel'] ?? 0)
+                ]);
+            }
+        }
+
+        $this->db->where('laagat_rent_id', $id);
+        $this->db->delete('laagat_rent_items');
+        if (isset($payload['items']) && is_array($payload['items'])) {
+            foreach ($payload['items'] as $item) {
+                if (trim((string)($item['item_name'] ?? '')) !== '') {
+                    $this->db->insert('laagat_rent_items', [
+                        'laagat_rent_id' => $id,
+                        'item_name' => trim((string)$item['item_name']),
+                        'rent_sabeel' => (float)($item['rent_sabeel'] ?? 0),
+                        'deposit_sabeel' => (float)($item['deposit_sabeel'] ?? 0),
+                        'rent_non_sabeel' => (float)($item['rent_non_sabeel'] ?? 0),
+                        'deposit_non_sabeel' => (float)($item['deposit_non_sabeel'] ?? 0),
+                        'created_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+            }
+        }
 
         if ($this->db->table_exists('laagat_rent_raza_type_map')) {
             $this->db->where('laagat_rent_id', $id);
@@ -638,6 +719,31 @@ class LaagatRentM extends CI_Model
         $row = $this->db->get()->row_array();
         if ($row) return $row;
 
+        // 2.5) Fallback for category match with ANY venue (useful when the form doesn't have a Venue field, but there's a venue-specific rent config)
+        if ($venue === '') {
+            $this->db->select('lr.id, lr.title, lr.hijri_year, lr.charge_type, lr.amount, lr.rent_sabeel, lr.rent_non_sabeel, lr.deposit_sabeel, lr.deposit_non_sabeel');
+            $this->db->from('laagat_rent lr');
+            $this->db->where('lr.charge_type', $chargeType);
+            $this->db->where('lr.is_active', 1);
+
+            if ($this->db->table_exists('laagat_rent_raza_type_map')) {
+                $this->db->join('laagat_rent_raza_type_map m', 'm.laagat_rent_id = lr.id', 'inner');
+                $this->db->where('m.raza_type_id', $razaTypeId);
+            } else {
+                $this->db->where('lr.raza_type_id', $razaTypeId);
+            }
+
+            if ($hijriYear !== null && $hijriYear !== '') {
+                $this->db->where('lr.hijri_year', $hijriYear);
+            }
+
+            $this->db->order_by('lr.hijri_year DESC');
+            $this->db->order_by('lr.id DESC');
+            $this->db->limit(1);
+            $row = $this->db->get()->row_array();
+            if ($row) return $row;
+        }
+
         if (!$fallbackToMaster) return null;
 
         // 3) Fallback to active master
@@ -851,10 +957,14 @@ class LaagatRentM extends CI_Model
         return $masterAmount;
     }
 
-    public function get_amounts_breakdown_for_user($laagatRentId, $userId)
+    public function get_amounts_breakdown_for_user($laagatRentId, $userId, $thaalCount = 1, $itemQuantities = [])
     {
         $laagatRentId = (int)$laagatRentId;
         $userId = (int)$userId;
+        $thaalCount = (int)$thaalCount;
+        if ($thaalCount <= 0) {
+            $thaalCount = 1;
+        }
         if ($laagatRentId <= 0 || $userId <= 0) {
             return [
                 'jamaat_amount' => 0.00,
@@ -863,7 +973,7 @@ class LaagatRentM extends CI_Model
             ];
         }
 
-        $lr = $this->db->select('charge_type, hijri_year, amount, rent_sabeel, rent_non_sabeel, deposit_sabeel, deposit_non_sabeel')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+        $lr = $this->db->select('charge_type, hijri_year, amount, rent_sabeel, rent_non_sabeel, deposit_sabeel, deposit_non_sabeel, is_per_thaal')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
         if (!$lr) {
             return [
                 'jamaat_amount' => 0.00,
@@ -947,6 +1057,64 @@ class LaagatRentM extends CI_Model
             if ($rentAmt == 0.00) {
                 $rentAmt = $masterAmount;
             }
+
+            if ((int)($lr['is_per_thaal'] ?? 0) === 1) {
+                $range = $this->db
+                    ->from('laagat_rent_thaal_ranges')
+                    ->where('laagat_rent_id', $laagatRentId)
+                    ->where('thaal_min <=', $thaalCount)
+                    ->where('thaal_max >=', $thaalCount)
+                    ->limit(1)
+                    ->get()
+                    ->row_array();
+
+                if (!$range) {
+                    // Fallback: try finding the range with the maximum thaal_max
+                    $range = $this->db
+                        ->from('laagat_rent_thaal_ranges')
+                        ->where('laagat_rent_id', $laagatRentId)
+                        ->order_by('thaal_max DESC')
+                        ->limit(1)
+                        ->get()
+                        ->row_array();
+                }
+
+                if ($range) {
+                    if ($hasSabeel) {
+                        $rentAmt = (float)$range['rent_sabeel'];
+                        $depositAmt = (float)$range['deposit_sabeel'];
+                    } else {
+                        $rentAmt = (float)$range['rent_non_sabeel'];
+                        $depositAmt = (float)$range['deposit_non_sabeel'];
+                    }
+                }
+            }
+
+            if ((int)($lr['is_per_thaal'] ?? 0) === 2) {
+                $rentAmt = $rentAmt * $thaalCount;
+                $depositAmt = $depositAmt * $thaalCount;
+            }
+
+            // Calculate rent items cost
+            $itemsRent = 0.00;
+            if (!empty($itemQuantities) && is_array($itemQuantities)) {
+                $itemIds = array_keys($itemQuantities);
+                if (!empty($itemIds)) {
+                    $dbItems = $this->db
+                        ->from('laagat_rent_items')
+                        ->where('laagat_rent_id', $laagatRentId)
+                        ->where_in('id', $itemIds)
+                        ->get()
+                        ->result_array();
+                    foreach ($dbItems as $item) {
+                        $qty = isset($itemQuantities[$item['id']]) ? (int)$itemQuantities[$item['id']] : 0;
+                        if ($qty > 0) {
+                            $itemsRent += ((float)($item['rent_sabeel'] ?? 0.00)) * $qty;
+                        }
+                    }
+                }
+            }
+            $rentAmt += $itemsRent;
 
             return [
                 'jamaat_amount' => $rentAmt,

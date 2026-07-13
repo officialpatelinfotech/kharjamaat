@@ -112,7 +112,7 @@
   transition: background .14s, color .14s;
 }
 #anjApp .menu-item:hover .menu-icon { background: var(--gold-muted); color: var(--gold); }
-#anjApp .menu-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#anjApp .menu-label { flex: 1; white-space: normal; word-break: break-word; }
 
 /* ── Mobile toolbar ── */
 #anjApp .mob-bar {
@@ -266,7 +266,7 @@
   <aside class="anj-sidebar" id="anjSidebar">
     <button class="sidebar-close-btn" id="sidebarCloseBtn">&times;</button>
     <div class="sidebar-menu">
-      <div class="menu-title">
+      <div class="menu-title mb-3">
         <span class="sb-ico" style="display:inline-flex;width:26px;height:26px;border-radius:7px;background:var(--gold-muted);color:var(--gold);align-items:center;justify-content:center;font-size:.78rem;margin-right:8px;">
           <i class="fa fa-tachometer"></i>
         </span>Admin Menu
@@ -285,10 +285,10 @@
 
       <div class="menu-section">Miqaat & FMB</div>
       <ul class="menu-list">
-        <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=admin'); ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('common/managemiqaat?from=admin'); ?>"><span class="menu-icon"><i class="fa fa-calendar-plus-o"></i></span><span class="menu-label">Create & Manage Miqaat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/razalist'); ?>"><span class="menu-icon"><i class="fa fa-list"></i></span><span class="menu-label">Manage Raza Form</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('admin/managefmbsettings'); ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">Manage FMB Thaali & Niyaz</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/managefmbtakhmeen'); ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">FMB Thaali Takhmeen</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/manageniyazamounts'); ?>"><span class="menu-icon"><i class="fa fa-coins"></i></span><span class="menu-label">Miqaat Niyaz Takhmeen</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>"><span class="menu-icon"><i class="fa fa-hand-holding-dollar"></i></span><span class="menu-label">Miqaat Niyaz Contribution Master</span></a></li>
       </ul>
 
       <div class="menu-section">Finance & Sabeel</div>
@@ -388,13 +388,35 @@
         </a>
       </div>
 
-      <!-- 3. Manage FMB Thaali & Niyaz -->
+      <!-- 3. FMB Thaali Takhmeen -->
       <div class="col-6 col-md-4 col-lg-3 mb-4">
-        <a href="<?php echo base_url('admin/managefmbsettings'); ?>">
+        <a href="<?php echo base_url('admin/managefmbtakhmeen'); ?>">
           <div class="admin-card">
             <div class="admin-card-icon"><i class="fa fa-cutlery"></i></div>
-            <h5 class="admin-card-title">FMB Thaali & Niyaz</h5>
-            <p class="admin-card-desc">Manage settings for FMB thaali sizes, sectors, and niyaz logistics.</p>
+            <h5 class="admin-card-title">FMB Thaali Takhmeen</h5>
+            <p class="admin-card-desc">Oversee annual takhmeen estimates and settings.</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- 3b. Miqaat Niyaz Takhmeen -->
+      <div class="col-6 col-md-4 col-lg-3 mb-4">
+        <a href="<?php echo base_url('admin/manageniyazamounts'); ?>">
+          <div class="admin-card">
+            <div class="admin-card-icon"><i class="fa fa-coins"></i></div>
+            <h5 class="admin-card-title">Miqaat Niyaz Takhmeen</h5>
+            <p class="admin-card-desc">Set up auto-generation amounts for Miqaat Niyaz.</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- 3c. Miqaat Niyaz Contribution Master -->
+      <div class="col-6 col-md-4 col-lg-3 mb-4">
+        <a href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>">
+          <div class="admin-card">
+            <div class="admin-card-icon"><i class="fa fa-hand-holding-dollar"></i></div>
+            <h5 class="admin-card-title">Miqaat Niyaz Contribution Master</h5>
+            <p class="admin-card-desc">Manage custom categories for contributions.</p>
           </div>
         </a>
       </div>
@@ -406,17 +428,6 @@
             <div class="admin-card-icon"><i class="fa fa-credit-card"></i></div>
             <h5 class="admin-card-title">Sabeel Takhmeen</h5>
             <p class="admin-card-desc">Oversee annual sabeel takhmeen rates and configurations.</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- 5. Create & Manage Miqaat -->
-      <div class="col-6 col-md-4 col-lg-3 mb-4">
-        <a href="<?php echo base_url('common/managemiqaat?from=admin'); ?>">
-          <div class="admin-card">
-            <div class="admin-card-icon"><i class="fa fa-calendar-plus-o"></i></div>
-            <h5 class="admin-card-title">Create & Manage Miqaat</h5>
-            <p class="admin-card-desc">Define dates, locations, and attendance bounds for miqaats.</p>
           </div>
         </a>
       </div>

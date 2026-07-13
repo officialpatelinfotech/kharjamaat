@@ -120,7 +120,7 @@
   transition: background .14s, color .14s;
 }
 #anjApp .menu-item:hover .menu-icon { background: var(--gold-muted); color: var(--gold); }
-#anjApp .menu-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#anjApp .menu-label { flex: 1; white-space: normal; word-break: break-word; }
 
 /* ── Mobile toolbar ── */
 #anjApp .mob-bar {

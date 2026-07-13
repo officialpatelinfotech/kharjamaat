@@ -4611,4 +4611,149 @@ class Common extends CI_Controller
       'rsvp_not_submitted' => $not_submitted
     ]);
   }
+
+  public function bulk_thaali_signup()
+  {
+    $this->validateUser($_SESSION['user']);
+    $data['user_name'] = $_SESSION['user']['username'];
+    
+    $from = $this->input->get('from');
+    if (!$from && isset($_SESSION['from'])) {
+      $from = $_SESSION['from'];
+    }
+    $data['from'] = $from;
+    $data['active_controller'] = $from ? base_url($from) : base_url();
+
+    // Monthly signup logic (Hijri): accept optional GET param hijri=YYYY-MM
+    $hijri = $this->input->get('hijri');
+    $todayGreg = date('Y-m-d');
+    $todayHijri = $this->HijriCalendar->get_hijri_date($todayGreg);
+    $defParts = $todayHijri && isset($todayHijri['hijri_date']) ? explode('-', $todayHijri['hijri_date']) : null; // d-m-Y
+    $defMonth = $defParts ? $defParts[1] : date('m');
+    $defYear  = $defParts ? $defParts[2] : date('Y');
+
+    if (preg_match('/^\d{4}-\d{2}$/', (string)$hijri)) {
+      list($hy, $hm) = explode('-', $hijri);
+    } else {
+      $hy = $defYear;
+      $hm = $defMonth;
+      $hijri = $hy . '-' . $hm;
+    }
+
+    $days = $this->HijriCalendar->get_hijri_days_for_month_year($hm, $hy);
+    $menus = [];
+    if (!empty($days)) {
+      $firstDay = $days[0]['greg_date'];
+      $lastDay  = $days[count($days) - 1]['greg_date'];
+      
+      $menus = $this->db->select('id, date')
+                        ->from('menu')
+                        ->where('date >=', $firstDay)
+                        ->where('date <=', $lastDay)
+                        ->order_by('date', 'ASC')
+                        ->get()->result_array();
+    }
+
+    foreach ($menus as $key => $value) {
+      $h_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date($value['date']);
+      $menus[$key]['hijri_label'] = $h_parts ? ($h_parts['hijri_day'] . ' ' . $h_parts['hijri_month_name'] . ' ' . $h_parts['hijri_year']) : '';
+    }
+    $data['menus'] = $menus;
+    
+    $month_row = $this->HijriCalendar->hijri_month_name((int)$hm);
+    $data['selected_hijri'] = $hijri;
+    $data['hijri_year'] = $hy;
+    $data['hijri_month'] = $hm;
+    $data['hijri_month_name'] = $month_row ? $month_row['hijri_month'] : $hm;
+
+    $prevMonth = (int)$hm === 1 ? 12 : ((int)$hm - 1);
+    $prevYear  = (int)$hm === 1 ? ((int)$hy - 1) : (int)$hy;
+    $nextMonth = (int)$hm === 12 ? 1 : ((int)$hm + 1);
+    $nextYear  = (int)$hm === 12 ? ((int)$hy + 1) : (int)$hy;
+    
+    $data['prev_hijri'] = sprintf('%04d-%02d', $prevYear, $prevMonth);
+    $data['next_hijri'] = sprintf('%04d-%02d', $nextYear, $nextMonth);
+
+    $hofs = $this->db->select('ITS_ID, Full_Name')
+                     ->from('user')
+                     ->where("Inactive_Status IS NULL AND HOF_FM_TYPE = 'HOF' AND Sector IS NOT NULL")
+                     ->order_by('Full_Name', 'ASC')
+                     ->get()->result_array();
+    $data['hofs'] = $hofs;
+
+    if ($this->input->server('REQUEST_METHOD') === 'POST') {
+      $its_input = $this->input->post('its_list');
+      $its_checked = $this->input->post('its_list_check');
+      $selected_dates = $this->input->post('dates');
+      $want_thali = (int)$this->input->post('want_thali');
+      $thali_size = $this->input->post('thali_size') ?: '';
+
+      $its_array = [];
+      if (!empty($its_input)) {
+        $its_array = preg_split('/[\s,]+/', trim($its_input));
+      }
+      if (!empty($its_checked) && is_array($its_checked)) {
+        $its_array = array_merge($its_array, $its_checked);
+      }
+      $its_array = array_filter(array_unique(array_map('trim', $its_array)));
+
+      if (empty($selected_dates)) {
+        $this->session->set_flashdata('error', 'Please select at least one date.');
+        redirect('common/bulk_thaali_signup?hijri=' . $hijri . ($from ? '&from=' . urlencode($from) : ''));
+      }
+      if (empty($its_array)) {
+        $this->session->set_flashdata('error', 'Please select or enter at least one ITS ID.');
+        redirect('common/bulk_thaali_signup?hijri=' . $hijri . ($from ? '&from=' . urlencode($from) : ''));
+      }
+      if ($want_thali === 1 && empty($thali_size)) {
+        $this->session->set_flashdata('error', 'Please select a thali size.');
+        redirect('common/bulk_thaali_signup?hijri=' . $hijri . ($from ? '&from=' . urlencode($from) : ''));
+      }
+
+      $saved = 0;
+      $skipped = 0;
+      $invalid_its = [];
+
+      foreach ($its_array as $its) {
+        $user_row = $this->db->select('HOF_ID, ITS_ID')->from('user')->where('ITS_ID', $its)->get()->row_array();
+        if (!$user_row) {
+          $invalid_its[] = $its;
+          continue;
+        }
+        
+        $hof_id = !empty($user_row['HOF_ID']) ? $user_row['HOF_ID'] : $user_row['ITS_ID'];
+
+        foreach ($selected_dates as $date) {
+          $data_signup = [
+            'user_id' => $hof_id,
+            'signup_date' => $date,
+            'want_thali' => $want_thali,
+            'thali_size' => $want_thali === 1 ? $thali_size : ''
+          ];
+          
+          if ($this->AccountM->save_fmb_signup($data_signup)) {
+            $saved++;
+          } else {
+            $skipped++;
+          }
+        }
+      }
+
+      $msg = "Bulk action completed successfully. Processed $saved records.";
+      if ($skipped > 0) {
+        $msg .= " ($skipped records unchanged).";
+      }
+      if (!empty($invalid_its)) {
+        $msg .= " Invalid or not found ITS IDs: " . implode(', ', $invalid_its) . ".";
+        $this->session->set_flashdata('error', $msg);
+      } else {
+        $this->session->set_flashdata('success', $msg);
+      }
+
+      redirect('common/bulk_thaali_signup?hijri=' . $hijri . ($from ? '&from=' . urlencode($from) : ''));
+    }
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Common/BulkThaaliSignup', $data);
+  }
 }

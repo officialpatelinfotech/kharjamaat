@@ -31,12 +31,11 @@ class Amilsaheb extends CI_Controller
     $data['user_name'] = $_SESSION['user']['username'];
 
     $this->load->model('ExpenseM');
-    $this->load->model('ExpenseSourceM');
     $this->load->model('ExpenseAreaM');
 
     $filters = [
       'aos'        => trim((string)$this->input->get('aos')),
-      'sof'        => trim((string)$this->input->get('sof')),
+      'payment_mode' => trim((string)$this->input->get('payment_mode')),
       'hijri_year' => trim((string)$this->input->get('hijri_year')),
       'date_from'  => trim((string)$this->input->get('date_from')),
       'date_to'    => trim((string)$this->input->get('date_to')),
@@ -50,9 +49,8 @@ class Amilsaheb extends CI_Controller
 
     $current_hijri_year = null;
     if (empty($filters['hijri_year'])) {
-      $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-      if ($today_parts && isset($today_parts['hijri_year'])) {
-        $current_hijri_year = (int)$today_parts['hijri_year'];
+      $current_hijri_year = $this->HijriCalendar->get_financial_hijri_year_by_greg_date(date('Y-m-d'));
+      if ($current_hijri_year) {
         $filters['hijri_year'] = $current_hijri_year;
       }
     } else {
@@ -70,7 +68,6 @@ class Amilsaheb extends CI_Controller
     $data['expense_total'] = $total_amount;
     $data['current_hijri_year_for_expense'] = $current_hijri_year;
 
-    $data['sof_options'] = $this->ExpenseSourceM->get_all();
     $data['aos_options'] = $this->ExpenseAreaM->get_all_active();
     $data['hijri_year_options'] = $this->ExpenseM->get_distinct_hijri_years();
 
@@ -79,8 +76,6 @@ class Amilsaheb extends CI_Controller
       $data['hijri_year_options'] = array_values(array_unique($data['hijri_year_options']));
       rsort($data['hijri_year_options']);
     }
-
-    $data['sources'] = $data['sof_options'];
 
     $this->load->view('Amilsaheb/Header', $data);
     $this->load->view('Amilsaheb/Expense', $data);
@@ -96,11 +91,9 @@ class Amilsaheb extends CI_Controller
     }
 
     $this->load->model('ExpenseM');
-    $this->load->model('ExpenseSourceM');
     $this->load->model('ExpenseAreaM');
 
-    $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-    $current_hijri_year = ($today_parts && isset($today_parts['hijri_year'])) ? (int)$today_parts['hijri_year'] : null;
+    $current_hijri_year = $this->HijriCalendar->get_financial_hijri_year_by_greg_date(date('Y-m-d'));
 
     if ($this->input->method() === 'post') {
       $aos_name = trim((string)$this->input->post('aos_name'));
@@ -113,12 +106,12 @@ class Amilsaheb extends CI_Controller
         'expense_date' => $this->input->post('expense_date'),
         'area_id'      => $area_id,
         'amount'       => $this->input->post('amount'),
-        'source_id'    => $this->input->post('source_id'),
+        'payment_mode' => $this->input->post('payment_mode'),
         'hijri_year'   => $this->input->post('hijri_year'),
         'notes'        => $this->input->post('notes'),
       ];
 
-      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['source_id']) && !empty($payload['hijri_year'])) {
+      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['payment_mode']) && !empty($payload['hijri_year'])) {
         $id = $this->ExpenseM->create($payload);
         if ($id) {
           $this->session->set_flashdata('success', 'Expense added successfully.');
@@ -132,7 +125,6 @@ class Amilsaheb extends CI_Controller
 
     $data = [];
     $data['user_name'] = $_SESSION['user']['username'];
-    $data['sof_options'] = $this->ExpenseSourceM->get_all();
     $data['aos_options'] = $this->ExpenseAreaM->get_all_active();
     $data['hijri_year_options'] = $this->ExpenseM->get_distinct_hijri_years();
     if ($current_hijri_year && !in_array($current_hijri_year, $data['hijri_year_options'], true)) {
@@ -161,7 +153,6 @@ class Amilsaheb extends CI_Controller
     }
 
     $this->load->model('ExpenseM');
-    $this->load->model('ExpenseSourceM');
     $this->load->model('ExpenseAreaM');
 
     $expense = $this->ExpenseM->get($id);
@@ -171,8 +162,7 @@ class Amilsaheb extends CI_Controller
       return;
     }
 
-    $today_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date(date('Y-m-d'));
-    $current_hijri_year = ($today_parts && isset($today_parts['hijri_year'])) ? (int)$today_parts['hijri_year'] : null;
+    $current_hijri_year = $this->HijriCalendar->get_financial_hijri_year_by_greg_date(date('Y-m-d'));
 
     if ($this->input->method() === 'post') {
       $aos_name = trim((string)$this->input->post('aos_name'));
@@ -185,12 +175,12 @@ class Amilsaheb extends CI_Controller
         'expense_date' => $this->input->post('expense_date'),
         'area_id'      => $area_id,
         'amount'       => $this->input->post('amount'),
-        'source_id'    => $this->input->post('source_id'),
+        'payment_mode' => $this->input->post('payment_mode'),
         'hijri_year'   => $this->input->post('hijri_year'),
         'notes'        => $this->input->post('notes'),
       ];
 
-      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['source_id']) && !empty($payload['hijri_year'])) {
+      if (!empty($payload['expense_date']) && !empty($payload['amount']) && !empty($payload['payment_mode']) && !empty($payload['hijri_year'])) {
         $ok = $this->ExpenseM->update($id, $payload);
         if ($ok) {
           $this->session->set_flashdata('success', 'Expense updated successfully.');
@@ -206,7 +196,6 @@ class Amilsaheb extends CI_Controller
     $data = [];
     $data['user_name'] = $_SESSION['user']['username'];
     $data['expense'] = $expense;
-    $data['sof_options'] = $this->ExpenseSourceM->get_all();
     $data['aos_options'] = $this->ExpenseAreaM->get_all_active();
     $data['hijri_year_options'] = $this->ExpenseM->get_distinct_hijri_years();
     if ($current_hijri_year && !in_array($current_hijri_year, $data['hijri_year_options'], true)) {

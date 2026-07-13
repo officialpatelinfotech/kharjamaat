@@ -394,6 +394,45 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
           
         </div>
 
+        <div class="mb-3" id="lr_calculation_type_section" style="display: none;">
+          <label class="form-label" for="lr_is_per_thaal">Calculation Type</label>
+          <select class="custom-select" id="lr_is_per_thaal" name="is_per_thaal">
+            <option value="0" <?php echo (isset($form['is_per_thaal']) && (int)$form['is_per_thaal'] === 0) ? 'selected' : ''; ?>>Flat Rate</option>
+            <option value="1" <?php echo (isset($form['is_per_thaal']) && (int)$form['is_per_thaal'] === 1) ? 'selected' : ''; ?>>Thaal-range Based</option>
+          </select>
+        </div>
+
+        <div id="lr_thaal_ranges_section" class="mb-4" style="display: none;">
+          <label class="form-label font-weight-bold mb-3">Thaal Ranges &amp; Rates</label>
+          <div id="lr_ranges_container" class="mb-3">
+          </div>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="lr_add_range_btn">
+            <i class="fa fa-plus mr-1"></i> Add Thaal Range
+          </button>
+        </div>
+
+        <div id="lr_items_section" class="mb-4" style="display: none;">
+          <label class="form-label font-weight-bold mb-3">Rent Items</label>
+          <p class="text-muted small mb-3">Add items available for rent. Set a cost per piece — the total will be calculated based on the number of pieces the member requests. The same rate applies to all members with no deposit.</p>
+          <div id="lr_items_container" class="mb-3">
+          </div>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="lr_add_item_btn">
+            <i class="fa fa-plus mr-1"></i> Add Item
+          </button>
+        </div>
+
+        <?php if (!empty($form['thaal_ranges'])) : ?>
+          <script>
+            window.__lr_existingThaalRanges = <?php echo json_encode(array_values($form['thaal_ranges'])); ?>;
+          </script>
+        <?php endif; ?>
+
+        <?php if (!empty($form['items'])) : ?>
+          <script>
+            window.__lr_existingItems = <?php echo json_encode(array_values($form['items'])); ?>;
+          </script>
+        <?php endif ?>
+
         <div class="row mb-4" id="lr_rent_details_section" style="display: none;">
           <div class="col-12 col-md-6 mb-3 mb-md-0">
             <div class="holder-card">
@@ -836,39 +875,228 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
     var rentDetailsSection = document.getElementById('lr_rent_details_section');
     var rentSabeelInput = document.getElementById('lr_rent_sabeel');
     var rentNonSabeelInput = document.getElementById('lr_rent_non_sabeel');
+    var calcTypeSection = document.getElementById('lr_calculation_type_section');
+    var calcTypeSelect = document.getElementById('lr_is_per_thaal');
+    var rangesSection = document.getElementById('lr_thaal_ranges_section');
+    var rangesContainer = document.getElementById('lr_ranges_container');
+    var addRangeBtn = document.getElementById('lr_add_range_btn');
+
+    var itemsSection = document.getElementById('lr_items_section');
+    var itemsContainer = document.getElementById('lr_items_container');
+    var addItemBtn = document.getElementById('lr_add_item_btn');
+
+    function addRangeRow(data = null) {
+      var card = document.createElement('div');
+      card.className = 'card mb-3 p-3 border rounded shadow-sm position-relative lr-range-card';
+      card.style.background = '#faf9f6';
+
+      var minVal = data ? data.thaal_min : '';
+      var maxVal = data ? data.thaal_max : '';
+      var rentSabeel = data ? data.rent_sabeel : '';
+      var depositSabeel = data ? data.deposit_sabeel : '';
+      var rentNonSabeel = data ? data.rent_non_sabeel : '';
+      var depositNonSabeel = data ? data.deposit_non_sabeel : '';
+
+      card.innerHTML = `
+        <button type="button" class="btn btn-sm btn-link text-danger position-absolute btn-remove-range" style="top: 10px; right: 10px;" aria-label="Delete">
+          <i class="fa fa-trash-o fa-lg"></i>
+        </button>
+        
+        <div class="form-group mb-3" style="max-width: 320px;">
+          <label class="form-label font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem; letter-spacing: 0.5px;">Thaal Count Range</label>
+          <div class="d-flex align-items-center" style="gap: 8px;">
+            <input type="number" class="form-control" name="range_thaal_min[]" value="${minVal}" min="1" required placeholder="Min Thaal" />
+            <span class="text-muted font-weight-bold">to</span>
+            <input type="number" class="form-control" name="range_thaal_max[]" value="${maxVal}" min="1" required placeholder="Max Thaal" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+            <div class="p-3 rounded border bg-white shadow-xs">
+              <div class="font-weight-bold small text-uppercase text-primary mb-2" style="font-size: 0.74rem; letter-spacing: 0.5px;">Khar Sabeel Holders</div>
+              <div class="row mx-n2">
+                <div class="col-6 px-2">
+                  <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">Rent Amount</label>
+                  <input type="number" class="form-control" name="range_rent_sabeel[]" value="${rentSabeel}" min="0" step="0.01" required placeholder="0.00" />
+                </div>
+                <div class="col-6 px-2">
+                  <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">Deposit Amount</label>
+                  <input type="number" class="form-control" name="range_deposit_sabeel[]" value="${depositSabeel}" min="0" step="0.01" required placeholder="0.00" />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-12 col-sm-6">
+            <div class="p-3 rounded border bg-white shadow-xs">
+              <div class="font-weight-bold small text-uppercase text-secondary mb-2" style="font-size: 0.74rem; letter-spacing: 0.5px;">Non Khar Sabeel Holders</div>
+              <div class="row mx-n2">
+                <div class="col-6 px-2">
+                  <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">Rent Amount</label>
+                  <input type="number" class="form-control" name="range_rent_non_sabeel[]" value="${rentNonSabeel}" min="0" step="0.01" required placeholder="0.00" />
+                </div>
+                <div class="col-6 px-2">
+                  <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">Deposit Amount</label>
+                  <input type="number" class="form-control" name="range_deposit_non_sabeel[]" value="${depositNonSabeel}" min="0" step="0.01" required placeholder="0.00" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      rangesContainer.appendChild(card);
+    }
+
+    if (addRangeBtn) {
+      addRangeBtn.addEventListener('click', function() {
+        addRangeRow();
+      });
+    }
+
+    if (rangesContainer) {
+      rangesContainer.addEventListener('click', function(e) {
+        var t = e.target;
+        if (!t) return;
+        var removeBtn = t.closest('.btn-remove-range');
+        if (removeBtn) {
+          var card = removeBtn.closest('.lr-range-card');
+          if (card && card.parentNode) {
+            card.parentNode.removeChild(card);
+          }
+        }
+      });
+    }
+
+    if (addItemBtn && itemsContainer) {
+      addItemBtn.addEventListener('click', function() {
+        addItemCard();
+      });
+    }
+
+    if (itemsContainer) {
+      itemsContainer.addEventListener('click', function(e) {
+        var t = e.target;
+        if (!t) return;
+        var removeBtn = t.closest('.btn-remove-item');
+        if (removeBtn) {
+          var card = removeBtn.closest('.lr-item-card');
+          if (card && card.parentNode) {
+            card.parentNode.removeChild(card);
+          }
+        }
+      });
+    }
+
+    function addItemCard(data) {
+      if (!itemsContainer) return;
+      var card = document.createElement('div');
+      card.className = 'card mb-3 p-3 border rounded shadow-sm position-relative lr-item-card';
+      card.style.background = '#faf9f6';
+
+      var itemName = data ? (data.item_name || '') : '';
+      var rentS = data ? (data.rent_sabeel || '') : '';
+      var depS = data ? (data.deposit_sabeel || '') : '';
+      var rentNS = data ? (data.rent_non_sabeel || '') : '';
+      var depNS = data ? (data.deposit_non_sabeel || '') : '';
+
+      card.innerHTML = `
+        <button type="button" class="btn btn-sm btn-link text-danger position-absolute btn-remove-item" style="top: 10px; right: 10px;" aria-label="Delete">
+          <i class="fa fa-trash-o fa-lg"></i>
+        </button>
+
+        <div class="d-flex align-items-end" style="gap: 16px; flex-wrap: wrap;">
+          <div class="form-group mb-0" style="min-width: 200px; flex: 2;">
+            <label class="form-label font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem; letter-spacing: 0.5px;">Item Name</label>
+            <input type="text" class="form-control" name="item_name[]" value="${itemName}" required placeholder="e.g. Chair, Table, Mic..." />
+          </div>
+          <div class="form-group mb-0" style="min-width: 140px; flex: 1;">
+            <label class="form-label font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem; letter-spacing: 0.5px;">Cost / Piece</label>
+            <input type="number" class="form-control" name="item_rent_sabeel[]" value="${rentS}" min="0" step="0.01" required placeholder="0.00" />
+          </div>
+        </div>
+      `;
+
+      itemsContainer.appendChild(card);
+    }
 
     function toggleRentFields() {
       if (typeSelect && typeSelect.value === 'rent') {
         if (venueSection) venueSection.style.display = 'block';
-        if (amountSection) {
-          amountSection.style.display = 'none';
-          if (amountInput) {
-            amountInput.removeAttribute('required');
-            amountInput.value = '';
+        if (calcTypeSection) calcTypeSection.style.display = 'block';
+        // Items section is always visible for rent type (independent of calculation type)
+        if (itemsSection) itemsSection.style.display = 'block';
+
+        var calcVal = calcTypeSelect ? calcTypeSelect.value : '0';
+        if (calcVal === '1') {
+          // Thaal-range Based: show ranges, hide flat rate fields
+          if (rangesSection) rangesSection.style.display = 'block';
+          if (rentDetailsSection) {
+            rentDetailsSection.style.display = 'none';
+            var inputs = rentDetailsSection.querySelectorAll('input');
+            for (var i = 0; i < inputs.length; i++) inputs[i].removeAttribute('required');
+          }
+          if (rangesContainer) {
+            var rangeInputs = rangesContainer.querySelectorAll('input');
+            for (var i = 0; i < rangeInputs.length; i++) rangeInputs[i].setAttribute('required', 'required');
+          }
+        } else {
+          // Flat Rate: show flat rate fields, hide ranges
+          if (rangesSection) {
+            rangesSection.style.display = 'none';
+            if (rangesContainer) {
+              var rangeInputs = rangesContainer.querySelectorAll('input');
+              for (var i = 0; i < rangeInputs.length; i++) rangeInputs[i].removeAttribute('required');
+            }
+          }
+          if (rentDetailsSection) {
+            rentDetailsSection.style.display = 'flex';
+            if (rentSabeelInput) rentSabeelInput.setAttribute('required', 'required');
+            if (rentNonSabeelInput) rentNonSabeelInput.setAttribute('required', 'required');
           }
         }
-        if (rentDetailsSection) rentDetailsSection.style.display = 'flex';
-        if (rentSabeelInput) rentSabeelInput.setAttribute('required', 'required');
-        if (rentNonSabeelInput) rentNonSabeelInput.setAttribute('required', 'required');
-      } else {
-        if (venueSection) venueSection.style.display = 'none';
-        if (venueSelect) venueSelect.value = '';
+
         if (amountSection) {
           amountSection.style.display = 'none';
-          if (amountInput) {
-            amountInput.removeAttribute('required');
-            amountInput.value = '';
+          if (amountInput) { amountInput.removeAttribute('required'); amountInput.value = ''; }
+        }
+      } else {
+        // Not rent — hide all rent-specific sections
+        if (venueSection) venueSection.style.display = 'none';
+        if (venueSelect) venueSelect.value = '';
+        if (calcTypeSection) {
+          calcTypeSection.style.display = 'none';
+          if (calcTypeSelect) calcTypeSelect.value = '0';
+        }
+        if (rangesSection) {
+          rangesSection.style.display = 'none';
+          if (rangesContainer) {
+            var rangeInputs = rangesContainer.querySelectorAll('input');
+            for (var i = 0; i < rangeInputs.length; i++) rangeInputs[i].removeAttribute('required');
           }
+        }
+        if (itemsSection) {
+          itemsSection.style.display = 'none';
+          if (itemsContainer) {
+            var itemInputs = itemsContainer.querySelectorAll('input');
+            for (var i = 0; i < itemInputs.length; i++) itemInputs[i].removeAttribute('required');
+          }
+        }
+        if (amountSection) {
+          amountSection.style.display = 'none';
+          if (amountInput) { amountInput.removeAttribute('required'); amountInput.value = ''; }
         }
         if (rentDetailsSection) {
           rentDetailsSection.style.display = 'none';
           var inputs = rentDetailsSection.querySelectorAll('input');
-          for (var i = 0; i < inputs.length; i++) {
-            inputs[i].value = '';
-            inputs[i].removeAttribute('required');
-          }
+          for (var i = 0; i < inputs.length; i++) { inputs[i].value = ''; inputs[i].removeAttribute('required'); }
         }
       }
+    }
+
+    if (calcTypeSelect) {
+      calcTypeSelect.addEventListener('change', toggleRentFields);
     }
 
     typeSelect.addEventListener('change', function() {
@@ -920,6 +1148,19 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
     } else {
       initSelectedFromDom();
     }
+
+    if (window.__lr_existingThaalRanges && Array.isArray(window.__lr_existingThaalRanges)) {
+      for (var j = 0; j < window.__lr_existingThaalRanges.length; j++) {
+        addRangeRow(window.__lr_existingThaalRanges[j]);
+      }
+    }
+
+    if (window.__lr_existingItems && Array.isArray(window.__lr_existingItems)) {
+      for (var k = 0; k < window.__lr_existingItems.length; k++) {
+        addItemCard(window.__lr_existingItems[k]);
+      }
+    }
+
     isInitializing = false;
     updateGradeAmounts();
     fetchOptions('');

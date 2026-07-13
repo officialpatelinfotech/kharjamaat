@@ -1,88 +1,347 @@
-<div class="container margintopcontainer pt-5">
+<div class="container margintopcontainer pt-5" id="fmbTakhmeenApp">
+  <?php
+    $sum_total_takhmeen = 0;
+    if (isset($all_user_fmb_takhmeen) && is_array($all_user_fmb_takhmeen)) {
+      foreach ($all_user_fmb_takhmeen as $user) {
+        if (isset($user['current_year_takhmeen'])) {
+          $rawAmt = (string)($user['current_year_takhmeen']['amount'] ?? '');
+          $amt = (float)preg_replace('/[^0-9.]/', '', $rawAmt);
+          $sum_total_takhmeen += $amt;
+        }
+      }
+    }
+  ?>
   <style>
-    .fmb-filter-bar { display:flex; flex-wrap:wrap; gap:.5rem .75rem; align-items:flex-end; }
-    .fmb-filter-bar .form-group { margin-bottom:0; }
-    .fmb-filter-bar label { font-size:.75rem; color:#6c757d; margin-bottom:.25rem; }
-    .fmb-filter-bar .form-control { min-width:220px; }
-    @media (max-width: 576px){ .fmb-filter-bar .form-control { min-width:unset; width:100%; } }
+    #fmbTakhmeenApp {
+      --gold:        #b8860b;
+      --gold-light:  #e6c84a;
+      --gold-muted:  #f5e9c0;
+      --bg:          #faf7f0;
+      --surface:     #ffffff;
+      --surface-2:   #f7f4ec;
+      --border:      #e8e0cc;
+      --text-1:      #1a1610;
+      --text-2:      #5a5244;
+      --text-3:      #9c8f7a;
+      --green:       #1a6645;
+      --blue:        #1d4ed8;
+      --sh:          0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --sh2:         0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: #faf7f0 !important;
+    }
+
+    /* Elegant Header Banner */
+    .anj-header {
+      margin-bottom: 24px;
+    }
+    .anj-header-inner {
+      background: linear-gradient(135deg, #78520a 0%, #b8860b 50%, #c9a227 100%);
+      border-radius: 18px;
+      padding: 24px 30px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--sh);
+      color: #fff;
+    }
+    .anj-eyebrow {
+      font-size: .67rem;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 4px;
+    }
+    .anj-title {
+      font-family: 'Literata', Georgia, serif;
+      font-size: 1.7rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 0;
+    }
+
+    /* Filter Card */
+    .miqaat-filter-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--sh);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .form-group-premium {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .form-group-premium label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-2);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 0;
+    }
+    .form-control-premium {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      color: var(--text-1);
+      background: var(--surface-2);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      width: 100%;
+      height: 38px;
+      font-family: inherit;
+    }
+    .form-control-premium:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(184,134,11,.1);
+      background: var(--surface);
+    }
+
+    /* Table Card */
+    .miqaat-table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--sh);
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+    .miqaat-table-responsive {
+      max-height: 70vh;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+    .miqaat-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0;
+    }
+    .miqaat-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: var(--text-1) !important;
+      color: #fff !important;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 16px;
+      border: none;
+      border-bottom: 2px solid var(--border);
+    }
+    .miqaat-table tbody tr {
+      transition: background-color 0.15s;
+    }
+    .miqaat-table tbody tr:nth-of-type(even) {
+      background-color: var(--surface-2);
+    }
+    .miqaat-table tbody tr:hover {
+      background-color: rgba(184, 134, 11, 0.05);
+    }
+    .miqaat-table tbody td {
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text-2);
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .miqaat-table tbody td b {
+      color: var(--text-1);
+    }
+
+    /* Premium Buttons */
+    .btn-premium {
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 8px 16px;
+      border-radius: 10px;
+      transition: all 0.2s;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .btn-premium-primary {
+      background: var(--gold);
+      color: #fff;
+    }
+    .btn-premium-primary:hover {
+      background: #8f6808;
+      color: #fff;
+      text-decoration: none;
+    }
+    .btn-premium-secondary {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      color: var(--text-2);
+    }
+    .btn-premium-secondary:hover {
+      background: var(--gold-muted);
+      border-color: var(--gold);
+      color: var(--gold);
+      text-decoration: none;
+    }
+
+    .btn-premium-action {
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      border: none;
+      color: #fff;
+      transition: opacity 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 4px;
+    }
+    .btn-premium-action:hover {
+      opacity: 0.85;
+      color: #fff;
+      text-decoration: none;
+    }
+    .btn-premium-action-add { background-color: var(--green) !important; }
+    .btn-premium-action-view { background-color: var(--blue) !important; }
+    .btn-premium-action-edit { background-color: var(--gold) !important; }
+
+    /* Modals */
+    .modal-content-premium {
+      border-radius: 16px !important;
+      border: 1px solid var(--border) !important;
+      box-shadow: var(--sh2) !important;
+      background: var(--surface) !important;
+      overflow: hidden;
+    }
+    .modal-header-premium {
+      background: linear-gradient(135deg, #78520a, var(--gold)) !important;
+      color: #fff !important;
+      border-bottom: none !important;
+      padding: 16px 20px !important;
+    }
+    .modal-header-premium .close {
+      color: #fff !important;
+      opacity: 0.8 !important;
+      text-shadow: none !important;
+    }
+    .modal-header-premium .close:hover {
+      opacity: 1 !important;
+    }
+    .modal-body-premium {
+      padding: 24px !important;
+    }
 
     /* Hijri calendar (same UX as Create Miqaat) */
-    #thaali-hijri-calendar .hijri-day.active { background: #0d6efd; color: #fff; }
-    #thaali-hijri-calendar .hijri-day { width: 34px; padding: 4px 0; }
+    #thaali-hijri-calendar .hijri-day.active { background: var(--gold); color: #fff; border-radius: 6px; }
+    #thaali-hijri-calendar .hijri-day { width: 34px; padding: 4px 0; cursor: pointer; transition: background 0.15s; }
+    #thaali-hijri-calendar .hijri-day:hover:not(.active) { background: var(--gold-muted); border-radius: 6px; }
     #thaali-hijri-calendar .hijri-week-grid { display: flex; flex-direction: column; width: 100%; }
     #thaali-hijri-calendar .hijri-row { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
     #thaali-hijri-calendar .hijri-head { margin-bottom: 2px; }
     #thaali-hijri-calendar .hijri-cell { min-height: 38px; display: flex; align-items: center; justify-content: center; }
     #thaali-hijri-calendar .hijri-cell.empty { background: transparent; }
-    #thaali-hijri-calendar .hijri-head-cell { font-size: 0.75rem; text-transform: uppercase; }
+    #thaali-hijri-calendar .hijri-head-cell { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-2); }
     
     tr.clickable-row { cursor: pointer; }
-    tr.clickable-row:hover td { background-color: #f1f5f9 !important; }
   </style>
+
   <?php if ($this->session->flashdata('error')): ?>
-    <div class="alert alert-danger">
+    <div class="alert alert-danger" style="border-radius: 10px;">
       <?= $this->session->flashdata('error'); ?>
     </div>
   <?php endif; ?>
 
   <?php if ($this->session->flashdata('success')): ?>
-    <div class="alert alert-success">
+    <div class="alert alert-success" style="border-radius: 10px;">
       <?= $this->session->flashdata('success'); ?>
     </div>
   <?php endif; ?>
 
   <?php if ($this->session->flashdata('warning')): ?>
-    <div class="alert alert-warning">
+    <div class="alert alert-warning" style="border-radius: 10px;">
       <?= $this->session->flashdata('warning'); ?>
     </div>
   <?php endif; ?>
 
-  <div class="row mb-4 p-0">
-    <div class="col-12 col-md-6">
-      <a href="<?php echo base_url("admin/managefmbsettings"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
-    </div>
+  <!-- Actions Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <a href="<?php echo base_url("admin"); ?>" class="btn-premium btn-premium-secondary" title="Back to Dashboard">
+      <i class="fa-solid fa-arrow-left"></i> Back
+    </a>
+    <a href="<?php echo base_url("admin/manageperdaythaalicost"); ?>" class="btn-premium btn-premium-primary">
+      <i class="fa-solid fa-calculator mr-1"></i> Daily Thaali Cost
+    </a>
   </div>
-  <div class="mb-4 p-0">
-    <?php
-      // Use global filter meta provided by controller to avoid collapsing options after filtering
-      $sectors_list = isset($filter_meta['sectors']) && is_array($filter_meta['sectors']) ? $filter_meta['sectors'] : [];
-      $sub_sectors_list = isset($filter_meta['sub_sectors']) && is_array($filter_meta['sub_sectors']) ? $filter_meta['sub_sectors'] : [];
-      if (!function_exists('selopt')) { function selopt($cur, $val){ return ((string)($cur ?? '') === (string)$val) ? 'selected' : ''; } }
-    ?>
-    <form method="POST" action="<?php echo base_url("admin/filterfmbtakhmeen"); ?>" id="filter-form" class="row m-0">
-      <input type="text" name="member_name" id="member-name" class="apply-filter form-control col-3 mr-3" placeholder="Filter by Name or ITS" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
-      <select name="sector" id="sector" class="apply-filter form-control col-3 mr-3">
-        <option value="">All Sectors</option>
-        <?php foreach($sectors_list as $s): ?>
-          <option value="<?php echo htmlspecialchars($s); ?>" <?php echo selopt($sector ?? '', $s); ?>><?php echo htmlspecialchars($s); ?></option>
-        <?php endforeach; ?>
-      </select>
-      <select name="sub_sector" id="sub-sector" class="apply-filter form-control col-3 mr-3">
-        <option value="">All Sub Sectors</option>
-        <?php foreach($sub_sectors_list as $ss): ?>
-          <option value="<?php echo htmlspecialchars($ss); ?>" <?php echo selopt($sub_sector ?? '', $ss); ?>><?php echo htmlspecialchars($ss); ?></option>
-        <?php endforeach; ?>
-      </select>
 
-      <select name="filter_year" id="filter-year" class="apply-filter form-control col-3 mt-3">
-        <option value="">Select Year</option>
-        <?php
-          $CI =& get_instance();
-          $CI->load->model('HijriCalendar');
-          $yearRanges = $CI->HijriCalendar->get_distinct_composite_years();
-          foreach ($yearRanges as $yr):
-        ?>
-          <option value="<?php echo $yr; ?>" <?php echo (isset($year) && $year == $yr) ? "selected" : ""; ?>><?php echo $yr; ?></option>
-        <?php endforeach; ?>
-      </select>
+  <?php
+    // Use global filter meta provided by controller to avoid collapsing options after filtering
+    $sectors_list = isset($filter_meta['sectors']) && is_array($filter_meta['sectors']) ? $filter_meta['sectors'] : [];
+    $sub_sectors_list = isset($filter_meta['sub_sectors']) && is_array($filter_meta['sub_sectors']) ? $filter_meta['sub_sectors'] : [];
+    if (!function_exists('selopt')) { function selopt($cur, $val){ return ((string)($cur ?? '') === (string)$val) ? 'selected' : ''; } }
+  ?>
 
-      <button type="submit" class="btn btn-primary ml-2 mt-3 d-none">Filter</button>
-
-      <button type="button" id="clear-filters" class="btn btn-outline-secondary ml-2 mt-3" title="Clear">
-        <i class="fa-solid fa-times"></i>
-      </button>
+  <!-- Filters Row -->
+  <div class="miqaat-filter-card">
+    <form method="POST" action="<?php echo base_url("admin/filterfmbtakhmeen"); ?>" id="filter-form" class="form-row align-items-end">
+      <div class="col-12 col-md-3 mb-2 mb-md-0">
+        <div class="form-group-premium">
+          <label>Name or ITS</label>
+          <input type="text" name="member_name" id="member-name" class="apply-filter form-control-premium" placeholder="Filter by Name or ITS" value="<?php echo isset($member_name) ? $member_name : ""; ?>">
+        </div>
+      </div>
+      <div class="col-12 col-md-3 mb-2 mb-md-0">
+        <div class="form-group-premium">
+          <label>Sector</label>
+          <select name="sector" id="sector" class="apply-filter form-control-premium">
+            <option value="">All Sectors</option>
+            <?php foreach($sectors_list as $s): ?>
+              <option value="<?php echo htmlspecialchars($s); ?>" <?php echo selopt($sector ?? '', $s); ?>><?php echo htmlspecialchars($s); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+      <div class="col-12 col-md-3 mb-2 mb-md-0">
+        <div class="form-group-premium">
+          <label>Sub Sector</label>
+          <select name="sub_sector" id="sub-sector" class="apply-filter form-control-premium">
+            <option value="">All Sub Sectors</option>
+            <?php foreach($sub_sectors_list as $ss): ?>
+              <option value="<?php echo htmlspecialchars($ss); ?>" <?php echo selopt($sub_sector ?? '', $ss); ?>><?php echo htmlspecialchars($ss); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+      <div class="col-12 col-md-2 mb-2 mb-md-0">
+        <div class="form-group-premium">
+          <label>Year</label>
+          <select name="filter_year" id="filter-year" class="apply-filter form-control-premium">
+            <option value="">Select Year</option>
+            <?php
+              $CI =& get_instance();
+              $CI->load->model('HijriCalendar');
+              $yearRanges = $CI->HijriCalendar->get_distinct_composite_years();
+              foreach ($yearRanges as $yr):
+            ?>
+              <option value="<?php echo $yr; ?>" <?php echo (isset($year) && $year == $yr) ? "selected" : ""; ?>><?php echo $yr; ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+      <div class="col-auto">
+        <button type="button" id="clear-filters" class="btn btn-outline-secondary" title="Clear Filters" style="height: 38px; border-radius: 10px;">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
     </form>
   </div>
+
   <?php
   if (isset($all_user_fmb_takhmeen) && !empty($all_user_fmb_takhmeen)):
     $hijri_year = isset($all_user_fmb_takhmeen[0]["hijri_year"]) ? $all_user_fmb_takhmeen[0]["hijri_year"] : '';
@@ -91,9 +350,20 @@
     $hijri_year = isset($year) ? $year : '';
   endif;
   ?>
-  <h4 class="heading text-center mb-4">FMB Thaali Takhmeen for <span class="text-primary"><?php echo $hijri_year; ?></span></h4>
-  <div class="table-responsive" style="overflow-x:auto;">
-    <table class="table table-bordered table-striped" style="min-width: 700px;">
+
+  <!-- Header Panel -->
+  <div class="anj-header text-center mb-4">
+    <div class="anj-header-inner flex-column justify-content-center py-4">
+      <p class="anj-eyebrow">Fizalat Mawamil al-Burhaniyah</p>
+      <h1 class="anj-title">FMB Thaali Takhmeen for <span style="color: #fffbdf;"><?php echo $hijri_year; ?></span></h1>
+      <div class="h5 m-0 mt-2 font-weight-bold" style="color: #fff; letter-spacing: 0.5px; opacity: 0.95;">Total Takhmeen: ₹<?php echo number_format($sum_total_takhmeen, 0); ?></div>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="miqaat-table-card">
+    <div class="miqaat-table-responsive">
+      <table class="miqaat-table">
       <thead>
         <tr>
           <th data-no-sort>#</th>
@@ -155,11 +425,11 @@
                   $allFamilyInactive = (($user['activity_status'] ?? '') === 'inactive' && ($user['active_family_count'] ?? 0) === 0);
                   $inactiveReason = $allFamilyInactive ? 'All family members are inactive' : '';
                 ?>
-                <button id="add-takhmeen" class="add-takhmeen mb-2 btn btn-sm btn-success" <?php echo !$allFamilyInactive ? 'data-toggle="modal" data-target="#add-takhmeen-container"' : ''; ?> data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?>" data-inactive="<?php echo $allFamilyInactive ? 'true' : 'false'; ?>" data-inactive-reason="<?php echo htmlspecialchars($inactiveReason); ?>" <?php echo $allFamilyInactive ? 'style="opacity:0.5; cursor:not-allowed;" title="All family members are inactive"' : ''; ?>><i class="fa-solid fa-plus"></i></button>
+                <button id="add-takhmeen" class="add-takhmeen btn-premium-action btn-premium-action-add" <?php echo !$allFamilyInactive ? 'data-toggle="modal" data-target="#add-takhmeen-container"' : ''; ?> data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?>" data-inactive="<?php echo $allFamilyInactive ? 'true' : 'false'; ?>" data-inactive-reason="<?php echo htmlspecialchars($inactiveReason); ?>" <?php echo $allFamilyInactive ? 'style="opacity:0.5; cursor:not-allowed;" title="All family members are inactive"' : ''; ?>><i class="fa-solid fa-plus"></i></button>
 
-                <button id="view-takhmeen" class="view-takhmeen mb-2 btn btn-sm btn-primary" data-toggle="modal" data-target="#view-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo $user["Full_Name"]; ?>" data-takhmeens="<?php echo htmlspecialchars(json_encode($user["takhmeens"]), ENT_QUOTES, 'UTF-8'); ?>"><i class="fa-solid fa-eye"></i></button>
+                <button id="view-takhmeen" class="view-takhmeen btn-premium-action btn-premium-action-view" data-toggle="modal" data-target="#view-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?>" data-takhmeens="<?php echo htmlspecialchars(json_encode($user["takhmeens"]), ENT_QUOTES, 'UTF-8'); ?>"><i class="fa-solid fa-eye"></i></button>
 
-                <button id="edit-takhmeen" class="edit-takhmeen mb-2 btn btn-sm btn-info" data-toggle="modal" data-target="#edit-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo $user["Full_Name"]; ?>" data-takhmeens="<?php echo htmlspecialchars(json_encode($user["takhmeens"]), ENT_QUOTES, 'UTF-8'); ?>"><i class="fa-solid fa-pencil"></i></button>
+                <button id="edit-takhmeen" class="edit-takhmeen btn-premium-action btn-premium-action-edit" data-toggle="modal" data-target="#edit-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?>" data-takhmeens="<?php echo htmlspecialchars(json_encode($user["takhmeens"]), ENT_QUOTES, 'UTF-8'); ?>"><i class="fa-solid fa-pencil"></i></button>
               </td>
             </tr>
         <?php
@@ -170,17 +440,18 @@
     </table>
   </div>
 </div>
+</div>
 
 <div class="modal fade" id="assigned-thaali-days-container" tabindex="-1" aria-labelledby="assigned-thaali-days-label" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="assigned-thaali-days-label">Assigned Thaali Dates</h5>
+    <div class="modal-content modal-content-premium">
+      <div class="modal-header modal-header-premium">
+        <h5 class="modal-title" id="assigned-thaali-days-label"><i class="fa-solid fa-calendar mr-2"></i> Assigned Thaali Dates</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body modal-body-premium">
         <p class="mb-2"><strong>Member Name:</strong> <span id="assigned-user-name">-</span></p>
         <p class="mb-3"><strong>FY:</strong> <span id="assigned-fy">-</span></p>
         <div id="assigned-dates-loading" class="text-secondary">Loading...</div>
@@ -192,62 +463,62 @@
 </div>
 <div class="modal fade" id="add-takhmeen-container" tabindex="-1" aria-labelledby="add-takhmeen-container-label" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="add-takhmeen-container-label">Add FMB Takhmeen Amount</h5>
+    <div class="modal-content modal-content-premium">
+      <div class="modal-header modal-header-premium">
+        <h5 class="modal-title" id="add-takhmeen-container-label"><i class="fa-solid fa-circle-plus mr-2"></i> Add FMB Takhmeen Amount</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body modal-body-premium">
         <form method="POST" action="<?php echo base_url("admin/addfmbtakhmeenamount"); ?>">
           <input type="hidden" name="user_id" id="user-id" />
           <p class="mb-2"><strong>Member Name:</strong> <span id="user-name">-</span></p>
-          <div class="form-group">
-            <label for="takhmeen-year">Year</label>
-            <select name="fmb_takhmeen_year" id="takhmeen-year" class="form-control" required>
+          <div class="form-group mb-3">
+            <label for="takhmeen-year" style="font-size: 0.75rem; font-weight: 700; color: var(--text-2); text-transform: uppercase;">Year</label>
+            <select name="fmb_takhmeen_year" id="takhmeen-year" class="form-control-premium" required>
               <?php foreach ($yearRanges as $yr): ?>
                 <option value="<?php echo $yr; ?>" <?php echo selopt($hijri_year ?? '', $yr); ?>><?php echo $yr; ?></option>
               <?php endforeach; ?>
             </select>
           </div>
-          <div class="form-group">
-            <label for="takhmeen-amount" class="form-label">Takhmeen Amount</label>
-            <input type="number" id="takhmeen-amount" name="fmb_takhmeen_amount" class="form-control" placeholder="Enter Takhmeen Amount" min="1" required>
+          <div class="form-group mb-3">
+            <label for="takhmeen-amount" class="form-label" style="font-size: 0.75rem; font-weight: 700; color: var(--text-2); text-transform: uppercase;">Takhmeen Amount (₹)</label>
+            <input type="number" id="takhmeen-amount" name="fmb_takhmeen_amount" class="form-control-premium" placeholder="Enter Takhmeen Amount" min="1" required>
           </div>
-          <div class="form-group">
-            <label for="thaali-date" class="form-label">Thaali days</label>
-            <div class="input-group">
-              <input type="date" id="thaali-date" class="form-control" min="<?php echo !empty($hijri_calendar_min_greg) ? htmlspecialchars($hijri_calendar_min_greg, ENT_QUOTES) : '2000-01-01'; ?>" max="<?php echo !empty($hijri_calendar_max_greg) ? htmlspecialchars($hijri_calendar_max_greg, ENT_QUOTES) : '2100-12-31'; ?>" />
+          <div class="form-group mb-3">
+            <label for="thaali-date" class="form-label" style="font-size: 0.75rem; font-weight: 700; color: var(--text-2); text-transform: uppercase;">Thaali days</label>
+            <div class="input-group mb-2">
+              <input type="date" id="thaali-date" class="form-control-premium" min="<?php echo !empty($hijri_calendar_min_greg) ? htmlspecialchars($hijri_calendar_min_greg, ENT_QUOTES) : '2000-01-01'; ?>" max="<?php echo !empty($hijri_calendar_max_greg) ? htmlspecialchars($hijri_calendar_max_greg, ENT_QUOTES) : '2100-12-31'; ?>" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" />
               <div class="input-group-append">
-                <button type="button" id="add-thaali-date-btn" class="btn btn-secondary">Add</button>
+                <button type="button" id="add-thaali-date-btn" class="btn btn-premium btn-premium-primary" style="border-top-left-radius: 0; border-bottom-left-radius: 0; height: 38px;">Add</button>
               </div>
             </div>
-            <p id="thaali-date-both-display" class="form-text text-muted mb-1">Selected: -</p>
+            <p id="thaali-date-both-display" class="form-text text-muted mb-2 small">Selected: -</p>
 
-            <div class="border rounded p-2 bg-light" id="thaali-hijri-selector-wrapper">
+            <div class="border rounded p-3 bg-light" id="thaali-hijri-selector-wrapper" style="border-radius: 12px !important; border-color: var(--border) !important;">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <label class="fw-bold m-0">Select Hijri Date</label>
+                <label class="font-weight-bold m-0" style="font-size: 0.75rem; color: var(--text-2);">Select Hijri Date</label>
                 <div>
-                  <select id="thaali-hijri-year-select" class="form-control form-select form-select-sm d-inline-block w-auto" aria-label="Hijri Year" style="min-width:90px"></select>
+                  <select id="thaali-hijri-year-select" class="form-control-premium form-select form-select-sm d-inline-block w-auto" aria-label="Hijri Year" style="min-width:90px; height: 30px; padding: 2px 8px; font-size: 0.75rem;"></select>
                 </div>
               </div>
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <button type="button" id="thaali-hijri-prev" class="btn btn-sm btn-outline-secondary">«</button>
-                <span id="thaali-hijri-current" class="mx-2 fw-semibold small"></span>
-                <button type="button" id="thaali-hijri-next" class="btn btn-sm btn-outline-secondary">»</button>
+                <button type="button" id="thaali-hijri-prev" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px;">«</button>
+                <span id="thaali-hijri-current" class="mx-2 font-weight-bold small text-secondary"></span>
+                <button type="button" id="thaali-hijri-next" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px;">»</button>
               </div>
               <div id="thaali-hijri-calendar" class="hijri-cal-grid mb-2"></div>
-              <small id="thaali-hijri-help" class="text-muted d-block">Click a Hijri day to auto-fill the Gregorian date above.</small>
+              <small id="thaali-hijri-help" class="text-muted d-block small">Click a Hijri day to auto-fill the Gregorian date above.</small>
             </div>
 
             <small id="thaali-error" class="text-danger d-none">Please select date</small>
-            <div id="thaali-dates-list" class="mt-2"></div>
+            <div id="thaali-dates-list" class="mt-2 d-flex flex-wrap gap-1"></div>
             <input type="hidden" name="thaali_dates" id="thaali-dates-hidden" />
           </div>
-          <div class="d-flex align-items-center justify-content-between">
-            <button type="submit" id="add-takhmeen-btn" class="btn btn-primary">Add Takhmeen</button>
-            <p id="validate-takhmeen" class="text-secondary m-0"></p>
+          <div class="d-flex align-items-center justify-content-between mt-4">
+            <button type="submit" id="add-takhmeen-btn" class="btn-premium btn-premium-primary">Add Takhmeen</button>
+            <p id="validate-takhmeen" class="text-secondary m-0 small"></p>
           </div>
         </form>
       </div>
@@ -257,30 +528,32 @@
 
 <div class="modal fade" id="view-takhmeen-container" tabindex="-1" aria-labelledby="view-takhmeen-container-label" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="view-takhmeen-container-label">View FMB Takhmeen History</h5>
+    <div class="modal-content modal-content-premium">
+      <div class="modal-header modal-header-premium">
+        <h5 class="modal-title" id="view-takhmeen-container-label"><i class="fa-solid fa-clock-rotate-left mr-2"></i> View FMB Takhmeen History</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body">
-        <p><b>Member Name: </b><span id="view-user-name">Member Name</span></p>
-        <div class="table-responsive" style="overflow-x:auto;">
-          <table class="table table-bordered table-striped" style="min-width: 600px;">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Takhmeen Year</th>
-                <th>Amount</th>
-                <th>Thaali Days</th>
-                <th>Assigned Thaali Days</th>
-                <th>Update Remark</th>
-              </tr>
-            </thead>
-            <tbody id="takhmeen-history-body">
-            </tbody>
-          </table>
+      <div class="modal-body modal-body-premium">
+        <p class="mb-3"><b>Member Name: </b><span id="view-user-name" class="text-secondary">Member Name</span></p>
+        <div class="miqaat-table-card">
+          <div class="table-responsive" style="overflow-x:auto;">
+            <table class="miqaat-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Takhmeen Year</th>
+                  <th>Amount</th>
+                  <th>Thaali Days</th>
+                  <th>Assigned Thaali Days</th>
+                  <th>Update Remark</th>
+                </tr>
+              </thead>
+              <tbody id="takhmeen-history-body">
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -289,21 +562,21 @@
 
 <div class="modal fade" id="edit-takhmeen-container" tabindex="-1" aria-labelledby="edit-takhmeen-label" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="edit-takhmeen-label">Edit FMB Takhmeen</h5>
+    <div class="modal-content modal-content-premium">
+      <div class="modal-header modal-header-premium">
+        <h5 class="modal-title" id="edit-takhmeen-label"><i class="fa-solid fa-pen-to-square mr-2"></i> Edit FMB Takhmeen</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body">
-        <p><b>Member Name: </b><span id="edit-user-name">Member Name</span></p>
-        <div class="table-responsive rounded" style="overflow-x:auto;">
-          <div class="card-header">
-            <h5 class="card-title m-0 text-center">Takhmeen History</h5>
+      <div class="modal-body modal-body-premium">
+        <p class="mb-3"><b>Member Name: </b><span id="edit-user-name" class="text-secondary">Member Name</span></p>
+        <div class="miqaat-table-card">
+          <div class="card-header bg-light border-bottom py-2">
+            <h6 class="m-0 text-center font-weight-bold text-secondary">Takhmeen History</h6>
           </div>
-          <div class="card-body p-0">
-            <table class="table table-bordered table-striped" style="min-width: 400px;">
+          <div class="table-responsive" style="overflow-x:auto;">
+            <table class="miqaat-table">
               <thead>
                 <tr>
                   <th>#</th>

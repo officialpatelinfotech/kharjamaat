@@ -207,7 +207,10 @@ class Admin extends CI_Controller
       'rent_sabeel' => '',
       'deposit_sabeel' => '',
       'rent_non_sabeel' => '',
-      'deposit_non_sabeel' => ''
+      'deposit_non_sabeel' => '',
+      'is_per_thaal' => 0,
+      'thaal_ranges' => [],
+      'items' => []
     ];
 
     // Edit mode: /admin/rent/create?edit={id}
@@ -229,7 +232,10 @@ class Admin extends CI_Controller
           'rent_sabeel' => isset($row['rent_sabeel']) ? (string)$row['rent_sabeel'] : '',
           'deposit_sabeel' => isset($row['deposit_sabeel']) ? (string)$row['deposit_sabeel'] : '',
           'rent_non_sabeel' => isset($row['rent_non_sabeel']) ? (string)$row['rent_non_sabeel'] : '',
-          'deposit_non_sabeel' => isset($row['deposit_non_sabeel']) ? (string)$row['deposit_non_sabeel'] : ''
+          'deposit_non_sabeel' => isset($row['deposit_non_sabeel']) ? (string)$row['deposit_non_sabeel'] : '',
+          'is_per_thaal' => isset($row['is_per_thaal']) ? (int)$row['is_per_thaal'] : 0,
+          'thaal_ranges' => isset($row['thaal_ranges']) ? $row['thaal_ranges'] : [],
+          'items' => isset($row['items']) ? $row['items'] : []
         ];
       }
     }
@@ -332,6 +338,13 @@ class Admin extends CI_Controller
     $data['rows'] = $this->LaagatRentM->get_all($filters);
     foreach ($data['rows'] as &$row) {
       $row['has_invoices'] = $this->LaagatRentM->has_invoices($row['id']);
+      // Load rent items for each row
+      $row['items'] = $this->db
+        ->from('laagat_rent_items')
+        ->where('laagat_rent_id', (int)$row['id'])
+        ->order_by('id ASC')
+        ->get()
+        ->result_array();
     }
 
     $this->load->view('Admin/Header', $data);
@@ -393,6 +406,7 @@ class Admin extends CI_Controller
     $depositSabeel = $this->input->post('deposit_sabeel') !== null && $this->input->post('deposit_sabeel') !== '' ? (float)$this->input->post('deposit_sabeel') : 0.00;
     $rentNonSabeel = $this->input->post('rent_non_sabeel') !== null && $this->input->post('rent_non_sabeel') !== '' ? (float)$this->input->post('rent_non_sabeel') : 0.00;
     $depositNonSabeel = $this->input->post('deposit_non_sabeel') !== null && $this->input->post('deposit_non_sabeel') !== '' ? (float)$this->input->post('deposit_non_sabeel') : 0.00;
+    $isPerThaal = $this->input->post('is_per_thaal') !== null ? (int)$this->input->post('is_per_thaal') : 0;
 
     $valid = true;
     if ($title === '') {
@@ -466,7 +480,57 @@ class Admin extends CI_Controller
       'deposit_sabeel' => $depositSabeel,
       'rent_non_sabeel' => $rentNonSabeel,
       'deposit_non_sabeel' => $depositNonSabeel,
+      'is_per_thaal' => $isPerThaal,
+      'thaal_ranges' => [],
+      'items' => [],
     ];
+
+    if ($chargeType === 'rent' && $isPerThaal === 1) {
+      $rangeThaalMin = $this->input->post('range_thaal_min');
+      $rangeThaalMax = $this->input->post('range_thaal_max');
+      $rangeRentSabeel = $this->input->post('range_rent_sabeel');
+      $rangeDepositSabeel = $this->input->post('range_deposit_sabeel');
+      $rangeRentNonSabeel = $this->input->post('range_rent_non_sabeel');
+      $rangeDepositNonSabeel = $this->input->post('range_deposit_non_sabeel');
+
+      if (is_array($rangeThaalMin)) {
+        foreach ($rangeThaalMin as $idx => $tMin) {
+          $tMin = (int)$tMin;
+          $tMax = isset($rangeThaalMax[$idx]) ? (int)$rangeThaalMax[$idx] : 0;
+          if ($tMin > 0 && $tMax >= $tMin) {
+            $payload['thaal_ranges'][] = [
+              'thaal_min' => $tMin,
+              'thaal_max' => $tMax,
+              'rent_sabeel' => isset($rangeRentSabeel[$idx]) ? (float)$rangeRentSabeel[$idx] : 0.00,
+              'deposit_sabeel' => isset($rangeDepositSabeel[$idx]) ? (float)$rangeDepositSabeel[$idx] : 0.00,
+              'rent_non_sabeel' => isset($rangeRentNonSabeel[$idx]) ? (float)$rangeRentNonSabeel[$idx] : 0.00,
+              'deposit_non_sabeel' => isset($rangeDepositNonSabeel[$idx]) ? (float)$rangeDepositNonSabeel[$idx] : 0.00,
+            ];
+          }
+        }
+      }
+    }
+
+    if ($chargeType === 'rent') {
+      $itemNames = $this->input->post('item_name');
+      $itemCostPerPiece = $this->input->post('item_rent_sabeel'); // single cost field, same for all
+
+      if (is_array($itemNames)) {
+        foreach ($itemNames as $idx => $iName) {
+          $iName = trim((string)$iName);
+          if ($iName !== '') {
+            $costPerPiece = isset($itemCostPerPiece[$idx]) ? (float)$itemCostPerPiece[$idx] : 0.00;
+            $payload['items'][] = [
+              'item_name'          => $iName,
+              'rent_sabeel'        => $costPerPiece,
+              'deposit_sabeel'     => 0.00,
+              'rent_non_sabeel'    => $costPerPiece,
+              'deposit_non_sabeel' => 0.00,
+            ];
+          }
+        }
+      }
+    }
 
     if ($id > 0) {
       $res = $this->LaagatRentM->update($id, $payload);
@@ -662,14 +726,26 @@ class Admin extends CI_Controller
     $depositSabeel = 0.00;
     $depositNonSabeel = 0.00;
 
+    $isPerThaal = 0;
+    $thaalRanges = [];
     if ($laagatRentId > 0) {
-      $lr = $this->db->select('amount, rent_sabeel, rent_non_sabeel, deposit_sabeel, deposit_non_sabeel')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
+      $lr = $this->db->select('amount, rent_sabeel, rent_non_sabeel, deposit_sabeel, deposit_non_sabeel, is_per_thaal')->from('laagat_rent')->where('id', $laagatRentId)->get()->row_array();
       if ($lr) {
         $masterAmount = (float)$lr['amount'];
         $rentSabeel = (float)$lr['rent_sabeel'];
         $rentNonSabeel = (float)$lr['rent_non_sabeel'];
         $depositSabeel = (float)$lr['deposit_sabeel'];
         $depositNonSabeel = (float)$lr['deposit_non_sabeel'];
+        $isPerThaal = (int)$lr['is_per_thaal'];
+
+        if ($isPerThaal === 1) {
+          $thaalRanges = $this->db
+            ->from('laagat_rent_thaal_ranges')
+            ->where('laagat_rent_id', $laagatRentId)
+            ->order_by('thaal_min ASC')
+            ->get()
+            ->result_array();
+        }
       }
     }
 
@@ -682,6 +758,8 @@ class Admin extends CI_Controller
       'rent_non_sabeel' => $rentNonSabeel,
       'deposit_sabeel' => $depositSabeel,
       'deposit_non_sabeel' => $depositNonSabeel,
+      'is_per_thaal' => $isPerThaal,
+      'thaal_ranges' => $thaalRanges
     ]));
   }
 
@@ -2664,6 +2742,10 @@ class Admin extends CI_Controller
     }
     $this->load->view('Admin/ImportMembers', $data);
   }
+  public function importmembers()
+  {
+    $this->importlatest();
+  }
   public function RazaRequest()
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
@@ -3466,13 +3548,7 @@ class Admin extends CI_Controller
   // Updated by Patel Infotech Services
   public function managefmbsettings()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-      redirect('/accounts');
-    }
-
-    $data['user_name'] = $_SESSION['user']['username'];
-    $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/ManageFMBSettings', $data);
+    redirect('/admin');
   }
 
   public function manageperdaythaalicost()
@@ -3819,24 +3895,48 @@ HTML;
       redirect('/accounts');
     }
 
-    $get_all_fmbgc = [];
-    $filter_status = $this->input->post("filter_status");
+    $is_post = ($this->input->server('REQUEST_METHOD') === 'POST');
+    
+    $this->load->model('HijriCalendar');
+    $current_fy_start = $this->HijriCalendar->get_financial_hijri_year_by_greg_date(date("Y-m-d"));
+    $current_fy = $current_fy_start ? ($current_fy_start . '-' . substr(strval($current_fy_start + 1), -2)) : null;
 
-    if (isset($filter_status)) {
-      $get_all_fmbgc = $this->AdminM->getallfmbgc($filter_status);
-    } else {
-      $get_all_fmbgc = $this->AdminM->getallfmbgc();
+    $filter_status = $is_post ? $this->input->post("filter_status") : "1";
+    $filter_year = $is_post ? $this->input->post("filter_year") : $current_fy;
+    $filter_fmb_type = $this->input->post("filter_fmb_type");
+    $filter_miqaat_type = $this->input->post("filter_miqaat_type");
+
+    $filters = [];
+    if ($filter_status !== '' && $filter_status !== null) {
+      $filters['status'] = $filter_status;
     }
+    if ($filter_year !== '' && $filter_year !== null) {
+      $filters['hijri_year'] = $filter_year;
+    }
+    if ($filter_fmb_type !== '' && $filter_fmb_type !== null) {
+      $filters['fmb_type'] = $filter_fmb_type;
+    }
+    if ($filter_miqaat_type !== '' && $filter_miqaat_type !== null) {
+      $filters['miqaat_type'] = $filter_miqaat_type;
+    }
+
+    $get_all_fmbgc = $this->AdminM->getallfmbgc($filters);
 
     if ($get_all_fmbgc) {
       $data['all_fmbgc'] = $get_all_fmbgc;
+    } else {
+      $data['all_fmbgc'] = [];
     }
 
     $this->load->model('HijriCalendar');
     $data['hijri_years'] = $this->HijriCalendar->get_distinct_composite_years();
 
     $data['filter_status'] = $filter_status;
+    $data['filter_year'] = $filter_year;
+    $data['filter_fmb_type'] = $filter_fmb_type;
+    $data['filter_miqaat_type'] = $filter_miqaat_type;
     $data['user_name'] = $_SESSION['user']['username'];
+    
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/FMBGeneralContributionMaster', $data);
   }
@@ -5371,160 +5471,6 @@ HTML;
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/Expense');
-  }
-
-  public function expense_source_of_funds()
-  {
-    $this->validateUser($_SESSION['user']);
-    $data['user_name'] = $_SESSION['user']['username'];
-    $this->load->model('ExpenseSourceM');
-    $data['sources'] = $this->ExpenseSourceM->get_all();
-    $this->load->view('Admin/Header', $data);
-    $this->load->view('Admin/ExpenseSourceOfFunds', $data);
-  }
-
-  // AJAX: create new source
-  public function expense_source_create()
-  {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-      $resp = ['status' => 'error', 'message' => 'Unauthorized'];
-      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
-        $resp['debug'] = [
-          'session_user_present' => isset($_SESSION['user']),
-          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
-          'cookies' => isset($_SERVER['HTTP_COOKIE']) ? $_SERVER['HTTP_COOKIE'] : null,
-        ];
-      }
-      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
-      return;
-    }
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
-      return;
-    }
-    $name = trim((string)$this->input->post('name'));
-    $status = trim((string)$this->input->post('status')) ?: 'Active';
-    if ($name === '') {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Name required']));
-      return;
-    }
-    $this->load->model('ExpenseSourceM');
-    $id = $this->ExpenseSourceM->create(['name' => $name, 'status' => $status]);
-    if ($id) {
-      $this->output->set_content_type('application/json')->set_output(json_encode([
-        'status' => 'success',
-        'id' => $id,
-        'name' => $name,
-        'source_status' => $status
-      ]));
-    } else {
-      $dberr = $this->db->error();
-      $msg = 'Create failed';
-      if (!empty($dberr['message'])) {
-        $msg .= ': ' . $dberr['message'];
-      }
-      $resp = ['status' => 'error', 'message' => $msg];
-      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
-        $resp['debug'] = [
-          'db_error' => $dberr,
-          'session_user_present' => isset($_SESSION['user']),
-          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
-          'cookies' => isset($_SERVER['HTTP_COOKIE']) ? $_SERVER['HTTP_COOKIE'] : null,
-          'post' => $_POST,
-        ];
-      }
-      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
-    }
-    return;
-  }
-
-  // AJAX: update existing source
-  public function expense_source_update()
-  {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-      $resp = ['status' => 'error', 'message' => 'Unauthorized'];
-      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
-        $resp['debug'] = [
-          'session_user_present' => isset($_SESSION['user']),
-          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
-          'cookies' => isset($_SERVER['HTTP_COOKIE']) ? $_SERVER['HTTP_COOKIE'] : null,
-        ];
-      }
-      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
-      return;
-    }
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
-      return;
-    }
-    $id = (int)$this->input->post('id');
-    $name = trim((string)$this->input->post('name'));
-    $status = trim((string)$this->input->post('status')) ?: 'Active';
-    if ($id <= 0 || $name === '') {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid input']));
-      return;
-    }
-    $this->load->model('ExpenseSourceM');
-    $ok = $this->ExpenseSourceM->update($id, ['name' => $name, 'status' => $status]);
-    if ($ok) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'success']));
-    } else {
-      $resp = ['status' => 'error', 'message' => 'Update failed'];
-      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
-        $resp['debug'] = [
-          'db_error' => $this->db->error(),
-          'session_user_present' => isset($_SESSION['user']),
-          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
-          'post' => $_POST,
-        ];
-      }
-      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
-    }
-    return;
-  }
-
-  // AJAX: delete source
-  public function expense_source_delete()
-  {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
-      $resp = ['status' => 'error', 'message' => 'Unauthorized'];
-      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
-        $resp['debug'] = [
-          'session_user_present' => isset($_SESSION['user']),
-          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
-          'cookies' => isset($_SERVER['HTTP_COOKIE']) ? $_SERVER['HTTP_COOKIE'] : null,
-        ];
-      }
-      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
-      return;
-    }
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid method']));
-      return;
-    }
-    $id = (int)$this->input->post('id');
-    if ($id <= 0) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'error', 'message' => 'Invalid id']));
-      return;
-    }
-    $this->load->model('ExpenseSourceM');
-    // Delete all related expenses first, then the source itself
-    $ok = $this->ExpenseSourceM->delete_with_expenses($id);
-    if ($ok) {
-      $this->output->set_content_type('application/json')->set_output(json_encode(['status' => 'success']));
-    } else {
-      $resp = ['status' => 'error', 'message' => 'Delete failed'];
-      if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
-        $resp['debug'] = [
-          'db_error' => $this->db->error(),
-          'session_user_present' => isset($_SESSION['user']),
-          'session_user' => isset($_SESSION['user']) ? $_SESSION['user'] : null,
-          'post' => $_POST,
-        ];
-      }
-      $this->output->set_content_type('application/json')->set_output(json_encode($resp));
-    }
-    return;
   }
 
   public function expense_items()

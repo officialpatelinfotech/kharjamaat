@@ -261,7 +261,7 @@
     return null;
   }
 
-  function renderLaagatRentInfo(groupEl, rawFieldName, chargeType, title, amount, jamaatAmount, sarkaarAmount, depositAmount) {
+  function renderLaagatRentInfo(groupEl, rawFieldName, chargeType, title, amount, jamaatAmount, sarkaarAmount, depositAmount, items = [], itemQty = {}) {
     if (!groupEl) return;
     rawFieldName = (rawFieldName || '').toString();
     var displayLabel = (chargeType === 'laagat') ? 'Laagat Details' : 'Rent & Deposit Details';
@@ -274,6 +274,8 @@
     while (groupEl.firstChild) groupEl.removeChild(groupEl.firstChild);
 
     var box = document.createElement('div');
+    box.id = 'lr-rent-box';
+    box.setAttribute('data-base-rent', String(n));
     box.className = 'pt-2 pb-3 px-3 rounded border ' + bgClass;
     groupEl.appendChild(box);
 
@@ -292,14 +294,14 @@
       row.appendChild(t);
 
       var v = document.createElement('div');
-      v.className = 'h5 mb-0 text-success';
+      v.className = 'h5 mb-0 text-success lr-total-rent-value';
       v.textContent = formatInrCurrency(n);
       row.appendChild(v);
 
       box.appendChild(row);
     } else {
       var v = document.createElement('div');
-      v.className = 'h5 mb-0 w-100 text-end text-success mt-1';
+      v.className = 'h5 mb-0 w-100 text-end text-success mt-1 lr-total-rent-value';
       v.textContent = formatInrCurrency(n);
       box.appendChild(v);
     }
@@ -319,6 +321,68 @@
         depVal.textContent = formatInrCurrency(dep);
         depDiv.appendChild(depVal);
         box.appendChild(depDiv);
+      }
+
+      if (Array.isArray(items) && items.length > 0) {
+        var itemsSection = document.createElement('div');
+        itemsSection.className = 'mt-3 pt-3 border-top';
+        
+        var sectionTitle = document.createElement('div');
+        sectionTitle.className = 'font-weight-bold text-secondary mb-2 small text-uppercase';
+        sectionTitle.style.letterSpacing = '0.5px';
+        sectionTitle.textContent = 'Rent Items (Optional)';
+        itemsSection.appendChild(sectionTitle);
+        
+        var itemsList = document.createElement('div');
+        itemsList.className = 'd-flex flex-column';
+        itemsList.style.gap = '10px';
+        itemsSection.appendChild(itemsList);
+        
+        items.forEach(function(item) {
+          var itemRow = document.createElement('div');
+          itemRow.className = 'd-flex align-items-center justify-content-between p-2 bg-light rounded border';
+          
+          var detailsDiv = document.createElement('div');
+          var nameDiv = document.createElement('div');
+          nameDiv.className = 'font-weight-bold text-dark';
+          nameDiv.style.fontSize = '0.88rem';
+          nameDiv.textContent = item.item_name;
+          detailsDiv.appendChild(nameDiv);
+          
+          var priceDiv = document.createElement('div');
+          priceDiv.className = 'text-muted small';
+          priceDiv.textContent = formatInrCurrency(item.rent_sabeel) + ' / Piece';
+          detailsDiv.appendChild(priceDiv);
+          
+          itemRow.appendChild(detailsDiv);
+          
+          var inputDiv = document.createElement('div');
+          inputDiv.style.width = '80px';
+          
+          var qtyInput = document.createElement('input');
+          qtyInput.type = 'number';
+          qtyInput.name = 'item_qty[' + item.id + ']';
+          qtyInput.className = 'form-control text-center py-1 px-2 rent-item-qty';
+          qtyInput.setAttribute('data-price', String(item.rent_sabeel));
+          qtyInput.min = '0';
+          qtyInput.value = itemQty[item.id] || '0';
+          qtyInput.style.height = 'auto';
+          
+          qtyInput.addEventListener('change', function() {
+            if (Number(qtyInput.value) < 0) qtyInput.value = '0';
+            updateLaagatRentCard();
+          });
+          qtyInput.addEventListener('input', function() {
+            if (Number(qtyInput.value) < 0) qtyInput.value = '0';
+            updateLaagatRentCard();
+          });
+          
+          inputDiv.appendChild(qtyInput);
+          itemRow.appendChild(inputDiv);
+          itemsList.appendChild(itemRow);
+        });
+        
+        box.appendChild(itemsSection);
       }
     } else {
       // Add bifurcation if present
@@ -370,10 +434,16 @@
     return (label || '').toString().toLowerCase().replace(/\s/g, '-').replace(/[()]/g, '_').replace(/[\/?]/g, '-');
   }
 
-  function fetchLaagatRentAmount(razaTypeId, venueOptionId = '') {
+  function fetchLaagatRentAmount(razaTypeId, venueOptionId = '', thaalCount = 1, itemQty = {}) {
     let url = '<?= base_url('accounts/get_laagat_rent_amount') ?>' + '?raza_type_id=' + encodeURIComponent(razaTypeId);
     if (venueOptionId) {
       url += '&venue_option_id=' + encodeURIComponent(venueOptionId);
+    }
+    if (thaalCount) {
+      url += '&thaal_count=' + encodeURIComponent(thaalCount);
+    }
+    for (let id in itemQty) {
+      url += '&item_qty[' + encodeURIComponent(id) + ']=' + encodeURIComponent(itemQty[id]);
     }
     return fetch(url, {
         credentials: 'same-origin'
@@ -392,7 +462,29 @@
     let venueEl = document.querySelector('[name="venue"]');
     let venueOptionId = venueEl ? venueEl.value : '';
 
-    fetchLaagatRentAmount(selectedRazaType, venueOptionId)
+    let thaalCountInput = document.querySelector('[name="approximate-thaal-count"]') || 
+                          document.querySelector('[name="approximate_thaal_count"]') ||
+                          document.querySelector('[name="approximate-items-count"]') ||
+                          document.querySelector('[name="approximate_items_count"]') ||
+                          document.querySelector('[name="number-of-items"]') ||
+                          document.querySelector('[name="number_of_items"]') ||
+                          document.querySelector('[name="approximate-thaal-items-count"]') ||
+                          document.querySelector('[name="approximate_thaal_items_count"]') ||
+                          document.querySelector('[name="approximate-number-of-items"]') ||
+                          document.querySelector('[name="approximate_number_of_items"]') ||
+                          document.querySelector('[name="items-count"]') ||
+                          document.querySelector('[name="items_count"]');
+    let thaalCount = thaalCountInput ? (thaalCountInput.value || 1) : 1;
+
+    let itemQty = {};
+    document.querySelectorAll('.rent-item-qty').forEach(function(input) {
+      let match = input.name.match(/item_qty\[(\d+)\]/);
+      if (match) {
+        itemQty[match[1]] = input.value || '0';
+      }
+    });
+
+    fetchLaagatRentAmount(selectedRazaType, venueOptionId, thaalCount, itemQty)
       .then(function(resp) {
         // Try to find laagatRentInput in container
         let laagatRentInput = null;
@@ -443,7 +535,7 @@
           }
         }
 
-        renderLaagatRentInfo(grp, rawName, resp.charge_type, resp.title || '', resp.amount, resp.jamaat_amount, resp.sarkaar_amount, resp.deposit_amount || 0);
+        renderLaagatRentInfo(grp, rawName, resp.charge_type, resp.title || '', resp.amount, resp.jamaat_amount, resp.sarkaar_amount, resp.deposit_amount || 0, resp.items || [], itemQty);
       })
       .catch(function(err) {
         console.error('Error fetching rent amount:', err);
@@ -543,6 +635,19 @@
 
   document.addEventListener('change', function(e) {
     if (e.target && e.target.name === 'venue') {
+      updateLaagatRentCard();
+    }
+  });
+
+  document.addEventListener('input', function(e) {
+    if (e.target && (
+      e.target.name === 'approximate-thaal-count' || e.target.name === 'approximate_thaal_count' ||
+      e.target.name === 'approximate-items-count' || e.target.name === 'approximate_items_count' ||
+      e.target.name === 'number-of-items' || e.target.name === 'number_of_items' ||
+      e.target.name === 'approximate-thaal-items-count' || e.target.name === 'approximate_thaal_items_count' ||
+      e.target.name === 'approximate-number-of-items' || e.target.name === 'approximate_number_of_items' ||
+      e.target.name === 'items-count' || e.target.name === 'items_count'
+    )) {
       updateLaagatRentCard();
     }
   });

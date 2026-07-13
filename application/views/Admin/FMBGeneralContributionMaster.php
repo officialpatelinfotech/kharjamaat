@@ -216,13 +216,54 @@
     background-color: #8f6808 !important;
     border-color: #8f6808 !important;
   }
+
+  @media (max-width: 768px) {
+    .miqaat-table th, .miqaat-table td {
+      white-space: nowrap;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .filters-wrapper {
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+    #filter-form {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px !important;
+      width: 100% !important;
+    }
+    #filter-form select {
+      width: 100% !important;
+      margin-right: 0 !important;
+    }
+    #filter-form a.btn-action-secondary {
+      grid-column: span 2;
+      width: 100% !important;
+      height: 38px !important;
+    }
+    .d-flex.align-items-center.justify-content-between.flex-wrap.gap-3.mb-4 {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    #add-contri-type {
+      width: 100% !important;
+    }
+    .anj-header-inner {
+      padding: 16px 20px !important;
+    }
+    .anj-title {
+      font-size: 1.3rem !important;
+    }
+  }
 </style>
 
 <div class="container margintopcontainer pt-5">
   <!-- Back Button -->
   <div class="mb-4">
-    <a href="<?php echo base_url("admin/managefmbsettings"); ?>" class="btn-back">
-      <i class="fa-solid fa-arrow-left"></i> Back to FMB Settings
+    <a href="<?php echo base_url("admin"); ?>" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i> Back
     </a>
   </div>
 
@@ -231,21 +272,49 @@
     <div class="anj-header-inner">
       <div class="anj-title-group">
         <p class="anj-eyebrow">Fizalat Mawamil al-Burhaniyah</p>
-        <h1 class="anj-title">Contribution Master</h1>
+        <h1 class="anj-title">Miqaat Niyaz Contribution Master</h1>
       </div>
     </div>
   </div>
 
   <!-- Filters and Controls Row -->
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
-    <div style="flex: 1; min-width: 280px; max-width: 400px;">
-      <form method="POST" action="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" id="filter-form" class="d-flex align-items-center gap-2">
-        <select name="filter_status" id="filter-status" class="form-control-premium mr-2" style="flex: 1; min-width: 150px;">
-          <option value="">Select Status</option>
-          <option value="1" <?php echo isset($filter_status) ? ($filter_status === "1" ? "selected" : "") : ""; ?>>Active</option>
-          <option value="0" <?php echo isset($filter_status) ? ($filter_status === "0" ? "selected" : "") : ""; ?>>Inactive</option>
+    <div class="filters-wrapper" style="flex: 1; min-width: 280px; max-width: 800px;">
+      <form method="POST" action="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" id="filter-form" class="d-flex align-items-center flex-wrap gap-2" style="flex: 1;">
+        <!-- Status Filter -->
+        <select name="filter_status" id="filter-status" class="form-control-premium mr-2" style="width: 140px;">
+          <option value="">All Statuses</option>
+          <option value="1" <?php echo isset($filter_status) && $filter_status === "1" ? "selected" : ""; ?>>Active</option>
+          <option value="0" <?php echo isset($filter_status) && $filter_status === "0" ? "selected" : ""; ?>>Inactive</option>
         </select>
-        <a href="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" class="btn-action btn-action-secondary" style="height: 38px; width: 38px; padding: 0;">
+        
+        <!-- FMB Type Filter -->
+        <select name="filter_fmb_type" id="filter-fmb-type" class="form-control-premium mr-2" style="width: 140px;">
+          <option value="">All FMB Types</option>
+          <option value="Thaali" <?php echo isset($filter_fmb_type) && $filter_fmb_type === "Thaali" ? "selected" : ""; ?>>Thaali</option>
+          <option value="Niyaz" <?php echo isset($filter_fmb_type) && $filter_fmb_type === "Niyaz" ? "selected" : ""; ?>>Niyaz</option>
+        </select>
+
+        <!-- Miqaat Type Filter -->
+        <select name="filter_miqaat_type" id="filter-miqaat-type" class="form-control-premium mr-2" style="width: 150px;">
+          <option value="">All Miqaat Types</option>
+          <option value="Ashara" <?php echo isset($filter_miqaat_type) && $filter_miqaat_type === "Ashara" ? "selected" : ""; ?>>Ashara</option>
+          <option value="Shehrullah" <?php echo isset($filter_miqaat_type) && $filter_miqaat_type === "Shehrullah" ? "selected" : ""; ?>>Shehrullah</option>
+          <option value="General" <?php echo isset($filter_miqaat_type) && $filter_miqaat_type === "General" ? "selected" : ""; ?>>General</option>
+          <option value="Ladies" <?php echo isset($filter_miqaat_type) && $filter_miqaat_type === "Ladies" ? "selected" : ""; ?>>Ladies</option>
+        </select>
+
+        <!-- Hijri Year Filter -->
+        <select name="filter_year" id="filter-year" class="form-control-premium mr-2" style="width: 140px;">
+          <option value="">All Hijri Years</option>
+          <?php if (!empty($hijri_years)): ?>
+            <?php foreach ($hijri_years as $y): ?>
+              <option value="<?php echo htmlspecialchars($y, ENT_QUOTES); ?>" <?php echo isset($filter_year) && $filter_year === $y ? "selected" : ""; ?>><?php echo htmlspecialchars($y); ?></option>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </select>
+
+        <a href="<?php echo base_url("admin/fmbgeneralcontributionmaster"); ?>" class="btn-action btn-action-secondary" style="height: 38px; width: 38px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Reset Filters">
           <i class="fa-solid fa-times"></i>
         </a>
       </form>
@@ -273,6 +342,17 @@
                 <option value="">Select FMB Type</option>
                 <option value="Thaali">Thaali</option>
                 <option value="Niyaz">Niyaz</option>
+              </select>
+            </div>
+
+            <div class="form-group form-group-premium mb-3 d-none" id="add-miqaat-type-group">
+              <label for="modal-miqaat-type" style="font-weight: 600; font-size: 0.85rem; color: var(--text-2); display: block; margin-bottom: 6px;">Miqaat Type</label>
+              <select class="form-control-premium" name="miqaat_type" id="modal-miqaat-type">
+                <option value="">Select Miqaat Type</option>
+                <option value="Ashara">Ashara</option>
+                <option value="Shehrullah">Shehrullah</option>
+                <option value="General">General</option>
+                <option value="Ladies">Ladies</option>
               </select>
             </div>
 
@@ -309,12 +389,14 @@
 
   <!-- Master Table Card -->
   <div class="miqaat-table-card">
-    <table class="miqaat-table">
+    <div style="overflow-x: auto;">
+      <table class="miqaat-table">
       <thead>
         <tr>
           <th>#</th>
           <th>Contribution Type</th>
           <th>FMB Type</th>
+          <th>Miqaat Type</th>
           <th>Amount</th>
           <th>Hijri Year</th>
           <th>Status</th>
@@ -336,6 +418,16 @@
                   <option value="">Select FMB Type</option>
                   <option value="Thaali" <?php echo $value["fmb_type"] === "Thaali" ? "selected" : ""; ?>>Thaali</option>
                   <option value="Niyaz" <?php echo $value["fmb_type"] === "Niyaz" ? "selected" : ""; ?>>Niyaz</option>
+                </select>
+              </td>
+              <td>
+                <p id="miqaat-type-<?php echo $value["id"]; ?>" class="m-0"><?php echo $value["miqaat_type"] ?: '-'; ?></p>
+                <select name="edit_miqaat_type" id="edit-miqaat-type-<?php echo $value["id"]; ?>" class="hidden form-control form-control-premium" <?php echo $value["fmb_type"] === "Niyaz" ? "" : "disabled"; ?>>
+                  <option value="">Select Miqaat Type</option>
+                  <option value="Ashara" <?php echo $value["miqaat_type"] === "Ashara" ? "selected" : ""; ?>>Ashara</option>
+                  <option value="Shehrullah" <?php echo $value["miqaat_type"] === "Shehrullah" ? "selected" : ""; ?>>Shehrullah</option>
+                  <option value="General" <?php echo $value["miqaat_type"] === "General" ? "selected" : ""; ?>>General</option>
+                  <option value="Ladies" <?php echo $value["miqaat_type"] === "Ladies" ? "selected" : ""; ?>>Ladies</option>
                 </select>
               </td>
               <td>
@@ -372,16 +464,36 @@
           <?php endforeach; ?>
         <?php endif; ?>
       </tbody>
-    </table>
+      </table>
+    </div>
   </div>
 </div>
 
 <script>
   $(document).ready(function() {
-    $("#filter-status").on("change", function() {
+    $("#filter-status, #filter-fmb-type, #filter-miqaat-type, #filter-year").on("change", function() {
       $("#filter-form").submit();
     });
     
+    $("#modal-fmb-type").on("change", function() {
+      if ($(this).val() === "Niyaz") {
+        $("#add-miqaat-type-group").removeClass("d-none");
+        $("#modal-miqaat-type").prop("required", true);
+      } else {
+        $("#add-miqaat-type-group").addClass("d-none");
+        $("#modal-miqaat-type").prop("required", false).val("");
+      }
+    });
+
+    $(document).on("change", "select[id^=edit-fmb-type-]", function() {
+      const id = $(this).attr("id").split("-").pop();
+      if ($(this).val() === "Niyaz") {
+        $("#edit-miqaat-type-" + id).prop("disabled", false);
+      } else {
+        $("#edit-miqaat-type-" + id).prop("disabled", true).val("");
+      }
+    });
+
     $("#add-contri-type").on("click", function() {
       $("#addContributionTypeModal").modal("show");
     });
@@ -391,14 +503,24 @@
       $id = $(this).data("fmbgc-id");
       $("#contri-for-" + $id).addClass("hidden");
       $("#fmb-type-" + $id).addClass("hidden");
+      $("#miqaat-type-" + $id).addClass("hidden");
       $("#amount-" + $id).addClass("hidden");
       $("#hijri-year-" + $id).addClass("hidden");
       $("#status-" + $id).addClass("hidden");
       $("#edit-contri-for-" + $id).removeClass("hidden");
       $("#edit-fmb-type-" + $id).removeClass("hidden");
+      $("#edit-miqaat-type-" + $id).removeClass("hidden");
       $("#edit-amount-" + $id).removeClass("hidden");
       $("#edit-hijri-year-" + $id).removeClass("hidden");
       $("#edit-status-" + $id).removeClass("hidden");
+      
+      const currentFmbType = $("#edit-fmb-type-" + $id).val();
+      if (currentFmbType === "Niyaz") {
+        $("#edit-miqaat-type-" + $id).prop("disabled", false);
+      } else {
+        $("#edit-miqaat-type-" + $id).prop("disabled", true).val("");
+      }
+
       $(this).addClass("hidden");
       $("#save-fmbgc-btn-" + $id).removeClass("hidden");
     });
@@ -411,6 +533,7 @@
       $amount = $("#edit-amount-" + $id).val();
       $hijriYear = $("#edit-hijri-year-" + $id).val();
       $status = $("#edit-status-" + $id).val();
+      $miqaatType = $("#edit-miqaat-type-" + $id).val();
 
       $.ajax({
         url: "<?php echo base_url("admin/updatefmbgc"); ?>",
@@ -422,6 +545,7 @@
           "amount": $amount,
           "hijri_year": $hijriYear,
           "status": $status,
+          "miqaat_type": $miqaatType
         },
         success: function(res) {
           $res = JSON.parse(res);

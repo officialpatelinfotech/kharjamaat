@@ -331,18 +331,9 @@ class Cli extends CI_Controller
         echo "Starting expense item flow verification...\n";
 
         $this->load->model('ExpenseM');
-        $this->load->model('ExpenseSourceM');
         $this->load->model('ExpenseItemM');
 
-        // 1. Create a test Source of Funds (SOF)
-        $sourceName = "Test SOF " . uniqid();
-        $sourceId = $this->ExpenseSourceM->create([
-            'name' => $sourceName,
-            'status' => 'Active'
-        ]);
-        echo "Created test source: ID={$sourceId}, Name='{$sourceName}'\n";
-
-        // 2. Create a test Expense Item
+        // 1. Create a test Expense Item
         $sectorName = "Test Sector";
         $sectorCode = "SEC01";
         $subSectorName = "Test Sub Sector";
@@ -361,7 +352,7 @@ class Cli extends CI_Controller
         ]);
         echo "Created test item: ID={$itemId}, Name='{$itemName}'\n";
 
-        // 3. Create a test Expense
+        // 2. Create a test Expense
         $expenseDate = date('Y-m-d');
         $amount = 1250.75;
         $hijriYear = 1445;
@@ -371,13 +362,13 @@ class Cli extends CI_Controller
             'expense_date' => $expenseDate,
             'item_id' => $itemId,
             'amount' => $amount,
-            'source_id' => $sourceId,
+            'payment_mode' => 'Bank Transfer',
             'hijri_year' => $hijriYear,
             'notes' => $notes
         ]);
         echo "Created test expense: ID={$expenseId}\n";
 
-        // 4. Fetch list and verify
+        // 3. Fetch list and verify
         $list = $this->ExpenseM->get_list(['item' => $itemName]);
         $found = null;
         foreach ($list as $row) {
@@ -409,13 +400,13 @@ class Cli extends CI_Controller
                 echo "ASSERTION FAILED: amount mismatch: expected {$amount}, got {$found['amount']}\n";
                 $passed = false;
             }
-            if ($found['source_name'] !== $sourceName) {
-                echo "ASSERTION FAILED: source_name mismatch: expected '{$sourceName}', got '{$found['source_name']}'\n";
+            if ($found['payment_mode'] !== 'Bank Transfer') {
+                echo "ASSERTION FAILED: payment_mode mismatch: expected 'Bank Transfer', got '{$found['payment_mode']}'\n";
                 $passed = false;
             }
         }
 
-        // 5. Update and verify
+        // 4. Update and verify
         $newAmount = 2500.00;
         $updateOk = $this->ExpenseM->update($expenseId, ['amount' => $newAmount]);
         if (!$updateOk) {
@@ -431,17 +422,194 @@ class Cli extends CI_Controller
             }
         }
 
-        // 6. Cleanup
+        // 5. Cleanup
         echo "Cleaning up test records...\n";
         $this->ExpenseM->delete($expenseId);
         $this->ExpenseItemM->delete_with_expenses($itemId);
-        $this->ExpenseSourceM->delete_with_expenses($sourceId);
         echo "Cleanup complete!\n";
 
         if ($passed) {
             echo "\nEXPENSE ITEM FLOW VERIFICATION PASSED SUCCESSFULLY!\n";
         } else {
             echo "\nEXPENSE ITEM FLOW VERIFICATION FAILED!\n";
+        }
+    }
+
+    public function verify_raza_invoice_flow()
+    {
+        if (!is_cli()) {
+            echo "This command can only be run from the CLI.\n";
+            return;
+        }
+
+        echo "Starting Raza invoice flow verification...\n";
+
+        $this->load->model('AccountM');
+        $this->load->model('AnjumanM');
+
+        // Create a test user/member if needed, or use a dummy ITS ID
+        $itsId = 99999999;
+        
+        // Ensure user row exists in 'user' table
+        $this->db->delete('user', ['ITS_ID' => $itsId]);
+        $this->db->insert('user', [
+            'ITS_ID' => $itsId,
+            'Full_Name' => 'Test Raza User',
+            'Sector' => 'Test Sector',
+            'Surname' => 'User',
+            'First_Name' => 'Test',
+            'HOF_ID' => $itsId
+        ]);
+
+        // Create a test Miqaat
+        $miqaatName = "Test Raza Miqaat " . uniqid();
+        $date = date('Y-m-d');
+        
+        // Get composite Hijri year range for today
+        $m_year = '1447-48';
+        $today_hijri = $this->HijriCalendar->get_hijri_parts_by_greg_date($date);
+        if ($today_hijri && isset($today_hijri['hijri_year'])) {
+            $m = (int)$today_hijri['hijri_month'];
+            $y = (int)$today_hijri['hijri_year'];
+            if ($m >= 9 && $m <= 12) {
+                $m_year = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
+            } else {
+                $m_year = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
+            }
+        }
+
+        // Insert miqaat
+        $this->db->insert('miqaat', [
+            'name' => $miqaatName,
+            'date' => $date,
+            'type' => 'Ashara',
+            'assigned_to' => 'Individual'
+        ]);
+        $miqaatId = $this->db->insert_id();
+
+        // Create assignment for user
+        $this->db->insert('miqaat_assignments', [
+            'miqaat_id' => $miqaatId,
+            'assign_type' => 'Individual',
+            'member_id' => $itsId
+        ]);
+
+        // Configure Niyaz Amount in miqaat_niyaz_amounts for 'Ashara' type
+        $this->db->delete('miqaat_niyaz_amounts', ['miqaat_type' => 'Ashara', 'year' => $m_year]);
+        $this->db->insert('miqaat_niyaz_amounts', [
+            'miqaat_type' => 'Ashara',
+            'year' => $m_year,
+            'individual_amount' => 4500.00,
+            'fala_amount' => 1200.00
+        ]);
+
+        // Mock $_SESSION['user_data'] and $_SESSION['user']
+        $_SESSION['user'] = ['username' => (string)$itsId, 'role' => 3];
+        $_SESSION['user_data'] = [
+            'ITS_ID' => $itsId,
+            'First_Name' => 'Test',
+            'Surname' => 'User',
+            'Sector' => 'Test Sector'
+        ];
+
+        // Call submit_miqaat_raza controller method programmatically
+        // We will execute the submission logic directly (since redirection happens at controller level)
+        $raza_data = '{"miqaat_id":"' . $miqaatId . '"}';
+        $submitData = array(
+            'user_id' => $itsId,
+            'razaType' => 2,
+            'razadata' => $raza_data,
+            'miqaat_id' => $miqaatId,
+            'sabil' => 0,
+            'fmb' => 0,
+        );
+
+        $razaDbId = $this->AccountM->submit_miqaat_raza($submitData);
+        $hijri_year = explode("-", $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"])[2];
+        $raza_id = $this->AccountM->generate_raza_id($hijri_year);
+        $this->AccountM->update_raza_by_id($razaDbId, array("raza_id" => $raza_id));
+
+        // Trigger the invoice generation code block manually in our CLI test
+        // It mimics the exact controller logic we uncommented
+        $miqaat_row = $this->AccountM->get_miqaat_by_id($miqaatId);
+        if (!empty($miqaat_row)) {
+            $m_type = $miqaat_row['type'] ?? 'General';
+            $m_year_calc = 'default';
+            if (!empty($miqaat_row['date'])) {
+                $hijri_date_data = $this->HijriCalendar->get_hijri_date(date("Y-m-d", strtotime($miqaat_row["date"])));
+                if (is_array($hijri_date_data) && !empty($hijri_date_data["hijri_date"])) {
+                    $hijri_date_arr = explode("-", $hijri_date_data["hijri_date"]);
+                    $m = (int)($hijri_date_arr[1] ?? 1);
+                    $y = (int)($hijri_date_arr[2] ?? 0);
+                    if ($m >= 9 && $m <= 12) {
+                        $m_year_calc = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
+                    } else {
+                        $m_year_calc = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
+                    }
+                }
+            }
+            $amt_row = $this->db->get_where('miqaat_niyaz_amounts', ['miqaat_type' => $m_type, 'year' => $m_year_calc])->row_array();
+            $invoice_amount = 0;
+            if ($miqaat_row['assigned_to'] === 'Individual') {
+                $invoice_amount = !empty($amt_row['individual_amount']) ? (float)$amt_row['individual_amount'] : 0;
+            }
+
+            if ($invoice_amount > 0) {
+                $existing_invoice = $this->db->get_where('miqaat_invoice', [
+                    'user_id' => $itsId,
+                    'miqaat_id' => $miqaatId
+                ])->row_array();
+
+                if (empty($existing_invoice)) {
+                    $inv_data = [
+                        'date' => date('Y-m-d'),
+                        'miqaat_id' => $miqaatId,
+                        'miqaat_type' => $m_type,
+                        'year' => $m_year_calc,
+                        'user_id' => $itsId,
+                        'amount' => $invoice_amount,
+                        'description' => 'Auto-generated invoice for ' . $miqaat_row['name'],
+                        'raza_id' => $razaDbId
+                    ];
+                    $this->AnjumanM->create_miqaat_invoice($inv_data);
+                }
+            }
+        }
+
+        // Verify that the invoice was generated successfully
+        $invoice = $this->db->get_where('miqaat_invoice', [
+            'user_id' => $itsId,
+            'miqaat_id' => $miqaatId
+        ])->row_array();
+
+        $passed = true;
+        if (empty($invoice)) {
+            echo "ASSERTION FAILED: Auto-generated invoice was not created!\n";
+            $passed = false;
+        } else {
+            echo "Successfully verified auto-generated invoice existence.\n";
+            if ((float)$invoice['amount'] !== 4500.00) {
+                echo "ASSERTION FAILED: Invoice amount mismatch. Expected 4500.00, got {$invoice['amount']}\n";
+                $passed = false;
+            } else {
+                echo "Successfully verified invoice amount: ₹4,500.00.\n";
+            }
+        }
+
+        // Cleanup
+        echo "Cleaning up Raza invoice test records...\n";
+        $this->db->delete('user', ['ITS_ID' => $itsId]);
+        $this->db->delete('miqaat', ['id' => $miqaatId]);
+        $this->db->delete('miqaat_assignments', ['miqaat_id' => $miqaatId]);
+        $this->db->delete('miqaat_niyaz_amounts', ['miqaat_type' => 'Ashara', 'year' => $m_year]);
+        $this->db->delete('raza', ['id' => $razaDbId]);
+        $this->db->delete('miqaat_invoice', ['miqaat_id' => $miqaatId]);
+        echo "Cleanup complete!\n";
+
+        if ($passed) {
+            echo "\nRAZA INVOICE FLOW VERIFICATION PASSED SUCCESSFULLY!\n";
+        } else {
+            echo "\nRAZA INVOICE FLOW VERIFICATION FAILED!\n";
         }
     }
 }

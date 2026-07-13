@@ -380,230 +380,120 @@ $miq_pct  = $miqaat_total_amount > 0 ? ($miqaat_total_paid / $miqaat_total_amoun
   }
 </style>
 
-<div class="container margintopcontainer pt-5 pb-5">
+<div class="container margintopcontainer pt-4 pb-5">
 
-  <!-- ── Page Header ── -->
-  <div class="page-header-wrap">
-    <a href="<?php echo base_url('accounts'); ?>" class="btn-back-nav"><i class="fa fa-arrow-left"></i></a>
-    <h1 class="page-heading">FMB Details Overview</h1>
+  <!-- Back Button & Page Header -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <a href="<?php echo base_url('accounts'); ?>" class="btn-gold-outline"><i class="fa fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
   </div>
-  <p class="page-sub">Takhmeen · Miqaat Niyaz · Extra Contributions</p>
-  <hr class="section-divider">
 
-  <!-- ── 3 Summary Cards ── -->
-  <div class="row g-3 align-items-stretch mb-4">
+  <div class="page-header-wrap mb-4">
+    <h1 class="page-heading">FMB Takhmeen</h1>
+  </div>
 
-    <!-- Card 1: Thaali Takhmeen -->
-    <div class="col-12 col-md-4 d-flex">
-      <div class="dash-card w-100 h-100">
-        <div class="dash-card-header">
-          <span class="card-title"><i class="fa fa-cutlery"></i> Thaali Takhmeen</span>
-          <?php if ($fmb_overall_due > 0): ?>
-            <span class="badge-pill badge-danger">Pending</span>
-          <?php else: ?>
-            <span class="badge-pill badge-success">Clear</span>
-          <?php endif; ?>
-        </div>
-        <div class="dash-card-body">
-          <div class="stat-tile mb-3">
-            <div class="tile-label">Total Due</div>
-            <div class="tile-value red amount-big">₹<?php echo format_inr_no_decimals($fmb_overall_due); ?></div>
-          </div>
-          <div class="breakdown-row mb-3">
-            <div class="stat-tile">
-              <div class="tile-label">Amount</div>
-              <div class="tile-value blue">₹<?php echo format_inr_no_decimals($fmb_overall_amount); ?></div>
-            </div>
-            <div class="stat-tile">
-              <div class="tile-label">Paid</div>
-              <div class="tile-value green">₹<?php echo format_inr_no_decimals($fmb_overall_paid); ?></div>
-            </div>
-          </div>
-          <div class="prog-wrap"><div class="prog-bar" style="width:<?php echo number_format($takh_pct,2); ?>%; background:linear-gradient(90deg,var(--blue),var(--gold-light));"></div></div>
-          <div class="prog-meta">Years: <?php echo $fmb_takhmeen_count; ?> &nbsp;|&nbsp; <?php echo number_format($takh_pct,1); ?>% Paid</div>
-          <div class="mt-auto text-right">
-            <button type="button" class="btn-view view-details-btn" data-target="#sec-takhmeen"><i class="fa fa-arrow-right"></i> View Details</button>
-          </div>
-        </div>
+  <!-- TAKHMEEN SECTION DIRECTLY ON PAGE -->
+  <div id="sec-takhmeen" class="card shadow-sm">
+    <div class="card-header"><h5 class="card-title mb-0"><i class="fa fa-cutlery"></i> FMB Takhmeen (All Years)</h5></div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th class="text-right">Thaali Days</th>
+              <th class="text-right">Amount (₹)</th>
+              <th class="text-right">Paid (₹)</th>
+              <th class="text-right">Due (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php
+            $rows_input = !empty($fmb_takhmeen_details['all_takhmeen']) && is_array($fmb_takhmeen_details['all_takhmeen'])
+              ? $fmb_takhmeen_details['all_takhmeen'] : [];
+            if (!empty($rows_input)) {
+              $per_year_paid_present = 0.0;
+              foreach ($rows_input as $r) { $per_year_paid_present += (float)($r['total_paid'] ?? 0); }
+              $overall_paid_sum = 0.0;
+              if (!empty($fmb_takhmeen_details['all_payments']) && is_array($fmb_takhmeen_details['all_payments'])) {
+                foreach ($fmb_takhmeen_details['all_payments'] as $p) { $overall_paid_sum += (float)($p['amount'] ?? 0); }
+              }
+              $allocated = [];
+              if ($overall_paid_sum > 0 && $per_year_paid_present < 0.00001) {
+                $years_sorted = $rows_input;
+                usort($years_sorted, function($a,$b){
+                  $aBase = (int)preg_replace('/^(\d{4}).*$/','$1',preg_replace('/[^0-9\-]/','', $a['year']??''));
+                  $bBase = (int)preg_replace('/^(\d{4}).*$/','$1',preg_replace('/[^0-9\-]/','', $b['year']??''));
+                  return $aBase <=> $bBase;
+                });
+                $remaining = $overall_paid_sum;
+                foreach ($years_sorted as $yrRow) {
+                  $yearLabel = $yrRow['year'] ?? '';
+                  $amt = (float)($yrRow['total_amount'] ?? 0);
+                  $pay = min(max($remaining,0), $amt);
+                  $allocated[$yearLabel] = $pay;
+                  $remaining -= $pay;
+                  if ($remaining <= 0) break;
+                }
+              }
+              foreach ($rows_input as $row) {
+                $rowYear  = $row['year'] ?? '';
+                $basePaid = (float)($row['total_paid'] ?? 0);
+                $paidVal  = isset($allocated[$rowYear]) ? (float)$allocated[$rowYear] : $basePaid;
+                $amtVal   = (float)($row['total_amount'] ?? 0);
+                $assignedDaysVal = isset($row['assigned_thaali_days']) ? (int)$row['assigned_thaali_days'] : 0;
+                $dueVal   = max(0, $amtVal - $paidVal);
+                $highlight = ($currentYearLabel && strpos($rowYear,(string)$currentYearLabel) !== false) ? 'table-warning fw-bold' : '';
+                echo '<tr class="'.$highlight.'">';
+                echo '<td>'.htmlspecialchars($rowYear).'</td>';
+                echo '<td class="text-right"><a href="#" class="view-assigned-thaali-days" data-year="'.htmlspecialchars($rowYear,ENT_QUOTES).'">'.$assignedDaysVal.'</a></td>';
+                echo '<td class="text-right">₹'.format_inr_no_decimals($amtVal).'</td>';
+                echo '<td class="text-right text-success">₹'.format_inr_no_decimals($paidVal).'</td>';
+                echo '<td class="text-right text-danger">₹'.format_inr_no_decimals($dueVal).'</td>';
+                echo '</tr>';
+              }
+            } else { ?>
+              <tr><td colspan="5" class="text-center" style="color:var(--text-3);padding:24px;">Takhmeen not found.</td></tr>
+            <?php } ?>
+          </tbody>
+        </table>
       </div>
-    </div>
-
-    <!-- Card 2: Miqaat Niyaz -->
-    <div class="col-12 col-md-4 d-flex">
-      <div class="dash-card w-100 h-100">
-        <div class="dash-card-header">
-          <span class="card-title"><i class="fa fa-calendar"></i> Miqaat Niyaz Invoices</span>
-          <?php if ($miqaat_total_due > 0): ?>
-            <span class="badge-pill badge-danger">Pending</span>
-          <?php else: ?>
-            <span class="badge-pill badge-success">Clear</span>
-          <?php endif; ?>
+      <div style="border-top:1px solid var(--border);">
+        <div style="padding:14px 20px 10px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.78rem; font-weight:700; color:var(--text-2);">Overall Payment History</span>
+          <span style="font-size:0.65rem; color:var(--text-3); font-style:italic;">Payments allocated oldest-year first</span>
         </div>
-        <div class="dash-card-body">
-          <div class="stat-tile mb-3">
-            <div class="tile-label">Total Due</div>
-            <div class="tile-value red amount-big">₹<?php echo format_inr_no_decimals($miqaat_total_due); ?></div>
-          </div>
-          <div class="breakdown-row mb-3">
-            <div class="stat-tile">
-              <div class="tile-label">Amount</div>
-              <div class="tile-value blue">₹<?php echo format_inr_no_decimals($miqaat_total_amount); ?></div>
-            </div>
-            <div class="stat-tile">
-              <div class="tile-label">Paid</div>
-              <div class="tile-value green">₹<?php echo format_inr_no_decimals($miqaat_total_paid); ?></div>
-            </div>
-          </div>
-          <div class="prog-wrap"><div class="prog-bar" style="width:<?php echo number_format($miq_pct,2); ?>%; background:linear-gradient(90deg,var(--gold),var(--gold-light));"></div></div>
-          <div class="prog-meta">Invoices: <?php echo $miqaat_invoice_count; ?> &nbsp;|&nbsp; <?php echo number_format($miq_pct,1); ?>% Paid</div>
-          <div class="mt-auto text-right">
-            <a href="<?php echo base_url('accounts/miqaat_invoices'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 3: Extra Contributions -->
-    <div class="col-12 col-md-4 d-flex">
-      <div class="dash-card w-100 h-100">
-        <div class="dash-card-header">
-          <span class="card-title"><i class="fa fa-gift"></i> Extra Contributions</span>
-          <?php if ($gc_total_due > 0): ?>
-            <span class="badge-pill badge-danger">Pending</span>
-          <?php else: ?>
-            <span class="badge-pill badge-success">Clear</span>
-          <?php endif; ?>
-        </div>
-        <div class="dash-card-body">
-          <div class="stat-tile mb-3">
-            <div class="tile-label">Total Due</div>
-            <div class="tile-value red amount-big">₹<?php echo format_inr_no_decimals($gc_total_due); ?></div>
-          </div>
-          <div class="breakdown-row mb-3">
-            <div class="stat-tile">
-              <div class="tile-label">Amount</div>
-              <div class="tile-value blue">₹<?php echo format_inr_no_decimals($gc_total_amount); ?></div>
-            </div>
-            <div class="stat-tile">
-              <div class="tile-label">Paid</div>
-              <div class="tile-value green">₹<?php echo format_inr_no_decimals($gc_total_paid); ?></div>
-            </div>
-          </div>
-          <div class="prog-wrap"><div class="prog-bar" style="width:<?php echo number_format($gc_pct,2); ?>%; background:linear-gradient(90deg,var(--green),var(--gold-light));"></div></div>
-          <div class="prog-meta">Invoices: <?php echo $gc_invoice_count; ?> &nbsp;|&nbsp; <?php echo number_format($gc_pct,1); ?>% Paid</div>
-          <div class="mt-auto text-right">
-            <button type="button" class="btn-view view-details-btn" data-target="#sec-gc"><i class="fa fa-arrow-right"></i> View Details</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /.row -->
-
-  <!-- ── Hidden detail sections (cloned into modals by JS) ── -->
-  <div id="details-sections" style="display:none !important;">
-
-    <!-- TAKHMEEN SECTION -->
-    <div id="sec-takhmeen" class="detail-section card d-none">
-      <div class="card-header"><h5 class="card-title mb-0"><i class="fa fa-cutlery"></i> FMB Takhmeen (All Years)</h5></div>
-      <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-striped align-middle mb-0">
+          <table class="table table-sm table-striped mb-0">
             <thead>
               <tr>
-                <th>Year</th>
-                <th class="text-right">Thaali Days</th>
+                <th>Date</th>
                 <th class="text-right">Amount (₹)</th>
-                <th class="text-right">Paid (₹)</th>
-                <th class="text-right">Due (₹)</th>
+                <th>Method</th>
+                <th>Remarks</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              <?php
-              $rows_input = !empty($fmb_takhmeen_details['all_takhmeen']) && is_array($fmb_takhmeen_details['all_takhmeen'])
-                ? $fmb_takhmeen_details['all_takhmeen'] : [];
-              if (!empty($rows_input)) {
-                $per_year_paid_present = 0.0;
-                foreach ($rows_input as $r) { $per_year_paid_present += (float)($r['total_paid'] ?? 0); }
-                $overall_paid_sum = 0.0;
-                if (!empty($fmb_takhmeen_details['all_payments']) && is_array($fmb_takhmeen_details['all_payments'])) {
-                  foreach ($fmb_takhmeen_details['all_payments'] as $p) { $overall_paid_sum += (float)($p['amount'] ?? 0); }
-                }
-                $allocated = [];
-                if ($overall_paid_sum > 0 && $per_year_paid_present < 0.00001) {
-                  $years_sorted = $rows_input;
-                  usort($years_sorted, function($a,$b){
-                    $aBase = (int)preg_replace('/^(\d{4}).*$/','$1',preg_replace('/[^0-9\-]/','', $a['year']??''));
-                    $bBase = (int)preg_replace('/^(\d{4}).*$/','$1',preg_replace('/[^0-9\-]/','', $b['year']??''));
-                    return $aBase <=> $bBase;
-                  });
-                  $remaining = $overall_paid_sum;
-                  foreach ($years_sorted as $yrRow) {
-                    $yearLabel = $yrRow['year'] ?? '';
-                    $amt = (float)($yrRow['total_amount'] ?? 0);
-                    $pay = min(max($remaining,0), $amt);
-                    $allocated[$yearLabel] = $pay;
-                    $remaining -= $pay;
-                    if ($remaining <= 0) break;
-                  }
-                }
-                foreach ($rows_input as $row) {
-                  $rowYear  = $row['year'] ?? '';
-                  $basePaid = (float)($row['total_paid'] ?? 0);
-                  $paidVal  = isset($allocated[$rowYear]) ? (float)$allocated[$rowYear] : $basePaid;
-                  $amtVal   = (float)($row['total_amount'] ?? 0);
-                  $assignedDaysVal = isset($row['assigned_thaali_days']) ? (int)$row['assigned_thaali_days'] : 0;
-                  $dueVal   = max(0, $amtVal - $paidVal);
-                  $highlight = ($currentYearLabel && strpos($rowYear,(string)$currentYearLabel) !== false) ? 'table-warning fw-bold' : '';
-                  echo '<tr class="'.$highlight.'">';
-                  echo '<td>'.htmlspecialchars($rowYear).'</td>';
-                  echo '<td class="text-right"><a href="#" class="view-assigned-thaali-days" data-year="'.htmlspecialchars($rowYear,ENT_QUOTES).'">'.$assignedDaysVal.'</a></td>';
-                  echo '<td class="text-right">₹'.format_inr_no_decimals($amtVal).'</td>';
-                  echo '<td class="text-right text-success">₹'.format_inr_no_decimals($paidVal).'</td>';
-                  echo '<td class="text-right text-danger">₹'.format_inr_no_decimals($dueVal).'</td>';
-                  echo '</tr>';
-                }
-              } else { ?>
-                <tr><td colspan="5" class="text-center" style="color:var(--text-3);padding:24px;">Takhmeen not found.</td></tr>
-              <?php } ?>
+              <?php if (!empty($fmb_takhmeen_details['all_payments'])): ?>
+                <?php foreach ($fmb_takhmeen_details['all_payments'] as $pay): ?>
+                  <tr>
+                    <td><?php echo $pay['payment_date'] ? date('d-M-Y',strtotime($pay['payment_date'])) : '-'; ?></td>
+                    <td class="text-right text-success"><?php echo format_inr_no_decimals((float)$pay['amount']); ?></td>
+                    <td><?php echo htmlspecialchars($pay['payment_method'] ?? '-'); ?></td>
+                    <td><?php echo htmlspecialchars($pay['remarks'] ?? '-'); ?></td>
+                    <td><button class="view-invoice btn btn-sm btn-outline-primary" data-payment-id="<?php echo (int)$pay['id']; ?>" title="View Receipt"><i class="fa fa-file-pdf-o"></i></button></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <tr><td colspan="5" class="text-center" style="color:var(--text-3);padding:16px;">No payments found.</td></tr>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
-        <div style="border-top:1px solid var(--border);">
-          <div style="padding:14px 20px 10px; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:0.78rem; font-weight:700; color:var(--text-2);">Overall Payment History</span>
-            <span style="font-size:0.65rem; color:var(--text-3); font-style:italic;">Payments allocated oldest-year first</span>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-sm table-striped mb-0">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th class="text-right">Amount (₹)</th>
-                  <th>Method</th>
-                  <th>Remarks</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php if (!empty($fmb_takhmeen_details['all_payments'])): ?>
-                  <?php foreach ($fmb_takhmeen_details['all_payments'] as $pay): ?>
-                    <tr>
-                      <td><?php echo $pay['payment_date'] ? date('d-M-Y',strtotime($pay['payment_date'])) : '-'; ?></td>
-                      <td class="text-right text-success"><?php echo format_inr_no_decimals((float)$pay['amount']); ?></td>
-                      <td><?php echo htmlspecialchars($pay['payment_method'] ?? '-'); ?></td>
-                      <td><?php echo htmlspecialchars($pay['remarks'] ?? '-'); ?></td>
-                      <td><button class="view-invoice btn btn-sm btn-outline-primary" data-payment-id="<?php echo (int)$pay['id']; ?>" title="View Receipt"><i class="fa fa-file-pdf-o"></i></button></td>
-                    </tr>
-                  <?php endforeach; ?>
-                <?php else: ?>
-                  <tr><td colspan="5" class="text-center" style="color:var(--text-3);padding:16px;">No payments found.</td></tr>
-                <?php endif; ?>
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
+    </div>
     </div>
 
     <!-- GENERAL CONTRIBUTIONS SECTION -->

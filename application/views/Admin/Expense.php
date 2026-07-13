@@ -20,24 +20,7 @@
     </div>
 
     <div class="row g-4 align-items-stretch justify-content-center">
-      <div class="col-12 col-md-5 d-flex">
-        <a href="<?php echo site_url('admin/expense/source-of-funds'); ?>" class="text-decoration-none w-100">
-          <div class="card h-100 expense-card shadow-sm">
-            <div class="card-body d-flex flex-column text-center p-4">
-              <div class="overview-icon mb-3 mx-auto">
-                <i class="fa fa-bank fa-2x"></i>
-              </div>
-              <h5 class="fw-semibold text-dark mb-2">Source of Funds</h5>
-              <p class="flex-grow-1 small text-muted mb-4">Manage and review expense funding sources.</p>
-              <div>
-                <span class="btn btn-sm btn-gold px-4">Open &raquo;</span>
-              </div>
-            </div>
-          </div>
-        </a>
-      </div>
-
-      <div class="col-12 col-md-5 d-flex">
+      <div class="col-12 col-md-6 col-lg-5 d-flex">
         <a href="<?php echo site_url('admin/expense/items'); ?>" class="text-decoration-none w-100">
           <div class="card h-100 expense-card shadow-sm">
             <div class="card-body d-flex flex-column text-center p-4">

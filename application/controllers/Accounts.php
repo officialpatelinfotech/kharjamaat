@@ -367,15 +367,52 @@ class Accounts extends CI_Controller
 
     // Family-wise dues for dashboard cards
     $family_fmb_due = 0.0;
+    $family_fmb_cy_total = 0.0;
+    $family_fmb_cy_paid = 0.0;
+    $family_fmb_current_year = null;
+
+    foreach ($memberIds as $mid) {
+      $details = $this->AccountM->viewfmbtakhmeen($mid);
+      if (is_array($details) && !empty($details)) {
+        $oa = (float)($details['overall']['total_amount'] ?? 0);
+        $op = (float)($details['overall']['total_paid'] ?? 0);
+        $family_fmb_due += max(0.0, $oa - $op);
+
+        if (isset($details['current_year']) && is_array($details['current_year']) && !empty($details['current_year']['year'])) {
+          if ($family_fmb_current_year === null) {
+            $family_fmb_current_year = $details['current_year']['year'];
+          }
+          $cya = (float)($details['current_year']['total_amount'] ?? 0);
+          $cyp = (float)($details['current_year']['total_paid'] ?? 0);
+          $family_fmb_cy_total += $cya;
+          $family_fmb_cy_paid += min($cyp, $cya);
+        }
+      }
+    }
+
+    if (empty($family_fmb_current_year)) {
+      $this->load->model('HijriCalendar');
+      $todayH = $this->HijriCalendar->get_hijri_date(date('Y-m-d'));
+      if (isset($todayH['hijri_date'])) {
+        $p = explode('-', (string)$todayH['hijri_date']);
+        if (count($p) === 3) {
+          $hm = (int)$p[1];
+          $hy = (int)$p[2];
+          $family_fmb_current_year = ($hm >= 9 && $hm <= 12) ? $hy : ($hy - 1);
+        }
+      }
+      if (empty($family_fmb_current_year)) {
+        $family_fmb_current_year = (int)date('Y') - 578;
+      }
+    }
+
+    $family_fmb_current_year_label = $family_fmb_current_year ? $family_fmb_current_year . '-' . substr((string)($family_fmb_current_year + 1), -2) : '';
+
     $family_sabeel_due = 0.0;
     $family_sabeel_cy_total = 0.0;
     $family_sabeel_cy_paid = 0.0;
     $family_sabeel_cy_due = 0.0;
     $family_sabeel_current_year = '';
-    foreach ($memberIds as $mid) {
-      $f = $this->AccountM->get_member_total_fmb_due($mid);
-      $family_fmb_due += is_array($f) && isset($f['total_due']) ? (float)$f['total_due'] : 0.0;
-    }
 
     $s = $this->AccountM->get_member_total_sabeel_due($hof_id);
     if (is_array($s)) {
@@ -388,23 +425,35 @@ class Accounts extends CI_Controller
 
     $data["fmb_takhmeen_details"] = [
       'total_due' => $family_fmb_due,
+      'current_year' => $family_smb_current_year_label ?? $family_fmb_current_year_label,
+      'current_year_total' => $family_fmb_cy_total,
+      'current_year_paid' => $family_fmb_cy_paid,
+      'current_year_due' => max(0.0, $family_fmb_cy_total - $family_fmb_cy_paid),
     ];
 
     // FMB Due badge should reflect *all* FMB-related dues shown on the FMB screen
     // (Thaali/FMB takhmeen + FMB extra contributions + Miqaat invoices)
+    $fmb_extra_amount = 0.0;
+    $fmb_extra_paid = 0.0;
     $fmb_extra_due = 0.0;
     $fmb_miqaat_invoice_due = 0.0;
+    $fmb_miqaat_invoice_total_amount = 0.0;
     if (!empty($memberIds)) {
       $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
 
       // FMB extra contributions (GC)
       $gcRow = $this->db->query(
-        "SELECT COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due\n" .
+        "SELECT 
+           COALESCE(SUM(gc.amount),0) AS total_amount,
+           COALESCE(SUM(COALESCE(p.total_received,0)),0) AS total_paid,
+           COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due\n" .
           "FROM fmb_general_contribution gc\n" .
           "LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id\n" .
           "WHERE gc.user_id IN ($placeholders)",
         $memberIds
       )->row_array();
+      $fmb_extra_amount = isset($gcRow['total_amount']) ? (float)$gcRow['total_amount'] : 0.0;
+      $fmb_extra_paid = isset($gcRow['total_paid']) ? (float)$gcRow['total_paid'] : 0.0;
       $fmb_extra_due = isset($gcRow['total_due']) ? (float)$gcRow['total_due'] : 0.0;
 
       // Miqaat invoice dues
@@ -416,8 +465,27 @@ class Accounts extends CI_Controller
         $memberIds
       )->row_array();
       $fmb_miqaat_invoice_due = isset($miqRow['total_due']) ? (float)$miqRow['total_due'] : 0.0;
+
+      // Miqaat invoice total amount
+      $miqAmtRow = $this->db->query(
+        "SELECT COALESCE(SUM(amount),0) AS total_amount\n" .
+          "FROM miqaat_invoice\n" .
+          "WHERE user_id IN ($placeholders)",
+        $memberIds
+      )->row_array();
+      $fmb_miqaat_invoice_total_amount = isset($miqAmtRow['total_amount']) ? (float)$miqAmtRow['total_amount'] : 0.0;
     }
-    $data['fmb_due_badge'] = (($family_fmb_due + $fmb_extra_due + $fmb_miqaat_invoice_due) > 0);
+    $data['fmb_due_badge'] = ($family_fmb_due > 0);
+    
+    $data['fmb_extra_amount'] = $fmb_extra_amount;
+    $data['fmb_extra_paid'] = $fmb_extra_paid;
+    $data['fmb_extra_due'] = $fmb_extra_due;
+    $data['fmb_extra_due_badge'] = ($fmb_extra_due > 0);
+
+    $data['miqaat_invoice_due_badge'] = ($fmb_miqaat_invoice_due > 0);
+    $data['miqaat_invoice_total_amount'] = $fmb_miqaat_invoice_total_amount;
+    $data['miqaat_invoice_total_due'] = $fmb_miqaat_invoice_due;
+
     $data["sabeel_takhmeen_details"] = [
       'total_due' => $family_sabeel_due,
       'current_year' => $family_sabeel_current_year,
@@ -1059,7 +1127,7 @@ class Accounts extends CI_Controller
       
       $m = (int)($hijri_date[1] ?? 1);
       $y = (int)($hijri_date[2] ?? date('Y'));
-      if ($m >= 7 && $m <= 12) {
+      if ($m >= 9 && $m <= 12) {
           $fy = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
       } else {
           $fy = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
@@ -1114,9 +1182,7 @@ class Accounts extends CI_Controller
     $raza_id = $this->AccountM->generate_raza_id($hijri_year);
     $this->AccountM->update_raza_by_id($result, array("raza_id" => $raza_id));
 
-    /*
     // Auto-generate invoice if amount > 0
-    // Disabled as individual invoices are now created manually from the contribution section
     $miqaat_row = $this->AccountM->get_miqaat_by_id($miqaat_id);
     if (!empty($miqaat_row)) {
       $m_type = $miqaat_row['type'] ?? 'General';
@@ -1143,22 +1209,14 @@ class Accounts extends CI_Controller
 
           $greg_month = (int)date('n', strtotime($miqaat_row["date"]));
           $greg_year = (int)date('Y', strtotime($miqaat_row["date"]));
-          if ($greg_month >= 7 && $greg_month <= 11) {
+          if ($greg_month >= 9 && $greg_month <= 11) {
             $m = 1;
-          } elseif ($greg_month >= 1 && $greg_month <= 5) {
-            $m = 7;
-          } elseif ($greg_month == 12) {
-            $m = 7;
-          } else { // June
-            if ($y === ($greg_year - 578)) {
-              $m = 1;
-            } else {
-              $m = 7;
-            }
+          } else {
+            $m = 9;
           }
         }
 
-        if ($m >= 7 && $m <= 12) {
+        if ($m >= 9 && $m <= 12) {
           $m_year = $y . '-' . str_pad(($y + 1) % 100, 2, '0', STR_PAD_LEFT);
         } else {
           $m_year = ($y - 1) . '-' . str_pad($y % 100, 2, '0', STR_PAD_LEFT);
@@ -1195,7 +1253,6 @@ class Accounts extends CI_Controller
         }
       }
     }
-    */
 
     if ($result > 0) {
       $this->session->set_flashdata('success', "Miqaat Raza submitted successfully.");
@@ -2282,6 +2339,46 @@ class Accounts extends CI_Controller
     $this->load->view('Accounts/FMB/MiqaatInvoices', $data);
   }
 
+  public function fmb_contributions()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
+    $data['sector'] = $_SESSION['user_data']['Sector'];
+    $member_id = $_SESSION['user_data']['ITS_ID'];
+
+    // Family-wise: HOF + all members linked to HOF
+    $hof_id = $this->AccountM->get_hof_id_for_member($member_id);
+    $memberIds = [$hof_id];
+    $family = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($family)) {
+      foreach ($family as $f) {
+        if (!empty($f['ITS_ID'])) {
+          $memberIds[] = (int)$f['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    // Get family members' general contributions
+    $general_contributions = [];
+    foreach ($memberIds as $mid) {
+      $details = $this->AccountM->viewfmbtakhmeen($mid);
+      if (is_array($details) && !empty($details['general_contributions'])) {
+        foreach ($details['general_contributions'] as $gc) {
+          $gc['user_id'] = $mid;
+          $general_contributions[] = $gc;
+        }
+      }
+    }
+    $data['general_contributions'] = $general_contributions;
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/FMB/Contributions', $data);
+  }
+
   /**
    * AJAX: Return miqaat invoice payment history for the logged-in user.
    * POST: invoice_id
@@ -3061,6 +3158,10 @@ class Accounts extends CI_Controller
     }
 
     $venueOptionId = $this->input->get('venue_option_id');
+    $thaalCount = (int)$this->input->get('thaal_count');
+    if ($thaalCount <= 0) {
+      $thaalCount = 1;
+    }
     $venue = '';
     if ($venueOptionId !== null && $venueOptionId !== '') {
       $venue = $this->LaagatRentM->get_venue_name_by_id($razaTypeId, $venueOptionId);
@@ -3096,8 +3197,23 @@ class Accounts extends CI_Controller
       ]));
     }
 
+    $itemQuantities = $this->input->get('item_qty');
+    if (!is_array($itemQuantities)) {
+      $itemQuantities = [];
+    }
+
     $userId = isset($_SESSION['user_data']['ITS_ID']) ? $_SESSION['user_data']['ITS_ID'] : $_SESSION['user']['username'];
-    $breakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($row['id'], $userId);
+    $breakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($row['id'], $userId, $thaalCount, $itemQuantities);
+
+    $items = [];
+    if ($row && $chargeType === 'rent') {
+      $items = $this->db
+        ->from('laagat_rent_items')
+        ->where('laagat_rent_id', (int)$row['id'])
+        ->order_by('id ASC')
+        ->get()
+        ->result_array();
+    }
 
     return $this->output->set_content_type('application/json')->set_output(json_encode([
       'success' => true,
@@ -3108,6 +3224,7 @@ class Accounts extends CI_Controller
       'charge_type' => (string)$row['charge_type'],
       'hijri_year' => (string)$row['hijri_year'],
       'title' => (string)($row['title'] ?? ''),
+      'items' => $items
     ]));
   }
 
@@ -3887,7 +4004,35 @@ class Accounts extends CI_Controller
           }
 
           if ($laagatRow && !empty($laagatRow['id'])) {
-            $invoiceAmountBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRow['id'], $userId);
+            $thaalCount = 1;
+            $countKeys = [
+              'approximate-thaal-count',
+              'approximate_thaal_count',
+              'approximate-items-count',
+              'approximate_items_count',
+              'number-of-items',
+              'number_of_items',
+              'approximate-thaal-items-count',
+              'approximate_thaal_items_count',
+              'approximate-number-of-items',
+              'approximate_number_of_items',
+              'items-count',
+              'items_count'
+            ];
+            foreach ($countKeys as $key) {
+              if (isset($_POST[$key])) {
+                $thaalCount = (int)$_POST[$key];
+                break;
+              }
+            }
+            if ($thaalCount <= 0) {
+              $thaalCount = 1;
+            }
+            $itemQuantities = $this->input->post('item_qty');
+            if (!is_array($itemQuantities)) {
+              $itemQuantities = [];
+            }
+            $invoiceAmountBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRow['id'], $userId, $thaalCount, $itemQuantities);
             $invoiceData = [
               'user_id' => $userId,
               'laagat_rent_id' => $laagatRow['id'],

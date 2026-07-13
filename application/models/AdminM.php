@@ -259,14 +259,26 @@ class AdminM extends CI_Model
   }
 
   // FMB General Contribution
-  public function getallfmbgc($filter_status = NULL)
+  public function getallfmbgc($filters = [])
   {
     $this->db->from("fmb_general_contribution_master");
-    if (isset($filter_status) && $filter_status == 0) {
-      $this->db->where("status", $filter_status);
-    } else {
-      $this->db->where("status", 1);
+    
+    if (isset($filters['status']) && $filters['status'] !== '') {
+      $this->db->where("status", $filters['status']);
     }
+    
+    if (isset($filters['hijri_year']) && $filters['hijri_year'] !== '') {
+      $this->db->where("hijri_year", $filters['hijri_year']);
+    }
+    
+    if (isset($filters['fmb_type']) && $filters['fmb_type'] !== '') {
+      $this->db->where("fmb_type", $filters['fmb_type']);
+    }
+    
+    if (isset($filters['miqaat_type']) && $filters['miqaat_type'] !== '') {
+      $this->db->where("miqaat_type", $filters['miqaat_type']);
+    }
+    
     return $this->db->get()->result_array();
   }
   public function addfmbcontritype($fmb_type, $contri_for, $miqaat_type = NULL, $amount = NULL, $hijri_year = NULL)
@@ -300,11 +312,9 @@ class AdminM extends CI_Model
       "fmb_type" => $fmb_type,
       "status" => $status,
       "amount" => $amount,
-      "hijri_year" => $hijri_year
+      "hijri_year" => $hijri_year,
+      "miqaat_type" => ($fmb_type === 'Niyaz') ? ($miqaat_type ?: NULL) : NULL
     ];
-    if ($miqaat_type !== NULL) {
-      $data["miqaat_type"] = $miqaat_type;
-    }
     $result = $this->db->update("fmb_general_contribution_master", $data);
     if ($result) {
       return true;

@@ -1,6 +1,5 @@
 <?php if (!defined('BASEPATH')) exit('No direct script access allowed');
 
-$sof_options = isset($sof_options) && is_array($sof_options) ? $sof_options : [];
 $aos_options = isset($aos_options) && is_array($aos_options) ? $aos_options : [];
 $hijri_year_options = isset($hijri_year_options) && is_array($hijri_year_options) ? $hijri_year_options : [];
 $current_hijri_year_for_expense = isset($current_hijri_year_for_expense) ? (int)$current_hijri_year_for_expense : null;
@@ -13,7 +12,7 @@ $is_edit = $expense !== null;
 $val_date = $is_edit && !empty($expense['expense_date']) ? $expense['expense_date'] : $today;
 $val_area_id = $is_edit ? ($expense['area_id'] ?? '') : '';
 $val_amount = $is_edit ? ($expense['amount'] ?? '') : '';
-$val_source_id = $is_edit ? ($expense['source_id'] ?? '') : '';
+$val_payment_mode = $is_edit ? ($expense['payment_mode'] ?? '') : '';
 $val_hijri_year = $is_edit ? ($expense['hijri_year'] ?? $current_hijri_year_for_expense) : $current_hijri_year_for_expense;
 $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
 ?>
@@ -60,26 +59,23 @@ $val_notes = $is_edit ? ($expense['notes'] ?? '') : '';
 				</div>
 
 				<div class="form-group">
-					<label for="expenseSof">SOF (Source of Funds)</label>
-					<select id="expenseSof" name="source_id" class="form-control form-control-sm" required>
-						<option value="">Select</option>
-						<?php foreach ($sof_options as $opt): ?>
-							<?php
-								$id = isset($opt['id']) ? (int)$opt['id'] : 0;
-								$name = isset($opt['name']) ? (string)$opt['name'] : '';
-								$selected = ($val_source_id !== '' && (int)$val_source_id === $id) ? 'selected' : '';
-							?>
-							<option value="<?= $id; ?>" <?= $selected; ?>><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
-						<?php endforeach; ?>
+					<label for="expensePaymentMode">Payment Mode</label>
+					<select id="expensePaymentMode" name="payment_mode" class="form-control form-control-sm" required>
+						<option value="">Select Payment Mode</option>
+						<option value="Cash" <?= ($val_payment_mode === 'Cash') ? 'selected' : ''; ?>>Cash</option>
+						<option value="Cheque" <?= ($val_payment_mode === 'Cheque') ? 'selected' : ''; ?>>Cheque</option>
+						<option value="Bank Transfer" <?= ($val_payment_mode === 'Bank Transfer') ? 'selected' : ''; ?>>Bank Transfer</option>
+						<option value="Online" <?= ($val_payment_mode === 'Online') ? 'selected' : ''; ?>>Online</option>
+						<option value="Other" <?= ($val_payment_mode === 'Other') ? 'selected' : ''; ?>>Other</option>
 					</select>
 				</div>
 
 				<div class="form-group">
-					<label for="expenseHijriYear">Hijri Year</label>
+					<label for="expenseHijriYear">Financial Hijri Year</label>
 					<select id="expenseHijriYear" name="hijri_year" class="form-control form-control-sm" required>
-						<option value="">Select</option>
+						<option value="">Select Financial Hijri Year</option>
 						<?php for ($yrInt = 1442; $yrInt <= 1457; $yrInt++): ?>
-							<option value="<?= $yrInt; ?>" <?= ($val_hijri_year && $yrInt === (int)$val_hijri_year) ? 'selected' : ''; ?>><?= $yrInt; ?></option>
+							<option value="<?= $yrInt; ?>" <?= ($val_hijri_year && $yrInt === (int)$val_hijri_year) ? 'selected' : ''; ?>><?= $yrInt . '-' . substr((string)($yrInt + 1), -2); ?></option>
 						<?php endfor; ?>
 					</select>
 				</div>

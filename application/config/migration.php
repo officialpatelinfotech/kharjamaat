@@ -66,7 +66,7 @@ $config['migration_auto_latest'] = TRUE;
 | be upgraded / downgraded to.
 |
 */
-$config['migration_version'] = 59; // Create login logs table and contribution master fields
+$config['migration_version'] = 64; // Add laagat_rent_items
 
 /*
 |--------------------------------------------------------------------------

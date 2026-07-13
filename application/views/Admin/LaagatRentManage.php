@@ -498,7 +498,14 @@
               <?php foreach ($rows as $r) : ?>
                 <tr>
                   <td><?php echo (int)$srno++; ?></td>
-                  <td class="font-weight-bold text-dark"><?php echo htmlspecialchars((string)($r['title'] ?? '')); ?></td>
+                  <td class="font-weight-bold text-dark">
+                    <?php echo htmlspecialchars((string)($r['title'] ?? '')); ?>
+                    <?php if (!empty($r['items'])) : ?>
+                      <button type="button" class="btn btn-sm btn-link p-0 ml-2 lr-toggle-items" data-target="lr-items-<?php echo (int)$r['id']; ?>" title="View Items" style="font-size: 0.78rem; color: #6c757d; text-decoration: none; vertical-align: middle;">
+                        <i class="fa fa-list mr-1"></i><span class="badge badge-light border" style="font-size: 0.72rem;"><?php echo count($r['items']); ?> item<?php echo count($r['items']) !== 1 ? 's' : ''; ?></span>
+                      </button>
+                    <?php endif; ?>
+                  </td>
                   <td><?php echo htmlspecialchars((string)($r['hijri_year'] ?? '')); ?></td>
                   <?php if (!isset($module_type)) : ?>
                     <td><?php echo htmlspecialchars(ucfirst(strtolower((string)($r['charge_type'] ?? '')))); ?></td>
@@ -536,6 +543,40 @@
                     </div>
                   </td>
                 </tr>
+                <?php if (!empty($r['items'])) : ?>
+                <tr id="lr-items-<?php echo (int)$r['id']; ?>" class="lr-items-subrow" style="display: none;">
+                  <td colspan="<?php
+                    $colspan = 7;
+                    if (!isset($module_type)) $colspan++;
+                    if (!$is_laagat) $colspan++;
+                    echo $colspan;
+                  ?>" class="p-0">
+                    <div class="px-4 py-3" style="background: #f8f7f2; border-top: 2px solid #e2d9c5;">
+                      <div class="text-uppercase font-weight-bold text-secondary mb-2" style="font-size: 0.72rem; letter-spacing: 0.8px;">Rent Items</div>
+                      <table class="table table-sm table-bordered mb-0" style="font-size: 0.82rem; max-width: 480px;">
+                        <thead class="bg-light">
+                          <tr>
+                            <th class="py-1 pl-3" style="width: 40px;">#</th>
+                            <th class="py-1">Item Name</th>
+                            <th class="py-1 text-right pr-3">Cost / Piece</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <?php foreach ($r['items'] as $ii => $item) : ?>
+                          <tr>
+                            <td class="pl-3 text-muted"><?php echo ($ii + 1); ?></td>
+                            <td class="font-weight-bold"><?php echo htmlspecialchars((string)($item['item_name'] ?? '')); ?></td>
+                            <td class="text-right pr-3 font-weight-bold text-success">
+                              ₹<?php echo number_format((float)($item['rent_sabeel'] ?? 0), 2); ?>
+                            </td>
+                          </tr>
+                          <?php endforeach; ?>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+                <?php endif; ?>
               <?php endforeach; ?>
             <?php else : ?>
               <?php
@@ -638,6 +679,22 @@
       renumberSrNo();
     });
   })();
+
+  // Toggle items sub-rows
+  document.addEventListener('click', function(e) {
+    var btn = e.target && e.target.closest && e.target.closest('.lr-toggle-items');
+    if (!btn) return;
+    var targetId = btn.getAttribute('data-target');
+    if (!targetId) return;
+    var subrow = document.getElementById(targetId);
+    if (!subrow) return;
+    var isVisible = subrow.style.display !== 'none';
+    subrow.style.display = isVisible ? 'none' : 'table-row';
+    var icon = btn.querySelector('i');
+    if (icon) {
+      icon.className = isVisible ? 'fa fa-list mr-1' : 'fa fa-chevron-up mr-1';
+    }
+  });
 </script>
 
 <!-- View Grades Modal -->
@@ -768,12 +825,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     subtitleEl.textContent = title + ' (' + year + ')';
 
+    var dialogEl = modalEl.querySelector('.modal-dialog');
+    if (dialogEl) {
+      dialogEl.classList.remove('modal-lg');
+    }
+
     spinnerEl.style.display = 'block';
     errorEl.style.display = 'none';
     contentEl.style.display = 'none';
     document.getElementById('lrModalContentFlat').style.display = 'none';
     document.getElementById('lrModalContentFlatRent').style.display = 'none';
     tbodyEl.innerHTML = '';
+    // Remove any previously appended items section
+    var prevItemsSection = document.getElementById('lrModalItemsSection');
+    if (prevItemsSection && prevItemsSection.parentNode) {
+      prevItemsSection.parentNode.removeChild(prevItemsSection);
+    }
 
     showModal();
 
@@ -787,24 +854,102 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.charge_type === 'rent') {
           document.getElementById('lrViewGradesModalLabel').textContent = 'Rent Details';
           var flatRentEl = document.getElementById('lrModalContentFlatRent');
-          var rentSabeel = (data.rent_sabeel !== null && data.rent_sabeel !== undefined) ? parseFloat(data.rent_sabeel) : 0;
-          var rentNonSabeel = (data.rent_non_sabeel !== null && data.rent_non_sabeel !== undefined) ? parseFloat(data.rent_non_sabeel) : 0;
-          var depositSabeel = (data.deposit_sabeel !== null && data.deposit_sabeel !== undefined) ? parseFloat(data.deposit_sabeel) : 0;
-          var depositNonSabeel = (data.deposit_non_sabeel !== null && data.deposit_non_sabeel !== undefined) ? parseFloat(data.deposit_non_sabeel) : 0;
+          
+          if (data.is_per_thaal === 1) {
+            if (dialogEl) {
+              dialogEl.classList.add('modal-lg');
+            }
+            var html = '<div class="px-4 pb-4">';
+            html += '<div class="text-uppercase text-secondary font-weight-bold mb-3 small" style="letter-spacing: 0.5px;">Thaal Ranges & Rates</div>';
+            html += '<div class="table-responsive">';
+            html += '<table class="table table-bordered table-sm text-center mb-0" style="font-size: 0.85rem;">';
+            html += '<thead class="bg-light"><tr>';
+            html += '<th>Thaal Range</th>';
+            html += '<th>Khar Rent</th>';
+            html += '<th>Khar Deposit</th>';
+            html += '<th>Non-Khar Rent</th>';
+            html += '<th>Non-Khar Deposit</th>';
+            html += '</tr></thead><tbody>';
+            
+            if (Array.isArray(data.thaal_ranges) && data.thaal_ranges.length > 0) {
+              data.thaal_ranges.forEach(function(r) {
+                var rMin = parseInt(r.thaal_min, 10);
+                var rMax = parseInt(r.thaal_max, 10);
+                var rRentS = parseFloat(r.rent_sabeel || 0);
+                var rDepS = parseFloat(r.deposit_sabeel || 0);
+                var rRentNS = parseFloat(r.rent_non_sabeel || 0);
+                var rDepNS = parseFloat(r.deposit_non_sabeel || 0);
+                
+                html += '<tr>';
+                html += '<td><strong>' + rMin + ' to ' + rMax + '</strong></td>';
+                html += '<td>₹' + rRentS.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>';
+                html += '<td>₹' + rDepS.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>';
+                html += '<td>₹' + rRentNS.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>';
+                html += '<td>₹' + rDepNS.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>';
+                html += '</tr>';
+              });
+            } else {
+              html += '<tr><td colspan="5" class="text-muted">No ranges configured.</td></tr>';
+            }
+            
+            html += '</tbody></table></div></div>';
+            flatRentEl.innerHTML = html;
+          } else {
+            if (dialogEl) {
+              dialogEl.classList.remove('modal-lg');
+            }
+            var rentSabeel = (data.rent_sabeel !== null && data.rent_sabeel !== undefined) ? parseFloat(data.rent_sabeel) : 0;
+            var rentNonSabeel = (data.rent_non_sabeel !== null && data.rent_non_sabeel !== undefined) ? parseFloat(data.rent_non_sabeel) : 0;
+            var depositSabeel = (data.deposit_sabeel !== null && data.deposit_sabeel !== undefined) ? parseFloat(data.deposit_sabeel) : 0;
+            var depositNonSabeel = (data.deposit_non_sabeel !== null && data.deposit_non_sabeel !== undefined) ? parseFloat(data.deposit_non_sabeel) : 0;
 
-          var html = '<div class="row text-center mb-3">' +
-                       '<div class="col-6 border-right">' +
-                         '<div class="text-primary font-weight-bold mb-2" style="font-size: 1.1rem;">Khar Sabeel Holders</div>' +
-                         '<div class="mb-1"><span class="text-muted small">Rent:</span> <span class="font-weight-bold text-dark">₹' + rentSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
-                         '<div><span class="text-muted small">Deposit:</span> <span class="font-weight-bold text-dark">₹' + depositSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
-                       '</div>' +
-                       '<div class="col-6">' +
-                         '<div class="text-secondary font-weight-bold mb-2" style="font-size: 1.1rem;">Non Khar Sabeel Holders</div>' +
-                         '<div class="mb-1"><span class="text-muted small">Rent:</span> <span class="font-weight-bold text-dark">₹' + rentNonSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
-                         '<div><span class="text-muted small">Deposit:</span> <span class="font-weight-bold text-dark">₹' + depositNonSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
-                       '</div>' +
-                     '</div>';
-          flatRentEl.innerHTML = html;
+            var html = '<div class="row text-center mb-3">' +
+                         '<div class="col-6 border-right">' +
+                           '<div class="text-primary font-weight-bold mb-2" style="font-size: 1.1rem;">Khar Sabeel Holders</div>' +
+                           '<div class="mb-1"><span class="text-muted small">Rent:</span> <span class="font-weight-bold text-dark">₹' + rentSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
+                           '<div><span class="text-muted small">Deposit:</span> <span class="font-weight-bold text-dark">₹' + depositSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
+                         '</div>' +
+                         '<div class="col-6">' +
+                           '<div class="text-secondary font-weight-bold mb-2" style="font-size: 1.1rem;">Non Khar Sabeel Holders</div>' +
+                           '<div class="mb-1"><span class="text-muted small">Rent:</span> <span class="font-weight-bold text-dark">₹' + rentNonSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
+                           '<div><span class="text-muted small">Deposit:</span> <span class="font-weight-bold text-dark">₹' + depositNonSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
+                         '</div>' +
+                       '</div>';
+            flatRentEl.innerHTML = html;
+          }
+
+          // --- Render Items table (always for rent type) ---
+          if (Array.isArray(data.items) && data.items.length > 0) {
+            if (dialogEl) dialogEl.classList.add('modal-lg');
+            var itemsHtml = '<div class="px-4 pb-4">';
+            itemsHtml += '<div class="text-uppercase text-secondary font-weight-bold mb-3 small" style="letter-spacing: 0.5px;">Rent Items</div>';
+            itemsHtml += '<div class="table-responsive">';
+            itemsHtml += '<table class="table table-bordered table-sm mb-0" style="font-size: 0.85rem;">';
+            itemsHtml += '<thead class="bg-light"><tr>';
+            itemsHtml += '<th class="py-2 pl-3">#</th>';
+            itemsHtml += '<th class="py-2">Item Name</th>';
+            itemsHtml += '<th class="py-2 text-right pr-3">Cost / Piece</th>';
+            itemsHtml += '</tr></thead><tbody>';
+            data.items.forEach(function(item, idx) {
+              var costPerPiece = parseFloat(item.rent_sabeel || 0);
+              itemsHtml += '<tr>';
+              itemsHtml += '<td class="pl-3 text-muted align-middle">' + (idx + 1) + '</td>';
+              itemsHtml += '<td class="font-weight-bold align-middle">' + (item.item_name || '') + '</td>';
+              itemsHtml += '<td class="text-right pr-3 font-weight-bold text-success align-middle">₹' + costPerPiece.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>';
+              itemsHtml += '</tr>';
+            });
+            itemsHtml += '</tbody></table></div></div>';
+
+            // Append items table below existing flatRentEl content
+            var itemsSection = document.createElement('div');
+            itemsSection.id = 'lrModalItemsSection';
+            itemsSection.innerHTML = itemsHtml;
+            var flatRentParent = flatRentEl.parentNode;
+            if (flatRentParent) {
+              flatRentParent.appendChild(itemsSection);
+            }
+          }
+
           flatRentEl.style.display = 'block';
         } else {
           document.getElementById('lrViewGradesModalLabel').textContent = 'Grade Amounts';

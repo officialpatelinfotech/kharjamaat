@@ -217,8 +217,8 @@
 
 <div class="container margintopcontainer pt-5">
   <div class="mb-4">
-    <a href="<?php echo base_url('admin/managefmbsettings'); ?>" class="btn-back">
-      <i class="fa-solid fa-arrow-left"></i> Back to FMB Settings
+    <a href="<?php echo base_url('admin'); ?>" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i> Back
     </a>
   </div>
 
@@ -226,7 +226,7 @@
     <div class="anj-header-inner">
       <div class="anj-title-group">
         <p class="anj-eyebrow">Settings</p>
-        <h1 class="anj-title">Manage Niyaz Invoice Amounts</h1>
+        <h1 class="anj-title">Miqaat Niyaz Takhmeen</h1>
       </div>
       <div class="anj-year-selector">
         <label for="hijri-year-select" class="anj-year-label">Hijri Year</label>
@@ -264,7 +264,7 @@
           <tr>
             <th>Miqaat Type</th>
             <th>Individual Niyaz Amount (₹)</th>
-            <th>Fala ni Niyaz Amount (₹)</th>
+            <th>Hoob Amount (₹)</th>
           </tr>
         </thead>
         <tbody>
