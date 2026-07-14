@@ -1412,7 +1412,7 @@ class Amilsaheb extends CI_Controller
           'greeting' => 'Baad Afzalus Salaam,',
           'cardTitle' => '',
           'details' => $rsvpDetails,
-          'body' => 'A Miqaat has been approved and is now open for RSVP. Please submit your RSVP using the button below.<br/><br/>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar',
+          'body' => 'A Miqaat has been approved and is now open for RSVP. Please submit your RSVP using the button below.<br/><br/>Regards,<br/>' . app_setting('managed_by', 'Anjuman-e-Saifee') . ' Dawoodi Bohra Jamaat ' . jamaat_place(),
           'ctaUrl' => $rsvpLink,
           'ctaText' => 'Submit RSVP',
         ]);
@@ -2315,8 +2315,8 @@ class Amilsaheb extends CI_Controller
       'days' => range(2, 9),
       'status_options' => [
         'Attended with Maula',
-        'Attended in Khar on Time',
-        'Attended in Khar Late',
+        'Attended in ' . jamaat_place() . ' on Time',
+        'Attended in ' . jamaat_place() . ' Late',
         'Attended in Other Jamaat',
         'Not attended anywhere'
       ],
@@ -2389,8 +2389,8 @@ class Amilsaheb extends CI_Controller
       'days' => range(2, 9),
       'status_options' => [
         'Attended with Maula',
-        'Attended in Khar on Time',
-        'Attended in Khar Late',
+        'Attended in ' . jamaat_place() . ' on Time',
+        'Attended in ' . jamaat_place() . ' Late',
         'Attended in Other Jamaat',
         'Not attended anywhere'
       ],

@@ -812,8 +812,8 @@ class Umoor extends CI_Controller
       'days' => range(2, 9),
       'status_options' => [
         'Attended with Maula',
-        'Attended in Khar on Time',
-        'Attended in Khar Late',
+        'Attended in ' . jamaat_place() . ' on Time',
+        'Attended in ' . jamaat_place() . ' Late',
         'Attended in Other Jamaat',
         'Not attended anywhere'
       ],
@@ -886,8 +886,8 @@ class Umoor extends CI_Controller
       'days' => range(2, 9),
       'status_options' => [
         'Attended with Maula',
-        'Attended in Khar on Time',
-        'Attended in Khar Late',
+        'Attended in ' . jamaat_place() . ' on Time',
+        'Attended in ' . jamaat_place() . ' Late',
         'Attended in Other Jamaat',
         'Not attended anywhere'
       ],

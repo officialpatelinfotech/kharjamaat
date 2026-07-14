@@ -3451,8 +3451,8 @@ class Anjuman extends CI_Controller
       'days' => range(2, 9),
       'status_options' => [
         'Attended with Maula',
-        'Attended in Khar on Time',
-        'Attended in Khar Late',
+        'Attended in ' . jamaat_place() . ' on Time',
+        'Attended in ' . jamaat_place() . ' Late',
         'Attended in Other Jamaat',
         'Not attended anywhere'
       ],
@@ -3530,8 +3530,8 @@ class Anjuman extends CI_Controller
       'days' => range(2, 9),
       'status_options' => [
         'Attended with Maula',
-        'Attended in Khar on Time',
-        'Attended in Khar Late',
+        'Attended in ' . jamaat_place() . ' on Time',
+        'Attended in ' . jamaat_place() . ' Late',
         'Attended in Other Jamaat',
         'Not attended anywhere'
       ],
@@ -5548,7 +5548,7 @@ class Anjuman extends CI_Controller
     }
 
     $data = [
-      'org_title' => 'Anjuman e Saifee Khar',
+      'org_title' => app_setting('managed_by', 'Anjuman-e-Saifee') . ' ' . jamaat_place(),
       'fund_title' => $title,
       'receipts' => $hofs,
       'generated_on' => date('Y-m-d'),

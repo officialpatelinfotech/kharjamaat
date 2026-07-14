@@ -944,7 +944,7 @@ class Notifications extends CI_Controller
       $recipients = $this->config->item('amilsaheb_appointments_digest_recipients', 'notifications');
     }
     if (empty($recipients) || !is_array($recipients)) {
-      $recipients = ['kharamilsaheb@gmail.com'];
+      $recipients = admin_email_recipients();
     }
 
     // Test/ops overrides
@@ -1750,7 +1750,7 @@ class Notifications extends CI_Controller
 
     $recipients = $this->config->item('amilsaheb_appointments_digest_recipients', 'notifications');
     if (empty($recipients) || !is_array($recipients)) {
-      $recipients = ['kharamilsaheb@gmail.com'];
+      $recipients = admin_email_recipients();
     }
     $subject = (string)$this->config->item('tpl_appointments_digest_subject', 'notifications');
     if ($subject === '') $subject = 'Scheduled Appointments Summary';
