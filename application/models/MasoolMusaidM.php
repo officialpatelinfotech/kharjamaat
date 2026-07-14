@@ -339,12 +339,13 @@ class MasoolMusaidM extends CI_Model
   {
     $days = ['Day2', 'Day3', 'Day4', 'Day5', 'Day6', 'Day7', 'Day8', 'Day9', 'Ashura'];
     $stats = [];
+    $jp = $this->db->escape_str(jamaat_place());
 
     foreach ($days as $day) {
       $this->db->select("
             COUNT(CASE WHEN a.$day = 'Attended with Maula' THEN 1 END) as with_maula,
-            COUNT(CASE WHEN a.$day = 'Attended in Khar on Time' THEN 1 END) as khar_on_time,
-            COUNT(CASE WHEN a.$day = 'Attended in Khar Late' THEN 1 END) as khar_late,
+            COUNT(CASE WHEN a.$day = 'Attended in $jp on Time' THEN 1 END) as khar_on_time,
+            COUNT(CASE WHEN a.$day = 'Attended in $jp Late' THEN 1 END) as khar_late,
             COUNT(CASE WHEN a.$day = 'Attended in Other Jamaat' THEN 1 END) as other_jamaat,
             COUNT(CASE WHEN a.$day = 'Not attended anywhere' THEN 1 END) as not_attended,
             COUNT(CASE WHEN a.$day = 'Not in Town' THEN 1 END) as not_in_town,
@@ -416,12 +417,13 @@ class MasoolMusaidM extends CI_Model
   {
     $days = ['Day2', 'Day3', 'Day4', 'Day5', 'Day6', 'Day7', 'Day8', 'Day9', 'Ashura'];
     $stats = [];
+    $jp = $this->db->escape_str(jamaat_place());
 
     foreach ($days as $day) {
       $this->db->select("
             COUNT(CASE WHEN a.$day = 'Attended with Maula' THEN 1 END) as with_maula,
-            COUNT(CASE WHEN a.$day = 'Attended in Khar on Time' THEN 1 END) as khar_on_time,
-            COUNT(CASE WHEN a.$day = 'Attended in Khar Late' THEN 1 END) as khar_late,
+            COUNT(CASE WHEN a.$day = 'Attended in $jp on Time' THEN 1 END) as khar_on_time,
+            COUNT(CASE WHEN a.$day = 'Attended in $jp Late' THEN 1 END) as khar_late,
             COUNT(CASE WHEN a.$day = 'Attended in Other Jamaat' THEN 1 END) as other_jamaat,
             COUNT(CASE WHEN a.$day = 'Not attended anywhere' THEN 1 END) as not_attended,
             COUNT(CASE WHEN a.$day = 'Not in Town' THEN 1 END) as not_in_town,

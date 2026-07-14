@@ -9,11 +9,11 @@ class Legal extends CI_Controller {
   private function baseData() {
     $data = [];
     $data['last_updated'] = date('d M Y');
-    $data['org_name'] = 'Anjuman-e-Saifee Khar';
-    $data['address_line'] = '3RFP+FV4, SV Rd, Khar';
-    $data['city_state'] = 'Khar West, Mumbai, Maharashtra';
-    $data['pincode'] = '400052';
-    $data['support_email'] = 'anjuman@kharjamaat.in';
+    $data['org_name'] = app_setting('managed_by', 'Anjuman-e-Saifee') . ' ' . jamaat_place();
+    $data['address_line'] = app_setting('address_line', '');
+    $data['city_state'] = app_setting('city_state', '');
+    $data['pincode'] = app_setting('pincode', '');
+    $data['support_email'] = app_setting('support_email', 'anjuman@' . ($_SERVER['HTTP_HOST'] ?? 'kharjamaat.in'));
     return $data;
   }
 
