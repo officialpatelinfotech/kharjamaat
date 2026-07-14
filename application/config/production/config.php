@@ -24,7 +24,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
 |
 */
 $currentHost = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
-if (strpos($currentHost, 'tanzeem.in') !== false) {
+if (strpos($currentHost, 'alezz.tanzeem.in') !== false) {
+    // NOTE: must come before the generic 'tanzeem.in' check below, since
+    // 'alezz.tanzeem.in' contains 'tanzeem.in' as a substring.
+    $config['base_url'] = 'https://alezz.tanzeem.in/';
+} elseif (strpos($currentHost, 'tanzeem.in') !== false) {
     $config['base_url'] = 'https://tanzeem.in/';
 } elseif (strpos($currentHost, 'jamalipoona.in') !== false) {
     $config['base_url'] = 'https://jamalipoona.in/';

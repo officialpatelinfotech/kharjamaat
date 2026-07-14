@@ -88,7 +88,13 @@ $defaultDbUser = 'kharjam1_kharjamaat';
 $defaultDbPass = 'khar@2024';
 $defaultDbName = 'kharjam1_kharjamaat';
 
-if (strpos($currentHost, 'tanzeem.in') !== false) {
+if (strpos($currentHost, 'alezz.tanzeem.in') !== false) {
+	// NOTE: must come before the generic 'tanzeem.in' check below, since
+	// 'alezz.tanzeem.in' contains 'tanzeem.in' as a substring.
+	$defaultDbUser = 'kharjam1_alezz';
+	$defaultDbPass = 'kharjam1_alezz'; // TODO: set the real DB password before deploying
+	$defaultDbName = 'kharjam1_alezz';
+} elseif (strpos($currentHost, 'tanzeem.in') !== false) {
 	$defaultDbUser = 'kharjam1_tanzeem';
 	$defaultDbPass = 'kharjam1_tanzeem';
 	$defaultDbName = 'kharjam1_tanzeem';
