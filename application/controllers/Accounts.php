@@ -2117,6 +2117,7 @@ class Accounts extends CI_Controller
     $current_year_label = null;
     $current_hijri_year = null;
     $all_takhmeen_by_year = [];
+    $all_takhmeen_paid_by_year = [];
     $all_payments = [];
     $general_contributions = [];
 
@@ -2157,6 +2158,11 @@ class Accounts extends CI_Controller
             $all_takhmeen_by_year[$y] = 0.0;
           }
           $all_takhmeen_by_year[$y] += (float)($tr['total_amount'] ?? 0);
+
+          if (!isset($all_takhmeen_paid_by_year[$y])) {
+            $all_takhmeen_paid_by_year[$y] = 0.0;
+          }
+          $all_takhmeen_paid_by_year[$y] += (float)($tr['total_paid'] ?? 0);
         }
       }
 
@@ -2239,7 +2245,14 @@ class Accounts extends CI_Controller
           $thaaliDays = (int)floor(((float)$amt) / $perDay);
         }
         $assignedDays = isset($assignedDaysMap[(string)$y]) ? (int)$assignedDaysMap[(string)$y] : 0;
-        $all_takhmeen[] = ['year' => $y, 'total_amount' => $amt, 'thaali_days' => $thaaliDays, 'assigned_thaali_days' => $assignedDays];
+        $paidAmt = isset($all_takhmeen_paid_by_year[$y]) ? (float)$all_takhmeen_paid_by_year[$y] : 0.0;
+        $all_takhmeen[] = [
+          'year' => $y,
+          'total_amount' => $amt,
+          'total_paid' => $paidAmt,
+          'thaali_days' => $thaaliDays,
+          'assigned_thaali_days' => $assignedDays
+        ];
       }
     }
     $latest = !empty($all_takhmeen) ? $all_takhmeen[0] : null;
