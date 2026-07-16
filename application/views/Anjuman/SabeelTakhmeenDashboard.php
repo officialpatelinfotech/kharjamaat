@@ -17,14 +17,178 @@ if (!function_exists('inr_digits')) {
   }
 }
 ?>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,6..72,400;0,6..72,600&display=swap" rel="stylesheet">
+
 <style>
+  :root {
+    --gold:        #b8860b;
+    --gold-light:  #e6c84a;
+    --gold-muted:  #f5e9c0;
+    --gold-deep:   #8a6408;
+    --bg:          #faf7f0;
+    --surface:     #ffffff;
+    --surface-2:   #f7f4ec;
+    --border:      #e8e0cc;
+    --text-1:      #1a1610;
+    --text-2:      #5a5244;
+    --text-3:      #9c8f7a;
+    --red:         #ef4444;
+    --radius-sm:   8px;
+    --radius:      12px;
+    --radius-lg:   16px;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.05);
+    --shadow:      0 4px 16px rgba(184,134,11,0.06);
+    --shadow-lg:   0 10px 30px rgba(184,134,11,0.12);
+  }
+
+  .page-wrap {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--text-1);
+  }
+
+  /* Page Header and Back button */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .btn-back-nav {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    box-shadow: var(--shadow-sm);
+    transition: all .2s;
+    text-decoration: none !important;
+  }
+  .btn-back-nav:hover {
+    background: var(--gold-muted);
+    border-color: var(--gold);
+    color: var(--gold-deep);
+    transform: translateX(-3px);
+  }
+  .page-title {
+    font-family: 'Literata', Georgia, serif;
+    color: var(--gold-deep);
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -.5px;
+  }
+
+  /* Filters Card */
+  .filter-card {
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  .filter-card .card-body {
+    padding: 24px;
+  }
+  .filter-card .form-label {
+    font-weight: 700;
+    color: var(--text-2);
+    font-size: 0.72rem;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .filter-card .form-control {
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    font-size: 0.88rem;
+    height: 42px;
+    transition: all 0.2s;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .filter-card .form-control:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(184,134,11,0.12);
+    outline: none;
+  }
+  .filter-card select.form-control {
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23b8860b' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .btn-filter {
+    background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    transition: all .2s;
+  }
+  .btn-filter:hover {
+    background: linear-gradient(135deg, var(--gold-deep), #6b4d06);
+    color: #fff;
+  }
+  .btn-clear {
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    font-weight: 700;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    transition: all .2s;
+  }
+  .btn-clear:hover {
+    background: var(--surface-2);
+    color: var(--text-1);
+  }
+
+  /* Table Card */
+  .table-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .premium-table {
+    margin-bottom: 0;
+  }
+  .premium-table thead th {
+    background: var(--surface-2);
+    border-bottom: 1.5px solid var(--border) !important;
+    color: var(--text-2);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 14px 18px;
+    vertical-align: middle;
+  }
+  .premium-table tbody td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-2);
+    font-size: 0.85rem;
+    vertical-align: middle;
+  }
+
   .hidden {
     display: none;
   }
 
   .all-years-badge {
     display: inline-block;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     padding: 4px 8px;
     border-radius: 14px;
@@ -107,22 +271,22 @@ if (!function_exists('inr_digits')) {
 
   th.km-sortable[data-sort-dir="asc"] .sort-indicator,
   th.km-sortable[data-sort-dir="desc"] .sort-indicator {
-    color: #007bff;
+    color: var(--gold);
   }
 
   /* Distinct colors for current-year dues */
   .est-due {
-    color: #dc3545;
+    color: var(--red);
     font-weight: 600;
   }
 
   .res-due {
-    color: #dc3545;
+    color: var(--red);
     font-weight: 600;
   }
 
   .mut-due {
-    color: #dc3545;
+    color: var(--red);
     font-weight: 600;
   }
 
@@ -134,9 +298,14 @@ if (!function_exists('inr_digits')) {
 
   /* Scrollable table with sticky header (Sabeel dashboard) */
   .table-scroll-fixed {
-    max-height: calc(100vh - 320px);
+    max-height: calc(100vh - 180px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    background: var(--surface);
+    margin-bottom: 30px;
   }
 
   .table-scroll-fixed table {
@@ -148,7 +317,13 @@ if (!function_exists('inr_digits')) {
     position: sticky;
     top: 0;
     z-index: 4;
-    background: #f8fafc;
+    background: var(--surface-2) !important;
+    border-bottom: 1.5px solid var(--border) !important;
+    color: var(--text-2);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   /* Prevent small year text from wrapping onto two lines */
@@ -161,7 +336,13 @@ if (!function_exists('inr_digits')) {
     top: 38px;
     /* offset to sit below the first header row */
     z-index: 3;
-    background: #f8fafc;
+    background: var(--surface-2) !important;
+    border-bottom: 1.5px solid var(--border) !important;
+    color: var(--text-2);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   /* Center Grade columns (Establishment and Residential) */
@@ -183,68 +364,70 @@ if (!function_exists('inr_digits')) {
   /* Thick vertical separators around column groups */
   .table-scroll-fixed table th,
   .table-scroll-fixed table td {
-    border-color: #dee2e6;
+    border-color: var(--border);
   }
 
   /* Member Info group: cols 1-4 */
   .table-scroll-fixed table th:first-child,
   .table-scroll-fixed table td:first-child {
-    border-left: 2px solid #343a40;
+    border-left: 2px solid var(--text-2);
   }
 
   .table-scroll-fixed table th:nth-child(4),
   .table-scroll-fixed table td:nth-child(4) {
-    border-right: 2px solid #343a40;
+    border-right: 2px solid var(--text-2);
   }
 
   /* Establishment group: cols 5-8 */
   .table-scroll-fixed table th:nth-child(5),
   .table-scroll-fixed table td:nth-child(5) {
-    border-left: 2px solid #343a40;
+    border-left: 2px solid var(--text-2);
   }
 
   .table-scroll-fixed table th:nth-child(8),
   .table-scroll-fixed table td:nth-child(8) {
-    border-right: 2px solid #343a40;
+    border-right: 2px solid var(--text-2);
   }
 
   /* Residential group: cols 9-12 */
   .table-scroll-fixed table th:nth-child(9),
   .table-scroll-fixed table td:nth-child(9) {
-    border-left: 2px solid #343a40;
+    border-left: 2px solid var(--text-2);
   }
 
   .table-scroll-fixed table th:nth-child(12),
   .table-scroll-fixed table td:nth-child(12) {
-    border-right: 2px solid #343a40;
+    border-right: 2px solid var(--text-2);
   }
   
   tr.clickable-row {
     cursor: pointer;
   }
   tr.clickable-row:hover td {
-    background-color: #f1f5f9 !important;
+    background-color: #fdfbf5 !important;
   }
 </style>
-<div class="margintopcontainer mx-2 mx-md-5 pt-5">
-  <div class="p-0">
-    <a href="<?php echo base_url("anjuman"); ?>" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i></a>
+
+<div class="page-wrap container-fluid px-md-5 margintopcontainer pt-5 pb-5">
+  
+  <!-- Header -->
+  <div class="page-header">
+    <a href="<?php echo base_url("anjuman"); ?>" class="btn-back-nav" title="Back"><i class="fa-solid fa-arrow-left"></i></a>
+    <h1 class="page-title">Receive Sabeel Payments</h1>
+    <div style="width: 42px;"></div>
   </div>
-  <h4 class="heading text-center my-4">Receive Sabeel Payments</h4>
-  <div class="row mb-4">
-    <div class="col-12 col-md-8">
-      <form method="POST" action="<?php echo base_url("anjuman/filteruserinsabeeltakhmeen"); ?>" class="d-flex flex-wrap m-0 align-items-end">
-        <div class="col-12 col-md-3 mb-2">
-          <label class="small text-muted m-0">Name or ITS</label>
-          <input type="text" name="member_name" id="member-name" class="form-control form-control-sm" placeholder="Name or ITS" value="<?php echo isset($member_name) ? htmlspecialchars($member_name) : ''; ?>">
+
+  <!-- Filters Card -->
+  <div class="filter-card">
+    <div class="card-body">
+      <form method="POST" action="<?php echo base_url("anjuman/filteruserinsabeeltakhmeen"); ?>" class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label">Name or ITS</label>
+          <input type="text" name="member_name" id="member-name" class="form-control" placeholder="Name or ITS" value="<?php echo isset($member_name) ? htmlspecialchars($member_name) : ''; ?>">
         </div>
-        <div class="col-12 col-md-3 mb-2">
-          <label class="small text-muted m-0">ITS ID</label>
-          <input type="text" name="its_id" id="filter-its" class="form-control form-control-sm" placeholder="ITS ID" value="<?php echo isset($its_id) ? htmlspecialchars($its_id) : ''; ?>">
-        </div>
-        <div class="col-12 col-md-3 mb-2">
-          <label class="small text-muted m-0">Hijri Financial Year</label>
-          <select name="sabeel_year" id="sabeel-year" class="form-control form-control-sm" onchange="this.form.submit()">
+        <div class="col-md-4">
+          <label class="form-label">Hijri Financial Year</label>
+          <select name="sabeel_year" id="sabeel-year" class="form-control">
             <?php
             $years = isset($hijri_years) && is_array($hijri_years) ? $hijri_years : [];
             $sel = isset($selected_year) ? $selected_year : (isset($current_year) ? $current_year : '');
@@ -259,9 +442,9 @@ if (!function_exists('inr_digits')) {
             ?>
           </select>
         </div>
-        <div class="col-12 col-md-3 mb-2">
-          <button type="submit" class="btn btn-sm btn-primary mr-2">Submit</button>
-          <a href="<?php echo base_url("anjuman/sabeeltakhmeendashboard"); ?>" class="btn btn-sm btn-outline-secondary mt-2 mt-md-0"><i class="fa-solid fa-times"></i></a>
+        <div class="col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-filter flex-fill mr-2"><i class="fa-solid fa-magnifying-glass me-1"></i> Submit</button>
+          <a href="<?php echo base_url("anjuman/sabeeltakhmeendashboard"); ?>" class="btn btn-clear flex-fill d-inline-flex align-items-center justify-content-center">Clear</a>
         </div>
       </form>
     </div>
@@ -348,14 +531,14 @@ if (!function_exists('inr_digits')) {
   ?>
   <div class="row mb-4">
     <div class="col-12">
-      <div class="card border-0 shadow-sm" style="border-radius: 12px; background: #fafafa; border: 1px solid #e0e0e0 !important;">
-        <div class="card-header bg-white border-0 pt-3 pb-0">
-          <h6 class="font-weight-bold m-0" style="color: #333; font-size: 15px;"><i class="fa-solid fa-chart-simple mr-2" style="color: #1a4a6b;"></i> Sabeel Grade Wise Summary (<?php echo htmlspecialchars($currentCompYear); ?>)</h6>
+      <div class="table-card">
+        <div class="p-3 bg-white border-bottom">
+          <h6 class="font-weight-bold m-0" style="color: var(--gold-deep); font-size: 15px;"><i class="fa-solid fa-chart-simple mr-2" style="color: var(--gold);"></i> Sabeel Grade Wise Summary (<?php echo htmlspecialchars($currentCompYear); ?>)</h6>
         </div>
         <div class="card-body p-3">
           <div class="table-responsive">
-            <table class="table table-sm table-hover table-bordered mb-0 text-center align-middle" style="font-size: 15px; border-radius: 8px; overflow: hidden;">
-              <thead style="background-color: #f1f3f5; color: #495057;">
+            <table class="table premium-table table-sm table-hover table-bordered mb-0 text-center align-middle" style="font-size: 15px; border-radius: 8px; overflow: hidden;">
+              <thead>
                 <tr>
                   <th class="text-left font-weight-bold align-middle" style="background-color: #f8f9fa;">Sabeel Type</th>
                   <?php foreach ($allUniqueGrades as $g): ?>
