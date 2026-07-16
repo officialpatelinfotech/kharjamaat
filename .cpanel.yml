@@ -3,3 +3,5 @@ deployment:
     - /bin/rsync -av --delete --exclude='.git' --exclude='.env' ./ /home3/kharjam1/public_html/
 
     - /bin/rsync -av --delete --exclude='.git' --exclude='.env' ./ /home3/kharjam1/tanzeem.in/
+
+    - /bin/rsync -av --delete --exclude='.git' --exclude='.env' ./ /home3/kharjam1/alezz.tanzeem.in/

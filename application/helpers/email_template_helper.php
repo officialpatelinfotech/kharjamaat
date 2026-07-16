@@ -110,7 +110,7 @@ if (!function_exists('render_generic_email_html')) {
     $tpl = @file_get_contents($templatePath);
     if ($tpl === false || $tpl === '') {
       // Fallback: simple HTML wrapper
-      $out = $introHtml . '<br /><br />' . $cardTitleHtml . $cardBodyHtml . '<br /><br />Regards,<br />Kharjamaat Administration';
+      $out = $introHtml . '<br /><br />' . $cardTitleHtml . $cardBodyHtml . '<br /><br />Regards,<br />' . jamaat_name() . ' Administration';
       return $out;
     }
 

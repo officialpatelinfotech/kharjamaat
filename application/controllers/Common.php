@@ -2287,7 +2287,7 @@ class Common extends CI_Controller
               . '<tr><td><strong>Assignment</strong></td><td>Individual</td></tr>'
               . '</table>';
             $body .= '<p>Please login to your account for next steps.</p>';
-            $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+            $body .= '<p>Regards,<br/>' . app_setting('managed_by', 'Anjuman-e-Saifee') . ' Dawoodi Bohra Jamaat ' . jamaat_place() . '</p>';
             $this->EmailQueueM->enqueue($member['Email'], $subject, $body, null, 'html');
           }
 
@@ -2437,7 +2437,7 @@ class Common extends CI_Controller
             . '</table>';
           $body .= $membersHtml;
           $body .= '<p>Please login to your account for next steps.</p>';
-          $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+          $body .= '<p>Regards,<br/>' . app_setting('managed_by', 'Anjuman-e-Saifee') . ' Dawoodi Bohra Jamaat ' . jamaat_place() . '</p>';
           $this->EmailQueueM->enqueue($leader['Email'], $subject, $body, null, 'html');
         }
 
@@ -2685,7 +2685,7 @@ class Common extends CI_Controller
               $subject = 'Miqaat Assignment: ' . $miqaatName;
               $body = '<p>Baad Afzalus Salaam,</p>';
               $body .= '<p>You have been assigned to the miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on <strong>' . htmlspecialchars($miqaatDate) . '</strong>.</p>';
-              $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+              $body .= '<p>Regards,<br/>' . app_setting('managed_by', 'Anjuman-e-Saifee') . ' Dawoodi Bohra Jamaat ' . jamaat_place() . '</p>';
               $this->EmailQueueM->enqueue($member['Email'], $subject, $body, null, 'html');
             }
 
@@ -2820,7 +2820,7 @@ class Common extends CI_Controller
             $body = '<p>Baad Afzalus Salaam,</p>';
             $body .= '<p>You have been appointed as the group leader (<strong>' . htmlspecialchars($group_name) . '</strong>) for the miqaat <strong>' . htmlspecialchars($miqaatName) . '</strong> on <strong>' . htmlspecialchars($miqaatDate) . '</strong>.</p>';
             $body .= $membersHtml;
-            $body .= '<p>Regards,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+            $body .= '<p>Regards,<br/>' . app_setting('managed_by', 'Anjuman-e-Saifee') . ' Dawoodi Bohra Jamaat ' . jamaat_place() . '</p>';
             $this->EmailQueueM->enqueue($leader['Email'], $subject, $body, null, 'html');
           }
           $admins = admin_email_recipients();
@@ -3170,7 +3170,7 @@ class Common extends CI_Controller
                 . '</table>';
               $body .= '<p>You can now submit a Raza for this miqaat. To view your assigned miqaats and submit a Raza, please visit: <a href="' . $assigned_link . '">Assigned Miqaats</a>.</p>';
               $body .= '<p>Click the link above to go to your assigned miqaat and submit the Raza.</p>';
-              $body .= '<p>Wasalaam,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+              $body .= '<p>Wasalaam,<br/>' . app_setting('managed_by', 'Anjuman-e-Saifee') . ' Dawoodi Bohra Jamaat ' . jamaat_place() . '</p>';
               $this->EmailQueueM->enqueue($member['Email'], $sub, $body, null, 'html');
             }
 
@@ -3235,7 +3235,7 @@ class Common extends CI_Controller
                 . '</table>';
               $body .= '<p>To view your assigned miqaats and submit Raza, please visit: <a href="' . $assigned_link . '">Assigned Miqaats</a>.</p>';
               $body .= '<p>Click the link above to go to the assigned miqaat and submit the Raza.</p>';
-              $body .= '<p>Wasalaam,<br/>Anjuman E Saifee Dawoodi Bohra Jamaat Khar</p>';
+              $body .= '<p>Wasalaam,<br/>' . app_setting('managed_by', 'Anjuman-e-Saifee') . ' Dawoodi Bohra Jamaat ' . jamaat_place() . '</p>';
               $this->EmailQueueM->enqueue($leader['Email'], $sub, $body, null, 'html');
             }
 

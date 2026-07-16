@@ -48,3 +48,21 @@ jobs:
             **/node_modules/**
             .github/**
             README.md
+
+      # Deploy to alezz.tanzeem.in
+      - name: Deploy to alezz.tanzeem.in
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./
+          server-dir: /alezz.tanzeem.in/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            .github/**
+            README.md

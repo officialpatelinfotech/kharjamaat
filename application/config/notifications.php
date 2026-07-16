@@ -5,13 +5,34 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $config['amil_whatsapp'] = '+918452840052';
 $config['jamaat_whatsapp_group'] = null;
 
-// Admin WhatsApp recipients (digits or +91...); optional.
-// If empty, code may fallback to looking up admin mobiles by email.
-$config['admin_whatsapp_recipients'] = [
-	'+919372415351',
-	'+919820150617',
-	'+919820291857',
-];
+// This file is shared by every jamaat hosted on this codebase (hostname-keyed
+// DB/base_url selection happens in application/config/production/{database,config}.php).
+// The recipient lists below have no DB override, so branch per-tenant here.
+// NOTE: 'alezz.tanzeem.in' check must come before the generic 'tanzeem.in' one,
+// since 'alezz.tanzeem.in' contains 'tanzeem.in' as a substring.
+$currentHost = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+
+if (strpos($currentHost, 'alezz.tanzeem.in') !== false) {
+	// TODO: replace with alezz jamaat's actual admin/Amilsaheb WhatsApp numbers and email.
+	$config['admin_whatsapp_recipients'] = [];
+	$config['amilsaheb_appointments_digest_recipients'] = [];
+	$config['amilsaheb_event_reminder_recipients'] = [];
+} else {
+	// Admin WhatsApp recipients (digits or +91...); optional.
+	// If empty, code may fallback to looking up admin mobiles by email.
+	$config['admin_whatsapp_recipients'] = [
+		'+919372415351',
+		'+919820150617',
+		'+919820291857',
+	];
+
+	// Amil Saheb appointment digest
+	$config['amilsaheb_appointments_digest_recipients'] = ['kharamilsaheb@gmail.com'];
+
+	// Amil Saheb event reminders (Miqaat Public Event / Kaaraj Private Event)
+	// If empty, code falls back to `amilsaheb_appointments_digest_recipients`.
+	$config['amilsaheb_event_reminder_recipients'] = ['kharamilsaheb@gmail.com'];
+}
 
 // Scheduling defaults
 $config['thaali_signup_daily_time'] = '09:00';
@@ -19,11 +40,6 @@ $config['thaali_feedback_time'] = '22:00';
 
 // Amil Saheb appointment digest
 $config['amilsaheb_appointments_digest_time'] = '22:00';
-$config['amilsaheb_appointments_digest_recipients'] = ['kharamilsaheb@gmail.com'];
-
-// Amil Saheb event reminders (Miqaat Public Event / Kaaraj Private Event)
-// If empty, code falls back to `amilsaheb_appointments_digest_recipients`.
-$config['amilsaheb_event_reminder_recipients'] = ['kharamilsaheb@gmail.com'];
 
 // Event reminder schedule times (server local time)
 $config['event_reminder_time_d3'] = '13:00'; // 3 days before at 01:00 pm

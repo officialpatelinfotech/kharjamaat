@@ -5198,12 +5198,13 @@ HTML;
       redirect('/accounts');
     }
     $this->load->model('MemberStatusM');
+    $residingStatus = 'Residing in ' . jamaat_place();
     $this->db->update('user', [
       'deeni_status' => 'Normal',
       'health_status' => 'Healthy',
-      'residential_status' => 'Residing in Khar',
+      'residential_status' => $residingStatus,
     ]);
-    $this->session->set_flashdata('success', 'Successfully updated all members to Normal, Healthy, and Residing in Khar.');
+    $this->session->set_flashdata('success', 'Successfully updated all members to Normal, Healthy, and ' . $residingStatus . '.');
     redirect('admin/managemembers');
   }
 
