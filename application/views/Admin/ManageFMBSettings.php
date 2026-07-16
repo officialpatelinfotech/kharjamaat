@@ -191,16 +191,6 @@
       </a>
     </div>
 
-    <!-- 5. Miqaat Niyaz Contribution Master -->
-    <div class="col-12 col-sm-6 col-md-4 mb-4">
-      <a href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>" class="admin-card-link">
-        <div class="admin-card">
-          <div class="admin-card-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-          <h5 class="admin-card-title">Miqaat Niyaz Contribution Master</h5>
-          <p class="admin-card-desc">Manage custom categories for contributions.</p>
-        </div>
-      </a>
-    </div>
 
     <!-- 6. Miqaat Niyaz Takhmeen -->
     <div class="col-12 col-sm-6 col-md-4 mb-4">

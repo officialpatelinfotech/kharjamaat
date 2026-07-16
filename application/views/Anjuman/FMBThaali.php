@@ -204,7 +204,7 @@
     <!-- Main Grid -->
     <div class="row mt-4">
       <!-- Receive Thaali Takhmeen Payment -->
-      <div class="col-md-6 col-lg-3 mb-4">
+      <div class="col-md-6 col-lg-4 mb-4">
         <div class="module-card">
           <div class="text-center w-100 mb-3">
             <div class="icon-box">
@@ -220,7 +220,7 @@
       </div>
 
       <!-- FMB Thaali Delivery -->
-      <div class="col-md-6 col-lg-3 mb-4">
+      <div class="col-md-6 col-lg-4 mb-4">
         <div class="module-card">
           <div class="text-center w-100 mb-3">
             <div class="icon-box">
@@ -236,7 +236,7 @@
       </div>
 
       <!-- Manage FMB Menu -->
-      <div class="col-md-6 col-lg-3 mb-4">
+      <div class="col-md-6 col-lg-4 mb-4">
         <div class="module-card">
           <div class="text-center w-100 mb-3">
             <div class="icon-box">
@@ -252,7 +252,7 @@
       </div>
 
       <!-- FMB Extra Thaali Contribution -->
-      <div class="col-md-6 col-lg-3 mb-4">
+      <div class="col-md-6 col-lg-4 mb-4">
         <div class="module-card">
           <div class="text-center w-100 mb-3">
             <div class="icon-box">
@@ -263,6 +263,22 @@
           </div>
           <a href="<?php echo base_url("anjuman/fmbgeneralcontribution/1"); ?>" class="btn-custom">
             <i class="fa-solid fa-file-invoice-dollar"></i> Extra Payments
+          </a>
+        </div>
+      </div>
+
+      <!-- Bulk Thaali signups -->
+      <div class="col-md-6 col-lg-4 mb-4">
+        <div class="module-card">
+          <div class="text-center w-100 mb-3">
+            <div class="icon-box">
+              <i class="fa-solid fa-list-check fa-2x"></i>
+            </div>
+            <h5 class="card-title">Bulk Thaali Signups</h5>
+            <p class="card-text">Bulk sign up or cancel members for FMB Thaali</p>
+          </div>
+          <a href="<?php echo base_url('common/thaali_signup_dashboard?from=anjuman/fmbthaali'); ?>" class="btn-custom">
+            <i class="fa-solid fa-bolt"></i> Bulk Signups
           </a>
         </div>
       </div>

@@ -331,6 +331,11 @@
 
           <p class="text-muted" style="font-size:0.8rem; margin-bottom:12px;">Select the dates in the chosen Hijri month for which you want to perform the bulk action.</p>
           
+          <div class="d-flex justify-content-between mb-2" style="font-size:0.75rem; font-weight:bold; width:100%;">
+            <button type="button" class="btn btn-sm btn-link p-0 text-primary" id="select-all-dates" style="text-decoration:none; font-weight:700;"><i class="fa-solid fa-check-double"></i> Select All</button>
+            <button type="button" class="btn btn-sm btn-link p-0 text-danger" id="deselect-all-dates" style="text-decoration:none; font-weight:700;"><i class="fa-solid fa-times-circle"></i> Deselect All</button>
+          </div>
+
           <div class="date-grid">
             <?php if (!empty($menus)): ?>
               <?php foreach ($menus as $m): ?>
@@ -473,6 +478,17 @@
     jQuery('#deselect-all-hofs').on('click', function(e) {
       e.preventDefault();
       jQuery('#hof-list .hof-item:visible input[type="checkbox"]').prop('checked', false);
+    });
+
+    // Select/Deselect dates
+    jQuery('#select-all-dates').on('click', function(e) {
+      e.preventDefault();
+      jQuery('.date-grid input[type="checkbox"]').prop('checked', true);
+    });
+
+    jQuery('#deselect-all-dates').on('click', function(e) {
+      e.preventDefault();
+      jQuery('.date-grid input[type="checkbox"]').prop('checked', false);
     });
   });
 </script>

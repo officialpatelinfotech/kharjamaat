@@ -3765,17 +3765,29 @@ class Anjuman extends CI_Controller
       return;
     }
 
-    $data = [
-      'contri_year' => $contri_year,
-      'user_id'     => $user_id,
-      'fmb_type'    => $fmb_type,
-      'contri_type' => $contri_type,
-      'miqaat_type' => $miqaat_type,
-      'amount'      => $amount,
-      'description' => $description,
-    ];
+    if ($contri_type === 'Individual Niyaz') {
+      $data = [
+        'date'          => date('Y-m-d'),
+        'year'          => $contri_year,
+        'miqaat_type'   => $miqaat_type,
+        'user_id'       => $user_id,
+        'amount'        => $amount,
+        'description'   => $description ?: 'Individual Niyaz'
+      ];
+      $result = $this->AnjumanM->create_miqaat_invoice($data);
+    } else {
+      $data = [
+        'contri_year' => $contri_year,
+        'user_id'     => $user_id,
+        'fmb_type'    => $fmb_type,
+        'contri_type' => $contri_type,
+        'miqaat_type' => $miqaat_type,
+        'amount'      => $amount,
+        'description' => $description,
+      ];
+      $result = $this->AnjumanM->addfmbgc($data);
+    }
 
-    $result = $this->AnjumanM->addfmbgc($data);
     if ($result) {
       echo json_encode(['success' => true, 'message' => 'Invoice created successfully.']);
     } else {
@@ -4031,6 +4043,17 @@ class Anjuman extends CI_Controller
     $username = $_SESSION['user']['username'];
 
     $data["contri_type_gc"] = $this->AnjumanM->get_fmbgc_by_type($type);
+
+    // For Thaali (type=1), also inject active custom Thaali Types into the contribution type dropdown
+    if ($type == 1) {
+      $data['thaali_types_gc'] = $this->db
+        ->where('status', 'Active')
+        ->order_by('id', 'ASC')
+        ->get('thaali_types')
+        ->result_array();
+    } else {
+      $data['thaali_types_gc'] = [];
+    }
 
     $data["all_user_fmbgc"] = $this->AnjumanM->get_user_fmbgc($type);
 

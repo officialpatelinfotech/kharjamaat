@@ -37,7 +37,7 @@
       <form method="POST" action="<?php echo base_url('admin/save_status_option'); ?>" id="optionForm">
         <input type="hidden" name="id" id="option_id" value="">
         <div class="row">
-          <div class="col-md-4 form-group mb-3">
+          <div class="col-md-6 form-group mb-3">
             <label for="option_type" class="font-weight-bold">Status Type</label>
             <select name="type" id="option_type" class="form-control" required>
               <option value="deeni">Deeni Status</option>
@@ -45,15 +45,10 @@
               <option value="residential">Residential Status</option>
             </select>
           </div>
-          <div class="col-md-4 form-group mb-3">
+          <div class="col-md-6 form-group mb-3">
             <label for="status_key" class="font-weight-bold">Status Key (DB Value)</label>
             <input type="text" name="status_key" id="status_key" class="form-control" placeholder="e.g. Normal" required>
             <small class="form-text text-muted">The exact text stored in the database.</small>
-          </div>
-          <div class="col-md-4 form-group mb-3">
-            <label for="status_label" class="font-weight-bold">Display Label</label>
-            <input type="text" name="status_label" id="status_label" class="form-control" placeholder="e.g. Normal (Active)" required>
-            <small class="form-text text-muted">Label shown to users in dropdowns.</small>
           </div>
         </div>
         
@@ -190,7 +185,6 @@ function editOption(opt) {
   document.getElementById('option_id').value = opt.id;
   document.getElementById('option_type').value = opt.type;
   document.getElementById('status_key').value = opt.status_key;
-  document.getElementById('status_label').value = opt.status_label;
   document.getElementById('is_inactive_trigger').checked = parseInt(opt.is_inactive_trigger) === 1;
   
   document.getElementById('formCardTitle').innerHTML = '<i class="fa fa-pencil mr-2"></i>Edit Status Option';

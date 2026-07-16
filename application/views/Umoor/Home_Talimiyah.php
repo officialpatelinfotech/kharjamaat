@@ -783,7 +783,7 @@ if (!function_exists('format_inr')) {
         <script>
         (function(){
           var btn=document.getElementById('thaali-details-btn');
-          if(btn) btn.setAttribute('href','<?= base_url('common/thaali_signups_breakdown?from=Umoor&start_date='.rawurlencode($button_start).'&end_date='.rawurlencode($button_end)) ?>');
+          if(btn) btn.setAttribute('href','<?= base_url('common/thaali_signup_dashboard?from=Umoor&hijri=' . $current_hijri_year . '-' . sprintf('%02d', $current_hijri_month_id)) ?>');
         })();
         </script>
 

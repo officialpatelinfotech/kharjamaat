@@ -437,7 +437,7 @@ if (!function_exists('format_inr')) {
         <li><a class="menu-item" href="<?php echo base_url('Umoor/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('Umoor/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('common/thaali_signups_breakdown?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-bar-chart"></i></span><span class="menu-label">FMB Thaali Signups</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('common/thaali_signup_dashboard?from=umoor') ?>"><span class="menu-icon"><i class="fa-solid fa-list-check"></i></span><span class="menu-label">Thaali Sign-up Dashboard</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbthaalimenu?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">FMB Thaali Menu</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/miqaatattendance?from=umoor') ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Miqaat Attendance Report</span></a></li>
@@ -788,7 +788,7 @@ if (!function_exists('format_inr')) {
         <script>
         (function(){
           var btn=document.getElementById('thaali-details-btn');
-          if(btn) btn.setAttribute('href','<?= base_url('common/thaali_signups_breakdown?from=Umoor&start_date='.rawurlencode($button_start).'&end_date='.rawurlencode($button_end)) ?>');
+          if(btn) btn.setAttribute('href','<?= base_url('common/thaali_signup_dashboard?from=Umoor&hijri=' . $current_hijri_year . '-' . sprintf('%02d', $current_hijri_month_id)) ?>');
         })();
         </script>
 

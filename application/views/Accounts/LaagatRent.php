@@ -393,6 +393,12 @@
           <div class="inv-card-footer">
             <span></span><!-- spacer -->
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <?php if ($inv['charge_type'] === 'rent'): ?>
+                <button type="button" class="btn-history"
+                  onclick="showRentItems(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['title']) ?>')">
+                  <i class="fa fa-list"></i> View Items
+                </button>
+              <?php endif; ?>
               <?php if ((int)$janab === 1 && $due > 0): ?>
                 <button type="button" class="btn-pay"
                   onclick="payInvoice(<?= $inv['id'] ?>, <?= $due ?>, '<?= htmlspecialchars($inv['title']) ?>', '<?= htmlspecialchars($inv['charge_type']) ?>', '<?= htmlspecialchars($inv['ITS_ID']) ?>')">
@@ -439,6 +445,43 @@
             </thead>
             <tbody id="history_table_body">
               <tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-3);">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Rent Items Modal ── -->
+<div class="modal fade" id="rentItemsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa fa-list" style="margin-right:8px;color:var(--gold);font-size:.9rem;"></i>Rent Items</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <div class="modal-body" style="padding:0 !important;">
+        <div style="padding:14px 20px 10px; background:var(--surface-2); border-bottom:1px solid var(--border);">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:3px;">Invoice</div>
+          <div style="font-size:.9rem;font-weight:700;color:var(--gold-deep);" id="rent_items_title"></div>
+        </div>
+        <div class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item Name</th>
+                <th class="text-right">Cost / Piece</th>
+                <th class="text-center">Qty</th>
+                <th class="text-right">Total Cost</th>
+              </tr>
+            </thead>
+            <tbody id="rent_items_table_body">
+              <tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3);">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -515,6 +558,41 @@ function showHistory(invoiceId, title) {
     },
     error: function() {
       $('#history_table_body').html('<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--red);font-size:.83rem;">Failed to load history.</td></tr>');
+    }
+  });
+}
+
+function showRentItems(invoiceId, title) {
+  $('#rent_items_title').text(title);
+  $('#rent_items_table_body').html('<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3);"><i class="fa fa-spinner fa-spin" style="margin-right:6px;"></i> Loading rent items…</td></tr>');
+  $('#rentItemsModal').modal('show');
+
+  $.ajax({
+    url: '<?= base_url("accounts/get_rent_invoice_items"); ?>',
+    type: 'POST', data: { invoice_id: invoiceId }, dataType: 'json',
+    success: function(response) {
+      let html = '';
+      if (response && response.success) {
+        if (response.items && response.items.length > 0) {
+          response.items.forEach(function(item, idx) {
+            html += '<tr>' +
+              '<td>' + (idx + 1) + '</td>' +
+              '<td style="font-weight:600;color:var(--text-1);">' + item.item_name + '</td>' +
+              '<td class="text-right" style="font-weight:700;color:var(--green);">₹' + parseFloat(item.rent_sabeel).toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>' +
+              '<td class="text-center" style="font-weight:700;color:var(--text-2);">' + item.quantity + '</td>' +
+              '<td class="text-right" style="font-weight:700;color:var(--text-1);">₹' + parseFloat(item.total_cost).toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>' +
+              '</tr>';
+          });
+        } else {
+          html = '<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3);font-size:.83rem;">No rent items selected.</td></tr>';
+        }
+      } else {
+        html = '<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--red);font-size:.83rem;">Failed to load rent items.</td></tr>';
+      }
+      $('#rent_items_table_body').html(html);
+    },
+    error: function() {
+      $('#rent_items_table_body').html('<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--red);font-size:.83rem;">Failed to load rent items.</td></tr>');
     }
   });
 }

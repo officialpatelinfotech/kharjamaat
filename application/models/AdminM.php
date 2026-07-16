@@ -426,7 +426,7 @@ class AdminM extends CI_Model
                       AND u.HOF_FM_TYPE = 'HOF' 
                       AND u.Sector IS NOT NULL");
 
-    $this->db->order_by("u.Sector, u.Sub_Sector, u.First_Name, u.Surname, fmb_t.year DESC");
+    $this->db->order_by("u.First_Name, u.Surname, fmb_t.year DESC");
 
     $query = $this->db->get();
     $rows = $query->result_array();

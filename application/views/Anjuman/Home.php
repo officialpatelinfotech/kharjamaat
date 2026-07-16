@@ -439,8 +439,7 @@ if (!function_exists('format_inr')) {
         <li><a class="menu-item" href="<?php echo base_url('anjuman/asharaohbat') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">Ashara Ohbat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/ashara_attendance') ?>"><span class="menu-icon"><i class="fa fa-user-check"></i></span><span class="menu-label">Ashara Attendance</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('common/bulk_thaali_signup?from=anjuman') ?>"><span class="menu-icon"><i class="fa-solid fa-list-check"></i></span><span class="menu-label">Bulk Thaali Sign-up</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('common/thaali_signups_breakdown?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-bar-chart"></i></span><span class="menu-label">FMB Thaali Signups</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('common/thaali_signup_dashboard?from=anjuman') ?>"><span class="menu-icon"><i class="fa-solid fa-list-check"></i></span><span class="menu-label">Thaali Sign-up Dashboard</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbthaalimenu?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">Add FMB Menu</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/managemiqaat?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-plus-circle"></i></span><span class="menu-label">Create Miqaat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/rsvp_list?from=anjuman') ?>"><span class="menu-icon"><i class="fa fa-check-square-o"></i></span><span class="menu-label">RSVP Report</span></a></li>
@@ -457,7 +456,7 @@ if (!function_exists('format_inr')) {
         <li><a class="menu-item" href="<?= base_url('anjuman/ekramfunds_receive') ?>"><span class="menu-icon"><i class="fa fa-gift"></i></span><span class="menu-label">Ekram Fund Module</span></a></li>
         <li><a class="menu-item" href="<?= base_url('anjuman/payments_report') ?>"><span class="menu-icon"><i class="fa fa-file-text-o"></i></span><span class="menu-label">Payments Report</span></a></li>
         <li><a class="menu-item" href="<?= base_url('anjuman/financials') ?>"><span class="menu-icon"><i class="fa fa-file-text-o"></i></span><span class="menu-label">Individual Financial Details</span></a></li>
-        <li><a class="menu-item" href="<?= base_url('anjuman/expense') ?>"><span class="menu-icon"><i class="fa fa-calculator"></i></span><span class="menu-label">Expense Module</span></a></li>
+        <li><a class="menu-item" href="<?= base_url('anjuman/expense') ?>"><span class="menu-icon"><i class="fa fa-calculator"></i></span><span class="menu-label">Expense &amp; Budget Module</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/laagat') ?>"><span class="menu-icon"><i class="fa fa-calculator"></i></span><span class="menu-label">Laagat Module</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/rent') ?>"><span class="menu-icon"><i class="fa fa-home"></i></span><span class="menu-label">Rent Module</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/wajebaat') ?>"><span class="menu-icon"><i class="fa fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
@@ -809,7 +808,7 @@ if (!function_exists('format_inr')) {
         <script>
         (function(){
           var btn=document.getElementById('thaali-details-btn');
-          if(btn) btn.setAttribute('href','<?= base_url('common/thaali_signups_breakdown?from=anjuman&start_date='.rawurlencode($button_start).'&end_date='.rawurlencode($button_end)) ?>');
+          if(btn) btn.setAttribute('href','<?= base_url('common/thaali_signup_dashboard?from=anjuman&hijri=' . $current_hijri_year . '-' . sprintf('%02d', $current_hijri_month_id)) ?>');
         })();
         </script>
 

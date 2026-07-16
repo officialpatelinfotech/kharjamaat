@@ -441,7 +441,7 @@ class Accounts extends CI_Controller
     if (!empty($memberIds)) {
       $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
 
-      // FMB extra contributions (GC)
+      // FMB extra contributions (GC) - Exclude Individual Niyaz
       $gcRow = $this->db->query(
         "SELECT 
            COALESCE(SUM(gc.amount),0) AS total_amount,
@@ -449,7 +449,7 @@ class Accounts extends CI_Controller
            COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due\n" .
           "FROM fmb_general_contribution gc\n" .
           "LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id\n" .
-          "WHERE gc.user_id IN ($placeholders)",
+          "WHERE gc.user_id IN ($placeholders) AND gc.contri_type != 'Individual Niyaz'",
         $memberIds
       )->row_array();
       $fmb_extra_amount = isset($gcRow['total_amount']) ? (float)$gcRow['total_amount'] : 0.0;
@@ -466,6 +466,16 @@ class Accounts extends CI_Controller
       )->row_array();
       $fmb_miqaat_invoice_due = isset($miqRow['total_due']) ? (float)$miqRow['total_due'] : 0.0;
 
+      // Add Individual Niyaz dues from fmb_general_contribution
+      $indNiyazDueRow = $this->db->query(
+        "SELECT COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due\n" .
+          "FROM fmb_general_contribution gc\n" .
+          "LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id\n" .
+          "WHERE gc.user_id IN ($placeholders) AND gc.contri_type = 'Individual Niyaz'",
+        $memberIds
+      )->row_array();
+      $fmb_miqaat_invoice_due += isset($indNiyazDueRow['total_due']) ? (float)$indNiyazDueRow['total_due'] : 0.0;
+
       // Miqaat invoice total amount
       $miqAmtRow = $this->db->query(
         "SELECT COALESCE(SUM(amount),0) AS total_amount\n" .
@@ -474,6 +484,15 @@ class Accounts extends CI_Controller
         $memberIds
       )->row_array();
       $fmb_miqaat_invoice_total_amount = isset($miqAmtRow['total_amount']) ? (float)$miqAmtRow['total_amount'] : 0.0;
+
+      // Add Individual Niyaz total amount from fmb_general_contribution
+      $indNiyazAmtRow = $this->db->query(
+        "SELECT COALESCE(SUM(amount),0) AS total_amount\n" .
+          "FROM fmb_general_contribution\n" .
+          "WHERE user_id IN ($placeholders) AND contri_type = 'Individual Niyaz'",
+        $memberIds
+      )->row_array();
+      $fmb_miqaat_invoice_total_amount += isset($indNiyazAmtRow['total_amount']) ? (float)$indNiyazAmtRow['total_amount'] : 0.0;
     }
     $data['fmb_due_badge'] = ($family_fmb_due > 0);
     
@@ -2415,13 +2434,43 @@ class Accounts extends CI_Controller
       }
     }
 
+    // Fallback: check fmb_general_contribution for 'Individual Niyaz' records
+    if (empty($res['invoice'])) {
+      $gc = $this->db
+        ->select('gc.id, gc.amount, gc.description, gc.miqaat_type, gc.contri_type, gc.contri_year, gc.user_id, DATE(gc.created_at) AS invoice_date')
+        ->from('fmb_general_contribution gc')
+        ->where('gc.id', $invoice_id)
+        ->where('gc.contri_type', 'Individual Niyaz')
+        ->where_in('gc.user_id', $memberIds)
+        ->get()->row_array();
+      if ($gc) {
+        $pays = $this->db
+          ->select('p.id AS payment_id, p.amount, p.payment_method, p.payment_date, p.remarks, p.created_at')
+          ->from('fmb_general_contribution_payments p')
+          ->where('p.fmbgc_id', $invoice_id)
+          ->order_by('p.payment_date', 'DESC')
+          ->get()->result_array();
+        $res = [
+          'invoice'  => [
+            'id'           => $gc['id'],
+            'miqaat_name'  => $gc['contri_type'] . ' (' . $gc['contri_year'] . ')',
+            'miqaat_type'  => $gc['miqaat_type'],
+            'invoice_date' => $gc['invoice_date'],
+            'amount'       => $gc['amount'],
+            'description'  => $gc['description'],
+          ],
+          'payments' => $pays,
+        ];
+      }
+    }
+
     if (empty($res['invoice'])) {
       $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Invoice not found']));
       return;
     }
     $this->output->set_content_type('application/json')->set_output(json_encode([
-      'success' => true,
-      'invoice' => $res['invoice'],
+      'success'  => true,
+      'invoice'  => $res['invoice'],
       'payments' => $res['payments']
     ]));
   }
@@ -2838,6 +2887,90 @@ class Accounts extends CI_Controller
 
     $payments = $this->LaagatRentM->get_payments_by_invoice($invoice_id);
     echo json_encode($payments);
+  }
+
+  public function get_rent_invoice_items()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+
+    $invoice_id = (int)$this->input->post('invoice_id');
+    if ($invoice_id <= 0) {
+      echo json_encode(['success' => false, 'error' => 'Invalid Invoice ID']);
+      return;
+    }
+
+    $this->load->model('LaagatRentM');
+    $this->load->model('AccountM');
+
+    // Security check: Verify this invoice belongs to the user or their family
+    $invoice = $this->db->get_where('laagat_rent_invoices', ['id' => $invoice_id])->row_array();
+    if (!$invoice) {
+      echo json_encode(['success' => false, 'error' => 'Invoice not found']);
+      return;
+    }
+
+    $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($user_id);
+    
+    $memberIds = [(string)$hof_id];
+    $familyRows = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($familyRows)) {
+      foreach ($familyRows as $r) {
+        if (!empty($r['ITS_ID'])) {
+          $memberIds[] = (string)$r['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    if (!in_array($invoice['user_id'], $memberIds)) {
+      echo json_encode(['success' => false, 'error' => 'Permission denied']);
+      return;
+    }
+
+    // Now load items & quantities from raza data
+    $items = [];
+    if (!empty($invoice['raza_id'])) {
+      $raza = $this->db->get_where('raza', ['id' => $invoice['raza_id']])->row_array();
+      if ($raza && !empty($raza['razadata'])) {
+        $razadata = json_decode($raza['razadata'], true);
+        if (isset($razadata['item_qty']) && is_array($razadata['item_qty'])) {
+          $itemQuantities = $razadata['item_qty'];
+          // Filter item quantities to non-zero values
+          $validQuantities = [];
+          foreach ($itemQuantities as $itemId => $qty) {
+            $qty = (int)$qty;
+            if ($qty > 0) {
+              $validQuantities[(int)$itemId] = $qty;
+            }
+          }
+          if (!empty($validQuantities)) {
+            // Fetch names of these items
+            $dbItems = $this->db
+              ->from('laagat_rent_items')
+              ->where('laagat_rent_id', (int)$invoice['laagat_rent_id'])
+              ->where_in('id', array_keys($validQuantities))
+              ->get()
+              ->result_array();
+
+            foreach ($dbItems as $dbItem) {
+              $qty = $validQuantities[(int)$dbItem['id']];
+              $items[] = [
+                'item_name' => $dbItem['item_name'],
+                'rent_sabeel' => (float)$dbItem['rent_sabeel'],
+                'quantity' => $qty,
+                'total_cost' => ((float)$dbItem['rent_sabeel']) * $qty
+              ];
+            }
+          }
+        }
+      }
+    }
+
+    echo json_encode(['success' => true, 'items' => $items]);
   }
 
   public function laagat_receipt($payment_id = null)

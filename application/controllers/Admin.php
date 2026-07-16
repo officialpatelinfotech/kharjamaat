@@ -253,9 +253,16 @@ class Admin extends CI_Controller
     $this->load->model('LaagatRentM');
 
     // Filters (GET)
+    $hijri_year = $this->input->get('hijri_year');
+    if ($hijri_year === null) {
+      $hijri_year = '1447-48';
+    } else {
+      $hijri_year = trim((string)$hijri_year);
+    }
+
     $filters = [
       'title' => trim((string)$this->input->get('title')),
-      'hijri_year' => trim((string)$this->input->get('hijri_year')),
+      'hijri_year' => $hijri_year,
       'charge_type' => 'laagat',
       'raza_category' => trim((string)$this->input->get('raza_category')),
     ];
@@ -303,9 +310,16 @@ class Admin extends CI_Controller
     $this->load->model('LaagatRentM');
 
     // Filters (GET)
+    $hijri_year = $this->input->get('hijri_year');
+    if ($hijri_year === null) {
+      $hijri_year = '1447-48';
+    } else {
+      $hijri_year = trim((string)$hijri_year);
+    }
+
     $filters = [
       'title' => trim((string)$this->input->get('title')),
-      'hijri_year' => trim((string)$this->input->get('hijri_year')),
+      'hijri_year' => $hijri_year,
       'charge_type' => 'rent',
       'raza_category' => trim((string)$this->input->get('raza_category')),
     ];
@@ -749,6 +763,16 @@ class Admin extends CI_Controller
       }
     }
 
+    $items = [];
+    if ($laagatRentId > 0 && $isRent) {
+      $items = $this->db
+        ->from('laagat_rent_items')
+        ->where('laagat_rent_id', $laagatRentId)
+        ->order_by('id ASC')
+        ->get()
+        ->result_array();
+    }
+
     $this->output->set_content_type('application/json')->set_output(json_encode([
       'success' => true,
       'master_amount' => $masterAmount,
@@ -759,7 +783,8 @@ class Admin extends CI_Controller
       'deposit_sabeel' => $depositSabeel,
       'deposit_non_sabeel' => $depositNonSabeel,
       'is_per_thaal' => $isPerThaal,
-      'thaal_ranges' => $thaalRanges
+      'thaal_ranges' => $thaalRanges,
+      'items' => $items
     ]));
   }
 
@@ -1538,7 +1563,38 @@ class Admin extends CI_Controller
       $amounts = $this->AdminM->get_niyaz_amounts($selected_year); // reload
     }
     
-    $data['amounts'] = $amounts;
+    // Key amounts by miqaat_type
+    $keyed_amounts = [];
+    foreach ($amounts as $row) {
+      $keyed_amounts[$row['miqaat_type']] = $row;
+    }
+    $data['amounts'] = $keyed_amounts;
+
+    // Fetch additional contribution types (Niyaz) for the selected year
+    $all_fmbgc = $this->db->get_where('fmb_general_contribution_master', [
+      'fmb_type' => 'Niyaz',
+      'hijri_year' => $selected_year
+    ])->result_array();
+
+    // Group them by contribution type name
+    $grouped_additional = [];
+    foreach ($all_fmbgc as $row) {
+      $name = $row['name'];
+      if (!isset($grouped_additional[$name])) {
+        $grouped_additional[$name] = [
+          'name' => $name,
+          'General' => 0.00,
+          'Ashara' => 0.00,
+          'Shehrullah' => 0.00,
+          'Ladies' => 0.00
+        ];
+      }
+      $miqaat = $row['miqaat_type'];
+      if (in_array($miqaat, ['General', 'Ashara', 'Shehrullah', 'Ladies'])) {
+        $grouped_additional[$name][$miqaat] = (float)$row['amount'];
+      }
+    }
+    $data['additional_types'] = array_values($grouped_additional);
     
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/ManageNiyazAmounts', $data);
@@ -1552,28 +1608,129 @@ class Admin extends CI_Controller
       return;
     }
 
-    $miqaat_types = $this->input->post('miqaat_type');
+    $year = $this->input->post('year');
     $individual_amounts = $this->input->post('individual_amount');
     $fala_amounts = $this->input->post('fala_amount');
-    $year = $this->input->post('year');
+    $additional_amounts = $this->input->post('additional_amount');
 
-    if (!empty($miqaat_types) && !empty($year)) {
-      $data = [];
-      for ($i = 0; $i < count($miqaat_types); $i++) {
-        $data[] = [
-          'miqaat_type' => $miqaat_types[$i],
-          'individual_amount' => $individual_amounts[$i] ?? 0,
-          'fala_amount' => $fala_amounts[$i] ?? 0,
+    if (!empty($year)) {
+      $this->load->model('AdminM');
+      
+      // 1. Update fixed individual and hoob amounts
+      $defaults = ['General', 'Ashara', 'Shehrullah', 'Ladies'];
+      $fixed_data = [];
+      foreach ($defaults as $type) {
+        $fixed_data[] = [
+          'miqaat_type' => $type,
+          'individual_amount' => isset($individual_amounts[$type]) && $individual_amounts[$type] !== "" ? (float)$individual_amounts[$type] : 0.00,
+          'fala_amount' => isset($fala_amounts[$type]) && $fala_amounts[$type] !== "" ? (float)$fala_amounts[$type] : 0.00,
           'year' => $year
         ];
       }
-      $this->load->model('AdminM');
-      $this->AdminM->update_niyaz_amounts($data, $year);
+      $this->AdminM->update_niyaz_amounts($fixed_data, $year);
+
+      // 2. Update additional contribution types
+      if (!empty($additional_amounts) && is_array($additional_amounts)) {
+        foreach ($additional_amounts as $name => $miqaat_values) {
+          if (is_array($miqaat_values)) {
+            foreach ($miqaat_values as $miqaat => $amount) {
+              $exist = $this->db->get_where('fmb_general_contribution_master', [
+                'name' => $name,
+                'fmb_type' => 'Niyaz',
+                'miqaat_type' => $miqaat,
+                'hijri_year' => $year
+              ])->row_array();
+
+              if ($exist) {
+                $this->db->where('id', $exist['id'])->update('fmb_general_contribution_master', [
+                  'amount' => $amount !== "" ? (float)$amount : 0.00
+                ]);
+              } else {
+                $this->db->insert('fmb_general_contribution_master', [
+                  'name' => $name,
+                  'fmb_type' => 'Niyaz',
+                  'miqaat_type' => $miqaat,
+                  'amount' => $amount !== "" ? (float)$amount : 0.00,
+                  'hijri_year' => $year,
+                  'status' => 1
+                ]);
+              }
+            }
+          }
+        }
+      }
+      
       $this->session->set_flashdata('success', 'Niyaz amounts updated successfully for Hijri Year ' . htmlspecialchars($year) . '.');
     } else {
       $this->session->set_flashdata('error', 'No data to update.');
     }
     
+    redirect('admin/manageniyazamounts' . (!empty($year) ? '?year=' . urlencode($year) : ''));
+  }
+
+  public function addfmbniyazcontritype()
+  {
+    $this->validateUser($_SESSION['user']);
+    if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+      redirect('admin/manageniyazamounts');
+      return;
+    }
+
+    $name = trim((string)$this->input->post('name'));
+    $year = trim((string)$this->input->post('year'));
+    $general_amount = $this->input->post('general_amount') !== "" ? (float)$this->input->post('general_amount') : 0.00;
+    $ashara_amount = $this->input->post('ashara_amount') !== "" ? (float)$this->input->post('ashara_amount') : 0.00;
+    $shehrullah_amount = $this->input->post('shehrullah_amount') !== "" ? (float)$this->input->post('shehrullah_amount') : 0.00;
+    $ladies_amount = $this->input->post('ladies_amount') !== "" ? (float)$this->input->post('ladies_amount') : 0.00;
+
+    if ($name !== '' && $year !== '') {
+      $miqaats = [
+        'General' => $general_amount,
+        'Ashara' => $ashara_amount,
+        'Shehrullah' => $shehrullah_amount,
+        'Ladies' => $ladies_amount
+      ];
+
+      foreach ($miqaats as $miqaat => $amount) {
+        $data = [
+          'name' => $name,
+          'fmb_type' => 'Niyaz',
+          'miqaat_type' => $miqaat,
+          'amount' => $amount,
+          'hijri_year' => $year,
+          'status' => 1
+        ];
+        $this->db->insert('fmb_general_contribution_master', $data);
+      }
+      $this->session->set_flashdata('success', 'New contribution type added successfully.');
+    } else {
+      $this->session->set_flashdata('error', 'Name and year are required.');
+    }
+
+    redirect('admin/manageniyazamounts' . (!empty($year) ? '?year=' . urlencode($year) : ''));
+  }
+
+  public function deletefmbniyazcontritype()
+  {
+    $this->validateUser($_SESSION['user']);
+    if ($this->input->server('REQUEST_METHOD') !== 'POST') {
+      redirect('admin/manageniyazamounts');
+      return;
+    }
+
+    $name = $this->input->post('name');
+    $year = $this->input->post('year');
+
+    if (!empty($name) && !empty($year)) {
+      $this->db->where('name', $name);
+      $this->db->where('hijri_year', $year);
+      $this->db->where('fmb_type', 'Niyaz');
+      $this->db->delete('fmb_general_contribution_master');
+      $this->session->set_flashdata('success', 'Contribution type deleted successfully.');
+    } else {
+      $this->session->set_flashdata('error', 'Failed to delete contribution type.');
+    }
+
     redirect('admin/manageniyazamounts' . (!empty($year) ? '?year=' . urlencode($year) : ''));
   }
 
@@ -3746,6 +3903,7 @@ class Admin extends CI_Controller
     }
 
     $data['user_name'] = $_SESSION['user']['username'];
+    $data['thaali_types'] = $this->db->order_by('id', 'ASC')->get('thaali_types')->result_array();
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/ManageFMBTakhmeen', $data);
 
@@ -5777,14 +5935,15 @@ HTML;
     $id = $this->input->post('id');
     $type = $this->input->post('type');
     $status_key = trim((string)$this->input->post('status_key'));
-    $status_label = trim((string)$this->input->post('status_label'));
     $is_inactive_trigger = $this->input->post('is_inactive_trigger') ? 1 : 0;
 
-    if (empty($type) || empty($status_key) || empty($status_label)) {
+    if (empty($type) || empty($status_key)) {
       $this->session->set_flashdata('error', 'All fields are required.');
       redirect('admin/status_options');
       return;
     }
+
+    $status_label = $status_key . ' (' . ($is_inactive_trigger ? 'Inactive' : 'Active') . ')';
 
     $db_data = [
       'type' => $type,
@@ -5852,4 +6011,83 @@ HTML;
     $ok = $this->ConfidentialCommentM->add_comment($its_id, $comment, $created_by, $created_by_name);
     echo json_encode(['success' => $ok]);
   }
+
+  /* ─────────────────────────────────────────────────────────────
+   * Thaali Types CRUD (AJAX)
+   * ───────────────────────────────────────────────────────────── */
+
+  /** AJAX POST – create a new custom thaali type */
+  public function add_thaali_type()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $name        = trim($this->input->post('name') ?? '');
+    $description = trim($this->input->post('description') ?? '');
+    $amount      = (float)($this->input->post('amount') ?? 0);
+    $status      = $this->input->post('status') === 'Inactive' ? 'Inactive' : 'Active';
+
+    if ($name === '') {
+      echo json_encode(['success' => false, 'message' => 'Thaali Type Name is required']); return;
+    }
+    $exists = $this->db->where('name', $name)->count_all_results('thaali_types');
+    if ($exists > 0) {
+      echo json_encode(['success' => false, 'message' => 'A thaali type with this name already exists']); return;
+    }
+    $this->db->insert('thaali_types', [
+      'name'        => $name,
+      'description' => $description,
+      'amount'      => $amount,
+      'status'      => $status,
+    ]);
+    $id = $this->db->insert_id();
+    echo json_encode(['success' => true, 'message' => 'Thaali type added', 'id' => $id]);
+  }
+
+  /** AJAX POST – update an existing thaali type */
+  public function edit_thaali_type()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $id          = (int)($this->input->post('id') ?? 0);
+    $name        = trim($this->input->post('name') ?? '');
+    $description = trim($this->input->post('description') ?? '');
+    $amount      = (float)($this->input->post('amount') ?? 0);
+    $status      = $this->input->post('status') === 'Inactive' ? 'Inactive' : 'Active';
+
+    if (!$id || $name === '') {
+      echo json_encode(['success' => false, 'message' => 'Invalid request']); return;
+    }
+    $exists = $this->db->where('name', $name)->where('id !=', $id)->count_all_results('thaali_types');
+    if ($exists > 0) {
+      echo json_encode(['success' => false, 'message' => 'A thaali type with this name already exists']); return;
+    }
+    $this->db->where('id', $id)->update('thaali_types', [
+      'name'        => $name,
+      'description' => $description,
+      'amount'      => $amount,
+      'status'      => $status,
+    ]);
+    echo json_encode(['success' => true, 'message' => 'Thaali type updated']);
+  }
+
+  /** AJAX POST – delete a custom thaali type (default types are protected) */
+  public function delete_thaali_type()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 1) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $id = (int)($this->input->post('id') ?? 0);
+    if (!$id) {
+      echo json_encode(['success' => false, 'message' => 'Invalid request']); return;
+    }
+    $row = $this->db->where('id', $id)->get('thaali_types')->row_array();
+    if (!$row) {
+      echo json_encode(['success' => false, 'message' => 'Thaali type not found']); return;
+    }
+    $this->db->where('id', $id)->delete('thaali_types');
+    echo json_encode(['success' => true, 'message' => 'Thaali type deleted']);
+  }
+
 }

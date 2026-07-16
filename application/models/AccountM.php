@@ -743,6 +743,7 @@ class AccountM extends CI_Model
       ->join("user u", "u.ITS_ID = gc.user_id", "left")
       ->join("(SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) paid", "paid.fmbgc_id = gc.id", "left")
       ->where("u.ITS_ID", $user_id)
+      ->where("gc.contri_type !=", 'Individual Niyaz')
       ->order_by('gc.created_at', 'DESC')
       ->get()
       ->result_array();
@@ -1873,7 +1874,7 @@ class AccountM extends CI_Model
     $sql = "SELECT 
               i.id,
               i.miqaat_id,
-              m.name AS miqaat_name,
+              COALESCE(m.name, CONCAT(i.description, ' (', i.year, ')'), '') AS miqaat_name,
               COALESCE(m.type, i.miqaat_type, '') AS miqaat_type,
               i.date AS invoice_date,
               i.amount,
@@ -1884,9 +1885,27 @@ class AccountM extends CI_Model
             LEFT JOIN miqaat_payment p ON p.miqaat_invoice_id = i.id
             LEFT JOIN miqaat m ON m.id = i.miqaat_id
             WHERE i.user_id = ?
-            GROUP BY i.id, i.miqaat_id, m.name, m.type, i.miqaat_type, i.date, i.amount, i.description
-            ORDER BY i.date DESC, i.id DESC";
-    $query = $this->db->query($sql, [$user_id]);
+            GROUP BY i.id, i.miqaat_id, m.name, m.type, i.miqaat_type, i.date, i.amount, i.description, i.year
+
+            UNION ALL
+
+            SELECT
+              gc.id,
+              NULL AS miqaat_id,
+              CONCAT(gc.contri_type, ' (', gc.contri_year, ')') AS miqaat_name,
+              gc.miqaat_type AS miqaat_type,
+              DATE(gc.created_at) AS invoice_date,
+              gc.amount,
+              gc.description,
+              IFNULL(paid.total_received, 0) AS paid_amount,
+              (gc.amount - IFNULL(paid.total_received, 0)) AS due_amount
+            FROM fmb_general_contribution gc
+            LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) paid
+              ON paid.fmbgc_id = gc.id
+            WHERE gc.user_id = ? AND gc.contri_type = 'Individual Niyaz'
+
+            ORDER BY invoice_date DESC, id DESC";
+    $query = $this->db->query($sql, [$user_id, $user_id]);
     return $query->result_array();
   }
 
@@ -1899,7 +1918,7 @@ class AccountM extends CI_Model
     if (!$user_id || !$invoice_id) {
       return ['invoice' => null, 'payments' => []];
     }
-    $inv = $this->db->select('i.id, i.miqaat_id, m.name AS miqaat_name, COALESCE(m.type, i.miqaat_type, "") AS miqaat_type, i.date AS invoice_date, i.amount, i.description, i.user_id')
+    $inv = $this->db->select('i.id, i.miqaat_id, COALESCE(m.name, CONCAT(i.description, " (", i.year, ")"), "") AS miqaat_name, COALESCE(m.type, i.miqaat_type, "") AS miqaat_type, i.date AS invoice_date, i.amount, i.description, i.user_id')
       ->from('miqaat_invoice i')
       ->join('miqaat m', 'm.id = i.miqaat_id', 'left')
       ->where('i.id', $invoice_id)

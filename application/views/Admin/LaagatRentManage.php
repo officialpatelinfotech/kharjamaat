@@ -500,11 +500,6 @@
                   <td><?php echo (int)$srno++; ?></td>
                   <td class="font-weight-bold text-dark">
                     <?php echo htmlspecialchars((string)($r['title'] ?? '')); ?>
-                    <?php if (!empty($r['items'])) : ?>
-                      <button type="button" class="btn btn-sm btn-link p-0 ml-2 lr-toggle-items" data-target="lr-items-<?php echo (int)$r['id']; ?>" title="View Items" style="font-size: 0.78rem; color: #6c757d; text-decoration: none; vertical-align: middle;">
-                        <i class="fa fa-list mr-1"></i><span class="badge badge-light border" style="font-size: 0.72rem;"><?php echo count($r['items']); ?> item<?php echo count($r['items']) !== 1 ? 's' : ''; ?></span>
-                      </button>
-                    <?php endif; ?>
                   </td>
                   <td><?php echo htmlspecialchars((string)($r['hijri_year'] ?? '')); ?></td>
                   <?php if (!isset($module_type)) : ?>
@@ -543,40 +538,7 @@
                     </div>
                   </td>
                 </tr>
-                <?php if (!empty($r['items'])) : ?>
-                <tr id="lr-items-<?php echo (int)$r['id']; ?>" class="lr-items-subrow" style="display: none;">
-                  <td colspan="<?php
-                    $colspan = 7;
-                    if (!isset($module_type)) $colspan++;
-                    if (!$is_laagat) $colspan++;
-                    echo $colspan;
-                  ?>" class="p-0">
-                    <div class="px-4 py-3" style="background: #f8f7f2; border-top: 2px solid #e2d9c5;">
-                      <div class="text-uppercase font-weight-bold text-secondary mb-2" style="font-size: 0.72rem; letter-spacing: 0.8px;">Rent Items</div>
-                      <table class="table table-sm table-bordered mb-0" style="font-size: 0.82rem; max-width: 480px;">
-                        <thead class="bg-light">
-                          <tr>
-                            <th class="py-1 pl-3" style="width: 40px;">#</th>
-                            <th class="py-1">Item Name</th>
-                            <th class="py-1 text-right pr-3">Cost / Piece</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <?php foreach ($r['items'] as $ii => $item) : ?>
-                          <tr>
-                            <td class="pl-3 text-muted"><?php echo ($ii + 1); ?></td>
-                            <td class="font-weight-bold"><?php echo htmlspecialchars((string)($item['item_name'] ?? '')); ?></td>
-                            <td class="text-right pr-3 font-weight-bold text-success">
-                              ₹<?php echo number_format((float)($item['rent_sabeel'] ?? 0), 2); ?>
-                            </td>
-                          </tr>
-                          <?php endforeach; ?>
-                        </tbody>
-                      </table>
-                    </div>
-                  </td>
-                </tr>
-                <?php endif; ?>
+
               <?php endforeach; ?>
             <?php else : ?>
               <?php
@@ -680,21 +642,7 @@
     });
   })();
 
-  // Toggle items sub-rows
-  document.addEventListener('click', function(e) {
-    var btn = e.target && e.target.closest && e.target.closest('.lr-toggle-items');
-    if (!btn) return;
-    var targetId = btn.getAttribute('data-target');
-    if (!targetId) return;
-    var subrow = document.getElementById(targetId);
-    if (!subrow) return;
-    var isVisible = subrow.style.display !== 'none';
-    subrow.style.display = isVisible ? 'none' : 'table-row';
-    var icon = btn.querySelector('i');
-    if (icon) {
-      icon.className = isVisible ? 'fa fa-list mr-1' : 'fa fa-chevron-up mr-1';
-    }
-  });
+
 </script>
 
 <!-- View Grades Modal -->
