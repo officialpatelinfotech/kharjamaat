@@ -303,14 +303,20 @@
   <?php else: ?>
     <div class="row">
       <?php foreach ($invoices as $inv):
-        $due         = (float)$inv['master_amount'] - (float)$inv['paid_amount'];
+        $isDepositOnly = ($inv['charge_type'] === 'rent' && (float)$inv['master_amount'] <= 0.0001 && (float)$inv['deposit_amount'] > 0);
+        $tAmt        = $isDepositOnly ? (float)$inv['deposit_amount'] : (float)$inv['master_amount'];
+        $due         = $tAmt - (float)$inv['paid_amount'];
         $is_paid     = $due <= 0;
         $cardClass   = $is_paid ? 'is-paid' : 'is-due';
         $janab       = $inv['janab_status'];
         $jAmt        = (float)$inv['jamaat_amount'];
         $sAmt        = (float)$inv['sarkaar_amount'];
-        $tAmt        = (float)$inv['master_amount'];
-        if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) { $jAmt = $tAmt; }
+        if ($isDepositOnly) {
+          $jAmt = 0.00;
+          $sAmt = 0.00;
+        } elseif ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) {
+          $jAmt = $tAmt;
+        }
       ?>
       <div class="col-12 col-md-6 mb-4 d-flex">
         <div class="inv-card <?= $cardClass ?> w-100">
@@ -318,7 +324,7 @@
           <!-- card header -->
           <div class="inv-card-header">
             <div>
-              <h5 class="inv-title"><?= htmlspecialchars($inv['title']) ?></h5>
+              <h5 class="inv-title"><?= htmlspecialchars($inv['title']) . ($isDepositOnly ? ' (Deposit)' : '') ?></h5>
               <?php if ($inv['raza_type_name']): ?>
                 <div class="inv-raza-type"><?= htmlspecialchars($inv['raza_type_name']) ?></div>
               <?php endif; ?>

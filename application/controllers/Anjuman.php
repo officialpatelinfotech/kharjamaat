@@ -829,26 +829,26 @@ class Anjuman extends CI_Controller
 
       if ($invoice_id > 0 && $amount > 0) {
         $inv = $this->LaagatRentM->get_invoice_by_id($invoice_id);
-        if ($inv && $inv['charge_type'] === 'rent' && (int)$inv['janab_status'] !== 1) {
-          $this->session->set_flashdata('laagat_flash_error', 'Cannot collect payment: corresponding Raza is not approved yet.');
-        } else {
-          $payload = [
-            'invoice_id' => $invoice_id,
-            'amount' => $amount,
-            'payment_date' => $payment_date,
-            'payment_method' => $payment_method,
-            'remarks' => $remarks
-          ];
-          $this->LaagatRentM->add_payment($payload);
-          $this->session->set_flashdata('laagat_flash_success', 'Payment recorded successfully.');
-        }
+        $payload = [
+          'invoice_id' => $invoice_id,
+          'amount' => $amount,
+          'payment_date' => $payment_date,
+          'payment_method' => $payment_method,
+          'remarks' => $remarks
+        ];
+        $this->LaagatRentM->add_payment($payload);
+        $this->session->set_flashdata('laagat_flash_success', 'Payment recorded successfully.');
       } else {
         $this->session->set_flashdata('laagat_flash_error', 'Invalid payment data.');
       }
     }
     $redir = 'anjuman/laagat_rent_payments';
-    if (!empty($inv['charge_type'])) {
-      $redir .= '?charge_type=' . $inv['charge_type'];
+    if ($inv && !empty($inv['charge_type'])) {
+      if ($inv['charge_type'] === 'rent' && (float)$inv['amount'] <= 0.0001 && (float)$inv['deposit_amount'] > 0) {
+        $redir .= '?charge_type=deposit';
+      } else {
+        $redir .= '?charge_type=' . $inv['charge_type'];
+      }
     }
     redirect($redir);
   }
@@ -962,7 +962,11 @@ class Anjuman extends CI_Controller
     }
     $redir = 'anjuman/laagat_rent_invoices';
     if ($invoice && !empty($invoice['charge_type'])) {
-      $redir .= '?charge_type=' . $invoice['charge_type'];
+      if ($invoice['charge_type'] === 'rent' && (float)$invoice['amount'] <= 0.0001 && (float)$invoice['deposit_amount'] > 0) {
+        $redir .= '?charge_type=deposit';
+      } else {
+        $redir .= '?charge_type=' . $invoice['charge_type'];
+      }
     }
     redirect($redir);
   }
@@ -1024,8 +1028,12 @@ class Anjuman extends CI_Controller
       }
     }
     $redir = 'anjuman/laagat_rent_invoices';
-    if (!empty($invoice['charge_type'])) {
-      $redir .= '?charge_type=' . $invoice['charge_type'];
+    if ($invoice && !empty($invoice['charge_type'])) {
+      if ($invoice['charge_type'] === 'rent' && (float)$invoice['amount'] <= 0.0001 && (float)$invoice['deposit_amount'] > 0) {
+        $redir .= '?charge_type=deposit';
+      } else {
+        $redir .= '?charge_type=' . $invoice['charge_type'];
+      }
     }
     redirect($redir);
   }

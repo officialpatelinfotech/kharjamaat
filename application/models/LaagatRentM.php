@@ -809,7 +809,16 @@ class LaagatRentM extends CI_Model
             $this->db->where('i.user_id', $filters['its_id']);
         }
         if (!empty($filters['charge_type'])) {
-            $this->db->where('lr.charge_type', $filters['charge_type']);
+            if ($filters['charge_type'] === 'deposit') {
+                $this->db->where('lr.charge_type', 'rent');
+                $this->db->where('i.deposit_amount >', 0.0001);
+                $this->db->where('i.amount <=', 0.0001);
+            } elseif ($filters['charge_type'] === 'rent') {
+                $this->db->where('lr.charge_type', 'rent');
+                $this->db->where('i.amount >', 0.0001);
+            } else {
+                $this->db->where('lr.charge_type', $filters['charge_type']);
+            }
         }
 
         // Avoid ONLY_FULL_GROUP_BY by joining a pre-aggregated payments subquery.

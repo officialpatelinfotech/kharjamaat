@@ -399,7 +399,8 @@
         $total_inv_amt = 0;
         if (!empty($invoices)) {
             foreach($invoices as $inv) {
-                $tAmt = (float)$inv['master_amount'];
+                $isDepositOnly = ($inv['charge_type'] === 'rent' && (float)$inv['master_amount'] <= 0.0001 && (float)$inv['deposit_amount'] > 0);
+                $tAmt = $isDepositOnly ? (float)$inv['deposit_amount'] : (float)$inv['master_amount'];
                 if ($inv['charge_type'] !== 'rent') {
                     $jAmt = (float)$inv['jamaat_amount'];
                     $sAmt = (float)$inv['sarkaar_amount'];
@@ -416,8 +417,9 @@
     <?php 
         $is_laagat = isset($module_type) && $module_type === 'laagat';
         $is_rent = isset($module_type) && $module_type === 'rent';
-        $back_url = $is_laagat ? base_url('anjuman/laagat') : ($is_rent ? base_url('anjuman/rent') : base_url('anjuman/laagat_rent'));
-        $title = $is_laagat ? 'Update Laagat Invoices' : ($is_rent ? 'Update Rent Invoices' : 'Update Laagat & Rent Invoices');
+        $is_deposit = isset($module_type) && $module_type === 'deposit';
+        $back_url = $is_laagat ? base_url('anjuman/laagat') : ($is_rent || $is_deposit ? base_url('anjuman/rent') : base_url('anjuman/laagat_rent'));
+        $title = $is_laagat ? 'Update Laagat Invoices' : ($is_rent ? 'Update Rent Invoices' : ($is_deposit ? 'Update Deposit Invoices' : 'Update Laagat & Rent Invoices'));
     ?>
     
     <!-- Header -->
@@ -429,7 +431,7 @@
 
     <!-- Summary Metrics -->
     <div class="summary-grid">
-        <?php if (!$is_rent): ?>
+        <?php if (!$is_rent && !$is_deposit): ?>
             <div class="summary-tile tile-jamaat">
                 <span class="tile-label">Total Jamaat</span>
                 <span class="tile-value">₹<?= format_inr($total_jmt_amt, 0) ?></span>
@@ -476,7 +478,7 @@
             <form method="GET" action="<?= $form_action; ?>" class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label">Hijri Year</label>
-                    <select name="year" class="form-control" onchange="this.form.submit()">
+                    <select name="year" class="form-control">
                         <option value="">All Years</option>
                         <?php foreach($hijri_years as $y): ?>
                             <option value="<?= $y ?>" <?= ($filters['year'] == $y) ? 'selected' : '' ?>><?= $y ?></option>
@@ -485,14 +487,14 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">ITS ID / Member</label>
-                    <input type="text" name="its_id" class="form-control" placeholder="ITS ID" value="<?= $filters['its_id'] ?>" onchange="this.form.submit()">
+                    <input type="text" name="its_id" class="form-control" placeholder="ITS ID" value="<?= $filters['its_id'] ?>">
                 </div>
                 <?php if (isset($module_type)): ?>
                     <input type="hidden" name="charge_type" value="<?= htmlspecialchars($module_type) ?>" />
                 <?php else: ?>
                     <div class="col-md-3">
                         <label class="form-label">Type</label>
-                        <select name="charge_type" class="form-control" onchange="this.form.submit()">
+                        <select name="charge_type" class="form-control">
                             <option value="">All Types</option>
                             <option value="laagat" <?= (($filters['charge_type'] ?? '') == 'laagat') ? 'selected' : '' ?>>Laagat</option>
                             <option value="rent" <?= (($filters['charge_type'] ?? '') == 'rent') ? 'selected' : '' ?>>Rent</option>
@@ -522,12 +524,15 @@
                         <?php endif; ?>
                         <th>Raza Id</th>
                         <th>Raza</th>
-                        <?php if (!$is_rent): ?>
-                            <th class="text-end">Jmt. Amount</th>
-                            <th class="text-end">Sar. Amount</th>
+                        <?php if ($is_deposit): ?>
+                            <th class="text-end">Deposit Amount</th>
+                        <?php else: ?>
+                            <?php if (!$is_rent): ?>
+                                <th class="text-end">Jmt. Amount</th>
+                                <th class="text-end">Sar. Amount</th>
+                            <?php endif; ?>
+                            <th class="text-end">Total Amount</th>
                         <?php endif; ?>
-                        <th class="text-end">Total Amount</th>
-                        <th class="text-end">Deposit</th>
                         <th class="text-center">Action</th>
                     </tr>
                 </thead>
@@ -557,12 +562,15 @@
                                     }
                                     $isRent = ($inv['charge_type'] === 'rent');
                                 ?>
-                                <?php if (!$is_rent): ?>
-                                    <td class="text-end text-success fw-bold"><?= $isRent ? '-' : '₹' . format_inr($jAmt, 0) ?></td>
-                                    <td class="text-end text-info fw-bold"><?= $isRent ? '-' : '₹' . format_inr($sAmt, 0) ?></td>
+                                <?php if ($is_deposit): ?>
+                                    <td class="text-end text-warning fw-bold">₹<?= format_inr((float)$inv['deposit_amount'], 0) ?></td>
+                                <?php else: ?>
+                                    <?php if (!$is_rent): ?>
+                                        <td class="text-end text-success fw-bold"><?= $isRent ? '-' : '₹' . format_inr($jAmt, 0) ?></td>
+                                        <td class="text-end text-info fw-bold"><?= $isRent ? '-' : '₹' . format_inr($sAmt, 0) ?></td>
+                                    <?php endif; ?>
+                                    <td class="text-end text-primary fw-bold">₹<?= format_inr($tAmt, 0) ?></td>
                                 <?php endif; ?>
-                                <td class="text-end text-primary fw-bold">₹<?= format_inr($tAmt, 0) ?></td>
-                                <td class="text-end text-warning fw-bold"><?= $isRent ? '₹' . format_inr((float)$inv['deposit_amount'], 0) : '-' ?></td>
                                 <td class="text-center text-nowrap">
                                     <div class="d-flex justify-content-center align-items-center">
                                         <button type="button" class="btn-action-edit mr-2" title="Edit Invoice" 
@@ -581,14 +589,14 @@
                         <?php endforeach; ?>
                     <?php else: ?>
                         <?php
-                            $colspan = 12;
-                            if (isset($module_type)) $colspan--;
-                            if ($is_rent) $colspan -= 2;
+                            $colspan = 8;
+                            if (!isset($module_type)) $colspan++;
+                            if (!$is_rent && !$is_deposit) $colspan += 2;
                         ?>
                         <tr>
                             <td colspan="<?= $colspan ?>" class="text-center py-5 text-muted">
                                 <i class="fa-solid fa-folder-open fa-2x mb-3 opacity-25"></i><br>
-                                No invoices found matching current filters.
+                                No invoices found.
                             </td>
                         </tr>
                     <?php endif; ?>

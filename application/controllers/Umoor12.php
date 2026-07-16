@@ -298,6 +298,9 @@ class Umoor12 extends CI_Controller
               $itemQuantities = [];
             }
             $invoiceAmountBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRow['id'], $userId, $thaalCount, $itemQuantities);
+            $depositAmount = isset($invoiceAmountBreakdown['deposit_amount']) ? (float)$invoiceAmountBreakdown['deposit_amount'] : 0.00;
+
+            // Rent/Laagat Invoice
             $invoiceData = [
               'user_id' => $userId,
               'laagat_rent_id' => $laagatRow['id'],
@@ -305,10 +308,25 @@ class Umoor12 extends CI_Controller
               'amount' => $invoiceAmountBreakdown['amount'],
               'jamaat_amount' => $invoiceAmountBreakdown['jamaat_amount'],
               'sarkaar_amount' => $invoiceAmountBreakdown['sarkaar_amount'],
-              'deposit_amount' => isset($invoiceAmountBreakdown['deposit_amount']) ? $invoiceAmountBreakdown['deposit_amount'] : 0.00,
+              'deposit_amount' => 0.00,
               'created_at' => date('Y-m-d H:i:s')
             ];
             $this->db->insert('laagat_rent_invoices', $invoiceData);
+
+            // Separate Deposit Invoice if there is a deposit
+            if ($depositAmount > 0) {
+              $depositInvoiceData = [
+                'user_id' => $userId,
+                'laagat_rent_id' => $laagatRow['id'],
+                'raza_id' => $check,
+                'amount' => 0.00,
+                'jamaat_amount' => 0.00,
+                'sarkaar_amount' => 0.00,
+                'deposit_amount' => $depositAmount,
+                'created_at' => date('Y-m-d H:i:s')
+              ];
+              $this->db->insert('laagat_rent_invoices', $depositInvoiceData);
+            }
           }
         }
       } catch (Exception $e) {
