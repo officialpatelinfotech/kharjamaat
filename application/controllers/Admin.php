@@ -1718,17 +1718,32 @@ class Admin extends CI_Controller
       return;
     }
 
-    $name = $this->input->post('name');
-    $year = $this->input->post('year');
+    $name = trim((string)$this->input->post('name'));
+    $year = trim((string)$this->input->post('year'));
 
-    if (!empty($name) && !empty($year)) {
-      $this->db->where('name', $name);
-      $this->db->where('hijri_year', $year);
+    if ($name !== '' && $year !== '') {
+      // Check if it is currently in use in fmb_general_contribution
+      $this->db->where('contri_type', $name);
+      $this->db->where('contri_year', $year);
       $this->db->where('fmb_type', 'Niyaz');
-      $this->db->delete('fmb_general_contribution_master');
-      $this->session->set_flashdata('success', 'Contribution type deleted successfully.');
+      $count = $this->db->count_all_results('fmb_general_contribution');
+
+      if ($count > 0) {
+        $this->session->set_flashdata('error', 'Cannot delete "' . htmlspecialchars($name) . '" because it is currently assigned to ' . $count . ' member contribution record(s).');
+      } else {
+        $this->db->where('name', $name);
+        $this->db->where('hijri_year', $year);
+        $this->db->where('fmb_type', 'Niyaz');
+        $this->db->delete('fmb_general_contribution_master');
+        
+        if ($this->db->affected_rows() > 0) {
+          $this->session->set_flashdata('success', 'Contribution type deleted successfully.');
+        } else {
+          $this->session->set_flashdata('error', 'Failed to delete contribution type. The record may not exist or could not be removed.');
+        }
+      }
     } else {
-      $this->session->set_flashdata('error', 'Failed to delete contribution type.');
+      $this->session->set_flashdata('error', 'Failed to delete contribution type. Invalid request parameters.');
     }
 
     redirect('admin/manageniyazamounts' . (!empty($year) ? '?year=' . urlencode($year) : ''));
