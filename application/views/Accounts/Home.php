@@ -405,6 +405,13 @@
             </a>
           </li>
           <li>
+            <a class="menu-item" href="<?php echo base_url('accounts/rent_deposit') ?>">
+              <span class="menu-icon" style="background:#fff7ed; color:#ea580c;"><i class="fa fa-shield"></i></span>
+              <span class="menu-label">Rent Deposits</span>
+              <?php if (isset($rent_deposit_summary['total_due']) && (float)$rent_deposit_summary['total_due'] > 0): ?><span class="count-badge">Due</span><?php endif; ?>
+            </a>
+          </li>
+          <li>
             <a class="menu-item" href="<?php echo base_url('accounts/qardanhasana') ?>">
               <span class="menu-icon" style="background:#fffbeb; color:#b45309;"><i class="fa fa-handshake-o"></i></span>
               <span class="menu-label">Qardan Hasana</span>
@@ -951,6 +958,29 @@
                 </div>
               </div>
               <div class="text-center mt-3"><a href="<?php echo base_url('accounts/rent'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rent Deposits -->
+        <div class="col-12 col-md-6 p-2">
+          <div class="dash-card h-100">
+            <div class="dash-card-header">
+              <span class="card-title"><i class="fa fa-shield"></i> Rent Deposits</span>
+              <?php $deposit_due = (float)($rent_deposit_summary['total_due'] ?? 0); if ($deposit_due > 0): ?><span class="badge-pill badge-danger">Pending</span><?php else: ?><span class="badge-pill badge-success">Clear</span><?php endif; ?>
+            </div>
+            <div class="dash-card-body">
+              <div class="breakdown-row mb-3">
+                <div class="stat-tile">
+                  <div class="tile-label">Total</div>
+                  <div class="tile-value green">&#8377;<?php echo format_inr_no_decimals($rent_deposit_summary['total_amount'] ?? 0); ?></div>
+                </div>
+                <div class="stat-tile">
+                  <div class="tile-label">Due</div>
+                  <div class="tile-value red">&#8377;<?php echo format_inr_no_decimals($rent_deposit_summary['total_due'] ?? 0); ?></div>
+                </div>
+              </div>
+              <div class="text-center mt-3"><a href="<?php echo base_url('accounts/rent_deposit'); ?>" class="btn-view"><i class="fa fa-arrow-right"></i> View Details</a></div>
             </div>
           </div>
         </div>

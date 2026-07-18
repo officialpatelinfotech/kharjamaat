@@ -101,6 +101,16 @@
 #fmtApp .act-add:hover{background:#eaf4ee;border-color:#1a6645;text-decoration:none}
 #fmtApp .act-sep{width:1px;height:16px;background:#e8e0cc;display:inline-block;margin:0 3px;vertical-align:middle}
 
+/* Thaali Day badge */
+#fmtApp .td-yes{display:inline-flex;align-items:center;gap:4px;background:#d1fae5;color:#065f46;border:1px solid rgba(6,95,70,.2);border-radius:10px;padding:2px 8px;font-size:.65rem;font-weight:700;white-space:nowrap}
+#fmtApp .td-no{display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:10px;padding:2px 8px;font-size:.65rem;font-weight:700;white-space:nowrap}
+
+/* Toggle Thaali Day button */
+#fmtApp .act-thaali-on{border-color:#bbf7d0;color:#065f46;background:#ecfdf5}
+#fmtApp .act-thaali-on:hover{background:#d1fae5;border-color:#059669}
+#fmtApp .act-thaali-off{border-color:#e5e7eb;color:#9ca3af;background:#f9fafb}
+#fmtApp .act-thaali-off:hover{background:#fef2f2;border-color:#f87171;color:#b91c1c}
+
 /* Footer */
 #fmtApp .fmt-foot{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid #f0ece0;background:#f7f4ec;font-size:.68rem;color:#9c8f7a;flex-wrap:wrap;gap:6px}
 #fmtApp .fmt-cnt{background:#f5e9c0;color:#b8860b;border-radius:20px;padding:2px 9px;font-size:.64rem;font-weight:800}
@@ -257,6 +267,7 @@ $param_tail = '?from='.urlencode((string)($from??''))
             <th class="sortable" data-col="day" style="min-width:80px">Day <span class="si"></span></th>
             <th style="min-width:180px">Menu</th>
             <th style="min-width:150px">Assigned To</th>
+            <th style="min-width:95px;text-align:center">Thaali</th>
             <?php if (!in_array((int)$_SESSION['user']['role'], [9, 12], true)): ?>
             <th class="fmt-act-col" style="width:76px">Actions</th>
             <?php endif; ?>
@@ -273,7 +284,7 @@ $param_tail = '?from='.urlencode((string)($from??''))
             if($key===0||$curMonthStr!==$prevMonthStr):
           ?>
           <tr class="month-hdr" data-hijri-month-name="<?php echo htmlspecialchars($curMonthStr,ENT_QUOTES)?>">
-            <td colspan="<?= in_array((int)$_SESSION['user']['role'], [9, 12], true) ? '6' : '7' ?>">
+            <td colspan="<?= in_array((int)$_SESSION['user']['role'], [9, 12], true) ? '7' : '8' ?>">
               <i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i>
               Hijri Month: <strong><?php echo htmlspecialchars($curMonthStr,ENT_QUOTES)?></strong>
             </td>
@@ -310,6 +321,29 @@ $param_tail = '?from='.urlencode((string)($from??''))
             <td style="font-size:.76rem">
               <?php echo!empty($item['assigned_to'])?htmlspecialchars($item['assigned_to'],ENT_QUOTES):''?>
             </td>
+            <?php
+              $isThaali   = !empty($item['is_thaali_day']);
+              $menuDate   = htmlspecialchars($item['date']??'', ENT_QUOTES);
+            ?>
+            <td style="text-align:center;white-space:nowrap">
+              <?php if($isThaali): ?>
+                <span class="td-yes"><i class="fa fa-check"></i> Yes</span>
+              <?php else: ?>
+                <span class="td-no"><i class="fa fa-times"></i> No</span>
+              <?php endif; ?>
+              <?php if (!in_array((int)$_SESSION['user']['role'], [9, 12], true)): ?>
+              <br>
+              <button type="button"
+                class="act-btn fmt-thaali-toggle <?php echo $isThaali ? 'act-thaali-on' : 'act-thaali-off' ?>"
+                data-date="<?php echo $menuDate ?>"
+                data-state="<?php echo $isThaali ? '1' : '0' ?>"
+                title="<?php echo $isThaali ? 'Mark as Non-Thaali Day' : 'Mark as Thaali Day' ?>"
+                style="margin-top:4px;font-size:.65rem;height:22px;width:auto;padding:0 7px">
+                <i class="fa <?php echo $isThaali ? 'fa-toggle-on' : 'fa-toggle-off' ?>"></i>
+                <?php echo $isThaali ? 'Unmark' : 'Mark' ?>
+              </button>
+              <?php endif; ?>
+            </td>
             <?php if (!in_array((int)$_SESSION['user']['role'], [9, 12], true)): ?>
             <td class="fmt-act-col" style="white-space:nowrap">
               <?php if(!$isEmpty): ?>
@@ -330,7 +364,7 @@ $param_tail = '?from='.urlencode((string)($from??''))
           <?php endforeach?>
           <?php else:?>
           <tr>
-            <td colspan="<?= in_array((int)$_SESSION['user']['role'], [9, 12], true) ? '6' : '7' ?>" style="text-align:center;padding:40px;color:#9c8f7a;font-size:.82rem">
+            <td colspan="<?= in_array((int)$_SESSION['user']['role'], [9, 12], true) ? '7' : '8' ?>" style="text-align:center;padding:40px;color:#9c8f7a;font-size:.82rem">
               <i class="fa fa-cutlery" style="font-size:1.8rem;display:block;margin-bottom:8px;color:#e8e0cc"></i>
               No menu items found.
             </td>
@@ -354,6 +388,53 @@ $param_tail = '?from='.urlencode((string)($from??''))
 </div><!-- /#fmtApp -->
 
 <script>
+var BASE = '<?php echo base_url() ?>';
+
+/* ── Thaali Day toggle ── */
+(function(){
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('.fmt-thaali-toggle');
+    if (!btn) return;
+    var date  = btn.getAttribute('data-date');
+    var state = parseInt(btn.getAttribute('data-state'), 10); // 1=currently thaali, 0=not
+    var newState = state ? 0 : 1; // flip
+    btn.disabled = true;
+    btn.style.opacity = '.5';
+    $.ajax({
+      url: BASE + 'common/toggle_thaali_day_ajax',
+      type: 'POST',
+      data: { date: date, status: newState },
+      dataType: 'json',
+      success: function(res) {
+        if (res && res.success) {
+          // Update badge in same <td>
+          var td   = btn.closest('td');
+          var badge = td.querySelector('.td-yes, .td-no');
+          if (newState === 1) {
+            // Now a thaali day
+            if (badge) { badge.className = 'td-yes'; badge.innerHTML = '<i class="fa fa-check"></i> Yes'; }
+            btn.className = btn.className.replace('act-thaali-off','act-thaali-on');
+            btn.setAttribute('data-state','1');
+            btn.title = 'Mark as Non-Thaali Day';
+            btn.innerHTML = '<i class="fa fa-toggle-on"></i> Unmark';
+          } else {
+            // No longer a thaali day
+            if (badge) { badge.className = 'td-no'; badge.innerHTML = '<i class="fa fa-times"></i> No'; }
+            btn.className = btn.className.replace('act-thaali-on','act-thaali-off');
+            btn.setAttribute('data-state','0');
+            btn.title = 'Mark as Thaali Day';
+            btn.innerHTML = '<i class="fa fa-toggle-off"></i> Mark';
+          }
+        } else {
+          alert((res && res.message) ? res.message : 'Failed to update. Please try again.');
+        }
+      },
+      error: function() { alert('Server error. Please try again.'); },
+      complete: function() { btn.disabled = false; btn.style.opacity = ''; }
+    });
+  });
+})();
+
 (function(){
   var tbody=document.getElementById('fmt-tbody');
   if(!tbody)return;
@@ -389,7 +470,7 @@ $param_tail = '?from='.urlencode((string)($from??''))
         seen.add(mName);
         var hdr=document.createElement('tr');hdr.className='month-hdr';
         hdr.setAttribute('data-hijri-month-name',mName);
-        var td=document.createElement('td');td.colSpan=7;
+        var td=document.createElement('td');td.colSpan=8;
         td.innerHTML='<i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i>Hijri Month: <strong>'+esc(mName)+'</strong>';
         hdr.appendChild(td);tbody.appendChild(hdr);
       }

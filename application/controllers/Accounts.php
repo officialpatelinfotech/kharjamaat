@@ -529,12 +529,21 @@ class Accounts extends CI_Controller
     $family_laagat_total = 0.0;
     $family_rent_due = 0.0;
     $family_rent_total = 0.0;
+    $family_deposit_due = 0.0;
+    $family_deposit_total = 0.0;
     foreach ($memberIds as $mid) {
       // Rent invoices: fetch all to ensure due badge and amounts reflect all outstanding rent invoices
       $rent_invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'charge_type' => 'rent']);
       foreach ($rent_invoices as $lrinv) {
         $family_rent_total += (float)($lrinv['master_amount'] ?? 0);
         $family_rent_due += (float)($lrinv['master_amount'] ?? 0) - (float)($lrinv['paid_amount'] ?? 0);
+      }
+
+      // Rent Deposit invoices: fetch all to calculate deposit amounts and outstanding deposit dues
+      $deposit_invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'charge_type' => 'deposit']);
+      foreach ($deposit_invoices as $lrinv) {
+        $family_deposit_total += (float)($lrinv['deposit_amount'] ?? 0);
+        $family_deposit_due += (float)($lrinv['deposit_amount'] ?? 0) - (float)($lrinv['paid_amount'] ?? 0);
       }
 
       // Laagat invoices: continue to filter by the current Hijri year range
@@ -552,6 +561,11 @@ class Accounts extends CI_Controller
     $data['rent_summary'] = [
       'total_due' => $family_rent_due,
       'total_amount' => $family_rent_total,
+      'year' => $currRange
+    ];
+    $data['rent_deposit_summary'] = [
+      'total_due' => $family_deposit_due,
+      'total_amount' => $family_deposit_total,
       'year' => $currRange
     ];
 
@@ -2801,6 +2815,11 @@ class Accounts extends CI_Controller
     $this->laagat_rent_by_type('rent');
   }
 
+  public function rent_deposit()
+  {
+    $this->laagat_rent_by_type('deposit');
+  }
+
   public function laagat_rent()
   {
     redirect('accounts/laagat');
@@ -2939,7 +2958,9 @@ class Accounts extends CI_Controller
     }
     $memberIds = array_values(array_unique($memberIds));
 
-    if (!in_array($invoice['user_id'], $memberIds)) {
+    $isAdmin = isset($_SESSION['user']['role']) && ((int)$_SESSION['user']['role'] === 3 || (int)$_SESSION['user']['role'] === 2);
+
+    if (!$isAdmin && !in_array($invoice['user_id'], $memberIds)) {
       echo json_encode(['success' => false, 'error' => 'Permission denied']);
       return;
     }
@@ -2973,6 +2994,7 @@ class Accounts extends CI_Controller
               $qty = $validQuantities[(int)$dbItem['id']];
               $items[] = [
                 'item_name' => $dbItem['item_name'],
+                'service_provided_by' => $dbItem['service_provided_by'],
                 'rent_sabeel' => (float)$dbItem['rent_sabeel'],
                 'quantity' => $qty,
                 'total_cost' => ((float)$dbItem['rent_sabeel']) * $qty

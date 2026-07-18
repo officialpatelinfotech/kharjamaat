@@ -1803,24 +1803,62 @@
     });
   }
 
+  function checkIsThaaliDay(dateVal, callback) {
+    if (!dateVal) {
+      callback(false);
+      return;
+    }
+    jQuery.ajax({
+      url: '<?php echo base_url("common/check_is_thaali_day_ajax"); ?>',
+      type: 'GET',
+      dataType: 'json',
+      data: { date: dateVal },
+      success: function(res) {
+        callback(res && res.is_thaali_day);
+      },
+      error: function() {
+        callback(false);
+      }
+    });
+  }
+
   $(document).on('click', '#add-thaali-date-btn', function(e) {
     e.preventDefault();
     const v = $('#thaali-date').val();
-    if (isExistingEditMode()) {
-      addAssignedThaaliDateAjax(v);
-    } else {
-      addThaaliDate(v);
+    if (!v) {
+      $('#thaali-error').removeClass('d-none').text('Please select date');
+      return;
     }
+    checkIsThaaliDay(v, function(isThaali) {
+      if (!isThaali) {
+        alert('Selected date is not marked as a Thaali Day in the calendar.');
+        return;
+      }
+      if (isExistingEditMode()) {
+        addAssignedThaaliDateAjax(v);
+      } else {
+        addThaaliDate(v);
+      }
+    });
   });
 
   // Auto-add when a date is selected from the picker
   $(document).on('change', '#thaali-date', function() {
     const v = $(this).val();
-    if (isExistingEditMode()) {
-      addAssignedThaaliDateAjax(v);
-    } else {
-      addThaaliDate(v);
-    }
+    if (!v) return;
+    checkIsThaaliDay(v, function(isThaali) {
+      if (!isThaali) {
+        alert('Selected date is not marked as a Thaali Day in the calendar.');
+        $('#thaali-date').val('');
+        $('#thaali-date-both-display').text('Selected: -');
+        return;
+      }
+      if (isExistingEditMode()) {
+        addAssignedThaaliDateAjax(v);
+      } else {
+        addThaaliDate(v);
+      }
+    });
   });
 
   $(document).on('click', '.remove-thaali-date', function(e) {

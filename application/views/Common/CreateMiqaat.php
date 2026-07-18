@@ -917,6 +917,16 @@
               </select>
             </div>
           </li>
+          <li class="field-row">
+            <div class="fl-key">Miqaat Jaman</div>
+            <div class="fl-val">
+              <select name="jaman_type" id="jaman-type">
+                <option value="">-- Select Option --</option>
+                <option value="Miqaat with Jaman" <?php echo (isset($edit_mode) && $edit_mode && isset($miqaat['jaman_type']) && $miqaat['jaman_type'] === 'Miqaat with Jaman') ? 'selected' : ''; ?>>Miqaat with Jaman</option>
+                <option value="Miqaat with Salawaat Packet" <?php echo (isset($edit_mode) && $edit_mode && isset($miqaat['jaman_type']) && $miqaat['jaman_type'] === 'Miqaat with Salawaat Packet') ? 'selected' : ''; ?>>Miqaat with Salawaat Packet</option>
+              </select>
+            </div>
+          </li>
         </ul>
 
         <!-- ── Assignment ── -->

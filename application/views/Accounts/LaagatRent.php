@@ -101,6 +101,7 @@
   .pill-approved  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
   .pill-rejected  { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-border); }
   .pill-pending   { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+  .pill-returned  { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
 
   /* card body */
   .inv-card-body { padding: 16px 20px; flex: 1; }
@@ -286,8 +287,9 @@
     <a href="<?= base_url('accounts/home') ?>" class="btn-back-nav"><i class="fa fa-arrow-left"></i></a>
     <?php
       $is_laagat = isset($module_type) && $module_type === 'laagat';
-      $title = $is_laagat ? 'Laagat Invoices' : 'Rent Invoices';
-      $sub_title = $is_laagat ? 'Your laagat invoices' : 'Your rent & deposit invoices';
+      $is_deposit = isset($module_type) && $module_type === 'deposit';
+      $title = $is_laagat ? 'Laagat Invoices' : ($is_deposit ? 'Rent Deposits' : 'Rent Invoices');
+      $sub_title = $is_laagat ? 'Your laagat invoices' : ($is_deposit ? 'Your rent deposit invoices' : 'Your rent invoices');
     ?>
     <h1 class="page-heading"><?= $title ?></h1>
   </div>
@@ -297,7 +299,7 @@
   <?php if (empty($invoices)): ?>
     <div class="empty-state">
       <i class="fa fa-file-text-o"></i>
-      <p>No <?= $is_laagat ? 'Laagat' : 'Rent' ?> invoices found for your family.</p>
+      <p>No <?= $is_laagat ? 'Laagat' : ($is_deposit ? 'Rent Deposit' : 'Rent') ?> invoices found for your family.</p>
     </div>
 
   <?php else: ?>
@@ -329,7 +331,9 @@
                 <div class="inv-raza-type"><?= htmlspecialchars($inv['raza_type_name']) ?></div>
               <?php endif; ?>
               <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:5px;">
-                <?php if ($is_paid): ?>
+                <?php if ((int)($inv['is_returned'] ?? 0) === 1): ?>
+                  <span class="status-pill pill-returned"><i class="fa fa-reply"></i> Returned</span>
+                <?php elseif ($is_paid): ?>
                   <span class="status-pill pill-paid"><i class="fa fa-check"></i> Paid</span>
                 <?php endif; ?>
                 <?php if ($janab === null): ?>
@@ -399,13 +403,16 @@
           <div class="inv-card-footer">
             <span></span><!-- spacer -->
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <?php if ($inv['charge_type'] === 'rent'): ?>
+              <?php if ($inv['charge_type'] === 'rent' && !$is_deposit): ?>
                 <button type="button" class="btn-history"
                   onclick="showRentItems(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['title']) ?>')">
                   <i class="fa fa-list"></i> View Items
                 </button>
+                <a href="<?= base_url('common/generate_pdf?id=' . $inv['id'] . '&for=9') ?>" target="_blank" class="btn-history" style="text-decoration:none;">
+                  <i class="fa fa-print"></i> Print Bill
+                </a>
               <?php endif; ?>
-              <?php if ((int)$janab === 1 && $due > 0): ?>
+              <?php if ((int)$janab === 1 && $due > 0 && (int)($inv['is_returned'] ?? 0) === 0): ?>
                 <button type="button" class="btn-pay"
                   onclick="payInvoice(<?= $inv['id'] ?>, <?= $due ?>, '<?= htmlspecialchars($inv['title']) ?>', '<?= htmlspecialchars($inv['charge_type']) ?>', '<?= htmlspecialchars($inv['ITS_ID']) ?>')">
                   <i class="fa fa-credit-card"></i> Pay Now

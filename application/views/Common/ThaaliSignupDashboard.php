@@ -605,6 +605,10 @@
             <option value="1">Sign-up (Want to Sign-up)</option>
             <option value="2">Remove Sign-up</option>
           </select>
+          <select id="bulk-scope" class="form-control-premium" style="width:230px;">
+            <option value="date">Selected Date Only</option>
+            <option value="month">Selected Hijri Month (<?php echo htmlspecialchars($hijri_month_name); ?>)</option>
+          </select>
           <div id="bulk-thali-size-group" style="display:inline-block;">
             <select id="bulk-thali-size" class="form-control-premium" style="width:150px;">
               <option value="Medium">Medium</option>
@@ -666,7 +670,22 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
 
+<!-- Bulk Progress Modal -->
+<div class="modal fade" id="bulkProgressModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+      <div class="modal-body text-center p-4">
+        <h5 class="modal-title mb-3" style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; color: var(--text-1);">Processing Bulk Sign-ups</h5>
+        <p class="text-muted small mb-4" id="bulk-progress-text">Starting bulk action...</p>
+        <div class="progress" style="height: 10px; border-radius: 5px; background-color: #f0f0f0; overflow: hidden; margin-bottom: 10px;">
+          <div id="bulk-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 0%; transition: width 0.2s ease;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <span class="small font-weight-bold text-dark" id="bulk-progress-percent">0%</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -675,7 +694,7 @@
   var allFamilies = [];
   var filteredFamilies = [];
   var selectedHOFSet = new Set();
-  var pageSize = 10;
+  var pageSize = 2000;
   var currentPage = 1;
 
   jQuery(document).ready(function() {
@@ -1150,31 +1169,87 @@
 
     const actionVal = jQuery('#bulk-action').val();
     const sizeVal = jQuery('#bulk-thali-size').val();
+    const scopeVal = jQuery('#bulk-scope').val();
 
-    if (!confirm('Perform bulk action for ' + selectedHOFs.length + ' families?')) return;
+    let targetDates = [];
+    if (scopeVal === 'month') {
+      jQuery('.timeline-item').each(function() {
+        var d = jQuery(this).attr('data-date');
+        if (d) {
+          targetDates.push(d);
+        }
+      });
+      if (targetDates.length === 0) {
+        alert('No active menu dates found in the selected month.');
+        return;
+      }
+    } else {
+      targetDates = [selectedDate];
+    }
 
-    jQuery.ajax({
-      url: '<?php echo base_url("common/save_bulk_signup_ajax"); ?>',
-      type: 'POST',
-      dataType: 'json',
-      data: {
-        its_list: selectedHOFs,
-        dates: [selectedDate],
-        action: actionVal,
-        thali_size: sizeVal
-      },
-      success: function(res) {
-        if (res && res.success) {
-          alert(res.message || 'Bulk action completed successfully.');
+    const scopeLabel = scopeVal === 'month' ? 'the entire Hijri month' : 'the selected date';
+    if (!confirm('Perform bulk action for ' + selectedHOFs.length + ' families on ' + scopeLabel + '?')) return;
+
+    // Show progress modal
+    jQuery('#bulkProgressModal').modal('show');
+    updateProgress(0, selectedHOFs.length, 'Initializing...');
+
+    // Chunk parameters
+    const chunkSize = 10;
+    let index = 0;
+    let totalSaved = 0;
+
+    function processNextChunk() {
+      if (index >= selectedHOFs.length) {
+        // All done!
+        setTimeout(function() {
+          jQuery('#bulkProgressModal').modal('hide');
+          alert('Bulk action completed successfully. Processed ' + totalSaved + ' records.');
           selectedHOFSet.clear();
           loadDashboardDateData(selectedDate);
-        } else {
-          alert((res && res.message) ? res.message : 'Bulk action failed.');
-        }
-      },
-      error: function() {
-        alert('Server error. Please try again.');
+        }, 500);
+        return;
       }
-    });
+
+      const chunk = selectedHOFs.slice(index, index + chunkSize);
+      const progressText = 'Processing families ' + (index + 1) + ' to ' + Math.min(index + chunkSize, selectedHOFs.length) + ' of ' + selectedHOFs.length + '...';
+      const pct = Math.round((index / selectedHOFs.length) * 100);
+      updateProgress(pct, selectedHOFs.length, progressText);
+
+      jQuery.ajax({
+        url: '<?php echo base_url("common/save_bulk_signup_ajax"); ?>',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          its_list: chunk,
+          dates: targetDates,
+          action: actionVal,
+          thali_size: sizeVal
+        },
+        success: function(res) {
+          if (res && res.success) {
+            totalSaved += (res.message ? parseInt(res.message.replace(/[^0-9]/g, '')) || chunk.length : chunk.length);
+            index += chunkSize;
+            processNextChunk();
+          } else {
+            jQuery('#bulkProgressModal').modal('hide');
+            alert((res && res.message) ? res.message : 'Bulk action failed during execution.');
+          }
+        },
+        error: function() {
+          jQuery('#bulkProgressModal').modal('hide');
+          alert('Server error occurred during bulk processing. Some records may have been saved.');
+        }
+      });
+    }
+
+    // Start processing first chunk
+    processNextChunk();
+  }
+
+  function updateProgress(percent, total, text) {
+    jQuery('#bulk-progress-bar').css('width', percent + '%').attr('aria-valuenow', percent);
+    jQuery('#bulk-progress-percent').text(percent + '%');
+    jQuery('#bulk-progress-text').text(text);
   }
 </script>

@@ -528,18 +528,21 @@ class Admin extends CI_Controller
     if ($chargeType === 'rent') {
       $itemNames = $this->input->post('item_name');
       $itemCostPerPiece = $this->input->post('item_rent_sabeel'); // single cost field, same for all
+      $itemServiceProvidedBy = $this->input->post('item_service_provided_by');
 
       if (is_array($itemNames)) {
         foreach ($itemNames as $idx => $iName) {
           $iName = trim((string)$iName);
           if ($iName !== '') {
             $costPerPiece = isset($itemCostPerPiece[$idx]) ? (float)$itemCostPerPiece[$idx] : 0.00;
+            $serviceProvidedBy = isset($itemServiceProvidedBy[$idx]) ? trim((string)$itemServiceProvidedBy[$idx]) : 'Jamaat';
             $payload['items'][] = [
-              'item_name'          => $iName,
-              'rent_sabeel'        => $costPerPiece,
-              'deposit_sabeel'     => 0.00,
-              'rent_non_sabeel'    => $costPerPiece,
-              'deposit_non_sabeel' => 0.00,
+              'item_name'           => $iName,
+              'service_provided_by' => $serviceProvidedBy,
+              'rent_sabeel'         => $costPerPiece,
+              'deposit_sabeel'      => 0.00,
+              'rent_non_sabeel'     => $costPerPiece,
+              'deposit_non_sabeel'  => 0.00,
             ];
           }
         }
@@ -4285,6 +4288,17 @@ HTML;
       }
     }
 
+    if (!empty($thaali_dates)) {
+      $this->load->model('CommonM');
+      foreach ($thaali_dates as $d) {
+        if (!$this->CommonM->is_valid_thaali_day($d)) {
+          $this->session->set_flashdata('error', 'Selected date ' . date('d-m-Y', strtotime($d)) . ' is not marked as a Thaali Day in the calendar.');
+          redirect('admin/managefmbtakhmeen');
+          return;
+        }
+      }
+    }
+
     // Validate selected count does not exceed allowed days from amount/per-day cost (if cost configured)
     // Only applicable when admin is explicitly selecting thaali dates.
     if (!empty($thaali_dates)) {
@@ -4495,6 +4509,13 @@ HTML;
     }
     if ((string)$fy !== (string)$year) {
       $this->output->set_output(json_encode(['success' => false, 'message' => 'Selected date does not belong to FY ' . $year]));
+      return;
+    }
+
+    // Prevent assigning dates not marked as Thaali Days
+    $this->load->model('CommonM');
+    if (!$this->CommonM->is_valid_thaali_day($date)) {
+      $this->output->set_output(json_encode(['success' => false, 'message' => 'Selected date is not marked as a Thaali Day in the calendar.']));
       return;
     }
 
@@ -5267,6 +5288,14 @@ HTML;
     $data['residential_status_options'] = MemberStatusM::residential_status_options();
     $data['health_status_options']      = MemberStatusM::health_status_options();
     $data['activity_status_options']    = MemberStatusM::activity_status_options();
+
+    // Fetch assigned Umoor IDs for this member
+    $assigned = $this->db->select('umoor_id')
+                         ->where('user_its', $its_id)
+                         ->get('umoor_assignments')
+                         ->result_array();
+    $data['assigned_umoor'] = array_column($assigned, 'umoor_id');
+
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/EditMember', $data);
   }
@@ -5481,7 +5510,36 @@ HTML;
       $this->MemberStatusM->recalculate_one((int)$its_id);
     }
 
-    if ($updated || !empty($livingFields)) {
+    // Save Umoor Assignments
+    $assigned_umoor_post = $this->input->post('assigned_umoor');
+    if (!is_array($assigned_umoor_post)) {
+      $assigned_umoor_post = [];
+    }
+
+    // Get current assignments
+    $current_assigned = $this->db->select('umoor_id')
+                                 ->where('user_its', $its_id)
+                                 ->get('umoor_assignments')
+                                 ->result_array();
+    $current_assigned_ids = array_column($current_assigned, 'umoor_id');
+
+    // Compare and update if changed
+    sort($assigned_umoor_post);
+    sort($current_assigned_ids);
+    $umoor_changed = ($assigned_umoor_post !== $current_assigned_ids);
+
+    if ($umoor_changed) {
+      $this->db->where('user_its', $its_id)->delete('umoor_assignments');
+      foreach ($assigned_umoor_post as $uid) {
+        $this->db->insert('umoor_assignments', [
+          'user_its' => $its_id,
+          'umoor_id' => (int)$uid,
+          'created_at' => date('Y-m-d H:i:s')
+        ]);
+      }
+    }
+
+    if ($updated || !empty($livingFields) || $umoor_changed) {
       echo json_encode([
         'status' => 'success',
         'message' => 'Member updated',
@@ -6104,6 +6162,83 @@ HTML;
     }
     $this->db->where('id', $id)->delete('thaali_types');
     echo json_encode(['success' => true, 'message' => 'Thaali type deleted']);
+  }
+
+  public function umoor_sub_committees()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+
+    // Fetch sub-committees with team lead name
+    $this->db->select('s.*, u.Full_Name as team_lead_name');
+    $this->db->from('sub_committees s');
+    $this->db->join('user u', 'u.ITS_ID = s.team_lead_its', 'left');
+    $this->db->order_by('s.umoor_id ASC, s.name ASC');
+    $sub_committees = $this->db->get()->result_array();
+
+    $data['sub_committees'] = $sub_committees;
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/UmoorSubCommittees', $data);
+  }
+
+  public function save_sub_committee()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+
+    $id = (int)$this->input->post('id');
+    $umoor_id = (int)$this->input->post('umoor_id');
+    $name = trim((string)$this->input->post('name'));
+    $team_lead_its = trim((string)$this->input->post('team_lead_its')) ?: null;
+
+    if ($umoor_id < 1 || $umoor_id > 12) {
+      echo json_encode(['success' => false, 'message' => 'Invalid Umoor selected.']); return;
+    }
+    if ($name === '') {
+      echo json_encode(['success' => false, 'message' => 'Sub-Committee name is required.']); return;
+    }
+
+    // Verify team lead ITS ID exists if provided
+    if ($team_lead_its) {
+      $user = $this->db->where('ITS_ID', $team_lead_its)->get('user')->row_array();
+      if (!$user) {
+        echo json_encode(['success' => false, 'message' => 'Team Lead ITS ID not found.']); return;
+      }
+    }
+
+    $db_data = [
+      'umoor_id' => $umoor_id,
+      'name' => $name,
+      'team_lead_its' => $team_lead_its
+    ];
+
+    if ($id > 0) {
+      $this->db->where('id', $id)->update('sub_committees', $db_data);
+      echo json_encode(['success' => true, 'message' => 'Sub-Committee updated successfully.']);
+    } else {
+      $db_data['created_at'] = date('Y-m-d H:i:s');
+      $this->db->insert('sub_committees', $db_data);
+      echo json_encode(['success' => true, 'message' => 'Sub-Committee created successfully.']);
+    }
+  }
+
+  public function delete_sub_committee()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+
+    $id = (int)$this->input->post('id');
+    if (!$id) {
+      echo json_encode(['success' => false, 'message' => 'Invalid ID.']); return;
+    }
+
+    $this->db->where('id', $id)->delete('sub_committees');
+    echo json_encode(['success' => true, 'message' => 'Sub-Committee deleted successfully.']);
   }
 
 }

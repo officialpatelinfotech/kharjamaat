@@ -775,7 +775,9 @@ class Anjuman extends CI_Controller
     $data['filters'] = $filters;
     $data['module_type'] = $charge_type;
 
-    $data['invoices'] = $this->LaagatRentM->get_invoices($filters);
+    $invoices = $this->LaagatRentM->get_invoices($filters);
+    $data['invoices'] = $invoices;
+    $data['rent_bifurcation'] = $this->LaagatRentM->get_rent_items_bifurcation($invoices);
 
     $this->load->model('HijriCalendar');
     $data['hijri_years'] = $this->HijriCalendar->get_distinct_composite_years();
@@ -804,7 +806,9 @@ class Anjuman extends CI_Controller
     $data['filters'] = $filters;
     $data['module_type'] = $charge_type;
 
-    $data['invoices'] = $this->LaagatRentM->get_invoices($filters);
+    $invoices = $this->LaagatRentM->get_invoices($filters);
+    $data['invoices'] = $invoices;
+    $data['rent_bifurcation'] = $this->LaagatRentM->get_rent_items_bifurcation($invoices);
 
     $this->load->model('HijriCalendar');
     $data['hijri_years'] = $this->HijriCalendar->get_distinct_composite_years();
@@ -853,6 +857,21 @@ class Anjuman extends CI_Controller
     redirect($redir);
   }
 
+  public function laagat_rent_return_deposit()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 3 && $_SESSION['user']['role'] != 2)) {
+      redirect('/accounts');
+    }
+    if ($this->input->post()) {
+      $invoice_id = (int)$this->input->post('invoice_id');
+      if ($invoice_id > 0) {
+        $this->db->where('id', $invoice_id);
+        $this->db->update('laagat_rent_invoices', ['is_returned' => 1]);
+        $this->session->set_flashdata('laagat_flash_success', 'Deposit marked as returned successfully.');
+      }
+    }
+    redirect('anjuman/laagat_rent_payments?charge_type=deposit');
+  }
   public function laagat_receipt($payment_id = null)
   {
     if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 3 && $_SESSION['user']['role'] != 2)) {

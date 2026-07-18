@@ -876,13 +876,16 @@ document.addEventListener('DOMContentLoaded', function() {
             itemsHtml += '<thead class="bg-light"><tr>';
             itemsHtml += '<th class="py-2 pl-3">#</th>';
             itemsHtml += '<th class="py-2">Item Name</th>';
+            itemsHtml += '<th class="py-2">Service Provided By</th>';
             itemsHtml += '<th class="py-2 text-right pr-3">Cost / Piece</th>';
             itemsHtml += '</tr></thead><tbody>';
             data.items.forEach(function(item, idx) {
               var costPerPiece = parseFloat(item.rent_sabeel || 0);
+              var serviceProvidedBy = item.service_provided_by || 'Jamaat';
               itemsHtml += '<tr>';
               itemsHtml += '<td class="pl-3 text-muted align-middle">' + (idx + 1) + '</td>';
               itemsHtml += '<td class="font-weight-bold align-middle">' + (item.item_name || '') + '</td>';
+              itemsHtml += '<td class="align-middle">' + serviceProvidedBy + '</td>';
               itemsHtml += '<td class="text-right pr-3 font-weight-bold text-success align-middle">₹' + costPerPiece.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>';
               itemsHtml += '</tr>';
             });

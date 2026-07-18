@@ -305,6 +305,47 @@
     border-color: var(--gold);
     text-decoration: none;
   }
+  .btn-rent-items-view {
+    background: #ffffff;
+    border: 1.5px solid var(--border);
+    color: var(--text-2);
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .btn-rent-items-view:hover {
+    background: var(--surface-2);
+    color: var(--blue);
+    border-color: var(--blue);
+    text-decoration: none;
+  }
+
+  .btn-print-bill {
+    background: #ffffff;
+    border: 1.5px solid var(--border);
+    color: var(--text-2);
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .btn-print-bill:hover {
+    background: var(--surface-2);
+    color: var(--green);
+    border-color: var(--green);
+    text-decoration: none;
+  }
 
   /* Modals */
   .modal-content {
@@ -486,11 +527,49 @@
 
 <div class="container-fluid px-md-5 margintopcontainer pt-5 pb-5 page-wrap">
   <?php
+  // Pre-calculate items/extras totals for all unique raza_ids on this page
+  $raza_items_totals = [];
+  if (!empty($invoices)) {
+    $razaIds = array_filter(array_unique(array_column($invoices, 'raza_id')));
+    if (!empty($razaIds)) {
+      $razaRows = $this->db->select('id, razadata')
+        ->from('raza')
+        ->where_in('id', $razaIds)
+        ->get()
+        ->result_array();
+      
+      // We will also load all laagat rent items to map pricing
+      $dbItems = [];
+      $itemRows = $this->db->from('laagat_rent_items')->get()->result_array();
+      foreach ($itemRows as $row) {
+        $dbItems[(int)$row['id']] = $row;
+      }
+      
+      foreach ($razaRows as $rRow) {
+        $rId = (int)$rRow['id'];
+        $items_total = 0.00;
+        if (!empty($rRow['razadata'])) {
+          $razadata = json_decode($rRow['razadata'], true);
+          if (isset($razadata['item_qty']) && is_array($razadata['item_qty'])) {
+            foreach ($razadata['item_qty'] as $itemId => $qty) {
+              $qty = (int)$qty;
+              if ($qty > 0 && isset($dbItems[(int)$itemId])) {
+                $items_total += ((float)$dbItems[(int)$itemId]['rent_sabeel']) * $qty;
+              }
+            }
+          }
+        }
+        $raza_items_totals[$rId] = $items_total;
+      }
+    }
+  }
+
   $total_jmt_amt = 0;
   $total_sar_amt = 0;
   $total_inv_amt = 0;
   $total_paid_amt = 0;
   $total_due_amt = 0;
+  $total_returned_amt = 0;
   if (!empty($invoices)) {
     foreach ($invoices as $inv) {
       $isDepositOnly = ($inv['charge_type'] === 'rent' && (float)$inv['master_amount'] <= 0.0001 && (float)$inv['deposit_amount'] > 0);
@@ -506,7 +585,15 @@
       }
       $total_inv_amt += $tAmt;
       $total_paid_amt += (float)$inv['paid_amount'];
-      $total_due_amt += ($tAmt - (float)$inv['paid_amount']);
+      
+      $isReturned = (int)($inv['is_returned'] ?? 0) === 1;
+      if ($isReturned) {
+        $items_total = (float)($raza_items_totals[(int)$inv['raza_id']] ?? 0.00);
+        $refundable = max(0.00, (float)$inv['paid_amount'] - $items_total);
+        $total_returned_amt += $refundable;
+      } else {
+        $total_due_amt += ($tAmt - (float)$inv['paid_amount']);
+      }
     }
   }
   ?>
@@ -542,6 +629,20 @@
         <span class="tile-value">₹<?= format_inr($total_sar_amt, 0) ?></span>
       </div>
     <?php endif; ?>
+    <?php if ($is_rent && isset($rent_bifurcation)): ?>
+      <?php
+        $ladies_total = (float)($rent_bifurcation['Ladies'] ?? 0);
+        $jamaat_total = $total_inv_amt - $ladies_total;
+      ?>
+      <div class="summary-tile tile-jamaat">
+        <span class="tile-label">Jamaat Share</span>
+        <span class="tile-value">₹<?= format_inr($jamaat_total, 0) ?></span>
+      </div>
+      <div class="summary-tile tile-sarkaar">
+        <span class="tile-label">Ladies Share</span>
+        <span class="tile-value">₹<?= format_inr($ladies_total, 0) ?></span>
+      </div>
+    <?php endif; ?>
     <div class="summary-tile tile-total">
       <span class="tile-label">Total Amount</span>
       <span class="tile-value">₹<?= format_inr($total_inv_amt, 0) ?></span>
@@ -550,6 +651,12 @@
       <span class="tile-label">Total Paid</span>
       <span class="tile-value">₹<?= format_inr($total_paid_amt, 0) ?></span>
     </div>
+    <?php if ($is_deposit): ?>
+      <div class="summary-tile tile-sarkaar">
+        <span class="tile-label">Total Returned</span>
+        <span class="tile-value" style="color: var(--blue);">₹<?= format_inr($total_returned_amt, 0) ?></span>
+      </div>
+    <?php endif; ?>
     <div class="summary-tile tile-due">
       <span class="tile-label">Total Due</span>
       <span class="tile-value">₹<?= format_inr($total_due_amt, 0) ?></span>
@@ -650,10 +757,10 @@
         <tbody>
           <?php if (!empty($invoices)): ?>
             <?php $sr = 1;
-            foreach ($invoices as $inv): ?>
-              <?php
-              $balance = $is_deposit ? ((float)$inv['deposit_amount'] - (float)$inv['paid_amount']) : ((float)$inv['master_amount'] - (float)$inv['paid_amount']);
-              ?>
+            foreach ($invoices as $inv):
+              $isReturned = (int)($inv['is_returned'] ?? 0) === 1;
+              $balance = $isReturned ? 0.00 : ($is_deposit ? ((float)$inv['deposit_amount'] - (float)$inv['paid_amount']) : ((float)$inv['master_amount'] - (float)$inv['paid_amount']));
+            ?>
               <tr>
                 <td><?= $sr++ ?></td>
                 <td class="text-nowrap"><?= date('d-m-Y', strtotime($inv['created_at'])) ?></td>
@@ -677,9 +784,17 @@
                 }
                 $isRent = ($inv['charge_type'] === 'rent');
                 ?>
-                <?php if ($is_deposit): ?>
-                  <td class="text-end text-warning fw-bold">₹<?= format_inr((float)$inv['deposit_amount'], 0) ?></td>
-                <?php else: ?>
+                 <?php if ($is_deposit): 
+                   $items_total = (float)($raza_items_totals[(int)$inv['raza_id']] ?? 0.00);
+                   $refundable = max(0.00, (float)$inv['paid_amount'] - $items_total);
+                 ?>
+                   <td class="text-end text-warning fw-bold">
+                     ₹<?= format_inr((float)$inv['deposit_amount'], 0) ?>
+                     <?php if ((float)$inv['paid_amount'] > 0): ?>
+                       <div class="text-muted small fw-normal" style="font-size: 0.73rem; margin-top: 2px;">Refundable: <span class="text-success fw-bold">₹<?= format_inr($refundable, 0) ?></span></div>
+                     <?php endif; ?>
+                   </td>
+                 <?php else: ?>
                   <?php if (!$is_rent): ?>
                     <td class="text-end text-success fw-bold"><?= $isRent ? '-' : '₹' . format_inr($jAmt, 0) ?></td>
                     <td class="text-end text-info fw-bold"><?= $isRent ? '-' : '₹' . format_inr($sAmt, 0) ?></td>
@@ -693,18 +808,40 @@
                 <td class="text-center text-nowrap">
                   <div class="d-flex justify-content-center align-items-center" style="gap: 8px;">
                     <?php if (empty($_SESSION['user']['role']) || $_SESSION['user']['role'] != 2): ?>
-                      <?php if ($balance > 0): ?>
+                      <?php if ($isReturned): ?>
+                        <span class="badge bg-success text-white py-2 px-3 fw-bold" style="border-radius: var(--radius-sm); font-size: 0.76rem;">Returned</span>
+                      <?php elseif ($balance > 0): ?>
                         <button type="button" class="btn-receive btn-sm" title="Receive Payment" data-toggle="modal" data-target="#paymentModal<?= $inv['id'] ?>">
                           <i class="fa-solid fa-indian-rupee-sign"></i> Receive
                         </button>
                       <?php else: ?>
-                        <span class="btn-receive-disabled btn-sm text-center">Paid</span>
+                        <span class="btn-receive-disabled btn-sm text-center d-inline-block">Paid</span>
+                        <?php if ($is_deposit && (int)$inv['is_returned'] === 0 && (float)$inv['paid_amount'] > 0): 
+                           $items_total = (float)($raza_items_totals[(int)$inv['raza_id']] ?? 0.00);
+                           $refundable = max(0.00, (float)$inv['paid_amount'] - $items_total);
+                         ?>
+                           <form action="<?= base_url('anjuman/laagat_rent_return_deposit') ?>" method="POST" class="m-0 d-inline-block" onsubmit="return confirm('Are you sure you want to mark this deposit as returned (Refund amount: ₹<?= format_inr($refundable, 0) ?>) to the member?');">
+                             <input type="hidden" name="invoice_id" value="<?= $inv['id'] ?>">
+                             <button type="submit" class="btn btn-warning btn-sm" style="border-radius: var(--radius-sm); font-size: 0.76rem; font-weight: 700; padding: 6px 12px; border: none; color: #fff; background-color: #f0ad4e;" title="Return Deposit">
+                               <i class="fa-solid fa-reply"></i> Return (₹<?= format_inr($refundable, 0) ?>)
+                             </button>
+                           </form>
+                         <?php endif; ?>
                       <?php endif; ?>
                     <?php endif; ?>
 
                     <button type="button" class="btn-history-view btn-sm" title="View History" onclick="showHistory(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['Full_Name']) ?>')">
                       <i class="fa-solid fa-history"></i> History
                     </button>
+                    
+                    <?php if ($inv['charge_type'] === 'rent'): ?>
+                      <a href="<?= base_url('common/generate_pdf?id=' . $inv['id'] . '&for=9') ?>" target="_blank" class="btn-print-bill btn-sm" title="Print Resource Bill" style="text-decoration:none;">
+                        <i class="fa-solid fa-print"></i> Print
+                      </a>
+                      <button type="button" class="btn-rent-items-view btn-sm" title="View Rent Details" onclick="showRentItems(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['title']) ?>')">
+                        <i class="fa-solid fa-list"></i> View
+                      </button>
+                    <?php endif; ?>
                   </div>
                 </td>
               </tr>
@@ -756,6 +893,48 @@
               </tr>
             </thead>
             <tbody id="history_table_body">
+              <!-- Content loaded via AJAX -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rent Items Modal -->
+<div class="modal fade" id="rentItemsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-list text-primary mr-2"></i>Rent Details</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-4 d-flex justify-content-between align-items-center bg-light p-3 rounded border">
+          <div>
+            <span class="text-muted small text-uppercase fw-bold d-block">Account Name</span>
+            <span class="fw-bold text-dark h5 mb-0" id="rent_items_title"></span>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table history-table table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item Name</th>
+                <th>Service Provided By</th>
+                <th class="text-end">Cost / Piece</th>
+                <th class="text-center">Qty</th>
+                <th class="text-end">Total Cost</th>
+              </tr>
+            </thead>
+            <tbody id="rent_items_table_body">
               <!-- Content loaded via AJAX -->
             </tbody>
           </table>
@@ -904,6 +1083,47 @@
 <?php endif; ?>
 
 <script>
+  function showRentItems(invoiceId, title) {
+    $('#rent_items_title').text(title);
+    $('#rent_items_table_body').html('<tr><td colspan="6" class="text-center font-italic text-muted py-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading rent items...</td></tr>');
+    $('#rentItemsModal').modal('show');
+
+    $.ajax({
+      url: '<?= base_url("accounts/get_rent_invoice_items"); ?>',
+      type: 'POST',
+      data: { invoice_id: invoiceId },
+      dataType: 'json',
+      success: function(response) {
+        let html = '';
+        if (response && response.success) {
+          if (response.items && response.items.length > 0) {
+            response.items.forEach(function(item, idx) {
+              let costPerPiece = parseFloat(item.rent_sabeel) || 0;
+              let totalCost = parseFloat(item.total_cost) || 0;
+              let serviceProvidedBy = item.service_provided_by || 'Jamaat';
+              html += '<tr>' +
+                '<td>' + (idx + 1) + '</td>' +
+                '<td style="font-weight:600;color:var(--text-1);">' + item.item_name + '</td>' +
+                '<td>' + serviceProvidedBy + '</td>' +
+                '<td class="text-end fw-bold text-success">₹' + costPerPiece.toLocaleString('en-IN', {minimumFractionDigits: 0}) + '</td>' +
+                '<td class="text-center" style="font-weight:700;color:var(--text-2);">' + item.quantity + '</td>' +
+                '<td class="text-end fw-bold text-dark">₹' + totalCost.toLocaleString('en-IN', {minimumFractionDigits: 0}) + '</td>' +
+                '</tr>';
+            });
+          } else {
+            html = '<tr><td colspan="6" class="text-center text-muted py-4">No rent items selected.</td></tr>';
+          }
+        } else {
+          html = '<tr><td colspan="6" class="text-center text-danger py-4">' + (response.error || 'Failed to load rent items.') + '</td></tr>';
+        }
+        $('#rent_items_table_body').html(html);
+      },
+      error: function() {
+        $('#rent_items_table_body').html('<tr><td colspan="6" class="text-center text-danger py-4">Failed to load rent items.</td></tr>');
+      }
+    });
+  }
+
   function showHistory(invoiceId, name) {
     $('#history_member_name').text(name);
     $('#history_table_body').html('<tr><td colspan="5" class="text-center font-italic text-muted py-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading history...</td></tr>');

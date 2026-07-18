@@ -238,8 +238,8 @@
   <div class="container pb-4">
     <!-- Back Button -->
     <div class="mb-4">
-      <a href="<?php echo base_url("anjuman/fmbmodule") ?>" class="btn btn-back">
-        <i class="fa-solid fa-arrow-left mr-1"></i> Back to FMB Module
+      <a href="<?php echo base_url("anjuman") ?>" class="btn btn-back">
+        <i class="fa-solid fa-arrow-left mr-1"></i> Back to Dashboard
       </a>
     </div>
 

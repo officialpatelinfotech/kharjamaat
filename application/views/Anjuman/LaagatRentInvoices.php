@@ -285,6 +285,24 @@
     border-color: var(--red);
   }
 
+  .btn-action-print {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1.5px solid var(--green-border);
+    background: var(--green-bg);
+    color: var(--green);
+    transition: all 0.2s;
+  }
+  .btn-action-print:hover {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+  }
+
   /* Modals */
   .modal-content {
     border: 1.5px solid var(--border) !important;
@@ -397,6 +415,7 @@
         $total_jmt_amt = 0;
         $total_sar_amt = 0;
         $total_inv_amt = 0;
+        $total_returned_amt = 0;
         if (!empty($invoices)) {
             foreach($invoices as $inv) {
                 $isDepositOnly = ($inv['charge_type'] === 'rent' && (float)$inv['master_amount'] <= 0.0001 && (float)$inv['deposit_amount'] > 0);
@@ -411,6 +430,9 @@
                     $total_sar_amt += $sAmt;
                 }
                 $total_inv_amt += $tAmt;
+                if ($isDepositOnly && (int)($inv['is_returned'] ?? 0) === 1) {
+                    $total_returned_amt += $tAmt;
+                }
             }
         }
     ?>
@@ -441,10 +463,30 @@
                 <span class="tile-value">₹<?= format_inr($total_sar_amt, 0) ?></span>
             </div>
         <?php endif; ?>
+        <?php if ($is_rent && isset($rent_bifurcation)): ?>
+            <?php
+                $ladies_total = (float)($rent_bifurcation['Ladies'] ?? 0);
+                $jamaat_total = $total_inv_amt - $ladies_total;
+            ?>
+            <div class="summary-tile tile-jamaat">
+                <span class="tile-label">Jamaat Share</span>
+                <span class="tile-value">₹<?= format_inr($jamaat_total, 0) ?></span>
+            </div>
+            <div class="summary-tile tile-sarkaar">
+                <span class="tile-label">Ladies Share</span>
+                <span class="tile-value">₹<?= format_inr($ladies_total, 0) ?></span>
+            </div>
+        <?php endif; ?>
         <div class="summary-tile tile-total">
             <span class="tile-label">Total Amount</span>
             <span class="tile-value">₹<?= format_inr($total_inv_amt, 0) ?></span>
         </div>
+        <?php if ($is_deposit): ?>
+            <div class="summary-tile tile-sarkaar">
+                <span class="tile-label">Total Returned</span>
+                <span class="tile-value" style="color: var(--blue);">₹<?= format_inr($total_returned_amt, 0) ?></span>
+            </div>
+        <?php endif; ?>
     </div>
 
     <!-- Alerts -->
@@ -573,6 +615,14 @@
                                 <?php endif; ?>
                                 <td class="text-center text-nowrap">
                                     <div class="d-flex justify-content-center align-items-center">
+                                        <?php if ($is_deposit && (int)($inv['is_returned'] ?? 0) === 1): ?>
+                                            <span class="badge bg-success text-white py-1 px-2 fw-bold mr-2" style="font-size: 0.72rem;">Returned</span>
+                                        <?php endif; ?>
+                                        <?php if ($inv['charge_type'] === 'rent'): ?>
+                                            <a href="<?= base_url('common/generate_pdf?id=' . $inv['id'] . '&for=9') ?>" target="_blank" class="btn-action-print mr-2" title="Print Resource Bill">
+                                                <i class="fa-solid fa-print"></i>
+                                            </a>
+                                        <?php endif; ?>
                                         <button type="button" class="btn-action-edit mr-2" title="Edit Invoice" 
                                                 onclick="editInvoice(<?= htmlspecialchars(json_encode($inv)) ?>)">
                                             <i class="fa-solid fa-pen-to-square"></i>
@@ -639,7 +689,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" id="edit_invoice_amount_section">
                         <label class="form-label text-primary" id="edit_amount_label">Total Amount</label>
                         <div class="input-group">
                             <div class="input-group-prepend"><span class="input-group-text">₹</span></div>
@@ -678,20 +728,39 @@ function editInvoice(data) {
     
     if (data.charge_type === 'rent') {
         $('#edit_split_amounts_section').hide();
-        $('#edit_deposit_amount_section').show();
-        $('#edit_deposit_amount').val(parseFloat(data.deposit_amount || 0).toFixed(2));
-        $('#edit_amount_label').text('Amount');
-        $('#edit_invoice_amount')
-            .val(tAmt.toFixed(2))
-            .prop('readonly', false)
-            .css('background-color', '');
+        
+        var isDepositInvoice = (parseFloat(data.deposit_amount) > 0);
+        if (isDepositInvoice) {
+            $('#edit_invoice_amount_section').hide();
+            $('#edit_invoice_amount').prop('disabled', true);
+            
+            $('#edit_deposit_amount_section').show();
+            $('#edit_deposit_amount')
+                .prop('disabled', false)
+                .val(parseFloat(data.deposit_amount || 0).toFixed(2));
+        } else {
+            $('#edit_deposit_amount_section').hide();
+            $('#edit_deposit_amount').prop('disabled', true);
+            
+            $('#edit_invoice_amount_section').show();
+            $('#edit_amount_label').text('Amount');
+            $('#edit_invoice_amount')
+                .prop('disabled', false)
+                .val(tAmt.toFixed(2))
+                .prop('readonly', false)
+                .css('background-color', '');
+        }
     } else {
         $('#edit_split_amounts_section').show();
         $('#edit_deposit_amount_section').hide();
+        $('#edit_deposit_amount').prop('disabled', true);
+        
+        $('#edit_invoice_amount_section').show();
         $('#edit_amount_label').text('Total Amount');
         $('#edit_jamaat_amount').val(jAmt.toFixed(2));
         $('#edit_sarkaar_amount').val(sAmt.toFixed(2));
         $('#edit_invoice_amount')
+            .prop('disabled', false)
             .val((jAmt + sAmt).toFixed(2))
             .prop('readonly', true)
             .css('background-color', '#f7f4ec');

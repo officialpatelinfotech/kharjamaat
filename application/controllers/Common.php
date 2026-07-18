@@ -186,6 +186,7 @@ class Common extends CI_Controller
         'update_day', 'add_menu', 'delete_menu', 'insert_menu', 
         'add_menu_item', 'insert_item_type', 'insert_menu_item', 
         'edit_menu_item', 'delete_menu_item', 'createmiqaat', 
+        'toggle_thaali_day_ajax', 
         'add_miqaat', 'update_miqaat', 'delete_miqaat', 'cancel_miqaat', 
         'activate_miqaat', 'edit_miqaat', 'updatedpmapping', 
         'signupforaday', 'adddeliveryperson', 'updatedeliveryperson', 
@@ -372,8 +373,195 @@ class Common extends CI_Controller
     $this->load->library('dompdf_lib');
     $dompdf = $this->dompdf_lib->load();
 
-    $payment_id = $this->input->post("id");
-    $for = $this->input->post("for");
+    $payment_id = $this->input->post("id") ?: $this->input->get("id");
+    $for = $this->input->post("for") ?: $this->input->get("for");
+
+    if ((int)$for === 9) {
+      $invoice = $this->db->get_where('laagat_rent_invoices', ['id' => $payment_id])->row_array();
+      if (!$invoice) {
+        echo "Invoice not found.";
+        return;
+      }
+      
+      $raza = $this->db->get_where('raza', ['id' => $invoice['raza_id']])->row_array();
+      if (!$raza) {
+        echo "Raza booking not found.";
+        return;
+      }
+
+      $user = $this->db->select('Full_Name, ITS_ID, Mobile')->get_where('user', ['ITS_ID' => $invoice['user_id']])->row_array();
+      if (!$user) {
+        $user = $this->db->select('Full_Name, ITS_ID, Mobile')->get_where('user', ['id' => $invoice['user_id']])->row_array();
+      }
+
+      $raza_type = $this->db->get_where('raza_type', ['id' => $raza['razaType']])->row_array();
+      $razadata = json_decode($raza['razadata'], true) ?: [];
+
+      $jaman_date = $razadata['date'] ?? $razadata['Date'] ?? '';
+      $time_val = $razadata['time'] ?? $razadata['Time'] ?? '';
+      $timing_label = $time_val;
+      if ($raza_type && !empty($raza_type['fields'])) {
+        $fields_arr = json_decode($raza_type['fields'], true);
+        if (isset($fields_arr['fields']) && is_array($fields_arr['fields'])) {
+          foreach ($fields_arr['fields'] as $f) {
+            if (strtolower(trim($f['name'])) === 'time') {
+              if (isset($f['options']) && is_array($f['options'])) {
+                foreach ($f['options'] as $opt) {
+                  if ((string)$opt['id'] === (string)$time_val || (string)$opt['name'] === (string)$time_val) {
+                    $timing_label = $opt['name'];
+                    break 2;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      $caterer = '';
+      $decorator = '';
+      foreach ($razadata as $k => $v) {
+        $k_lower = strtolower(str_replace(['-', '_'], ' ', $k));
+        if (strpos($k_lower, 'caterer') !== false) {
+          $caterer = $v;
+        }
+        if (strpos($k_lower, 'decorator') !== false) {
+          $decorator = $v;
+        }
+      }
+
+      $thaal_count = '';
+      foreach ($razadata as $k => $v) {
+        $k_lower = strtolower(str_replace(['-', '_'], ' ', $k));
+        if (strpos($k_lower, 'thaal') !== false && (strpos($k_lower, 'count') !== false || strpos($k_lower, 'qty') !== false || strpos($k_lower, 'number') !== false)) {
+          $thaal_count = $v;
+        }
+      }
+      if ($thaal_count === '') {
+        $thaal_count = $razadata['approximate-thaal-count'] ?? $razadata['approximate_thaal_count'] ?? '';
+      }
+
+      $dbItems = $this->db
+        ->from('laagat_rent_items')
+        ->where('laagat_rent_id', (int)$invoice['laagat_rent_id'])
+        ->get()
+        ->result_array();
+
+      $items_by_provider = [
+        'Jamaat' => [],
+        'Ladies' => [],
+        'Extras' => []
+      ];
+
+      $totals = [
+        'Jamaat' => 0.00,
+        'Ladies' => 0.00,
+        'Extras' => 0.00
+      ];
+
+      if (isset($razadata['item_qty']) && is_array($razadata['item_qty'])) {
+        foreach ($dbItems as $item) {
+          $qty = isset($razadata['item_qty'][$item['id']]) ? (int)$razadata['item_qty'][$item['id']] : 0;
+          if ($qty > 0) {
+            $total_cost = ((float)$item['rent_sabeel']) * $qty;
+            $provider = trim((string)($item['service_provided_by'] ?? 'Jamaat'));
+            if ($provider === 'Ladies') {
+              $provider_key = 'Ladies';
+            } elseif ($provider === 'Extras') {
+              $provider_key = 'Extras';
+            } else {
+              $provider_key = 'Jamaat';
+            }
+
+            $items_by_provider[$provider_key][] = [
+              'item_name' => $item['item_name'],
+              'qty' => $qty,
+              'rate' => (float)$item['rent_sabeel'],
+              'total' => $total_cost
+            ];
+            $totals[$provider_key] += $total_cost;
+          }
+        }
+      }
+
+      $rentInvoice = $this->db->get_where('laagat_rent_invoices', [
+        'raza_id' => $invoice['raza_id'],
+        'amount >' => 0
+      ])->row_array();
+
+      $depositInvoice = $this->db->get_where('laagat_rent_invoices', [
+        'raza_id' => $invoice['raza_id'],
+        'deposit_amount >' => 0
+      ])->row_array();
+
+      $deposit_received = 0.00;
+      $deposit_cheque = '';
+      if ($depositInvoice) {
+        $depPayments = $this->db
+          ->from('laagat_rent_payments')
+          ->where('invoice_id', (int)$depositInvoice['id'])
+          ->get()
+          ->result_array();
+        foreach ($depPayments as $p) {
+          $deposit_received += (float)$p['amount'];
+          $ref = trim((string)($p['reference_no'] ?? $p['cheque_no'] ?? ''));
+          if ($ref !== '') {
+            $deposit_cheque .= ($deposit_cheque === '' ? '' : ', ') . $ref;
+          }
+        }
+      }
+
+      $rent_received = 0.00;
+      $rent_cheque = '';
+      if ($rentInvoice) {
+        $rPayments = $this->db
+          ->from('laagat_rent_payments')
+          ->where('invoice_id', (int)$rentInvoice['id'])
+          ->get()
+          ->result_array();
+        foreach ($rPayments as $p) {
+          $rent_received += (float)$p['amount'];
+          $ref = trim((string)($p['reference_no'] ?? $p['cheque_no'] ?? ''));
+          if ($ref !== '') {
+            $rent_cheque .= ($rent_cheque === '' ? '' : ', ') . $ref;
+          }
+        }
+      }
+
+      $total_bill = $totals['Jamaat'] + $totals['Ladies'] + $totals['Extras'];
+      $deposit_to_be_refunded = $deposit_received - $total_bill;
+
+      $pdf_data = [
+        'hirer_name' => $user ? $user['Full_Name'] : 'N/A',
+        'its_id' => $user ? $user['ITS_ID'] : 'N/A',
+        'jaman_date' => $jaman_date,
+        'timing' => $timing_label,
+        'thaals' => $thaal_count,
+        'type' => $raza_type ? $raza_type['name'] : 'N/A',
+        'caterer' => $caterer,
+        'decorator' => $decorator,
+        'items_jamaat' => $items_by_provider['Jamaat'],
+        'items_ladies' => $items_by_provider['Ladies'],
+        'items_extras' => $items_by_provider['Extras'],
+        'total_a' => $totals['Jamaat'],
+        'total_b' => $totals['Ladies'],
+        'total_c' => $totals['Extras'],
+        'total_abc' => $total_bill,
+        'deposit_received' => $deposit_received,
+        'deposit_cheque' => $deposit_cheque,
+        'rent_received' => $rent_received,
+        'rent_cheque' => $rent_cheque,
+        'deposit_to_be_refunded' => $deposit_to_be_refunded,
+        'raza_id' => $invoice['raza_id']
+      ];
+
+      $html = $this->load->view('pdf_resource_bill_template', $pdf_data, true);
+      $dompdf->loadHtml($html);
+      $dompdf->setPaper('A4', 'portrait');
+      $dompdf->render();
+      $dompdf->stream("resource_utilization_bill_R" . $invoice['raza_id'] . ".pdf", array("Attachment" => 0));
+      return;
+    }
 
     $data = [];
 
@@ -858,6 +1046,29 @@ class Common extends CI_Controller
     $data['menu'] = $this->CommonM->get_month_wise_menu($filter_data);
     foreach ($data["menu"] as $key => $value) {
       $data['menu'][$key]['hijri_date'] = $this->get_hijri_day_month($value["date"], $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"]);
+    }
+
+    // Enrich each row with is_thaali_day (marked in fmb_calendar_days OR has menu items)
+    if (!empty($data['menu']) && $this->db->table_exists('fmb_calendar_days')) {
+      $all_dates = array_column($data['menu'], 'date');
+      $this->db->select('date, day_type');
+      $this->db->from('fmb_calendar_days');
+      $this->db->where_in('date', $all_dates);
+      $cal_rows = $this->db->get()->result_array();
+      $cal_map = [];
+      foreach ($cal_rows as $cr) { $cal_map[$cr['date']] = $cr['day_type']; }
+      foreach ($data['menu'] as $k => $row) {
+        $d = $row['date'] ?? '';
+        $marked = isset($cal_map[$d]) && ($cal_map[$d] === 'Thaali' || $cal_map[$d] === 'Both');
+        $has_menu = !empty($row['items']);
+        $data['menu'][$k]['is_thaali_day'] = $marked || $has_menu;
+        $data['menu'][$k]['thaali_day_type'] = $cal_map[$d] ?? '';
+      }
+    } else {
+      foreach ($data['menu'] as $k => $row) {
+        $data['menu'][$k]['is_thaali_day'] = !empty($row['items']);
+        $data['menu'][$k]['thaali_day_type'] = '';
+      }
     }
 
     // Count distinct members assigned in the current listing
@@ -2076,8 +2287,95 @@ class Common extends CI_Controller
       exit;
     }
     $days = $this->HijriCalendar->get_hijri_days_for_month_year($month, $year);
+    if (!empty($days)) {
+      $greg_dates = array_column($days, 'greg_date');
+      $day_types = [];
+
+      // 1. Populate from fmb_calendar_days
+      if ($this->db->table_exists('fmb_calendar_days')) {
+        $this->db->select('date, day_type');
+        $this->db->from('fmb_calendar_days');
+        $this->db->where_in('date', $greg_dates);
+        $cal_days = $this->db->get()->result_array();
+        foreach ($cal_days as $cd) {
+          $day_types[$cd['date']] = $cd['day_type'];
+        }
+      }
+
+      // 2. Any date with an existing menu entry is also a Thaali Day
+      if ($this->db->table_exists('menu')) {
+        $this->db->select('date');
+        $this->db->from('menu');
+        $this->db->where_in('date', $greg_dates);
+        $menu_days = $this->db->get()->result_array();
+        foreach ($menu_days as $md) {
+          $d = $md['date'];
+          // Only override if not already set (keep 'Both'/'Holiday' etc. as-is)
+          if (!isset($day_types[$d]) || $day_types[$d] === '') {
+            $day_types[$d] = 'Thaali';
+          }
+          // If it was 'Holiday' but a menu exists, upgrade to 'Both'
+          if (isset($day_types[$d]) && $day_types[$d] === 'Holiday') {
+            $day_types[$d] = 'Both';
+          }
+        }
+      }
+
+      foreach ($days as $key => $d) {
+        $days[$key]['day_type'] = $day_types[$d['greg_date']] ?? '';
+      }
+    }
     echo json_encode(['status' => 'success', 'days' => $days]);
     exit;
+  }
+
+  public function toggle_thaali_day_ajax()
+  {
+    $this->validateUser($_SESSION['user']);
+    $date_raw = $this->input->post('date');
+    $status = (int)$this->input->post('status'); // 1 = mark as Thaali, 0 = unmark
+
+    if (!$date_raw) {
+      echo json_encode(['success' => false, 'message' => 'Missing date.']);
+      return;
+    }
+    $date = date('Y-m-d', strtotime($date_raw));
+
+    if (!$this->db->table_exists('fmb_calendar_days')) {
+      echo json_encode(['success' => false, 'message' => 'Calendar days table not found.']);
+      return;
+    }
+
+    // Check if entry exists
+    $exists = $this->db->where('date', $date)->get('fmb_calendar_days')->row_array();
+
+    if ($status === 1) {
+      if ($exists) {
+        $this->db->where('date', $date)->update('fmb_calendar_days', ['day_type' => 'Thaali']);
+      } else {
+        $this->db->insert('fmb_calendar_days', ['date' => $date, 'day_type' => 'Thaali']);
+      }
+      $msg = 'Date marked as Thaali Day successfully.';
+    } else {
+      // Unmark: remove from fmb_calendar_days
+      $this->db->where('date', $date)->delete('fmb_calendar_days');
+      $msg = 'Date unmarked as Thaali Day successfully.';
+    }
+
+    echo json_encode(['success' => true, 'message' => $msg]);
+  }
+
+  public function check_is_thaali_day_ajax()
+  {
+    $this->validateUser($_SESSION['user']);
+    $date_raw = $this->input->get('date');
+    if (!$date_raw) {
+      echo json_encode(['is_thaali_day' => false]);
+      return;
+    }
+    $this->load->model('CommonM');
+    $is_thaali = $this->CommonM->is_valid_thaali_day($date_raw);
+    echo json_encode(['is_thaali_day' => $is_thaali]);
   }
 
   // Returns hijri parts (day, month, year, month_name) for a given greg_date (Y-m-d)
@@ -2236,6 +2534,7 @@ class Common extends CI_Controller
         "assigned_to" => $assign_type,
         'date' => date("Y-m-d", strtotime($date)),
         'status' => $assign_type == "Fala ni Niyaz" ? 1 : 0,
+        'jaman_type' => $this->input->post('jaman_type') ?: null,
       ]);
 
       $miqaat_id = $this->CommonM->generate_miqaat_id($hijri_year);
@@ -2584,6 +2883,7 @@ class Common extends CI_Controller
         'name' => $name,
         'type' => $miqaat_type,
         'date' => date("Y-m-d", strtotime($date)),
+        'jaman_type' => $this->input->post('jaman_type') ?: null,
       ];
 
       // If miqaat is currently active, deactivate it on update
@@ -3630,6 +3930,7 @@ class Common extends CI_Controller
     $data["from"] = $from;
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/RSVPDetails', $data);
+    */
   }
 
   // Delivery Person Management
@@ -3699,7 +4000,6 @@ class Common extends CI_Controller
     } else {
       echo json_encode(["success" => false]);
     }
-    */
   }
 
   public function signupforaday($date)

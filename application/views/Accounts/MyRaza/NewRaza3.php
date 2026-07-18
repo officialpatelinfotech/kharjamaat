@@ -270,12 +270,27 @@
     var n = Number(amount);
     if (!isFinite(n)) n = 0;
 
+    var existingBox = document.getElementById('lr-rent-box');
+    if (existingBox && existingBox.getAttribute('data-charge-type') === chargeType && existingBox.getAttribute('data-title') === String(title || '')) {
+      var totalRentVals = existingBox.querySelectorAll('.lr-total-rent-value');
+      totalRentVals.forEach(function(el) {
+        el.textContent = formatInrCurrency(n);
+      });
+      var depVal = existingBox.querySelector('.lr-deposit-value');
+      if (depVal) {
+        depVal.textContent = formatInrCurrency(Number(depositAmount));
+      }
+      return;
+    }
+
     // Clear current controls so it doesn't look like a disabled input.
     while (groupEl.firstChild) groupEl.removeChild(groupEl.firstChild);
 
     var box = document.createElement('div');
     box.id = 'lr-rent-box';
     box.setAttribute('data-base-rent', String(n));
+    box.setAttribute('data-charge-type', chargeType);
+    box.setAttribute('data-title', String(title || ''));
     box.className = 'pt-2 pb-3 px-3 rounded border ' + bgClass;
     groupEl.appendChild(box);
 
@@ -317,7 +332,7 @@
         depLabel.innerHTML = '<strong>Deposit:</strong>';
         depDiv.appendChild(depLabel);
         var depVal = document.createElement('div');
-        depVal.className = 'fw-bold text-primary';
+        depVal.className = 'fw-bold text-primary lr-deposit-value';
         depVal.textContent = formatInrCurrency(dep);
         depDiv.appendChild(depVal);
         box.appendChild(depDiv);
@@ -327,16 +342,47 @@
         var itemsSection = document.createElement('div');
         itemsSection.className = 'mt-3 pt-3 border-top';
         
-        var sectionTitle = document.createElement('div');
-        sectionTitle.className = 'font-weight-bold text-secondary mb-2 small text-uppercase';
-        sectionTitle.style.letterSpacing = '0.5px';
-        sectionTitle.textContent = 'Rent Items (Optional)';
-        itemsSection.appendChild(sectionTitle);
+        var toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'btn btn-outline-secondary btn-sm w-100 d-flex justify-content-between align-items-center mb-2';
+        toggleBtn.style.fontWeight = 'bold';
+        toggleBtn.style.fontSize = '0.78rem';
+        toggleBtn.style.textTransform = 'uppercase';
+        toggleBtn.style.letterSpacing = '0.5px';
+        toggleBtn.style.padding = '8px 12px';
+        toggleBtn.style.borderRadius = '8px';
+        toggleBtn.style.border = '1.5px solid var(--border)';
+        toggleBtn.style.background = '#fff';
+        toggleBtn.style.color = 'var(--text-2)';
+        toggleBtn.innerHTML = '<span><i class="fa fa-list mr-1"></i> Rent Items (Optional)</span> <i class="fa fa-chevron-down"></i>';
+        itemsSection.appendChild(toggleBtn);
         
         var itemsList = document.createElement('div');
         itemsList.className = 'd-flex flex-column';
         itemsList.style.gap = '10px';
+        itemsList.style.display = 'none';
         itemsSection.appendChild(itemsList);
+
+        var hasPreselected = false;
+        items.forEach(function(item) {
+          if (itemQty[item.id] && Number(itemQty[item.id]) > 0) {
+            hasPreselected = true;
+          }
+        });
+        if (hasPreselected) {
+          itemsList.style.display = 'flex';
+          toggleBtn.innerHTML = '<span><i class="fa fa-list mr-1"></i> Rent Items (Optional)</span> <i class="fa fa-chevron-up"></i>';
+        }
+
+        toggleBtn.addEventListener('click', function() {
+          if (itemsList.style.display === 'none') {
+            itemsList.style.display = 'flex';
+            toggleBtn.innerHTML = '<span><i class="fa fa-list mr-1"></i> Rent Items (Optional)</span> <i class="fa fa-chevron-up"></i>';
+          } else {
+            itemsList.style.display = 'none';
+            toggleBtn.innerHTML = '<span><i class="fa fa-list mr-1"></i> Rent Items (Optional)</span> <i class="fa fa-chevron-down"></i>';
+          }
+        });
         
         items.forEach(function(item) {
           var itemRow = document.createElement('div');
