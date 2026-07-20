@@ -362,4 +362,25 @@ class Umoor12 extends CI_Controller
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Accounts/12_Umoor/MyRaza/UpdateRaza', $data);
   }
+
+  public function umoor_teams()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('UmoorHRM');
+
+    $active_year = $this->input->get('year') ?: '1448';
+    $umoor_id = (int)$this->input->get('umoor_id') ?: 1;
+
+    $data['active_year'] = $active_year;
+    $data['umoor_id'] = $umoor_id;
+    $data['umoor_list'] = $this->UmoorHRM->get_umoor_list();
+    $data['sub_committees'] = $this->UmoorHRM->get_sub_committees($umoor_id, $active_year);
+    $data['assigned_members'] = $this->UmoorHRM->get_assigned_members($active_year, $umoor_id);
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/12_Umoor/Teams', $data);
+  }
 }

@@ -4,767 +4,1381 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 <style>
-/* ── Theme variables matching dashboard ── */
+/* ═══════════════════════════════════════════════════
+   GOLD THEME — Scoped to #anjApp (Exact Dashboard Theme)
+   ═══════════════════════════════════════════════════ */
 :root {
-  --gold:        #b8860b;
-  --gold-light:  #e6c84a;
-  --gold-muted:  #f5e9c0;
-  --bg:          #faf7f0;
-  --surface:     #ffffff;
-  --surface-2:   #f7f4ec;
-  --border:      #e8e0cc;
-  --border-light:#f0ece0;
-  --text-1:      #1a1610;
-  --text-2:      #5a5244;
-  --text-3:      #9c8f7a;
-  --shadow-sm:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  --shadow:      0 4px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04);
-  --shadow-lg:   0 8px 32px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.05);
+  --gold:         #b8860b;
+  --gold-light:   #e6c84a;
+  --gold-muted:   #f5e9c0;
+  --primary:      #b8860b;
+  --primary-hover:#8a6408;
+  --primary-light:#f5e9c0;
+  --bg:           #faf7f0;
+  --surface:      #ffffff;
+  --surface-2:    #f7f4ec;
+  --border:       #e8e0cc;
+  --border-light: #f0ece0;
+  --text-1:       #1a1610;
+  --text-2:       #5a5244;
+  --text-3:       #9c8f7a;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow:       0 4px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.05);
+  --radius-sm:    6px;
+  --radius:       12px;
+  --radius-lg:    16px;
 }
 
-#umoorSubCommApp, #umoorSubCommApp *, #umoorSubCommApp *::before, #umoorSubCommApp *::after {
-  box-sizing: border-box;
-}
+#anjApp, #anjApp *, #anjApp *::before, #anjApp *::after { box-sizing: border-box; }
+#anjApp { font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text-1); background: var(--bg); min-height: 100vh; }
+#anjApp a { color: inherit; text-decoration: none !important; }
 
-#umoorSubCommApp {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: var(--text-1);
-  background: var(--bg);
-  min-height: 100vh;
-}
+/* ── Layout ── */
+#anjApp .anj-root { display: flex; min-height: 100vh; padding-top: 57px; }
 
-#umoorSubCommApp .app-root {
-  display: flex;
-  min-height: 100vh;
-  padding-top: 57px;
-}
-
-#umoorSubCommApp .app-sidebar {
-  width: 270px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 57px;
-  height: calc(100vh - 57px);
-  overflow-y: auto;
-  background: var(--surface);
+#anjApp .anj-sidebar {
+  width: 270px; flex-shrink: 0;
+  position: sticky; top: 57px; height: calc(100vh - 57px);
+  overflow-y: auto; background: var(--surface);
   border-right: 1px solid var(--border);
   padding: 16px 12px 32px;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  z-index: 100;
 }
 
-#umoorSubCommApp .app-content {
-  flex: 1;
-  min-width: 0;
-  padding: 22px 22px 60px;
-}
+#anjApp .anj-content { flex: 1; min-width: 0; padding: 22px 22px 60px; }
 
-/* ── Header banner ── */
-#umoorSubCommApp .app-header {
+/* ── Sidebar nav (Matches Home.php) ── */
+#anjApp .anj-sidebar .sb-brand { font-weight: 800; font-size: .84rem; color: var(--text-2); margin-bottom: 12px; padding: 0 4px; display: flex; align-items: center; gap: 8px; }
+#anjApp .anj-sidebar .sb-brand .sb-ico { width: 26px; height: 26px; border-radius: 7px; background: var(--gold-muted); color: var(--gold); display: inline-flex; align-items: center; justify-content: center; font-size: .78rem; }
+
+#anjApp .sb-search { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 8px; padding: 7px 10px; margin-bottom: 12px; transition: border-color .15s; }
+#anjApp .sb-search:focus-within { border-color: var(--gold); }
+#anjApp .sb-search i { color: var(--text-3); font-size: .8rem; }
+#anjApp .sb-search input { border: none; background: transparent; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: .81rem; color: var(--text-1); width: 100%; }
+#anjApp .sb-search input::placeholder { color: var(--text-3); }
+
+#anjApp .menu-section {
+  font-size: .58rem; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase;
+  color: var(--text-3); padding: 12px 6px 4px;
+  display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+}
+#anjApp .menu-section::after { content: '▾'; font-size: .62rem; transition: transform .2s; }
+
+#anjApp .menu-list { list-style: none; margin: 0; padding: 0; }
+#anjApp .menu-list li + li { margin-top: 2px; }
+
+#anjApp .menu-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 9px; border-radius: 7px;
+  color: var(--text-2); font-size: .82rem; font-weight: 500;
+  transition: background .14s, color .14s;
+}
+#anjApp .menu-item:hover { background: var(--gold-muted); color: var(--gold); }
+#anjApp .menu-item.active { background: var(--gold-muted); color: var(--gold); font-weight: 700; }
+
+#anjApp .menu-icon {
+  width: 27px; height: 27px; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-2); color: var(--text-3); font-size: .76rem; flex-shrink: 0;
+  transition: background .14s, color .14s;
+}
+#anjApp .menu-item:hover .menu-icon, #anjApp .menu-item.active .menu-icon { background: var(--gold); color: #fff; }
+#anjApp .menu-label { flex: 1; white-space: normal; word-break: break-word; }
+
+/* ── Dashboard Header Banner ── */
+#anjApp .anj-header { margin-bottom: 22px; }
+#anjApp .anj-header-inner {
   background: linear-gradient(135deg, #78520a 0%, #b8860b 50%, #c9a227 100%);
-  border-radius: 22px;
-  padding: 22px 28px;
-  margin-bottom: 24px;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  border-radius: 22px; padding: 22px 26px;
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
 }
-
-#umoorSubCommApp .app-header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
+#anjApp .anj-header-inner::before {
+  content: ''; position: absolute; inset: 0;
   background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/svg%3E") repeat;
   pointer-events: none;
 }
+#anjApp .anj-title-group { position: relative; z-index: 1; }
+#anjApp .anj-eyebrow { font-size: .67rem; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(255,255,255,.7); margin-bottom: 4px; }
+#anjApp .anj-title { font-family: 'Literata', Georgia, serif; font-size: 1.5rem; font-weight: 600; color: #fff; line-height: 1.15; margin: 0; }
 
-#umoorSubCommApp .app-header::after {
-  content: '';
-  position: absolute;
-  right: -50px;
-  top: -50px;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 70%);
-  pointer-events: none;
+#anjApp .anj-badge {
+  position: relative; z-index: 1;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+  border-radius: 14px; padding: 10px 16px; backdrop-filter: blur(6px);
+  text-align: center; flex-shrink: 0; display: flex; align-items: center; gap: 10px;
 }
+#anjApp .anj-badge-lbl { font-size: .68rem; font-weight: 800; color: rgba(255,255,255,.9); letter-spacing: .5px; text-transform: uppercase; }
 
-#umoorSubCommApp .app-eyebrow {
-  font-size: .67rem;
-  font-weight: 700;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.6);
-  margin-bottom: 4px;
-  position: relative;
-  z-index: 1;
+/* ── Navigation Tabs ── */
+.hr-tabs {
+  display: flex; gap: 10px; margin-bottom: 22px;
 }
-
-#umoorSubCommApp .app-title {
-  font-family: 'Literata', Georgia, serif;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1.15;
-  margin: 0;
-  position: relative;
-  z-index: 1;
-}
-
-#umoorSubCommApp .app-title span {
-  color: rgba(255,255,255,.72);
-  font-size: .95rem;
-  font-weight: 500;
-  display: block;
-  margin-top: 2px;
-}
-
-#umoorSubCommApp .app-badge {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  background: rgba(255,255,255,.15);
-  border: 1px solid rgba(255,255,255,.25);
-  border-radius: 14px;
-  padding: 10px 16px;
-  backdrop-filter: blur(6px);
-  text-align: center;
-}
-
-#umoorSubCommApp .app-badge-val {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #fff;
-  line-height: 1;
-  display: block;
-}
-
-#umoorSubCommApp .app-badge-lbl {
-  font-size: .65rem;
-  font-weight: 700;
-  color: rgba(255,255,255,.65);
-  letter-spacing: .5px;
-  text-transform: uppercase;
-  margin-top: 3px;
-  display: block;
-}
-
-/* ── Sidebar Nav ── */
-#umoorSubCommApp .menu-section {
-  font-size: .58rem;
-  font-weight: 800;
-  letter-spacing: 1.1px;
-  text-transform: uppercase;
-  color: var(--text-3);
-  padding: 12px 6px 4px;
-}
-
-#umoorSubCommApp .menu-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-#umoorSubCommApp .menu-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border-radius: 7px;
-  color: var(--text-2);
-  font-size: .82rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background .14s, color .14s;
-}
-
-#umoorSubCommApp .menu-item:hover, #umoorSubCommApp .menu-item.active {
-  background: var(--gold-muted);
-  color: var(--gold);
-  text-decoration: none;
-}
-
-#umoorSubCommApp .menu-icon {
-  width: 27px;
-  height: 27px;
-  border-radius: 7px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-2);
-  color: var(--text-3);
-  font-size: .76rem;
-  flex-shrink: 0;
-}
-
-#umoorSubCommApp .menu-item:hover .menu-icon, #umoorSubCommApp .menu-item.active .menu-icon {
-  background: var(--gold-muted);
-  color: var(--gold);
-}
-
-#umoorSubCommApp .menu-label {
-  flex: 1;
-}
-
-/* ── Umoor Cards ── */
-#umoorSubCommApp .umoor-card {
-  background: var(--surface);
-  border-radius: 16px;
-  border: 1.5px solid var(--border);
-  margin-bottom: 16px;
-  overflow: hidden;
+.hr-tab-btn {
+  padding: 10px 20px; border: 1px solid var(--border);
+  background: var(--surface); border-radius: 12px;
+  font-family: inherit; font-size: 0.84rem; font-weight: 700;
+  color: var(--text-2); cursor: pointer; transition: all .18s;
+  display: inline-flex; align-items: center; gap: 8px;
   box-shadow: var(--shadow-sm);
-  transition: transform .2s, box-shadow .2s;
+}
+.hr-tab-btn:hover { color: var(--gold); border-color: var(--gold); background: var(--gold-muted); }
+.hr-tab-btn.active {
+  color: #ffffff; background: linear-gradient(135deg, #b8860b 0%, #966c07 100%);
+  border-color: #b8860b; box-shadow: 0 4px 14px rgba(184,134,11,0.3);
 }
 
-#umoorSubCommApp .umoor-card:hover {
-  box-shadow: var(--shadow);
+/* ── Step Cards & Selection Header ── */
+.assign-steps-row {
+  display: grid; grid-template-columns: repeat(3, 1fr) 1.2fr;
+  gap: 14px; margin-bottom: 22px;
+}
+@media (max-width: 992px) { .assign-steps-row { grid-template-columns: 1fr; } }
+
+.step-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+}
+.step-label {
+  font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--text-3); display: block; margin-bottom: 6px;
+}
+.step-select {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-family: inherit; font-size: 0.82rem;
+  font-weight: 600; color: var(--text-1); background: var(--surface-2);
+  outline: none; transition: border-color .15s;
+}
+.step-select:focus { border-color: var(--gold); background: #fff; }
+
+.role-info-banner {
+  background: #fdf8e6; border: 1px solid #f5e9c0;
+  border-radius: var(--radius); padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.role-info-banner i { color: var(--gold); font-size: 1.1rem; margin-top: 2px; }
+.role-info-title { font-size: 0.82rem; font-weight: 800; color: #78520a; display: block; }
+.role-info-sub { font-size: 0.72rem; color: #8a6408; display: block; }
+
+/* ── Workspace 2-Column Split ── */
+.assign-workspace {
+  display: grid; grid-template-columns: 1fr 320px;
+  gap: 20px; margin-bottom: 24px;
+}
+@media (max-width: 1024px) { .assign-workspace { grid-template-columns: 1fr; } }
+
+.table-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px;
+  box-shadow: var(--shadow-sm);
 }
 
-#umoorSubCommApp .umoor-card-header {
-  padding: 16px 20px;
-  background: var(--surface-2);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  user-select: none;
-  border-bottom: 1px solid var(--border-light);
+.search-bar-wrap {
+  display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.search-input-box {
+  flex: 1; min-width: 200px; display: flex; align-items: center;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 0 12px;
+}
+.search-input-box i { color: var(--text-3); font-size: 0.85rem; margin-right: 8px; }
+.search-input-box input {
+  border: none; background: transparent; outline: none;
+  font-family: inherit; font-size: 0.8rem; color: var(--text-1); width: 100%;
 }
 
-#umoorSubCommApp .umoor-card-title {
-  font-family: 'Literata', Georgia, serif;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--text-1);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0;
+.table-responsive-custom {
+  overflow-x: auto; margin-bottom: 14px;
 }
-
-#umoorSubCommApp .umoor-card-title .uc-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--gold-muted);
-  color: var(--gold);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+table.members-tbl {
+  width: 100%; border-collapse: collapse; font-size: 0.78rem;
+}
+table.members-tbl th {
+  background: var(--surface-2); padding: 10px; text-align: left;
+  font-size: 0.66rem; text-transform: uppercase; letter-spacing: .6px;
+  color: var(--text-2); border-bottom: 2px solid var(--border);
   font-weight: 800;
-  font-size: 0.85rem;
+}
+table.members-tbl td {
+  padding: 10px; border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+table.members-tbl tr:hover { background: #fdfaf3; }
+table.members-tbl input[type="checkbox"] { accent-color: var(--gold); cursor: pointer; }
+
+.status-pill {
+  font-size: 0.66rem; font-weight: 800; padding: 2px 8px;
+  border-radius: 10px; display: inline-block;
+}
+.status-active { background: #dcfce7; color: #15803d; }
+.status-inactive { background: #fee2e2; color: #b91c1c; }
+
+/* Pagination controls */
+.pagination-wrap {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; font-size: 0.76rem; color: var(--text-2);
+}
+.page-btn {
+  padding: 4px 10px; border: 1px solid var(--border);
+  background: var(--surface); border-radius: 6px; font-weight: 700;
+  cursor: pointer; color: var(--text-1); transition: all .15s;
+}
+.page-btn:hover, .page-btn.active {
+  background: var(--gold); color: #fff; border-color: var(--gold);
 }
 
-#umoorSubCommApp .umoor-card-body {
-  padding: 20px;
-  display: none; /* Collapsed by default */
+/* ── Right Summary Sidebar ── */
+.summary-panel {
+  display: flex; flex-direction: column; gap: 16px;
+}
+.summary-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.summary-card h4 {
+  font-size: 0.86rem; font-weight: 800; color: var(--text-1);
+  margin: 0 0 12px 0; display: flex; align-items: center; justify-content: space-between;
+}
+.summary-meta-item {
+  margin-bottom: 10px;
+}
+.summary-meta-label {
+  font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+  color: var(--text-3); display: block;
+}
+.summary-meta-val {
+  font-size: 0.82rem; font-weight: 700; color: var(--text-1);
 }
 
-#umoorSubCommApp .umoor-card.active .umoor-card-body {
-  display: block;
+.assigned-box {
+  background: var(--surface-2); border: 1px dashed var(--border);
+  border-radius: var(--radius-sm); padding: 12px; text-align: center;
+  font-size: 0.76rem; color: var(--text-3);
+}
+.assigned-user-card {
+  display: flex; align-items: center; gap: 10px;
+  background: #fdfaf3; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px;
+}
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--gold-muted); color: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 0.78rem; flex-shrink: 0;
 }
 
-#umoorSubCommApp .umoor-card-chevron {
-  font-size: 0.95rem;
-  color: var(--text-3);
-  transition: transform 0.2s;
+.btn-assign-primary {
+  width: 100%; padding: 12px; border: none;
+  background: linear-gradient(135deg, #b8860b 0%, #966c07 100%);
+  color: #ffffff; font-family: inherit; font-size: 0.84rem;
+  font-weight: 800; border-radius: var(--radius-sm); cursor: pointer;
+  box-shadow: 0 4px 14px rgba(184,134,11,0.35); transition: all .15s;
 }
-
-#umoorSubCommApp .umoor-card.active .umoor-card-chevron {
-  transform: rotate(180deg);
-}
-
-/* ── Sub-Committee Items ── */
-#umoorSubCommApp .sub-comm-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-#umoorSubCommApp .sub-comm-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-#umoorSubCommApp .sub-comm-name {
-  font-weight: 700;
-  color: var(--text-1);
-  font-size: 0.9rem;
-}
-
-#umoorSubCommApp .sub-comm-lead {
-  font-size: 0.78rem;
-  color: var(--text-3);
-}
-
-#umoorSubCommApp .sub-comm-lead .lead-badge {
-  background: var(--gold-muted);
-  color: var(--gold);
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-weight: 700;
-  margin-left: 6px;
-  font-size: 0.72rem;
-}
-
-#umoorSubCommApp .sub-comm-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* ── Premium Buttons ── */
-#umoorSubCommApp .btn-premium {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-weight: 700;
-  font-size: 0.8rem;
-  padding: 7px 14px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: transform 0.15s, background 0.15s;
-}
-
-#umoorSubCommApp .btn-premium-gold {
-  background: linear-gradient(135deg, #78520a 0%, #b8860b 100%);
-  color: #fff;
-}
-
-#umoorSubCommApp .btn-premium-gold:hover {
-  background: linear-gradient(135deg, #8c600b 0%, #cca525 100%);
+.btn-assign-primary:hover {
+  background: linear-gradient(135deg, #966c07 0%, #78520a 100%);
   transform: translateY(-1px);
 }
 
-#umoorSubCommApp .btn-premium-outline {
-  background: transparent;
-  border: 1.5px solid var(--border);
-  color: var(--text-2);
+.selected-user-pill {
+  background: #fefce8; border: 1px solid #fef08a;
+  border-radius: var(--radius-sm); padding: 6px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px; font-size: 0.76rem;
+}
+.btn-remove-sel {
+  border: none; background: transparent; color: #ef4444;
+  cursor: pointer; font-size: 0.85rem; padding: 0 4px;
 }
 
-#umoorSubCommApp .btn-premium-outline:hover {
-  background: var(--gold-muted);
-  border-color: var(--gold);
-  color: var(--gold);
+/* ── Audit History Table ── */
+.history-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px;
+  box-shadow: var(--shadow-sm); margin-bottom: 24px;
 }
 
-#umoorSubCommApp .btn-premium-danger-outline {
-  background: transparent;
-  border: 1.5px solid #fca5a5;
-  color: #ef4444;
+/* ═══════════════════════════════════════════════════
+   TAB 2: TEAM HIERARCHY MODULE
+═══════════════════════════════════════════════════ */
+.level-badge {
+  font-size: 0.66rem; font-weight: 800; padding: 3px 10px;
+  border-radius: 20px; background: var(--gold-muted); color: var(--gold);
+  text-transform: uppercase; letter-spacing: .5px; display: inline-block;
+}
+.umoor-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 12px; margin-bottom: 24px;
+}
+@media (max-width: 1200px) { .umoor-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .umoor-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.u-card {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px; text-align: center; background: var(--surface-2);
+  transition: all .15s;
+}
+.u-card:hover { border-color: var(--gold); background: #fff; box-shadow: var(--shadow-sm); }
+.u-num { font-size: 0.65rem; font-weight: 800; color: var(--text-3); }
+.u-name { font-size: 0.78rem; font-weight: 800; color: var(--text-1); margin: 4px 0; }
+.u-coord { font-size: 0.7rem; color: var(--gold); font-weight: 700; }
+
+.level2-split {
+  display: grid; grid-template-columns: 240px 1fr 240px;
+  gap: 16px;
+}
+@media (max-width: 992px) { .level2-split { grid-template-columns: 1fr; } }
+
+.u-select-list {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden; background: var(--surface);
+}
+.u-select-item {
+  padding: 10px 12px; font-size: 0.76rem; font-weight: 700;
+  color: var(--text-2); border-bottom: 1px solid var(--border-light);
+  cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+  transition: background .15s;
+}
+.u-select-item:hover, .u-select-item.active {
+  background: var(--gold-muted); color: var(--gold);
 }
 
-#umoorSubCommApp .btn-premium-danger-outline:hover {
-  background: #fee2e2;
-  border-color: #ef4444;
+.controls-sidebar {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 14px; font-size: 0.74rem; background: var(--surface-2);
+}
+.controls-sidebar h5 {
+  font-size: 0.76rem; font-weight: 800; color: var(--text-1); margin-bottom: 8px;
+}
+.controls-sidebar ul { padding-left: 14px; margin: 0 0 12px 0; }
+
+/* Modal & Autocomplete */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.4);
+  backdrop-filter: blur(2px); z-index: 9999; display: none;
+  align-items: center; justify-content: center;
+}
+.modal-box {
+  background: #fff; border-radius: var(--radius); width: 100%;
+  max-width: 480px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
 }
 
-/* ── Autocomplete CSS ── */
-#umoorSubCommApp .autocomplete-container {
-  position: relative;
-  width: 100%;
+.autocomplete-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: #ffffff; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  max-height: 200px; overflow-y: auto; z-index: 10000; margin-top: 4px;
 }
-
-#umoorSubCommApp .autocomplete-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: #fff;
-  border: 1.5px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 10px 10px;
-  box-shadow: var(--shadow-lg);
-  max-height: 220px;
-  overflow-y: auto;
-  z-index: 2000;
-  display: none;
+.ac-item {
+  padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9;
+  display: flex; align-items: center; gap: 10px; font-size: 0.78rem;
+  transition: background .15s;
 }
-
-#umoorSubCommApp .autocomplete-item {
-  padding: 10px 14px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border-light);
-  font-size: 0.82rem;
-  transition: background 0.15s;
-}
-
-#umoorSubCommApp .autocomplete-item:hover {
-  background: var(--gold-muted);
-}
-
-#umoorSubCommApp .selected-lead-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--surface-2);
-  border: 1.5px solid var(--gold-light);
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-top: 8px;
-}
-
-#umoorSubCommApp .form-control-premium {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 9px;
-  outline: none;
-  font-family: inherit;
-  font-size: 0.85rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background: var(--surface-2);
-}
-
-#umoorSubCommApp .form-control-premium:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(184,134,11,.1);
-  background: #fff;
-}
+.ac-item:hover { background: var(--gold-muted); color: var(--gold); }
+.ac-name { font-weight: 700; color: var(--text-1); }
+.ac-its { font-size: 0.7rem; color: var(--text-3); }
 </style>
 
-<?php
-$umoor_list = [
-  1 => 'Umoor Deeniyah',
-  2 => 'Umoor Talimiyah',
-  3 => 'Umoor Kharijiyah',
-  4 => 'Umoor Dakheliyah',
-  5 => 'Umoor Maliyah',
-  6 => 'Umoor Iqtesadiyah',
-  7 => 'Umoor Sehat',
-  8 => 'Umoor Faisala',
-  9 => 'Umoor Ikram',
-  10 => 'Umoor Dawat',
-  11 => 'Umoor Mawaid',
-  12 => 'Umoor Amlak'
-];
-
-// Group sub-committees by Umoor ID
-$sub_committees_by_umoor = [];
-foreach ($umoor_list as $uid => $uname) {
-  $sub_committees_by_umoor[$uid] = [];
-}
-if (!empty($sub_committees)) {
-  foreach ($sub_committees as $sc) {
-    $sub_committees_by_umoor[(int)$sc['umoor_id']][] = $sc;
-  }
-}
-?>
-
-<div id="umoorSubCommApp">
-  <div class="app-root">
+<div id="anjApp">
+  <div class="anj-root">
     
-    <!-- ══ SIDEBAR ══ -->
-    <aside class="app-sidebar">
+    <!-- ══ EXACT DASHBOARD LEFT SIDEBAR ══ -->
+    <aside class="anj-sidebar d-none d-lg-block">
       <div class="sb-brand mb-3">
         <span class="sb-ico" style="display:inline-flex;width:26px;height:26px;border-radius:7px;background:var(--gold-muted);color:var(--gold);align-items:center;justify-content:center;font-size:.78rem;margin-right:8px;">
           <i class="fa fa-tachometer"></i>
         </span>Admin Menu
       </div>
+      
+      <div class="sb-search" role="search">
+        <i class="fa fa-search"></i>
+        <input id="quickMenuSearch" type="text" placeholder="Search menu..." autocomplete="off">
+      </div>
+
       <div class="menu-section">Member Management</div>
       <ul class="menu-list">
         <li><a class="menu-item" href="<?php echo base_url('admin/managemembers'); ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Manage Members</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/importmembers'); ?>"><span class="menu-icon"><i class="fa fa-upload"></i></span><span class="menu-label">Import Members</span></a></li>
         <li><a class="menu-item active" href="<?php echo base_url('admin/umoor_sub_committees'); ?>"><span class="menu-icon"><i class="fa fa-sitemap"></i></span><span class="menu-label">Umoor Sub-Committees</span></a></li>
       </ul>
-      <div class="menu-section">Finance & Sabeel</div>
+
+      <div class="menu-section">Miqaat &amp; FMB</div>
       <ul class="menu-list">
-        <li><a class="menu-item" href="<?php echo base_url('admin/managesabeeltakhmeen'); ?>"><span class="menu-icon"><i class="fa fa-credit-card"></i></span><span class="menu-label">Sabeel Takhmeen</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/razalist'); ?>"><span class="menu-icon"><i class="fa fa-list"></i></span><span class="menu-label">Manage Raza Form</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/managefmbtakhmeen'); ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">FMB Thaali Takhmeen</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/manageniyazamounts'); ?>"><span class="menu-icon"><i class="fa fa-coins"></i></span><span class="menu-label">Miqaat Niyaz Takhmeen</span></a></li>
+      </ul>
+
+      <div class="menu-section">Finance &amp; Sabeel</div>
+      <ul class="menu-list">
+        <li><a class="menu-item" href="<?php echo base_url('admin/managesabeeltakhmeen'); ?>"><span class="menu-icon"><i class="fa fa-credit-card"></i></span><span class="menu-label">Manage Sabeel Takhmeen</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/corpusfunds'); ?>"><span class="menu-icon"><i class="fa fa-university"></i></span><span class="menu-label">Corpus Funds</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/laagat'); ?>"><span class="menu-icon"><i class="fa-solid fa-coins"></i></span><span class="menu-label">Laagat Module</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/rent'); ?>"><span class="menu-icon"><i class="fa fa-building"></i></span><span class="menu-label">Rent Module</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/ekramfunds'); ?>"><span class="menu-icon"><i class="fa fa-gift"></i></span><span class="menu-label">Ekram Funds</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/qardanhasana'); ?>"><span class="menu-icon"><i class="fa fa-leaf"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/wajebaat'); ?>"><span class="menu-icon"><i class="fa fa-book"></i></span><span class="menu-label">Wajebaat</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/expense'); ?>"><span class="menu-icon"><i class="fa fa-calculator"></i></span><span class="menu-label">Expense &amp; Budget Module</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/madresa'); ?>"><span class="menu-icon"><i class="fa fa-graduation-cap"></i></span><span class="menu-label">Madresa Module</span></a></li>
+      </ul>
+
+      <div class="menu-section">System Settings</div>
+      <ul class="menu-list">
+        <li><a class="menu-item" href="<?php echo base_url('admin/preferences'); ?>"><span class="menu-icon"><i class="fa fa-cog"></i></span><span class="menu-label">Preferences</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/notification_settings'); ?>"><span class="menu-icon"><i class="fa fa-bell"></i></span><span class="menu-label">Notifications Settings</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/status_options'); ?>"><span class="menu-icon"><i class="fa fa-sliders"></i></span><span class="menu-label">Manage Status Options</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/login_report'); ?>"><span class="menu-icon"><i class="fa fa-list-alt"></i></span><span class="menu-label">System Login Report</span></a></li>
       </ul>
     </aside>
 
-    <!-- ══ CONTENT ══ -->
-    <main class="app-content">
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="anj-content">
       
-      <!-- Header banner -->
-      <div class="app-header">
-        <div>
-          <p class="app-eyebrow">Anjuman-e-Saifee <?php echo htmlspecialchars(jamaat_name(), ENT_QUOTES, 'UTF-8'); ?></p>
-          <h1 class="app-title">
-            Umoor Sub-Committees
-            <span>Organize sub-committees and assign team leads under the 12 Umoor</span>
-          </h1>
-        </div>
-        <div class="app-badge">
-          <span class="app-badge-val">12</span>
-          <span class="app-badge-lbl">Umoor Categories</span>
+      <!-- Top Dashboard Banner -->
+      <div class="anj-header">
+        <div class="anj-header-inner">
+          <div class="anj-title-group">
+            <div class="anj-eyebrow">12 Umoor HR Module</div>
+            <h1 class="anj-title">12 Umoor HR Hierarchy & Role Management</h1>
+            <p style="color:rgba(255,255,255,0.8);font-size:0.8rem;margin:4px 0 0 0">
+              Manage Level 1 Coordinators, Level 2 Team Leads, and Level 3 Team Members year by year.
+            </p>
+          </div>
+
+          <div class="anj-badge">
+            <span class="anj-badge-lbl"><i class="fa fa-calendar"></i> Hijri Year</span>
+            <select id="hr-year-select" onchange="changeYear(this.value)" style="background:rgba(255,255,255,0.25);color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:10px;padding:6px 12px;font-weight:800;font-size:0.85rem;outline:none;cursor:pointer">
+              <?php foreach ($years_list as $y): ?>
+                <option value="<?php echo $y; ?>" <?php echo ($active_year == $y) ? 'selected' : ''; ?> style="color:#1a1610">
+                  <?php echo $y; ?> Hijri
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
         </div>
       </div>
 
-      <!-- ══ Umoor Collapsible Grid ══ -->
-      <div class="umoor-accordion">
-        <?php foreach ($umoor_list as $uid => $uname): ?>
-          <div class="umoor-card" id="umoor-card-<?php echo $uid; ?>">
-            <div class="umoor-card-header" onclick="toggleUmoorCard(<?php echo $uid; ?>)">
-              <h4 class="umoor-card-title">
-                <span class="uc-badge"><?php echo $uid; ?></span>
-                <?php echo htmlspecialchars($uname); ?>
-                <span class="small text-muted" style="font-family:'Plus Jakarta Sans', sans-serif; font-size:0.72rem; font-weight:normal;">
-                  (<?php echo count($sub_committees_by_umoor[$uid]); ?> Sub-Committees)
-                </span>
-              </h4>
-              <i class="fa fa-chevron-down umoor-card-chevron"></i>
-            </div>
-            <div class="umoor-card-body">
-              
-              <!-- Sub-Committees list -->
-              <div class="sub-comm-list">
-                <?php if (empty($sub_committees_by_umoor[$uid])): ?>
-                  <p class="text-muted small text-center my-3"><i class="fa fa-info-circle"></i> No sub-committees registered under this Umoor.</p>
-                <?php else: ?>
-                  <?php foreach ($sub_committees_by_umoor[$uid] as $sc): ?>
-                    <div class="sub-comm-item">
-                      <div>
-                        <div class="sub-comm-name"><?php echo htmlspecialchars($sc['name']); ?></div>
-                        <div class="sub-comm-lead">
-                          <?php if ($sc['team_lead_its']): ?>
-                            Team Lead: <strong><?php echo htmlspecialchars($sc['team_lead_name']); ?></strong> <span class="lead-badge"><?php echo htmlspecialchars($sc['team_lead_its']); ?></span>
-                          <?php else: ?>
-                            <span class="text-danger"><i class="fa fa-exclamation-triangle"></i> No Team Lead Assigned</span>
-                          <?php endif; ?>
-                        </div>
-                      </div>
-                      <div class="sub-comm-actions">
-                        <button type="button" class="btn-premium btn-premium-outline btn-sm" onclick="openSubCommitteeModal(<?php echo $uid; ?>, <?php echo $sc['id']; ?>, '<?php echo addslashes($sc['name']); ?>', '<?php echo addslashes($sc['team_lead_its'] ?? ''); ?>', '<?php echo addslashes($sc['team_lead_name'] ?? ''); ?>')">
-                          <i class="fa fa-edit"></i> Edit
-                        </button>
-                        <button type="button" class="btn-premium btn-premium-danger-outline btn-sm" onclick="deleteSubCommittee(<?php echo $sc['id']; ?>)">
-                          <i class="fa fa-trash"></i> Delete
-                        </button>
-                      </div>
-                    </div>
-                  <?php endforeach; ?>
-                <?php endif; ?>
-              </div>
+      <!-- Navigation Tabs -->
+      <div class="hr-tabs">
+        <button type="button" class="hr-tab-btn active" onclick="switchTab('assignment')" id="tab-btn-assignment">
+          <i class="fa fa-user-plus"></i> Role Assignment
+        </button>
+        <button type="button" class="hr-tab-btn" onclick="switchTab('hierarchy')" id="tab-btn-hierarchy">
+          <i class="fa fa-sitemap"></i> Team Hierarchy (Level 1 & Level 2)
+        </button>
+      </div>
 
-              <!-- Add button -->
-              <div class="text-right">
-                <button type="button" class="btn-premium btn-premium-gold" onclick="openSubCommitteeModal(<?php echo $uid; ?>)">
-                  <i class="fa fa-plus"></i> Add Sub-Committee
+      <!-- ═══════════════════════════════════════════════════
+           TAB 1: ROLE ASSIGNMENT WORKSPACE
+      ═══════════════════════════════════════════════════ -->
+      <div id="tab-assignment-content">
+        
+        <!-- 3 Step Filters Header -->
+        <div class="assign-steps-row">
+          <div class="step-card">
+            <span class="step-label">1. Select Umoor</span>
+            <select class="step-select" id="sel-umoor" onchange="onUmoorChange()">
+              <?php foreach ($umoor_list as $uid => $uname): ?>
+                <option value="<?php echo $uid; ?>"><?php echo $uid . '. ' . htmlspecialchars($uname); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div class="step-card">
+            <span class="step-label">2. Select Sub Committee</span>
+            <select class="step-select" id="sel-subcomm" onchange="onSubCommChange()">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <div class="step-card">
+            <span class="step-label">3. Select Role</span>
+            <select class="step-select" id="sel-role" onchange="onRoleChange()">
+              <option value="Team Lead">Team Lead</option>
+              <option value="Umoor Coordinator">Umoor Coordinator</option>
+              <option value="Team Member">Team Member</option>
+            </select>
+          </div>
+
+          <div class="role-info-banner" id="role-type-banner">
+            <i class="fa fa-info-circle"></i>
+            <div>
+              <span class="role-info-title" id="banner-title">Role Type: Single</span>
+              <span class="role-info-sub" id="banner-sub">Only 1 member can be assigned</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 Column Workspace Split -->
+        <div class="assign-workspace">
+          
+          <!-- LEFT COLUMN: Members Search & Filter Table -->
+          <div class="table-card">
+            <div class="search-bar-wrap">
+              <div class="search-input-box">
+                <i class="fa fa-search"></i>
+                <input type="text" id="search-q" placeholder="Search by Name or ITS Number..." onkeyup="onSearchInput()">
+              </div>
+              <select class="step-select" style="width:auto" id="filter-gender" onchange="loadMembers(1)">
+                <option value="All">Gender: All</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+              <select class="step-select" style="width:auto" id="filter-status" onchange="loadMembers(1)">
+                <option value="All">Status: All</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+              <button type="button" class="btn-assign-primary" style="width:auto;padding:0 14px;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border);box-shadow:none" onclick="resetFilters()">
+                <i class="fa fa-undo"></i> Reset
+              </button>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <label style="font-size:0.76rem;font-weight:700;cursor:pointer">
+                <input type="checkbox" id="chk-select-all" onchange="toggleSelectAllPage(this.checked)"> Select All (Page)
+              </label>
+              <span style="font-size:0.74rem;color:var(--text-3)"><span id="sel-count-pill" style="font-weight:800;color:var(--gold)">0</span> member selected</span>
+            </div>
+
+            <div class="table-responsive-custom">
+              <table class="members-tbl">
+                <thead>
+                  <tr>
+                    <th style="width:36px"></th>
+                    <th>ITS Number</th>
+                    <th>Member Name</th>
+                    <th>Mobile Number</th>
+                    <th>Email</th>
+                    <th>Gender</th>
+                    <th>Family (HOF)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="tbl-members-body">
+                  <!-- JS populated -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pagination-wrap">
+              <span id="page-count-info">Showing 1 to 10 of members</span>
+              <div id="pagination-controls" style="display:flex;gap:4px"></div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Assignment Summary Panel -->
+          <div class="summary-panel">
+            <div class="summary-card">
+              <h4>Assignment Summary <span class="level-badge" id="summary-role-type-badge">Single Role</span></h4>
+              
+              <div class="summary-meta-item">
+                <span class="summary-meta-label">Hijri Year</span>
+                <span class="summary-meta-val" id="sum-year"><?php echo $active_year; ?></span>
+              </div>
+              <div class="summary-meta-item">
+                <span class="summary-meta-label">Umoor</span>
+                <span class="summary-meta-val" id="sum-umoor">—</span>
+              </div>
+              <div class="summary-meta-item">
+                <span class="summary-meta-label">Sub Committee</span>
+                <span class="summary-meta-val" id="sum-subcomm">—</span>
+              </div>
+              <div class="summary-meta-item">
+                <span class="summary-meta-label">Role</span>
+                <span class="summary-meta-val" id="sum-role">—</span>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <h4>Currently Assigned</h4>
+              <div id="currently-assigned-box">
+                <div class="assigned-box"><i class="fa fa-user"></i> No member assigned yet</div>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <h4>Selected Member(s) <span class="level-badge" id="selected-count-badge">0</span></h4>
+              <div id="selected-members-list">
+                <p class="text-muted small text-center my-2">Please select a member from the list to assign.</p>
+              </div>
+              <button type="button" class="btn-assign-primary" onclick="submitAssignment()">
+                <i class="fa fa-check-circle"></i> Assign Member
+              </button>
+            </div>
+
+            <div class="summary-card" style="background:#fefce8;border-color:#fef08a">
+              <h5 style="font-size:0.76rem;font-weight:800;color:#8a6408;margin:0 0 6px 0"><i class="fa fa-info-circle"></i> Role Rules:</h5>
+              <ul style="padding-left:14px;margin:0;font-size:0.72rem;color:#78520a">
+                <li><strong>Umoor Coordinator</strong> – Only 1 member</li>
+                <li><strong>Team Lead</strong> – Only 1 member</li>
+                <li><strong>Members</strong> – Multiple members allowed</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Audit Log History -->
+        <div class="history-card">
+          <h4 style="font-size:0.86rem;font-weight:800;color:var(--text-1);margin:0 0 14px 0;display:flex;align-items:center;justify-content:space-between">
+            <span><i class="fa fa-history"></i> Assignment History (Audit Log)</span>
+          </h4>
+          <div class="table-responsive-custom">
+            <table class="members-tbl">
+              <thead>
+                <tr>
+                  <th>Member Name</th>
+                  <th>ITS Number</th>
+                  <th>Role</th>
+                  <th>Sub-Committee</th>
+                  <th>Assigned By</th>
+                  <th>Assigned On</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-history-body">
+                <!-- JS Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════
+           TAB 2: TEAM HIERARCHY MODULE
+      ═══════════════════════════════════════════════════ -->
+      <div id="tab-hierarchy-content" style="display:none">
+        
+        <div style="margin-bottom:20px">
+          <h2 style="font-size:1.1rem;font-weight:800;color:var(--text-1);margin:0">Team Hierarchy Module – Level 1 & Level 2</h2>
+          <p style="font-size:0.78rem;color:var(--text-2);margin:2px 0 0 0">Umoor (Level 1) are hard-coded. Admin can create Team Leads (Level 2) under each Umoor.</p>
+        </div>
+
+        <!-- Level 1 Coordinators Grid -->
+        <div style="margin-bottom:24px">
+          <h3 style="font-size:0.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:12px">
+            Level 1 – Umoor Coordinators (12 Hard-Coded Umoor)
+          </h3>
+          <div class="umoor-grid" id="level1-grid">
+            <!-- JS populated 12 cards -->
+          </div>
+        </div>
+
+        <!-- Level 2 Team Leads Split View -->
+        <div style="margin-bottom:24px">
+          <h3 style="font-size:0.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:12px">
+            Level 2 – Team Leads (Sub-Committee Heads)
+          </h3>
+
+          <div class="level2-split">
+            <!-- Select Umoor Left List -->
+            <div>
+              <span class="step-label">Select Umoor</span>
+              <div class="u-select-list" id="l2-umoor-select-list">
+                <!-- JS populated -->
+              </div>
+            </div>
+
+            <!-- Middle Teams Table -->
+            <div class="table-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <h4 style="font-size:0.86rem;font-weight:800;margin:0" id="l2-selected-umoor-heading">Teams under Selected Umoor</h4>
+                <button type="button" class="btn-assign-primary" style="width:auto;padding:6px 14px;font-size:0.76rem" onclick="openAddTeamModal()">
+                  <i class="fa fa-plus"></i> Add Team Lead / Team
                 </button>
               </div>
 
+              <div class="table-responsive-custom">
+                <table class="members-tbl">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Team Name</th>
+                      <th>Team Lead (Member)</th>
+                      <th>Members Count</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="l2-teams-tbl-body">
+                    <!-- JS populated -->
+                  </tbody>
+                </table>
+              </div>
             </div>
+
+            <!-- Right Controls Panel -->
+            <div class="controls-sidebar">
+              <h5>Level 1 Controls</h5>
+              <ul>
+                <li>View All Umoor</li>
+                <li>View Coordinator</li>
+                <li>No Create / Edit / Delete</li>
+                <li>Umoor are Hard-coded</li>
+              </ul>
+              <h5>Level 2 Controls (Admin)</h5>
+              <ul>
+                <li>Add Team Lead / Team</li>
+                <li>Edit Team</li>
+                <li>Delete Team</li>
+                <li>Assign / Transfer Team Lead</li>
+                <li>View Members in Team</li>
+              </ul>
+            </div>
+
           </div>
-        <?php endforeach; ?>
+        </div>
+
       </div>
 
     </main>
   </div>
 </div>
 
-<!-- ══ Create/Edit Sub-Committee Modal ══ -->
-<div class="modal fade" id="subCommitteeModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
-    <div class="modal-content" style="border-radius:14px; border:none; box-shadow:var(--shadow-lg);">
-      <div class="modal-header" style="border-bottom:1.5px solid var(--border-light); background:var(--surface-2); border-radius:14px 14px 0 0;">
-        <h5 class="modal-title" id="modalTitle" style="font-family:'Literata', Georgia, serif; font-weight:600; color:var(--text-1);">Add Sub-Committee</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="outline:none;">
-          <span aria-hidden="true">&times;</span>
-        </button>
+<!-- Modal: Add / Edit Team -->
+<div class="modal-overlay" id="team-modal">
+  <div class="modal-box">
+    <h3 style="font-size:1rem;font-weight:800;margin:0 0 16px 0;color:var(--text-1)" id="modal-team-title">Add Team Lead / Team</h3>
+    
+    <form onsubmit="saveTeamSubmit(event)">
+      <input type="hidden" id="modal-team-id" value="0">
+      <div style="margin-bottom:12px">
+        <label class="step-label">Umoor Category</label>
+        <select class="step-select" id="modal-team-umoor" required>
+          <?php foreach ($umoor_list as $uid => $uname): ?>
+            <option value="<?php echo $uid; ?>"><?php echo $uid . '. ' . htmlspecialchars($uname); ?></option>
+          <?php endforeach; ?>
+        </select>
       </div>
-      <form id="subCommitteeForm" onsubmit="saveSubCommittee(event)">
-        <input type="hidden" name="id" id="sc_id" value="0">
-        <input type="hidden" name="umoor_id" id="sc_umoor_id" value="0">
 
-        <div class="modal-body p-4">
-          
-          <div class="form-group">
-            <label style="font-weight:700; color:var(--text-2); font-size:0.8rem; text-transform:uppercase; display:block; margin-bottom:6px;">Umoor Category</label>
-            <input type="text" id="sc_umoor_name_display" class="form-control-premium" disabled style="background:#e9e7e0;">
-          </div>
+      <div style="margin-bottom:12px">
+        <label class="step-label">Team / Sub-Committee Name</label>
+        <input type="text" class="step-select" id="modal-team-name" placeholder="e.g. Madresa Team, Library Team..." required>
+      </div>
 
-          <div class="form-group mt-3">
-            <label for="sc_name" style="font-weight:700; color:var(--text-2); font-size:0.8rem; text-transform:uppercase; display:block; margin-bottom:6px;">Sub-Committee Name *</label>
-            <input type="text" name="name" id="sc_name" class="form-control-premium" required placeholder="Enter sub-committee name..." autocomplete="off">
-          </div>
+      <div style="margin-bottom:16px;position:relative">
+        <label class="step-label">Team Lead <span style="color:#ef4444">* (Compulsory)</span></label>
+        <input type="hidden" id="modal-team-lead-its" required>
+        <input type="text" class="step-select" id="modal-team-lead-input" placeholder="Type Name or ITS ID to search..." autocomplete="off" oninput="onTeamLeadInput(this.value)" required>
+        <div id="modal-team-lead-results" class="autocomplete-dropdown" style="display:none"></div>
+        <div id="modal-team-lead-selected" style="font-size:0.75rem;color:#15803d;font-weight:700;margin-top:4px;display:none"></div>
+      </div>
 
-          <div class="form-group mt-3">
-            <label style="font-weight:700; color:var(--text-2); font-size:0.8rem; text-transform:uppercase; display:block; margin-bottom:6px;">Team Lead</label>
-            
-            <!-- Autocomplete input -->
-            <div class="autocomplete-container" id="leadSearchContainer">
-              <input type="text" id="leadSearchInput" class="form-control-premium" placeholder="Type Team Lead's name or ITS ID..." autocomplete="off">
-              <div class="autocomplete-dropdown" id="leadSearchDropdown"></div>
-            </div>
-
-            <!-- Selected Lead Card -->
-            <div id="selectedLeadCard" class="selected-lead-card" style="display:none;">
-              <div>
-                <strong id="cardLeadName">Name</strong>
-                <div class="small text-muted" id="cardLeadIts">ITS ID</div>
-              </div>
-              <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearSelectedLead()" style="border-radius:6px; font-weight:700; font-size:0.75rem;">Change</button>
-            </div>
-            
-            <input type="hidden" name="team_lead_its" id="sc_team_lead_its" value="">
-          </div>
-
-        </div>
-        <div class="modal-footer" style="border-top:1.5px solid var(--border-light); background:var(--surface-2); border-radius:0 0 14px 14px;">
-          <button type="button" class="btn-premium btn-premium-outline" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn-premium btn-premium-gold">Save Changes</button>
-        </div>
-      </form>
-    </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button type="button" class="btn-assign-primary" style="width:auto;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border);box-shadow:none" onclick="closeAddTeamModal()">Cancel</button>
+        <button type="submit" class="btn-assign-primary" style="width:auto;padding:0 18px">Save Team</button>
+      </div>
+    </form>
   </div>
 </div>
 
 <script>
+var BASE_URL = '<?php echo base_url(); ?>';
+var activeYear = '<?php echo $active_year; ?>';
 var umoorList = <?php echo json_encode($umoor_list); ?>;
+var subCommittees = <?php echo json_encode($sub_committees); ?>;
+var hierarchyData = <?php echo json_encode($hierarchy); ?>;
 
-function toggleUmoorCard(uid) {
-  var card = jQuery('#umoor-card-' + uid);
-  card.toggleClass('active');
-}
+var state = {
+  year: activeYear,
+  umoorId: 1,
+  subCommId: null,
+  role: 'Team Lead',
+  selectedMembers: [],
+  membersMap: {},
+  page: 1
+};
 
-function openSubCommitteeModal(umoorId, id = 0, name = '', leadIts = '', leadName = '') {
-  jQuery('#sc_umoor_id').val(umoorId);
-  jQuery('#sc_umoor_name_display').val(umoorList[umoorId]);
-  jQuery('#sc_id').val(id);
-  jQuery('#sc_name').val(name);
-  jQuery('#sc_team_lead_its').val(leadIts);
+document.addEventListener('DOMContentLoaded', function() {
+  onUmoorChange();
+  renderHierarchyTab();
 
-  if (id > 0) {
-    jQuery('#modalTitle').text('Edit Sub-Committee');
-  } else {
-    jQuery('#modalTitle').text('Add Sub-Committee');
-  }
-
-  if (leadIts) {
-    jQuery('#leadSearchContainer').hide();
-    jQuery('#cardLeadName').text(leadName);
-    jQuery('#cardLeadIts').text('ITS: ' + leadIts);
-    jQuery('#selectedLeadCard').show();
-  } else {
-    clearSelectedLead();
-  }
-
-  jQuery('#subCommitteeModal').modal('show');
-}
-
-function clearSelectedLead() {
-  jQuery('#sc_team_lead_its').val('');
-  jQuery('#leadSearchInput').val('');
-  jQuery('#selectedLeadCard').hide();
-  jQuery('#leadSearchContainer').show();
-}
-
-function saveSubCommittee(e) {
-  e.preventDefault();
-  
-  var formData = jQuery('#subCommitteeForm').serialize();
-
-  jQuery.ajax({
-    url: '<?php echo base_url("admin/save_sub_committee"); ?>',
-    type: 'POST',
-    dataType: 'json',
-    data: formData,
-    success: function(res) {
-      if (res && res.success) {
-        alert(res.message);
-        jQuery('#subCommitteeModal').modal('hide');
-        location.reload();
-      } else {
-        alert(res.message || 'Operation failed.');
-      }
-    },
-    error: function() {
-      alert('Server error. Please try again.');
-    }
-  });
-}
-
-function deleteSubCommittee(id) {
-  if (!confirm('Are you sure you want to delete this Sub-Committee?')) return;
-
-  jQuery.ajax({
-    url: '<?php echo base_url("admin/delete_sub_committee"); ?>',
-    type: 'POST',
-    dataType: 'json',
-    data: { id: id },
-    success: function(res) {
-      if (res && res.success) {
-        alert(res.message);
-        location.reload();
-      } else {
-        alert(res.message || 'Deletion failed.');
-      }
-    },
-    error: function() {
-      alert('Server error. Please try again.');
-    }
-  });
-}
-
-// ── Auto-complete Logic for Team Lead ──
-var typingTimer;
-var doneTypingInterval = 300;
-
-jQuery(document).ready(function() {
-  var searchInput = jQuery('#leadSearchInput');
-  var dropdown = jQuery('#leadSearchDropdown');
-
-  searchInput.on('keyup', function() {
-    clearTimeout(typingTimer);
-    var query = searchInput.val().trim();
-    
-    if (query.length < 2) {
-      dropdown.hide().empty();
-      return;
-    }
-
-    typingTimer = setTimeout(function() {
-      jQuery.ajax({
-        url: '<?php echo base_url("admin/searchmembers"); ?>',
-        type: 'GET',
-        dataType: 'json',
-        data: { q: query },
-        success: function(res) {
-          dropdown.empty();
-          if (res && res.results && res.results.length > 0) {
-            res.results.forEach(function(item) {
-              var div = jQuery('<div class="autocomplete-item"></div>');
-              div.text(item.name + ' (' + item.its_id + ') - ' + (item.sector || 'N/A'));
-              div.on('click', function() {
-                // Select lead
-                jQuery('#sc_team_lead_its').val(item.its_id);
-                jQuery('#cardLeadName').text(item.name);
-                jQuery('#cardLeadIts').text('ITS: ' + item.its_id + ' | Sector: ' + (item.sector || 'N/A'));
-                jQuery('#leadSearchContainer').hide();
-                jQuery('#selectedLeadCard').show();
-                dropdown.hide().empty();
-              });
-              dropdown.append(div);
-            });
-            dropdown.show();
-          } else {
-            dropdown.append('<div class="p-3 text-center text-muted" style="font-size:0.8rem;">No members found.</div>').show();
-          }
-        }
-      });
-    }, doneTypingInterval);
-  });
-
-  // Hide dropdown when clicking outside
-  jQuery(document).on('click', function(e) {
-    if (!jQuery(e.target).closest('#leadSearchContainer').length) {
-      dropdown.hide();
-    }
+  $('#quickMenuSearch').on('keyup input', function() {
+    var q = $(this).val().toLowerCase().trim();
+    $('.menu-list li').each(function() {
+      var txt = $(this).text().toLowerCase();
+      $(this).toggle(txt.indexOf(q) !== -1);
+    });
   });
 });
+
+function changeYear(yr) {
+  window.location.href = BASE_URL + 'admin/umoor_sub_committees?year=' + yr;
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-btn-assignment').classList.toggle('active', tab === 'assignment');
+  document.getElementById('tab-btn-hierarchy').classList.toggle('active', tab === 'hierarchy');
+  document.getElementById('tab-assignment-content').style.display = (tab === 'assignment') ? 'block' : 'none';
+  document.getElementById('tab-hierarchy-content').style.display = (tab === 'hierarchy') ? 'block' : 'none';
+}
+
+function onUmoorChange() {
+  state.umoorId = parseInt(document.getElementById('sel-umoor').value) || 1;
+  populateSubCommitteesDropdown();
+}
+
+function populateSubCommitteesDropdown() {
+  var select = document.getElementById('sel-subcomm');
+  select.innerHTML = '';
+
+  var curItem = hierarchyData.find(function(h) { return h.umoor_id === state.umoorId; });
+  var teams = (curItem && curItem.teams) ? curItem.teams : [];
+
+  if (teams.length > 0) {
+    teams.forEach(function(t) {
+      var opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name + ' (' + (t.members_count || 0) + ' Members)';
+      select.appendChild(opt);
+    });
+    state.subCommId = teams[0].id;
+    select.disabled = false;
+  } else {
+    var opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No Sub-Committees Created';
+    select.appendChild(opt);
+    state.subCommId = null;
+    select.disabled = true;
+  }
+
+  onSubCommChange();
+}
+
+function onSubCommChange() {
+  var select = document.getElementById('sel-subcomm');
+  state.subCommId = select.value ? parseInt(select.value) : null;
+  updateSummaryMeta();
+  loadMembers(1);
+  loadCurrentlyAssigned();
+  loadHistory();
+}
+
+function onRoleChange() {
+  state.role = document.getElementById('sel-role').value;
+  var isSingle = (state.role !== 'Team Member');
+  
+  var banner = document.getElementById('role-type-banner');
+  var bTitle = document.getElementById('banner-title');
+  var bSub = document.getElementById('banner-sub');
+  var badge = document.getElementById('summary-role-type-badge');
+
+  if (isSingle) {
+    banner.style.background = '#fdf8e6';
+    banner.style.borderColor = '#f5e9c0';
+    bTitle.textContent = 'Role Type: Single';
+    bSub.textContent = 'Only 1 member can be assigned';
+    badge.textContent = 'Single Role';
+  } else {
+    banner.style.background = '#f0fdf4';
+    banner.style.borderColor = '#bbf7d0';
+    bTitle.textContent = 'Role Type: Multiple';
+    bSub.textContent = 'Multiple members allowed';
+    badge.textContent = 'Multiple Members';
+  }
+
+  updateSummaryMeta();
+  loadMembers(1);
+  loadCurrentlyAssigned();
+  loadHistory();
+}
+
+function updateSummaryMeta() {
+  document.getElementById('sum-year').textContent = activeYear;
+  document.getElementById('sum-umoor').textContent = umoorList[state.umoorId] || '—';
+  
+  var selSubText = '—';
+  var scElem = document.getElementById('sel-subcomm');
+  if (scElem && scElem.options && scElem.options.selectedIndex >= 0) {
+    selSubText = scElem.options[scElem.options.selectedIndex].text;
+  }
+  document.getElementById('sum-subcomm').textContent = selSubText;
+  document.getElementById('sum-role').textContent = state.role;
+}
+
+var searchTimer = null;
+function onSearchInput() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function() {
+    loadMembers(1);
+  }, 300);
+}
+
+function resetFilters() {
+  document.getElementById('search-q').value = '';
+  document.getElementById('filter-gender').value = 'All';
+  document.getElementById('filter-status').value = 'All';
+  loadMembers(1);
+}
+
+function loadMembers(page) {
+  state.page = page || 1;
+  var q = document.getElementById('search-q').value;
+  var gender = document.getElementById('filter-gender').value;
+  var status = document.getElementById('filter-status').value;
+
+  var tbody = document.getElementById('tbl-members-body');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px"><i class="fa fa-spinner fa-spin"></i> Loading members...</td></tr>';
+
+  $.ajax({
+    url: BASE_URL + 'admin/get_members_ajax',
+    type: 'GET',
+    data: {
+      q: q,
+      gender: gender,
+      status: status,
+      page: state.page,
+      limit: 10
+    },
+    dataType: 'json',
+    success: function(res) {
+      if (res && res.success) {
+        renderMembersTable(res.members, res.page, res.total, res.pages);
+      } else {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-3)">Failed to load members.</td></tr>';
+      }
+    }
+  });
+}
+
+function renderMembersTable(members, page, total, pages) {
+  var tbody = document.getElementById('tbl-members-body');
+  tbody.innerHTML = '';
+  state.membersMap = {};
+
+  if (!members || members.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-3)">No registered members found matching filters.</td></tr>';
+    return;
+  }
+
+  members.forEach(function(m) {
+    state.membersMap[m.ITS_ID] = m;
+    var isSel = state.selectedMembers.includes(m.ITS_ID);
+    var tr = document.createElement('tr');
+
+    tr.innerHTML = '<td><input type="checkbox" class="member-chk-item" data-its="' + m.ITS_ID + '" ' + (isSel ? 'checked' : '') + ' onchange="onMemberSelectToggle(\'' + m.ITS_ID + '\', this.checked)"></td>' +
+      '<td><strong>' + m.ITS_ID + '</strong></td>' +
+      '<td>' + (m.Full_Name || '—') + '</td>' +
+      '<td>' + (m.Mobile_No || '—') + '</td>' +
+      '<td>' + (m.Email || '—') + '</td>' +
+      '<td>' + (m.Gender || '—') + '</td>' +
+      '<td>' + (m.HOF_Name || '—') + '</td>' +
+      '<td><span class="status-pill ' + (m.status_label === 'Active' ? 'status-active' : 'status-inactive') + '">' + m.status_label + '</span></td>';
+
+    tbody.appendChild(tr);
+  });
+
+  // Update pagination info
+  document.getElementById('page-count-info').textContent = 'Showing ' + ((page-1)*10 + 1) + ' to ' + Math.min(total, page*10) + ' of ' + total + ' members';
+  
+  var pCtrl = document.getElementById('pagination-controls');
+  pCtrl.innerHTML = '';
+  for (var i = 1; i <= Math.min(pages, 10); i++) {
+    var btn = document.createElement('button');
+    btn.className = 'page-btn ' + (i === page ? 'active' : '');
+    btn.textContent = i;
+    btn.onclick = (function(p) { return function() { loadMembers(p); }; })(i);
+    pCtrl.appendChild(btn);
+  }
+}
+
+function onMemberSelectToggle(its, isChecked) {
+  if (isChecked) {
+    if (!state.selectedMembers.includes(its)) {
+      state.selectedMembers.push(its);
+    }
+  } else {
+    state.selectedMembers = state.selectedMembers.filter(function(id) { return id !== its; });
+  }
+  renderSelectedMembersList();
+}
+
+function toggleSelectAllPage(isChecked) {
+  Object.keys(state.membersMap).forEach(function(its) {
+    if (isChecked && !state.selectedMembers.includes(its)) {
+      state.selectedMembers.push(its);
+    } else if (!isChecked) {
+      state.selectedMembers = state.selectedMembers.filter(function(id) { return id !== its; });
+    }
+  });
+  loadMembers(state.page);
+  renderSelectedMembersList();
+}
+
+function renderSelectedMembersList() {
+  document.getElementById('selected-count-badge').textContent = state.selectedMembers.length;
+  document.getElementById('sel-count-pill').textContent = state.selectedMembers.length;
+  
+  var container = document.getElementById('selected-members-list');
+  container.innerHTML = '';
+
+  if (state.selectedMembers.length === 0) {
+    container.innerHTML = '<p class="text-muted small text-center my-2">Please select a member from the list to assign.</p>';
+    return;
+  }
+
+  state.selectedMembers.forEach(function(its) {
+    var m = state.membersMap[its] || { ITS_ID: its, Full_Name: 'Member ' + its };
+    var div = document.createElement('div');
+    div.className = 'selected-user-pill';
+    div.innerHTML = '<div><strong>' + (m.Full_Name || m.ITS_ID) + '</strong><br><small class="text-muted">' + m.ITS_ID + '</small></div>' +
+      '<button type="button" class="btn-remove-sel" onclick="onMemberSelectToggle(\'' + its + '\', false)"><i class="fa fa-times"></i></button>';
+    container.appendChild(div);
+  });
+}
+
+function loadCurrentlyAssigned() {
+  var container = document.getElementById('currently-assigned-box');
+  container.innerHTML = '<div style="text-align:center;padding:10px"><i class="fa fa-spinner fa-spin"></i> Loading...</div>';
+
+  $.ajax({
+    url: BASE_URL + 'admin/get_assigned_members_ajax',
+    type: 'GET',
+    data: {
+      year: activeYear,
+      umoor_id: state.umoorId,
+      sub_committee_id: state.subCommId,
+      role: ''
+    },
+    dataType: 'json',
+    success: function(res) {
+      if (res && res.success && res.assigned && res.assigned.length > 0) {
+        container.innerHTML = '';
+        res.assigned.forEach(function(a) {
+          var div = document.createElement('div');
+          div.className = 'assigned-user-card';
+          div.innerHTML = '<div class="user-avatar"><i class="fa fa-user"></i></div>' +
+            '<div style="flex:1"><strong>' + (a.member_name || a.user_its) + '</strong><span style="font-size:0.65rem;background:var(--gold-muted);color:var(--gold);padding:1px 6px;border-radius:10px;margin-left:6px;font-weight:800">' + a.role + '</span><br><small class="text-muted">' + a.user_its + '</small></div>' +
+            '<button type="button" class="btn-remove-sel" title="Remove Assignment" onclick="removeAssignment(' + a.id + ')"><i class="fa fa-trash"></i></button>';
+          container.appendChild(div);
+        });
+      } else {
+        container.innerHTML = '<div class="assigned-box"><i class="fa fa-user"></i> No members assigned yet</div>';
+      }
+    }
+  });
+}
+
+function submitAssignment() {
+  if (state.selectedMembers.length === 0) {
+    alert('Please select at least one member to assign.');
+    return;
+  }
+
+  $.ajax({
+    url: BASE_URL + 'admin/assign_role_ajax',
+    type: 'POST',
+    data: {
+      year: activeYear,
+      umoor_id: state.umoorId,
+      sub_committee_id: state.subCommId,
+      role: state.role,
+      user_its: state.selectedMembers
+    },
+    dataType: 'json',
+    success: function(res) {
+      if (res && res.success) {
+        alert(res.message || 'Assignment successful!');
+        state.selectedMembers = [];
+        renderSelectedMembersList();
+        loadMembers(state.page);
+        loadCurrentlyAssigned();
+        loadHistory();
+        renderHierarchyTab();
+      } else {
+        alert((res && res.message) ? res.message : 'Failed to save assignment.');
+      }
+    }
+  });
+}
+
+function removeAssignment(id) {
+  if (!confirm('Are you sure you want to remove this assignment?')) return;
+  $.ajax({
+    url: BASE_URL + 'admin/remove_assignment_ajax',
+    type: 'POST',
+    data: { id: id },
+    dataType: 'json',
+    success: function(res) {
+      if (res && res.success) {
+        alert(res.message);
+        loadCurrentlyAssigned();
+        loadHistory();
+        renderHierarchyTab();
+      } else {
+        alert('Failed to remove assignment.');
+      }
+    }
+  });
+}
+
+function loadHistory() {
+  var tbody = document.getElementById('tbl-history-body');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:14px"><i class="fa fa-spinner fa-spin"></i> Loading audit history...</td></tr>';
+
+  $.ajax({
+    url: BASE_URL + 'admin/get_assignment_history_ajax',
+    type: 'GET',
+    data: {
+      year: activeYear,
+      umoor_id: state.umoorId,
+      sub_committee_id: state.subCommId
+    },
+    dataType: 'json',
+    success: function(res) {
+      if (res && res.success && res.history && res.history.length > 0) {
+        tbody.innerHTML = '';
+        res.history.forEach(function(h) {
+          var tr = document.createElement('tr');
+          var stClass = (h.status === 'Active') ? 'status-active' : ((h.status === 'Transferred') ? 'status-inactive' : 'status-inactive');
+          tr.innerHTML = '<td><strong>' + (h.member_name || h.user_its) + '</strong></td>' +
+            '<td>' + h.user_its + '</td>' +
+            '<td><span class="level-badge">' + h.role + '</span></td>' +
+            '<td>' + (h.sub_committee_name || 'Umoor Level') + '</td>' +
+            '<td>' + (h.assigned_by || 'Admin') + '</td>' +
+            '<td>' + (h.assigned_at || h.created_at) + '</td>' +
+            '<td><span class="status-pill ' + stClass + '">' + h.status + '</span></td>' +
+            '<td>' + (h.status === 'Active' ? '<button type="button" class="btn-remove-sel" onclick="removeAssignment(' + h.id + ')"><i class="fa fa-trash"></i></button>' : '—') + '</td>';
+          tbody.appendChild(tr);
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:14px;color:var(--text-3)">No history logs found.</td></tr>';
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   TAB 2: HIERARCHY TAB RENDER
+═══════════════════════════════════════════════════ */
+function renderHierarchyTab() {
+  $.ajax({
+    url: BASE_URL + 'admin/get_umoor_hierarchy_ajax',
+    type: 'GET',
+    data: { year: activeYear },
+    dataType: 'json',
+    success: function(res) {
+      if (res && res.success && res.hierarchy) {
+        hierarchyData = res.hierarchy;
+        renderLevel1Grid();
+        renderLevel2Split();
+      }
+    }
+  });
+}
+
+function renderLevel1Grid() {
+  var container = document.getElementById('level1-grid');
+  container.innerHTML = '';
+
+  hierarchyData.forEach(function(item) {
+    var div = document.createElement('div');
+    div.className = 'u-card';
+    div.innerHTML = '<div class="u-num">' + item.umoor_id + '</div>' +
+      '<div class="u-name">' + item.umoor_name + '</div>' +
+      '<div class="u-coord">' + (item.coordinator ? ('<i class="fa fa-user-circle"></i> ' + item.coordinator.name) : '<span style="color:var(--text-3)">No Coordinator</span>') + '</div>';
+    container.appendChild(div);
+  });
+}
+
+function renderLevel2Split() {
+  var uList = document.getElementById('l2-umoor-select-list');
+  uList.innerHTML = '';
+
+  hierarchyData.forEach(function(item) {
+    var div = document.createElement('div');
+    div.className = 'u-select-item ' + (item.umoor_id === state.umoorId ? 'active' : '');
+    div.innerHTML = '<span>' + item.umoor_id + '. ' + item.umoor_name + '</span> <span class="status-pill status-active">' + (item.teams ? item.teams.length : 0) + '</span>';
+    div.onclick = function() {
+      state.umoorId = item.umoor_id;
+      document.getElementById('sel-umoor').value = item.umoor_id;
+      onUmoorChange();
+      renderLevel2Split();
+    };
+    uList.appendChild(div);
+  });
+
+  var curItem = hierarchyData.find(function(h) { return h.umoor_id === state.umoorId; });
+  document.getElementById('l2-selected-umoor-heading').textContent = 'Teams under ' + (curItem ? curItem.umoor_name : 'Selected Umoor');
+
+  var tbody = document.getElementById('l2-teams-tbl-body');
+  tbody.innerHTML = '';
+
+  if (!curItem || !curItem.teams || curItem.teams.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-3)">No teams/sub-committees created under this Umoor yet.</td></tr>';
+    return;
+  }
+
+  curItem.teams.forEach(function(team, idx) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + (idx + 1) + '</td>' +
+      '<td><strong>' + team.name + '</strong></td>' +
+      '<td>' + (team.team_lead_name ? ('<strong>' + team.team_lead_name + '</strong><br><small class="text-muted">' + team.team_lead_its + '</small>') : '<span class="text-danger">Not Assigned</span>') + '</td>' +
+      '<td><span class="status-pill status-active">' + (team.members_count || 0) + ' Members</span></td>' +
+      '<td>' +
+        '<button type="button" class="btn-assign-primary" style="width:auto;padding:2px 8px;font-size:0.7rem;margin-right:4px;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border);box-shadow:none" onclick="editTeamModal(' + team.id + ', \'' + escapeHtml(team.name) + '\', \'' + (team.team_lead_its || '') + '\', \'' + escapeHtml(team.team_lead_name || '') + '\')"><i class="fa fa-pencil"></i> Edit</button>' +
+        '<button type="button" class="btn-assign-primary" style="width:auto;padding:2px 8px;font-size:0.7rem;background:#fee2e2;color:#b91c1c;border:none;box-shadow:none" onclick="deleteTeam(' + team.id + ')"><i class="fa fa-trash"></i> Delete</button>' +
+      '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function escapeHtml(str) {
+  return String(str || '').replace(/'/g, "\\'");
+}
+
+/* Add / Edit Team Modal & Autocomplete */
+var acTimer = null;
+function onTeamLeadInput(q) {
+  clearTimeout(acTimer);
+  var dropdown = document.getElementById('modal-team-lead-results');
+  var hiddenIts = document.getElementById('modal-team-lead-its');
+  var selectedDiv = document.getElementById('modal-team-lead-selected');
+
+  hiddenIts.value = '';
+  selectedDiv.style.display = 'none';
+
+  if (!q || q.trim().length < 1) {
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  acTimer = setTimeout(function() {
+    dropdown.style.display = 'block';
+    dropdown.innerHTML = '<div style="padding:10px;text-align:center;font-size:0.74rem;color:#64748b"><i class="fa fa-spinner fa-spin"></i> Searching members...</div>';
+
+    $.ajax({
+      url: BASE_URL + 'admin/get_members_ajax',
+      type: 'GET',
+      data: { q: q, limit: 8 },
+      dataType: 'json',
+      success: function(res) {
+        if (res && res.success && res.members && res.members.length > 0) {
+          dropdown.innerHTML = '';
+          res.members.forEach(function(m) {
+            var item = document.createElement('div');
+            item.className = 'ac-item';
+            item.innerHTML = '<div class="user-avatar" style="width:26px;height:26px;font-size:0.7rem"><i class="fa fa-user"></i></div>' +
+              '<div><div class="ac-name">' + (m.Full_Name || m.ITS_ID) + '</div><div class="ac-its">ITS: ' + m.ITS_ID + (m.Mobile_No ? (' · ' + m.Mobile_No) : '') + '</div></div>';
+            item.onclick = function() {
+              selectTeamLeadMember(m.ITS_ID, m.Full_Name);
+            };
+            dropdown.appendChild(item);
+          });
+        } else {
+          dropdown.innerHTML = '<div style="padding:10px;text-align:center;font-size:0.74rem;color:#94a3b8">No matching member found.</div>';
+        }
+      }
+    });
+  }, 250);
+}
+
+function selectTeamLeadMember(its, name) {
+  document.getElementById('modal-team-lead-its').value = its;
+  document.getElementById('modal-team-lead-input').value = (name || its) + ' (ITS: ' + its + ')';
+  document.getElementById('modal-team-lead-results').style.display = 'none';
+
+  var selectedDiv = document.getElementById('modal-team-lead-selected');
+  selectedDiv.style.display = 'block';
+  selectedDiv.innerHTML = '<i class="fa fa-check-circle"></i> Selected Team Lead: <strong>' + (name || its) + '</strong> (' + its + ')';
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#modal-team-lead-input') && !e.target.closest('#modal-team-lead-results')) {
+    var dropdown = document.getElementById('modal-team-lead-results');
+    if (dropdown) dropdown.style.display = 'none';
+  }
+});
+
+function openAddTeamModal() {
+  document.getElementById('modal-team-id').value = '0';
+  document.getElementById('modal-team-name').value = '';
+  document.getElementById('modal-team-lead-its').value = '';
+  document.getElementById('modal-team-lead-input').value = '';
+  document.getElementById('modal-team-lead-selected').style.display = 'none';
+  document.getElementById('modal-team-lead-results').style.display = 'none';
+  document.getElementById('modal-team-umoor').value = state.umoorId;
+  document.getElementById('modal-team-title').textContent = 'Add Team Lead / Team';
+  document.getElementById('team-modal').style.display = 'flex';
+}
+
+function editTeamModal(id, name, leadIts, leadName) {
+  document.getElementById('modal-team-id').value = id;
+  document.getElementById('modal-team-name').value = name;
+  document.getElementById('modal-team-umoor').value = state.umoorId;
+  document.getElementById('modal-team-title').textContent = 'Edit Team Lead / Team';
+
+  if (leadIts) {
+    selectTeamLeadMember(leadIts, leadName || leadIts);
+  } else {
+    document.getElementById('modal-team-lead-its').value = '';
+    document.getElementById('modal-team-lead-input').value = '';
+    document.getElementById('modal-team-lead-selected').style.display = 'none';
+  }
+
+  document.getElementById('team-modal').style.display = 'flex';
+}
+
+function closeAddTeamModal() {
+  document.getElementById('team-modal').style.display = 'none';
+}
+
+function saveTeamSubmit(e) {
+  e.preventDefault();
+  var id = document.getElementById('modal-team-id').value;
+  var umoorId = document.getElementById('modal-team-umoor').value;
+  var name = document.getElementById('modal-team-name').value;
+  var leadIts = document.getElementById('modal-team-lead-its').value;
+
+  if (!leadIts) {
+    alert('Please select a Team Lead from the member list.');
+    return;
+  }
+
+  $.ajax({
+    url: BASE_URL + 'admin/save_sub_committee',
+    type: 'POST',
+    data: {
+      id: id,
+      umoor_id: umoorId,
+      name: name,
+      team_lead_its: leadIts,
+      year: activeYear
+    },
+    dataType: 'json',
+    success: function(res) {
+      if (res && res.success) {
+        closeAddTeamModal();
+        alert(res.message);
+        location.reload();
+      } else {
+        alert((res && res.message) ? res.message : 'Error saving team.');
+      }
+    }
+  });
+}
+
+function deleteTeam(id) {
+  if (!confirm('Are you sure you want to delete this Team / Sub-committee?')) return;
+  $.ajax({
+    url: BASE_URL + 'admin/delete_sub_committee',
+    type: 'POST',
+    data: { id: id },
+    dataType: 'json',
+    success: function(res) {
+      if (res && res.success) {
+        alert(res.message);
+        location.reload();
+      } else {
+        alert('Failed to delete team.');
+      }
+    }
+  });
+}
 </script>

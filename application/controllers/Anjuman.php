@@ -990,6 +990,198 @@ class Anjuman extends CI_Controller
     redirect($redir);
   }
 
+  public function get_invoice_full_details_ajax()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $id = (int)$this->input->get('id');
+    if ($id <= 0) {
+      echo json_encode(['success' => false, 'message' => 'Invalid Invoice ID']); return;
+    }
+
+    $this->load->model('LaagatRentM');
+    $invoice = $this->LaagatRentM->get_invoice_by_id($id);
+    if (!$invoice) {
+      echo json_encode(['success' => false, 'message' => 'Invoice not found']); return;
+    }
+
+    // Fetch user details
+    $user = $this->db->select('ITS_ID, Full_Name, Mobile, HOF_ID')->from('user')->where('ITS_ID', $invoice['user_id'])->get()->row_array();
+    $invoice['member_name'] = $user ? $user['Full_Name'] : $invoice['user_id'];
+    $invoice['mobile'] = $user ? $user['Mobile'] : '';
+
+    $razaDetails = null;
+    $rentItems = [];
+
+    if (!empty($invoice['raza_id'])) {
+      $raza = $this->db->get_where('raza', ['id' => $invoice['raza_id']])->row_array();
+      if ($raza && !empty($raza['razadata'])) {
+        $razadata = json_decode($raza['razadata'], true) ?: [];
+        $razaDetails = [
+          'id' => $raza['id'],
+          'raza_id_str' => $raza['raza_id'],
+          'date' => $razadata['date'] ?? '',
+          'time' => $razadata['time'] ?? '',
+          'venue' => $razadata['venue'] ?? '',
+          'thaal_count' => (int)($razadata['approximate-thaal-count'] ?? 0),
+          'item_qty' => $razadata['item_qty'] ?? []
+        ];
+      }
+    }
+
+    $laagatRentId = (int)$invoice['laagat_rent_id'];
+    $userId = (int)$invoice['user_id'];
+    $thaalCount = $razaDetails ? $razaDetails['thaal_count'] : 1;
+    $itemQtyMap = $razaDetails ? $razaDetails['item_qty'] : [];
+
+    $itemsJamaat = 0.00;
+    $itemsLadies = 0.00;
+
+    if ($laagatRentId > 0) {
+      $itemsRows = $this->db->from('laagat_rent_items')
+                           ->where('laagat_rent_id', $laagatRentId)
+                           ->order_by('id ASC')
+                           ->get()->result_array();
+      foreach ($itemsRows as $item) {
+        $qty = 0;
+        if (!empty($itemQtyMap)) {
+          $qty = (int)($itemQtyMap[(string)$item['id']] ?? $itemQtyMap[(int)$item['id']] ?? 0);
+        }
+        $rate = (float)($item['rent_sabeel'] > 0 ? $item['rent_sabeel'] : $item['rent_non_sabeel']);
+        $itemCost = $rate * $qty;
+        if (trim($item['service_provided_by']) === 'Ladies') {
+          $itemsLadies += $itemCost;
+        } else {
+          $itemsJamaat += $itemCost;
+        }
+
+        $rentItems[] = [
+          'id' => (int)$item['id'],
+          'item_name' => $item['item_name'],
+          'service_provided_by' => $item['service_provided_by'] ?? 'Jamaat',
+          'rent_sabeel' => (float)$item['rent_sabeel'],
+          'rent_non_sabeel' => (float)$item['rent_non_sabeel'],
+          'quantity' => $qty
+        ];
+      }
+    }
+
+    $savedJamaat = (float)$invoice['jamaat_amount'];
+    $savedSarkaar = (float)$invoice['sarkaar_amount'];
+    $savedTotal = (float)($invoice['master_amount'] ?? $invoice['amount']);
+
+    if ($savedJamaat <= 0 && $savedSarkaar <= 0 && $savedTotal > 0) {
+      $savedJamaat = $savedTotal - $itemsLadies;
+      $savedSarkaar = $itemsLadies;
+    }
+
+    $baseModuleVenueRent = 0.00;
+    if ($laagatRentId > 0 && $userId > 0) {
+      $baseBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRentId, $userId, $thaalCount, []);
+      $baseModuleVenueRent = (float)($baseBreakdown['amount'] ?? 0);
+    }
+
+    $jamaatItemsComponent = max($itemsJamaat, $savedJamaat - $baseModuleVenueRent);
+    $ladiesItemsComponent = max($itemsLadies, $savedSarkaar);
+
+    $calculatedBreakdown = [
+      'base_rent_amount' => $baseModuleVenueRent,
+      'items_jamaat_amount' => $jamaatItemsComponent,
+      'items_ladies_amount' => $ladiesItemsComponent,
+      'jamaat_amount' => $baseModuleVenueRent + $jamaatItemsComponent,
+      'sarkaar_amount' => $ladiesItemsComponent,
+      'deposit_amount' => (float)($invoice['deposit_amount'] > 0 ? $invoice['deposit_amount'] : ($baseBreakdown['deposit_amount'] ?? 0)),
+      'amount' => ($baseModuleVenueRent + $jamaatItemsComponent + $ladiesItemsComponent)
+    ];
+
+    echo json_encode([
+      'success' => true,
+      'invoice' => $invoice,
+      'raza' => $razaDetails,
+      'rent_items' => $rentItems,
+      'breakdown' => $calculatedBreakdown
+    ]);
+  }
+
+  public function recalculate_invoice_amounts_ajax()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $invoice_id = (int)$this->input->get_post('invoice_id');
+    $thaal_count = (int)$this->input->get_post('thaal_count');
+    $item_qty = $this->input->get_post('item_qty');
+    if (!is_array($item_qty)) $item_qty = [];
+
+    $this->load->model('LaagatRentM');
+    $invoice = $this->LaagatRentM->get_invoice_by_id($id_param = $invoice_id);
+    if (!$invoice) {
+      echo json_encode(['success' => false, 'message' => 'Invoice not found']); return;
+    }
+
+    $laagatRentId = (int)$invoice['laagat_rent_id'];
+    $userId = (int)$invoice['user_id'];
+
+    if ($laagatRentId > 0 && $userId > 0) {
+      // Get base venue rent and deposit for the new thaal count range
+      $baseBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRentId, $userId, $thaal_count, []);
+      $baseVenueRent = (float)($baseBreakdown['amount'] ?? 0);
+      $depositAmount = (float)($baseBreakdown['deposit_amount'] ?? 0);
+
+      $itemsJamaat = 0.00;
+      $itemsLadies = 0.00;
+      if (!empty($item_qty)) {
+        $itemIds = array_keys($item_qty);
+        if (!empty($itemIds)) {
+          $dbItems = $this->db->from('laagat_rent_items')
+                             ->where('laagat_rent_id', $laagatRentId)
+                             ->where_in('id', $itemIds)
+                             ->get()->result_array();
+          foreach ($dbItems as $item) {
+            $qty = (int)($item_qty[$item['id']] ?? $item_qty[(string)$item['id']] ?? 0);
+            if ($qty > 0) {
+              $rate = (float)($item['rent_sabeel'] > 0 ? $item['rent_sabeel'] : $item['rent_non_sabeel']);
+              $itemCost = $rate * $qty;
+              if (trim($item['service_provided_by']) === 'Ladies') {
+                $itemsLadies += $itemCost;
+              } else {
+                $itemsJamaat += $itemCost;
+              }
+            }
+          }
+        }
+      }
+
+      $savedJamaat = (float)$invoice['jamaat_amount'];
+      $savedSarkaar = (float)$invoice['sarkaar_amount'];
+      $initBaseBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRentId, $userId, 11, []);
+      $initBaseRent = (float)($initBaseBreakdown['amount'] ?? 0);
+      $savedJamaatComponent = max(0, $savedJamaat - $initBaseRent);
+
+      $finalJamaatItems = max($itemsJamaat, $savedJamaatComponent);
+      $finalLadiesItems = max($itemsLadies, $savedSarkaar);
+
+      $finalJamaat = $baseVenueRent + $finalJamaatItems;
+      $finalLadies = $finalLadiesItems;
+      $finalTotal = $finalJamaat + $finalLadies;
+
+      echo json_encode([
+        'success' => true,
+        'base_rent_amount' => $baseVenueRent,
+        'items_jamaat_amount' => $finalJamaatItems,
+        'items_ladies_amount' => $finalLadiesItems,
+        'jamaat_amount' => $finalJamaat,
+        'sarkaar_amount' => $finalLadies,
+        'deposit_amount' => ($depositAmount > 0 ? $depositAmount : (float)$invoice['deposit_amount']),
+        'amount' => $finalTotal
+      ]);
+      return;
+    }
+
+    echo json_encode(['success' => false, 'message' => 'Unable to calculate']);
+  }
+
   public function laagat_rent_invoice_save()
   {
     if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
@@ -998,47 +1190,69 @@ class Anjuman extends CI_Controller
     if ($this->input->post()) {
       $this->load->model('LaagatRentM');
       $id = (int)$this->input->post('id');
-      $laagat_rent_id = (int)$this->input->post('laagat_rent_id');
 
       if ($id > 0) {
-        $this->load->model('LaagatRentM');
         $invoice = $this->LaagatRentM->get_invoice_by_id($id);
         if ($invoice) {
-          $updateData = [];
-          if ($invoice['charge_type'] === 'rent') {
-            $amt = $this->input->post('amount');
-            if ($amt !== null && $amt !== '') {
-              $updateData['amount'] = (float)$amt;
-              $updateData['jamaat_amount'] = (float)$amt;
-              $updateData['sarkaar_amount'] = 0.00;
-            }
-            $depAmt = $this->input->post('deposit_amount');
-            if ($depAmt !== null && $depAmt !== '') {
-              $updateData['deposit_amount'] = (float)$depAmt;
-            }
-          } else {
-            $jAmt = $this->input->post('jamaat_amount');
-            $sAmt = $this->input->post('sarkaar_amount');
-            
-            if ($jAmt !== null && $jAmt !== '') {
-              $updateData['jamaat_amount'] = (float)$jAmt;
-            }
-            if ($sAmt !== null && $sAmt !== '') {
-              $updateData['sarkaar_amount'] = (float)$sAmt;
-            }
+          $created_at = trim((string)$this->input->post('created_at'));
+          $jAmt = (float)$this->input->post('jamaat_amount');
+          $sAmt = (float)$this->input->post('sarkaar_amount');
+          $depAmt = (float)$this->input->post('deposit_amount');
+          $totalAmt = (float)$this->input->post('amount');
 
-            if (isset($updateData['jamaat_amount']) || isset($updateData['sarkaar_amount'])) {
-              $jAmtVal = isset($updateData['jamaat_amount']) ? $updateData['jamaat_amount'] : 0.00;
-              $sAmtVal = isset($updateData['sarkaar_amount']) ? $updateData['sarkaar_amount'] : 0.00;
-              $updateData['amount'] = $jAmtVal + $sAmtVal;
+          if ($totalAmt <= 0.0001 && ($jAmt > 0 || $sAmt > 0)) {
+            $totalAmt = $jAmt + $sAmt;
+          }
+
+          $updateData = [
+            'jamaat_amount' => $jAmt,
+            'sarkaar_amount' => $sAmt,
+            'amount' => $totalAmt
+          ];
+
+          if ($depAmt > 0 || ($invoice['charge_type'] === 'rent' && (float)$invoice['amount'] <= 0.0001)) {
+            $updateData['deposit_amount'] = $depAmt;
+          }
+
+          if (!empty($created_at)) {
+            $updateData['created_at'] = date('Y-m-d H:i:s', strtotime($created_at));
+          }
+
+          $this->LaagatRentM->update_invoice($id, $updateData);
+
+          // Update linked Raza request razadata if item_qty or thaal_count is posted
+          if (!empty($invoice['raza_id'])) {
+            $raza = $this->db->get_where('raza', ['id' => $invoice['raza_id']])->row_array();
+            if ($raza && !empty($raza['razadata'])) {
+              $razadata = json_decode($raza['razadata'], true) ?: [];
+              
+              // Update item quantities
+              $itemQtyInput = $this->input->post('item_qty');
+              if (is_array($itemQtyInput)) {
+                if (!isset($razadata['item_qty']) || !is_array($razadata['item_qty'])) {
+                  $razadata['item_qty'] = [];
+                }
+                foreach ($itemQtyInput as $itemId => $qty) {
+                  $razadata['item_qty'][(string)$itemId] = (string)((int)$qty);
+                }
+              }
+
+              // Update Thaal count
+              $thaalCountInput = $this->input->post('approximate_thaal_count');
+              if ($thaalCountInput !== null && $thaalCountInput !== '') {
+                $razadata['approximate-thaal-count'] = (string)((int)$thaalCountInput);
+              }
+
+              $razadata['laagat-_rent-amount'] = (string)$totalAmt;
+
+              $this->db->where('id', $invoice['raza_id'])->update('raza', [
+                'razadata' => json_encode($razadata)
+              ]);
             }
           }
 
-          if (!empty($updateData)) {
-            $this->LaagatRentM->update_invoice($id, $updateData);
-            $ctLabel = ucfirst(($invoice['charge_type'] ?? 'Invoice'));
-            $this->session->set_flashdata('laagat_flash_success', $ctLabel . ' invoice updated successfully.');
-          }
+          $ctLabel = ucfirst(($invoice['charge_type'] ?? 'Invoice'));
+          $this->session->set_flashdata('laagat_flash_success', $ctLabel . ' invoice updated successfully.');
         } else {
           $this->session->set_flashdata('laagat_flash_error', 'Invoice not found.');
         }
@@ -1047,7 +1261,7 @@ class Anjuman extends CI_Controller
       }
     }
     $redir = 'anjuman/laagat_rent_invoices';
-    if ($invoice && !empty($invoice['charge_type'])) {
+    if (isset($invoice) && !empty($invoice['charge_type'])) {
       if ($invoice['charge_type'] === 'rent' && (float)$invoice['amount'] <= 0.0001 && (float)$invoice['deposit_amount'] > 0) {
         $redir .= '?charge_type=deposit';
       } else {
@@ -6426,6 +6640,26 @@ class Anjuman extends CI_Controller
 
     $this->load->view('Anjuman/Header', $data);
     $this->load->view('Anjuman/MemberFinancials', $data);
+  }
+
+  public function umoor_sub_committees()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('UmoorHRM');
+
+    $active_year = $this->input->get('year') ?: '1448';
+    $data['active_year'] = $active_year;
+    $data['years_list'] = ['1446', '1447', '1448', '1449', '1450'];
+
+    $data['umoor_list'] = $this->UmoorHRM->get_umoor_list();
+    $data['sub_committees'] = $this->UmoorHRM->get_sub_committees(null, $active_year);
+    $data['hierarchy'] = $this->UmoorHRM->get_full_hierarchy($active_year);
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Admin/UmoorSubCommittees', $data);
   }
 
   // Updated by Patel Infotech Services

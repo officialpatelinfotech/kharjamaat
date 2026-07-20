@@ -6170,15 +6170,15 @@ HTML;
       redirect('/accounts');
     }
     $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('UmoorHRM');
 
-    // Fetch sub-committees with team lead name
-    $this->db->select('s.*, u.Full_Name as team_lead_name');
-    $this->db->from('sub_committees s');
-    $this->db->join('user u', 'u.ITS_ID = s.team_lead_its', 'left');
-    $this->db->order_by('s.umoor_id ASC, s.name ASC');
-    $sub_committees = $this->db->get()->result_array();
+    $active_year = $this->input->get('year') ?: '1448';
+    $data['active_year'] = $active_year;
+    $data['years_list'] = ['1446', '1447', '1448', '1449', '1450'];
 
-    $data['sub_committees'] = $sub_committees;
+    $data['umoor_list'] = $this->UmoorHRM->get_umoor_list();
+    $data['sub_committees'] = $this->UmoorHRM->get_sub_committees(null, $active_year);
+    $data['hierarchy'] = $this->UmoorHRM->get_full_hierarchy($active_year);
 
     $this->load->view('Admin/Header', $data);
     $this->load->view('Admin/UmoorSubCommittees', $data);
@@ -6189,25 +6189,27 @@ HTML;
     if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
       echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
     }
+    $this->load->model('UmoorHRM');
 
     $id = (int)$this->input->post('id');
     $umoor_id = (int)$this->input->post('umoor_id');
     $name = trim((string)$this->input->post('name'));
-    $team_lead_its = trim((string)$this->input->post('team_lead_its')) ?: null;
+    $team_lead_its = trim((string)$this->input->post('team_lead_its'));
+    $year = trim((string)$this->input->post('year')) ?: '1448';
 
     if ($umoor_id < 1 || $umoor_id > 12) {
       echo json_encode(['success' => false, 'message' => 'Invalid Umoor selected.']); return;
     }
     if ($name === '') {
-      echo json_encode(['success' => false, 'message' => 'Sub-Committee name is required.']); return;
+      echo json_encode(['success' => false, 'message' => 'Sub-Committee / Team name is required.']); return;
+    }
+    if ($team_lead_its === '') {
+      echo json_encode(['success' => false, 'message' => 'Team Lead selection is compulsory. Please enter or select a Team Lead ITS ID.']); return;
     }
 
-    // Verify team lead ITS ID exists if provided
-    if ($team_lead_its) {
-      $user = $this->db->where('ITS_ID', $team_lead_its)->get('user')->row_array();
-      if (!$user) {
-        echo json_encode(['success' => false, 'message' => 'Team Lead ITS ID not found.']); return;
-      }
+    $user = $this->db->where('ITS_ID', $team_lead_its)->get('user')->row_array();
+    if (!$user) {
+      echo json_encode(['success' => false, 'message' => 'Team Lead ITS ID not found. Please enter a valid registered member ITS ID.']); return;
     }
 
     $db_data = [
@@ -6218,12 +6220,21 @@ HTML;
 
     if ($id > 0) {
       $this->db->where('id', $id)->update('sub_committees', $db_data);
-      echo json_encode(['success' => true, 'message' => 'Sub-Committee updated successfully.']);
+      $sub_id = $id;
+      $msg = 'Sub-Committee / Team updated successfully.';
     } else {
       $db_data['created_at'] = date('Y-m-d H:i:s');
       $this->db->insert('sub_committees', $db_data);
-      echo json_encode(['success' => true, 'message' => 'Sub-Committee created successfully.']);
+      $sub_id = $this->db->insert_id();
+      $msg = 'Sub-Committee / Team created successfully.';
     }
+
+    if ($team_lead_its && $sub_id) {
+      $assigned_by = $_SESSION['user']['username'] ?? 'Admin';
+      $this->UmoorHRM->assign_role($year, $umoor_id, $sub_id, 'Team Lead', [$team_lead_its], $assigned_by);
+    }
+
+    echo json_encode(['success' => true, 'message' => $msg]);
   }
 
   public function delete_sub_committee()
@@ -6238,7 +6249,105 @@ HTML;
     }
 
     $this->db->where('id', $id)->delete('sub_committees');
-    echo json_encode(['success' => true, 'message' => 'Sub-Committee deleted successfully.']);
+    $this->db->where('sub_committee_id', $id)->delete('umoor_role_assignments');
+
+    echo json_encode(['success' => true, 'message' => 'Sub-Committee / Team deleted successfully.']);
+  }
+
+  public function get_members_ajax()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('UmoorHRM');
+
+    $q = (string)$this->input->get_post('q');
+    $gender = (string)$this->input->get_post('gender');
+    $status = (string)$this->input->get_post('status');
+    $limit = (int)($this->input->get_post('limit') ?: 10);
+    $page = (int)($this->input->get_post('page') ?: 1);
+
+    $res = $this->UmoorHRM->search_members($q, $gender, $status, $limit, $page);
+    echo json_encode(array_merge(['success' => true], $res));
+  }
+
+  public function assign_role_ajax()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('UmoorHRM');
+
+    $year = trim((string)$this->input->post('year')) ?: '1448';
+    $umoor_id = (int)$this->input->post('umoor_id');
+    $sub_committee_id = $this->input->post('sub_committee_id');
+    $role = trim((string)$this->input->post('role'));
+    $user_its = $this->input->post('user_its');
+
+    if ($umoor_id < 1 || $umoor_id > 12) {
+      echo json_encode(['success' => false, 'message' => 'Please select a valid Umoor.']); return;
+    }
+
+    $assigned_by = $_SESSION['user']['username'] ?? 'Admin';
+    $res = $this->UmoorHRM->assign_role($year, $umoor_id, $sub_committee_id, $role, $user_its, $assigned_by);
+    echo json_encode($res);
+  }
+
+  public function get_assigned_members_ajax()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('UmoorHRM');
+
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+    $umoor_id = (int)$this->input->get_post('umoor_id');
+    $sub_committee_id = $this->input->get_post('sub_committee_id');
+    $role = (string)$this->input->get_post('role');
+
+    $assigned = $this->UmoorHRM->get_assigned_members($year, $umoor_id, $sub_committee_id, $role);
+    echo json_encode(['success' => true, 'assigned' => $assigned]);
+  }
+
+  public function remove_assignment_ajax()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('UmoorHRM');
+
+    $id = (int)$this->input->post('id');
+    $assigned_by = $_SESSION['user']['username'] ?? 'Admin';
+    $res = $this->UmoorHRM->remove_assignment($id, $assigned_by);
+    echo json_encode($res);
+  }
+
+  public function get_assignment_history_ajax()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('UmoorHRM');
+
+    $year = (string)$this->input->get_post('year');
+    $umoor_id = $this->input->get_post('umoor_id');
+    $sub_committee_id = $this->input->get_post('sub_committee_id');
+    $role = (string)$this->input->get_post('role');
+
+    $history = $this->UmoorHRM->get_assignment_history($year, $umoor_id, $sub_committee_id, $role);
+    echo json_encode(['success' => true, 'history' => $history]);
+  }
+
+  public function get_umoor_hierarchy_ajax()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('UmoorHRM');
+
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+    $hierarchy = $this->UmoorHRM->get_full_hierarchy($year);
+    echo json_encode(['success' => true, 'year' => $year, 'hierarchy' => $hierarchy]);
   }
 
 }

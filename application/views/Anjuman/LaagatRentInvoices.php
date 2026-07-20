@@ -658,55 +658,106 @@
 
 <!-- Edit Modal -->
 <div class="modal fade" id="editInvoiceModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <form action="<?= base_url('anjuman/laagat_rent_invoice_save'); ?>" method="POST" class="w-100">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Invoice</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+            <div class="modal-content" style="border-radius:16px;overflow:hidden;border:none;box-shadow:0 10px 30px rgba(0,0,0,0.2)">
+                <div class="modal-header d-flex align-items-center justify-content-between px-4 py-3" style="background:linear-gradient(135deg, #78520a 0%, #b8860b 100%);color:#ffffff;border-bottom:none">
+                    <h5 class="modal-title font-weight-bold m-0" style="font-size:1.1rem;color:#ffffff !important">
+                        <i class="fa-solid fa-file-pen me-2"></i>Update Invoice & Rent Details
+                    </h5>
+                    <button type="button" class="btn-close-modal" data-dismiss="modal" aria-label="Close" style="background:none!important;border:none!important;color:#ffffff!important;font-size:1.6rem!important;line-height:1!important;opacity:0.9;cursor:pointer;outline:none!important;box-shadow:none!important;margin:0;padding:0">&times;</button>
                 </div>
-                <div class="modal-body text-left">
+                <div class="modal-body text-left p-4" style="background:#faf7f0">
                     <input type="hidden" name="id" id="edit_invoice_id">
-                    <div class="mb-3">
-                        <label class="form-label">Member</label>
-                        <p class="form-control-plaintext fw-bold text-dark mb-0" id="edit_member_name" style="font-size: 1.05rem;"></p>
-                    </div>
-                    <div id="edit_split_amounts_section">
-                        <div class="mb-3">
-                            <label class="form-label text-success">Jamaat Amount</label>
-                            <div class="input-group">
-                                <div class="input-group-prepend"><span class="input-group-text">₹</span></div>
-                                <input type="number" step="0.01" name="jamaat_amount" id="edit_jamaat_amount" class="form-control">
+
+                    <!-- Member & Invoice Info Header -->
+                    <div class="card p-3 mb-3 border-0 shadow-sm" style="background:#ffffff;border-radius:12px">
+                        <div class="row align-items-center">
+                            <div class="col-md-7">
+                                <label class="text-uppercase small font-weight-bold text-muted mb-1">Member Name & ITS</label>
+                                <div class="fw-bold text-dark h6 mb-0" id="edit_member_name"></div>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-info">Sarkaar Amount</label>
-                            <div class="input-group">
-                                <div class="input-group-prepend"><span class="input-group-text">₹</span></div>
-                                <input type="number" step="0.01" name="sarkaar_amount" id="edit_sarkaar_amount" class="form-control">
+                            <div class="col-md-5 text-md-right mt-2 mt-md-0">
+                                <label class="text-uppercase small font-weight-bold text-muted mb-1">Invoice Date</label>
+                                <input type="date" name="created_at" id="edit_created_at" class="form-control form-control-sm font-weight-bold" style="border-radius:8px">
                             </div>
                         </div>
                     </div>
-                    <div class="mb-3" id="edit_invoice_amount_section">
-                        <label class="form-label text-primary" id="edit_amount_label">Total Amount</label>
-                        <div class="input-group">
-                            <div class="input-group-prepend"><span class="input-group-text">₹</span></div>
-                            <input type="number" step="0.01" name="amount" id="edit_invoice_amount" class="form-control" readonly style="background-color: #f7f4ec;">
+
+                    <!-- Amounts Breakdown Section -->
+                    <div class="card p-3 mb-3 border-0 shadow-sm" style="background:#ffffff;border-radius:12px">
+                        <h6 class="font-weight-bold text-dark border-bottom pb-2 mb-3" style="font-size:0.85rem">
+                            <i class="fa-solid fa-coins me-2 text-warning"></i>Invoice Amount & Breakdown
+                        </h6>
+                        <div class="row g-2">
+                            <div class="col-md-4" id="edit_jamaat_section">
+                                <label class="form-label font-weight-bold text-success small mb-1">Jamaat Amount (₹)</label>
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend"><span class="input-group-text bg-white">₹</span></div>
+                                    <input type="number" step="0.01" name="jamaat_amount" id="edit_jamaat_amount" class="form-control font-weight-bold text-success">
+                                </div>
+                            </div>
+                            <div class="col-md-4" id="edit_sarkaar_section">
+                                <label class="form-label font-weight-bold text-info small mb-1">Ladies / Sarkaar Amount (₹)</label>
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend"><span class="input-group-text bg-white">₹</span></div>
+                                    <input type="number" step="0.01" name="sarkaar_amount" id="edit_sarkaar_amount" class="form-control font-weight-bold text-info">
+                                </div>
+                            </div>
+                            <div class="col-md-4" id="edit_deposit_section">
+                                <label class="form-label font-weight-bold text-warning small mb-1">Deposit Amount (₹)</label>
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend"><span class="input-group-text bg-white">₹</span></div>
+                                    <input type="number" step="0.01" name="deposit_amount" id="edit_deposit_amount" class="form-control font-weight-bold text-warning">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label font-weight-bold text-primary small mb-1">Total Invoice Amount (₹)</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend"><span class="input-group-text bg-primary text-white font-weight-bold">₹</span></div>
+                                <input type="number" step="0.01" name="amount" id="edit_invoice_amount" class="form-control font-weight-bold text-primary" style="font-size:1.15rem;background-color:#fefce8">
+                            </div>
+                        </div>
+
+                        <div class="mt-3" id="edit_thaal_count_section" style="display:none">
+                            <label class="form-label font-weight-bold text-dark small mb-1">
+                                Approximate Thaal Count <span class="text-muted font-italic">(Updates rent & deposit based on module rates)</span>
+                            </label>
+                            <input type="number" min="0" name="approximate_thaal_count" id="edit_approximate_thaal_count" class="form-control form-control-sm" style="border-radius:8px;max-width:180px">
                         </div>
                     </div>
-                    <div class="mb-3" id="edit_deposit_amount_section" style="display: none;">
-                        <label class="form-label text-warning">Deposit Amount</label>
-                        <div class="input-group">
-                            <div class="input-group-prepend"><span class="input-group-text">₹</span></div>
-                            <input type="number" step="0.01" name="deposit_amount" id="edit_deposit_amount" class="form-control">
+
+                    <!-- Rent Items Breakdown & Quantities Section -->
+                    <div id="edit_rent_items_wrapper" class="card p-3 border-0 shadow-sm" style="background:#ffffff;border-radius:12px;display:none">
+                        <h6 class="font-weight-bold text-dark border-bottom pb-2 mb-3" style="font-size:0.85rem">
+                            <i class="fa-solid fa-boxes-stacked me-2 text-warning"></i>Rent Items & Quantities Breakdown
+                        </h6>
+                        <div class="table-responsive" style="max-height:260px;overflow-y:auto;border:1px solid #e8e0cc;border-radius:10px">
+                            <table class="table table-sm table-hover mb-0" style="font-size:0.82rem">
+                                <thead style="background:#f7f4ec">
+                                    <tr>
+                                        <th>Item Name</th>
+                                        <th>Provider</th>
+                                        <th class="text-right" style="width:110px">Rate (₹)</th>
+                                        <th class="text-center" style="width:100px">Qty</th>
+                                        <th class="text-right" style="width:120px">Total (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="edit_rent_items_tbody">
+                                    <!-- Populated dynamically via JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-modal-cancel" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-modal-save">Save Changes</button>
+                <div class="modal-footer" style="background:#f7f4ec;border-top:1px solid #e8e0cc">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal" style="border-radius:8px">Cancel</button>
+                    <button type="submit" class="btn btn-warning btn-sm px-4 font-weight-bold" style="background:linear-gradient(135deg, #b8860b 0%, #966c07 100%);color:#fff;border:none;border-radius:8px">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Invoice & Rent Items
+                    </button>
                 </div>
             </div>
         </form>
@@ -714,60 +765,137 @@
 </div>
 
 <script>
+var baseJamaatAmount = 0;
+var baseLadiesAmount = 0;
+
 function editInvoice(data) {
     $('#edit_invoice_id').val(data.id);
     $('#edit_member_name').text(data.Full_Name + ' (' + data.ITS_ID + ')');
     
+    if (data.created_at) {
+        var d = new Date(data.created_at);
+        if (!isNaN(d.getTime())) {
+            var yyyy = d.getFullYear();
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            $('#edit_created_at').val(yyyy + '-' + mm + '-' + dd);
+        }
+    }
+
     var jAmt = parseFloat(data.jamaat_amount) || 0;
     var sAmt = parseFloat(data.sarkaar_amount) || 0;
-    var tAmt = parseFloat(data.amount) || 0;
-    
+    var depAmt = parseFloat(data.deposit_amount) || 0;
+    var tAmt = parseFloat(data.master_amount || data.amount) || 0;
+
     if (jAmt === 0 && sAmt === 0 && tAmt > 0) {
         jAmt = tAmt;
     }
-    
-    if (data.charge_type === 'rent') {
-        $('#edit_split_amounts_section').hide();
-        
-        var isDepositInvoice = (parseFloat(data.deposit_amount) > 0);
-        if (isDepositInvoice) {
-            $('#edit_invoice_amount_section').hide();
-            $('#edit_invoice_amount').prop('disabled', true);
-            
-            $('#edit_deposit_amount_section').show();
-            $('#edit_deposit_amount')
-                .prop('disabled', false)
-                .val(parseFloat(data.deposit_amount || 0).toFixed(2));
-        } else {
-            $('#edit_deposit_amount_section').hide();
-            $('#edit_deposit_amount').prop('disabled', true);
-            
-            $('#edit_invoice_amount_section').show();
-            $('#edit_amount_label').text('Amount');
-            $('#edit_invoice_amount')
-                .prop('disabled', false)
-                .val(tAmt.toFixed(2))
-                .prop('readonly', false)
-                .css('background-color', '');
+
+    baseJamaatAmount = jAmt;
+    baseLadiesAmount = sAmt;
+
+    $('#edit_jamaat_amount').val(jAmt.toFixed(2));
+    $('#edit_sarkaar_amount').val(sAmt.toFixed(2));
+    $('#edit_deposit_amount').val(depAmt.toFixed(2));
+    $('#edit_invoice_amount').val(tAmt.toFixed(2));
+
+    $('#edit_rent_items_wrapper').hide();
+    $('#edit_rent_items_tbody').empty();
+    $('#edit_thaal_count_section').hide();
+
+    // Fetch full invoice details via AJAX
+    $.ajax({
+        url: '<?= base_url("anjuman/get_invoice_full_details_ajax"); ?>',
+        type: 'GET',
+        data: { id: data.id },
+        dataType: 'json',
+        success: function(res) {
+            if (res && res.success) {
+                if (res.raza) {
+                    $('#edit_thaal_count_section').show();
+                    $('#edit_approximate_thaal_count').val(res.raza.thaal_count || 0);
+                }
+
+                if (res.breakdown) {
+                    baseJamaatAmount = parseFloat(res.breakdown.base_rent_amount) || 0;
+                    $('#edit_jamaat_amount').val(parseFloat(res.breakdown.jamaat_amount).toFixed(2));
+                    $('#edit_sarkaar_amount').val(parseFloat(res.breakdown.sarkaar_amount).toFixed(2));
+                    $('#edit_deposit_amount').val(parseFloat(res.breakdown.deposit_amount).toFixed(2));
+                    $('#edit_invoice_amount').val(parseFloat(res.breakdown.amount).toFixed(2));
+                }
+
+                if (res.rent_items && res.rent_items.length > 0) {
+                    $('#edit_rent_items_wrapper').show();
+                    var tbody = $('#edit_rent_items_tbody');
+                    tbody.empty();
+
+                    res.rent_items.forEach(function(item) {
+                        var rate = (item.rent_sabeel > 0) ? item.rent_sabeel : item.rent_non_sabeel;
+                        var qty = parseInt(item.quantity) || 0;
+                        var rowTotal = rate * qty;
+
+                        var providerBadge = '<span class="badge bg-secondary text-white">' + item.service_provided_by + '</span>';
+                        if (item.service_provided_by === 'Jamaat') {
+                            providerBadge = '<span class="badge bg-success text-white">Jamaat</span>';
+                        } else if (item.service_provided_by === 'Ladies') {
+                            providerBadge = '<span class="badge bg-info text-white">Ladies</span>';
+                        } else if (item.service_provided_by === 'Extras') {
+                            providerBadge = '<span class="badge bg-warning text-dark">Extras</span>';
+                        }
+
+                        var tr = $('<tr>');
+                        tr.html(
+                            '<td class="align-middle fw-bold">' + item.item_name + '</td>' +
+                            '<td class="align-middle">' + providerBadge + '</td>' +
+                            '<td class="align-middle text-right"><input type="number" step="0.01" class="form-control form-control-sm text-right item-rate-input" data-item-id="' + item.id + '" data-provider="' + item.service_provided_by + '" value="' + rate.toFixed(2) + '" style="width:90px;display:inline-block"></td>' +
+                            '<td class="align-middle text-center"><input type="number" min="0" class="form-control form-control-sm text-center item-qty-input" name="item_qty[' + item.id + ']" data-item-id="' + item.id + '" value="' + qty + '" style="width:70px;display:inline-block"></td>' +
+                            '<td class="align-middle text-right fw-bold text-dark item-total-cell" id="item_total_' + item.id + '">₹' + rowTotal.toFixed(2) + '</td>'
+                        );
+                        tbody.append(tr);
+                    });
+
+                    // Add live listener for rate and quantity changes
+                    $('.item-qty-input, .item-rate-input').off('input change').on('input change', function() {
+                        recalculateRentTotals();
+                    });
+                }
+            }
         }
-    } else {
-        $('#edit_split_amounts_section').show();
-        $('#edit_deposit_amount_section').hide();
-        $('#edit_deposit_amount').prop('disabled', true);
-        
-        $('#edit_invoice_amount_section').show();
-        $('#edit_amount_label').text('Total Amount');
-        $('#edit_jamaat_amount').val(jAmt.toFixed(2));
-        $('#edit_sarkaar_amount').val(sAmt.toFixed(2));
-        $('#edit_invoice_amount')
-            .prop('disabled', false)
-            .val((jAmt + sAmt).toFixed(2))
-            .prop('readonly', true)
-            .css('background-color', '#f7f4ec');
-    }
-    
-    $('#editInvoiceModal').data('charge_type', data.charge_type);
+    });
+
     $('#editInvoiceModal').modal('show');
+}
+
+function recalculateRentTotals() {
+    var itemsJamaat = 0;
+    var itemsLadies = 0;
+
+    $('#edit_rent_items_tbody tr').each(function() {
+        var rateInput = $(this).find('.item-rate-input');
+        var qtyInput = $(this).find('.item-qty-input');
+        var itemId = qtyInput.data('item-id');
+        var provider = rateInput.data('provider');
+
+        var rate = parseFloat(rateInput.val()) || 0;
+        var qty = parseInt(qtyInput.val()) || 0;
+        var itemTotal = rate * qty;
+
+        $('#item_total_' + itemId).text('₹' + itemTotal.toFixed(2));
+
+        if (provider === 'Ladies') {
+            itemsLadies += itemTotal;
+        } else {
+            itemsJamaat += itemTotal;
+        }
+    });
+
+    var calcJamaat = baseJamaatAmount + itemsJamaat;
+    var calcLadies = itemsLadies;
+    var totalInvoice = calcJamaat + calcLadies;
+
+    $('#edit_jamaat_amount').val(calcJamaat.toFixed(2));
+    $('#edit_sarkaar_amount').val(calcLadies.toFixed(2));
+    $('#edit_invoice_amount').val(totalInvoice.toFixed(2));
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -775,19 +903,63 @@ document.addEventListener('DOMContentLoaded', function() {
     var sarInput = document.getElementById('edit_sarkaar_amount');
     var totalInput = document.getElementById('edit_invoice_amount');
 
-    function calculateTotal() {
-        var chargeType = $('#editInvoiceModal').data('charge_type');
-        if (chargeType === 'rent') {
-            return;
-        }
+    function calculateTotalFromInputs() {
         var jVal = parseFloat(jmtInput.value) || 0;
         var sVal = parseFloat(sarInput.value) || 0;
         totalInput.value = (jVal + sVal).toFixed(2);
+
+        var itemsJamaat = 0;
+        var itemsLadies = 0;
+        $('#edit_rent_items_tbody tr').each(function() {
+            var rate = parseFloat($(this).find('.item-rate-input').val()) || 0;
+            var qty = parseInt($(this).find('.item-qty-input').val()) || 0;
+            var provider = $(this).find('.item-rate-input').data('provider');
+            if (provider === 'Ladies') {
+                itemsLadies += rate * qty;
+            } else {
+                itemsJamaat += rate * qty;
+            }
+        });
+        baseJamaatAmount = Math.max(0, jVal - itemsJamaat);
+        baseLadiesAmount = Math.max(0, sVal - itemsLadies);
     }
 
     if (jmtInput && sarInput && totalInput) {
-        jmtInput.addEventListener('input', calculateTotal);
-        sarInput.addEventListener('input', calculateTotal);
+        jmtInput.addEventListener('input', calculateTotalFromInputs);
+        sarInput.addEventListener('input', calculateTotalFromInputs);
     }
+
+    // Dynamic Thaal Count recalculation handler
+    $('#edit_approximate_thaal_count').on('input change', function() {
+        var invoiceId = $('#edit_invoice_id').val();
+        var thaalCount = parseInt($(this).val()) || 0;
+
+        var itemQtyMap = {};
+        $('#edit_rent_items_tbody tr').each(function() {
+            var qtyInput = $(this).find('.item-qty-input');
+            var itemId = qtyInput.data('item-id');
+            itemQtyMap[itemId] = parseInt(qtyInput.val()) || 0;
+        });
+
+        $.ajax({
+            url: '<?= base_url("anjuman/recalculate_invoice_amounts_ajax"); ?>',
+            type: 'POST',
+            data: {
+                invoice_id: invoiceId,
+                thaal_count: thaalCount,
+                item_qty: itemQtyMap
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res && res.success) {
+                    baseJamaatAmount = parseFloat(res.base_rent_amount) || 0;
+                    $('#edit_jamaat_amount').val(parseFloat(res.jamaat_amount).toFixed(2));
+                    $('#edit_sarkaar_amount').val(parseFloat(res.sarkaar_amount).toFixed(2));
+                    $('#edit_deposit_amount').val(parseFloat(res.deposit_amount).toFixed(2));
+                    $('#edit_invoice_amount').val(parseFloat(res.amount).toFixed(2));
+                }
+            }
+        });
+    });
 });
 </script>

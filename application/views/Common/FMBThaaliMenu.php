@@ -115,13 +115,298 @@
 #fmtApp .fmt-foot{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid #f0ece0;background:#f7f4ec;font-size:.68rem;color:#9c8f7a;flex-wrap:wrap;gap:6px}
 #fmtApp .fmt-cnt{background:#f5e9c0;color:#b8860b;border-radius:20px;padding:2px 9px;font-size:.64rem;font-weight:800}
 
-/* Print overrides */
+/* ═══════════════════════════════════════════════════
+   PRINT SCHEDULE SYSTEM — Matches Reference Design
+═══════════════════════════════════════════════════ */
+#fmt-print-schedule {
+  display: none;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 16px;
+}
+
+.fmt-p-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.fmt-p-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.fmt-p-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #166534;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+.fmt-p-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #064e3b;
+  letter-spacing: -0.3px;
+  margin: 0 0 2px 0;
+  line-height: 1.2;
+}
+.fmt-p-subtitle {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fmt-p-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fmt-p-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #334155;
+}
+.fmt-p-pill-green {
+  background: #166534;
+  color: #ffffff;
+  border-color: #166534;
+}
+
+table.fmt-p-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin-bottom: 14px;
+}
+table.fmt-p-table th {
+  background: #f8fafc;
+  padding: 10px 12px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #475569;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 2px solid #cbd5e1;
+  border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  text-align: left;
+}
+table.fmt-p-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+table.fmt-p-table tbody tr.row-sun-p td {
+  background: #fef2f2 !important;
+}
+
+.fmt-p-sno {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #e6f4ea;
+  color: #166534;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+.fmt-p-date-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.fmt-p-date-main {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #0f172a;
+}
+.fmt-p-day-sub {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+.row-sun-p .fmt-p-date-main, .row-sun-p .fmt-p-day-sub {
+  color: #dc2626 !important;
+}
+
+.fmt-p-menu-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.fmt-p-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+.fmt-p-ico {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.fmt-p-sep {
+  color: #cbd5e1;
+  font-weight: 300;
+  font-size: 0.85rem;
+}
+
+.fmt-p-off {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fmt-p-off-ico {
+  font-size: 1.1rem;
+}
+.fmt-p-off-title {
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #1e293b;
+}
+.fmt-p-off-sub {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.fmt-p-sponsor {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fmt-p-kitchen {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #166534;
+}
+
+.fmt-p-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-confirmed {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid rgba(21,128,61,0.2);
+}
+.badge-nothaali {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+.badge-pending {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid rgba(180,83,9,0.2);
+}
+.badge-draft {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid rgba(29,78,216,0.2);
+}
+.badge-cancelled {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid rgba(185,28,28,0.2);
+}
+
+.fmt-p-footer {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.fmt-p-legend-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fmt-p-legend-title {
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: #064e3b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.fmt-p-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.fmt-p-note {
+  font-size: 0.68rem;
+  color: #64748b;
+  text-align: center;
+  padding-top: 4px;
+}
+
+/* Print Overrides */
 @media print{
-  #fmtApp .fmt-act-col{display:none!important}
-  #fmtApp .fmt-print-btn,#fmtApp .fmt-top,#fmtApp .fmt-fc,#fmtApp .fmt-stats,#fmtApp .fmt-thead{display:none!important}
-  #fmtApp .fmt-tcard{border:none;box-shadow:none;border-radius:0}
-  #fmtApp .fmt-tscroll{overflow:visible}
-  body,#fmtApp{padding:0!important;margin:0!important;background:#fff!important}
+  body > *:not(#fmtApp) { display: none !important; }
+  #fmtApp > *:not(#fmt-print-schedule) { display: none !important; }
+  body, #fmtApp {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+  }
+  #fmt-print-schedule {
+    display: block !important;
+    padding: 10px !important;
+  }
+  @page {
+    size: auto;
+    margin: 8mm;
+  }
 }
 
 /* Responsive */
@@ -146,6 +431,43 @@ $back_href = isset($from) ? base_url($from) : base_url('anjuman/fmbthaali');
 $param_tail = '?from='.urlencode((string)($from??''))
   .($hijri_month_id_val!==''?'&hijri_month='.urlencode($hijri_month_id_val):'')
   .(!empty($assigned_filter_val)?'&assigned_filter='.urlencode($assigned_filter_val):'');
+
+/* Helper for food category icons */
+if (!function_exists('get_fmt_food_category')) {
+  function get_fmt_food_category($itemName) {
+    $name = strtolower(trim((string)$itemName));
+    if (strpos($name, 'chicken') !== false || strpos($name, 'murgh') !== false) {
+      return ['icon' => '🍗', 'color' => '#c2410c', 'label' => 'Chicken'];
+    }
+    if (strpos($name, 'mutton') !== false || strpos($name, 'gosht') !== false || strpos($name, 'ghosh') !== false || strpos($name, 'kofta') !== false || strpos($name, 'kebab') !== false || strpos($name, 'keema') !== false) {
+      return ['icon' => '🍖', 'color' => '#7c3aed', 'label' => 'Mutton'];
+    }
+    if (strpos($name, 'rice') !== false || strpos($name, 'pulav') !== false || strpos($name, 'pulao') !== false || strpos($name, 'biryani') !== false || strpos($name, 'khichdi') !== false || strpos($name, 'khichda') !== false || strpos($name, 'chawal') !== false) {
+      return ['icon' => '🍚', 'color' => '#b45309', 'label' => 'Rice'];
+    }
+    if (strpos($name, 'roti') !== false || strpos($name, 'naan') !== false || strpos($name, 'paratha') !== false || strpos($name, 'puri') !== false || strpos($name, 'phulka') !== false || strpos($name, 'bread') !== false || strpos($name, 'pav') !== false || strpos($name, 'kulcha') !== false) {
+      return ['icon' => '🍞', 'color' => '#b45309', 'label' => 'Bread'];
+    }
+    if (strpos($name, 'soup') !== false || strpos($name, 'dal') !== false || strpos($name, 'kadhi') !== false || strpos($name, 'palidu') !== false || strpos($name, 'shorba') !== false) {
+      return ['icon' => '🍲', 'color' => '#0d9488', 'label' => 'Soup'];
+    }
+    if (strpos($name, 'halwa') !== false || strpos($name, 'kheer') !== false || strpos($name, 'sweet') !== false || strpos($name, 'ice cream') !== false || strpos($name, 'custard') !== false || strpos($name, 'jalebi') !== false || strpos($name, 'zarda') !== false || strpos($name, 'dessert') !== false || strpos($name, 'phirni') !== false || strpos($name, 'falooda') !== false || strpos($name, 'mithai') !== false) {
+      return ['icon' => '🍨', 'color' => '#db2777', 'label' => 'Dessert'];
+    }
+    return ['icon' => '🌿', 'color' => '#166534', 'label' => 'Veg'];
+  }
+}
+
+/* Compute header date range & hijri month name */
+$first_date = !empty($menu) ? ($menu[0]['date'] ?? '') : date('Y-m-d');
+$last_date  = !empty($menu) ? ($menu[count($menu)-1]['date'] ?? '') : date('Y-m-d');
+$date_range_str = date('d M Y', strtotime($first_date)) . ' - ' . date('d M Y', strtotime($last_date));
+
+$active_hijri_month_name = '';
+if (!empty($menu)) {
+  $parts = explode(' ', $menu[0]['hijri_date'] ?? '', 2);
+  $active_hijri_month_name = $parts[1] ?? ($menu[0]['hijri_date'] ?? '');
+}
 ?>
 
 <div id="fmtApp" class="margintopcontainer">
@@ -385,6 +707,155 @@ $param_tail = '?from='.urlencode((string)($from??''))
     </div>
   </div>
 
+  <!-- ⑤ PRINT-ONLY SCHEDULE CONTAINER (Matches Reference Design Image) -->
+  <div id="fmt-print-schedule">
+    <div class="fmt-p-header">
+      <div class="fmt-p-header-left">
+        <div class="fmt-p-logo">
+          <i class="fa fa-cutlery"></i>
+        </div>
+        <div>
+          <h1 class="fmt-p-title">FMB THAALI MENU SCHEDULE</h1>
+          <div class="fmt-p-subtitle">
+            <span style="color:#166534">📅</span> Hijri Month: <strong><?php echo htmlspecialchars($active_hijri_month_name, ENT_QUOTES) ?></strong>
+          </div>
+        </div>
+      </div>
+      <div class="fmt-p-header-right">
+        <div class="fmt-p-pill">
+          <span>📅</span> <?php echo htmlspecialchars($date_range_str, ENT_QUOTES) ?>
+        </div>
+        <div class="fmt-p-pill">
+          <span>All Kitchens</span>
+        </div>
+        <div class="fmt-p-pill">
+          <span>All Status</span>
+        </div>
+        <div class="fmt-p-pill fmt-p-pill-green">
+          <i class="fa fa-print"></i> Export
+        </div>
+      </div>
+    </div>
+
+    <table class="fmt-p-table" id="fmt-p-table">
+      <thead>
+        <tr>
+          <th style="width:38px;text-align:center">#</th>
+          <th style="min-width:130px">DATE (DAY)</th>
+          <th style="min-width:120px">HIJRI DATE</th>
+          <th style="min-width:260px">MENU</th>
+          <th style="min-width:150px">HOST / SPONSOR</th>
+          <th style="min-width:120px">KITCHEN</th>
+          <th style="min-width:100px;text-align:center">STATUS</th>
+        </tr>
+      </thead>
+      <tbody id="fmt-p-tbody">
+        <?php if(!empty($menu)): ?>
+        <?php foreach($menu as $key => $item):
+          $dayName = isset($item['date']) ? date('l', strtotime($item['date'])) : '';
+          $isSun   = ($dayName === 'Sunday');
+          $isEmpty = empty($item['items']);
+          $isThaali = !empty($item['is_thaali_day']);
+          
+          $hijriFull = $item['hijri_date'] ?? '';
+          $hijriParts = explode(' ', $hijriFull, 3);
+          $hijriShort = isset($hijriParts[0]) && isset($hijriParts[1]) ? ($hijriParts[0] . ' ' . $hijriParts[1]) : $hijriFull;
+        ?>
+        <tr class="<?php echo $isSun ? 'row-sun-p' : '' ?>" data-eng-date="<?php echo htmlspecialchars($item['date'] ?? '', ENT_QUOTES) ?>">
+          <td style="text-align:center"><span class="fmt-p-sno"><?php echo $key + 1 ?></span></td>
+          <td>
+            <div class="fmt-p-date-box">
+              <span style="color:<?php echo $isSun ? '#dc2626' : '#166534' ?>;font-size:0.9rem">📅</span>
+              <div>
+                <div class="fmt-p-date-main"><?php echo isset($item['date']) ? date('d M Y', strtotime($item['date'])) : '' ?></div>
+                <div class="fmt-p-day-sub"><?php echo htmlspecialchars($dayName, ENT_QUOTES) ?></div>
+              </div>
+            </div>
+          </td>
+          <td style="font-weight:500">
+            <?php echo htmlspecialchars($hijriShort, ENT_QUOTES) ?>
+          </td>
+          <td>
+            <?php if(!$isEmpty): ?>
+              <div class="fmt-p-menu-cell">
+                <?php
+                $itemCnt = count($item['items']);
+                foreach($item['items'] as $idx => $mi):
+                  $cat = get_fmt_food_category($mi);
+                ?>
+                  <span class="fmt-p-item">
+                    <span class="fmt-p-ico" style="color:<?php echo $cat['color'] ?>"><?php echo $cat['icon'] ?></span>
+                    <span><?php echo htmlspecialchars($mi, ENT_QUOTES) ?></span>
+                  </span>
+                  <?php if($idx < $itemCnt - 1): ?>
+                    <span class="fmt-p-sep">|</span>
+                  <?php endif; ?>
+                <?php endforeach; ?>
+              </div>
+            <?php else: ?>
+              <div class="fmt-p-off">
+                <span class="fmt-p-off-ico">🚫</span>
+                <div>
+                  <div class="fmt-p-off-title">Weekly Off</div>
+                  <div class="fmt-p-off-sub">No Thaali</div>
+                </div>
+              </div>
+            <?php endif; ?>
+          </td>
+          <td>
+            <?php echo !empty($item['assigned_to']) ? '<span class="fmt-p-sponsor">'.htmlspecialchars($item['assigned_to'], ENT_QUOTES).'</span>' : '<span style="color:#cbd5e1">—</span>' ?>
+          </td>
+          <td>
+            <?php if($isThaali): ?>
+              <span class="fmt-p-kitchen"><span style="font-size:0.85rem">🏠</span> Main Kitchen</span>
+            <?php else: ?>
+              <span style="color:#cbd5e1">—</span>
+            <?php endif; ?>
+          </td>
+          <td style="text-align:center">
+            <?php if($isThaali): ?>
+              <span class="fmt-p-badge badge-confirmed"><i class="fa fa-check"></i> Confirmed</span>
+            <?php else: ?>
+              <span class="fmt-p-badge badge-nothaali"><i class="fa fa-minus"></i> No Thaali</span>
+            <?php endif; ?>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+        <?php else: ?>
+        <tr>
+          <td colspan="7" style="text-align:center;padding:30px;color:#64748b">No menu schedule items found.</td>
+        </tr>
+        <?php endif; ?>
+      </tbody>
+    </table>
+
+    <div class="fmt-p-footer">
+      <div class="fmt-p-legend-group">
+        <span class="fmt-p-legend-title">MENU LEGEND</span>
+        <span class="fmt-p-legend-item"><span style="color:#166534">🌿</span> Veg</span>
+        <span class="fmt-p-legend-item"><span style="color:#c2410c">🍗</span> Chicken</span>
+        <span class="fmt-p-legend-item"><span style="color:#7c3aed">🍖</span> Mutton</span>
+        <span class="fmt-p-legend-item"><span style="color:#b45309">🍚</span> Rice</span>
+        <span class="fmt-p-legend-item"><span style="color:#b45309">🍞</span> Bread</span>
+        <span class="fmt-p-legend-item"><span style="color:#db2777">🍨</span> Dessert</span>
+        <span class="fmt-p-legend-item"><span style="color:#0d9488">🍲</span> Soup</span>
+      </div>
+
+      <div class="fmt-p-legend-group">
+        <span class="fmt-p-legend-title">STATUS LEGEND</span>
+        <span class="fmt-p-badge badge-confirmed"><i class="fa fa-check"></i> Confirmed</span>
+        <span class="fmt-p-badge badge-pending"><i class="fa fa-clock-o"></i> Pending</span>
+        <span class="fmt-p-badge badge-draft"><i class="fa fa-pencil"></i> Draft</span>
+        <span class="fmt-p-badge badge-cancelled"><i class="fa fa-times"></i> Cancelled</span>
+        <span class="fmt-p-badge badge-nothaali"><i class="fa fa-minus"></i> No Thaali</span>
+      </div>
+    </div>
+
+    <div class="fmt-p-note">
+      <i class="fa fa-info-circle"></i> Click on any row to view details or make changes.
+    </div>
+  </div>
+
 </div><!-- /#fmtApp -->
 
 <script>
@@ -477,8 +948,39 @@ var BASE = '<?php echo base_url() ?>';
       tbody.appendChild(r);
     });
     renumber();
+    syncPrintSchedule();
   }
   function renumber(){var i=1;tbody.querySelectorAll('.fmt-sno').forEach(function(el){el.textContent=i++})}
+
+  /* ── Sync Print Schedule with Screen Table ── */
+  function syncPrintSchedule() {
+    var screenTbody = document.getElementById('fmt-tbody');
+    var printTbody = document.getElementById('fmt-p-tbody');
+    if (!screenTbody || !printTbody) return;
+
+    var screenRows = Array.from(screenTbody.querySelectorAll('tr:not(.month-hdr)'));
+    var printRowsMap = {};
+    Array.from(printTbody.querySelectorAll('tr')).forEach(function(r){
+      var d = r.getAttribute('data-eng-date');
+      if (d) printRowsMap[d] = r;
+    });
+
+    var pIndex = 1;
+    screenRows.forEach(function(sr) {
+      var date = sr.getAttribute('data-eng-date');
+      var pr = printRowsMap[date];
+      if (pr) {
+        if (sr.style.display === 'none') {
+          pr.style.display = 'none';
+        } else {
+          pr.style.display = '';
+          var sno = pr.querySelector('.fmt-p-sno');
+          if (sno) sno.textContent = pIndex++;
+          printTbody.appendChild(pr); // re-append to match sorted order
+        }
+      }
+    });
+  }
 
   /* ── Assigned To client-side filter ── */
   var assignedFilter=document.getElementById('filter-assigned');
@@ -507,13 +1009,18 @@ var BASE = '<?php echo base_url() ?>';
     var vis=rows.filter(function(r){return!r.classList.contains('month-hdr')&&r.style.display!=='none'}).length;
     var cnt=document.getElementById('fmt-cnt');
     if(cnt)cnt.textContent=vis+' row'+(vis!==1?'s':'');
+
+    syncPrintSchedule();
   }
   if(assignedFilter)assignedFilter.addEventListener('input',applyFilter);
   applyFilter();
 
   /* ── Print ── */
   var printBtn=document.getElementById('fmt-print-btn');
-  if(printBtn)printBtn.addEventListener('click',function(){window.print()});
+  if(printBtn)printBtn.addEventListener('click',function(){
+    syncPrintSchedule();
+    window.print();
+  });
 
 })();
 
