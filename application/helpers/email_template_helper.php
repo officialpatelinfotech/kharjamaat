@@ -114,6 +114,9 @@ if (!function_exists('render_generic_email_html')) {
       return $out;
     }
 
+    $addressLine = trim((string)app_setting('address_line', ''));
+    $supportEmail = app_setting('support_email', 'anjuman@' . ($_SERVER['HTTP_HOST'] ?? 'kharjamaat.in'));
+
     $repl = [
       'title' => htmlspecialchars($title),
       'todayDate' => htmlspecialchars($todayDate),
@@ -122,6 +125,9 @@ if (!function_exists('render_generic_email_html')) {
       'cardBodyHtml' => $cardBodyHtml,
       'ctaHtml' => $ctaHtml,
       'jamaat_name' => htmlspecialchars(jamaat_name()),
+      'managed_by' => htmlspecialchars((string)app_setting('managed_by', 'Anjuman-e-Saifee')),
+      'address_line_html' => $addressLine !== '' ? (' • ' . htmlspecialchars($addressLine)) : '',
+      'support_email' => htmlspecialchars((string)$supportEmail),
     ];
 
     foreach ($repl as $key => $value) {

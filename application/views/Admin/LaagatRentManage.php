@@ -766,6 +766,7 @@
 </div>
 
 <script>
+const JAMAAT_PLACE = <?= json_encode(jamaat_place()) ?>;
 document.addEventListener('DOMContentLoaded', function() {
   var modalEl = document.getElementById('lrViewGradesModal');
   if (!modalEl) return;
@@ -865,10 +866,10 @@ document.addEventListener('DOMContentLoaded', function() {
             html += '<table class="table table-bordered table-sm text-center mb-0" style="font-size: 0.85rem;">';
             html += '<thead class="bg-light"><tr>';
             html += '<th>Thaal Range</th>';
-            html += '<th>Khar Rent</th>';
-            html += '<th>Khar Deposit</th>';
-            html += '<th>Non-Khar Rent</th>';
-            html += '<th>Non-Khar Deposit</th>';
+            html += '<th>' + JAMAAT_PLACE + ' Rent</th>';
+            html += '<th>' + JAMAAT_PLACE + ' Deposit</th>';
+            html += '<th>Non-' + JAMAAT_PLACE + ' Rent</th>';
+            html += '<th>Non-' + JAMAAT_PLACE + ' Deposit</th>';
             html += '</tr></thead><tbody>';
             
             if (Array.isArray(data.thaal_ranges) && data.thaal_ranges.length > 0) {
@@ -905,12 +906,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             var html = '<div class="row text-center mb-3">' +
                          '<div class="col-6 border-right">' +
-                           '<div class="text-primary font-weight-bold mb-2" style="font-size: 1.1rem;">Khar Sabeel Holders</div>' +
+                           '<div class="text-primary font-weight-bold mb-2" style="font-size: 1.1rem;">' + JAMAAT_PLACE + ' Sabeel Holders</div>' +
                            '<div class="mb-1"><span class="text-muted small">Rent:</span> <span class="font-weight-bold text-dark">₹' + rentSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
                            '<div><span class="text-muted small">Deposit:</span> <span class="font-weight-bold text-dark">₹' + depositSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
                          '</div>' +
                          '<div class="col-6">' +
-                           '<div class="text-secondary font-weight-bold mb-2" style="font-size: 1.1rem;">Non Khar Sabeel Holders</div>' +
+                           '<div class="text-secondary font-weight-bold mb-2" style="font-size: 1.1rem;">Non ' + JAMAAT_PLACE + ' Sabeel Holders</div>' +
                            '<div class="mb-1"><span class="text-muted small">Rent:</span> <span class="font-weight-bold text-dark">₹' + rentNonSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
                            '<div><span class="text-muted small">Deposit:</span> <span class="font-weight-bold text-dark">₹' + depositNonSabeel.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</span></div>' +
                          '</div>' +

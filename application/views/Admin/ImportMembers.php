@@ -68,14 +68,15 @@ if ($role === 3) {
           <hr class="my-2">
           <div class="fw-semibold mb-1">ITS-Sabeel Match Distribution:</div>
           <ul class="mb-2">
-            <?php foreach($summary['match_distribution'] as $key => $count): 
-              $label = '';
-              $color = 'text-dark';
-              if ($key === 'its_sabeel_both_khar') { $label = 'ITS & Sabeel both in Khar'; $color = 'text-success'; }
-              elseif ($key === 'its_khar_sabeel_out') { $label = 'ITS in Khar, Sabeel outside'; $color = 'text-warning'; }
-              elseif ($key === 'sabeel_khar_its_out') { $label = 'Sabeel in Khar, ITS outside'; $color = 'text-info'; }
-              elseif ($key === 'both_not_khar') { $label = 'ITS & Sabeel both not in Khar'; $color = 'text-secondary'; }
-              if ($label):
+            <?php
+              $CI =& get_instance();
+              $CI->load->model('MemberStatusM');
+              $matchColorMap = ['success' => 'text-success', 'warning' => 'text-warning', 'info' => 'text-info', 'secondary' => 'text-secondary'];
+            ?>
+            <?php foreach($summary['match_distribution'] as $key => $count):
+              $label = MemberStatusM::match_status_label($key);
+              $color = $matchColorMap[MemberStatusM::match_status_badge_class($key)] ?? 'text-dark';
+              if ($label && $label !== '—'):
             ?>
               <li><?php echo $label; ?>: <strong class="<?php echo $color; ?>"><?php echo (int)$count; ?></strong></li>
             <?php endif; endforeach; ?>

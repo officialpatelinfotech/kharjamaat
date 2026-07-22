@@ -412,17 +412,11 @@ elseif ($role >= 4 && $role <= 15) { $back_url = base_url('Umoor/mumineendirecto
   $is_admin_or_amilsaheb = in_array($role,[1,2,3]);
   $show_deeni_status = in_array($role,[1,2,3]) || ($role >= 4 && $role <= 15) || $role === 16;
 
-  $matchLabels = [
-    'its_sabeel_both_khar' => ['ITS & Sabeel both in Khar','success'],
-    'its_khar_sabeel_out'  => ['ITS in Khar, Sabeel outside','warning'],
-    'sabeel_khar_its_out'  => ['Sabeel in Khar, ITS outside','info'],
-    'both_not_khar'        => ['Both not in Khar','secondary'],
-  ];
   $actClasses = ['active'=>'success','inactive'=>'danger','temporary'=>'warning'];
   $its_match = $member['its_sabeel_match'] ?? '';
   $actStatus = $member['activity_status']  ?? '';
-  $matchLbl  = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][0] : 'Not calculated';
-  $matchCls  = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][1] : 'secondary';
+  $matchLbl  = $its_match !== '' ? MemberStatusM::match_status_label($its_match) : 'Not calculated';
+  $matchCls  = $its_match !== '' ? MemberStatusM::match_status_badge_class($its_match) : 'secondary';
   $actCls    = $actClasses[$actStatus] ?? 'secondary';
 
   $isF = strtolower($member['Gender'] ?? '') === 'female';

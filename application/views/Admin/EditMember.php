@@ -240,9 +240,8 @@ if (empty($redirect)) {
 <?php
   $its_match   = $member['its_sabeel_match'] ?? '';
   $actStatus   = $member['activity_status']  ?? 'active';
-  $matchLabels = ['its_sabeel_both_khar'=>['ITS & Sabeel both in Khar','success'],'its_khar_sabeel_out'=>['ITS in Khar, Sabeel outside','warning'],'sabeel_khar_its_out'=>['Sabeel in Khar, ITS outside','info'],'both_not_khar'=>['Both not in Khar','secondary']];
-  $matchLabel  = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][0] : 'Not calculated';
-  $matchClass  = isset($matchLabels[$its_match]) ? $matchLabels[$its_match][1] : 'secondary';
+  $matchLabel  = $its_match !== '' ? MemberStatusM::match_status_label($its_match) : 'Not calculated';
+  $matchClass  = $its_match !== '' ? MemberStatusM::match_status_badge_class($its_match) : 'secondary';
   $actClass    = ['active'=>'success','inactive'=>'danger','temporary'=>'warning'][$actStatus] ?? 'secondary';
   $isF         = strtolower($member['Gender'] ?? '') === 'female';
   $memberName  = trim($member['Full_Name'] ?? '');

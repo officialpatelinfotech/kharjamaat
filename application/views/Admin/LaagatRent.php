@@ -436,7 +436,7 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
         <div class="row mb-4" id="lr_rent_details_section" style="display: none;">
           <div class="col-12 col-md-6 mb-3 mb-md-0">
             <div class="holder-card">
-              <h6 class="section-subtitle">Khar Sabeel Holders</h6>
+              <h6 class="section-subtitle"><?php echo htmlspecialchars(jamaat_place()); ?> Sabeel Holders</h6>
               <div class="mb-3">
                 <label class="form-label" for="lr_rent_sabeel">Rent</label>
                 <input
@@ -467,7 +467,7 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
           </div>
           <div class="col-12 col-md-6">
             <div class="holder-card">
-              <h6 class="section-subtitle text-secondary">Non Khar Sabeel Holders</h6>
+              <h6 class="section-subtitle text-secondary">Non <?php echo htmlspecialchars(jamaat_place()); ?> Sabeel Holders</h6>
               <div class="mb-3">
                 <label class="form-label" for="lr_rent_non_sabeel">Rent</label>
                 <input
@@ -530,6 +530,7 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
 </div>
 
 <script>
+  var JAMAAT_PLACE = <?php echo json_encode(jamaat_place()); ?>;
   (function() {
     var form = document.querySelector('form[action="<?php echo site_url('admin/laagat_save'); ?>"]');
     var typeSelect = document.getElementById('lr_charge_type');
@@ -914,7 +915,7 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
         <div class="row">
           <div class="col-12 col-sm-6 mb-3 mb-sm-0">
             <div class="p-3 rounded border bg-white shadow-xs">
-              <div class="font-weight-bold small text-uppercase text-primary mb-2" style="font-size: 0.74rem; letter-spacing: 0.5px;">Khar Sabeel Holders</div>
+              <div class="font-weight-bold small text-uppercase text-primary mb-2" style="font-size: 0.74rem; letter-spacing: 0.5px;">${JAMAAT_PLACE} Sabeel Holders</div>
               <div class="row mx-n2">
                 <div class="col-6 px-2">
                   <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">Rent Amount</label>
@@ -930,7 +931,7 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
           
           <div class="col-12 col-sm-6">
             <div class="p-3 rounded border bg-white shadow-xs">
-              <div class="font-weight-bold small text-uppercase text-secondary mb-2" style="font-size: 0.74rem; letter-spacing: 0.5px;">Non Khar Sabeel Holders</div>
+              <div class="font-weight-bold small text-uppercase text-secondary mb-2" style="font-size: 0.74rem; letter-spacing: 0.5px;">Non ${JAMAAT_PLACE} Sabeel Holders</div>
               <div class="row mx-n2">
                 <div class="col-6 px-2">
                   <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">Rent Amount</label>

@@ -36,7 +36,7 @@ if (!function_exists('is_notif_enabled')) {
         name="jamaat_name"
         class="form-control"
         value="<?php echo htmlspecialchars(isset($jamaat_name) ? $jamaat_name : jamaat_name(), ENT_QUOTES, 'UTF-8'); ?>"
-        placeholder="e.g. Khar Jamaat"
+        placeholder="e.g. Your Jamaat Name"
         required
       />
       <small class="form-text text-muted">This updates the site title and shared footer branding.</small>
@@ -50,10 +50,10 @@ if (!function_exists('is_notif_enabled')) {
         name="jamaat_place"
         class="form-control"
         value="<?php echo htmlspecialchars(isset($jamaat_place) ? $jamaat_place : jamaat_place(), ENT_QUOTES, 'UTF-8'); ?>"
-        placeholder="e.g. Khar"
+        placeholder="e.g. Your Jamaat Place"
         required
       />
-      <small class="form-text text-muted">Used for dynamic place-based labels across the dashboard (e.g. Khar).</small>
+      <small class="form-text text-muted">Used for dynamic place-based labels across the dashboard (e.g. "Residing in &lt;place&gt;").</small>
     </div>
 
     <hr />

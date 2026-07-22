@@ -593,11 +593,13 @@ $hs_pct_not_given = $hs['active_total'] > 0 ? round($hs['active_not_given'] / $h
       <div class="collapse show" id="collapseMMPItsSabeelMatch">
         <div class="row mb-3">
           <?php
+          $CI =& get_instance();
+          $CI->load->model('MemberStatusM');
           $statCards = [
-            ['its_sabeel_both_khar',  'ITS & Sabeel in '.jamaat_place(), 'fa-home',         '#f5e9c0','#b8860b'],
-            ['sabeel_khar_its_out',   'Sabeel in Khar, ITS out',         'fa-external-link','#ecfeff','#0891b2'],
-            ['its_khar_sabeel_out',   'ITS in Khar, Sabeel out',         'fa-sign-out',     '#fff7ed','#b45309'],
-            ['both_not_khar',         'Both not in Khar',                'fa-ban',           '#fef2f2','#b91c1c'],
+            ['its_sabeel_both_khar',  MemberStatusM::match_status_label('its_sabeel_both_khar'), 'fa-home',         '#f5e9c0','#b8860b'],
+            ['sabeel_khar_its_out',   MemberStatusM::match_status_label('sabeel_khar_its_out'),  'fa-external-link','#ecfeff','#0891b2'],
+            ['its_khar_sabeel_out',   MemberStatusM::match_status_label('its_khar_sabeel_out'),  'fa-sign-out',     '#fff7ed','#b45309'],
+            ['both_not_khar',         MemberStatusM::match_status_label('both_not_khar'),        'fa-ban',           '#fef2f2','#b91c1c'],
           ];
           foreach ($statCards as [$key, $label, $icon, $bg, $color]): ?>
           <div class="col-6 col-md-3 mb-3">

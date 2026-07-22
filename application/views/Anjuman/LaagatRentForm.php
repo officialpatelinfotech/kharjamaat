@@ -83,7 +83,7 @@
 
         <div class="row mb-3" id="lr_rent_details_section" style="display: none;">
           <div class="col-12 col-md-6 border-right">
-            <h6 class="font-weight-bold text-primary mb-3">Khar Sabeel Holders</h6>
+            <h6 class="font-weight-bold text-primary mb-3"><?php echo htmlspecialchars(jamaat_place()); ?> Sabeel Holders</h6>
             <div class="mb-3">
               <label class="form-label" for="lr_rent_sabeel">Rent</label>
               <input
@@ -112,7 +112,7 @@
             </div>
           </div>
           <div class="col-12 col-md-6">
-            <h6 class="font-weight-bold text-secondary mb-3">Non Khar Sabeel Holders</h6>
+            <h6 class="font-weight-bold text-secondary mb-3">Non <?php echo htmlspecialchars(jamaat_place()); ?> Sabeel Holders</h6>
             <div class="mb-3">
               <label class="form-label" for="lr_rent_non_sabeel">Rent</label>
               <input

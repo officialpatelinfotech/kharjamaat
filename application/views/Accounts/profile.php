@@ -401,16 +401,10 @@
     $deeniStatus = $member['deeni_status'] ?? '';
     $residentialStatus = $member['residential_status'] ?? '';
 
-    $matchLabels = [
-      'its_sabeel_both_khar' => ['ITS & Sabeel both in Khar', 'success'],
-      'its_khar_sabeel_out'  => ['ITS in Khar, Sabeel outside', 'warning'],
-      'sabeel_khar_its_out'  => ['Sabeel in Khar, ITS outside', 'info'],
-      'both_not_khar'        => ['Both not in Khar', 'secondary'],
-    ];
     $actClasses = ['active' => 'success', 'inactive' => 'danger', 'temporary' => 'warning'];
 
-    $matchLbl = isset($matchLabels[$itsMatch]) ? $matchLabels[$itsMatch][0] : 'Not calculated';
-    $matchCls = isset($matchLabels[$itsMatch]) ? $matchLabels[$itsMatch][1] : 'secondary';
+    $matchLbl = $itsMatch !== '' ? MemberStatusM::match_status_label($itsMatch) : 'Not calculated';
+    $matchCls = $itsMatch !== '' ? MemberStatusM::match_status_badge_class($itsMatch) : 'secondary';
     $actCls = isset($actClasses[$actStatus]) ? $actClasses[$actStatus] : 'secondary';
 
     $isF = strtolower($member['Gender'] ?? '') === 'female';

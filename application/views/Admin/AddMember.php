@@ -818,7 +818,7 @@ if ($role === 3) {
               <input type="text" id="hof_autocomplete" placeholder="Search HOF by ITS or Name..." autocomplete="off">
               <input type="hidden" name="HOF_ID" id="hof_id">
               <div id="hof_autocomplete_list" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1050; max-height: 250px; overflow-y: auto; display: none; top: 100%;"></div>
-              <div class="small text-muted mt-1">Type ITS ID or Member Name. Only members with ITS out of Khar, or both ITS and Sabeel out of Khar will be shown.</div>
+              <div class="small text-muted mt-1">Type ITS ID or Member Name. Only members with ITS out of <?php echo htmlspecialchars(jamaat_place()); ?>, or both ITS and Sabeel out of <?php echo htmlspecialchars(jamaat_place()); ?> will be shown.</div>
             </div>
             <div class="am-field"><label class="am-label">Father ITS ID</label><input type="text" name="Father_ITS_ID"
                 value="<?php echo fval($m, 'Father_ITS_ID'); ?>" placeholder="Father ITS (if known)"></div>

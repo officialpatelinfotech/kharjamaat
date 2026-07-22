@@ -404,10 +404,10 @@ tr.family-sep td { padding:0; height:4px; background:var(--surface-2); border:no
             <label class="flabel">ITS-Sabeel Match</label>
             <select id="fItsMatch" class="fselect">
               <option value="">All</option>
-              <option value="its_sabeel_both_khar">ITS &amp; Sabeel both in Khar</option>
-              <option value="its_khar_sabeel_out">ITS in Khar, Sabeel out</option>
-              <option value="sabeel_khar_its_out">Sabeel in Khar, ITS out</option>
-              <option value="both_not_khar">Both not in Khar</option>
+              <option value="its_sabeel_both_khar"><?= htmlspecialchars(MemberStatusM::match_status_label('its_sabeel_both_khar')) ?></option>
+              <option value="its_khar_sabeel_out"><?= htmlspecialchars(MemberStatusM::match_status_label('its_khar_sabeel_out')) ?></option>
+              <option value="sabeel_khar_its_out"><?= htmlspecialchars(MemberStatusM::match_status_label('sabeel_khar_its_out')) ?></option>
+              <option value="both_not_khar"><?= htmlspecialchars(MemberStatusM::match_status_label('both_not_khar')) ?></option>
             </select>
           </div>
         </div>
@@ -486,12 +486,13 @@ const IS_UMOOR = <?= $is_umoor ? 'true' : 'false' ?>;
 const INACTIVE_DEENI_KEYS = <?= json_encode(MemberStatusM::get_inactive_trigger_keys('deeni')) ?>;
 const INACTIVE_HEALTH_KEYS = <?= json_encode(MemberStatusM::get_inactive_trigger_keys('health')) ?>;
 const INACTIVE_RESIDENTIAL_KEYS = <?= json_encode(MemberStatusM::get_inactive_trigger_keys('residential')) ?>;
-const ITS_MATCH_LABELS = {
-  its_sabeel_both_khar: 'ITS & Sabeel both in Khar',
-  its_khar_sabeel_out: 'ITS in Khar, Sabeel out',
-  sabeel_khar_its_out: 'Sabeel in Khar, ITS out',
-  both_not_khar: 'Both not in Khar'
-};
+const JAMAAT_PLACE = <?= json_encode(jamaat_place()) ?>;
+const ITS_MATCH_LABELS = <?= json_encode([
+  'its_sabeel_both_khar' => MemberStatusM::match_status_label('its_sabeel_both_khar'),
+  'its_khar_sabeel_out'  => MemberStatusM::match_status_label('its_khar_sabeel_out'),
+  'sabeel_khar_its_out'  => MemberStatusM::match_status_label('sabeel_khar_its_out'),
+  'both_not_khar'        => MemberStatusM::match_status_label('both_not_khar'),
+]) ?>;
 
 const HEALTH_MAP = {};
 document.querySelectorAll('#fHealth option').forEach(opt => { if (opt.value) HEALTH_MAP[opt.value] = opt.textContent.trim(); });
@@ -594,7 +595,7 @@ function readURLAndApply() {
   if (legFilter === 'deeni_status')       setv('fDeeni',       legValue);
   if (legFilter === 'residential_status') {
     setv('fResidential', legValue);
-    if (legValue === 'Madresa in Khar') {
+    if (legValue === 'Madresa in ' + JAMAAT_PLACE) {
       sortCol = 'Age';
       sortDir = 'asc';
       setTimeout(() => {
@@ -664,13 +665,7 @@ function setDashTitle(p) {
   const im = p.get('its_sabeel_match') || '';
   const mn = p.get('min') || '', mx = p.get('max') || '';
   const maritalP = p.get('marital_status') || p.get('marital') || p.get('ms') || '';
-  const map = {
-    'active':'Active Members','inactive':'Inactive Members',
-    'its_sabeel_both_khar':'ITS & Sabeel both in Khar',
-    'its_khar_sabeel_out':'ITS in Khar, Sabeel Outside',
-    'sabeel_khar_its_out':'Sabeel in Khar, ITS Outside',
-    'both_not_khar':'Both not in Khar',
-  };
+  const map = Object.assign({'active':'Active Members','inactive':'Inactive Members'}, ITS_MATCH_LABELS);
   const md = p.get('madresa_deprived');
   let t = (mn === '5' && mx === '15' ? (md === '1' ? 'Deeni Taalim Not Taking (Age 5-15)' : (md === '0' ? 'Deeni Taalim Taking (Age 5-15)' : 'Deeni Taalim Eligible (Age 5-15)')) : '')
     || map[st.toLowerCase()] || map[im]

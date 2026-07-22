@@ -234,10 +234,10 @@ $residential_options = MemberStatusM::residential_status_options();
             <label class="flabel">ITS-Sabeel Match</label>
             <select id="fItsMatch" class="fselect">
               <option value="">All</option>
-              <option value="its_sabeel_both_khar">ITS &amp; Sabeel both in Khar</option>
-              <option value="its_khar_sabeel_out">ITS in Khar, Sabeel out</option>
-              <option value="sabeel_khar_its_out">Sabeel in Khar, ITS out</option>
-              <option value="both_not_khar">Both not in Khar</option>
+              <option value="its_sabeel_both_khar"><?= htmlspecialchars(MemberStatusM::match_status_label('its_sabeel_both_khar')) ?></option>
+              <option value="its_khar_sabeel_out"><?= htmlspecialchars(MemberStatusM::match_status_label('its_khar_sabeel_out')) ?></option>
+              <option value="sabeel_khar_its_out"><?= htmlspecialchars(MemberStatusM::match_status_label('sabeel_khar_its_out')) ?></option>
+              <option value="both_not_khar"><?= htmlspecialchars(MemberStatusM::match_status_label('both_not_khar')) ?></option>
             </select>
           </div>
           <div>
@@ -384,12 +384,13 @@ const CAN_EDIT = <?= $can_edit ? 'true' : 'false' ?>;
 const INACTIVE_DEENI_KEYS = <?= json_encode(MemberStatusM::get_inactive_trigger_keys('deeni')) ?>;
 const INACTIVE_HEALTH_KEYS = <?= json_encode(MemberStatusM::get_inactive_trigger_keys('health')) ?>;
 const INACTIVE_RESIDENTIAL_KEYS = <?= json_encode(MemberStatusM::get_inactive_trigger_keys('residential')) ?>;
-const ITS_MATCH_LABELS = {
-  its_sabeel_both_khar: 'ITS & Sabeel both in Khar',
-  its_khar_sabeel_out: 'ITS in Khar, Sabeel out',
-  sabeel_khar_its_out: 'Sabeel in Khar, ITS out',
-  both_not_khar: 'Both not in Khar'
-};
+const JAMAAT_PLACE = <?= json_encode(jamaat_place()) ?>;
+const ITS_MATCH_LABELS = <?= json_encode([
+  'its_sabeel_both_khar' => MemberStatusM::match_status_label('its_sabeel_both_khar'),
+  'its_khar_sabeel_out'  => MemberStatusM::match_status_label('its_khar_sabeel_out'),
+  'sabeel_khar_its_out'  => MemberStatusM::match_status_label('sabeel_khar_its_out'),
+  'both_not_khar'        => MemberStatusM::match_status_label('both_not_khar'),
+]) ?>;
 
 const HEALTH_MAP = {};
 document.querySelectorAll('#fHealth option').forEach(opt => { if (opt.value) HEALTH_MAP[opt.value] = opt.textContent.trim(); });
@@ -474,7 +475,7 @@ function readURLAndApply(){
   if(legFilter==='deeni_status') setv('fDeeni',legValue);
   if (legFilter === 'residential_status') {
     setv('fResidential', legValue);
-    if (legValue === 'Madresa in Khar') {
+    if (legValue === 'Madresa in ' + JAMAAT_PLACE) {
       sortCol = 'Age';
       sortDir = 'asc';
       setTimeout(() => {
@@ -527,7 +528,7 @@ function readURLAndApply(){
 function setDashTitle(p){
   const lf=(p.get('filter')||'').toLowerCase(),lv=p.get('value')||'',st=p.get('status')||'',im=p.get('its_sabeel_match')||'',mn=p.get('min')||'',mx=p.get('max')||'',md=p.get('madresa_deprived');
   const maritalP=p.get('marital_status')||p.get('marital')||p.get('ms')||'';
-  const map={'active':'Active Members','inactive':'Inactive Members','its_sabeel_both_khar':'ITS & Sabeel both in Khar','its_khar_sabeel_out':'ITS in Khar, Sabeel Outside','sabeel_khar_its_out':'Sabeel in Khar, ITS Outside','both_not_khar':'Both not in Khar'};
+  const map=Object.assign({'active':'Active Members','inactive':'Inactive Members'}, ITS_MATCH_LABELS);
   let t=(mn==='5'&&mx==='15'?(md==='1'?'Deeni Taalim Not Taking (5-15)':md==='0'?'Deeni Taalim Taking (5-15)':'Deeni Taalim Eligible (5-15)'):'')||map[st.toLowerCase()]||map[im]||(lf==='all'?'All Members':'')
     ||(lf==='hof_fm_type'&&lv.toUpperCase()==='HOF'?'HOF Members':lf==='hof_fm_type'&&lv.toUpperCase()==='FM'?'Family Members':'')
     ||(lf==='gender'&&lv.toLowerCase()==='male'?'Gents':lf==='gender'&&lv.toLowerCase()==='female'?'Ladies':'')
@@ -742,7 +743,7 @@ function updateExclTrigger(){
   }
 }
 function renderChips(){
-  const ITS_L={its_sabeel_both_khar:'ITS & Sabeel in Khar',its_khar_sabeel_out:'ITS in Khar',sabeel_khar_its_out:'Sabeel in Khar',both_not_khar:'Both Not in Khar'};
+  const ITS_L={its_sabeel_both_khar:`ITS & Sabeel in ${JAMAAT_PLACE}`,its_khar_sabeel_out:`ITS in ${JAMAAT_PLACE}`,sabeel_khar_its_out:`Sabeel in ${JAMAAT_PLACE}`,both_not_khar:`Both Not in ${JAMAAT_PLACE}`};
   const defs=[['fName','Name'],['fSector','Sector'],['fSubSector','Sub Sector'],['fMarital','Marital'],['fAgeMin','Age ≥'],['fAgeMax','Age ≤'],['fHOF','HOF'],['fStatus','Status'],['fGender','Gender'],['fHOFType','HOF/FM'],['fHealth','Health'],['fDeeni','Deeni'],['fResidential','Residential'],['fItsMatch','ITS Match']];
   const row=document.getElementById('chipRow');
   row.innerHTML='';let any=false;

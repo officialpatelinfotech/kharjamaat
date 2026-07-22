@@ -6,7 +6,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  *
  * Auto-calculated fields (run on CSV import or manual trigger):
  *   - its_sabeel_match  — family-level: if ANY member of the HOF family has
- *                         a Sabeel record, the whole family is "Sabeel in Khar"
+ *                         a Sabeel record, the whole family is "Sabeel in <jamaat_place>"
  *   - Member_Type       — derived from its_sabeel_match
  *
  * Manual fields (saved via update_living_status / updatemember):
@@ -71,7 +71,7 @@ class MemberStatusM extends CI_Model
      *
      * Family logic: Sabeel is checked at the HOF level. If the HOF (or any
      * member sharing the same HOF_ID) has a Sabeel record for the current year,
-     * ALL members of that family are treated as "Sabeel in Khar".
+     * ALL members of that family are treated as "Sabeel in <jamaat_place>".
      *
      * Returns ['updated' => N, 'errors' => N, 'match_distribution' => [...]]
      */
@@ -246,11 +246,12 @@ class MemberStatusM extends CI_Model
     {
         $CI =& get_instance();
         if (!$CI->db->table_exists('status_options')) {
+            $place = jamaat_place();
             return [
                 ''                                            => '— None —',
-                'Residing in Khar'                            => 'Residing in Khar (Active)',
-                'Madresa in Khar'                             => 'Madresa in Khar (Active)',
-                'FMB Thaali in Khar'                          => 'FMB Thaali in Khar (Active)',
+                "Residing in $place"                          => "Residing in $place (Active)",
+                "Madresa in $place"                            => "Madresa in $place (Active)",
+                "FMB Thaali in $place"                         => "FMB Thaali in $place (Active)",
                 'Moved for Job'                               => 'Moved for Job (Inactive)',
                 'Moved for Studies'                           => 'Moved for Studies (Inactive)',
                 'Moved after Marriage'                        => 'Permanently moved after Marriage (Inactive)',
@@ -296,13 +297,14 @@ class MemberStatusM extends CI_Model
         ];
     }
 
-    public static function match_status_label(string $val): string
+    public static function match_status_label(string $val, ?string $place = null): string
     {
+        $place = $place ?? jamaat_place();
         $map = [
-            self::MATCH_BOTH_KHAR     => 'ITS & Sabeel both in Khar',
-            self::MATCH_ITS_KHAR      => 'ITS in Khar, Sabeel not in Khar',
-            self::MATCH_SABEEL_KHAR   => 'Sabeel in Khar, ITS not in Khar',
-            self::MATCH_BOTH_NOT_KHAR => 'Sabeel & ITS both not in Khar',
+            self::MATCH_BOTH_KHAR     => "ITS & Sabeel both in $place",
+            self::MATCH_ITS_KHAR      => "ITS in $place, Sabeel not in $place",
+            self::MATCH_SABEEL_KHAR   => "Sabeel in $place, ITS not in $place",
+            self::MATCH_BOTH_NOT_KHAR => "Sabeel & ITS both not in $place",
         ];
         return $map[$val] ?? '—';
     }
