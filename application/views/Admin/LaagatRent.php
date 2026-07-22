@@ -297,16 +297,33 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
 
       <form method="post" action="<?php echo site_url('admin/laagat_save'); ?>">
         <input type="hidden" name="id" value="<?php echo htmlspecialchars(isset($form['id']) ? (string)$form['id'] : ''); ?>" />
-        <div class="mb-3">
-          <label class="form-label" for="lr_title">Title:</label>
+
+        <!-- Hidden title field — auto-filled from Property Name for rent, or entered manually for laagat -->
+        <input type="hidden" id="lr_title" name="title" value="<?php echo htmlspecialchars(isset($form['title']) ? (string)$form['title'] : ''); ?>" />
+
+        <!-- LAAGAT-mode title (shown only for laagat) -->
+        <div class="mb-3" id="lr_laagat_title_section" style="display: none;">
+          <label class="form-label" for="lr_laagat_title_input">Title</label>
           <input
             type="text"
             class="form-control"
-            id="lr_title"
-            name="title"
+            id="lr_laagat_title_input"
+            placeholder="Enter title..."
             value="<?php echo htmlspecialchars(isset($form['title']) ? (string)$form['title'] : ''); ?>"
-            required
           />
+        </div>
+
+        <!-- PROPERTY NAME (Rent-only: replaces old Venue + Title fields) -->
+        <div class="mb-3" id="lr_property_name_section" style="display: none;">
+          <label class="form-label" for="lr_property_name_input">Property Name</label>
+          <input
+            type="text"
+            class="form-control"
+            id="lr_property_name_input"
+            placeholder="e.g. Vajjihi Hall, Masjid Khana..."
+            value="<?php echo htmlspecialchars(isset($form['venue']) && $form['venue'] !== '' ? (string)$form['venue'] : (isset($form['title']) ? (string)$form['title'] : '')); ?>"
+          />
+          <div class="mt-1" style="font-size:0.76rem;color:#9c8f7a">This will be used as the form title and venue.</div>
         </div>
 
         <div class="mb-3">
@@ -343,18 +360,9 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
 
         <input type="hidden" id="lr_charge_type" name="charge_type" value="<?php echo htmlspecialchars($module_type); ?>" />
 
-        <div class="mb-3" id="lr_venue_section" style="display: none;">
-          <label class="form-label" for="lr_venue">Venue Selection</label>
-          <select class="custom-select" id="lr_venue" name="venue">
-            <option value="">All/Any Venue (Default)</option>
-            <?php if (!empty($venue_options) && is_array($venue_options)) : ?>
-              <?php foreach ($venue_options as $vo) : ?>
-                <?php $selected = (isset($form['venue']) && (string)$form['venue'] === (string)$vo) ? 'selected' : ''; ?>
-                <option value="<?php echo htmlspecialchars((string)$vo); ?>" <?php echo $selected; ?>><?php echo htmlspecialchars((string)$vo); ?></option>
-              <?php endforeach; ?>
-            <?php endif; ?>
-          </select>
-        </div>
+        <!-- Old venue section removed; Property Name input (above) serves this purpose for Rent -->
+        <input type="hidden" id="lr_venue" name="venue" value="" />
+
 
 
         <div class="mb-3">
@@ -1012,13 +1020,19 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
             <label class="form-label font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem; letter-spacing: 0.5px;">Item Name</label>
             <input type="text" class="form-control" name="item_name[]" value="${itemName}" required placeholder="e.g. Chair, Table, Mic..." />
           </div>
-          <div class="form-group mb-0" style="min-width: 160px; flex: 1;">
+          <div class="form-group mb-0" style="min-width: 200px; flex: 1.5;">
             <label class="form-label font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem; letter-spacing: 0.5px;">Service Provided By</label>
-            <select class="custom-select" name="item_service_provided_by[]" required>
-              <option value="Jamaat" ${serviceProvidedBy === 'Jamaat' ? 'selected' : ''}>Jamaat</option>
-              <option value="Ladies" ${serviceProvidedBy === 'Ladies' ? 'selected' : ''}>Ladies</option>
-              <option value="Extras" ${serviceProvidedBy === 'Extras' ? 'selected' : ''}>Extras</option>
-            </select>
+            <div class="d-flex" style="gap:6px;">
+              <input type="text" class="form-control lr-service-provider-input" name="item_service_provided_by[]" value="${serviceProvidedBy}" required placeholder="e.g. Jamaat, Ladies..." list="lr_service_providers_datalist" autocomplete="off" />
+              <button type="button" class="btn btn-sm btn-outline-secondary lr-add-provider-btn" title="Save as new provider" style="flex-shrink:0;white-space:nowrap;"><i class="fa fa-plus"></i></button>
+            </div>
+            <div class="lr-new-provider-form" style="display:none;margin-top:6px;">
+              <div class="d-flex" style="gap:4px;">
+                <input type="text" class="form-control form-control-sm lr-new-provider-name" placeholder="New provider name..." />
+                <button type="button" class="btn btn-sm btn-primary lr-save-provider-btn">Save</button>
+                <button type="button" class="btn btn-sm btn-secondary lr-cancel-provider-btn">Cancel</button>
+              </div>
+            </div>
           </div>
           <div class="form-group mb-0" style="min-width: 140px; flex: 1;">
             <label class="form-label font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem; letter-spacing: 0.5px;">Cost / Piece</label>
@@ -1030,9 +1044,39 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
       itemsContainer.appendChild(card);
     }
 
+    var propertyNameSection = document.getElementById('lr_property_name_section');
+    var propertyNameInput = document.getElementById('lr_property_name_input');
+    var titleInput = document.getElementById('lr_title');
+    var venueHidden = document.getElementById('lr_venue');
+    var laagatTitleSection = document.getElementById('lr_laagat_title_section');
+    var laagatTitleInput = document.getElementById('lr_laagat_title_input');
+
+    // Sync Property Name → hidden title & venue fields (rent mode)
+    if (propertyNameInput) {
+      propertyNameInput.addEventListener('input', function() {
+        var val = propertyNameInput.value.trim();
+        if (titleInput) titleInput.value = val;
+        if (venueHidden) venueHidden.value = val;
+      });
+      // Set initial values on load (edit mode)
+      var initVal = propertyNameInput.value.trim();
+      if (initVal) {
+        if (titleInput) titleInput.value = initVal;
+        if (venueHidden) venueHidden.value = initVal;
+      }
+    }
+
+    // Sync Laagat Title → hidden title field (laagat mode)
+    if (laagatTitleInput) {
+      laagatTitleInput.addEventListener('input', function() {
+        if (titleInput) titleInput.value = laagatTitleInput.value.trim();
+      });
+    }
+
     function toggleRentFields() {
       if (typeSelect && typeSelect.value === 'rent') {
-        if (venueSection) venueSection.style.display = 'block';
+        if (propertyNameSection) propertyNameSection.style.display = 'block';
+        if (laagatTitleSection) laagatTitleSection.style.display = 'none';
         if (calcTypeSection) calcTypeSection.style.display = 'block';
         // Items section is always visible for rent type (independent of calculation type)
         if (itemsSection) itemsSection.style.display = 'block';
@@ -1072,8 +1116,8 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
         }
       } else {
         // Not rent — hide all rent-specific sections
-        if (venueSection) venueSection.style.display = 'none';
-        if (venueSelect) venueSelect.value = '';
+        if (propertyNameSection) propertyNameSection.style.display = 'none';
+        if (laagatTitleSection) laagatTitleSection.style.display = 'block';
         if (calcTypeSection) {
           calcTypeSection.style.display = 'none';
           if (calcTypeSelect) calcTypeSelect.value = '0';
@@ -1175,6 +1219,98 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
     fetchOptions('');
     toggleRentFields();
   })();
+</script>
+
+<!-- Global datalist for service providers (dynamically populated) -->
+<datalist id="lr_service_providers_datalist" style="display:none">
+  <option value="Jamaat"></option>
+  <option value="Ladies"></option>
+  <option value="Extras"></option>
+</datalist>
+
+<script>
+// ── Dynamic Service Provider Manager ──────────────────────────────
+(function() {
+  // In-memory list of providers (populated from datalist defaults + saved ones)
+  var storageKey = 'lr_service_providers';
+  var providerDl = document.getElementById('lr_service_providers_datalist');
+
+  function getProviders() {
+    try {
+      var saved = localStorage.getItem(storageKey);
+      if (saved) {
+        var parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch(e) {}
+    return ['Jamaat', 'Ladies', 'Extras'];
+  }
+
+  function saveProvider(name) {
+    name = name.trim();
+    if (!name) return;
+    var providers = getProviders();
+    if (providers.indexOf(name) === -1) {
+      providers.push(name);
+      try { localStorage.setItem(storageKey, JSON.stringify(providers)); } catch(e) {}
+      refreshDatalist();
+    }
+  }
+
+  function refreshDatalist() {
+    if (!providerDl) return;
+    providerDl.innerHTML = '';
+    getProviders().forEach(function(p) {
+      var opt = document.createElement('option');
+      opt.value = p;
+      providerDl.appendChild(opt);
+    });
+  }
+
+  refreshDatalist();
+
+  // Delegate events on items container for add-provider button
+  var itemsContainer = document.getElementById('lr_items_container');
+  if (itemsContainer) {
+    itemsContainer.addEventListener('click', function(e) {
+      var addBtn = e.target.closest('.lr-add-provider-btn');
+      if (addBtn) {
+        var card = addBtn.closest('.lr-item-card');
+        if (!card) return;
+        var form = card.querySelector('.lr-new-provider-form');
+        if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      }
+
+      var saveBtn = e.target.closest('.lr-save-provider-btn');
+      if (saveBtn) {
+        var card = saveBtn.closest('.lr-item-card');
+        if (!card) return;
+        var nameInput = card.querySelector('.lr-new-provider-name');
+        var spInput = card.querySelector('.lr-service-provider-input');
+        var form = card.querySelector('.lr-new-provider-form');
+        var newName = nameInput ? nameInput.value.trim() : '';
+        if (newName) {
+          saveProvider(newName);
+          if (spInput) spInput.value = newName;
+          if (nameInput) nameInput.value = '';
+          if (form) form.style.display = 'none';
+        } else {
+          alert('Please enter a provider name.');
+        }
+      }
+
+      var cancelBtn = e.target.closest('.lr-cancel-provider-btn');
+      if (cancelBtn) {
+        var card = cancelBtn.closest('.lr-item-card');
+        if (!card) return;
+        var form = card.querySelector('.lr-new-provider-form');
+        var nameInput = card.querySelector('.lr-new-provider-name');
+        if (form) form.style.display = 'none';
+        if (nameInput) nameInput.value = '';
+      }
+    });
+  }
+})();
 </script>
 
 <style>

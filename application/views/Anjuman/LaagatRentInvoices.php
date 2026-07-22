@@ -662,7 +662,7 @@
         <form action="<?= base_url('anjuman/laagat_rent_invoice_save'); ?>" method="POST" class="w-100">
             <div class="modal-content" style="border-radius:16px;overflow:hidden;border:none;box-shadow:0 10px 30px rgba(0,0,0,0.2)">
                 <div class="modal-header d-flex align-items-center justify-content-between px-4 py-3" style="background:linear-gradient(135deg, #78520a 0%, #b8860b 100%);color:#ffffff;border-bottom:none">
-                    <h5 class="modal-title font-weight-bold m-0" style="font-size:1.1rem;color:#ffffff !important">
+                    <h5 class="modal-title font-weight-bold m-0" id="edit_modal_title" style="font-size:1.1rem;color:#ffffff !important">
                         <i class="fa-solid fa-file-pen me-2"></i>Update Invoice & Rent Details
                     </h5>
                     <button type="button" class="btn-close-modal" data-dismiss="modal" aria-label="Close" style="background:none!important;border:none!important;color:#ffffff!important;font-size:1.6rem!important;line-height:1!important;opacity:0.9;cursor:pointer;outline:none!important;box-shadow:none!important;margin:0;padding:0">&times;</button>
@@ -686,7 +686,7 @@
 
                     <!-- Amounts Breakdown Section -->
                     <div class="card p-3 mb-3 border-0 shadow-sm" style="background:#ffffff;border-radius:12px">
-                        <h6 class="font-weight-bold text-dark border-bottom pb-2 mb-3" style="font-size:0.85rem">
+                        <h6 class="font-weight-bold text-dark border-bottom pb-2 mb-3" id="edit_section_title" style="font-size:0.85rem">
                             <i class="fa-solid fa-coins me-2 text-warning"></i>Invoice Amount & Breakdown
                         </h6>
                         <div class="row g-2">
@@ -713,7 +713,7 @@
                             </div>
                         </div>
 
-                        <div class="mt-3">
+                        <div class="mt-3" id="edit_total_amount_section">
                             <label class="form-label font-weight-bold text-primary small mb-1">Total Invoice Amount (₹)</label>
                             <div class="input-group">
                                 <div class="input-group-prepend"><span class="input-group-text bg-primary text-white font-weight-bold">₹</span></div>
@@ -755,7 +755,7 @@
                 </div>
                 <div class="modal-footer" style="background:#f7f4ec;border-top:1px solid #e8e0cc">
                     <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal" style="border-radius:8px">Cancel</button>
-                    <button type="submit" class="btn btn-warning btn-sm px-4 font-weight-bold" style="background:linear-gradient(135deg, #b8860b 0%, #966c07 100%);color:#fff;border:none;border-radius:8px">
+                    <button type="submit" class="btn btn-warning btn-sm px-4 font-weight-bold" id="edit_save_btn" style="background:linear-gradient(135deg, #b8860b 0%, #966c07 100%);color:#fff;border:none;border-radius:8px">
                         <i class="fa-solid fa-floppy-disk me-1"></i> Save Invoice & Rent Items
                     </button>
                 </div>
@@ -803,6 +803,29 @@ function editInvoice(data) {
     $('#edit_rent_items_tbody').empty();
     $('#edit_thaal_count_section').hide();
 
+    var pageIsDeposit = <?= $is_deposit ? 'true' : 'false' ?>;
+    var isDepositOnly = pageIsDeposit || (data.charge_type === 'deposit') || (data.charge_type === 'rent' && tAmt <= 0.0001 && depAmt > 0);
+
+    if (isDepositOnly) {
+        $('#edit_modal_title').html('<i class="fa-solid fa-file-pen me-2"></i>Update Deposit Invoice');
+        $('#edit_section_title').html('<i class="fa-solid fa-coins me-2 text-warning"></i>Deposit Amount Details');
+        $('#edit_jamaat_section').hide();
+        $('#edit_sarkaar_section').hide();
+        $('#edit_total_amount_section').hide();
+        $('#edit_thaal_count_section').hide();
+        $('#edit_rent_items_wrapper').hide();
+        $('#edit_deposit_section').removeClass('col-md-4').addClass('col-md-12').show();
+        $('#edit_save_btn').html('<i class="fa-solid fa-floppy-disk me-1"></i> Save Deposit Amount');
+    } else {
+        $('#edit_modal_title').html('<i class="fa-solid fa-file-pen me-2"></i>Update Invoice & Rent Details');
+        $('#edit_section_title').html('<i class="fa-solid fa-coins me-2 text-warning"></i>Invoice Amount & Breakdown');
+        $('#edit_jamaat_section').show();
+        $('#edit_sarkaar_section').show();
+        $('#edit_deposit_section').removeClass('col-md-12').addClass('col-md-4').show();
+        $('#edit_total_amount_section').show();
+        $('#edit_save_btn').html('<i class="fa-solid fa-floppy-disk me-1"></i> Save Invoice & Rent Items');
+    }
+
     // Fetch full invoice details via AJAX
     $.ajax({
         url: '<?= base_url("anjuman/get_invoice_full_details_ajax"); ?>',
@@ -811,53 +834,64 @@ function editInvoice(data) {
         dataType: 'json',
         success: function(res) {
             if (res && res.success) {
-                if (res.raza) {
-                    $('#edit_thaal_count_section').show();
-                    $('#edit_approximate_thaal_count').val(res.raza.thaal_count || 0);
-                }
+                if (isDepositOnly) {
+                    if (res.breakdown && res.breakdown.deposit_amount !== undefined) {
+                        $('#edit_deposit_amount').val(parseFloat(res.breakdown.deposit_amount).toFixed(2));
+                    }
+                    $('#edit_jamaat_section').hide();
+                    $('#edit_sarkaar_section').hide();
+                    $('#edit_total_amount_section').hide();
+                    $('#edit_thaal_count_section').hide();
+                    $('#edit_rent_items_wrapper').hide();
+                } else {
+                    if (res.raza) {
+                        $('#edit_thaal_count_section').show();
+                        $('#edit_approximate_thaal_count').val(res.raza.thaal_count || 0);
+                    }
 
-                if (res.breakdown) {
-                    baseJamaatAmount = parseFloat(res.breakdown.base_rent_amount) || 0;
-                    $('#edit_jamaat_amount').val(parseFloat(res.breakdown.jamaat_amount).toFixed(2));
-                    $('#edit_sarkaar_amount').val(parseFloat(res.breakdown.sarkaar_amount).toFixed(2));
-                    $('#edit_deposit_amount').val(parseFloat(res.breakdown.deposit_amount).toFixed(2));
-                    $('#edit_invoice_amount').val(parseFloat(res.breakdown.amount).toFixed(2));
-                }
+                    if (res.breakdown) {
+                        baseJamaatAmount = parseFloat(res.breakdown.base_rent_amount) || 0;
+                        $('#edit_jamaat_amount').val(parseFloat(res.breakdown.jamaat_amount).toFixed(2));
+                        $('#edit_sarkaar_amount').val(parseFloat(res.breakdown.sarkaar_amount).toFixed(2));
+                        $('#edit_deposit_amount').val(parseFloat(res.breakdown.deposit_amount).toFixed(2));
+                        $('#edit_invoice_amount').val(parseFloat(res.breakdown.amount).toFixed(2));
+                    }
 
-                if (res.rent_items && res.rent_items.length > 0) {
-                    $('#edit_rent_items_wrapper').show();
-                    var tbody = $('#edit_rent_items_tbody');
-                    tbody.empty();
+                    if (res.rent_items && res.rent_items.length > 0) {
+                        $('#edit_rent_items_wrapper').show();
+                        var tbody = $('#edit_rent_items_tbody');
+                        tbody.empty();
 
-                    res.rent_items.forEach(function(item) {
-                        var rate = (item.rent_sabeel > 0) ? item.rent_sabeel : item.rent_non_sabeel;
-                        var qty = parseInt(item.quantity) || 0;
-                        var rowTotal = rate * qty;
+                        res.rent_items.forEach(function(item) {
+                            var rate = (item.rent_sabeel > 0) ? item.rent_sabeel : item.rent_non_sabeel;
+                            var qty = parseInt(item.quantity) || 0;
+                            var rowTotal = rate * qty;
 
-                        var providerBadge = '<span class="badge bg-secondary text-white">' + item.service_provided_by + '</span>';
-                        if (item.service_provided_by === 'Jamaat') {
-                            providerBadge = '<span class="badge bg-success text-white">Jamaat</span>';
-                        } else if (item.service_provided_by === 'Ladies') {
-                            providerBadge = '<span class="badge bg-info text-white">Ladies</span>';
-                        } else if (item.service_provided_by === 'Extras') {
-                            providerBadge = '<span class="badge bg-warning text-dark">Extras</span>';
-                        }
+                            var providerBadge = '<span class="badge bg-secondary text-white">' + item.service_provided_by + '</span>';
+                            if (item.service_provided_by === 'Jamaat') {
+                                providerBadge = '<span class="badge bg-success text-white">Jamaat</span>';
+                            } else if (item.service_provided_by === 'Ladies') {
+                                providerBadge = '<span class="badge bg-info text-white">Ladies</span>';
+                            } else if (item.service_provided_by === 'Extras') {
+                                providerBadge = '<span class="badge bg-warning text-dark">Extras</span>';
+                            }
 
-                        var tr = $('<tr>');
-                        tr.html(
-                            '<td class="align-middle fw-bold">' + item.item_name + '</td>' +
-                            '<td class="align-middle">' + providerBadge + '</td>' +
-                            '<td class="align-middle text-right"><input type="number" step="0.01" class="form-control form-control-sm text-right item-rate-input" data-item-id="' + item.id + '" data-provider="' + item.service_provided_by + '" value="' + rate.toFixed(2) + '" style="width:90px;display:inline-block"></td>' +
-                            '<td class="align-middle text-center"><input type="number" min="0" class="form-control form-control-sm text-center item-qty-input" name="item_qty[' + item.id + ']" data-item-id="' + item.id + '" value="' + qty + '" style="width:70px;display:inline-block"></td>' +
-                            '<td class="align-middle text-right fw-bold text-dark item-total-cell" id="item_total_' + item.id + '">₹' + rowTotal.toFixed(2) + '</td>'
-                        );
-                        tbody.append(tr);
-                    });
+                            var tr = $('<tr>');
+                            tr.html(
+                                '<td class="align-middle fw-bold">' + item.item_name + '</td>' +
+                                '<td class="align-middle">' + providerBadge + '</td>' +
+                                '<td class="align-middle text-right"><input type="number" step="0.01" class="form-control form-control-sm text-right item-rate-input" data-item-id="' + item.id + '" data-provider="' + item.service_provided_by + '" value="' + rate.toFixed(2) + '" style="width:90px;display:inline-block"></td>' +
+                                '<td class="align-middle text-center"><input type="number" min="0" class="form-control form-control-sm text-center item-qty-input" name="item_qty[' + item.id + ']" data-item-id="' + item.id + '" value="' + qty + '" style="width:70px;display:inline-block"></td>' +
+                                '<td class="align-middle text-right fw-bold text-dark item-total-cell" id="item_total_' + item.id + '">₹' + rowTotal.toFixed(2) + '</td>'
+                            );
+                            tbody.append(tr);
+                        });
 
-                    // Add live listener for rate and quantity changes
-                    $('.item-qty-input, .item-rate-input').off('input change').on('input change', function() {
-                        recalculateRentTotals();
-                    });
+                        // Add live listener for rate and quantity changes
+                        $('.item-qty-input, .item-rate-input').off('input change').on('input change', function() {
+                            recalculateRentTotals();
+                        });
+                    }
                 }
             }
         }

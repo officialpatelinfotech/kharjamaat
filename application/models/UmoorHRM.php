@@ -84,38 +84,50 @@ class UmoorHRM extends CI_Model
         return $rows;
     }
 
-    public function search_members($q = '', $gender = '', $status = '', $limit = 10, $page = 1)
+    public function search_members($q = '', $gender = '', $status = '', $limit = 10, $page = 1, $year = '1448', $umoor_id = null, $sub_committee_id = null, $assigned_only = false)
     {
         $offset = max(0, ($page - 1) * $limit);
 
-        $this->db->from('user');
-        
+        $this->db->from('user u');
+
+        if ($assigned_only) {
+            $this->db->join('umoor_role_assignments a', 'a.user_its = u.ITS_ID', 'inner');
+            $this->db->where('a.year', $year);
+            $this->db->where('a.status', 'Active');
+            if (!empty($umoor_id)) {
+                $this->db->where('a.umoor_id', (int)$umoor_id);
+            }
+            if (!empty($sub_committee_id)) {
+                $this->db->where('a.sub_committee_id', (int)$sub_committee_id);
+            }
+        }
+
         if (!empty($q)) {
             $q_clean = trim($q);
             $this->db->group_start();
-            $this->db->like('Full_Name', $q_clean);
-            $this->db->or_like('ITS_ID', $q_clean);
-            $this->db->or_like('Mobile', $q_clean);
-            $this->db->or_like('Email', $q_clean);
+            $this->db->like('u.Full_Name', $q_clean);
+            $this->db->or_like('u.ITS_ID', $q_clean);
+            $this->db->or_like('u.Mobile', $q_clean);
+            $this->db->or_like('u.Email', $q_clean);
             $this->db->group_end();
         }
 
         if (!empty($gender) && $gender !== 'All') {
-            $this->db->where('LOWER(Gender)', strtolower($gender));
+            $this->db->where('LOWER(u.Gender)', strtolower($gender));
         }
 
         if (!empty($status) && $status !== 'All') {
             if (strtolower($status) === 'active') {
                 $this->db->group_start();
-                $this->db->where('Inactive_Status IS NULL');
-                $this->db->or_where('Inactive_Status', '');
-                $this->db->or_where('Inactive_Status', 'Active');
+                $this->db->where('u.Inactive_Status IS NULL');
+                $this->db->or_where('u.Inactive_Status', '');
+                $this->db->or_where('u.Inactive_Status', 'Active');
                 $this->db->group_end();
             } else {
                 $this->db->group_start();
-                $this->db->where('Inactive_Status IS NOT NULL');
-                $this->db->where('Inactive_Status !=', '');
-                $this->db->where('Inactive_Status !=', 'Active');
+                $this->db->where('u.Inactive_Status IS NOT NULL');
+                $this->db->where('u.Inactive_Status !=', '');
+                $this->db->where('u.Inactive_Status !=', 'Active');
                 $this->db->group_end();
             }
         }
@@ -124,8 +136,12 @@ class UmoorHRM extends CI_Model
         $count_db = clone $this->db;
         $total = $count_db->count_all_results();
 
-        $this->db->select("ITS_ID, Full_Name, Mobile as Mobile_No, Email, Gender, COALESCE(Father_Name, Husband_Name, '') as HOF_Name, Inactive_Status");
-        $this->db->order_by('Full_Name', 'ASC');
+        $select_str = "u.ITS_ID, u.Full_Name, u.Mobile as Mobile_No, u.Email, u.Gender, COALESCE(u.Father_Name, u.Husband_Name, '') as HOF_Name, u.Inactive_Status";
+        if ($assigned_only) {
+            $select_str .= ", a.role as assigned_role, a.id as assignment_id";
+        }
+        $this->db->select($select_str);
+        $this->db->order_by('u.Full_Name', 'ASC');
         $this->db->limit($limit, $offset);
         $members = $this->db->get()->result_array();
 
@@ -138,17 +154,20 @@ class UmoorHRM extends CI_Model
             'members' => $members,
             'total' => $total,
             'page' => $page,
-            'pages' => ceil($total / max(1, $limit))
+            'limit' => $limit,
+            'pages' => ceil($total / $limit)
         ];
     }
 
-    public function get_assigned_members($year, $umoor_id, $sub_committee_id = null, $role = null)
+    public function get_assigned_members($year, $umoor_id = null, $sub_committee_id = null, $role = null)
     {
         $this->db->select("a.*, u.Full_Name as member_name, u.Mobile as Mobile_No, u.Email, u.Gender, COALESCE(u.Father_Name, u.Husband_Name, '') as HOF_Name");
         $this->db->from('umoor_role_assignments a');
         $this->db->join('user u', 'u.ITS_ID = a.user_its', 'left');
         $this->db->where('a.year', $year);
-        $this->db->where('a.umoor_id', (int)$umoor_id);
+        if (!empty($umoor_id)) {
+            $this->db->where('a.umoor_id', (int)$umoor_id);
+        }
         $this->db->where('a.status', 'Active');
 
         if ($sub_committee_id !== null && $sub_committee_id !== '') {
@@ -156,7 +175,13 @@ class UmoorHRM extends CI_Model
         }
 
         if ($role !== null && $role !== '') {
-            $this->db->where('a.role', $role);
+            if ($role === 'Male Coordinator') {
+                $this->db->where_in('a.role', ['Male Coordinator', 'Coordinator']);
+            } else if ($role === 'Female Coordinator' || $role === 'Female Coordinator (Al Aqeeq)' || $role === 'Al Aqeeq Member') {
+                $this->db->where_in('a.role', ['Female Coordinator', 'Female Coordinator (Al Aqeeq)', 'Al Aqeeq Member']);
+            } else {
+                $this->db->where('a.role', $role);
+            }
         }
 
         $this->db->order_by('a.id', 'DESC');
@@ -176,24 +201,29 @@ class UmoorHRM extends CI_Model
         $now = date('Y-m-d H:i:s');
         $umoor_id = (int)$umoor_id;
         $sub_committee_id = $sub_committee_id ? (int)$sub_committee_id : null;
+        $its = trim($user_its_array[0]);
 
-        if ($role === 'Coordinator') {
-            // Rules: Only 1 member per Umoor per Year
-            $its = trim($user_its_array[0]);
-            
-            // Deactivate previous coordinator for this year & umoor
+        // Normalize Coordinator roles
+        if ($role === 'Male Coordinator' || $role === 'Coordinator (Male)') {
+            // Check gender
+            $user = $this->db->select('Gender, Full_Name')->from('user')->where('ITS_ID', $its)->get()->row_array();
+            if ($user && strtolower(trim($user['Gender'] ?? '')) === 'female') {
+                return ['success' => false, 'message' => 'Selected member (' . ($user['Full_Name'] ?? $its) . ') is female. Male Coordinator must be a male member.'];
+            }
+
+            // Deactivate previous Male Coordinator for this year & umoor
             $this->db->where('year', $year)
                      ->where('umoor_id', $umoor_id)
-                     ->where('role', 'Coordinator')
+                     ->where_in('role', ['Male Coordinator', 'Coordinator'])
                      ->where('status', 'Active')
                      ->update('umoor_role_assignments', ['status' => 'Transferred']);
 
-            // Insert new active coordinator
+            // Insert new active Male Coordinator
             $this->db->insert('umoor_role_assignments', [
                 'year' => $year,
                 'umoor_id' => $umoor_id,
                 'sub_committee_id' => null,
-                'role' => 'Coordinator',
+                'role' => 'Male Coordinator',
                 'user_its' => $its,
                 'assigned_by' => $assigned_by,
                 'assigned_at' => $now,
@@ -201,14 +231,53 @@ class UmoorHRM extends CI_Model
                 'created_at' => $now
             ]);
 
-            return ['success' => true, 'message' => 'Umoor Coordinator assigned successfully.'];
+            return ['success' => true, 'message' => 'Male Coordinator assigned successfully for this Umoor.'];
+        }
+        else if ($role === 'Female Coordinator' || $role === 'Female Coordinator (Al Aqeeq)' || $role === 'Al Aqeeq Member') {
+            // Check gender
+            $user = $this->db->select('Gender, Full_Name')->from('user')->where('ITS_ID', $its)->get()->row_array();
+            if ($user && strtolower(trim($user['Gender'] ?? '')) === 'male') {
+                return ['success' => false, 'message' => 'Selected member (' . ($user['Full_Name'] ?? $its) . ') is male. Female Coordinator (Al Aqeeq Member) must be a female member.'];
+            }
+
+            // Deactivate previous Female Coordinator for this year & umoor
+            $this->db->where('year', $year)
+                     ->where('umoor_id', $umoor_id)
+                     ->where_in('role', ['Female Coordinator', 'Female Coordinator (Al Aqeeq)', 'Al Aqeeq Member'])
+                     ->where('status', 'Active')
+                     ->update('umoor_role_assignments', ['status' => 'Transferred']);
+
+            // Insert new active Female Coordinator (Al Aqeeq Member)
+            $this->db->insert('umoor_role_assignments', [
+                'year' => $year,
+                'umoor_id' => $umoor_id,
+                'sub_committee_id' => null,
+                'role' => 'Female Coordinator (Al Aqeeq)',
+                'user_its' => $its,
+                'assigned_by' => $assigned_by,
+                'assigned_at' => $now,
+                'status' => 'Active',
+                'created_at' => $now
+            ]);
+
+            return ['success' => true, 'message' => 'Female Coordinator (Al Aqeeq Member) assigned successfully for this Umoor.'];
+        }
+        else if ($role === 'Coordinator' || $role === 'Umoor Coordinator') {
+            // Check member gender to automatically determine Male vs Female Coordinator
+            $user = $this->db->select('Gender, Full_Name')->from('user')->where('ITS_ID', $its)->get()->row_array();
+            $gender = strtolower(trim($user['Gender'] ?? ''));
+
+            if ($gender === 'female') {
+                return $this->assign_role($year, $umoor_id, null, 'Female Coordinator (Al Aqeeq)', [$its], $assigned_by);
+            } else {
+                return $this->assign_role($year, $umoor_id, null, 'Male Coordinator', [$its], $assigned_by);
+            }
         }
         else if ($role === 'Team Lead') {
             // Rules: Only 1 member per Team per Year
             if (!$sub_committee_id) {
                 return ['success' => false, 'message' => 'Sub-Committee / Team must be selected for Team Lead.'];
             }
-            $its = trim($user_its_array[0]);
 
             // Deactivate previous team lead for this team & year
             $this->db->where('year', $year)
@@ -243,14 +312,14 @@ class UmoorHRM extends CI_Model
 
             $added = 0;
             foreach ($user_its_array as $its_raw) {
-                $its = trim($its_raw);
-                if (!$its) continue;
+                $its_item = trim($its_raw);
+                if (!$its_item) continue;
 
                 // Check if already active
                 $exists = $this->db->where('year', $year)
                                    ->where('sub_committee_id', $sub_committee_id)
                                    ->where('role', 'Team Member')
-                                   ->where('user_its', $its)
+                                   ->where('user_its', $its_item)
                                    ->where('status', 'Active')
                                    ->get('umoor_role_assignments')
                                    ->row_array();
@@ -261,7 +330,7 @@ class UmoorHRM extends CI_Model
                         'umoor_id' => $umoor_id,
                         'sub_committee_id' => $sub_committee_id,
                         'role' => 'Team Member',
-                        'user_its' => $its,
+                        'user_its' => $its_item,
                         'assigned_by' => $assigned_by,
                         'assigned_at' => $now,
                         'status' => 'Active',
@@ -314,7 +383,13 @@ class UmoorHRM extends CI_Model
             $this->db->where('a.sub_committee_id', (int)$sub_committee_id);
         }
         if (!empty($role)) {
-            $this->db->where('a.role', $role);
+            if ($role === 'Male Coordinator') {
+                $this->db->where_in('a.role', ['Male Coordinator', 'Coordinator']);
+            } else if ($role === 'Female Coordinator' || $role === 'Female Coordinator (Al Aqeeq)' || $role === 'Al Aqeeq Member') {
+                $this->db->where_in('a.role', ['Female Coordinator', 'Female Coordinator (Al Aqeeq)', 'Al Aqeeq Member']);
+            } else {
+                $this->db->where('a.role', $role);
+            }
         }
 
         $this->db->order_by('a.id', 'DESC');
@@ -327,17 +402,27 @@ class UmoorHRM extends CI_Model
         $umoor_list = $this->get_umoor_list();
         $hierarchy = [];
 
-        // Fetch all coordinators for the year
-        $coordinators = $this->db->select('a.*, u.Full_Name, u.Mobile as Mobile_No, u.Email')
+        // Fetch all active coordinators for the year
+        $coordinators = $this->db->select('a.*, u.Full_Name, u.Mobile as Mobile_No, u.Email, u.Gender')
                                  ->from('umoor_role_assignments a')
                                  ->join('user u', 'u.ITS_ID = a.user_its', 'left')
                                  ->where('a.year', $year)
-                                 ->where('a.role', 'Coordinator')
+                                 ->where_in('a.role', ['Male Coordinator', 'Female Coordinator', 'Female Coordinator (Al Aqeeq)', 'Coordinator', 'Al Aqeeq Member'])
                                  ->where('a.status', 'Active')
                                  ->get()->result_array();
-        $coord_map = [];
+
+        $male_coord_map = [];
+        $female_coord_map = [];
+
         foreach ($coordinators as $c) {
-            $coord_map[$c['umoor_id']] = $c;
+            $role_name = $c['role'];
+            $gender = strtolower(trim($c['Gender'] ?? ''));
+
+            if ($role_name === 'Male Coordinator' || ($role_name === 'Coordinator' && $gender !== 'female')) {
+                $male_coord_map[$c['umoor_id']] = $c;
+            } else if (in_array($role_name, ['Female Coordinator', 'Female Coordinator (Al Aqeeq)', 'Al Aqeeq Member']) || ($role_name === 'Coordinator' && $gender === 'female')) {
+                $female_coord_map[$c['umoor_id']] = $c;
+            }
         }
 
         // Fetch all sub-committees & team leads
@@ -349,22 +434,47 @@ class UmoorHRM extends CI_Model
 
         // Build 12 Umoor tree
         foreach ($umoor_list as $uid => $uname) {
-            $coord = $coord_map[$uid] ?? null;
+            $mCoord = $male_coord_map[$uid] ?? null;
+            $fCoord = $female_coord_map[$uid] ?? null;
             $teams = $sc_map[$uid] ?? [];
 
             $hierarchy[] = [
                 'umoor_id' => $uid,
                 'umoor_name' => $uname,
-                'coordinator' => $coord ? [
-                    'its' => $coord['user_its'],
-                    'name' => $coord['Full_Name'] ?? $coord['user_its'],
-                    'mobile' => $coord['Mobile_No'] ?? '',
-                    'email' => $coord['Email'] ?? ''
+                'male_coordinator' => $mCoord ? [
+                    'its' => $mCoord['user_its'],
+                    'name' => $mCoord['Full_Name'] ?? $mCoord['user_its'],
+                    'mobile' => $mCoord['Mobile_No'] ?? '',
+                    'email' => $mCoord['Email'] ?? ''
+                ] : null,
+                'female_coordinator' => $fCoord ? [
+                    'its' => $fCoord['user_its'],
+                    'name' => $fCoord['Full_Name'] ?? $fCoord['user_its'],
+                    'mobile' => $fCoord['Mobile_No'] ?? '',
+                    'email' => $fCoord['Email'] ?? ''
                 ] : null,
                 'teams' => $teams
             ];
         }
 
         return $hierarchy;
+    }
+
+    public function get_member_umoor_assignments($user_its, $year = '1448')
+    {
+        $this->db->select("a.*, s.name as sub_committee_name");
+        $this->db->from('umoor_role_assignments a');
+        $this->db->join('sub_committees s', 's.id = a.sub_committee_id', 'left');
+        $this->db->where('a.user_its', $user_its);
+        $this->db->where('a.year', $year);
+        $this->db->where('a.status', 'Active');
+        $this->db->order_by('a.umoor_id', 'ASC');
+        $rows = $this->db->get()->result_array();
+
+        $umoor_list = $this->get_umoor_list();
+        foreach ($rows as $k => $r) {
+            $rows[$k]['umoor_name'] = $umoor_list[$r['umoor_id']] ?? ('Umoor #' . $r['umoor_id']);
+        }
+        return $rows;
     }
 }

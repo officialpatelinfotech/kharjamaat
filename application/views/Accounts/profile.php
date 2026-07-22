@@ -524,6 +524,42 @@
   </div>
   <?php endif; ?>
 
+  <!-- SANSTHA MEMBERSHIPS PANEL -->
+  <div class="panel mb-4">
+    <div class="panel-hd open" data-panel-target="grp-sanstha-memberships">
+      <div class="ph-left">
+        <span class="ph-icon"><i class="fa fa-building-o"></i></span>
+        <span class="ph-title">Sanstha Memberships</span>
+        <span class="ph-badge"><?php echo count($member_sansthas ?? []); ?></span>
+      </div>
+      <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+    </div>
+    <div class="panel-bd" id="grp-sanstha-memberships">
+      <div style="padding:16px;">
+        <?php if(!empty($member_sansthas)): ?>
+          <div class="row">
+            <?php foreach($member_sansthas as $s): ?>
+              <div class="col-md-6 mb-3">
+                <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                  <div>
+                    <div style="font-weight:800;font-size:0.9rem;color:var(--text-1)"><i class="fa fa-building text-warning mr-1"></i> <?php echo htmlspecialchars($s['name']); ?></div>
+                    <?php if(!empty($s['description'])): ?>
+                      <div style="font-size:0.76rem;color:var(--text-2);margin-top:2px"><?php echo htmlspecialchars($s['description']); ?></div>
+                    <?php endif; ?>
+                    <div style="font-size:0.68rem;color:var(--text-3);margin-top:4px"><i class="fa fa-calendar-check-o"></i> Assigned on <?php echo date('d M Y', strtotime($s['assigned_at'])); ?></div>
+                  </div>
+                  <span class="badge badge-success" style="font-size:0.7rem;padding:4px 10px;border-radius:12px;font-weight:800">Active Member</span>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php else: ?>
+          <div style="text-align:center;padding:14px;color:var(--text-3);font-size:0.82rem"><i class="fa fa-info-circle"></i> You are not assigned to any Sanstha currently.</div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
   <!-- MAIN DETAILS GRID -->
   <div class="details-grid">
     <?php

@@ -427,11 +427,12 @@ if (!function_exists('format_inr')) {
         <button type="button" id="quickMenuClear" class="menu-search-clear">&times;</button>
       </div>
 
-      <div class="menu-section">Raza</div>
+      <div class="menu-section">Raza &amp; Umoor</div>
       <ul class="menu-list">
         <li><a class="menu-item" href="<?php echo base_url('anjuman/EventRazaRequest?event_type=1') ?>"><span class="menu-icon"><i class="fa fa-handshake-o"></i></span><span class="menu-label">Miqaat Raza Request</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/EventRazaRequest?event_type=2') ?>"><span class="menu-icon"><i class="fa fa-handshake-o"></i></span><span class="menu-label">Kaaraj Raza Request</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/UmoorRazaRequest') ?>"><span class="menu-icon"><i class="fa fa-list"></i></span><span class="menu-label">12 Umoor Raza Request</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('anjuman/umoor_hr') ?>"><span class="menu-icon"><i class="fa fa-sitemap"></i></span><span class="menu-label">12 Umoor HR</span></a></li>
       </ul>
 
       <div class="menu-section">Activity</div>
@@ -461,6 +462,11 @@ if (!function_exists('format_inr')) {
         <li><a class="menu-item" href="<?php echo base_url('anjuman/rent') ?>"><span class="menu-icon"><i class="fa fa-home"></i></span><span class="menu-label">Rent Module</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('anjuman/wajebaat') ?>"><span class="menu-icon"><i class="fa fa-coins"></i></span><span class="menu-label">Wajebaat</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('madresa') ?>"><span class="menu-icon"><i class="fa fa-graduation-cap"></i></span><span class="menu-label">Madresa Module</span></a></li>
+      </ul>
+
+      <div class="menu-section">Sanstha Module</div>
+      <ul class="menu-list">
+        <li><a class="menu-item" href="<?php echo base_url('anjuman/sanstha') ?>"><span class="menu-icon"><i class="fa fa-building-o"></i></span><span class="menu-label">Sanstha Directory</span></a></li>
       </ul>
     </div>
   </aside>
@@ -759,6 +765,29 @@ if (!function_exists('format_inr')) {
             </a>
           </div>
           <?php endforeach; ?>
+        </div>
+      </div>
+    </div></div></div>
+
+    <!-- Sanstha Module -->
+    <div class="row"><div class="col-12"><div class="chart-container member-types-block compact" style="padding:10px;">
+      <div class="section-header-standard">
+        <h4 class="section-title"><i class="fa fa-building-o"></i> Sanstha Module</h4>
+        <button class="collapse-toggle-btn" type="button" data-toggle="collapse" data-target="#collapseSansthaModule" aria-expanded="true"><i class="fa fa-chevron-down"></i></button>
+      </div>
+      <div class="collapse show" id="collapseSansthaModule">
+        <div class="row px-3 mb-2">
+          <div class="col-12 col-md-6 mb-3">
+            <a href="<?= base_url('anjuman/sanstha') ?>" style="text-decoration:none;color:inherit;display:block;">
+              <div class="overview-card" style="border-color:#e6c84a;">
+                <div class="overview-icon" style="background:#f5e9c0;color:#b8860b;"><i class="fa fa-building-o"></i></div>
+                <div class="overview-body">
+                  <span class="overview-title">Sanstha Directory</span>
+                  <span class="overview-value" style="font-size:0.95rem;font-weight:700;">View Directory &amp; Member Roster &rarr;</span>
+                </div>
+              </div>
+            </a>
+          </div>
         </div>
       </div>
     </div></div></div>

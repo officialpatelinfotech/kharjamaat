@@ -72,12 +72,6 @@
       <ul class="navbar-nav mr-auto">
         <li class="nav-item"><a href="<?php echo base_url("/anjuman") ?>" class="nav-link"><i
               class="fa fa-home px-1"></i>Home</a></li>
-        <!-- <li class="nav-item dropdown"><a href="#" role="button" data-toggle="dropdown"
-                        class="nav-link dropdown-toggle" aria-expanded="false"><i
-                            class="fa fa-life-ring px-1"></i>Help</a>
-                    <div class="dropdown-menu"><a href="<?php echo base_url("anjuman/request-help") ?>"
-                            class="dropdown-item">Help Desk</a></div>
-                </li> -->
       </ul>
       <ul class="navbar-nav navbar-right">
         <li class="nav-item mr-2" id="km-export-excel-wrap" style="display:none;">

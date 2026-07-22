@@ -281,7 +281,8 @@
       <ul class="menu-list">
         <li><a class="menu-item" href="<?php echo base_url('admin/managemembers'); ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Manage Members</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/importmembers'); ?>"><span class="menu-icon"><i class="fa fa-upload"></i></span><span class="menu-label">Import Members</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('admin/umoor_sub_committees'); ?>"><span class="menu-icon"><i class="fa fa-sitemap"></i></span><span class="menu-label">Umoor Sub-Committees</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/umoor_sub_committees'); ?>"><span class="menu-icon"><i class="fa fa-sitemap"></i></span><span class="menu-label">12 Umoor HR</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/sanstha'); ?>"><span class="menu-icon"><i class="fa fa-building-o"></i></span><span class="menu-label">Create Sanstha</span></a></li>
       </ul>
 
       <div class="menu-section">Miqaat & FMB</div>
@@ -399,13 +400,24 @@
         </a>
       </div>
         
-      <!-- Umoor Sub-Committees -->
+      <!-- 12 Umoor HR -->
       <div class="col-6 col-md-4 col-lg-3 mb-4">
         <a href="<?php echo base_url('admin/umoor_sub_committees'); ?>">
           <div class="admin-card">
             <div class="admin-card-icon"><i class="fa fa-sitemap"></i></div>
-            <h5 class="admin-card-title">Umoor Sub-Committees</h5>
+            <h5 class="admin-card-title">12 Umoor HR</h5>
             <p class="admin-card-desc">Organize sub-committees and assign team leads under Umoor.</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Create Sanstha -->
+      <div class="col-6 col-md-4 col-lg-3 mb-4">
+        <a href="<?php echo base_url('admin/sanstha'); ?>">
+          <div class="admin-card">
+            <div class="admin-card-icon"><i class="fa fa-building-o"></i></div>
+            <h5 class="admin-card-title">Create Sanstha</h5>
+            <p class="admin-card-desc">Manage Sansthas and dedicated member rosters.</p>
           </div>
         </a>
       </div>
