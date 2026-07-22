@@ -441,7 +441,7 @@ class Accounts extends CI_Controller
     if (!empty($memberIds)) {
       $placeholders = implode(',', array_fill(0, count($memberIds), '?'));
 
-      // FMB extra contributions (GC)
+      // FMB extra contributions (GC) - Exclude Individual Niyaz
       $gcRow = $this->db->query(
         "SELECT 
            COALESCE(SUM(gc.amount),0) AS total_amount,
@@ -449,7 +449,7 @@ class Accounts extends CI_Controller
            COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due\n" .
           "FROM fmb_general_contribution gc\n" .
           "LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id\n" .
-          "WHERE gc.user_id IN ($placeholders)",
+          "WHERE gc.user_id IN ($placeholders) AND gc.contri_type != 'Individual Niyaz'",
         $memberIds
       )->row_array();
       $fmb_extra_amount = isset($gcRow['total_amount']) ? (float)$gcRow['total_amount'] : 0.0;
@@ -466,6 +466,16 @@ class Accounts extends CI_Controller
       )->row_array();
       $fmb_miqaat_invoice_due = isset($miqRow['total_due']) ? (float)$miqRow['total_due'] : 0.0;
 
+      // Add Individual Niyaz dues from fmb_general_contribution
+      $indNiyazDueRow = $this->db->query(
+        "SELECT COALESCE(SUM(gc.amount - COALESCE(p.total_received,0)),0) AS total_due\n" .
+          "FROM fmb_general_contribution gc\n" .
+          "LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) p ON p.fmbgc_id = gc.id\n" .
+          "WHERE gc.user_id IN ($placeholders) AND gc.contri_type = 'Individual Niyaz'",
+        $memberIds
+      )->row_array();
+      $fmb_miqaat_invoice_due += isset($indNiyazDueRow['total_due']) ? (float)$indNiyazDueRow['total_due'] : 0.0;
+
       // Miqaat invoice total amount
       $miqAmtRow = $this->db->query(
         "SELECT COALESCE(SUM(amount),0) AS total_amount\n" .
@@ -474,6 +484,15 @@ class Accounts extends CI_Controller
         $memberIds
       )->row_array();
       $fmb_miqaat_invoice_total_amount = isset($miqAmtRow['total_amount']) ? (float)$miqAmtRow['total_amount'] : 0.0;
+
+      // Add Individual Niyaz total amount from fmb_general_contribution
+      $indNiyazAmtRow = $this->db->query(
+        "SELECT COALESCE(SUM(amount),0) AS total_amount\n" .
+          "FROM fmb_general_contribution\n" .
+          "WHERE user_id IN ($placeholders) AND contri_type = 'Individual Niyaz'",
+        $memberIds
+      )->row_array();
+      $fmb_miqaat_invoice_total_amount += isset($indNiyazAmtRow['total_amount']) ? (float)$indNiyazAmtRow['total_amount'] : 0.0;
     }
     $data['fmb_due_badge'] = ($family_fmb_due > 0);
     
@@ -510,12 +529,21 @@ class Accounts extends CI_Controller
     $family_laagat_total = 0.0;
     $family_rent_due = 0.0;
     $family_rent_total = 0.0;
+    $family_deposit_due = 0.0;
+    $family_deposit_total = 0.0;
     foreach ($memberIds as $mid) {
       // Rent invoices: fetch all to ensure due badge and amounts reflect all outstanding rent invoices
       $rent_invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'charge_type' => 'rent']);
       foreach ($rent_invoices as $lrinv) {
         $family_rent_total += (float)($lrinv['master_amount'] ?? 0);
         $family_rent_due += (float)($lrinv['master_amount'] ?? 0) - (float)($lrinv['paid_amount'] ?? 0);
+      }
+
+      // Rent Deposit invoices: fetch all to calculate deposit amounts and outstanding deposit dues
+      $deposit_invoices = $this->LaagatRentM->get_invoices(['its_id' => $mid, 'charge_type' => 'deposit']);
+      foreach ($deposit_invoices as $lrinv) {
+        $family_deposit_total += (float)($lrinv['deposit_amount'] ?? 0);
+        $family_deposit_due += (float)($lrinv['deposit_amount'] ?? 0) - (float)($lrinv['paid_amount'] ?? 0);
       }
 
       // Laagat invoices: continue to filter by the current Hijri year range
@@ -533,6 +561,11 @@ class Accounts extends CI_Controller
     $data['rent_summary'] = [
       'total_due' => $family_rent_due,
       'total_amount' => $family_rent_total,
+      'year' => $currRange
+    ];
+    $data['rent_deposit_summary'] = [
+      'total_due' => $family_deposit_due,
+      'total_amount' => $family_deposit_total,
       'year' => $currRange
     ];
 
@@ -2098,6 +2131,7 @@ class Accounts extends CI_Controller
     $current_year_label = null;
     $current_hijri_year = null;
     $all_takhmeen_by_year = [];
+    $all_takhmeen_paid_by_year = [];
     $all_payments = [];
     $general_contributions = [];
 
@@ -2138,6 +2172,11 @@ class Accounts extends CI_Controller
             $all_takhmeen_by_year[$y] = 0.0;
           }
           $all_takhmeen_by_year[$y] += (float)($tr['total_amount'] ?? 0);
+
+          if (!isset($all_takhmeen_paid_by_year[$y])) {
+            $all_takhmeen_paid_by_year[$y] = 0.0;
+          }
+          $all_takhmeen_paid_by_year[$y] += (float)($tr['total_paid'] ?? 0);
         }
       }
 
@@ -2220,7 +2259,14 @@ class Accounts extends CI_Controller
           $thaaliDays = (int)floor(((float)$amt) / $perDay);
         }
         $assignedDays = isset($assignedDaysMap[(string)$y]) ? (int)$assignedDaysMap[(string)$y] : 0;
-        $all_takhmeen[] = ['year' => $y, 'total_amount' => $amt, 'thaali_days' => $thaaliDays, 'assigned_thaali_days' => $assignedDays];
+        $paidAmt = isset($all_takhmeen_paid_by_year[$y]) ? (float)$all_takhmeen_paid_by_year[$y] : 0.0;
+        $all_takhmeen[] = [
+          'year' => $y,
+          'total_amount' => $amt,
+          'total_paid' => $paidAmt,
+          'thaali_days' => $thaaliDays,
+          'assigned_thaali_days' => $assignedDays
+        ];
       }
     }
     $latest = !empty($all_takhmeen) ? $all_takhmeen[0] : null;
@@ -2415,13 +2461,43 @@ class Accounts extends CI_Controller
       }
     }
 
+    // Fallback: check fmb_general_contribution for 'Individual Niyaz' records
+    if (empty($res['invoice'])) {
+      $gc = $this->db
+        ->select('gc.id, gc.amount, gc.description, gc.miqaat_type, gc.contri_type, gc.contri_year, gc.user_id, DATE(gc.created_at) AS invoice_date')
+        ->from('fmb_general_contribution gc')
+        ->where('gc.id', $invoice_id)
+        ->where('gc.contri_type', 'Individual Niyaz')
+        ->where_in('gc.user_id', $memberIds)
+        ->get()->row_array();
+      if ($gc) {
+        $pays = $this->db
+          ->select('p.id AS payment_id, p.amount, p.payment_method, p.payment_date, p.remarks, p.created_at')
+          ->from('fmb_general_contribution_payments p')
+          ->where('p.fmbgc_id', $invoice_id)
+          ->order_by('p.payment_date', 'DESC')
+          ->get()->result_array();
+        $res = [
+          'invoice'  => [
+            'id'           => $gc['id'],
+            'miqaat_name'  => $gc['contri_type'] . ' (' . $gc['contri_year'] . ')',
+            'miqaat_type'  => $gc['miqaat_type'],
+            'invoice_date' => $gc['invoice_date'],
+            'amount'       => $gc['amount'],
+            'description'  => $gc['description'],
+          ],
+          'payments' => $pays,
+        ];
+      }
+    }
+
     if (empty($res['invoice'])) {
       $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Invoice not found']));
       return;
     }
     $this->output->set_content_type('application/json')->set_output(json_encode([
-      'success' => true,
-      'invoice' => $res['invoice'],
+      'success'  => true,
+      'invoice'  => $res['invoice'],
       'payments' => $res['payments']
     ]));
   }
@@ -2739,6 +2815,11 @@ class Accounts extends CI_Controller
     $this->laagat_rent_by_type('rent');
   }
 
+  public function rent_deposit()
+  {
+    $this->laagat_rent_by_type('deposit');
+  }
+
   public function laagat_rent()
   {
     redirect('accounts/laagat');
@@ -2838,6 +2919,93 @@ class Accounts extends CI_Controller
 
     $payments = $this->LaagatRentM->get_payments_by_invoice($invoice_id);
     echo json_encode($payments);
+  }
+
+  public function get_rent_invoice_items()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+      return;
+    }
+
+    $invoice_id = (int)$this->input->post('invoice_id');
+    if ($invoice_id <= 0) {
+      echo json_encode(['success' => false, 'error' => 'Invalid Invoice ID']);
+      return;
+    }
+
+    $this->load->model('LaagatRentM');
+    $this->load->model('AccountM');
+
+    // Security check: Verify this invoice belongs to the user or their family
+    $invoice = $this->db->get_where('laagat_rent_invoices', ['id' => $invoice_id])->row_array();
+    if (!$invoice) {
+      echo json_encode(['success' => false, 'error' => 'Invoice not found']);
+      return;
+    }
+
+    $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $hof_id = $this->AccountM->get_hof_id_for_member($user_id);
+    
+    $memberIds = [(string)$hof_id];
+    $familyRows = $this->AccountM->get_all_family_member($hof_id);
+    if (!empty($familyRows)) {
+      foreach ($familyRows as $r) {
+        if (!empty($r['ITS_ID'])) {
+          $memberIds[] = (string)$r['ITS_ID'];
+        }
+      }
+    }
+    $memberIds = array_values(array_unique($memberIds));
+
+    $isAdmin = isset($_SESSION['user']['role']) && ((int)$_SESSION['user']['role'] === 3 || (int)$_SESSION['user']['role'] === 2);
+
+    if (!$isAdmin && !in_array($invoice['user_id'], $memberIds)) {
+      echo json_encode(['success' => false, 'error' => 'Permission denied']);
+      return;
+    }
+
+    // Now load items & quantities from raza data
+    $items = [];
+    if (!empty($invoice['raza_id'])) {
+      $raza = $this->db->get_where('raza', ['id' => $invoice['raza_id']])->row_array();
+      if ($raza && !empty($raza['razadata'])) {
+        $razadata = json_decode($raza['razadata'], true);
+        if (isset($razadata['item_qty']) && is_array($razadata['item_qty'])) {
+          $itemQuantities = $razadata['item_qty'];
+          // Filter item quantities to non-zero values
+          $validQuantities = [];
+          foreach ($itemQuantities as $itemId => $qty) {
+            $qty = (int)$qty;
+            if ($qty > 0) {
+              $validQuantities[(int)$itemId] = $qty;
+            }
+          }
+          if (!empty($validQuantities)) {
+            // Fetch names of these items
+            $dbItems = $this->db
+              ->from('laagat_rent_items')
+              ->where('laagat_rent_id', (int)$invoice['laagat_rent_id'])
+              ->where_in('id', array_keys($validQuantities))
+              ->get()
+              ->result_array();
+
+            foreach ($dbItems as $dbItem) {
+              $qty = $validQuantities[(int)$dbItem['id']];
+              $items[] = [
+                'item_name' => $dbItem['item_name'],
+                'service_provided_by' => $dbItem['service_provided_by'],
+                'rent_sabeel' => (float)$dbItem['rent_sabeel'],
+                'quantity' => $qty,
+                'total_cost' => ((float)$dbItem['rent_sabeel']) * $qty
+              ];
+            }
+          }
+        }
+      }
+    }
+
+    echo json_encode(['success' => true, 'items' => $items]);
   }
 
   public function laagat_receipt($payment_id = null)
@@ -4033,6 +4201,9 @@ class Accounts extends CI_Controller
               $itemQuantities = [];
             }
             $invoiceAmountBreakdown = $this->LaagatRentM->get_amounts_breakdown_for_user($laagatRow['id'], $userId, $thaalCount, $itemQuantities);
+            $depositAmount = isset($invoiceAmountBreakdown['deposit_amount']) ? (float)$invoiceAmountBreakdown['deposit_amount'] : 0.00;
+
+            // Rent/Laagat Invoice
             $invoiceData = [
               'user_id' => $userId,
               'laagat_rent_id' => $laagatRow['id'],
@@ -4040,10 +4211,25 @@ class Accounts extends CI_Controller
               'amount' => $invoiceAmountBreakdown['amount'],
               'jamaat_amount' => $invoiceAmountBreakdown['jamaat_amount'],
               'sarkaar_amount' => $invoiceAmountBreakdown['sarkaar_amount'],
-              'deposit_amount' => isset($invoiceAmountBreakdown['deposit_amount']) ? $invoiceAmountBreakdown['deposit_amount'] : 0.00,
+              'deposit_amount' => 0.00,
               'created_at' => date('Y-m-d H:i:s')
             ];
             $this->db->insert('laagat_rent_invoices', $invoiceData);
+
+            // Separate Deposit Invoice if there is a deposit
+            if ($depositAmount > 0) {
+              $depositInvoiceData = [
+                'user_id' => $userId,
+                'laagat_rent_id' => $laagatRow['id'],
+                'raza_id' => $check,
+                'amount' => 0.00,
+                'jamaat_amount' => 0.00,
+                'sarkaar_amount' => 0.00,
+                'deposit_amount' => $depositAmount,
+                'created_at' => date('Y-m-d H:i:s')
+              ];
+              $this->db->insert('laagat_rent_invoices', $depositInvoiceData);
+            }
           }
         }
       } catch (Exception $e) {

@@ -7,6 +7,7 @@
     --gold:        #b8860b;
     --gold-light:  #e6c84a;
     --gold-muted:  #f5e9c0;
+    --gold-deep:   #8a6408;
     --bg:          #faf7f0;
     --surface:     #ffffff;
     --surface-2:   #f7f4ec;
@@ -157,11 +158,12 @@
   .niyaz-table th {
     background: var(--text-1);
     color: #fff;
-    padding: 12px 16px;
-    font-size: 12px;
+    padding: 14px 16px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     text-align: left;
+    font-weight: 700;
   }
   .niyaz-table th:first-child {
     border-top-left-radius: 10px;
@@ -172,7 +174,7 @@
     border-bottom-right-radius: 10px;
   }
   .niyaz-table td {
-    padding: 16px;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border);
     font-size: 14px;
     color: var(--text-1);
@@ -184,14 +186,15 @@
   .form-control-premium {
     border: 1.5px solid var(--border);
     border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 14px;
+    padding: 6px 10px;
+    font-size: 13px;
     color: var(--text-1);
     background: var(--surface-2);
     outline: none;
     transition: all 0.2s;
     width: 100%;
-    max-width: 200px;
+    max-width: 130px;
+    font-weight: 600;
   }
   .form-control-premium:focus {
     border-color: var(--gold);
@@ -208,18 +211,81 @@
     border: none;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
   .btn-save:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(184, 134, 11, 0.3);
   }
+
+  .btn-delete-premium {
+    background: transparent;
+    border: 1px solid #fca5a5;
+    color: #ef4444;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-delete-premium:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #b91c1c;
+  }
+
+  .badge-fixed {
+    font-size: 10px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    background: #ecfdf5;
+    color: #10b981;
+    border: 1px solid #bbf7d0;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* Modal premium styling */
+  .modal-content {
+    border: 1.5px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow) !important;
+    overflow: hidden;
+  }
+  .modal-header {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 24px;
+  }
+  .modal-title {
+    font-family: 'Literata', Georgia, serif;
+    color: var(--gold-deep);
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+  .modal-body {
+    padding: 24px;
+  }
+  .modal-footer {
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+    padding: 14px 24px;
+  }
 </style>
 
-<div class="container margintopcontainer pt-5">
-  <div class="mb-4">
+<div class="container margintopcontainer pt-5 pb-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
     <a href="<?php echo base_url('admin'); ?>" class="btn-back">
       <i class="fa-solid fa-arrow-left"></i> Back
     </a>
+    <button type="button" class="btn btn-save" style="background: #9d7008; border: none;" data-toggle="modal" data-target="#addContributionTypeModal">
+      <i class="fa fa-plus"></i> Add New Contribution Type
+    </button>
   </div>
 
   <div class="anj-header">
@@ -259,37 +325,97 @@
   <div class="admin-card">
     <form action="<?php echo base_url('admin/updateniyazamounts'); ?>" method="post">
       <input type="hidden" name="year" value="<?php echo isset($selected_year) ? htmlspecialchars($selected_year) : ''; ?>">
-      <table class="niyaz-table">
-        <thead>
-          <tr>
-            <th>Miqaat Type</th>
-            <th>Individual Niyaz Amount (₹)</th>
-            <th>Hoob Amount (₹)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if (!empty($amounts)): ?>
-            <?php foreach ($amounts as $row): ?>
-              <tr>
-                <td><strong><?php echo htmlspecialchars($row['miqaat_type']); ?></strong>
-                  <input type="hidden" name="miqaat_type[]" value="<?php echo htmlspecialchars($row['miqaat_type']); ?>">
-                </td>
-                <td>
-                  <input type="number" step="0.01" min="0" name="individual_amount[]" class="form-control-premium" value="<?php echo htmlspecialchars($row['individual_amount']); ?>" required>
-                </td>
-                <td>
-                  <input type="number" step="0.01" min="0" name="fala_amount[]" class="form-control-premium" value="<?php echo htmlspecialchars($row['fala_amount']); ?>" required>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <tr>
-              <td colspan="3" class="text-center">No miqaat types found. Default types will be populated automatically if not present.</td>
-            </tr>
-          <?php endif; ?>
-        </tbody>
-      </table>
       
+      <div class="table-responsive">
+        <table class="niyaz-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>Miqaat Type</th>
+              <th>General (₹)</th>
+              <th>Ashara (₹)</th>
+              <th>Shehrullah (₹)</th>
+              <th>Ladies (₹)</th>
+              <th style="width: 100px; text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Row 1: Individual Niyaz (Fixed) -->
+            <tr>
+              <td>1</td>
+              <td>
+                <strong>Individual Niyaz</strong> <span class="badge-fixed">Fixed</span>
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" name="individual_amount[General]" class="form-control-premium" value="<?php echo htmlspecialchars($amounts['General']['individual_amount'] ?? '0.00'); ?>" required>
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" name="individual_amount[Ashara]" class="form-control-premium" value="<?php echo htmlspecialchars($amounts['Ashara']['individual_amount'] ?? '0.00'); ?>" required>
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" name="individual_amount[Shehrullah]" class="form-control-premium" value="<?php echo htmlspecialchars($amounts['Shehrullah']['individual_amount'] ?? '0.00'); ?>" required>
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" name="individual_amount[Ladies]" class="form-control-premium" value="<?php echo htmlspecialchars($amounts['Ladies']['individual_amount'] ?? '0.00'); ?>" required>
+              </td>
+              <td class="text-center text-muted">—</td>
+            </tr>
+
+            <!-- Row 2: Hoob Amount (Fixed) -->
+            <tr>
+              <td>2</td>
+              <td>
+                <strong>Hoob Amount</strong> <span class="badge-fixed">Fixed</span>
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" name="fala_amount[General]" class="form-control-premium" value="<?php echo htmlspecialchars($amounts['General']['fala_amount'] ?? '0.00'); ?>" required>
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" name="fala_amount[Ashara]" class="form-control-premium" value="<?php echo htmlspecialchars($amounts['Ashara']['fala_amount'] ?? '0.00'); ?>" required>
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" name="fala_amount[Shehrullah]" class="form-control-premium" value="<?php echo htmlspecialchars($amounts['Shehrullah']['fala_amount'] ?? '0.00'); ?>" required>
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" name="fala_amount[Ladies]" class="form-control-premium" value="<?php echo htmlspecialchars($amounts['Ladies']['fala_amount'] ?? '0.00'); ?>" required>
+              </td>
+              <td class="text-center text-muted">—</td>
+            </tr>
+
+            <!-- Additional Types (User Defined) -->
+            <?php if (!empty($additional_types)): ?>
+              <?php $idx = 3; foreach ($additional_types as $row): ?>
+                <tr>
+                  <td><?php echo $idx++; ?></td>
+                  <td>
+                    <strong><?php echo htmlspecialchars($row['name']); ?></strong>
+                  </td>
+                  <td>
+                    <input type="number" step="0.01" min="0" name="additional_amount[<?php echo htmlspecialchars($row['name']); ?>][General]" class="form-control-premium" value="<?php echo htmlspecialchars($row['General']); ?>" required>
+                  </td>
+                  <td>
+                    <input type="number" step="0.01" min="0" name="additional_amount[<?php echo htmlspecialchars($row['name']); ?>][Ashara]" class="form-control-premium" value="<?php echo htmlspecialchars($row['Ashara']); ?>" required>
+                  </td>
+                  <td>
+                    <input type="number" step="0.01" min="0" name="additional_amount[<?php echo htmlspecialchars($row['name']); ?>][Shehrullah]" class="form-control-premium" value="<?php echo htmlspecialchars($row['Shehrullah']); ?>" required>
+                  </td>
+                  <td>
+                    <input type="number" step="0.01" min="0" name="additional_amount[<?php echo htmlspecialchars($row['name']); ?>][Ladies]" class="form-control-premium" value="<?php echo htmlspecialchars($row['Ladies']); ?>" required>
+                  </td>
+                  <td class="text-center">
+                    <button type="button" class="btn-delete-premium" onclick="confirmDelete('<?php echo htmlspecialchars($row['name'], ENT_QUOTES); ?>')" title="Delete">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+      
+      <p class="text-muted small mb-4">Note: Only amount values can be edited. Miqaat types 'Individual Niyaz' and 'Hoob Amount' are fixed.</p>
+
       <div class="text-right">
         <button type="submit" class="btn-save">
           <i class="fa-solid fa-floppy-disk mr-2"></i> Save Amounts
@@ -298,3 +424,66 @@
     </form>
   </div>
 </div>
+
+<!-- ── Add New Contribution Type Modal ── -->
+<div class="modal fade" id="addContributionTypeModal" tabindex="-1" aria-labelledby="addContributionTypeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addContributionTypeModalLabel"><i class="fa fa-plus mr-2" style="color:var(--gold);"></i>Add New Contribution Type</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <form method="post" action="<?php echo base_url('admin/addfmbniyazcontritype'); ?>">
+        <input type="hidden" name="year" value="<?php echo htmlspecialchars($selected_year); ?>">
+        <div class="modal-body">
+          <div class="form-group mb-3">
+            <label class="font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem;">Contribution Type Name</label>
+            <input type="text" name="name" class="form-control" placeholder="Enter contribution type name" required />
+          </div>
+          
+          <div class="p-3 rounded border bg-light mb-2">
+            <div class="font-weight-bold small text-uppercase text-secondary mb-3" style="font-size: 0.74rem; letter-spacing: 0.5px;">Enter Amounts for All Miqaat Types</div>
+            
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">General (₹)</label>
+                <input type="number" step="0.01" min="0" name="general_amount" class="form-control" placeholder="0.00" />
+              </div>
+              <div class="col-6 mb-3">
+                <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">Ashara (₹)</label>
+                <input type="number" step="0.01" min="0" name="ashara_amount" class="form-control" placeholder="0.00" />
+              </div>
+              <div class="col-6">
+                <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">Shehrullah (₹)</label>
+                <input type="number" step="0.01" min="0" name="shehrullah_amount" class="form-control" placeholder="0.00" />
+              </div>
+              <div class="col-6">
+                <label class="small text-muted mb-1 d-block" style="font-size: 0.72rem;">Ladies (₹)</label>
+                <input type="number" step="0.01" min="0" name="ladies_amount" class="form-control" placeholder="0.00" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+          <button type="submit" class="btn-save" style="padding: 6px 18px; font-size: 13px; border-radius: 8px;">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden delete form -->
+<form id="delete-type-form" action="<?php echo base_url('admin/deletefmbniyazcontritype'); ?>" method="post" style="display: none;">
+  <input type="hidden" name="name" id="delete-type-name">
+  <input type="hidden" name="year" value="<?php echo htmlspecialchars($selected_year); ?>">
+</form>
+
+<script>
+function confirmDelete(name) {
+  if (confirm('Are you sure you want to delete "' + name + '" contribution type?')) {
+    document.getElementById('delete-type-name').value = name;
+    document.getElementById('delete-type-form').submit();
+  }
+}
+</script>

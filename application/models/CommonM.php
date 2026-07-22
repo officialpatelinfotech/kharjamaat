@@ -2011,6 +2011,29 @@ class CommonM extends CI_Model
     return $this->db->insert_batch('menu_items_map', $insert_data);
   }
 
+  public function is_valid_thaali_day($date)
+  {
+    $date = date("Y-m-d", strtotime($date));
+
+    // 1. Check fmb_calendar_days: day_type must be 'Thaali' or 'Both'
+    if ($this->db->table_exists('fmb_calendar_days')) {
+      $row = $this->db->where('date', $date)->get('fmb_calendar_days')->row_array();
+      if ($row && ($row['day_type'] === 'Thaali' || $row['day_type'] === 'Both')) {
+        return true;
+      }
+    }
+
+    // 2. A menu already exists for this date → treat as a Thaali Day
+    if ($this->db->table_exists('menu')) {
+      $menu = $this->db->where('date', $date)->get('menu')->row_array();
+      if (!empty($menu)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   public function upsert_day_assignment_by_date($menu_date, $user_id, $year, $menu_id = null)
   {
     if (!$this->db->table_exists('fmb_thaali_day_assignment')) {

@@ -851,8 +851,8 @@ $hs_pct_not_given = $hs['active_total'] > 0 ? round($hs['active_not_given'] / $h
       (function(){
         var btn=document.getElementById('thaali-details-btn');
         if(!btn||!window.USER_NAME)return;
-        var params=new URLSearchParams({from:'masoolmusaid',start_date:'<?= $month_start ?>',end_date:'<?= $month_end ?>',sector:window.USER_NAME});
-        btn.href='<?= base_url('common/thaali_signups_breakdown') ?>?'+params.toString();
+        var params=new URLSearchParams({from:'masoolmusaid',hijri:'<?= $current_hijri_year ?>-<?= sprintf('%02d', $current_hijri_month) ?>',sector:window.USER_NAME});
+        btn.href='<?= base_url('common/thaali_signup_dashboard') ?>?'+params.toString();
       })();
       </script>
 

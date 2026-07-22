@@ -483,14 +483,14 @@
       <li><a class="nav-item" href="<?= base_url('anjuman/laagat_rent_payments?charge_type=rent') ?>"><span class="nav-icon"><i class="fa fa-building-o"></i></span><span>Rent</span><?php if (isset($rent_summary) && $rent_summary['due'] > 0): ?><span class="badge badge-danger ml-auto" style="font-size: 11px; padding: 3px 6px; font-weight: 600;">₹<?= format_inr($rent_summary['due']) ?></span><?php endif; ?></a></li>
       <li><a class="nav-item" href="<?= base_url('amilsaheb/ekramfunds_details') ?>"><span class="nav-icon"><i class="fa fa-gift"></i></span><span>Ekram Funds</span></a></li>
       <li><a class="nav-item" href="<?php echo base_url('amilsaheb/wajebaat_details') ?>"><span class="nav-icon"><i class="fa fa-coins"></i></span><span>Wajebaat</span></a></li>
-      <li><a class="nav-item" href="<?= base_url('amilsaheb/expense') ?>"><span class="nav-icon"><i class="fa fa-file-text-o"></i></span><span>Expense Module</span></a></li>
+      <li><a class="nav-item" href="<?= base_url('amilsaheb/expense') ?>"><span class="nav-icon"><i class="fa fa-file-text-o"></i></span><span>Expense &amp; Budget Module</span></a></li>
       <li><a class="nav-item" href="<?php echo base_url('madresa') ?>"><span class="nav-icon"><i class="fa fa-graduation-cap"></i></span><span>Madresa</span></a></li>
     </ul>
 
     <div class="nav-section" data-target="navReports">Reports</div>
     <ul class="nav-list" id="navReports">
       <li><a class="nav-item" href="<?php echo base_url('common/miqaatattendance?from=amilsaheb') ?>"><span class="nav-icon"><i class="fa fa-users"></i></span><span>Miqaat Attendance</span></a></li>
-      <li><a class="nav-item" href="<?php echo base_url('common/thaali_signups_breakdown?from=amilsaheb') ?>"><span class="nav-icon"><i class="fa fa-bar-chart"></i></span><span>FMB Thaali Signups</span></a></li>
+      <li><a class="nav-item" href="<?php echo base_url('common/thaali_signup_dashboard?from=amilsaheb') ?>"><span class="nav-icon"><i class="fa fa-bar-chart"></i></span><span>Thaali Sign-up Dashboard</span></a></li>
       <li><a class="nav-item" href="<?php echo base_url('common/rsvp_list?from=amilsaheb') ?>"><span class="nav-icon"><i class="fa fa-check-square-o"></i></span><span>RSVP Report</span></a></li>
     </ul>
 

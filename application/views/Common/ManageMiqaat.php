@@ -563,7 +563,16 @@ function miqaat_badge($type) {
                       <td data-sort-value="<?php echo htmlspecialchars($day['date'], ENT_QUOTES); ?>" style="font-weight:600;white-space:nowrap;"><?php echo date('d M Y', strtotime($day['date'])); ?></td>
                       <td style="white-space:nowrap;"><?php echo htmlspecialchars($day['hijri_date_with_month'] ?? '', ENT_QUOTES); ?></td>
                       <td class="<?php echo $day_cls; ?>" style="white-space:nowrap;font-weight:<?php echo $is_sunday ? '700' : '500'; ?>;"><?php echo $dayName; ?></td>
-                      <td style="word-break:break-word;white-space:normal;font-weight:600;"><?php echo htmlspecialchars($miqaat['name'] ?? '', ENT_QUOTES); ?></td>
+                      <td style="word-break:break-word;white-space:normal;font-weight:600;">
+                        <?php echo htmlspecialchars($miqaat['name'] ?? '', ENT_QUOTES); ?>
+                        <?php if (!empty($miqaat['jaman_type'])): ?>
+                          <div style="margin-top: 4px;">
+                            <span class="badge" style="background-color: #c2410c; color: #fff; font-size: 0.72rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                              <i class="fa fa-cutlery"></i> <?php echo htmlspecialchars($miqaat['jaman_type'], ENT_QUOTES); ?>
+                            </span>
+                          </div>
+                        <?php endif; ?>
+                      </td>
                       <td><?php echo miqaat_badge($miqaat['type'] ?? ''); ?></td>
                       <td style="word-break:break-word;white-space:normal;">
                         <?php if (!empty($miqaat['assignments'])): ?>

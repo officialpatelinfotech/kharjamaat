@@ -14,7 +14,7 @@
       <div class="anj-header-inner text-center">
         <div class="anj-title-group">
           <span class="anj-eyebrow">Settings</span>
-          <h2 class="anj-title">Expense Module</h2>
+          <h2 class="anj-title">Expense &amp; Budget Module</h2>
         </div>
       </div>
     </div>

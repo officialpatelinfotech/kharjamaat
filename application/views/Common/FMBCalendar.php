@@ -169,6 +169,15 @@
 #fmbApp .fmb-no-results i{font-size:1.8rem;display:block;margin-bottom:8px;color:#e8e0cc}
 #fmbApp .fmb-no-results p{font-size:.82rem;margin:0}
 
+/* Thaali Day badge */
+#fmbApp .td-yes{display:inline-flex;align-items:center;gap:4px;background:#d1fae5;color:#065f46;border:1px solid rgba(6,95,70,.2);border-radius:10px;padding:2px 8px;font-size:.65rem;font-weight:700;white-space:nowrap}
+#fmbApp .td-no{display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:10px;padding:2px 8px;font-size:.65rem;font-weight:700;white-space:nowrap}
+/* Toggle Thaali Day button */
+#fmbApp .act-thaali-on{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:7px;border:1.5px solid #bbf7d0;color:#065f46;background:#ecfdf5;font-size:.65rem;font-weight:700;cursor:pointer;transition:all .14s;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap}
+#fmbApp .act-thaali-on:hover{background:#d1fae5;border-color:#059669}
+#fmbApp .act-thaali-off{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:7px;border:1.5px solid #e5e7eb;color:#9ca3af;background:#f9fafb;font-size:.65rem;font-weight:700;cursor:pointer;transition:all .14s;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap}
+#fmbApp .act-thaali-off:hover{background:#fef2f2;border-color:#f87171;color:#b91c1c}
+
 @media(max-width:576px){
   #fmbApp{padding:10px}
   #fmbApp .fmb-frow{flex-direction:column}
@@ -418,6 +427,7 @@ function fmb_badge($type){
             <th style="min-width:140px">Miqaat Name</th>
             <th style="min-width:180px">Assigned To</th>
             <th style="min-width:170px">Thaali Menu</th>
+            <th style="min-width:110px;text-align:center">Thaali Day</th>
           </tr>
         </thead>
         <tbody id="fmbTbody">
@@ -428,7 +438,7 @@ function fmb_badge($type){
               if(!empty($miqaat_type))$parts[]='Type: '.htmlspecialchars($miqaat_type);
               if(!empty($member_name_filter))$parts[]='Search: "'.htmlspecialchars($member_name_filter).'"';
               if(!empty($assignment_filter))$parts[]='Assignment: '.ucfirst(htmlspecialchars($assignment_filter)).' only';
-              echo'<tr><td colspan="8"><div class="fmb-no-results"><i class="fa fa-search"></i><p>No rows match the selected filters'.($parts?' — '.implode(', ',$parts):'').'.</p></div></td></tr>';
+              echo'<tr><td colspan="9"><div class="fmb-no-results"><i class="fa fa-search"></i><p>No rows match the selected filters'.($parts?' — '.implode(', ',$parts):'').'.</p></div></td></tr>';
             }
 
             $grouped=[];
@@ -454,7 +464,7 @@ function fmb_badge($type){
               if($h_month!==$last_month){
                 $last_month=$h_month;
                 echo'<tr class="month-hdr" data-hijri-month="'.htmlspecialchars($h_month,ENT_QUOTES).'" data-hijri-month-name="'.htmlspecialchars($month_name,ENT_QUOTES).'" data-hijri-year="'.htmlspecialchars($h_year,ENT_QUOTES).'">';
-                echo'<td colspan="8"><i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i><strong>'.htmlspecialchars($month_name,ENT_QUOTES).'</strong>&ensp;&mdash;&ensp;'.htmlspecialchars($h_year,ENT_QUOTES).'H</td></tr>';
+                echo'<td colspan="9"><i class="fa fa-calendar-o" style="margin-right:6px;opacity:.65"></i><strong>'.htmlspecialchars($month_name,ENT_QUOTES).'</strong>&ensp;&mdash;&ensp;'.htmlspecialchars($h_year,ENT_QUOTES).'H</td></tr>';
               }
 
               $types_h=$names_h=$asgn_h=$menu_h=[];
@@ -490,6 +500,15 @@ function fmb_badge($type){
               $day_cls=$is_sunday?'day-sun':(strtolower($day_name)==='friday'?'day-fri':'');
               $sep='<hr class="entry-sep">';
 
+              // Determine if this date is a Thaali day
+              $is_thaali = (strtolower($primary_type)==='thaali'||strtolower($primary_type)==='both');
+              // Also treat it as thaali if any row has menu items
+              if(!$is_thaali){foreach($rows_for_date as $_r){if(!empty($_r['menu_items'])){$is_thaali=true;break;}}}
+              $thaali_btn_cls = $is_thaali ? 'act-thaali-on' : 'act-thaali-off';
+              $thaali_btn_title = $is_thaali ? 'Mark as Non-Thaali Day' : 'Mark as Thaali Day';
+              $thaali_btn_icon = $is_thaali ? 'fa-toggle-on' : 'fa-toggle-off';
+              $thaali_btn_label = $is_thaali ? 'Unmark' : 'Mark';
+
               echo '<tr class="'.htmlspecialchars($row_cls,ENT_QUOTES).'"'
                 .' data-hijri-month="'.htmlspecialchars($h_month,ENT_QUOTES).'"'
                 .' data-hijri-month-name="'.htmlspecialchars($month_name,ENT_QUOTES).'"'
@@ -499,6 +518,20 @@ function fmb_badge($type){
               echo '<td data-sort-value="'.htmlspecialchars($eng_sort,ENT_QUOTES).'" style="font-size:.76rem;font-weight:600;white-space:nowrap">'.$eng_date.'</td>';
               echo '<td data-sort-value="'.htmlspecialchars($h_sort,ENT_QUOTES).'" style="white-space:nowrap;font-size:.76rem">'.htmlspecialchars($first['hijri_date_with_month']??$hijri_date,ENT_QUOTES).'</td>';
               echo '<td class="'.$day_cls.'" style="white-space:nowrap;font-weight:'.($is_sunday?700:500).'">'.$day_name.'</td>';
+
+              // Thaali Day cell (badge + toggle)
+              $thaali_cell = '<td style="text-align:center;white-space:nowrap;vertical-align:middle">';
+              $thaali_cell .= $is_thaali
+                ? '<span class="td-yes"><i class="fa fa-check"></i> Yes</span>'
+                : '<span class="td-no"><i class="fa fa-times"></i> No</span>';
+              $thaali_cell .= '<br><button type="button"'
+                .' class="fmb-thaali-toggle '.$thaali_btn_cls.'"'
+                .' data-date="'.htmlspecialchars($date,ENT_QUOTES).'"'
+                .' data-state="'.($is_thaali?'1':'0').'"'
+                .' title="'.htmlspecialchars($thaali_btn_title,ENT_QUOTES).'"'
+                .' style="margin-top:4px">';
+              $thaali_cell .= '<i class="fa '.$thaali_btn_icon.'"></i> '.$thaali_btn_label.'</button>';
+              $thaali_cell .= '</td>';
 
               if($allEmpty){
                 echo '<td><span class="holiday-tag"><i class="fa fa-moon-o"></i> Holiday</span></td>';
@@ -511,6 +544,7 @@ function fmb_badge($type){
                 echo '<td class="col-assigned">'.implode($sep,$asgn_h).'</td>';
                 echo '<td class="col-menu">'.implode($sep,$menu_h).'</td>';
               }
+              echo $thaali_cell;
               echo '</tr>';
             }
           }
@@ -526,6 +560,52 @@ function fmb_badge($type){
   </div>
 
 </div><!-- /#fmbApp -->
+
+<script>
+var BASE = '<?php echo base_url() ?>';
+
+/* ── Thaali Day toggle ── */
+(function(){
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('.fmb-thaali-toggle');
+    if (!btn) return;
+    var date     = btn.getAttribute('data-date');
+    var state    = parseInt(btn.getAttribute('data-state'), 10);
+    var newState = state ? 0 : 1;
+    btn.disabled = true;
+    btn.style.opacity = '.5';
+    $.ajax({
+      url: BASE + 'common/toggle_thaali_day_ajax',
+      type: 'POST',
+      data: { date: date, status: newState },
+      dataType: 'json',
+      success: function(res) {
+        if (res && res.success) {
+          var td    = btn.closest('td');
+          var badge = td.querySelector('.td-yes, .td-no');
+          if (newState === 1) {
+            if (badge) { badge.className = 'td-yes'; badge.innerHTML = '<i class="fa fa-check"></i> Yes'; }
+            btn.className = btn.className.replace('act-thaali-off','act-thaali-on');
+            btn.setAttribute('data-state','1');
+            btn.title = 'Mark as Non-Thaali Day';
+            btn.innerHTML = '<i class="fa fa-toggle-on"></i> Unmark';
+          } else {
+            if (badge) { badge.className = 'td-no'; badge.innerHTML = '<i class="fa fa-times"></i> No'; }
+            btn.className = btn.className.replace('act-thaali-on','act-thaali-off');
+            btn.setAttribute('data-state','0');
+            btn.title = 'Mark as Thaali Day';
+            btn.innerHTML = '<i class="fa fa-toggle-off"></i> Mark';
+          }
+        } else {
+          alert((res && res.message) ? res.message : 'Failed to update. Please try again.');
+        }
+      },
+      error: function() { alert('Server error. Please try again.'); },
+      complete: function() { btn.disabled = false; btn.style.opacity = ''; }
+    });
+  });
+})();
+
 
 <!-- Assignment modal -->
 <div class="fmb-ov" id="modAdet">

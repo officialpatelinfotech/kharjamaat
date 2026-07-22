@@ -186,6 +186,7 @@ class Common extends CI_Controller
         'update_day', 'add_menu', 'delete_menu', 'insert_menu', 
         'add_menu_item', 'insert_item_type', 'insert_menu_item', 
         'edit_menu_item', 'delete_menu_item', 'createmiqaat', 
+        'toggle_thaali_day_ajax', 
         'add_miqaat', 'update_miqaat', 'delete_miqaat', 'cancel_miqaat', 
         'activate_miqaat', 'edit_miqaat', 'updatedpmapping', 
         'signupforaday', 'adddeliveryperson', 'updatedeliveryperson', 
@@ -372,8 +373,195 @@ class Common extends CI_Controller
     $this->load->library('dompdf_lib');
     $dompdf = $this->dompdf_lib->load();
 
-    $payment_id = $this->input->post("id");
-    $for = $this->input->post("for");
+    $payment_id = $this->input->post("id") ?: $this->input->get("id");
+    $for = $this->input->post("for") ?: $this->input->get("for");
+
+    if ((int)$for === 9) {
+      $invoice = $this->db->get_where('laagat_rent_invoices', ['id' => $payment_id])->row_array();
+      if (!$invoice) {
+        echo "Invoice not found.";
+        return;
+      }
+      
+      $raza = $this->db->get_where('raza', ['id' => $invoice['raza_id']])->row_array();
+      if (!$raza) {
+        echo "Raza booking not found.";
+        return;
+      }
+
+      $user = $this->db->select('Full_Name, ITS_ID, Mobile')->get_where('user', ['ITS_ID' => $invoice['user_id']])->row_array();
+      if (!$user) {
+        $user = $this->db->select('Full_Name, ITS_ID, Mobile')->get_where('user', ['id' => $invoice['user_id']])->row_array();
+      }
+
+      $raza_type = $this->db->get_where('raza_type', ['id' => $raza['razaType']])->row_array();
+      $razadata = json_decode($raza['razadata'], true) ?: [];
+
+      $jaman_date = $razadata['date'] ?? $razadata['Date'] ?? '';
+      $time_val = $razadata['time'] ?? $razadata['Time'] ?? '';
+      $timing_label = $time_val;
+      if ($raza_type && !empty($raza_type['fields'])) {
+        $fields_arr = json_decode($raza_type['fields'], true);
+        if (isset($fields_arr['fields']) && is_array($fields_arr['fields'])) {
+          foreach ($fields_arr['fields'] as $f) {
+            if (strtolower(trim($f['name'])) === 'time') {
+              if (isset($f['options']) && is_array($f['options'])) {
+                foreach ($f['options'] as $opt) {
+                  if ((string)$opt['id'] === (string)$time_val || (string)$opt['name'] === (string)$time_val) {
+                    $timing_label = $opt['name'];
+                    break 2;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      $caterer = '';
+      $decorator = '';
+      foreach ($razadata as $k => $v) {
+        $k_lower = strtolower(str_replace(['-', '_'], ' ', $k));
+        if (strpos($k_lower, 'caterer') !== false) {
+          $caterer = $v;
+        }
+        if (strpos($k_lower, 'decorator') !== false) {
+          $decorator = $v;
+        }
+      }
+
+      $thaal_count = '';
+      foreach ($razadata as $k => $v) {
+        $k_lower = strtolower(str_replace(['-', '_'], ' ', $k));
+        if (strpos($k_lower, 'thaal') !== false && (strpos($k_lower, 'count') !== false || strpos($k_lower, 'qty') !== false || strpos($k_lower, 'number') !== false)) {
+          $thaal_count = $v;
+        }
+      }
+      if ($thaal_count === '') {
+        $thaal_count = $razadata['approximate-thaal-count'] ?? $razadata['approximate_thaal_count'] ?? '';
+      }
+
+      $dbItems = $this->db
+        ->from('laagat_rent_items')
+        ->where('laagat_rent_id', (int)$invoice['laagat_rent_id'])
+        ->get()
+        ->result_array();
+
+      $items_by_provider = [
+        'Jamaat' => [],
+        'Ladies' => [],
+        'Extras' => []
+      ];
+
+      $totals = [
+        'Jamaat' => 0.00,
+        'Ladies' => 0.00,
+        'Extras' => 0.00
+      ];
+
+      if (isset($razadata['item_qty']) && is_array($razadata['item_qty'])) {
+        foreach ($dbItems as $item) {
+          $qty = isset($razadata['item_qty'][$item['id']]) ? (int)$razadata['item_qty'][$item['id']] : 0;
+          if ($qty > 0) {
+            $total_cost = ((float)$item['rent_sabeel']) * $qty;
+            $provider = trim((string)($item['service_provided_by'] ?? 'Jamaat'));
+            if ($provider === 'Ladies') {
+              $provider_key = 'Ladies';
+            } elseif ($provider === 'Extras') {
+              $provider_key = 'Extras';
+            } else {
+              $provider_key = 'Jamaat';
+            }
+
+            $items_by_provider[$provider_key][] = [
+              'item_name' => $item['item_name'],
+              'qty' => $qty,
+              'rate' => (float)$item['rent_sabeel'],
+              'total' => $total_cost
+            ];
+            $totals[$provider_key] += $total_cost;
+          }
+        }
+      }
+
+      $rentInvoice = $this->db->get_where('laagat_rent_invoices', [
+        'raza_id' => $invoice['raza_id'],
+        'amount >' => 0
+      ])->row_array();
+
+      $depositInvoice = $this->db->get_where('laagat_rent_invoices', [
+        'raza_id' => $invoice['raza_id'],
+        'deposit_amount >' => 0
+      ])->row_array();
+
+      $deposit_received = 0.00;
+      $deposit_cheque = '';
+      if ($depositInvoice) {
+        $depPayments = $this->db
+          ->from('laagat_rent_payments')
+          ->where('invoice_id', (int)$depositInvoice['id'])
+          ->get()
+          ->result_array();
+        foreach ($depPayments as $p) {
+          $deposit_received += (float)$p['amount'];
+          $ref = trim((string)($p['reference_no'] ?? $p['cheque_no'] ?? ''));
+          if ($ref !== '') {
+            $deposit_cheque .= ($deposit_cheque === '' ? '' : ', ') . $ref;
+          }
+        }
+      }
+
+      $rent_received = 0.00;
+      $rent_cheque = '';
+      if ($rentInvoice) {
+        $rPayments = $this->db
+          ->from('laagat_rent_payments')
+          ->where('invoice_id', (int)$rentInvoice['id'])
+          ->get()
+          ->result_array();
+        foreach ($rPayments as $p) {
+          $rent_received += (float)$p['amount'];
+          $ref = trim((string)($p['reference_no'] ?? $p['cheque_no'] ?? ''));
+          if ($ref !== '') {
+            $rent_cheque .= ($rent_cheque === '' ? '' : ', ') . $ref;
+          }
+        }
+      }
+
+      $total_bill = $totals['Jamaat'] + $totals['Ladies'] + $totals['Extras'];
+      $deposit_to_be_refunded = $deposit_received - $total_bill;
+
+      $pdf_data = [
+        'hirer_name' => $user ? $user['Full_Name'] : 'N/A',
+        'its_id' => $user ? $user['ITS_ID'] : 'N/A',
+        'jaman_date' => $jaman_date,
+        'timing' => $timing_label,
+        'thaals' => $thaal_count,
+        'type' => $raza_type ? $raza_type['name'] : 'N/A',
+        'caterer' => $caterer,
+        'decorator' => $decorator,
+        'items_jamaat' => $items_by_provider['Jamaat'],
+        'items_ladies' => $items_by_provider['Ladies'],
+        'items_extras' => $items_by_provider['Extras'],
+        'total_a' => $totals['Jamaat'],
+        'total_b' => $totals['Ladies'],
+        'total_c' => $totals['Extras'],
+        'total_abc' => $total_bill,
+        'deposit_received' => $deposit_received,
+        'deposit_cheque' => $deposit_cheque,
+        'rent_received' => $rent_received,
+        'rent_cheque' => $rent_cheque,
+        'deposit_to_be_refunded' => $deposit_to_be_refunded,
+        'raza_id' => $invoice['raza_id']
+      ];
+
+      $html = $this->load->view('pdf_resource_bill_template', $pdf_data, true);
+      $dompdf->loadHtml($html);
+      $dompdf->setPaper('A4', 'portrait');
+      $dompdf->render();
+      $dompdf->stream("resource_utilization_bill_R" . $invoice['raza_id'] . ".pdf", array("Attachment" => 0));
+      return;
+    }
 
     $data = [];
 
@@ -858,6 +1046,29 @@ class Common extends CI_Controller
     $data['menu'] = $this->CommonM->get_month_wise_menu($filter_data);
     foreach ($data["menu"] as $key => $value) {
       $data['menu'][$key]['hijri_date'] = $this->get_hijri_day_month($value["date"], $this->HijriCalendar->get_hijri_date(date("Y-m-d"))["hijri_date"]);
+    }
+
+    // Enrich each row with is_thaali_day (marked in fmb_calendar_days OR has menu items)
+    if (!empty($data['menu']) && $this->db->table_exists('fmb_calendar_days')) {
+      $all_dates = array_column($data['menu'], 'date');
+      $this->db->select('date, day_type');
+      $this->db->from('fmb_calendar_days');
+      $this->db->where_in('date', $all_dates);
+      $cal_rows = $this->db->get()->result_array();
+      $cal_map = [];
+      foreach ($cal_rows as $cr) { $cal_map[$cr['date']] = $cr['day_type']; }
+      foreach ($data['menu'] as $k => $row) {
+        $d = $row['date'] ?? '';
+        $marked = isset($cal_map[$d]) && ($cal_map[$d] === 'Thaali' || $cal_map[$d] === 'Both');
+        $has_menu = !empty($row['items']);
+        $data['menu'][$k]['is_thaali_day'] = $marked || $has_menu;
+        $data['menu'][$k]['thaali_day_type'] = $cal_map[$d] ?? '';
+      }
+    } else {
+      foreach ($data['menu'] as $k => $row) {
+        $data['menu'][$k]['is_thaali_day'] = !empty($row['items']);
+        $data['menu'][$k]['thaali_day_type'] = '';
+      }
     }
 
     // Count distinct members assigned in the current listing
@@ -2076,8 +2287,95 @@ class Common extends CI_Controller
       exit;
     }
     $days = $this->HijriCalendar->get_hijri_days_for_month_year($month, $year);
+    if (!empty($days)) {
+      $greg_dates = array_column($days, 'greg_date');
+      $day_types = [];
+
+      // 1. Populate from fmb_calendar_days
+      if ($this->db->table_exists('fmb_calendar_days')) {
+        $this->db->select('date, day_type');
+        $this->db->from('fmb_calendar_days');
+        $this->db->where_in('date', $greg_dates);
+        $cal_days = $this->db->get()->result_array();
+        foreach ($cal_days as $cd) {
+          $day_types[$cd['date']] = $cd['day_type'];
+        }
+      }
+
+      // 2. Any date with an existing menu entry is also a Thaali Day
+      if ($this->db->table_exists('menu')) {
+        $this->db->select('date');
+        $this->db->from('menu');
+        $this->db->where_in('date', $greg_dates);
+        $menu_days = $this->db->get()->result_array();
+        foreach ($menu_days as $md) {
+          $d = $md['date'];
+          // Only override if not already set (keep 'Both'/'Holiday' etc. as-is)
+          if (!isset($day_types[$d]) || $day_types[$d] === '') {
+            $day_types[$d] = 'Thaali';
+          }
+          // If it was 'Holiday' but a menu exists, upgrade to 'Both'
+          if (isset($day_types[$d]) && $day_types[$d] === 'Holiday') {
+            $day_types[$d] = 'Both';
+          }
+        }
+      }
+
+      foreach ($days as $key => $d) {
+        $days[$key]['day_type'] = $day_types[$d['greg_date']] ?? '';
+      }
+    }
     echo json_encode(['status' => 'success', 'days' => $days]);
     exit;
+  }
+
+  public function toggle_thaali_day_ajax()
+  {
+    $this->validateUser($_SESSION['user']);
+    $date_raw = $this->input->post('date');
+    $status = (int)$this->input->post('status'); // 1 = mark as Thaali, 0 = unmark
+
+    if (!$date_raw) {
+      echo json_encode(['success' => false, 'message' => 'Missing date.']);
+      return;
+    }
+    $date = date('Y-m-d', strtotime($date_raw));
+
+    if (!$this->db->table_exists('fmb_calendar_days')) {
+      echo json_encode(['success' => false, 'message' => 'Calendar days table not found.']);
+      return;
+    }
+
+    // Check if entry exists
+    $exists = $this->db->where('date', $date)->get('fmb_calendar_days')->row_array();
+
+    if ($status === 1) {
+      if ($exists) {
+        $this->db->where('date', $date)->update('fmb_calendar_days', ['day_type' => 'Thaali']);
+      } else {
+        $this->db->insert('fmb_calendar_days', ['date' => $date, 'day_type' => 'Thaali']);
+      }
+      $msg = 'Date marked as Thaali Day successfully.';
+    } else {
+      // Unmark: remove from fmb_calendar_days
+      $this->db->where('date', $date)->delete('fmb_calendar_days');
+      $msg = 'Date unmarked as Thaali Day successfully.';
+    }
+
+    echo json_encode(['success' => true, 'message' => $msg]);
+  }
+
+  public function check_is_thaali_day_ajax()
+  {
+    $this->validateUser($_SESSION['user']);
+    $date_raw = $this->input->get('date');
+    if (!$date_raw) {
+      echo json_encode(['is_thaali_day' => false]);
+      return;
+    }
+    $this->load->model('CommonM');
+    $is_thaali = $this->CommonM->is_valid_thaali_day($date_raw);
+    echo json_encode(['is_thaali_day' => $is_thaali]);
   }
 
   // Returns hijri parts (day, month, year, month_name) for a given greg_date (Y-m-d)
@@ -2236,6 +2534,7 @@ class Common extends CI_Controller
         "assigned_to" => $assign_type,
         'date' => date("Y-m-d", strtotime($date)),
         'status' => $assign_type == "Fala ni Niyaz" ? 1 : 0,
+        'jaman_type' => $this->input->post('jaman_type') ?: null,
       ]);
 
       $miqaat_id = $this->CommonM->generate_miqaat_id($hijri_year);
@@ -2584,6 +2883,7 @@ class Common extends CI_Controller
         'name' => $name,
         'type' => $miqaat_type,
         'date' => date("Y-m-d", strtotime($date)),
+        'jaman_type' => $this->input->post('jaman_type') ?: null,
       ];
 
       // If miqaat is currently active, deactivate it on update
@@ -3353,8 +3653,17 @@ class Common extends CI_Controller
   // ===================== Sector/Sub-sector Wise Thaali Signup Breakdown =====================
   public function thaali_signups_breakdown()
   {
+    $from = $this->input->get('from');
+    $hijri = $this->input->get('hijri');
+    $date = $this->input->get('date');
+    $qs = [];
+    if ($from) $qs[] = 'from=' . urlencode($from);
+    if ($hijri) $qs[] = 'hijri=' . urlencode($hijri);
+    if ($date) $qs[] = 'date=' . urlencode($date);
+    redirect('common/thaali_signup_dashboard' . (!empty($qs) ? '?' . implode('&', $qs) : ''));
+
+    /*
     // ================= AUTH =================
-    $user = $_SESSION['user'] ?? null;
 
     if (empty($user) || !in_array((int) ($user['role'] ?? 0), [1, 2, 3, 16, 9, 12], true)) {
       redirect('/accounts');
@@ -3621,6 +3930,7 @@ class Common extends CI_Controller
     $data["from"] = $from;
     $this->load->view('Common/Header', $data);
     $this->load->view('Common/RSVPDetails', $data);
+    */
   }
 
   // Delivery Person Management
@@ -4614,6 +4924,14 @@ class Common extends CI_Controller
 
   public function bulk_thaali_signup()
   {
+    $hijri = $this->input->get('hijri');
+    $from = $this->input->get('from');
+    $qs = [];
+    if ($from) $qs[] = 'from=' . urlencode($from);
+    if ($hijri) $qs[] = 'hijri=' . urlencode($hijri);
+    redirect('common/thaali_signup_dashboard' . (!empty($qs) ? '?' . implode('&', $qs) : ''));
+
+    /*
     $this->validateUser($_SESSION['user']);
     $data['user_name'] = $_SESSION['user']['username'];
     
@@ -4755,5 +5073,263 @@ class Common extends CI_Controller
 
     $this->load->view('Accounts/Header', $data);
     $this->load->view('Common/BulkThaaliSignup', $data);
+    */
+  }
+
+  public function thaali_signup_dashboard()
+  {
+    $this->validateUser($_SESSION['user']);
+    $user = $_SESSION['user'];
+    $role = (int)($user['role'] ?? 0);
+    $username = $user['username'] ?? '';
+
+    // ================= CONTEXT =================
+    $from = $this->input->get('from');
+    if ($from) {
+      $_SESSION['from'] = $from;
+    } else {
+      $from = $_SESSION['from'] ?? '';
+    }
+    $data['from'] = $from;
+    $data['active_controller'] = $_SESSION['from'] ? base_url($_SESSION['from']) : base_url();
+    $data['user_name'] = $user['username'];
+
+    // ================= SECTOR (ROLE 16 ONLY) =================
+    $sector = null;
+    if ($role === 16) {
+      $sector = $username;
+    }
+    $data['is_sector_incharge'] = ($role === 16);
+    $data['forced_sector'] = $sector;
+
+    // ================= MONTH CALCULATION =================
+    $hijri = $this->input->get('hijri');
+    $todayGreg = date('Y-m-d');
+    $todayHijri = $this->HijriCalendar->get_hijri_date($todayGreg);
+    $defParts = $todayHijri && isset($todayHijri['hijri_date']) ? explode('-', $todayHijri['hijri_date']) : null; // d-m-Y
+    $defMonth = $defParts ? $defParts[1] : date('m');
+    $defYear  = $defParts ? $defParts[2] : date('Y');
+
+    if (preg_match('/^\d{4}-\d{2}$/', (string)$hijri)) {
+      list($hy, $hm) = explode('-', $hijri);
+    } else {
+      $hy = $defYear;
+      $hm = $defMonth;
+      $hijri = $hy . '-' . $hm;
+    }
+
+    $month_row = $this->HijriCalendar->hijri_month_name((int)$hm);
+    $data['selected_hijri'] = $hijri;
+    $data['hijri_year'] = $hy;
+    $data['hijri_month'] = $hm;
+    $data['hijri_month_name'] = $month_row ? $month_row['hijri_month'] : $hm;
+
+    $prevMonth = (int)$hm === 1 ? 12 : ((int)$hm - 1);
+    $prevYear  = (int)$hm === 1 ? ((int)$hy - 1) : (int)$hy;
+    $nextMonth = (int)$hm === 12 ? 1 : ((int)$hm + 1);
+    $nextYear  = (int)$hm === 12 ? ((int)$hy + 1) : (int)$hy;
+    
+    $data['prev_hijri'] = sprintf('%04d-%02d', $prevYear, $prevMonth);
+    $data['next_hijri'] = sprintf('%04d-%02d', $nextYear, $nextMonth);
+
+    // ================= MENUS & TIMELINE BREAKDOWN =================
+    $days = $this->HijriCalendar->get_hijri_days_for_month_year($hm, $hy);
+    $menus = [];
+    $start_date = '';
+    $end_date = '';
+    if (!empty($days)) {
+      $start_date = $days[0]['greg_date'];
+      $end_date  = $days[count($days) - 1]['greg_date'];
+      $data['greg_month_range'] = date('j M', strtotime($start_date)) . ' – ' . date('j M Y', strtotime($end_date));
+      
+      $menus = $this->db->select('id, date')
+                        ->from('menu')
+                        ->where('date >=', $start_date)
+                        ->where('date <=', $end_date)
+                        ->order_by('date', 'ASC')
+                        ->get()->result_array();
+    } else {
+      $data['greg_month_range'] = '';
+    }
+
+    // Get total active HOFs count
+    $this->db->from('user hof')
+             ->where('hof.HOF_FM_TYPE', 'HOF')
+             ->where('hof.Inactive_Status IS NULL')
+             ->where('hof.Sector IS NOT NULL');
+    if ($sector) {
+      $this->db->where('hof.Sector', $sector);
+    }
+    $total_hofs = $this->db->count_all_results();
+    $data['total_hofs'] = $total_hofs;
+
+    // Get signup counts for all dates in the range
+    $signup_counts = [];
+    if (!empty($start_date) && !empty($end_date)) {
+      $this->db->select('fs.signup_date, COUNT(DISTINCT u.HOF_ID) AS signed_up_count')
+               ->from('fmb_weekly_signup fs')
+               ->join('user u', 'u.ITS_ID = fs.user_id')
+               ->where('fs.signup_date >=', $start_date)
+               ->where('fs.signup_date <=', $end_date)
+               ->where('fs.want_thali', 1);
+      if ($sector) {
+        $this->db->where('u.Sector', $sector);
+      }
+      $rows = $this->db->group_by('fs.signup_date')->get()->result_array();
+      foreach ($rows as $r) {
+        $signup_counts[$r['signup_date']] = (int)$r['signed_up_count'];
+      }
+    }
+
+    foreach ($menus as $key => $value) {
+      $h_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date($value['date']);
+      $menus[$key]['hijri_label'] = $h_parts ? ($h_parts['hijri_day'] . ' ' . $h_parts['hijri_month_name']) : '';
+      $menus[$key]['signed_up_count'] = $signup_counts[$value['date']] ?? 0;
+    }
+    $data['menus'] = $menus;
+
+    // ================= INITIAL ACTIVE DATE =================
+    $active_date = $this->input->get('date');
+    if (!$active_date && !empty($menus)) {
+      $today = date('Y-m-d');
+      $has_today = false;
+      foreach ($menus as $m) {
+        if ($m['date'] === $today) {
+          $has_today = true; break;
+        }
+      }
+      $active_date = $has_today ? $today : $menus[0]['date'];
+    }
+    $data['active_date'] = $active_date;
+
+    // Resolve active date Hijri label
+    $active_h_parts = $active_date ? $this->HijriCalendar->get_hijri_parts_by_greg_date($active_date) : null;
+    $data['active_date_hijri_label'] = $active_h_parts ? ($active_h_parts['hijri_day'] . ' ' . $active_h_parts['hijri_month_name'] . ' ' . $active_h_parts['hijri_year']) : '';
+
+    // ================= MASTER DATA FOR FILTERS =================
+    $sectors_list = [];
+    $sub_sectors_list = [];
+    $meta = $this->CommonM->get_all_users();
+    foreach ($meta as $u) {
+      if (!empty($u['Sector'])) $sectors_list[] = $u['Sector'];
+      if (!empty($u['Sub_Sector'])) $sub_sectors_list[] = $u['Sub_Sector'];
+    }
+    $data['sectors_list'] = array_values(array_unique(array_filter($sectors_list)));
+    $data['sub_sectors_list'] = array_values(array_unique(array_filter($sub_sectors_list)));
+
+    $this->load->view('Common/Header', $data);
+    $this->load->view('Common/ThaaliSignupDashboard', $data);
+  }
+
+  public function get_thaali_signup_dashboard_data_ajax()
+  {
+    $this->validateUser($_SESSION['user']);
+    $user = $_SESSION['user'];
+    $role = (int)($user['role'] ?? 0);
+    $username = $user['username'] ?? '';
+
+    $date = $this->input->get_post('date');
+    $sector = $this->input->get_post('sector');
+    $sub_sector = $this->input->get_post('sub_sector');
+    $signup_status = $this->input->get_post('signup_status');
+
+    if ($role === 16) {
+      $sector = $username;
+    }
+
+    $filter = [
+      'date' => $date,
+      'sector' => $sector,
+      'sub_sector' => $sub_sector
+    ];
+    if ($signup_status === 'signed') {
+      $filter['thali_taken'] = 1;
+    } elseif ($signup_status === 'pending') {
+      $filter['thali_taken'] = 0;
+    }
+
+    $families = $this->CommonM->getsignupforaday($filter);
+
+    // Compute stats for current active date based on sector/sub-sector filters
+    $total_count = 0;
+    $signed_up_count = 0;
+    $pending_count = 0;
+
+    $stats_filter = [
+      'date' => $date,
+      'sector' => $sector,
+      'sub_sector' => $sub_sector
+    ];
+    $all_day_families = $this->CommonM->getsignupforaday($stats_filter);
+    foreach ($all_day_families as $f) {
+      $total_count++;
+      if ($f['want_thali'] == 1) {
+        $signed_up_count++;
+      } else {
+        $pending_count++;
+      }
+    }
+    $pct = $total_count > 0 ? round(($signed_up_count / $total_count) * 100) : 0;
+
+    $h_parts = $this->HijriCalendar->get_hijri_parts_by_greg_date($date);
+    $hijri_label = $h_parts ? ($h_parts['hijri_day'] . ' ' . $h_parts['hijri_month_name'] . ' ' . $h_parts['hijri_year']) : '';
+
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => true,
+      'stats' => [
+        'total' => $total_count,
+        'signed_up' => $signed_up_count,
+        'pending' => $pending_count,
+        'progress_pct' => $pct
+      ],
+      'hijri_label' => $hijri_label,
+      'families' => $families
+    ]));
+  }
+
+  public function save_bulk_signup_ajax()
+  {
+    $this->validateUser($_SESSION['user']);
+    $its_list = $this->input->post('its_list');
+    $dates = $this->input->post('dates');
+    $action = (int)$this->input->post('action');
+    $thali_size = $this->input->post('thali_size') ?: '';
+
+    if (empty($its_list) || !is_array($its_list)) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'No families selected.']));
+      return;
+    }
+    if (empty($dates) || !is_array($dates)) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'No dates selected.']));
+      return;
+    }
+    if ($action === 1 && empty($thali_size)) {
+      $this->output->set_content_type('application/json')->set_output(json_encode(['success' => false, 'message' => 'Please select a thali size.']));
+      return;
+    }
+
+    $saved = 0;
+    foreach ($its_list as $its) {
+      $user_row = $this->db->select('HOF_ID, ITS_ID')->from('user')->where('ITS_ID', $its)->get()->row_array();
+      if (!$user_row) continue;
+      $hof_id = !empty($user_row['HOF_ID']) ? $user_row['HOF_ID'] : $user_row['ITS_ID'];
+
+      foreach ($dates as $date) {
+        $data_signup = [
+          'user_id' => $hof_id,
+          'signup_date' => $date,
+          'want_thali' => $action,
+          'thali_size' => $action === 1 ? $thali_size : ''
+        ];
+        if ($this->AccountM->save_fmb_signup($data_signup)) {
+          $saved++;
+        }
+      }
+    }
+
+    $this->output->set_content_type('application/json')->set_output(json_encode([
+      'success' => true,
+      'message' => 'Bulk action completed successfully. Processed ' . $saved . ' records.'
+    ]));
   }
 }

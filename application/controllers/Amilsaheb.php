@@ -2650,4 +2650,24 @@ class Amilsaheb extends CI_Controller
     $ok = $this->ConfidentialCommentM->add_comment($its_id, $comment, $created_by, $created_by_name);
     echo json_encode(['success' => $ok]);
   }
+
+  public function umoor_sub_committees()
+  {
+    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 2) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('UmoorHRM');
+
+    $active_year = $this->input->get('year') ?: '1448';
+    $data['active_year'] = $active_year;
+    $data['years_list'] = ['1446', '1447', '1448', '1449', '1450'];
+
+    $data['umoor_list'] = $this->UmoorHRM->get_umoor_list();
+    $data['sub_committees'] = $this->UmoorHRM->get_sub_committees(null, $active_year);
+    $data['hierarchy'] = $this->UmoorHRM->get_full_hierarchy($active_year);
+
+    $this->load->view('Amilsaheb/Header', $data);
+    $this->load->view('Admin/UmoorSubCommittees', $data);
+  }
 }

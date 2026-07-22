@@ -997,6 +997,7 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
       card.style.background = '#faf9f6';
 
       var itemName = data ? (data.item_name || '') : '';
+      var serviceProvidedBy = data ? (data.service_provided_by || 'Jamaat') : 'Jamaat';
       var rentS = data ? (data.rent_sabeel || '') : '';
       var depS = data ? (data.deposit_sabeel || '') : '';
       var rentNS = data ? (data.rent_non_sabeel || '') : '';
@@ -1011,6 +1012,14 @@ $page_title = $page_title_prefix . ($is_laagat ? ' Laagat Form' : ' Rent Form');
           <div class="form-group mb-0" style="min-width: 200px; flex: 2;">
             <label class="form-label font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem; letter-spacing: 0.5px;">Item Name</label>
             <input type="text" class="form-control" name="item_name[]" value="${itemName}" required placeholder="e.g. Chair, Table, Mic..." />
+          </div>
+          <div class="form-group mb-0" style="min-width: 160px; flex: 1;">
+            <label class="form-label font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem; letter-spacing: 0.5px;">Service Provided By</label>
+            <select class="custom-select" name="item_service_provided_by[]" required>
+              <option value="Jamaat" ${serviceProvidedBy === 'Jamaat' ? 'selected' : ''}>Jamaat</option>
+              <option value="Ladies" ${serviceProvidedBy === 'Ladies' ? 'selected' : ''}>Ladies</option>
+              <option value="Extras" ${serviceProvidedBy === 'Extras' ? 'selected' : ''}>Extras</option>
+            </select>
           </div>
           <div class="form-group mb-0" style="min-width: 140px; flex: 1;">
             <label class="form-label font-weight-bold small text-uppercase text-muted mb-1" style="font-size: 0.74rem; letter-spacing: 0.5px;">Cost / Piece</label>

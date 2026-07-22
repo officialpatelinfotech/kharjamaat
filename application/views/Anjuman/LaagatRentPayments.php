@@ -305,6 +305,47 @@
     border-color: var(--gold);
     text-decoration: none;
   }
+  .btn-rent-items-view {
+    background: #ffffff;
+    border: 1.5px solid var(--border);
+    color: var(--text-2);
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .btn-rent-items-view:hover {
+    background: var(--surface-2);
+    color: var(--blue);
+    border-color: var(--blue);
+    text-decoration: none;
+  }
+
+  .btn-print-bill {
+    background: #ffffff;
+    border: 1.5px solid var(--border);
+    color: var(--text-2);
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .btn-print-bill:hover {
+    background: var(--surface-2);
+    color: var(--green);
+    border-color: var(--green);
+    text-decoration: none;
+  }
 
   /* Modals */
   .modal-content {
@@ -486,14 +527,53 @@
 
 <div class="container-fluid px-md-5 margintopcontainer pt-5 pb-5 page-wrap">
   <?php
+  // Pre-calculate items/extras totals for all unique raza_ids on this page
+  $raza_items_totals = [];
+  if (!empty($invoices)) {
+    $razaIds = array_filter(array_unique(array_column($invoices, 'raza_id')));
+    if (!empty($razaIds)) {
+      $razaRows = $this->db->select('id, razadata')
+        ->from('raza')
+        ->where_in('id', $razaIds)
+        ->get()
+        ->result_array();
+      
+      // We will also load all laagat rent items to map pricing
+      $dbItems = [];
+      $itemRows = $this->db->from('laagat_rent_items')->get()->result_array();
+      foreach ($itemRows as $row) {
+        $dbItems[(int)$row['id']] = $row;
+      }
+      
+      foreach ($razaRows as $rRow) {
+        $rId = (int)$rRow['id'];
+        $items_total = 0.00;
+        if (!empty($rRow['razadata'])) {
+          $razadata = json_decode($rRow['razadata'], true);
+          if (isset($razadata['item_qty']) && is_array($razadata['item_qty'])) {
+            foreach ($razadata['item_qty'] as $itemId => $qty) {
+              $qty = (int)$qty;
+              if ($qty > 0 && isset($dbItems[(int)$itemId])) {
+                $items_total += ((float)$dbItems[(int)$itemId]['rent_sabeel']) * $qty;
+              }
+            }
+          }
+        }
+        $raza_items_totals[$rId] = $items_total;
+      }
+    }
+  }
+
   $total_jmt_amt = 0;
   $total_sar_amt = 0;
   $total_inv_amt = 0;
   $total_paid_amt = 0;
   $total_due_amt = 0;
+  $total_returned_amt = 0;
   if (!empty($invoices)) {
     foreach ($invoices as $inv) {
-      $tAmt = (float)$inv['master_amount'];
+      $isDepositOnly = ($inv['charge_type'] === 'rent' && (float)$inv['master_amount'] <= 0.0001 && (float)$inv['deposit_amount'] > 0);
+      $tAmt = $isDepositOnly ? (float)$inv['deposit_amount'] : (float)$inv['master_amount'];
       if ($inv['charge_type'] !== 'rent') {
         $jAmt = (float)$inv['jamaat_amount'];
         $sAmt = (float)$inv['sarkaar_amount'];
@@ -505,7 +585,15 @@
       }
       $total_inv_amt += $tAmt;
       $total_paid_amt += (float)$inv['paid_amount'];
-      $total_due_amt += ($tAmt - (float)$inv['paid_amount']);
+      
+      $isReturned = (int)($inv['is_returned'] ?? 0) === 1;
+      if ($isReturned) {
+        $items_total = (float)($raza_items_totals[(int)$inv['raza_id']] ?? 0.00);
+        $refundable = max(0.00, (float)$inv['paid_amount'] - $items_total);
+        $total_returned_amt += $refundable;
+      } else {
+        $total_due_amt += ($tAmt - (float)$inv['paid_amount']);
+      }
     }
   }
   ?>
@@ -513,11 +601,12 @@
   <?php
   $is_laagat = isset($module_type) && $module_type === 'laagat';
   $is_rent = isset($module_type) && $module_type === 'rent';
-  $back_url = $is_laagat ? base_url('anjuman/laagat') : ($is_rent ? base_url('anjuman/rent') : base_url('anjuman/laagat_rent'));
-  $heading = $is_laagat ? "Receive Laagat Payment" : ($is_rent ? "Receive Rent Payment" : "Receive Laagat & Rent Payment");
+  $is_deposit = isset($module_type) && $module_type === 'deposit';
+  $back_url = $is_laagat ? base_url('anjuman/laagat') : ($is_rent || $is_deposit ? base_url('anjuman/rent') : base_url('anjuman/laagat_rent'));
+  $heading = $is_laagat ? "Receive Laagat Payment" : ($is_rent ? "Receive Rent Payment" : ($is_deposit ? "Receive Deposit Payment" : "Receive Laagat & Rent Payment"));
   if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 2) {
     $back_url = base_url('amilsaheb');
-    $heading = $is_laagat ? "Laagat Invoices" : ($is_rent ? "Rent Invoices" : "Laagat & Rent Invoices");
+    $heading = $is_laagat ? "Laagat Invoices" : ($is_rent ? "Rent Invoices" : ($is_deposit ? "Deposit Invoices" : "Laagat & Rent Invoices"));
   }
   ?>
 
@@ -530,7 +619,7 @@
 
   <!-- Metrics Grid -->
   <div class="summary-grid">
-    <?php if (!$is_rent): ?>
+    <?php if (!$is_rent && !$is_deposit): ?>
       <div class="summary-tile tile-jamaat">
         <span class="tile-label">Total Jamaat</span>
         <span class="tile-value">₹<?= format_inr($total_jmt_amt, 0) ?></span>
@@ -538,6 +627,20 @@
       <div class="summary-tile tile-sarkaar">
         <span class="tile-label">Total Sarkaar</span>
         <span class="tile-value">₹<?= format_inr($total_sar_amt, 0) ?></span>
+      </div>
+    <?php endif; ?>
+    <?php if ($is_rent && isset($rent_bifurcation)): ?>
+      <?php
+        $ladies_total = (float)($rent_bifurcation['Ladies'] ?? 0);
+        $jamaat_total = $total_inv_amt - $ladies_total;
+      ?>
+      <div class="summary-tile tile-jamaat">
+        <span class="tile-label">Jamaat Share</span>
+        <span class="tile-value">₹<?= format_inr($jamaat_total, 0) ?></span>
+      </div>
+      <div class="summary-tile tile-sarkaar">
+        <span class="tile-label">Ladies Share</span>
+        <span class="tile-value">₹<?= format_inr($ladies_total, 0) ?></span>
       </div>
     <?php endif; ?>
     <div class="summary-tile tile-total">
@@ -548,6 +651,12 @@
       <span class="tile-label">Total Paid</span>
       <span class="tile-value">₹<?= format_inr($total_paid_amt, 0) ?></span>
     </div>
+    <?php if ($is_deposit): ?>
+      <div class="summary-tile tile-sarkaar">
+        <span class="tile-label">Total Returned</span>
+        <span class="tile-value" style="color: var(--blue);">₹<?= format_inr($total_returned_amt, 0) ?></span>
+      </div>
+    <?php endif; ?>
     <div class="summary-tile tile-due">
       <span class="tile-label">Total Due</span>
       <span class="tile-value">₹<?= format_inr($total_due_amt, 0) ?></span>
@@ -585,7 +694,7 @@
       <form method="GET" action="<?= $form_action; ?>" class="row g-3 align-items-end">
         <div class="col-md-3">
           <label class="form-label">Hijri Year</label>
-          <select name="year" class="form-control" onchange="this.form.submit()">
+          <select name="year" class="form-control">
             <option value="">All Years</option>
             <?php foreach ($hijri_years as $y): ?>
               <option value="<?= $y ?>" <?= ($filters['year'] == $y) ? 'selected' : '' ?>><?= $y ?></option>
@@ -594,14 +703,14 @@
         </div>
         <div class="col-md-3">
           <label class="form-label">ITS ID / Member</label>
-          <input type="text" name="its_id" class="form-control" placeholder="ITS ID" value="<?= $filters['its_id'] ?>" onchange="this.form.submit()">
+          <input type="text" name="its_id" class="form-control" placeholder="ITS ID" value="<?= $filters['its_id'] ?>">
         </div>
         <?php if (isset($module_type)): ?>
           <input type="hidden" name="charge_type" value="<?= htmlspecialchars($module_type) ?>" />
         <?php else: ?>
           <div class="col-md-3">
             <label class="form-label">Type</label>
-            <select name="charge_type" class="form-control" onchange="this.form.submit()">
+            <select name="charge_type" class="form-control">
               <option value="">All Types</option>
               <option value="laagat" <?= (($filters['charge_type'] ?? '') == 'laagat') ? 'selected' : '' ?>>Laagat</option>
               <option value="rent" <?= (($filters['charge_type'] ?? '') == 'rent') ? 'selected' : '' ?>>Rent</option>
@@ -609,14 +718,14 @@
           </div>
         <?php endif; ?>
         <div class="col-md-3 d-flex gap-2">
-          <button type="submit" class="btn btn-filter flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i> Filter</button>
+          <button type="submit" class="btn btn-filter flex-fill mr-2"><i class="fa-solid fa-magnifying-glass me-1"></i> Filter</button>
           <a href="<?= $form_action; ?>" class="btn btn-clear flex-fill d-inline-flex align-items-center justify-content-center">Clear</a>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Invoices Table Card -->
+   <!-- Invoices Table Card -->
   <div class="table-card">
     <div class="table-responsive">
       <table class="table premium-table table-hover">
@@ -631,12 +740,15 @@
             <?php endif; ?>
             <th>Raza Id</th>
             <th>Raza</th>
-            <?php if (!$is_rent): ?>
-              <th class="text-end">Jmt. Amount</th>
-              <th class="text-end">Sar. Amount</th>
+            <?php if ($is_deposit): ?>
+              <th class="text-end">Deposit Amount</th>
+            <?php else: ?>
+              <?php if (!$is_rent): ?>
+                <th class="text-end">Jmt. Amount</th>
+                <th class="text-end">Sar. Amount</th>
+              <?php endif; ?>
+              <th class="text-end">Rent Amount</th>
             <?php endif; ?>
-            <th class="text-end">Total Amount</th>
-            <th class="text-end">Deposit</th>
             <th class="text-end">Paid Amount</th>
             <th class="text-end">Due Amount</th>
             <th class="text-center">Action</th>
@@ -645,10 +757,10 @@
         <tbody>
           <?php if (!empty($invoices)): ?>
             <?php $sr = 1;
-            foreach ($invoices as $inv): ?>
-              <?php
-              $balance = (float)$inv['master_amount'] - (float)$inv['paid_amount'];
-              ?>
+            foreach ($invoices as $inv):
+              $isReturned = (int)($inv['is_returned'] ?? 0) === 1;
+              $balance = $isReturned ? 0.00 : ($is_deposit ? ((float)$inv['deposit_amount'] - (float)$inv['paid_amount']) : ((float)$inv['master_amount'] - (float)$inv['paid_amount']));
+            ?>
               <tr>
                 <td><?= $sr++ ?></td>
                 <td class="text-nowrap"><?= date('d-m-Y', strtotime($inv['created_at'])) ?></td>
@@ -672,12 +784,23 @@
                 }
                 $isRent = ($inv['charge_type'] === 'rent');
                 ?>
-                <?php if (!$is_rent): ?>
-                  <td class="text-end text-success fw-bold"><?= $isRent ? '-' : '₹' . format_inr($jAmt, 0) ?></td>
-                  <td class="text-end text-info fw-bold"><?= $isRent ? '-' : '₹' . format_inr($sAmt, 0) ?></td>
+                 <?php if ($is_deposit): 
+                   $items_total = (float)($raza_items_totals[(int)$inv['raza_id']] ?? 0.00);
+                   $refundable = max(0.00, (float)$inv['paid_amount'] - $items_total);
+                 ?>
+                   <td class="text-end text-warning fw-bold">
+                     ₹<?= format_inr((float)$inv['deposit_amount'], 0) ?>
+                     <?php if ((float)$inv['paid_amount'] > 0): ?>
+                       <div class="text-muted small fw-normal" style="font-size: 0.73rem; margin-top: 2px;">Refundable: <span class="text-success fw-bold">₹<?= format_inr($refundable, 0) ?></span></div>
+                     <?php endif; ?>
+                   </td>
+                 <?php else: ?>
+                  <?php if (!$is_rent): ?>
+                    <td class="text-end text-success fw-bold"><?= $isRent ? '-' : '₹' . format_inr($jAmt, 0) ?></td>
+                    <td class="text-end text-info fw-bold"><?= $isRent ? '-' : '₹' . format_inr($sAmt, 0) ?></td>
+                  <?php endif; ?>
+                  <td class="text-end text-primary fw-bold">₹<?= format_inr($tAmt, 0) ?></td>
                 <?php endif; ?>
-                <td class="text-end text-primary fw-bold">₹<?= format_inr($tAmt, 0) ?></td>
-                <td class="text-end text-warning fw-bold"><?= $isRent ? '₹' . format_inr((float)$inv['deposit_amount'], 0) : '-' ?></td>
                 <td class="text-end text-success fw-bold">₹<?= format_inr($inv['paid_amount'], 0) ?></td>
                 <td class="text-end fw-bold <?= ($balance > 0) ? 'text-danger' : 'text-muted' ?>">
                   ₹<?= format_inr($balance, 0) ?>
@@ -685,40 +808,54 @@
                 <td class="text-center text-nowrap">
                   <div class="d-flex justify-content-center align-items-center" style="gap: 8px;">
                     <?php if (empty($_SESSION['user']['role']) || $_SESSION['user']['role'] != 2): ?>
-                      <?php if ($balance > 0): ?>
-                        <?php if ($inv['charge_type'] === 'rent' && (int)$inv['janab_status'] !== 1): ?>
-                          <?php if ((int)$inv['janab_status'] === 2): ?>
-                            <span class="badge badge-danger text-wrap" style="padding: 6px 10px; font-size: 0.72rem;">Raza Rejected</span>
-                          <?php else: ?>
-                            <span class="badge badge-warning text-dark text-wrap" style="padding: 6px 10px; font-size: 0.72rem;">Raza Pending</span>
-                          <?php endif; ?>
-                        <?php else: ?>
-                          <button type="button" class="btn-receive btn-sm" title="Receive Payment" data-toggle="modal" data-target="#paymentModal<?= $inv['id'] ?>">
-                            <i class="fa-solid fa-indian-rupee-sign"></i> Pay
-                          </button>
-                        <?php endif; ?>
+                      <?php if ($isReturned): ?>
+                        <span class="badge bg-success text-white py-2 px-3 fw-bold" style="border-radius: var(--radius-sm); font-size: 0.76rem;">Returned</span>
+                      <?php elseif ($balance > 0): ?>
+                        <button type="button" class="btn-receive btn-sm" title="Receive Payment" data-toggle="modal" data-target="#paymentModal<?= $inv['id'] ?>">
+                          <i class="fa-solid fa-indian-rupee-sign"></i> Receive
+                        </button>
                       <?php else: ?>
-                        <span class="btn-receive-disabled btn-sm text-center">Paid</span>
+                        <span class="btn-receive-disabled btn-sm text-center d-inline-block">Paid</span>
+                        <?php if ($is_deposit && (int)$inv['is_returned'] === 0 && (float)$inv['paid_amount'] > 0): 
+                           $items_total = (float)($raza_items_totals[(int)$inv['raza_id']] ?? 0.00);
+                           $refundable = max(0.00, (float)$inv['paid_amount'] - $items_total);
+                         ?>
+                           <form action="<?= base_url('anjuman/laagat_rent_return_deposit') ?>" method="POST" class="m-0 d-inline-block" onsubmit="return confirm('Are you sure you want to mark this deposit as returned (Refund amount: ₹<?= format_inr($refundable, 0) ?>) to the member?');">
+                             <input type="hidden" name="invoice_id" value="<?= $inv['id'] ?>">
+                             <button type="submit" class="btn btn-warning btn-sm" style="border-radius: var(--radius-sm); font-size: 0.76rem; font-weight: 700; padding: 6px 12px; border: none; color: #fff; background-color: #f0ad4e;" title="Return Deposit">
+                               <i class="fa-solid fa-reply"></i> Return (₹<?= format_inr($refundable, 0) ?>)
+                             </button>
+                           </form>
+                         <?php endif; ?>
                       <?php endif; ?>
                     <?php endif; ?>
 
                     <button type="button" class="btn-history-view btn-sm" title="View History" onclick="showHistory(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['Full_Name']) ?>')">
                       <i class="fa-solid fa-history"></i> History
                     </button>
+                    
+                    <?php if ($inv['charge_type'] === 'rent'): ?>
+                      <a href="<?= base_url('common/generate_pdf?id=' . $inv['id'] . '&for=9') ?>" target="_blank" class="btn-print-bill btn-sm" title="Print Resource Bill" style="text-decoration:none;">
+                        <i class="fa-solid fa-print"></i> Print
+                      </a>
+                      <button type="button" class="btn-rent-items-view btn-sm" title="View Rent Details" onclick="showRentItems(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['title']) ?>')">
+                        <i class="fa-solid fa-list"></i> View
+                      </button>
+                    <?php endif; ?>
                   </div>
                 </td>
               </tr>
             <?php endforeach; ?>
           <?php else: ?>
             <?php
-              $colspan = 14;
-              if (isset($module_type)) $colspan--;
-              if ($is_rent) $colspan -= 2;
+              $colspan = 9;
+              if (!isset($module_type)) $colspan++;
+              if (!$is_rent && !$is_deposit) $colspan += 2;
             ?>
             <tr>
               <td colspan="<?= $colspan ?>" class="text-center py-5 text-muted">
                 <i class="fa-solid fa-magnifying-glass fa-2x mb-3 opacity-25"></i><br>
-                Search for a member ITS ID to record payments
+                No invoices found.
               </td>
             </tr>
           <?php endif; ?>
@@ -726,7 +863,6 @@
       </table>
     </div>
   </div>
-</div>
 
 <!-- History Modal -->
 <div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
@@ -769,11 +905,53 @@
   </div>
 </div>
 
+<!-- Rent Items Modal -->
+<div class="modal fade" id="rentItemsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-list text-primary mr-2"></i>Rent Details</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-4 d-flex justify-content-between align-items-center bg-light p-3 rounded border">
+          <div>
+            <span class="text-muted small text-uppercase fw-bold d-block">Account Name</span>
+            <span class="fw-bold text-dark h5 mb-0" id="rent_items_title"></span>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table history-table table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item Name</th>
+                <th>Service Provided By</th>
+                <th class="text-end">Cost / Piece</th>
+                <th class="text-center">Qty</th>
+                <th class="text-end">Total Cost</th>
+              </tr>
+            </thead>
+            <tbody id="rent_items_table_body">
+              <!-- Content loaded via AJAX -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modals outside the table -->
 <?php if (!empty($invoices)): ?>
   <?php foreach ($invoices as $inv): ?>
     <?php
-    $balance = (float)$inv['master_amount'] - (float)$inv['paid_amount'];
+    $balance = $is_deposit ? ((float)$inv['deposit_amount'] - (float)$inv['paid_amount']) : ((float)$inv['master_amount'] - (float)$inv['paid_amount']);
     if ($balance > 0):
     ?>
       <div class="modal fade" id="paymentModal<?= $inv['id'] ?>" tabindex="-1" aria-hidden="true">
@@ -782,7 +960,7 @@
             <input type="hidden" name="invoice_id" value="<?= $inv['id'] ?>">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title"><i class="fa-solid fa-cash-register text-success mr-2"></i>Receive Payment</h5>
+                <h5 class="modal-title"><i class="fa-solid fa-cash-register text-success mr-2"></i>Receive <?= $is_deposit ? 'Deposit' : 'Payment' ?></h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                   <span aria-hidden="true">&times;</span>
                 </button>
@@ -802,21 +980,24 @@
                     </div>
                     <div class="col-6 mb-2">
                       <span class="text-muted small d-block">Charge Type</span>
-                      <span class="type-badge <?= ($inv['charge_type'] == 'rent') ? 'badge-rent' : 'badge-laagat' ?>"><?= $inv['charge_type'] ?></span>
+                      <span class="type-badge <?= ($inv['charge_type'] == 'rent') ? ($is_deposit ? 'badge-rent text-warning bg-warning-light border-warning' : 'badge-rent') : 'badge-laagat' ?>">
+                        <?= $inv['charge_type'] . ($is_deposit ? ' (Deposit)' : '') ?>
+                      </span>
                     </div>
                     <div class="col-6 mb-2">
                       <span class="text-muted small d-block">Raza Details</span>
                       <span class="text-dark">R#<?= $inv['generated_raza_id'] ?> — <?= htmlspecialchars($inv['title']) ?></span>
                     </div>
                     
-                    <?php if ($inv['charge_type'] === 'rent'): ?>
-                      <div class="col-6 mt-1">
-                        <span class="text-muted small d-block">Invoice Amount</span>
-                        <span class="fw-bold text-dark">₹<?= format_inr($inv['master_amount'], 0) ?></span>
-                      </div>
-                      <div class="col-6 mt-1">
+                    <?php if ($is_deposit): ?>
+                      <div class="col-12 mt-1">
                         <span class="text-muted small d-block">Deposit Amount</span>
                         <span class="fw-bold text-warning">₹<?= format_inr((float)$inv['deposit_amount'], 0) ?></span>
+                      </div>
+                    <?php elseif ($is_rent): ?>
+                      <div class="col-12 mt-1">
+                        <span class="text-muted small d-block">Invoice Amount</span>
+                        <span class="fw-bold text-dark">₹<?= format_inr($inv['master_amount'], 0) ?></span>
                       </div>
                     <?php else: ?>
                       <?php
@@ -902,6 +1083,47 @@
 <?php endif; ?>
 
 <script>
+  function showRentItems(invoiceId, title) {
+    $('#rent_items_title').text(title);
+    $('#rent_items_table_body').html('<tr><td colspan="6" class="text-center font-italic text-muted py-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading rent items...</td></tr>');
+    $('#rentItemsModal').modal('show');
+
+    $.ajax({
+      url: '<?= base_url("accounts/get_rent_invoice_items"); ?>',
+      type: 'POST',
+      data: { invoice_id: invoiceId },
+      dataType: 'json',
+      success: function(response) {
+        let html = '';
+        if (response && response.success) {
+          if (response.items && response.items.length > 0) {
+            response.items.forEach(function(item, idx) {
+              let costPerPiece = parseFloat(item.rent_sabeel) || 0;
+              let totalCost = parseFloat(item.total_cost) || 0;
+              let serviceProvidedBy = item.service_provided_by || 'Jamaat';
+              html += '<tr>' +
+                '<td>' + (idx + 1) + '</td>' +
+                '<td style="font-weight:600;color:var(--text-1);">' + item.item_name + '</td>' +
+                '<td>' + serviceProvidedBy + '</td>' +
+                '<td class="text-end fw-bold text-success">₹' + costPerPiece.toLocaleString('en-IN', {minimumFractionDigits: 0}) + '</td>' +
+                '<td class="text-center" style="font-weight:700;color:var(--text-2);">' + item.quantity + '</td>' +
+                '<td class="text-end fw-bold text-dark">₹' + totalCost.toLocaleString('en-IN', {minimumFractionDigits: 0}) + '</td>' +
+                '</tr>';
+            });
+          } else {
+            html = '<tr><td colspan="6" class="text-center text-muted py-4">No rent items selected.</td></tr>';
+          }
+        } else {
+          html = '<tr><td colspan="6" class="text-center text-danger py-4">' + (response.error || 'Failed to load rent items.') + '</td></tr>';
+        }
+        $('#rent_items_table_body').html(html);
+      },
+      error: function() {
+        $('#rent_items_table_body').html('<tr><td colspan="6" class="text-center text-danger py-4">Failed to load rent items.</td></tr>');
+      }
+    });
+  }
+
   function showHistory(invoiceId, name) {
     $('#history_member_name').text(name);
     $('#history_table_body').html('<tr><td colspan="5" class="text-center font-italic text-muted py-4"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading history...</td></tr>');

@@ -1,6 +1,6 @@
 <div class="container margintopcontainer pt-5" id="fmbPerDayApp">
   <style>
-    #fmbPerDayApp {
+    :root {
       --gold:        #b8860b;
       --gold-light:  #e6c84a;
       --gold-muted:  #f5e9c0;
@@ -16,6 +16,9 @@
       --red:         #b91c1c;
       --sh:          0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
       --sh2:         0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+    }
+
+    #fmbPerDayApp {
       font-family: 'Plus Jakarta Sans', sans-serif;
     }
 

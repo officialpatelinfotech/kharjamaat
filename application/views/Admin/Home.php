@@ -281,6 +281,7 @@
       <ul class="menu-list">
         <li><a class="menu-item" href="<?php echo base_url('admin/managemembers'); ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Manage Members</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/importmembers'); ?>"><span class="menu-icon"><i class="fa fa-upload"></i></span><span class="menu-label">Import Members</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/umoor_sub_committees'); ?>"><span class="menu-icon"><i class="fa fa-sitemap"></i></span><span class="menu-label">Umoor Sub-Committees</span></a></li>
       </ul>
 
       <div class="menu-section">Miqaat & FMB</div>
@@ -288,7 +289,6 @@
         <li><a class="menu-item" href="<?php echo base_url('admin/razalist'); ?>"><span class="menu-icon"><i class="fa fa-list"></i></span><span class="menu-label">Manage Raza Form</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/managefmbtakhmeen'); ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">FMB Thaali Takhmeen</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/manageniyazamounts'); ?>"><span class="menu-icon"><i class="fa fa-coins"></i></span><span class="menu-label">Miqaat Niyaz Takhmeen</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>"><span class="menu-icon"><i class="fa fa-hand-holding-dollar"></i></span><span class="menu-label">Miqaat Niyaz Contribution Master</span></a></li>
       </ul>
 
       <div class="menu-section">Finance & Sabeel</div>
@@ -300,7 +300,7 @@
         <li><a class="menu-item" href="<?php echo base_url('admin/ekramfunds'); ?>"><span class="menu-icon"><i class="fa fa-gift"></i></span><span class="menu-label">Ekram Funds</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/qardanhasana'); ?>"><span class="menu-icon"><i class="fa fa-leaf"></i></span><span class="menu-label">Qardan Hasana</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/wajebaat'); ?>"><span class="menu-icon"><i class="fa fa-book"></i></span><span class="menu-label">Wajebaat</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('admin/expense'); ?>"><span class="menu-icon"><i class="fa fa-calculator"></i></span><span class="menu-label">Expense Module</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('admin/expense'); ?>"><span class="menu-icon"><i class="fa fa-calculator"></i></span><span class="menu-label">Expense &amp; Budget Module</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/madresa'); ?>"><span class="menu-icon"><i class="fa fa-graduation-cap"></i></span><span class="menu-label">Madresa Module</span></a></li>
       </ul>
 
@@ -366,35 +366,13 @@
 
     <!-- ══ ADMIN MODULES GRID ══ -->
     <div class="row">
-      <!-- 1. FMB Calendar -->
+      <!-- 4. Manage Sabeel Takhmeen -->
       <div class="col-6 col-md-4 col-lg-3 mb-4">
-        <a href="<?php echo base_url('common/fmbcalendar?from=admin'); ?>">
+        <a href="<?php echo base_url('admin/managesabeeltakhmeen'); ?>">
           <div class="admin-card">
-            <div class="admin-card-icon"><i class="fa fa-calendar"></i></div>
-            <h5 class="admin-card-title">FMB Calendar</h5>
-            <p class="admin-card-desc">Schedule and manage FMB menus, events, and distributions.</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- 2. Manage Raza Form -->
-      <div class="col-6 col-md-4 col-lg-3 mb-4">
-        <a href="<?php echo base_url('admin/razalist'); ?>">
-          <div class="admin-card">
-            <div class="admin-card-icon"><i class="fa fa-list"></i></div>
-            <h5 class="admin-card-title">Manage Raza Form</h5>
-            <p class="admin-card-desc">Review and approve member Raza application requests.</p>
-          </div>
-        </a>
-      </div>
-
-      <!-- 3. FMB Thaali Takhmeen -->
-      <div class="col-6 col-md-4 col-lg-3 mb-4">
-        <a href="<?php echo base_url('admin/managefmbtakhmeen'); ?>">
-          <div class="admin-card">
-            <div class="admin-card-icon"><i class="fa fa-cutlery"></i></div>
-            <h5 class="admin-card-title">FMB Thaali Takhmeen</h5>
-            <p class="admin-card-desc">Oversee annual takhmeen estimates and settings.</p>
+            <div class="admin-card-icon"><i class="fa fa-credit-card"></i></div>
+            <h5 class="admin-card-title">Sabeel Takhmeen</h5>
+            <p class="admin-card-desc">Oversee annual sabeel takhmeen rates and configurations.</p>
           </div>
         </a>
       </div>
@@ -410,24 +388,35 @@
         </a>
       </div>
 
-      <!-- 3c. Miqaat Niyaz Contribution Master -->
+      <!-- 3. FMB Thaali Takhmeen -->
       <div class="col-6 col-md-4 col-lg-3 mb-4">
-        <a href="<?php echo base_url('admin/fmbgeneralcontributionmaster'); ?>">
+        <a href="<?php echo base_url('admin/managefmbtakhmeen'); ?>">
           <div class="admin-card">
-            <div class="admin-card-icon"><i class="fa fa-hand-holding-dollar"></i></div>
-            <h5 class="admin-card-title">Miqaat Niyaz Contribution Master</h5>
-            <p class="admin-card-desc">Manage custom categories for contributions.</p>
+            <div class="admin-card-icon"><i class="fa fa-cutlery"></i></div>
+            <h5 class="admin-card-title">FMB Thaali Takhmeen</h5>
+            <p class="admin-card-desc">Oversee annual takhmeen estimates and settings.</p>
           </div>
         </a>
       </div>
-
-      <!-- 4. Manage Sabeel Takhmeen -->
+        
+      <!-- Umoor Sub-Committees -->
       <div class="col-6 col-md-4 col-lg-3 mb-4">
-        <a href="<?php echo base_url('admin/managesabeeltakhmeen'); ?>">
+        <a href="<?php echo base_url('admin/umoor_sub_committees'); ?>">
           <div class="admin-card">
-            <div class="admin-card-icon"><i class="fa fa-credit-card"></i></div>
-            <h5 class="admin-card-title">Sabeel Takhmeen</h5>
-            <p class="admin-card-desc">Oversee annual sabeel takhmeen rates and configurations.</p>
+            <div class="admin-card-icon"><i class="fa fa-sitemap"></i></div>
+            <h5 class="admin-card-title">Umoor Sub-Committees</h5>
+            <p class="admin-card-desc">Organize sub-committees and assign team leads under Umoor.</p>
+          </div>
+        </a>
+      </div>
+      
+      <!-- 2. Manage Raza Form -->
+      <div class="col-6 col-md-4 col-lg-3 mb-4">
+        <a href="<?php echo base_url('admin/razalist'); ?>">
+          <div class="admin-card">
+            <div class="admin-card-icon"><i class="fa fa-list"></i></div>
+            <h5 class="admin-card-title">Manage Raza Form</h5>
+            <p class="admin-card-desc">Review and approve member Raza application requests.</p>
           </div>
         </a>
       </div>
@@ -498,12 +487,12 @@
         </a>
       </div>
 
-      <!-- 11. Expense Module -->
+      <!-- 11. Expense & Budget Module -->
       <div class="col-6 col-md-4 col-lg-3 mb-4">
         <a href="<?php echo base_url('admin/expense'); ?>">
           <div class="admin-card">
             <div class="admin-card-icon"><i class="fa fa-calculator"></i></div>
-            <h5 class="admin-card-title">Expense Module</h5>
+            <h5 class="admin-card-title">Expense &amp; Budget Module</h5>
             <p class="admin-card-desc">Log and categorize daily operational expenditures and receipts.</p>
           </div>
         </a>

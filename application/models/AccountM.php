@@ -615,18 +615,13 @@ class AccountM extends CI_Model
 
   public function viewfmbtakhmeen($user_id)
   {
-    $user_id = (int)$user_id;
-
-    // 🔹 Fetch all takhmeen records
+        // 🔹 Fetch all takhmeen records
     $takhmeen_list = $this->db->select("id, year, total_amount")
       ->from("fmb_takhmeen")
       ->where("user_id", $user_id)
       ->order_by("year", "DESC")
       ->get()
       ->result_array();
-
-    $latest = !empty($takhmeen_list) ? $takhmeen_list[0] : null;
-    $latest_year = $latest ? $latest['year'] : null;
 
     // 🔹 Calculate overall takhmeen total
     $takhmeen = $this->db->select("COALESCE(SUM(total_amount),0) as total_amount")
@@ -642,7 +637,6 @@ class AccountM extends CI_Model
       ->get()
       ->row_array();
 
-    // 🔹 Overall summary
     $overall_total_amount = (float)($takhmeen['total_amount'] ?? 0);
     $overall_total_paid_raw = (float)($payments_summary['total_paid'] ?? 0);
     $overall_excess = 0.0;
@@ -658,6 +652,36 @@ class AccountM extends CI_Model
     if ($overall_excess > 0) {
       $overall['excess_paid'] = $overall_excess;
     }
+
+    // 🔹 Allocate overall payments oldest-first (FIFO)
+    $allocated = [];
+    $remaining = $overall_total_paid_raw;
+    if (!empty($takhmeen_list)) {
+      $years_sorted = $takhmeen_list;
+      usort($years_sorted, function($a, $b) {
+        $aBase = (int)preg_replace('/^(\d{4}).*$/', '$1', preg_replace('/[^0-9\-]/', '', $a['year'] ?? ''));
+        $bBase = (int)preg_replace('/^(\d{4}).*$/', '$1', preg_replace('/[^0-9\-]/', '', $b['year'] ?? ''));
+        return $aBase <=> $bBase;
+      });
+      foreach ($years_sorted as $yrRow) {
+        $yearLabel = $yrRow['year'] ?? '';
+        $amt = (float)($yrRow['total_amount'] ?? 0);
+        $pay = min(max($remaining, 0.0), $amt);
+        $allocated[$yearLabel] = $pay;
+        $remaining -= $pay;
+      }
+    }
+
+    // Update takhmeen_list with allocated paid/due amounts
+    foreach ($takhmeen_list as &$tr) {
+      $yLabel = $tr['year'] ?? '';
+      $tr['total_paid'] = isset($allocated[$yLabel]) ? $allocated[$yLabel] : 0.0;
+      $tr['total_due'] = max(0.0, (float)($tr['total_amount'] ?? 0) - $tr['total_paid']);
+    }
+    unset($tr);
+
+    $latest = !empty($takhmeen_list) ? $takhmeen_list[0] : null;
+    $latest_year = $latest ? $latest['year'] : null;
 
     // 🔹 Fetch current year summary
     $current_year_takhmeen = null;
@@ -682,46 +706,31 @@ class AccountM extends CI_Model
     }
 
     if ($current_year) {
-      // Fetch takhmeen for derived current year (Hijri-year mapped logic)
-      $takhmeen_year = $this->db->select("COALESCE(SUM(total_amount),0) as total_amount")
-        ->from("fmb_takhmeen")
-        ->where("user_id", $user_id)
-        ->where("year", $current_year)
-        ->get()
-        ->row_array();
-
-      // Hijri-aware payments: join hijri_calendar to map each payment_date to its Hijri month/year
-      // Business rule: Hijri months 01-08 belong to previous takhmeen cycle (year -1)
-      $payments_sql = "SELECT COALESCE(SUM(p.amount),0) AS total_paid
-        FROM fmb_takhmeen_payments p
-        JOIN hijri_calendar hc ON hc.greg_date = p.payment_date
-        WHERE p.user_id = ? AND (
-          (
-            CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = ?
-            AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 9 AND 12
-          )
-          OR (
-            CAST(SUBSTRING_INDEX(hc.hijri_date,'-',-1) AS UNSIGNED) = (? + 1)
-            AND CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(hc.hijri_date,'-',2),'-',-1) AS UNSIGNED) BETWEEN 1 AND 8
-          )
-        )";
-
-      // Explanation: For takhmeen year Y: include Hijri months 09-12 of Hijri year Y AND months 01-08 of Hijri year Y+1.
-      $payments_year = $this->db->query($payments_sql, [$user_id, $current_year, $current_year])->row_array();
-
-      $cy_total_amount = (float)($takhmeen_year['total_amount'] ?? 0);
-      $cy_total_paid_raw = (float)($payments_year['total_paid'] ?? 0);
-      $cy_excess = 0.0;
-      if ($cy_total_paid_raw > $cy_total_amount) {
-        $cy_excess = $cy_total_paid_raw - $cy_total_amount;
+      $matched_year_label = null;
+      $cy_total_amount = 0.0;
+      $cy_total_paid = 0.0;
+      
+      foreach ($takhmeen_list as $tr) {
+        $yLabel = $tr['year'] ?? '';
+        if (strpos($yLabel, (string)$current_year) === 0) {
+          $matched_year_label = $yLabel;
+          $cy_total_amount = (float)($tr['total_amount'] ?? 0);
+          $cy_total_paid = (float)($tr['total_paid'] ?? 0);
+          break;
+        }
       }
-      $cy_total_paid = min($cy_total_paid_raw, $cy_total_amount);
+
+      $cy_excess = 0.0;
+      if ($matched_year_label && $remaining > 0.0) {
+        $cy_excess = $remaining;
+      }
+
       $current_year_takhmeen = [
         "year"               => $current_year,
         "derived_hijri_year" => isset($current_hijri_year) ? (int)$current_hijri_year : null,
         "total_amount"       => $cy_total_amount,
         "total_paid"         => $cy_total_paid,
-        "total_due"          => $cy_total_amount - $cy_total_paid,
+        "total_due"          => max(0.0, $cy_total_amount - $cy_total_paid),
       ];
       if ($cy_excess > 0) {
         $current_year_takhmeen['excess_paid'] = $cy_excess;
@@ -743,6 +752,7 @@ class AccountM extends CI_Model
       ->join("user u", "u.ITS_ID = gc.user_id", "left")
       ->join("(SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) paid", "paid.fmbgc_id = gc.id", "left")
       ->where("u.ITS_ID", $user_id)
+      ->where("gc.contri_type !=", 'Individual Niyaz')
       ->order_by('gc.created_at', 'DESC')
       ->get()
       ->result_array();
@@ -1873,7 +1883,7 @@ class AccountM extends CI_Model
     $sql = "SELECT 
               i.id,
               i.miqaat_id,
-              m.name AS miqaat_name,
+              COALESCE(m.name, CONCAT(i.description, ' (', i.year, ')'), '') AS miqaat_name,
               COALESCE(m.type, i.miqaat_type, '') AS miqaat_type,
               i.date AS invoice_date,
               i.amount,
@@ -1884,9 +1894,27 @@ class AccountM extends CI_Model
             LEFT JOIN miqaat_payment p ON p.miqaat_invoice_id = i.id
             LEFT JOIN miqaat m ON m.id = i.miqaat_id
             WHERE i.user_id = ?
-            GROUP BY i.id, i.miqaat_id, m.name, m.type, i.miqaat_type, i.date, i.amount, i.description
-            ORDER BY i.date DESC, i.id DESC";
-    $query = $this->db->query($sql, [$user_id]);
+            GROUP BY i.id, i.miqaat_id, m.name, m.type, i.miqaat_type, i.date, i.amount, i.description, i.year
+
+            UNION ALL
+
+            SELECT
+              gc.id,
+              NULL AS miqaat_id,
+              CONCAT(gc.contri_type, ' (', gc.contri_year, ')') AS miqaat_name,
+              gc.miqaat_type AS miqaat_type,
+              DATE(gc.created_at) AS invoice_date,
+              gc.amount,
+              gc.description,
+              IFNULL(paid.total_received, 0) AS paid_amount,
+              (gc.amount - IFNULL(paid.total_received, 0)) AS due_amount
+            FROM fmb_general_contribution gc
+            LEFT JOIN (SELECT fmbgc_id, SUM(amount) AS total_received FROM fmb_general_contribution_payments GROUP BY fmbgc_id) paid
+              ON paid.fmbgc_id = gc.id
+            WHERE gc.user_id = ? AND gc.contri_type = 'Individual Niyaz'
+
+            ORDER BY invoice_date DESC, id DESC";
+    $query = $this->db->query($sql, [$user_id, $user_id]);
     return $query->result_array();
   }
 
@@ -1899,7 +1927,7 @@ class AccountM extends CI_Model
     if (!$user_id || !$invoice_id) {
       return ['invoice' => null, 'payments' => []];
     }
-    $inv = $this->db->select('i.id, i.miqaat_id, m.name AS miqaat_name, COALESCE(m.type, i.miqaat_type, "") AS miqaat_type, i.date AS invoice_date, i.amount, i.description, i.user_id')
+    $inv = $this->db->select('i.id, i.miqaat_id, COALESCE(m.name, CONCAT(i.description, " (", i.year, ")"), "") AS miqaat_name, COALESCE(m.type, i.miqaat_type, "") AS miqaat_type, i.date AS invoice_date, i.amount, i.description, i.user_id')
       ->from('miqaat_invoice i')
       ->join('miqaat m', 'm.id = i.miqaat_id', 'left')
       ->where('i.id', $invoice_id)

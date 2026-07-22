@@ -1,18 +1,23 @@
 <div class="container margintopcontainer pt-5" id="fmbTakhmeenApp">
   <?php
     $sum_total_takhmeen = 0;
+    $takhmeen_done_count = 0;
+    $takhmeen_not_done_count = 0;
     if (isset($all_user_fmb_takhmeen) && is_array($all_user_fmb_takhmeen)) {
       foreach ($all_user_fmb_takhmeen as $user) {
         if (isset($user['current_year_takhmeen'])) {
           $rawAmt = (string)($user['current_year_takhmeen']['amount'] ?? '');
           $amt = (float)preg_replace('/[^0-9.]/', '', $rawAmt);
           $sum_total_takhmeen += $amt;
+          $takhmeen_done_count++;
+        } else {
+          $takhmeen_not_done_count++;
         }
       }
     }
   ?>
   <style>
-    #fmbTakhmeenApp {
+    :root {
       --gold:        #b8860b;
       --gold-light:  #e6c84a;
       --gold-muted:  #f5e9c0;
@@ -27,6 +32,9 @@
       --blue:        #1d4ed8;
       --sh:          0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
       --sh2:         0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+    }
+
+    #fmbTakhmeenApp {
       font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
@@ -211,6 +219,7 @@
     .btn-premium-action-add { background-color: var(--green) !important; }
     .btn-premium-action-view { background-color: var(--blue) !important; }
     .btn-premium-action-edit { background-color: var(--gold) !important; }
+    .btn-premium-action-del  { background-color: #dc2626 !important; }
 
     /* Modals */
     .modal-content-premium {
@@ -236,6 +245,18 @@
     }
     .modal-body-premium {
       padding: 24px !important;
+    }
+
+    /* Table sorting styles */
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+    th.sortable .sort-indicator {
+      font-size: 10px;
+      margin-left: 4px;
+      opacity: 0.8;
     }
 
     /* Hijri calendar (same UX as Create Miqaat) */
@@ -275,9 +296,14 @@
     <a href="<?php echo base_url("admin"); ?>" class="btn-premium btn-premium-secondary" title="Back to Dashboard">
       <i class="fa-solid fa-arrow-left"></i> Back
     </a>
-    <a href="<?php echo base_url("admin/manageperdaythaalicost"); ?>" class="btn-premium btn-premium-primary">
-      <i class="fa-solid fa-calculator mr-1"></i> Daily Thaali Cost
-    </a>
+    <div class="d-flex align-items-center" style="gap:10px;">
+      <a href="<?php echo base_url("admin/manageperdaythaalicost"); ?>" class="btn-premium btn-premium-primary">
+        <i class="fa-solid fa-calculator mr-1"></i> Daily Thaali Cost
+      </a>
+      <button type="button" id="open-add-thaali-type" class="btn-premium btn-premium-primary" style="background: linear-gradient(135deg,#1a6645,#2a8a5c); border:none;">
+        <i class="fa-solid fa-plus mr-1"></i> Add New Thaali
+      </button>
+    </div>
   </div>
 
   <?php
@@ -356,9 +382,137 @@
     <div class="anj-header-inner flex-column justify-content-center py-4">
       <p class="anj-eyebrow">Fizalat Mawamil al-Burhaniyah</p>
       <h1 class="anj-title">FMB Thaali Takhmeen for <span style="color: #fffbdf;"><?php echo $hijri_year; ?></span></h1>
-      <div class="h5 m-0 mt-2 font-weight-bold" style="color: #fff; letter-spacing: 0.5px; opacity: 0.95;">Total Takhmeen: ₹<?php echo number_format($sum_total_takhmeen, 0); ?></div>
     </div>
   </div>
+
+  <!-- Stats Cards Row -->
+  <div class="row mb-4">
+    <div class="col-md-4 mb-3 mb-md-0">
+      <div style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px 20px; box-shadow:var(--sh); text-align:center; display:flex; flex-direction:column; gap:4px; height:100%; justify-content:center;">
+        <span style="font-size:0.68rem; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.8px;">Takhmeen Done Members</span>
+        <span style="font-size:1.6rem; font-weight:800; color:#1a6645;"><i class="fa-solid fa-circle-check mr-1" style="font-size:1.15rem;"></i> <?php echo number_format($takhmeen_done_count); ?></span>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3 mb-md-0">
+      <div style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px 20px; box-shadow:var(--sh); text-align:center; display:flex; flex-direction:column; gap:4px; height:100%; justify-content:center;">
+        <span style="font-size:0.68rem; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.8px;">Takhmeen Not Done Members</span>
+        <span style="font-size:1.6rem; font-weight:800; color:#b91c1c;"><i class="fa-solid fa-circle-xmark mr-1" style="font-size:1.15rem;"></i> <?php echo number_format($takhmeen_not_done_count); ?></span>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:18px 20px; box-shadow:var(--sh); text-align:center; display:flex; flex-direction:column; gap:4px; height:100%; justify-content:center;">
+        <span style="font-size:0.68rem; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.8px;">Amount of Takhmeen Done</span>
+        <span style="font-size:1.6rem; font-weight:800; color:var(--gold);">₹<?php echo number_format($sum_total_takhmeen, 0); ?></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       Thaali Types – Collapsible Section
+       ════════════════════════════════════════════════════════ -->
+  <?php $thaali_types = $thaali_types ?? []; ?>
+  <div id="thaali-types-card" style="background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--sh);margin-bottom:20px;overflow:hidden;">
+    <!-- Section Header -->
+    <div id="thaali-types-toggle" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;user-select:none;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fa-solid fa-layer-group" style="color:var(--gold);font-size:.9rem;"></i>
+        <span style="font-size:.78rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-2);">Thaali Types</span>
+        <span id="thaali-types-count-badge" style="background:var(--gold-muted);color:var(--gold);font-size:.7rem;font-weight:700;padding:1px 9px;border-radius:20px;"><?php echo count($thaali_types); ?></span>
+      </div>
+      <i id="thaali-types-chevron" class="fa-solid fa-chevron-up" style="color:var(--text-3);font-size:.8rem;transition:transform .25s;transform:rotate(180deg);"></i>
+    </div>
+    <!-- Collapsible Body -->
+    <div id="thaali-types-body" style="display:none;transition:all .25s;overflow:hidden;">
+      <div style="padding:16px 18px;">
+        <?php if (empty($thaali_types)): ?>
+          <p class="text-muted" style="font-size:.85rem;">No thaali types found. Click "Add New Thaali" to create one.</p>
+        <?php else: ?>
+        <table class="miqaat-table" id="thaali-types-table" style="margin:0;">
+          <thead>
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>Thaali Type</th>
+              <th>Description</th>
+              <th>Amount (₹)</th>
+              <th>Status</th>
+              <th style="width:100px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="thaali-types-tbody">
+          <?php foreach ($thaali_types as $i => $tt): ?>
+            <tr id="thaali-type-row-<?php echo (int)$tt['id']; ?>"
+                data-id="<?php echo (int)$tt['id']; ?>"
+                data-name="<?php echo htmlspecialchars($tt['name'],ENT_QUOTES); ?>"
+                data-description="<?php echo htmlspecialchars($tt['description'] ?? '',ENT_QUOTES); ?>"
+                data-amount="<?php echo htmlspecialchars((string)($tt['amount'] ?? 0),ENT_QUOTES); ?>"
+                data-status="<?php echo htmlspecialchars($tt['status'],ENT_QUOTES); ?>">
+              <td><?php echo $i + 1; ?></td>
+              <td style="font-weight:600;"><?php echo htmlspecialchars($tt['name']); ?></td>
+              <td style="color:var(--text-2);font-size:.82rem;"><?php echo htmlspecialchars($tt['description'] ?? '—'); ?></td>
+              <td style="font-weight:600;color:var(--green);"><?php echo (float)($tt['amount'] ?? 0) > 0 ? '₹'.number_format((float)$tt['amount'],0) : '—'; ?></td>
+              <td>
+                <span style="background:<?php echo $tt['status']==='Active'?'#d1fae5':'#f3f4f6'; ?>;color:<?php echo $tt['status']==='Active'?'#065f46':'#6b7280'; ?>;font-size:.7rem;font-weight:700;padding:2px 10px;border-radius:20px;"><?php echo htmlspecialchars($tt['status']); ?></span>
+              </td>
+              <td>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <button class="edit-thaali-type-btn btn-premium-action btn-premium-action-edit" data-id="<?php echo (int)$tt['id']; ?>" title="Edit">
+                    <i class="fa-solid fa-pencil"></i>
+                  </button>
+                  <button class="delete-thaali-type-btn btn-premium-action btn-premium-action-del" data-id="<?php echo (int)$tt['id']; ?>" title="Delete">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ Add / Edit Thaali Type — Bootstrap Modal ════════ -->
+  <div class="modal fade" id="thaaliTypeModal" tabindex="-1" role="dialog" aria-labelledby="thaaliTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content modal-content-premium">
+        <div class="modal-header modal-header-premium">
+          <h5 class="modal-title" id="thaaliTypeModalLabel"><i class="fa-solid fa-layer-group mr-2"></i> <span id="thaali-modal-title-text">Add New Thaali Type</span></h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+        </div>
+        <div class="modal-body modal-body-premium">
+          <form id="thaali-type-form">
+            <input type="hidden" id="tt-edit-id" name="id" value="">
+            <div class="form-group form-group-premium mb-3">
+              <label for="tt-name">Thaali Type Name <span style="color:#e53e3e;">*</span></label>
+              <input type="text" id="tt-name" name="name" class="form-control-premium" placeholder="Enter thaali type name" required autocomplete="off">
+            </div>
+            <div class="form-group form-group-premium mb-3">
+              <label for="tt-description">Description (Optional)</label>
+              <input type="text" id="tt-description" name="description" class="form-control-premium" placeholder="Enter description" autocomplete="off">
+            </div>
+            <div class="form-group form-group-premium mb-3">
+              <label for="tt-amount">Amount (₹)</label>
+              <input type="number" id="tt-amount" name="amount" class="form-control-premium" placeholder="Enter amount (optional)" min="0" step="0.01" value="0">
+            </div>
+            <div class="form-group form-group-premium mb-4">
+              <label for="tt-status">Status <span style="color:#e53e3e;">*</span></label>
+              <select id="tt-status" name="status" class="form-control-premium">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            <div id="tt-form-error" style="display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;font-size:.82rem;margin-bottom:12px;"></div>
+          </form>
+        </div>
+        <div class="modal-footer" style="padding:16px 20px;gap:10px;">
+          <button type="button" class="btn-premium btn-premium-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" id="tt-save" class="btn-premium btn-premium-primary" style="background:linear-gradient(135deg,#78520a,#b8860b);">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Table Card -->
   <div class="miqaat-table-card">
@@ -425,7 +579,7 @@
                   $allFamilyInactive = (($user['activity_status'] ?? '') === 'inactive' && ($user['active_family_count'] ?? 0) === 0);
                   $inactiveReason = $allFamilyInactive ? 'All family members are inactive' : '';
                 ?>
-                <button id="add-takhmeen" class="add-takhmeen btn-premium-action btn-premium-action-add" <?php echo !$allFamilyInactive ? 'data-toggle="modal" data-target="#add-takhmeen-container"' : ''; ?> data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?>" data-inactive="<?php echo $allFamilyInactive ? 'true' : 'false'; ?>" data-inactive-reason="<?php echo htmlspecialchars($inactiveReason); ?>" <?php echo $allFamilyInactive ? 'style="opacity:0.5; cursor:not-allowed;" title="All family members are inactive"' : ''; ?>><i class="fa-solid fa-plus"></i></button>
+                <button id="add-takhmeen" class="add-takhmeen btn-premium-action btn-premium-action-add mb-2" <?php echo !$allFamilyInactive ? 'data-toggle="modal" data-target="#add-takhmeen-container"' : ''; ?> data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?>" data-inactive="<?php echo $allFamilyInactive ? 'true' : 'false'; ?>" data-inactive-reason="<?php echo htmlspecialchars($inactiveReason); ?>" <?php echo $allFamilyInactive ? 'style="opacity:0.5; cursor:not-allowed;" title="All family members are inactive"' : ''; ?>><i class="fa-solid fa-plus"></i></button>
 
                 <button id="view-takhmeen" class="view-takhmeen btn-premium-action btn-premium-action-view" data-toggle="modal" data-target="#view-takhmeen-container" data-user-id="<?php echo $user["ITS_ID"]; ?>" data-user-name="<?php echo htmlspecialchars($user["Full_Name"], ENT_QUOTES); ?>" data-takhmeens="<?php echo htmlspecialchars(json_encode($user["takhmeens"]), ENT_QUOTES, 'UTF-8'); ?>"><i class="fa-solid fa-eye"></i></button>
 
@@ -1498,7 +1652,7 @@
 
   // Client-side sortable headers for the takhmeen table (table-only change)
   (function(){
-    const table = document.querySelector('.table.table-bordered.table-striped');
+    const table = document.querySelector('.miqaat-table-card .miqaat-table');
     if(!table) return;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
@@ -1649,24 +1803,62 @@
     });
   }
 
+  function checkIsThaaliDay(dateVal, callback) {
+    if (!dateVal) {
+      callback(false);
+      return;
+    }
+    jQuery.ajax({
+      url: '<?php echo base_url("common/check_is_thaali_day_ajax"); ?>',
+      type: 'GET',
+      dataType: 'json',
+      data: { date: dateVal },
+      success: function(res) {
+        callback(res && res.is_thaali_day);
+      },
+      error: function() {
+        callback(false);
+      }
+    });
+  }
+
   $(document).on('click', '#add-thaali-date-btn', function(e) {
     e.preventDefault();
     const v = $('#thaali-date').val();
-    if (isExistingEditMode()) {
-      addAssignedThaaliDateAjax(v);
-    } else {
-      addThaaliDate(v);
+    if (!v) {
+      $('#thaali-error').removeClass('d-none').text('Please select date');
+      return;
     }
+    checkIsThaaliDay(v, function(isThaali) {
+      if (!isThaali) {
+        alert('Selected date is not marked as a Thaali Day in the calendar.');
+        return;
+      }
+      if (isExistingEditMode()) {
+        addAssignedThaaliDateAjax(v);
+      } else {
+        addThaaliDate(v);
+      }
+    });
   });
 
   // Auto-add when a date is selected from the picker
   $(document).on('change', '#thaali-date', function() {
     const v = $(this).val();
-    if (isExistingEditMode()) {
-      addAssignedThaaliDateAjax(v);
-    } else {
-      addThaaliDate(v);
-    }
+    if (!v) return;
+    checkIsThaaliDay(v, function(isThaali) {
+      if (!isThaali) {
+        alert('Selected date is not marked as a Thaali Day in the calendar.');
+        $('#thaali-date').val('');
+        $('#thaali-date-both-display').text('Selected: -');
+        return;
+      }
+      if (isExistingEditMode()) {
+        addAssignedThaaliDateAjax(v);
+      } else {
+        addThaaliDate(v);
+      }
+    });
   });
 
   $(document).on('click', '.remove-thaali-date', function(e) {
@@ -1783,4 +1975,167 @@
       }
     });
   });
+
+  /* ═══════════════════════════════════════════════════════════
+   * Thaali Types – Collapsible + CRUD
+   * ═══════════════════════════════════════════════════════════ */
+  (function($) {
+    var BASE = '<?php echo base_url(); ?>';
+
+    /* ── Collapse / Expand ── */
+    var _collapsed = true;
+    $('#thaali-types-toggle').on('click', function() {
+      _collapsed = !_collapsed;
+      if (_collapsed) {
+        $('#thaali-types-body').slideUp(200);
+        $('#thaali-types-chevron').css('transform','rotate(180deg)');
+      } else {
+        $('#thaali-types-body').slideDown(200);
+        $('#thaali-types-chevron').css('transform','rotate(0deg)');
+      }
+    });
+
+    /* ── Panel Open / Close (Bootstrap Modal) ── */
+    function openModal(mode, rowData) {
+      $('#tt-edit-id').val('');
+      $('#tt-name').val('');
+      $('#tt-description').val('');
+      $('#tt-amount').val('0');
+      $('#tt-status').val('Active');
+      $('#tt-form-error').hide().text('');
+      if (mode === 'edit' && rowData) {
+        $('#thaali-modal-title-text').text('Edit Thaali Type');
+        $('#tt-edit-id').val(rowData.id);
+        $('#tt-name').val(rowData.name);
+        $('#tt-description').val(rowData.description);
+        $('#tt-amount').val(rowData.amount || '0');
+        $('#tt-status').val(rowData.status);
+      } else {
+        $('#thaali-modal-title-text').text('Add New Thaali Type');
+      }
+      $('#thaaliTypeModal').modal('show');
+    }
+
+    function closeModal() {
+      $('#thaaliTypeModal').modal('hide');
+    }
+
+    $('#open-add-thaali-type').on('click', function() { openModal('add'); });
+    $('#tt-save').on('click', function() { $('#thaali-type-form').submit(); });
+
+    /* ── Edit button ── */
+    $(document).on('click', '.edit-thaali-type-btn', function(e) {
+      e.stopPropagation();
+      var row = $(this).closest('tr');
+      openModal('edit', {
+        id:          row.data('id'),
+        name:        row.data('name'),
+        description: row.data('description'),
+        amount:      row.data('amount'),
+        status:      row.data('status')
+      });
+    });
+
+    /* ── Delete button ── */
+    $(document).on('click', '.delete-thaali-type-btn', function(e) {
+      e.stopPropagation();
+      var id   = $(this).data('id');
+      var row  = $('#thaali-type-row-' + id);
+      var name = row.data('name');
+      if (!confirm('Delete thaali type "' + name + '"? This cannot be undone.')) return;
+      $.post(BASE + 'admin/delete_thaali_type', { id: id }, function(res) {
+        if (res.success) {
+          row.fadeOut(250, function() {
+            $(this).remove();
+            reIndexRows();
+            updateCountBadge();
+          });
+        } else {
+          alert(res.message || 'Could not delete thaali type.');
+        }
+      }, 'json').fail(function() { alert('Server error. Please try again.'); });
+    });
+
+    /* ── Form submit (Add / Edit) ── */
+    $('#thaali-type-form').on('submit', function(e) {
+      e.preventDefault();
+      var id     = $.trim($('#tt-edit-id').val());
+      var name   = $.trim($('#tt-name').val());
+      var desc   = $.trim($('#tt-description').val());
+      var amount = $.trim($('#tt-amount').val()) || '0';
+      var status = $('#tt-status').val();
+
+      if (!name) {
+        showPanelError('Thaali Type Name is required.'); return;
+      }
+
+      var url      = id ? BASE + 'admin/edit_thaali_type' : BASE + 'admin/add_thaali_type';
+      var postData = { name: name, description: desc, amount: amount, status: status };
+      if (id) postData.id = id;
+
+      $('#tt-save').prop('disabled', true).text('Saving…');
+      $.post(url, postData, function(res) {
+        $('#tt-save').prop('disabled', false).text('Save');
+        if (res.success) {
+          closeModal();
+          var formattedAmount = Number(amount) > 0 ? '₹' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(Number(amount)) : '—';
+          if (id) {
+            /* Update existing row in place */
+            var row = $('#thaali-type-row-' + id);
+            row.data('name', name).data('description', desc).data('amount', amount).data('status', status)
+               .attr('data-name', name).attr('data-description', desc).attr('data-amount', amount).attr('data-status', status);
+            row.find('td:nth-child(2)').text(name);
+            row.find('td:nth-child(3)').text(desc || '—');
+            row.find('td:nth-child(4)').text(formattedAmount);
+            var badge = row.find('td:nth-child(5) span');
+            badge.text(status).css({
+              background: status === 'Active' ? '#d1fae5' : '#f3f4f6',
+              color:      status === 'Active' ? '#065f46' : '#6b7280'
+            });
+          } else {
+            /* Append new row */
+            var newId  = res.id;
+            var rowNum = $('#thaali-types-tbody tr').length + 1;
+            var delBtn = '<button class="delete-thaali-type-btn btn-premium-action btn-premium-action-del" data-id="' + newId + '" title="Delete"><i class="fa-solid fa-trash"></i></button>';
+            var html = '<tr id="thaali-type-row-' + newId + '" data-id="' + newId + '" data-name="' + $('<div>').text(name).html() + '" data-description="' + $('<div>').text(desc).html() + '" data-amount="' + amount + '" data-status="' + status + '">'
+              + '<td>' + rowNum + '</td>'
+              + '<td style="font-weight:600;">' + $('<div>').text(name).html() + '</td>'
+              + '<td style="color:var(--text-2);font-size:.82rem;">' + ($('<div>').text(desc || '—').html()) + '</td>'
+              + '<td style="font-weight:600;color:var(--green);">' + formattedAmount + '</td>'
+              + '<td><span style="background:' + (status==='Active'?'#d1fae5':'#f3f4f6') + ';color:' + (status==='Active'?'#065f46':'#6b7280') + ';font-size:.7rem;font-weight:700;padding:2px 10px;border-radius:20px;">' + status + '</span></td>'
+              + '<td><div style="display:flex;gap:6px;align-items:center;">'
+              + '<button class="edit-thaali-type-btn btn-premium-action btn-premium-action-edit" data-id="' + newId + '" title="Edit"><i class="fa-solid fa-pencil"></i></button>'
+              + delBtn
+              + '</div></td>'
+              + '</tr>';
+            $('#thaali-types-tbody').append(html);
+            updateCountBadge();
+            /* If table was hidden (no rows) show it */
+            if ($('#thaali-types-table').length === 0) { location.reload(); }
+          }
+        } else {
+          showPanelError(res.message || 'An error occurred.');
+        }
+      }, 'json').fail(function() {
+        $('#tt-save').prop('disabled', false).text('Save');
+        showPanelError('Server error. Please try again.');
+      });
+    });
+
+    function showPanelError(msg) {
+      $('#tt-form-error').text(msg).show();
+    }
+
+    function reIndexRows() {
+      $('#thaali-types-tbody tr').each(function(i) {
+        $(this).find('td:first').text(i + 1);
+      });
+    }
+
+    function updateCountBadge() {
+      var n = $('#thaali-types-tbody tr').length;
+      $('#thaali-types-count-badge').text(n);
+    }
+
+  })(jQuery);
 </script>

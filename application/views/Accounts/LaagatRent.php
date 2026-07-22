@@ -101,6 +101,7 @@
   .pill-approved  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
   .pill-rejected  { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-border); }
   .pill-pending   { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+  .pill-returned  { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
 
   /* card body */
   .inv-card-body { padding: 16px 20px; flex: 1; }
@@ -286,8 +287,9 @@
     <a href="<?= base_url('accounts/home') ?>" class="btn-back-nav"><i class="fa fa-arrow-left"></i></a>
     <?php
       $is_laagat = isset($module_type) && $module_type === 'laagat';
-      $title = $is_laagat ? 'Laagat Invoices' : 'Rent Invoices';
-      $sub_title = $is_laagat ? 'Your laagat invoices' : 'Your rent & deposit invoices';
+      $is_deposit = isset($module_type) && $module_type === 'deposit';
+      $title = $is_laagat ? 'Laagat Invoices' : ($is_deposit ? 'Rent Deposits' : 'Rent Invoices');
+      $sub_title = $is_laagat ? 'Your laagat invoices' : ($is_deposit ? 'Your rent deposit invoices' : 'Your rent invoices');
     ?>
     <h1 class="page-heading"><?= $title ?></h1>
   </div>
@@ -297,20 +299,26 @@
   <?php if (empty($invoices)): ?>
     <div class="empty-state">
       <i class="fa fa-file-text-o"></i>
-      <p>No <?= $is_laagat ? 'Laagat' : 'Rent' ?> invoices found for your family.</p>
+      <p>No <?= $is_laagat ? 'Laagat' : ($is_deposit ? 'Rent Deposit' : 'Rent') ?> invoices found for your family.</p>
     </div>
 
   <?php else: ?>
     <div class="row">
       <?php foreach ($invoices as $inv):
-        $due         = (float)$inv['master_amount'] - (float)$inv['paid_amount'];
+        $isDepositOnly = ($inv['charge_type'] === 'rent' && (float)$inv['master_amount'] <= 0.0001 && (float)$inv['deposit_amount'] > 0);
+        $tAmt        = $isDepositOnly ? (float)$inv['deposit_amount'] : (float)$inv['master_amount'];
+        $due         = $tAmt - (float)$inv['paid_amount'];
         $is_paid     = $due <= 0;
         $cardClass   = $is_paid ? 'is-paid' : 'is-due';
         $janab       = $inv['janab_status'];
         $jAmt        = (float)$inv['jamaat_amount'];
         $sAmt        = (float)$inv['sarkaar_amount'];
-        $tAmt        = (float)$inv['master_amount'];
-        if ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) { $jAmt = $tAmt; }
+        if ($isDepositOnly) {
+          $jAmt = 0.00;
+          $sAmt = 0.00;
+        } elseif ($jAmt == 0.00 && $sAmt == 0.00 && $tAmt > 0.00) {
+          $jAmt = $tAmt;
+        }
       ?>
       <div class="col-12 col-md-6 mb-4 d-flex">
         <div class="inv-card <?= $cardClass ?> w-100">
@@ -318,12 +326,14 @@
           <!-- card header -->
           <div class="inv-card-header">
             <div>
-              <h5 class="inv-title"><?= htmlspecialchars($inv['title']) ?></h5>
+              <h5 class="inv-title"><?= htmlspecialchars($inv['title']) . ($isDepositOnly ? ' (Deposit)' : '') ?></h5>
               <?php if ($inv['raza_type_name']): ?>
                 <div class="inv-raza-type"><?= htmlspecialchars($inv['raza_type_name']) ?></div>
               <?php endif; ?>
               <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:5px;">
-                <?php if ($is_paid): ?>
+                <?php if ((int)($inv['is_returned'] ?? 0) === 1): ?>
+                  <span class="status-pill pill-returned"><i class="fa fa-reply"></i> Returned</span>
+                <?php elseif ($is_paid): ?>
                   <span class="status-pill pill-paid"><i class="fa fa-check"></i> Paid</span>
                 <?php endif; ?>
                 <?php if ($janab === null): ?>
@@ -393,7 +403,16 @@
           <div class="inv-card-footer">
             <span></span><!-- spacer -->
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <?php if ((int)$janab === 1 && $due > 0): ?>
+              <?php if ($inv['charge_type'] === 'rent' && !$is_deposit): ?>
+                <button type="button" class="btn-history"
+                  onclick="showRentItems(<?= $inv['id'] ?>, '<?= htmlspecialchars($inv['title']) ?>')">
+                  <i class="fa fa-list"></i> View Items
+                </button>
+                <a href="<?= base_url('common/generate_pdf?id=' . $inv['id'] . '&for=9') ?>" target="_blank" class="btn-history" style="text-decoration:none;">
+                  <i class="fa fa-print"></i> Print Bill
+                </a>
+              <?php endif; ?>
+              <?php if ((int)$janab === 1 && $due > 0 && (int)($inv['is_returned'] ?? 0) === 0): ?>
                 <button type="button" class="btn-pay"
                   onclick="payInvoice(<?= $inv['id'] ?>, <?= $due ?>, '<?= htmlspecialchars($inv['title']) ?>', '<?= htmlspecialchars($inv['charge_type']) ?>', '<?= htmlspecialchars($inv['ITS_ID']) ?>')">
                   <i class="fa fa-credit-card"></i> Pay Now
@@ -439,6 +458,43 @@
             </thead>
             <tbody id="history_table_body">
               <tr><td colspan="4" style="text-align:center;padding:28px;color:var(--text-3);">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Rent Items Modal ── -->
+<div class="modal fade" id="rentItemsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa fa-list" style="margin-right:8px;color:var(--gold);font-size:.9rem;"></i>Rent Items</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <div class="modal-body" style="padding:0 !important;">
+        <div style="padding:14px 20px 10px; background:var(--surface-2); border-bottom:1px solid var(--border);">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:3px;">Invoice</div>
+          <div style="font-size:.9rem;font-weight:700;color:var(--gold-deep);" id="rent_items_title"></div>
+        </div>
+        <div class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item Name</th>
+                <th class="text-right">Cost / Piece</th>
+                <th class="text-center">Qty</th>
+                <th class="text-right">Total Cost</th>
+              </tr>
+            </thead>
+            <tbody id="rent_items_table_body">
+              <tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3);">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -515,6 +571,41 @@ function showHistory(invoiceId, title) {
     },
     error: function() {
       $('#history_table_body').html('<tr><td colspan="4" style="text-align:center;padding:28px;color:var(--red);font-size:.83rem;">Failed to load history.</td></tr>');
+    }
+  });
+}
+
+function showRentItems(invoiceId, title) {
+  $('#rent_items_title').text(title);
+  $('#rent_items_table_body').html('<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3);"><i class="fa fa-spinner fa-spin" style="margin-right:6px;"></i> Loading rent items…</td></tr>');
+  $('#rentItemsModal').modal('show');
+
+  $.ajax({
+    url: '<?= base_url("accounts/get_rent_invoice_items"); ?>',
+    type: 'POST', data: { invoice_id: invoiceId }, dataType: 'json',
+    success: function(response) {
+      let html = '';
+      if (response && response.success) {
+        if (response.items && response.items.length > 0) {
+          response.items.forEach(function(item, idx) {
+            html += '<tr>' +
+              '<td>' + (idx + 1) + '</td>' +
+              '<td style="font-weight:600;color:var(--text-1);">' + item.item_name + '</td>' +
+              '<td class="text-right" style="font-weight:700;color:var(--green);">₹' + parseFloat(item.rent_sabeel).toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>' +
+              '<td class="text-center" style="font-weight:700;color:var(--text-2);">' + item.quantity + '</td>' +
+              '<td class="text-right" style="font-weight:700;color:var(--text-1);">₹' + parseFloat(item.total_cost).toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>' +
+              '</tr>';
+          });
+        } else {
+          html = '<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3);font-size:.83rem;">No rent items selected.</td></tr>';
+        }
+      } else {
+        html = '<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--red);font-size:.83rem;">Failed to load rent items.</td></tr>';
+      }
+      $('#rent_items_table_body').html(html);
+    },
+    error: function() {
+      $('#rent_items_table_body').html('<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--red);font-size:.83rem;">Failed to load rent items.</td></tr>');
     }
   });
 }

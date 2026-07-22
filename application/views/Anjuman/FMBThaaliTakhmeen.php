@@ -17,7 +17,7 @@
     min-height: 100vh;
     padding-bottom: 60px;
   }
-  #anjApp {
+  :root {
     --gold:        #b8860b;
     --gold-light:  #e6c84a;
     --gold-muted:  #f5e9c0;

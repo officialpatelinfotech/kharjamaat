@@ -359,6 +359,7 @@ class LaagatRentM extends CI_Model
                     $this->db->insert('laagat_rent_items', [
                         'laagat_rent_id' => $insertId,
                         'item_name' => trim((string)$item['item_name']),
+                        'service_provided_by' => trim((string)($item['service_provided_by'] ?? 'Jamaat')),
                         'rent_sabeel' => (float)($item['rent_sabeel'] ?? 0),
                         'deposit_sabeel' => (float)($item['deposit_sabeel'] ?? 0),
                         'rent_non_sabeel' => (float)($item['rent_non_sabeel'] ?? 0),
@@ -482,6 +483,7 @@ class LaagatRentM extends CI_Model
                     $this->db->insert('laagat_rent_items', [
                         'laagat_rent_id' => $id,
                         'item_name' => trim((string)$item['item_name']),
+                        'service_provided_by' => trim((string)($item['service_provided_by'] ?? 'Jamaat')),
                         'rent_sabeel' => (float)($item['rent_sabeel'] ?? 0),
                         'deposit_sabeel' => (float)($item['deposit_sabeel'] ?? 0),
                         'rent_non_sabeel' => (float)($item['rent_non_sabeel'] ?? 0),
@@ -809,7 +811,16 @@ class LaagatRentM extends CI_Model
             $this->db->where('i.user_id', $filters['its_id']);
         }
         if (!empty($filters['charge_type'])) {
-            $this->db->where('lr.charge_type', $filters['charge_type']);
+            if ($filters['charge_type'] === 'deposit') {
+                $this->db->where('lr.charge_type', 'rent');
+                $this->db->where('i.deposit_amount >', 0.0001);
+                $this->db->where('i.amount <=', 0.0001);
+            } elseif ($filters['charge_type'] === 'rent') {
+                $this->db->where('lr.charge_type', 'rent');
+                $this->db->where('i.amount >', 0.0001);
+            } else {
+                $this->db->where('lr.charge_type', $filters['charge_type']);
+            }
         }
 
         // Avoid ONLY_FULL_GROUP_BY by joining a pre-aggregated payments subquery.
@@ -1114,6 +1125,7 @@ class LaagatRentM extends CI_Model
                     }
                 }
             }
+            // Rent invoice should be created by considering Rent items
             $rentAmt += $itemsRent;
 
             return [
@@ -1228,5 +1240,71 @@ class LaagatRentM extends CI_Model
             }
         }
         return '';
+    }
+
+    public function get_rent_items_bifurcation($invoices)
+    {
+        $totals = [
+            'Jamaat' => 0.00,
+            'Ladies' => 0.00,
+            'Other' => 0.00
+        ];
+
+        if (empty($invoices)) {
+            return $totals;
+        }
+
+        // Gather all invoices that are rent and have a raza_id
+        $rentInvoices = [];
+        foreach ($invoices as $inv) {
+            if ($inv['charge_type'] === 'rent' && !empty($inv['raza_id'])) {
+                $rentInvoices[] = $inv;
+            }
+        }
+
+        if (empty($rentInvoices)) {
+            return $totals;
+        }
+
+        // Fetch all rent items in one query to avoid N+1 queries
+        $laagatRentIds = array_unique(array_column($rentInvoices, 'laagat_rent_id'));
+        $dbItems = [];
+        if (!empty($laagatRentIds)) {
+            $itemsRows = $this->db
+                ->from('laagat_rent_items')
+                ->where_in('laagat_rent_id', $laagatRentIds)
+                ->get()
+                ->result_array();
+            foreach ($itemsRows as $row) {
+                $dbItems[(int)$row['id']] = $row;
+            }
+        }
+
+        // Loop through each invoice and calculate
+        foreach ($rentInvoices as $inv) {
+            $raza = $this->db->select('razadata')->get_where('raza', ['id' => $inv['raza_id']])->row_array();
+            if ($raza && !empty($raza['razadata'])) {
+                $razadata = json_decode($raza['razadata'], true);
+                if (isset($razadata['item_qty']) && is_array($razadata['item_qty'])) {
+                    foreach ($razadata['item_qty'] as $itemId => $qty) {
+                        $qty = (int)$qty;
+                        if ($qty > 0 && isset($dbItems[(int)$itemId])) {
+                            $item = $dbItems[(int)$itemId];
+                            $cost = ((float)$item['rent_sabeel']) * $qty;
+                            $provider = trim((string)($item['service_provided_by'] ?? 'Jamaat'));
+                            if ($provider === 'Ladies') {
+                                $totals['Ladies'] += $cost;
+                            } elseif ($provider === 'Jamaat') {
+                                $totals['Jamaat'] += $cost;
+                            } else {
+                                $totals['Other'] += $cost;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $totals;
     }
 }

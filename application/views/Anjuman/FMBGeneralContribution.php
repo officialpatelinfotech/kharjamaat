@@ -17,7 +17,7 @@
     min-height: 100vh;
     padding-bottom: 60px;
   }
-  #anjApp {
+  :root {
     --gold:        #b8860b;
     --gold-light:  #e6c84a;
     --gold-muted:  #f5e9c0;
@@ -605,15 +605,28 @@
               <input type="hidden" name="fmb_type" value="<?php echo $type == 1 ? "Thaali" : "Niyaz"; ?>" required>
               <select name="contri_type" id="contri-type" class="form-control-premium" required>
                 <option value="">Select Type</option>
-                <?php if (isset($contri_type_gc)): ?>
-                  <?php foreach ($contri_type_gc as $key => $value): ?>
-                    <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" 
-                            data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"
-                            data-amount="<?php echo htmlspecialchars($value["amount"] ?? '', ENT_QUOTES); ?>"
-                            data-hijri-year="<?php echo htmlspecialchars($value["hijri_year"] ?? '', ENT_QUOTES); ?>">
-                      <?php echo htmlspecialchars($value["name"]); ?>
-                    </option>
-                  <?php endforeach; ?>
+                <?php if ($type == 1): ?>
+                  <?php if (!empty($thaali_types_gc)): ?>
+                    <?php foreach ($thaali_types_gc as $tt): ?>
+                      <option value="<?php echo htmlspecialchars($tt['name'], ENT_QUOTES); ?>"
+                              data-amount="<?php echo htmlspecialchars((string)($tt['amount'] ?? ''), ENT_QUOTES); ?>"
+                              data-miqaat-type=""
+                              data-hijri-year="">
+                        <?php echo htmlspecialchars($tt['name']); ?><?php if (!empty($tt['amount']) && (float)$tt['amount'] > 0): ?> (₹<?php echo number_format((float)$tt['amount'], 0); ?>)<?php endif; ?>
+                      </option>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                <?php else: ?>
+                  <?php if (isset($contri_type_gc)): ?>
+                    <?php foreach ($contri_type_gc as $key => $value): ?>
+                      <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" 
+                              data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"
+                              data-amount="<?php echo htmlspecialchars($value["amount"] ?? '', ENT_QUOTES); ?>"
+                              data-hijri-year="<?php echo htmlspecialchars($value["hijri_year"] ?? '', ENT_QUOTES); ?>">
+                        <?php echo htmlspecialchars($value["name"]); ?>
+                      </option>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
                 <?php endif; ?>
               </select>
             </div>
@@ -682,15 +695,28 @@
               <label for="edit-contri-type">Contribution Type</label>
               <select name="contri_type" id="edit-contri-type" class="form-control-premium" required>
                 <option value="">Select Type</option>
-                <?php if (isset($contri_type_gc)): ?>
-                  <?php foreach ($contri_type_gc as $key => $value): ?>
-                    <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" 
-                            data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"
-                            data-amount="<?php echo htmlspecialchars($value["amount"] ?? '', ENT_QUOTES); ?>"
-                            data-hijri-year="<?php echo htmlspecialchars($value["hijri_year"] ?? '', ENT_QUOTES); ?>">
-                      <?php echo htmlspecialchars($value["name"]); ?>
-                    </option>
-                  <?php endforeach; ?>
+                <?php if ($type == 1): ?>
+                  <?php if (!empty($thaali_types_gc)): ?>
+                    <?php foreach ($thaali_types_gc as $tt): ?>
+                      <option value="<?php echo htmlspecialchars($tt['name'], ENT_QUOTES); ?>"
+                              data-amount="<?php echo htmlspecialchars((string)($tt['amount'] ?? ''), ENT_QUOTES); ?>"
+                              data-miqaat-type=""
+                              data-hijri-year="">
+                        <?php echo htmlspecialchars($tt['name']); ?><?php if (!empty($tt['amount']) && (float)$tt['amount'] > 0): ?> (₹<?php echo number_format((float)$tt['amount'], 0); ?>)<?php endif; ?>
+                      </option>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                <?php else: ?>
+                  <?php if (isset($contri_type_gc)): ?>
+                    <?php foreach ($contri_type_gc as $key => $value): ?>
+                      <option value="<?php echo htmlspecialchars($value["name"], ENT_QUOTES); ?>" 
+                              data-miqaat-type="<?php echo htmlspecialchars($value["miqaat_type"] ?? '', ENT_QUOTES); ?>"
+                              data-amount="<?php echo htmlspecialchars($value["amount"] ?? '', ENT_QUOTES); ?>"
+                              data-hijri-year="<?php echo htmlspecialchars($value["hijri_year"] ?? '', ENT_QUOTES); ?>">
+                        <?php echo htmlspecialchars($value["name"]); ?>
+                      </option>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
                 <?php endif; ?>
               </select>
             </div>

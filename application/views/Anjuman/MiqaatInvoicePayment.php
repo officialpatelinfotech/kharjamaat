@@ -736,6 +736,13 @@
         }
       }
 
+      $assigned = 'Niyaz Contribution';
+      $invType = 'extra';
+      if ($contri_type === 'Individual Niyaz') {
+        $assigned = 'Individual Niyaz';
+        $invType = 'individual';
+      }
+
       $row = [
         'invoice_id'       => $invoiceId,
         'its_id'           => $its,
@@ -749,8 +756,8 @@
         'miqaat_id'        => '',
         'raza_id'          => '',
         'miqaat_name'      => $contri_type,
-        'assigned_to'      => 'Niyaz Extra Contribution',
-        'assigned_display' => 'Niyaz Extra Contribution',
+        'assigned_to'      => $assigned,
+        'assigned_display' => $assigned,
         'individual_count' => 0,
         'amount'           => $amount,
         'paid'             => $paid,
@@ -758,7 +765,7 @@
         'description'      => isset($ec['description']) ? $ec['description'] : '',
         'details'          => trim($name . ($its !== '' ? (' (' . $its . ')') : '')),
         'payments'         => $normalized_payments,
-        'invoice_type'     => 'extra',
+        'invoice_type'     => $invType,
         'contri_year'      => isset($ec['contri_year']) ? (string)$ec['contri_year'] : '',
         'hof_fm_type'      => isset($ec['hof_fm_type']) ? $ec['hof_fm_type'] : 'HOF',
       ];
@@ -914,8 +921,8 @@
           <select id="pf-invoice-type" class="form-control">
             <option value="">All Categories</option>
             <option value="individual">Individual Niyaz</option>
-            <option value="fala">Fala ni Niyaz</option>
-            <option value="extra">Niyaz Extra Contribution</option>
+            <option value="fala">Hoob Contribution</option>
+            <option value="extra">Niyaz Contribution</option>
           </select>
         </div>
         <div class="col-md-1 mb-2">
@@ -970,7 +977,7 @@
       <div class="stat-breakdown-row text-danger"><span>Due:</span> <strong id="fala-due">₹0</strong></div>
     </div>
     <div class="miqaat-stat-card">
-      <div class="miqaat-stat-title">Extra Contribution</div>
+      <div class="miqaat-stat-title">Niyaz Contribution</div>
       <div class="stat-breakdown-row text-primary"><span>Invoiced:</span> <strong id="extra-invoiced">₹0</strong></div>
       <div class="stat-breakdown-row text-success"><span>Collected:</span> <strong id="extra-collected">₹0</strong></div>
       <div class="stat-breakdown-row text-danger"><span>Due:</span> <strong id="extra-due">₹0</strong></div>
@@ -3191,11 +3198,27 @@
             
             contriTypeSelect.find('option:not([value=""])').remove();
             
+            // Add Individual Niyaz if configured for the year and miqaat type
+            const yearNiyazData = NIYAZ_AMOUNTS_BY_YEAR[selectedYear] || {};
+            const individualAmount = parseFloat(yearNiyazData.individual_amount) || 0;
+            if (individualAmount > 0) {
+              const indOpt = jQuery('<option></option>')
+                .val('Individual Niyaz')
+                .text('Individual Niyaz')
+                .attr('data-amount', individualAmount)
+                .attr('data-hijri-year', selectedYear)
+                .attr('data-miqaat-type', currentMiqaat);
+              contriTypeSelect.append(indOpt);
+            }
+            
             originalContriTypeOptions.forEach(function(opt) {
               const yearMatches = (opt.hijriYear === selectedYear);
               const miqaatMatches = (opt.miqaatType === currentMiqaat);
               
-              if (yearMatches && miqaatMatches) {
+              const amountVal = parseFloat(opt.amount) || 0;
+              const hasAmount = amountVal > 0;
+              
+              if (yearMatches && miqaatMatches && hasAmount) {
                 const newOpt = jQuery('<option></option>')
                   .val(opt.value)
                   .text(opt.text)

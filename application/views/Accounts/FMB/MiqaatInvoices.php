@@ -393,8 +393,8 @@ $pct_paid = $total_amount > 0 ? ($total_paid / $total_amount) * 100 : 0;
 </style>
 
 <div class="container margintopcontainer pt-5">
-  <div class="mb-4 pt-5 d-flex justify-content-between align-items-center">
-    <a href="<?php echo base_url('accounts/viewfmbtakhmeen'); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to FMB Overview</a>
+  <div class="mb-4 d-flex justify-content-between align-items-center">
+    <a href="<?php echo base_url('accounts/home'); ?>" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
   </div>
 
   <h1 class="page-heading mb-3 text-center">Miqaat Niyaz Invoices</h1>

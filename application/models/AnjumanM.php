@@ -728,7 +728,9 @@ class AnjumanM extends CI_Model
         } else {
           $group_key   = $row['invoice_miqaat_type'] . " " . $effectiveYear;
           $miqaat_id   = null;
-          $miqaat_name = "Fala ni Niyaz " . $row['invoice_year'];
+          $miqaat_name = (!empty($row['description']) && strpos(strtolower($row['description']), 'individual') !== false) 
+            ? ("Individual Niyaz (" . $row['invoice_year'] . ")") 
+            : ("Fala ni Niyaz " . $row['invoice_year']);
           $miqaat_type_final = $row['invoice_miqaat_type'];
           $miqaat_date = null;
           $year        = $effectiveYear;
@@ -797,7 +799,9 @@ class AnjumanM extends CI_Model
             // expose hijri invoice year for front-end filtering
             'invoice_year' => $finalYear,
             'raza_id'      => isset($row['raza_id']) ? $row['raza_id'] : null,
-            'assigned_to'  => !empty($row['miqaat_id']) ? (isset($row['assigned_to']) ? $row['assigned_to'] : '') : 'Fala ni Niyaz',
+            'assigned_to'  => !empty($row['miqaat_id']) 
+              ? (isset($row['assigned_to']) ? $row['assigned_to'] : '') 
+              : ((!empty($row['description']) && strpos(strtolower($row['description']), 'individual') !== false) ? 'Individual Niyaz' : 'Fala ni Niyaz'),
             'individual_count' => !empty($row['miqaat_id']) ? (int)($row['individual_count'] ?? 0) : 0,
             // family member details (if available via raza link)
             'member_its_id' => isset($row['member_its_id']) ? $row['member_its_id'] : null,

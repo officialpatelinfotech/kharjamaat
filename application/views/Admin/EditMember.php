@@ -456,6 +456,49 @@ if (empty($redirect)) {
       </div>
     </div>
 
+    <!-- ─ Umoor Assignment ─ -->
+    <div class="panel">
+      <div class="panel-hd open" data-pt="grp-umoor">
+        <div class="ph-left"><span class="ph-icon"><i class="fa fa-sitemap"></i></span><span class="ph-title">Umoor Assignment</span></div>
+        <div class="ph-chevron" style="transform:rotate(180deg);"><i class="fa fa-chevron-down"></i></div>
+      </div>
+      <div id="grp-umoor">
+        <ul class="edit-list">
+          <li class="edit-row">
+            <div class="er-key">Assigned Umoor</div>
+            <div class="er-val">
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 10px 0; width: 100%;">
+                <?php
+                $umoor_list = [
+                  1 => 'Umoor Deeniyah',
+                  2 => 'Umoor Talimiyah',
+                  3 => 'Umoor Kharijiyah',
+                  4 => 'Umoor Dakheliyah',
+                  5 => 'Umoor Maliyah',
+                  6 => 'Umoor Iqtesadiyah',
+                  7 => 'Umoor Sehat',
+                  8 => 'Umoor Faisala',
+                  9 => 'Umoor Ikram',
+                  10 => 'Umoor Dawat',
+                  11 => 'Umoor Mawaid',
+                  12 => 'Umoor Amlak'
+                ];
+                $assigned_umoor = $assigned_umoor ?? [];
+                foreach ($umoor_list as $uid => $uname):
+                  $checked = in_array($uid, $assigned_umoor) ? 'checked' : '';
+                ?>
+                  <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; margin-bottom: 0; color: var(--text-2);">
+                    <input type="checkbox" name="assigned_umoor[]" value="<?php echo $uid; ?>" <?php echo $checked; ?> style="width: auto; margin: 0;">
+                    <?php echo htmlspecialchars($uname); ?>
+                  </label>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <!-- ─ Marital & Personal ─ -->
     <div class="panel">
       <div class="panel-hd open" data-pt="grp-marital">

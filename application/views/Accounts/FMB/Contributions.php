@@ -229,12 +229,25 @@ $pct_paid = $total_amount > 0 ? ($total_paid / $total_amount) * 100 : 0;
     </div>
   </div>
 
-  <h3 class="page-heading mb-3 text-center">FMB Extra Contributions</h3>
+  <?php
+  $niyaz_contribs = [];
+  $thaali_contribs = [];
+  if (!empty($general_contributions)) {
+    foreach ($general_contributions as $gc) {
+      if (($gc['fmb_type'] ?? '') === 'Niyaz') {
+        $niyaz_contribs[] = $gc;
+      } else {
+        $thaali_contribs[] = $gc;
+      }
+    }
+  }
+  ?>
 
-  <!-- Contributions Cards -->
-  <div class="row">
-    <?php if (!empty($general_contributions)): ?>
-      <?php foreach ($general_contributions as $idx => $gc): ?>
+  <!-- Niyaz Contributions Section -->
+  <h3 class="page-heading mb-3 text-center" style="font-size: 1.35rem; color: var(--gold); border-bottom: 2.5px solid var(--border); padding-bottom: 8px; margin-top: 25px; font-family: 'Literata', Georgia, serif; font-weight: 600;"><i class="fa-solid fa-hand-holding-heart mr-2" style="font-size: 1.15rem; color: var(--gold);"></i> Niyaz Contributions</h3>
+  <div class="row mb-5">
+    <?php if (!empty($niyaz_contribs)): ?>
+      <?php foreach ($niyaz_contribs as $idx => $gc): ?>
         <?php
         $amount     = (float)$gc['amount'];
         $paid       = isset($gc['amount_paid']) ? (float)$gc['amount_paid'] : 0.0;
@@ -300,8 +313,84 @@ $pct_paid = $total_amount > 0 ? ($total_paid / $total_amount) * 100 : 0;
         </div>
       <?php endforeach; ?>
     <?php else: ?>
-      <div class="col-12 text-center py-5">
-        <div style="color:var(--text-3); font-size:1rem; font-weight:600;"><i class="fa fa-info-circle fa-2x mb-3 text-muted"></i><br>No contributions found.</div>
+      <div class="col-12 text-center py-4">
+        <div style="color:var(--text-3); font-size:0.9rem; font-weight:600;"><i class="fa fa-info-circle mb-2 text-muted"></i> No Niyaz contributions found.</div>
+      </div>
+    <?php endif; ?>
+  </div>
+
+  <!-- Thaali Contributions Section -->
+  <h3 class="page-heading mb-3 text-center" style="font-size: 1.35rem; color: var(--gold); border-bottom: 2.5px solid var(--border); padding-bottom: 8px; margin-top: 25px; font-family: 'Literata', Georgia, serif; font-weight: 600;"><i class="fa-solid fa-bowl-food mr-2" style="font-size: 1.15rem; color: var(--gold);"></i> Thaali Contributions</h3>
+  <div class="row">
+    <?php if (!empty($thaali_contribs)): ?>
+      <?php foreach ($thaali_contribs as $idx => $gc): ?>
+        <?php
+        $amount     = (float)$gc['amount'];
+        $paid       = isset($gc['amount_paid']) ? (float)$gc['amount_paid'] : 0.0;
+        $dueRaw     = isset($gc['total_due']) ? (float)$gc['total_due'] : max($amount - $paid, 0);
+        $statusFlag = (int)$gc['payment_status'];
+        $due        = $dueRaw < 0.00001 ? 0 : $dueRaw;
+        $badgeClass = 'badge-danger'; $badgeText = 'Unpaid';
+        if ($paid > 0 && $due > 0) { $badgeClass='badge-warning'; $badgeText='Partial'; }
+        if ($statusFlag === 1 || $due === 0) { $badgeClass='badge-success'; $badgeText='Paid'; }
+        
+        $pct = $amount > 0 ? ($paid / $amount) * 100 : 0;
+        ?>
+        <div class="col-12 col-md-6 p-2">
+          <div class="dash-card h-100">
+            <div class="dash-card-header">
+              <span class="card-title">
+                <i class="fa fa-gift"></i> #<?php echo $idx+1; ?> &bull; <?php echo htmlspecialchars($gc['contri_type']); ?>
+              </span>
+              <span class="badge-pill <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span>
+            </div>
+            <div class="dash-card-body">
+              <div class="info-meta">
+                <span>Year: <strong><?php echo htmlspecialchars($gc['contri_year']); ?></strong></span>
+                <span>Type: <strong><?php echo htmlspecialchars($gc['fmb_type']); ?></strong></span>
+                <span>Date: <strong><?php echo $gc['created_at'] ? date('d-M-Y',strtotime($gc['created_at'])) : '-'; ?></strong></span>
+              </div>
+              <div class="breakdown-row">
+                <div class="stat-tile">
+                  <div class="tile-label">Amount</div>
+                  <div class="tile-value blue">₹<?php echo format_inr_no_decimals($amount); ?></div>
+                </div>
+                <div class="stat-tile">
+                  <div class="tile-label">Paid</div>
+                  <div class="tile-value green">₹<?php echo format_inr_no_decimals($paid); ?></div>
+                </div>
+                <div class="stat-tile">
+                  <div class="tile-label">Due</div>
+                  <div class="tile-value red">₹<?php echo format_inr_no_decimals($due); ?></div>
+                </div>
+              </div>
+              <div class="progress-wrap"><div class="progress-bar" style="width:<?php echo number_format($pct,2); ?>%; background:linear-gradient(90deg,var(--green),var(--gold-light));"></div></div>
+              <div class="progress-meta"><?php echo number_format($pct,1); ?>% Paid</div>
+              
+              <div class="d-flex align-items-center justify-content-between mt-auto pt-2" style="gap:8px;">
+                <div>
+                  <?php if (!empty($gc['description'])): ?>
+                    <button class="btn btn-outline-primary btn-sm view-description" data-description="<?php echo htmlspecialchars($gc['description']); ?>" data-toggle="modal" data-target="#description-modal" title="View Description"><i class="fa fa-eye"></i> Description</button>
+                  <?php else: ?>
+                    <span style="font-size:0.75rem; color:var(--text-3); font-style:italic;">No description</span>
+                  <?php endif; ?>
+                </div>
+                <button class="btn-view view-gc-payments"
+                  data-fmbgc-id="<?php echo (int)$gc['id']; ?>"
+                  data-amount="<?php echo number_format($amount,2,'.',''); ?>"
+                  data-paid="<?php echo number_format($paid,2,'.',''); ?>"
+                  data-due="<?php echo number_format($due,2,'.',''); ?>"
+                  title="Payment History">
+                  <i class="fa fa-history"></i> Payments
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    <?php else: ?>
+      <div class="col-12 text-center py-4">
+        <div style="color:var(--text-3); font-size:0.9rem; font-weight:600;"><i class="fa fa-info-circle mb-2 text-muted"></i> No Thaali contributions found.</div>
       </div>
     <?php endif; ?>
   </div>

@@ -384,7 +384,7 @@
       <ul class="menu-list">
         <li><a class="menu-item" href="<?php echo base_url('Umoor/menulist') ?>"><span class="menu-icon"><i class="fa fa-cutlery"></i></span><span class="menu-label">FMB Menu</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbcalendar?from=Umoor') ?>"><span class="menu-icon"><i class="fa fa-calendar"></i></span><span class="menu-label">FMB Calendar</span></a></li>
-        <li><a class="menu-item" href="<?php echo base_url('common/bulk_thaali_signup?from=Umoor') ?>"><span class="menu-icon"><i class="fa-solid fa-list-check"></i></span><span class="menu-label">Bulk Thaali Sign-up</span></a></li>
+        <li><a class="menu-item" href="<?php echo base_url('common/thaali_signup_dashboard?from=Umoor') ?>"><span class="menu-icon"><i class="fa-solid fa-list-check"></i></span><span class="menu-label">Thaali Sign-up Dashboard</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmbthaalitakhmeen?from=Umoor') ?>"><span class="menu-icon"><i class="fa fa-calculator"></i></span><span class="menu-label">FMB Takhmeen</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmb_general_contributions?from=Umoor') ?>"><span class="menu-icon"><i class="fa fa-leaf"></i></span><span class="menu-label">General Contributions</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('common/fmb_users?from=Umoor') ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">FMB Users</span></a></li>
