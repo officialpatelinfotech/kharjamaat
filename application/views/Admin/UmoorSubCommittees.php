@@ -402,7 +402,7 @@ table.members-tbl input[type="checkbox"] { accent-color: var(--gold); cursor: po
       <ul class="menu-list">
         <li><a class="menu-item" href="<?php echo base_url('admin/managemembers'); ?>"><span class="menu-icon"><i class="fa fa-users"></i></span><span class="menu-label">Manage Members</span></a></li>
         <li><a class="menu-item" href="<?php echo base_url('admin/importmembers'); ?>"><span class="menu-icon"><i class="fa fa-upload"></i></span><span class="menu-label">Import Members</span></a></li>
-        <li><a class="menu-item active" href="<?php echo base_url('admin/umoor_sub_committees'); ?>"><span class="menu-icon"><i class="fa fa-sitemap"></i></span><span class="menu-label">Umoor Sub-Committees</span></a></li>
+        <li><a class="menu-item active" href="<?php echo base_url('admin/umoor_sub_committees'); ?>"><span class="menu-icon"><i class="fa fa-sitemap"></i></span><span class="menu-label">12 Umoor HR</span></a></li>
       </ul>
 
       <div class="menu-section">Miqaat &amp; FMB</div>
@@ -488,7 +488,10 @@ table.members-tbl input[type="checkbox"] { accent-color: var(--gold); cursor: po
           </div>
 
           <div class="step-card">
-            <span class="step-label">2. Select Sub Committee</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <span class="step-label" style="margin-bottom:0">2. Select Sub Committee</span>
+              <button type="button" onclick="openAddTeamModal()" style="border:none;background:none;color:var(--gold);font-weight:700;font-size:0.7rem;cursor:pointer;padding:0" title="Create a new Sub-Committee / Team"><i class="fa fa-plus-circle"></i> Add Team</button>
+            </div>
             <select class="step-select" id="sel-subcomm" onchange="onSubCommChange()">
               <!-- Populated via JS -->
             </select>
@@ -498,7 +501,6 @@ table.members-tbl input[type="checkbox"] { accent-color: var(--gold); cursor: po
             <span class="step-label">3. Select Role</span>
             <select class="step-select" id="sel-role" onchange="onRoleChange()">
               <option value="Team Lead">Team Lead</option>
-              <option value="Umoor Coordinator">Umoor Coordinator</option>
               <option value="Team Member">Team Member</option>
             </select>
           </div>
@@ -506,8 +508,8 @@ table.members-tbl input[type="checkbox"] { accent-color: var(--gold); cursor: po
           <div class="role-info-banner" id="role-type-banner">
             <i class="fa fa-info-circle"></i>
             <div>
-              <span class="role-info-title" id="banner-title">Role Type: Single</span>
-              <span class="role-info-sub" id="banner-sub">Only 1 member can be assigned</span>
+              <span class="role-info-title" id="banner-title">Role Type: Single (Team Lead)</span>
+              <span class="role-info-sub" id="banner-sub">Only 1 Team Lead per Team per Year</span>
             </div>
           </div>
         </div>
@@ -517,10 +519,20 @@ table.members-tbl input[type="checkbox"] { accent-color: var(--gold); cursor: po
           
           <!-- LEFT COLUMN: Members Search & Filter Table -->
           <div class="table-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+              <div>
+                <h3 style="font-size:0.92rem;font-weight:800;color:var(--text-1);margin:0">Assigned Members Roster</h3>
+                <p style="font-size:0.74rem;color:var(--text-2);margin:2px 0 0 0">Showing active assigned members for this Umoor / Sub-Committee.</p>
+              </div>
+              <button type="button" class="btn-assign-primary" style="width:auto;padding:6px 14px;font-size:0.78rem" onclick="openAssignMemberModal()">
+                <i class="fa fa-user-plus"></i> Assign Member
+              </button>
+            </div>
+
             <div class="search-bar-wrap">
               <div class="search-input-box">
                 <i class="fa fa-search"></i>
-                <input type="text" id="search-q" placeholder="Search by Name or ITS Number..." onkeyup="onSearchInput()">
+                <input type="text" id="search-q" placeholder="Filter assigned members..." onkeyup="onSearchInput()">
               </div>
               <select class="step-select" style="width:auto" id="filter-gender" onchange="loadMembers(1)">
                 <option value="All">Gender: All</option>
@@ -551,6 +563,7 @@ table.members-tbl input[type="checkbox"] { accent-color: var(--gold); cursor: po
                     <th style="width:36px"></th>
                     <th>ITS Number</th>
                     <th>Member Name</th>
+                    <th>Assigned Role</th>
                     <th>Mobile Number</th>
                     <th>Email</th>
                     <th>Gender</th>
@@ -605,8 +618,8 @@ table.members-tbl input[type="checkbox"] { accent-color: var(--gold); cursor: po
               <div id="selected-members-list">
                 <p class="text-muted small text-center my-2">Please select a member from the list to assign.</p>
               </div>
-              <button type="button" class="btn-assign-primary" onclick="submitAssignment()">
-                <i class="fa fa-check-circle"></i> Assign Member
+              <button type="button" class="btn-assign-primary" onclick="openAssignMemberModal()">
+                <i class="fa fa-user-plus"></i> Assign Member
               </button>
             </div>
 
@@ -777,6 +790,75 @@ table.members-tbl input[type="checkbox"] { accent-color: var(--gold); cursor: po
   </div>
 </div>
 
+<!-- Modal: Assign Member Popup -->
+<div class="modal-overlay" id="assign-member-modal">
+  <div class="modal-box" style="max-width:760px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:12px; border-bottom:1px solid var(--border);">
+      <div>
+        <h3 style="font-size:1rem; font-weight:800; margin:0; color:var(--text-1)" id="modal-assign-title">Select Member to Assign</h3>
+        <span style="font-size:0.75rem; color:var(--text-2)" id="modal-assign-subtitle">12 Umoor HR &bull; 1448 Hijri</span>
+      </div>
+      <button type="button" onclick="closeAssignMemberModal()" style="border:none; background:var(--surface-2); border-radius:6px; width:28px; height:28px; cursor:pointer; font-size:1.1rem;">&times;</button>
+    </div>
+
+    <div style="padding:16px 0; overflow-y:auto; flex:1;">
+      <!-- Search & Filters inside Modal -->
+      <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px; display:flex; align-items:center; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:0 12px;">
+          <i class="fa fa-search" style="color:var(--text-3); font-size:0.85rem; margin-right:8px;"></i>
+          <input type="text" id="modal-search-q" placeholder="Type Name or ITS ID to search Jamaat members..." style="border:none; background:transparent; outline:none; font-size:0.8rem; color:var(--text-1); width:100%;" onkeyup="onModalSearchInput()">
+        </div>
+        <select id="modal-filter-gender" class="step-select" style="width:auto" onchange="loadModalMembers(1)">
+          <option value="All">Gender: All</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+        <select id="modal-filter-status" class="step-select" style="width:auto" onchange="loadModalMembers(1)">
+          <option value="Active">Status: Active</option>
+          <option value="All">Status: All</option>
+        </select>
+      </div>
+
+      <!-- Candidate Members Table inside Modal -->
+      <div class="table-responsive-custom" style="max-height:340px; overflow-y:auto;">
+        <table class="members-tbl">
+          <thead>
+            <tr>
+              <th style="width:36px"></th>
+              <th>ITS ID</th>
+              <th>Member Name</th>
+              <th>Mobile</th>
+              <th>Gender</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-modal-members-body">
+            <!-- JS populated -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px;">
+        <span id="modal-page-count-info" style="font-size:0.75rem; color:var(--text-2)">Showing members</span>
+        <div id="modal-pagination-controls" style="display:flex; gap:4px"></div>
+      </div>
+    </div>
+
+    <!-- Selected Member Preview Footer -->
+    <div style="border-top:1px solid var(--border); padding-top:14px; display:flex; align-items:center; justify-content:space-between;">
+      <div id="modal-selected-summary" style="font-size:0.8rem; font-weight:700; color:var(--text-1);">
+        No member selected
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn-assign-primary" style="width:auto; background:var(--surface-2); color:var(--text-1); border:1px solid var(--border); box-shadow:none" onclick="closeAssignMemberModal()">Cancel</button>
+        <button type="button" class="btn-assign-primary" style="width:auto; padding:0 20px" onclick="confirmModalAssignment()">
+          <i class="fa fa-check-circle"></i> Confirm &amp; Assign Member
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 var BASE_URL = '<?php echo base_url(); ?>';
 var activeYear = '<?php echo $active_year; ?>';
@@ -818,6 +900,19 @@ function switchTab(tab) {
   document.getElementById('tab-hierarchy-content').style.display = (tab === 'hierarchy') ? 'block' : 'none';
 }
 
+function isCoordinatorRole(role) {
+  role = (role || '').trim();
+  return (
+    role === 'Male Coordinator' ||
+    role === 'Female Coordinator (Al Aqeeq)' ||
+    role === 'Female Coordinator (Al Aqeeq Member)' ||
+    role === 'Female Coordinator' ||
+    role === 'Al Aqeeq Member' ||
+    role === 'Umoor Coordinator' ||
+    role === 'Coordinator'
+  );
+}
+
 function onUmoorChange() {
   state.umoorId = parseInt(document.getElementById('sel-umoor').value) || 1;
   populateSubCommitteesDropdown();
@@ -827,25 +922,36 @@ function populateSubCommitteesDropdown() {
   var select = document.getElementById('sel-subcomm');
   select.innerHTML = '';
 
-  var curItem = hierarchyData.find(function(h) { return h.umoor_id === state.umoorId; });
-  var teams = (curItem && curItem.teams) ? curItem.teams : [];
+  var isCoord = isCoordinatorRole(state.role);
 
-  if (teams.length > 0) {
-    teams.forEach(function(t) {
-      var opt = document.createElement('option');
-      opt.value = t.id;
-      opt.textContent = t.name + ' (' + (t.members_count || 0) + ' Members)';
-      select.appendChild(opt);
-    });
-    state.subCommId = teams[0].id;
-    select.disabled = false;
-  } else {
+  if (isCoord) {
     var opt = document.createElement('option');
     opt.value = '';
-    opt.textContent = 'No Sub-Committees Created';
+    opt.textContent = 'N/A (Assigned directly to Umoor)';
     select.appendChild(opt);
     state.subCommId = null;
     select.disabled = true;
+  } else {
+    var curItem = hierarchyData.find(function(h) { return h.umoor_id === state.umoorId; });
+    var teams = (curItem && curItem.teams) ? curItem.teams : [];
+
+    if (teams.length > 0) {
+      teams.forEach(function(t) {
+        var opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name + ' (' + (t.members_count || 0) + ' Members)';
+        select.appendChild(opt);
+      });
+      state.subCommId = teams[0].id;
+      select.disabled = false;
+    } else {
+      var opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No Sub-Committees Created';
+      select.appendChild(opt);
+      state.subCommId = null;
+      select.disabled = true;
+    }
   }
 
   onSubCommChange();
@@ -853,7 +959,8 @@ function populateSubCommitteesDropdown() {
 
 function onSubCommChange() {
   var select = document.getElementById('sel-subcomm');
-  state.subCommId = select.value ? parseInt(select.value) : null;
+  var isCoord = isCoordinatorRole(state.role);
+  state.subCommId = isCoord ? null : (select.value ? parseInt(select.value) : null);
   updateSummaryMeta();
   loadMembers(1);
   loadCurrentlyAssigned();
@@ -862,31 +969,52 @@ function onSubCommChange() {
 
 function onRoleChange() {
   state.role = document.getElementById('sel-role').value;
-  var isSingle = (state.role !== 'Team Member');
+  state.selectedMembers = [];
+  renderSelectedMembersList();
+
+  var isSingleRole = (state.role === 'Team Lead' || isCoordinatorRole(state.role));
+  var selectAllChk = document.getElementById('chk-select-all');
+  if (selectAllChk) {
+    selectAllChk.checked = false;
+    selectAllChk.disabled = isSingleRole;
+    if (selectAllChk.parentElement) {
+      selectAllChk.parentElement.style.opacity = isSingleRole ? '0.5' : '1';
+      selectAllChk.parentElement.style.pointerEvents = isSingleRole ? 'none' : 'auto';
+    }
+  }
   
   var banner = document.getElementById('role-type-banner');
   var bTitle = document.getElementById('banner-title');
   var bSub = document.getElementById('banner-sub');
   var badge = document.getElementById('summary-role-type-badge');
 
-  if (isSingle) {
+  if (state.role === 'Male Coordinator') {
+    banner.style.background = '#fefce8';
+    banner.style.borderColor = '#fef08a';
+    bTitle.textContent = 'Role Type: Single (Male Coordinator)';
+    bSub.textContent = 'Assigned directly to Umoor (Male members only)';
+    badge.textContent = 'Male Coordinator';
+  } else if (state.role === 'Female Coordinator (Al Aqeeq)' || state.role === 'Female Coordinator') {
+    banner.style.background = '#ecfdf5';
+    banner.style.borderColor = '#a7f3d0';
+    bTitle.textContent = 'Role Type: Single (Al Aqeeq Member)';
+    bSub.textContent = 'Assigned directly to Umoor (Female members only - Al Aqeeq)';
+    badge.textContent = 'Al Aqeeq Member';
+  } else if (state.role === 'Team Lead') {
     banner.style.background = '#fdf8e6';
     banner.style.borderColor = '#f5e9c0';
-    bTitle.textContent = 'Role Type: Single';
-    bSub.textContent = 'Only 1 member can be assigned';
+    bTitle.textContent = 'Role Type: Single (Team Lead)';
+    bSub.textContent = 'Only 1 Team Lead per Team per Year';
     badge.textContent = 'Single Role';
   } else {
     banner.style.background = '#f0fdf4';
     banner.style.borderColor = '#bbf7d0';
-    bTitle.textContent = 'Role Type: Multiple';
-    bSub.textContent = 'Multiple members allowed';
+    bTitle.textContent = 'Role Type: Multiple (Team Members)';
+    bSub.textContent = 'Multiple members allowed per Team';
     badge.textContent = 'Multiple Members';
   }
 
-  updateSummaryMeta();
-  loadMembers(1);
-  loadCurrentlyAssigned();
-  loadHistory();
+  populateSubCommitteesDropdown();
 }
 
 function updateSummaryMeta() {
@@ -894,9 +1022,13 @@ function updateSummaryMeta() {
   document.getElementById('sum-umoor').textContent = umoorList[state.umoorId] || '—';
   
   var selSubText = '—';
-  var scElem = document.getElementById('sel-subcomm');
-  if (scElem && scElem.options && scElem.options.selectedIndex >= 0) {
-    selSubText = scElem.options[scElem.options.selectedIndex].text;
+  if (isCoordinatorRole(state.role)) {
+    selSubText = 'N/A (Assigned directly to Umoor)';
+  } else {
+    var scElem = document.getElementById('sel-subcomm');
+    if (scElem && scElem.options && scElem.options.selectedIndex >= 0) {
+      selSubText = scElem.options[scElem.options.selectedIndex].text;
+    }
   }
   document.getElementById('sum-subcomm').textContent = selSubText;
   document.getElementById('sum-role').textContent = state.role;
@@ -924,7 +1056,7 @@ function loadMembers(page) {
   var status = document.getElementById('filter-status').value;
 
   var tbody = document.getElementById('tbl-members-body');
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px"><i class="fa fa-spinner fa-spin"></i> Loading members...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px"><i class="fa fa-spinner fa-spin"></i> Loading members...</td></tr>';
 
   $.ajax({
     url: BASE_URL + 'admin/get_members_ajax',
@@ -933,6 +1065,9 @@ function loadMembers(page) {
       q: q,
       gender: gender,
       status: status,
+      year: activeYear,
+      umoor_id: state.umoorId,
+      sub_committee_id: state.subCommId,
       page: state.page,
       limit: 10
     },
@@ -941,7 +1076,7 @@ function loadMembers(page) {
       if (res && res.success) {
         renderMembersTable(res.members, res.page, res.total, res.pages);
       } else {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-3)">Failed to load members.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-3)">Failed to load members.</td></tr>';
       }
     }
   });
@@ -952,8 +1087,22 @@ function renderMembersTable(members, page, total, pages) {
   tbody.innerHTML = '';
   state.membersMap = {};
 
+  var isSingleRole = (state.role === 'Team Lead' || state.role === 'Umoor Coordinator' || state.role === 'Coordinator');
+  var selectAllChk = document.getElementById('chk-select-all');
+  if (selectAllChk) {
+    selectAllChk.disabled = isSingleRole;
+    if (selectAllChk.parentElement) {
+      selectAllChk.parentElement.style.opacity = isSingleRole ? '0.5' : '1';
+      selectAllChk.parentElement.style.pointerEvents = isSingleRole ? 'none' : 'auto';
+    }
+  }
+
   if (!members || members.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-3)">No registered members found matching filters.</td></tr>';
+    var qVal = document.getElementById('search-q').value.trim();
+    var msg = qVal ? 'No members found matching "' + escapeHtml(qVal) + '".' : 'No members assigned to this Umoor / Sub-Committee for ' + activeYear + ' Hijri.<br><small class="text-muted">Click the <strong>Assign Member</strong> button above to search and assign members.</small>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-3)">' + msg + '</td></tr>';
+    document.getElementById('page-count-info').textContent = 'Showing 0 to 0 of 0 members';
+    document.getElementById('pagination-controls').innerHTML = '';
     return;
   }
 
@@ -962,9 +1111,16 @@ function renderMembersTable(members, page, total, pages) {
     var isSel = state.selectedMembers.includes(m.ITS_ID);
     var tr = document.createElement('tr');
 
-    tr.innerHTML = '<td><input type="checkbox" class="member-chk-item" data-its="' + m.ITS_ID + '" ' + (isSel ? 'checked' : '') + ' onchange="onMemberSelectToggle(\'' + m.ITS_ID + '\', this.checked)"></td>' +
+    var inputType = isSingleRole ? 'radio' : 'checkbox';
+    var inputName = isSingleRole ? 'single_member_radio' : '';
+
+    var roleLabel = m.assigned_role || state.role || 'Member';
+    var roleBadge = '<span class="level-badge" style="font-weight:700;">' + escapeHtml(roleLabel) + '</span>';
+
+    tr.innerHTML = '<td><input type="' + inputType + '" name="' + inputName + '" class="member-chk-item" data-its="' + m.ITS_ID + '" ' + (isSel ? 'checked' : '') + ' onchange="onMemberSelectToggle(\'' + m.ITS_ID + '\', this.checked)"></td>' +
       '<td><strong>' + m.ITS_ID + '</strong></td>' +
       '<td>' + (m.Full_Name || '—') + '</td>' +
+      '<td>' + roleBadge + '</td>' +
       '<td>' + (m.Mobile_No || '—') + '</td>' +
       '<td>' + (m.Email || '—') + '</td>' +
       '<td>' + (m.Gender || '—') + '</td>' +
@@ -989,12 +1145,23 @@ function renderMembersTable(members, page, total, pages) {
 }
 
 function onMemberSelectToggle(its, isChecked) {
-  if (isChecked) {
-    if (!state.selectedMembers.includes(its)) {
-      state.selectedMembers.push(its);
+  var isSingleRole = (state.role === 'Team Lead' || state.role === 'Umoor Coordinator' || state.role === 'Coordinator');
+  if (isSingleRole) {
+    if (isChecked) {
+      state.selectedMembers = [its];
+      $('.member-chk-item').prop('checked', false);
+      $('.member-chk-item[data-its="' + its + '"]').prop('checked', true);
+    } else {
+      state.selectedMembers = [];
     }
   } else {
-    state.selectedMembers = state.selectedMembers.filter(function(id) { return id !== its; });
+    if (isChecked) {
+      if (!state.selectedMembers.includes(its)) {
+        state.selectedMembers.push(its);
+      }
+    } else {
+      state.selectedMembers = state.selectedMembers.filter(function(id) { return id !== its; });
+    }
   }
   renderSelectedMembersList();
 }
@@ -1037,14 +1204,18 @@ function loadCurrentlyAssigned() {
   var container = document.getElementById('currently-assigned-box');
   container.innerHTML = '<div style="text-align:center;padding:10px"><i class="fa fa-spinner fa-spin"></i> Loading...</div>';
 
+  var isCoord = (state.role === 'Male Coordinator' || state.role === 'Female Coordinator (Al Aqeeq)' || state.role === 'Female Coordinator' || state.role === 'Umoor Coordinator' || state.role === 'Coordinator');
+  var reqRole = isCoord ? state.role : (state.role === 'Team Lead' ? 'Team Lead' : '');
+  var subId = isCoord ? '' : state.subCommId;
+
   $.ajax({
     url: BASE_URL + 'admin/get_assigned_members_ajax',
     type: 'GET',
     data: {
       year: activeYear,
       umoor_id: state.umoorId,
-      sub_committee_id: state.subCommId,
-      role: ''
+      sub_committee_id: subId,
+      role: reqRole
     },
     dataType: 'json',
     success: function(res) {
@@ -1066,10 +1237,187 @@ function loadCurrentlyAssigned() {
 }
 
 function submitAssignment() {
-  if (state.selectedMembers.length === 0) {
+  openAssignMemberModal();
+}
+
+var modalState = {
+  selectedMembers: [],
+  membersMap: {},
+  page: 1
+};
+
+function openAssignMemberModal() {
+  var isCoord = (state.role === 'Male Coordinator' || state.role === 'Female Coordinator (Al Aqeeq)' || state.role === 'Female Coordinator' || state.role === 'Umoor Coordinator' || state.role === 'Coordinator');
+  if (!isCoord && !state.subCommId) {
+    if (confirm('No Sub-Committee / Team selected for this Umoor. Would you like to create a Sub-Committee / Team first?')) {
+      openAddTeamModal();
+    }
+    return;
+  }
+
+  modalState.selectedMembers = [];
+  modalState.membersMap = {};
+
+  var uName = umoorList[state.umoorId] || ('Umoor #' + state.umoorId);
+  var scName = 'N/A (Umoor Level)';
+  var scElem = document.getElementById('sel-subcomm');
+  if (scElem && scElem.options && scElem.options.selectedIndex >= 0 && scElem.options[scElem.options.selectedIndex].value) {
+    scName = scElem.options[scElem.options.selectedIndex].text;
+  }
+
+  document.getElementById('modal-assign-title').textContent = 'Select & Assign ' + state.role;
+  document.getElementById('modal-assign-subtitle').textContent = uName + ' \u2022 ' + scName + ' \u2022 ' + activeYear + ' Hijri';
+
+  document.getElementById('modal-search-q').value = '';
+
+  var genderSel = document.getElementById('modal-filter-gender');
+  if (state.role === 'Male Coordinator') {
+    genderSel.value = 'Male';
+    genderSel.disabled = true;
+  } else if (state.role === 'Female Coordinator (Al Aqeeq)' || state.role === 'Female Coordinator') {
+    genderSel.value = 'Female';
+    genderSel.disabled = true;
+  } else {
+    genderSel.value = 'All';
+    genderSel.disabled = false;
+  }
+
+  document.getElementById('assign-member-modal').style.display = 'flex';
+  renderModalSelectedSummary();
+  loadModalMembers(1);
+}
+
+function closeAssignMemberModal() {
+  document.getElementById('assign-member-modal').style.display = 'none';
+}
+
+var modalSearchTimer = null;
+function onModalSearchInput() {
+  clearTimeout(modalSearchTimer);
+  modalSearchTimer = setTimeout(function() {
+    loadModalMembers(1);
+  }, 300);
+}
+
+function loadModalMembers(page) {
+  modalState.page = page || 1;
+  var q = document.getElementById('modal-search-q').value;
+  var gender = document.getElementById('modal-filter-gender').value;
+  var status = document.getElementById('modal-filter-status').value;
+
+  var tbody = document.getElementById('tbl-modal-members-body');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px"><i class="fa fa-spinner fa-spin"></i> Searching Jamaat members...</td></tr>';
+
+  $.ajax({
+    url: BASE_URL + 'admin/get_members_ajax',
+    type: 'GET',
+    data: {
+      q: q,
+      gender: gender,
+      status: status,
+      year: activeYear,
+      assigned_only: 0,
+      page: modalState.page,
+      limit: 10
+    },
+    dataType: 'json',
+    success: function(res) {
+      if (res && res.success) {
+        renderModalMembersTable(res.members, res.page, res.total, res.pages);
+      } else {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text-3)">Failed to load members.</td></tr>';
+      }
+    }
+  });
+}
+
+function renderModalMembersTable(members, page, total, pages) {
+  var tbody = document.getElementById('tbl-modal-members-body');
+  tbody.innerHTML = '';
+  modalState.membersMap = {};
+
+  var isSingleRole = (state.role === 'Team Lead' || state.role === 'Male Coordinator' || state.role === 'Female Coordinator (Al Aqeeq)' || state.role === 'Female Coordinator' || state.role === 'Umoor Coordinator' || state.role === 'Coordinator');
+
+  if (!members || members.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-3)">No members found matching search.</td></tr>';
+    document.getElementById('modal-page-count-info').textContent = 'Showing 0 to 0 of 0 members';
+    document.getElementById('modal-pagination-controls').innerHTML = '';
+    return;
+  }
+
+  members.forEach(function(m) {
+    modalState.membersMap[m.ITS_ID] = m;
+    var isSel = modalState.selectedMembers.includes(m.ITS_ID);
+    var tr = document.createElement('tr');
+
+    var inputType = isSingleRole ? 'radio' : 'checkbox';
+    var inputName = isSingleRole ? 'modal_member_radio' : '';
+
+    tr.innerHTML = '<td><input type="' + inputType + '" name="' + inputName + '" class="modal-chk-item" data-its="' + m.ITS_ID + '" ' + (isSel ? 'checked' : '') + ' onchange="onModalMemberSelectToggle(\'' + m.ITS_ID + '\', this.checked)"></td>' +
+      '<td><strong>' + m.ITS_ID + '</strong></td>' +
+      '<td>' + escapeHtml(m.Full_Name || '—') + '</td>' +
+      '<td>' + (m.Mobile_No || '—') + '</td>' +
+      '<td>' + (m.Gender || '—') + '</td>' +
+      '<td><span class="status-pill ' + (m.status_label === 'Active' ? 'status-active' : 'status-inactive') + '">' + m.status_label + '</span></td>';
+
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('modal-page-count-info').textContent = 'Showing ' + ((page-1)*10 + 1) + ' to ' + Math.min(total, page*10) + ' of ' + total + ' members';
+
+  var pCtrl = document.getElementById('modal-pagination-controls');
+  pCtrl.innerHTML = '';
+  for (var i = 1; i <= Math.min(pages, 10); i++) {
+    var btn = document.createElement('button');
+    btn.className = 'page-btn ' + (i === page ? 'active' : '');
+    btn.textContent = i;
+    btn.onclick = (function(p) { return function() { loadModalMembers(p); }; })(i);
+    pCtrl.appendChild(btn);
+  }
+}
+
+function onModalMemberSelectToggle(its, isChecked) {
+  var isSingleRole = (state.role === 'Team Lead' || state.role === 'Male Coordinator' || state.role === 'Female Coordinator (Al Aqeeq)' || state.role === 'Female Coordinator' || state.role === 'Umoor Coordinator' || state.role === 'Coordinator');
+  if (isSingleRole) {
+    if (isChecked) {
+      modalState.selectedMembers = [its];
+      $('.modal-chk-item').prop('checked', false);
+      $('.modal-chk-item[data-its="' + its + '"]').prop('checked', true);
+    } else {
+      modalState.selectedMembers = [];
+    }
+  } else {
+    if (isChecked) {
+      if (!modalState.selectedMembers.includes(its)) {
+        modalState.selectedMembers.push(its);
+      }
+    } else {
+      modalState.selectedMembers = modalState.selectedMembers.filter(function(id) { return id !== its; });
+    }
+  }
+  renderModalSelectedSummary();
+}
+
+function renderModalSelectedSummary() {
+  var container = document.getElementById('modal-selected-summary');
+  if (modalState.selectedMembers.length === 0) {
+    container.innerHTML = '<span class="text-muted">No member selected</span>';
+    return;
+  }
+  var names = modalState.selectedMembers.map(function(its) {
+    var m = modalState.membersMap[its];
+    return (m && m.Full_Name) ? m.Full_Name + ' (' + its + ')' : its;
+  });
+  container.innerHTML = '<span style="color:var(--gold);"><i class="fa fa-user-check mr-1"></i> Selected: ' + escapeHtml(names.join(', ')) + '</span>';
+}
+
+function confirmModalAssignment() {
+  if (modalState.selectedMembers.length === 0) {
     alert('Please select at least one member to assign.');
     return;
   }
+
+  var isCoord = (state.role === 'Male Coordinator' || state.role === 'Female Coordinator (Al Aqeeq)' || state.role === 'Female Coordinator' || state.role === 'Umoor Coordinator' || state.role === 'Coordinator');
 
   $.ajax({
     url: BASE_URL + 'admin/assign_role_ajax',
@@ -1077,17 +1425,25 @@ function submitAssignment() {
     data: {
       year: activeYear,
       umoor_id: state.umoorId,
-      sub_committee_id: state.subCommId,
+      sub_committee_id: isCoord ? '' : state.subCommId,
       role: state.role,
-      user_its: state.selectedMembers
+      user_its: modalState.selectedMembers
     },
     dataType: 'json',
     success: function(res) {
       if (res && res.success) {
         alert(res.message || 'Assignment successful!');
+        closeAssignMemberModal();
+        modalState.selectedMembers = [];
+
+        var selRoleElem = document.getElementById('sel-role');
+        if (selRoleElem && selRoleElem.value) {
+          state.role = selRoleElem.value;
+        }
+
         state.selectedMembers = [];
         renderSelectedMembersList();
-        loadMembers(state.page);
+        loadMembers(1);
         loadCurrentlyAssigned();
         loadHistory();
         renderHierarchyTab();
@@ -1122,13 +1478,18 @@ function loadHistory() {
   var tbody = document.getElementById('tbl-history-body');
   tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:14px"><i class="fa fa-spinner fa-spin"></i> Loading audit history...</td></tr>';
 
+  var isCoord = (state.role === 'Male Coordinator' || state.role === 'Female Coordinator (Al Aqeeq)' || state.role === 'Female Coordinator' || state.role === 'Umoor Coordinator' || state.role === 'Coordinator');
+  var reqRole = isCoord ? state.role : '';
+  var subId = isCoord ? '' : state.subCommId;
+
   $.ajax({
     url: BASE_URL + 'admin/get_assignment_history_ajax',
     type: 'GET',
     data: {
       year: activeYear,
       umoor_id: state.umoorId,
-      sub_committee_id: state.subCommId
+      sub_committee_id: subId,
+      role: reqRole
     },
     dataType: 'json',
     success: function(res) {
@@ -1180,11 +1541,50 @@ function renderLevel1Grid() {
   hierarchyData.forEach(function(item) {
     var div = document.createElement('div');
     div.className = 'u-card';
-    div.innerHTML = '<div class="u-num">' + item.umoor_id + '</div>' +
-      '<div class="u-name">' + item.umoor_name + '</div>' +
-      '<div class="u-coord">' + (item.coordinator ? ('<i class="fa fa-user-circle"></i> ' + item.coordinator.name) : '<span style="color:var(--text-3)">No Coordinator</span>') + '</div>';
+    div.style.display = 'flex';
+    div.style.flexDirection = 'column';
+    div.style.justifyContent = 'space-between';
+
+    var mCoordHtml = item.male_coordinator ? 
+      '<div style="font-size:0.72rem;color:#b8860b;font-weight:700;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;" title="Male Coordinator">' +
+        '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px"><i class="fa fa-user-circle"></i> <strong>Male:</strong> ' + escapeHtml(item.male_coordinator.name) + '</span>' +
+        '<button type="button" class="btn-assign-primary" style="width:auto;padding:1px 6px;font-size:0.65rem;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border);box-shadow:none;" onclick="openCoordinatorAssignModal(' + item.umoor_id + ', \'Male Coordinator\')"><i class="fa fa-pencil"></i></button>' +
+      '</div>' :
+      '<div style="font-size:0.7rem;color:var(--text-3);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">' +
+        '<span><i class="fa fa-user-circle-o"></i> Male: <em>Unassigned</em></span>' +
+        '<button type="button" class="btn-assign-primary" style="width:auto;padding:2px 8px;font-size:0.65rem;" onclick="openCoordinatorAssignModal(' + item.umoor_id + ', \'Male Coordinator\')">+ Assign</button>' +
+      '</div>';
+      
+    var fCoordHtml = item.female_coordinator ? 
+      '<div style="font-size:0.72rem;color:#059669;font-weight:700;display:flex;align-items:center;justify-content:space-between;" title="Female Coordinator / Al Aqeeq Member">' +
+        '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px"><i class="fa fa-user-circle"></i> <strong>Al Aqeeq:</strong> ' + escapeHtml(item.female_coordinator.name) + '</span>' +
+        '<button type="button" class="btn-assign-primary" style="width:auto;padding:1px 6px;font-size:0.65rem;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border);box-shadow:none;" onclick="openCoordinatorAssignModal(' + item.umoor_id + ', \'Female Coordinator (Al Aqeeq)\')"><i class="fa fa-pencil"></i></button>' +
+      '</div>' :
+      '<div style="font-size:0.7rem;color:var(--text-3);display:flex;align-items:center;justify-content:space-between;">' +
+        '<span><i class="fa fa-user-circle-o"></i> Al Aqeeq: <em>Unassigned</em></span>' +
+        '<button type="button" class="btn-assign-primary" style="width:auto;padding:2px 8px;font-size:0.65rem;background:#059669;" onclick="openCoordinatorAssignModal(' + item.umoor_id + ', \'Female Coordinator (Al Aqeeq)\')">+ Assign</button>' +
+      '</div>';
+
+    div.innerHTML = '<div>' +
+        '<div class="u-num">' + item.umoor_id + '</div>' +
+        '<div class="u-name">' + escapeHtml(item.umoor_name) + '</div>' +
+      '</div>' +
+      '<div style="border-top:1px dashed var(--border);padding-top:6px;margin-top:6px;">' +
+        mCoordHtml + fCoordHtml +
+      '</div>';
+
     container.appendChild(div);
   });
+}
+
+function openCoordinatorAssignModal(umoorId, role) {
+  state.umoorId = parseInt(umoorId) || 1;
+  state.role = role;
+  
+  var uSelect = document.getElementById('sel-umoor');
+  if (uSelect) uSelect.value = state.umoorId;
+  
+  openAssignMemberModal();
 }
 
 function renderLevel2Split() {

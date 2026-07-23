@@ -5634,6 +5634,10 @@ HTML;
     $data['member']            = $member;
     $data['family_members']    = $this->AdminM->get_family_members_by_hof_id($hof_id);
     $data['family_financials'] = $this->AdminM->get_family_financial_data($hof_id);
+    
+    $this->load->model('SansthaM');
+    $data['member_sansthas']   = $this->SansthaM->get_member_sansthas($its_id);
+
     if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] == 3) {
       $this->load->view('Anjuman/Header', $data);
     } else {
@@ -6264,10 +6268,14 @@ HTML;
     $q = (string)$this->input->get_post('q');
     $gender = (string)$this->input->get_post('gender');
     $status = (string)$this->input->get_post('status');
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+    $umoor_id = $this->input->get_post('umoor_id');
+    $sub_committee_id = $this->input->get_post('sub_committee_id');
+    $assigned_only = ($q === '') ? true : (bool)$this->input->get_post('assigned_only');
     $limit = (int)($this->input->get_post('limit') ?: 10);
     $page = (int)($this->input->get_post('page') ?: 1);
 
-    $res = $this->UmoorHRM->search_members($q, $gender, $status, $limit, $page);
+    $res = $this->UmoorHRM->search_members($q, $gender, $status, $limit, $page, $year, $umoor_id, $sub_committee_id, $assigned_only);
     echo json_encode(array_merge(['success' => true], $res));
   }
 
@@ -6350,4 +6358,200 @@ HTML;
     echo json_encode(['success' => true, 'year' => $year, 'hierarchy' => $hierarchy]);
   }
 
+  /* =========================================================================
+     SANSTHA MODULE METHODS
+     ========================================================================= */
+
+  public function sanstha()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      redirect('/accounts');
+    }
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('SansthaM');
+
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+
+    $filters = [
+      'q' => (string)$this->input->get('q'),
+      'status' => (string)$this->input->get('status'),
+      'year' => $year
+    ];
+
+    $data['sanstha_list'] = $this->SansthaM->get_all_sansthas($filters);
+    $data['filters'] = $filters;
+    $data['year'] = $year;
+
+    $this->load->view('Admin/Header', $data);
+    $this->load->view('Admin/SansthaManagement', $data);
+  }
+
+  public function get_sansthas_ajax()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('SansthaM');
+
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+    $status = (string)$this->input->get_post('status');
+    $q = (string)$this->input->get_post('q');
+    $only_with_members = (bool)$this->input->get_post('only_with_members');
+
+    $sanstha_list = $this->SansthaM->get_all_sansthas([
+      'year' => $year,
+      'status' => $status,
+      'q' => $q,
+      'only_with_members' => $only_with_members
+    ]);
+    echo json_encode(['success' => true, 'sanstha_list' => $sanstha_list, 'year' => $year]);
+  }
+
+  public function save_sanstha_ajax()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('SansthaM');
+
+    $id = (int)$this->input->post('id');
+    $name = trim((string)$this->input->post('name'));
+    $description = trim((string)$this->input->post('description'));
+    $status = trim((string)$this->input->post('status')) ?: 'Active';
+
+    $payload = [
+      'name' => $name,
+      'description' => $description,
+      'status' => $status
+    ];
+
+    if ($id > 0) {
+      $res = $this->SansthaM->update_sanstha($id, $payload);
+    } else {
+      $res = $this->SansthaM->create_sanstha($payload);
+    }
+
+    echo json_encode($res);
+  }
+
+  public function toggle_sanstha_status_ajax()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('SansthaM');
+
+    $id = (int)$this->input->post('id');
+    $res = $this->SansthaM->toggle_status($id);
+    echo json_encode($res);
+  }
+
+  public function delete_sanstha_ajax()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('SansthaM');
+
+    $id = (int)$this->input->post('id');
+    $res = $this->SansthaM->delete_sanstha($id);
+    echo json_encode($res);
+  }
+
+  public function get_sanstha_members_ajax()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('SansthaM');
+
+    $sanstha_id = (int)$this->input->get_post('sanstha_id');
+    $q = (string)$this->input->get_post('q');
+    $gender = (string)$this->input->get_post('gender');
+    $status = (string)$this->input->get_post('status');
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+    $limit = (int)($this->input->get_post('limit') ?: 10);
+    $page = (int)($this->input->get_post('page') ?: 1);
+
+    if ($sanstha_id <= 0) {
+      echo json_encode(['success' => false, 'message' => 'Invalid Sanstha selected.']); return;
+    }
+
+    $res = $this->SansthaM->get_sanstha_members($sanstha_id, $q, $gender, $status, $year, $limit, $page);
+    echo json_encode(array_merge(['success' => true], $res));
+  }
+
+  public function get_available_members_for_sanstha_ajax()
+  {
+    if (empty($_SESSION['user'])) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('SansthaM');
+
+    $sanstha_id = (int)$this->input->get_post('sanstha_id');
+    $q = (string)$this->input->get_post('q');
+    $gender = (string)$this->input->get_post('gender');
+    $status = (string)$this->input->get_post('status');
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+    $limit = (int)($this->input->get_post('limit') ?: 10);
+    $page = (int)($this->input->get_post('page') ?: 1);
+
+    $res = $this->SansthaM->search_available_members($sanstha_id, $q, $gender, $status, $year, $limit, $page);
+    echo json_encode(array_merge(['success' => true], $res));
+  }
+
+  public function add_sanstha_members_ajax()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('SansthaM');
+
+    $sanstha_id = (int)$this->input->post('sanstha_id');
+    $user_its = $this->input->post('user_its');
+    $year = trim((string)$this->input->post('year')) ?: '1448';
+
+    if ($sanstha_id <= 0) {
+      echo json_encode(['success' => false, 'message' => 'Please select a valid Sanstha.']); return;
+    }
+
+    $res = $this->SansthaM->add_members_to_sanstha($sanstha_id, $user_its, $year);
+    echo json_encode($res);
+  }
+
+  public function remove_sanstha_member_ajax()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('SansthaM');
+
+    $sanstha_id = (int)$this->input->post('sanstha_id');
+    $user_its = trim((string)$this->input->post('user_its'));
+    $year = trim((string)$this->input->post('year')) ?: '1448';
+
+    if ($sanstha_id <= 0 || !$user_its) {
+      echo json_encode(['success' => false, 'message' => 'Invalid parameters.']); return;
+    }
+
+    $res = $this->SansthaM->remove_member_from_sanstha($sanstha_id, $user_its, $year);
+    echo json_encode($res);
+  }
+
+  public function copy_sanstha_members_ajax()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 1 && $_SESSION['user']['role'] != 3)) {
+      echo json_encode(['success' => false, 'message' => 'Unauthorized']); return;
+    }
+    $this->load->model('SansthaM');
+
+    $sanstha_id = (int)$this->input->post('sanstha_id');
+    $from_year = trim((string)$this->input->post('from_year'));
+    $to_year = trim((string)$this->input->post('to_year'));
+
+    $res = $this->SansthaM->copy_previous_year_members($sanstha_id, $from_year, $to_year);
+    echo json_encode($res);
+  }
+
 }
+

@@ -327,6 +327,12 @@
               <span class="menu-label">Submitted Applications</span>
             </a>
           </li>
+          <li>
+            <a class="menu-item" href="<?php echo base_url('accounts/umoor_hr') ?>">
+              <span class="menu-icon" style="background:#fef3c7; color:#b45309;"><i class="fa fa-sitemap"></i></span>
+              <span class="menu-label">12 Umoor HR</span>
+            </a>
+          </li>
         </ul>
 
         <div class="menu-section">FMB / Food</div>
@@ -459,6 +465,12 @@
             <a class="menu-item" href="<?php echo base_url('accounts/appointment') ?>">
               <span class="menu-icon" style="background:#fef2f2; color:#b91c1c;"><i class="fa fa-calendar-o"></i></span>
               <span class="menu-label">Appointments</span>
+            </a>
+          </li>
+          <li>
+            <a class="menu-item" href="<?php echo base_url('accounts/sanstha') ?>">
+              <span class="menu-icon" style="background:#fffbeb; color:#b8860b;"><i class="fa fa-building-o"></i></span>
+              <span class="menu-label">Sanstha Memberships</span>
             </a>
           </li>
           <li>

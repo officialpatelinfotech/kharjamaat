@@ -4,7 +4,7 @@ $is_laagat = isset($module_type) && $module_type === 'laagat';
 $module_title = $is_laagat ? 'Laagat Module' : 'Rent Module';
 $create_url = $is_laagat ? site_url('admin/laagat/create') : site_url('admin/rent/create');
 $manage_url = $is_laagat ? site_url('admin/laagat/manage') : site_url('admin/rent/manage');
-$col_class = $is_laagat ? 'col-md-5' : 'col-md-4';
+$col_class = 'col-md-5';
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,19 +40,7 @@ $col_class = $is_laagat ? 'col-md-5' : 'col-md-4';
       </a>
     </div>
 
-    <?php if (!$is_laagat) : ?>
-    <div class="col-12 <?php echo $col_class; ?> d-flex mb-4">
-      <a href="<?php echo site_url('admin/properties'); ?>" class="text-decoration-none w-100">
-        <div class="admin-card">
-          <div class="admin-card-icon">
-            <i class="fa fa-building"></i>
-          </div>
-          <h5 class="admin-card-title">Manage Properties</h5>
-          <p class="admin-card-desc">Add, edit, list, and delete properties used as venues for events and rentals.</p>
-        </div>
-      </a>
-    </div>
-    <?php endif; ?>
+
   </div>
 </div>
 

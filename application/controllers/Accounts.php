@@ -4720,12 +4720,61 @@ class Accounts extends CI_Controller
 
     $data['incharge_data'] = $this->AccountM->getInchargeDetails($user_id);
 
+    $this->load->model('SansthaM');
+    $data['member_sansthas'] = $this->SansthaM->get_member_sansthas($user_id, '1448');
+
     $data['user_name'] = $_SESSION['user']['username'];
     $data['member_name'] = $_SESSION['user_data']['First_Name'] . " " . $_SESSION['user_data']['Surname'];
     $data['sector'] = $_SESSION['user_data']['Sector'];
     $this->load->view('Accounts/Header', $data);
     // Load the view with inline CSS
     $this->load->view('Accounts/profile', $data);
+  }
+
+  public function sanstha()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+      return;
+    }
+
+    $user_id = $_SESSION['user_data']['ITS_ID'];
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = ($_SESSION['user_data']['First_Name'] ?? '') . " " . ($_SESSION['user_data']['Surname'] ?? '');
+    $data['sector'] = $_SESSION['user_data']['Sector'] ?? '';
+
+    $this->load->model('SansthaM');
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+    $data['year'] = $year;
+    $data['member_sansthas'] = $this->SansthaM->get_member_sansthas($user_id, $year);
+    $data['all_sansthas'] = $this->SansthaM->get_all_sansthas(['status' => 'Active', 'year' => $year, 'only_with_members' => true]);
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/Sanstha', $data);
+  }
+
+  public function umoor_hr()
+  {
+    if (empty($_SESSION['user'])) {
+      redirect('/accounts');
+      return;
+    }
+
+    $user_id = $_SESSION['user_data']['ITS_ID'] ?? $_SESSION['user']['username'];
+    $data['user_name'] = $_SESSION['user']['username'];
+    $data['member_name'] = ($_SESSION['user_data']['First_Name'] ?? '') . " " . ($_SESSION['user_data']['Surname'] ?? '');
+    $data['sector'] = $_SESSION['user_data']['Sector'] ?? '';
+
+    $this->load->model('UmoorHRM');
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+    $data['year'] = $year;
+    $data['years_list'] = ['1446', '1447', '1448', '1449', '1450'];
+    $data['my_assignments'] = $this->UmoorHRM->get_member_umoor_assignments($user_id, $year);
+    $data['umoor_list'] = $this->UmoorHRM->get_umoor_list();
+    $data['hierarchy'] = $this->UmoorHRM->get_full_hierarchy($year);
+
+    $this->load->view('Accounts/Header', $data);
+    $this->load->view('Accounts/UmoorHR', $data);
   }
 
   public function update_profile_contact()

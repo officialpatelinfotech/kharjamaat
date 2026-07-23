@@ -1200,18 +1200,29 @@ class Anjuman extends CI_Controller
           $depAmt = (float)$this->input->post('deposit_amount');
           $totalAmt = (float)$this->input->post('amount');
 
-          if ($totalAmt <= 0.0001 && ($jAmt > 0 || $sAmt > 0)) {
-            $totalAmt = $jAmt + $sAmt;
-          }
+          $isDepositOnly = ($invoice['charge_type'] === 'deposit') || ($invoice['charge_type'] === 'rent' && (float)$invoice['amount'] <= 0.0001 && (float)$invoice['deposit_amount'] > 0);
 
-          $updateData = [
-            'jamaat_amount' => $jAmt,
-            'sarkaar_amount' => $sAmt,
-            'amount' => $totalAmt
-          ];
+          if ($isDepositOnly) {
+            $updateData = [
+              'jamaat_amount' => 0.00,
+              'sarkaar_amount' => 0.00,
+              'amount' => 0.00,
+              'deposit_amount' => $depAmt
+            ];
+          } else {
+            if ($totalAmt <= 0.0001 && ($jAmt > 0 || $sAmt > 0)) {
+              $totalAmt = $jAmt + $sAmt;
+            }
 
-          if ($depAmt > 0 || ($invoice['charge_type'] === 'rent' && (float)$invoice['amount'] <= 0.0001)) {
-            $updateData['deposit_amount'] = $depAmt;
+            $updateData = [
+              'jamaat_amount' => $jAmt,
+              'sarkaar_amount' => $sAmt,
+              'amount' => $totalAmt
+            ];
+
+            if ($depAmt > 0 || ($invoice['charge_type'] === 'rent' && (float)$invoice['amount'] <= 0.0001)) {
+              $updateData['deposit_amount'] = $depAmt;
+            }
           }
 
           if (!empty($created_at)) {
@@ -6644,13 +6655,19 @@ class Anjuman extends CI_Controller
 
   public function umoor_sub_committees()
   {
-    if (empty($_SESSION['user']) || $_SESSION['user']['role'] != 3) {
+    $this->umoor_hr();
+  }
+
+  public function umoor_hr()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 3 && $_SESSION['user']['role'] != 1)) {
       redirect('/accounts');
+      return;
     }
     $data['user_name'] = $_SESSION['user']['username'];
     $this->load->model('UmoorHRM');
 
-    $active_year = $this->input->get('year') ?: '1448';
+    $active_year = $this->input->get_post('year') ?: '1448';
     $data['active_year'] = $active_year;
     $data['years_list'] = ['1446', '1447', '1448', '1449', '1450'];
 
@@ -6659,7 +6676,35 @@ class Anjuman extends CI_Controller
     $data['hierarchy'] = $this->UmoorHRM->get_full_hierarchy($active_year);
 
     $this->load->view('Anjuman/Header', $data);
-    $this->load->view('Admin/UmoorSubCommittees', $data);
+    $this->load->view('Anjuman/UmoorHRDirectory', $data);
+  }
+
+  public function sanstha()
+  {
+    if (empty($_SESSION['user']) || ($_SESSION['user']['role'] != 3 && $_SESSION['user']['role'] != 1)) {
+      redirect('/accounts');
+      return;
+    }
+
+    $data['user_name'] = $_SESSION['user']['username'];
+    $this->load->model('SansthaM');
+
+    $year = trim((string)$this->input->get_post('year')) ?: '1448';
+    $q = trim((string)$this->input->get_post('q'));
+
+    $filters = [
+      'q' => $q,
+      'status' => 'Active',
+      'year' => $year,
+      'only_with_members' => true
+    ];
+
+    $data['sanstha_list'] = $this->SansthaM->get_all_sansthas($filters);
+    $data['year'] = $year;
+    $data['q'] = $q;
+
+    $this->load->view('Anjuman/Header', $data);
+    $this->load->view('Anjuman/SansthaDirectory', $data);
   }
 
   // Updated by Patel Infotech Services
